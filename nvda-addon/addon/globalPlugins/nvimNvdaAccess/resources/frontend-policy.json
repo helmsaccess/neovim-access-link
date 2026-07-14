@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "frontends": [
+    {
+      "kind": "windowsTerminal",
+      "status": "enabled",
+      "appModule": "windowsterminal",
+      "uiaClassNames": ["TermControl", "WPFTermControl"],
+      "requiresRuntimeId": true
+    },
+    {
+      "kind": "putty",
+      "status": "planned",
+      "appModule": "",
+      "uiaClassNames": [],
+      "requiresRuntimeId": false
+    }
+  ]
+}

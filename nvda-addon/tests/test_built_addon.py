@@ -1,0 +1,3156 @@
+from __future__ import annotations
+
+import builtins
+import io
+import json
+import pathlib
+import subprocess
+import sys
+import tarfile
+import tempfile
+import types
+import unittest
+import wave
+from unittest import mock
+import zipfile
+
+from tools.build_nvda_addon import build, validate_manifest
+from tools import build_user_package
+import buildVars
+
+
+class BuiltAddonTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.config_path = pathlib.Path(self.temporary.name) / "config"
+        self.config_path.mkdir()
+        self.extract_path = pathlib.Path(self.temporary.name) / "addon"
+        with zipfile.ZipFile(build()) as archive:
+            archive.extractall(self.extract_path)
+        self.messages: list[str] = []
+        self.spoken: list[str] = []
+        self.speechTextCalls: list[tuple[str, dict]] = []
+        self.spelled: list[str] = []
+        self.beeps: list[tuple[int, int]] = []
+        self.soundFeeds: list[bytes] = []
+        self.brailleMessages: list[str] = []
+        self.speechCancellations = 0
+        self.clipboard = ""
+        self.menuLabels: list[str] = []
+        self.preferencesMenuLabels: list[str] = []
+        self.toolsMenuLabels: list[str] = []
+        self.focus = types.SimpleNamespace(
+            processID=100, windowHandle=200, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="windowsterminal"),
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 200, 4, 6),
+            ),
+        )
+        builtins._ = lambda text: text
+        self._install_mocks()
+        sys.path.insert(0, str(self.extract_path))
+
+    def tearDown(self) -> None:
+        sys.path.remove(str(self.extract_path))
+        for name in list(sys.modules):
+            if (
+                name == "globalPlugins" or name.startswith("globalPlugins.")
+                or name == "appModules" or name.startswith("appModules.")
+            ):
+                del sys.modules[name]
+        if hasattr(builtins, "_"):
+            del builtins._
+        self.temporary.cleanup()
+
+    def _focusPlugin(self, plugin, obj=None) -> None:
+        obj = obj or self.focus
+        plugin._gate.focused = plugin._identity(obj)
+        plugin._focusedTerminalObject = obj
+
+    def _install_mocks(self) -> None:
+        addon_handler = types.ModuleType("addonHandler")
+        addon_handler.initTranslation = lambda: None
+        addon_handler.getCodeAddon = lambda: types.SimpleNamespace(manifest=buildVars.manifest())
+        sys.modules["addonHandler"] = addon_handler
+
+        api = types.ModuleType("api")
+        api.getFocusObject = lambda: self.focus
+        def copy_to_clip(text, notify=False):
+            self.clipboard = text
+            return True
+        api.copyToClip = copy_to_clip
+        sys.modules["api"] = api
+
+        build_version = types.ModuleType("buildVersion")
+        build_version.version = "2026.1.1"
+        sys.modules["buildVersion"] = build_version
+
+        braille = types.ModuleType("braille")
+        class Region:
+            def __init__(self):
+                self.rawText = ""
+                self.cursorPos = self.selectionStart = self.selectionEnd = None
+                self.brailleSelectionStart = self.brailleSelectionEnd = None
+                self.brailleToRawPos = []
+            def update(self):
+                self.brailleToRawPos = list(range(len(self.rawText)))
+        braille.Region = Region
+        braille.handler = types.SimpleNamespace(
+            handleGainFocus=lambda *_args, **_kwargs: None,
+            handleUpdate=lambda *_: None,
+            message=self.brailleMessages.append,
+        )
+        sys.modules["braille"] = braille
+
+        control_types = types.ModuleType("controlTypes")
+        control_types.Role = types.SimpleNamespace(TERMINAL=3)
+        sys.modules["controlTypes"] = control_types
+
+        config = types.ModuleType("config")
+        self.configSaves = 0
+        class ConfigMock(dict):
+            def __init__(inner_self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                inner_self.spec = {}
+            def __getitem__(inner_self, key):
+                if key == "nvimNvdaAccess" and key not in inner_self:
+                    inner_self[key] = {
+                        "schemaVersion": 0,
+                        "connections": "[]",
+                        "feedback": {
+                            "global": 3, "mode": 3, "delete": 3, "replace": 3,
+                            "lineBoundary": 2, "fileBoundary": 3,
+                            "lineCrossed": 2, "matchingError": 3,
+                        },
+                    }
+                return super().__getitem__(key)
+            def save(inner_self): self.configSaves += 1
+        config.conf = ConfigMock({
+            "keyboard": {
+                "speakTypedCharacters": 2, "speakTypedWords": 0,
+                "alertForSpellingErrors": True,
+            },
+            "documentFormatting": {
+                "reportLineIndentation": 2, "indentToneDuration": 40,
+                "reportSpellingErrors2": 7,
+            },
+            "presentation": {"reportAutoSuggestionsWithSound": True},
+            "audio": {"outputDevice": "default"},
+        })
+        class Action:
+            def __init__(inner_self): inner_self.handlers = []
+            def register(inner_self, handler): inner_self.handlers.append(handler)
+            def unregister(inner_self, handler): inner_self.handlers.remove(handler)
+            def notify(inner_self, **kwargs):
+                for handler in tuple(inner_self.handlers): handler(**kwargs)
+        config.post_configProfileSwitch = Action()
+        sys.modules["config"] = config
+
+        log_handler = types.ModuleType("logHandler")
+        log_handler.log = types.SimpleNamespace(
+            debug=lambda *_args, **_kwargs: None,
+            info=lambda *_args, **_kwargs: None,
+            exception=lambda *_args, **_kwargs: None,
+        )
+        sys.modules["logHandler"] = log_handler
+
+        global_plugin_handler = types.ModuleType("globalPluginHandler")
+        class Base:
+            def __init__(self): self._gestureMap = {}
+            def bindGesture(self, gesture, script_name): self._gestureMap[gesture] = script_name
+            def removeGestureBinding(self, gesture):
+                if gesture not in self._gestureMap: raise LookupError(gesture)
+                del self._gestureMap[gesture]
+            def terminate(self): pass
+        global_plugin_handler.GlobalPlugin = Base
+        sys.modules["globalPluginHandler"] = global_plugin_handler
+
+        app_module_handler = types.ModuleType("appModuleHandler")
+        class AppModuleBase:
+            def terminate(inner_self): pass
+        app_module_handler.AppModule = AppModuleBase
+        sys.modules["appModuleHandler"] = app_module_handler
+
+        input_core = types.ModuleType("inputCore")
+        class Decider:
+            def __init__(inner_self): inner_self.handlers = []
+            def register(inner_self, handler): inner_self.handlers.append(handler)
+            def unregister(inner_self, handler): inner_self.handlers.remove(handler)
+        self.inputDecider = input_core.decide_executeGesture = Decider()
+        sys.modules["inputCore"] = input_core
+
+        global_vars = types.ModuleType("globalVars")
+        global_vars.appArgs = types.SimpleNamespace(configPath=str(self.config_path))
+        global_vars.appDir = str(self.config_path)
+        waves = self.config_path / "waves"
+        waves.mkdir()
+        for file_name in (
+            "suggestionsOpened.wav", "suggestionsClosed.wav", "textError.wav",
+            "focusMode.wav", "browseMode.wav", "error.wav",
+        ):
+            with wave.open(str(waves / file_name), "wb") as sound:
+                sound.setnchannels(1)
+                sound.setsampwidth(2)
+                sound.setframerate(8000)
+                sound.writeframes(b"\0\0" * 8)
+        sys.modules["globalVars"] = global_vars
+
+        nvwave = types.ModuleType("nvwave")
+        nvwave.AudioPurpose = types.SimpleNamespace(SOUNDS="sounds")
+        outer = self
+        class WavePlayer:
+            def __init__(self, **_kwargs): pass
+            def feed(self, frames): outer.soundFeeds.append(frames)
+            def close(self): pass
+        nvwave.WavePlayer = WavePlayer
+        sys.modules["nvwave"] = nvwave
+
+        queue_handler = types.ModuleType("queueHandler")
+        queue_handler.eventQueue = object()
+        queue_handler.queueFunction = lambda _queue, function, *args, **_kwargs: function(*args)
+        sys.modules["queueHandler"] = queue_handler
+
+        script_handler = types.ModuleType("scriptHandler")
+        def script(**kwargs):
+            def decorate(function):
+                function._test_script_kwargs = kwargs
+                return function
+            return decorate
+        script_handler.script = script
+        sys.modules["scriptHandler"] = script_handler
+
+        speech = types.ModuleType("speech")
+        def cancel_speech():
+            self.speechCancellations += 1
+        speech.cancelSpeech = cancel_speech
+        speech.clearTypedWordBuffer = lambda: None
+        def speak_text(text, **kwargs):
+            self.spoken.append(text)
+            self.speechTextCalls.append((text, kwargs))
+        speech.speakText = speak_text
+        speech.speakTypedCharacters = lambda text: self.spoken.append(text)
+        def speak_spelling(text, **_kwargs):
+            self.spelled.append(text)
+            self.spoken.append(text)
+        speech.speakSpelling = speak_spelling
+        speech.__path__ = []
+        sys.modules["speech"] = speech
+        priorities = types.ModuleType("speech.priorities")
+        class NvdaPriority:
+            NORMAL = 0
+            NEXT = 1
+            NOW = 2
+        priorities.SpeechPriority = NvdaPriority
+        sys.modules["speech.priorities"] = priorities
+
+        tones = types.ModuleType("tones")
+        tones.beep = lambda frequency, duration: self.beeps.append((frequency, duration))
+        sys.modules["tones"] = tones
+
+        ui = types.ModuleType("ui")
+        ui.message = self.messages.append
+        sys.modules["ui"] = ui
+
+        wx = types.ModuleType("wx")
+        wx.ID_ANY = -1
+        wx.ID_OK = 1
+        wx.ID_CANCEL = 0
+        wx.YES = 2
+        wx.YES_NO = 4
+        wx.ICON_QUESTION = 8
+        wx.OK = 16
+        wx.CANCEL = 32
+        wx.ICON_WARNING = 64
+        wx.ICON_INFORMATION = 128
+        wx.ALL = 256
+        wx.EXPAND = 512
+        wx.LEFT = 1024
+        wx.RIGHT = 2048
+        wx.BOTTOM = 4096
+        wx.ALIGN_RIGHT = 8192
+        wx.EVT_MENU = object()
+        wx.EVT_CHECKBOX = object()
+        wx.EVT_CHECKLISTBOX = object()
+        wx.EVT_BUTTON = object()
+        wx.EVT_CHOICE = object()
+        wx.NOT_FOUND = -1
+        wx.VERTICAL = 1
+        wx.HORIZONTAL = 2
+        class PanelControl:
+            def __init__(self, *_args, **_kwargs): self.sizer = None
+            def SetSizer(self, value): self.sizer = value
+        class NotebookControl:
+            def __init__(self, *_args, **_kwargs): self.pages = []
+            def AddPage(self, page, label): self.pages.append((page, label))
+        wx.Panel = PanelControl
+        wx.Notebook = NotebookControl
+        class SizerControl:
+            def __init__(self, *_args, **_kwargs): self.items = []
+            def Add(self, *args, **kwargs): self.items.append((args, kwargs))
+        wx.BoxSizer = SizerControl
+        self.staticBoxLabels = []
+        def static_box_sizer(*_args, **kwargs):
+            self.staticBoxLabels.append(kwargs.get("label", ""))
+            return object()
+        wx.StaticBoxSizer = static_box_sizer
+        wx.Choice = object
+        class CheckBoxControl:
+            def __init__(inner_self, *_args, **kwargs):
+                inner_self.checked = False
+                inner_self.label = kwargs.get("label", "")
+                inner_self.focused = False
+                inner_self.handlers = {}
+                self.checkBoxControls.append(inner_self)
+            def SetValue(self, value): self.checked = bool(value)
+            def IsChecked(self): return self.checked
+            def Bind(self, event, handler): self.handlers[event] = handler
+            def SetFocus(self): self.focused = True
+        wx.CheckBox = CheckBoxControl
+        self.checkBoxControls = []
+        self.staticTexts = []
+        class StaticTextControl:
+            def __init__(inner_self, *_args, **kwargs):
+                inner_self.label = kwargs.get("label", "")
+                self.staticTexts.append(inner_self.label)
+            def Wrap(self, _width): pass
+        wx.StaticText = StaticTextControl
+        self.checkListSelections = []
+        self.checkListBoxes = []
+        class CheckListBoxControl:
+            def __init__(inner_self, *_args, **kwargs):
+                inner_self.choices = list(kwargs.get("choices", []))
+                inner_self.checked = set()
+                inner_self.name = ""
+                inner_self.handlers = {}
+                self.checkListBoxes.append(inner_self)
+            def SetName(inner_self, value): inner_self.name = value
+            def Check(inner_self, index, value=True):
+                if value: inner_self.checked.add(index)
+                else: inner_self.checked.discard(index)
+            def IsChecked(inner_self, index): return index in inner_self.checked
+            def GetCheckedItems(inner_self): return tuple(sorted(inner_self.checked))
+            def Bind(inner_self, event, handler): inner_self.handlers[event] = handler
+        wx.CheckListBox = CheckListBoxControl
+        nvda_controls = types.ModuleType("gui.nvdaControls")
+        nvda_controls.CustomCheckListBox = CheckListBoxControl
+        sys.modules["gui.nvdaControls"] = nvda_controls
+        self.modalDialogResults = []
+        self.dialogs = []
+        class DialogControl:
+            def __init__(inner_self, _parent, **kwargs):
+                inner_self.title = kwargs.get("title", "")
+                inner_self.sizer = None
+                inner_self.minSize = None
+                self.dialogs.append(inner_self)
+            def CreateButtonSizer(inner_self, style): return ("buttons", style)
+            def SetSizerAndFit(inner_self, value): inner_self.sizer = value
+            def SetMinSize(inner_self, value): inner_self.minSize = value
+            def ShowModal(inner_self):
+                if self.checkListSelections and self.checkListBoxes:
+                    for index in self.checkListSelections.pop(0):
+                        self.checkListBoxes[-1].Check(index)
+                return self.modalDialogResults.pop(0) if self.modalDialogResults else wx.ID_CANCEL
+            def Destroy(inner_self): pass
+        wx.Dialog = DialogControl
+        self.messageDialogs = []
+        class MessageDialogControl:
+            def __init__(inner_self, _parent, message, title, *args, **kwargs):
+                inner_self.message, inner_self.title = message, title
+                inner_self.style = args[0] if args else kwargs.get("style", 0)
+                inner_self.shown = False
+                self.messageDialogs.append(inner_self)
+            def Show(inner_self): inner_self.shown = True; return True
+            def ShowModal(inner_self): return wx.ID_OK
+            def Destroy(inner_self): pass
+        wx.MessageDialog = MessageDialogControl
+        self.singleChoiceDialogs = []
+        self.singleChoiceSelections = []
+        class SingleChoiceDialog:
+            def __init__(inner_self, _parent, message, title, choices):
+                inner_self.message = message
+                inner_self.title = title
+                inner_self.choices = list(choices)
+                inner_self.selection = 0
+                self.singleChoiceDialogs.append(inner_self)
+            def SetSelection(inner_self, value): inner_self.selection = value
+            def GetSelection(inner_self): return inner_self.selection
+            def ShowModal(inner_self):
+                if self.singleChoiceSelections:
+                    inner_self.selection = self.singleChoiceSelections.pop(0)
+                return wx.ID_OK
+            def Destroy(inner_self): pass
+        wx.SingleChoiceDialog = SingleChoiceDialog
+        self.messageBoxAnswers = []
+        self.messageBoxes = []
+        def message_box(*args, **kwargs):
+            self.messageBoxes.append((args, kwargs))
+            return self.messageBoxAnswers.pop(0) if self.messageBoxAnswers else wx.YES
+        wx.MessageBox = message_box
+        wx.CallAfter = lambda function, *args, **kwargs: function(*args, **kwargs)
+        wx.CallLater = lambda _delay, function, *args, **kwargs: function(*args, **kwargs)
+        sys.modules["wx"] = wx
+
+        class MenuItem:
+            def __init__(self, identifier): self.identifier = identifier
+            def GetId(self): return self.identifier
+
+        class Menu:
+            def __init__(inner_self, labels): inner_self.next_id = 1; inner_self.labels = labels
+            def Append(inner_self, _identifier, label):
+                self.menuLabels.append(label)
+                inner_self.labels.append(label)
+                item = MenuItem(inner_self.next_id)
+                inner_self.next_id += 1
+                return item
+            def Remove(inner_self, _identifier): pass
+
+        class Tray:
+            def __init__(inner_self):
+                inner_self.preferencesMenu = Menu(self.preferencesMenuLabels)
+                inner_self.toolsMenu = Menu(self.toolsMenuLabels)
+            def Bind(inner_self, *_args, **_kwargs): pass
+            def Unbind(inner_self, *_args, **_kwargs): return True
+
+        gui = types.ModuleType("gui")
+        gui.__path__ = []
+        gui.MessageDialog = MessageDialogControl
+        self.settingsDialogsOpened = []
+        gui.mainFrame = types.SimpleNamespace(
+            sysTrayIcon=Tray(),
+            popupSettingsDialog=lambda *args: self.settingsDialogsOpened.append(args),
+        )
+        def run_script_modal_dialog(dialog, callback):
+            try:
+                callback(dialog.ShowModal())
+            finally:
+                dialog.Destroy()
+        gui.runScriptModalDialog = run_script_modal_dialog
+        class ChoiceControl:
+            def __init__(self): self.selection = 0; self.enabled = True
+            def SetSelection(self, value): self.selection = value
+            def GetSelection(self): return self.selection
+            def Enable(self, value): self.enabled = bool(value)
+            def Bind(self, *_args, **_kwargs): pass
+            def SetItems(self, items): self.items = list(items)
+        class ButtonControl:
+            def __init__(self): self.enabled = True
+            def Bind(self, *_args, **_kwargs): pass
+            def Enable(self, value): self.enabled = bool(value)
+        class ButtonHelper:
+            def __init__(self, *_args, **_kwargs): self.buttons = []
+            def addButton(self, *_args, **_kwargs):
+                button = ButtonControl()
+                self.buttons.append(button)
+                return button
+        class BoxSizerHelper:
+            def __init__(self, *_args, **_kwargs): pass
+            def addLabeledControl(self, *_args, **_kwargs): return ChoiceControl()
+            def addItem(self, item): return item
+        gui.guiHelper = types.SimpleNamespace(BoxSizerHelper=BoxSizerHelper, ButtonHelper=ButtonHelper)
+        sys.modules["gui"] = gui
+        settings_dialogs = types.ModuleType("gui.settingsDialogs")
+        class SettingsPanel:
+            def _validationErrorMessageBox(inner_self, *_args, **_kwargs): pass
+        self.settingsCategoryClasses = []
+        settings_dialogs.SettingsPanel = SettingsPanel
+        settings_dialogs.NVDASettingsDialog = types.SimpleNamespace(categoryClasses=self.settingsCategoryClasses)
+        sys.modules["gui.settingsDialogs"] = settings_dialogs
+
+        global_plugins = types.ModuleType("globalPlugins")
+        global_plugins.__path__ = [str(self.extract_path / "globalPlugins")]
+        sys.modules["globalPlugins"] = global_plugins
+
+        app_modules = types.ModuleType("appModules")
+        app_modules.__path__ = [str(self.extract_path / "appModules")]
+        sys.modules["appModules"] = app_modules
+
+    def test_manifest_uses_scalar_strings_accepted_by_nvda_parser(self) -> None:
+        manifest = validate_manifest(self.extract_path / "manifest.ini")
+        self.assertEqual(buildVars.manifest(), dict(manifest))
+
+    def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
+        archive = build()
+        metadata = buildVars.manifest()
+        self.assertEqual(
+            f"{metadata['name']}-{metadata['version']}.nvda-addon",
+            archive.name,
+        )
+        self.assertEqual(
+            f"{buildVars.product_slug()}-{metadata['version']}-user.tar.gz",
+            build_user_package.build().name,
+        )
+        for pattern in ("*.py", "*.sh"):
+            for source in pathlib.Path(".").rglob(pattern):
+                if source == pathlib.Path("buildVars.py") or any(
+                    part in {"dist", "build", ".git"} for part in source.parts
+                ):
+                    continue
+                contents = source.read_text(encoding="utf-8")
+                self.assertNotIn(metadata["summary"], contents, source)
+                self.assertNotIn(metadata["author"], contents, source)
+                self.assertNotIn(metadata["version"], contents, source)
+
+    def test_linux_package_rejects_mismatched_claim_gestures(self) -> None:
+        config_path = pathlib.Path(self.temporary.name) / "bad-linux-components.json"
+        config_path.write_text(
+            '{"format":1,"sessionClaim":{"neovimKey":"<F9>","nvdaGesture":"kb:f12"}}',
+            encoding="utf-8",
+        )
+        with mock.patch.object(build_user_package, "COMPONENT_CONFIG", config_path):
+            with self.assertRaisesRegex(RuntimeError, "inconsistent"):
+                build_user_package.linux_component_config()
+
+    def test_shared_component_config_changes_the_claim_function_key(self) -> None:
+        config_path = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            / "linux-components.json"
+        )
+        config_path.write_text(
+            '{"format":1,"sessionClaim":{"neovimKey":"<F9>","nvdaGesture":"kb:f9"}}',
+            encoding="utf-8",
+        )
+        from appModules.windowsterminal import AppModule
+
+        metadata = AppModule.script_claimFocusedNeovimSession._test_script_kwargs
+        self.assertEqual("kb:f9", metadata["gesture"])
+
+    def test_addon_reuses_nvda_sounds_and_bundles_only_cc0_editor_earcons(self) -> None:
+        with zipfile.ZipFile(build()) as archive:
+            waves = sorted(name.rsplit("/", 1)[-1] for name in archive.namelist() if name.endswith(".wav"))
+            self.assertEqual([
+                "delete.wav", "fileEnd.wav", "fileStart.wav", "lineCrossed.wav",
+                "lineEnd.wav", "lineStart.wav", "replace.wav",
+            ], waves)
+            self.assertIn("globalPlugins/nvimNvdaAccess/resources/sounds/LICENSE.txt", archive.namelist())
+            self.assertIn("LICENSE", archive.namelist())
+            self.assertIn("globalPlugins/nvimNvdaAccess/resources/ssh-askpass.cmd", archive.namelist())
+
+    def test_addon_contains_complete_linux_package_and_shared_configuration(self) -> None:
+        with zipfile.ZipFile(build()) as archive:
+            resource = "globalPlugins/nvimNvdaAccess/resources/"
+            config_bytes = archive.read(resource + "linux-components.json")
+            package_bytes = archive.read(resource + "server-user.tar.gz")
+            addon_names = archive.namelist()
+        self.assertIn(resource + "neovim-plugin/plugin/nvim_nvda.lua", addon_names)
+        self.assertIn(resource + "neovim-plugin/lua/nvim_nvda/session.lua", addon_names)
+        self.assertFalse(any("neovim-plugin/tests/" in name for name in addon_names))
+        config = json.loads(config_bytes)
+        self.assertEqual(1, config["format"])
+        self.assertEqual("<F12>", config["sessionClaim"]["neovimKey"])
+        self.assertEqual("kb:f12", config["sessionClaim"]["nvdaGesture"])
+        with tarfile.open(fileobj=io.BytesIO(package_bytes), mode="r:gz") as package:
+            names = package.getnames()
+            config_member = next(name for name in names if name.endswith("/config/linux-components.json"))
+            packaged_config = package.extractfile(config_member)
+            self.assertIsNotNone(packaged_config)
+            self.assertEqual(config_bytes, packaged_config.read())
+            self.assertTrue(any(name.endswith("/bin/nvim-nvda-bridge") for name in names))
+            self.assertTrue(any(name.endswith("/install.py") for name in names))
+            self.assertTrue(any(name.endswith("/plugin/nvim_nvda.lua") for name in names))
+            self.assertTrue(any(name.endswith("/LICENSE") for name in names))
+            extraction = pathlib.Path(self.temporary.name) / "linux-package"
+            package.extractall(extraction, filter="data")
+        source = next(extraction.iterdir())
+        prefix = pathlib.Path(self.temporary.name) / "linux-prefix"
+        subprocess.run(
+            [sys.executable, str(source / "install.py"), "--prefix", str(prefix)],
+            check=True, capture_output=True, text=True,
+        )
+        installed_config = prefix / "share" / "nvim-nvda" / "linux-components.json"
+        installed_plugin_config = (
+            prefix / "share" / "nvim" / "site" / "pack" / "nvim-nvda" / "start"
+            / "nvim-nvda" / "config" / "linux-components.json"
+        )
+        self.assertEqual(config_bytes, installed_config.read_bytes())
+        self.assertEqual(config_bytes, installed_plugin_config.read_bytes())
+
+    def test_addon_frontend_policy_enables_only_windows_terminal(self) -> None:
+        policy_path = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            / "frontend-policy.json"
+        )
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        statuses = {entry["kind"]: entry["status"] for entry in policy["frontends"]}
+        self.assertEqual("enabled", statuses["windowsTerminal"])
+        self.assertEqual("planned", statuses["putty"])
+        self.assertEqual(
+            "windowsterminal",
+            next(
+                entry["appModule"] for entry in policy["frontends"]
+                if entry["kind"] == "windowsTerminal"
+            ),
+        )
+
+    def test_editor_earcons_remain_playable_after_source_files_are_removed(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        for sound in (self.config_path / "waves").glob("*.wav"):
+            sound.unlink()
+        bundled = self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources" / "sounds"
+        for sound in bundled.glob("*.wav"):
+            sound.unlink()
+
+        cues = (
+            "insertMode", "normalMode", "matchingError", "delete", "replace",
+            "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
+        )
+        for cue in cues:
+            self.assertTrue(plugin._editorSounds.play(cue), cue)
+        self.assertEqual(len(cues), len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        metadata = AppModule.script_toggleNeovimMode._test_script_kwargs
+        self.assertNotIn("gesture", metadata)
+        self.assertIn("description", metadata)
+        documentation = AppModule.script_readCompletionDocumentation._test_script_kwargs
+        self.assertNotIn("gesture", documentation)
+        self.assertFalse(hasattr(GlobalPlugin, "script_selectConnection"))
+        self.assertFalse(hasattr(GlobalPlugin, "script_nextConnection"))
+        self.assertNotIn("gesture", AppModule.script_startConnectionInstance._test_script_kwargs)
+        self.assertNotIn(
+            "gesture", AppModule.script_forgetTemporaryTerminalBinding._test_script_kwargs,
+        )
+        self.assertIn(
+            "choose a server",
+            AppModule.script_startConnectionInstance._test_script_kwargs["description"].lower(),
+        )
+        self.assertNotIn("gesture", AppModule.script_disconnectConnectionInstance._test_script_kwargs)
+        self.assertEqual(
+            "kb:f12", AppModule.script_claimFocusedNeovimSession._test_script_kwargs["gesture"],
+        )
+        self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
+
+    def test_f12_forwards_to_neovim_then_requests_only_a_fresh_claim(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        self.focus = types.SimpleNamespace(
+            processID=1001, windowHandle=2001, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="windowsterminal"),
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 2001, 4, 6),
+            ),
+        )
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._settings.update({
+            "connections": [{
+                "id": "work", "name": "Work", "host": "host", "user": "remote",
+                "port": 22, "identityFile": "", "authentication": "openSsh",
+            }],
+        })
+        selections = []
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        plugin._beginAutomaticClaimResolution = lambda *args: selections.append(args)
+        gesture = types.SimpleNamespace(sent=0)
+        gesture.send = lambda: setattr(gesture, "sent", gesture.sent + 1)
+        plugin.action_claimFocusedNeovimSession(gesture)
+        self.assertEqual(1, gesture.sent)
+        self.assertEqual("windowsTerminal", selections[0][0].frontend_kind)
+        self.assertTrue(plugin._gate.manual_enabled)
+        plugin.terminate()
+
+    def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import wx
+
+        class PendingCall:
+            def __init__(inner_self, callback):
+                inner_self.callback = callback
+                inner_self.stopped = False
+            def Stop(inner_self): inner_self.stopped = True
+
+        pending = []
+        original_call_later = wx.CallLater
+        wx.CallLater = lambda _delay, callback: pending.append(PendingCall(callback)) or pending[-1]
+        try:
+            plugin = GlobalPlugin()
+            executed = []
+            call = plugin._scheduleMainThreadCall(250, executed.append, "claim")
+            self.assertIn(call, plugin._pendingMainThreadCalls)
+            self.assertEqual([], executed)
+
+            call.callback()
+
+            self.assertEqual(["claim"], executed)
+            self.assertNotIn(call, plugin._pendingMainThreadCalls)
+            plugin.terminate()
+        finally:
+            wx.CallLater = original_call_later
+
+    def test_f12_before_inventory_ready_waits_without_claiming_wrong_session(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = False
+        plugin._claimInventoryReady = False
+        inventories = []
+        plugin._beginClaimInventory = lambda: inventories.append(True)
+        gesture = types.SimpleNamespace(sent=0)
+        gesture.send = lambda: setattr(gesture, "sent", gesture.sent + 1)
+        plugin.action_claimFocusedNeovimSession(gesture)
+        self.assertEqual(0, gesture.sent)
+        self.assertEqual([True], inventories)
+        self.assertTrue(plugin._gate.manual_enabled)
+        self.assertIn("after the ready message", self.messages[-1])
+        plugin.terminate()
+
+    def test_explicit_local_discovery_can_fall_back_to_a_selected_ssh_profile(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        fallbacks = []
+        plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
+        plugin._sessionDiscoveryGeneration = 4
+        plugin._finishLocalSessionDiscovery(
+            4, identity, [], None, True, True, True, profile,
+        )
+        self.assertEqual((profile, identity, True, True, True), fallbacks[0])
+        self.assertFalse(any("No local" in message for message in self.messages))
+        plugin.terminate()
+
+    def test_inventory_baselines_local_and_every_reachable_ssh_profile(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        local = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
+        )
+        remote = RemoteSession("88", "Remote", "/work", claim_sequence=7)
+        plugin._claimInventoryGeneration = 3
+        plugin._finishClaimInventory(3, [
+            ("localWindowsTcp", "local-windows", None, [local], None),
+            ("remoteSsh", "work", profile, [remote], None),
+            ("remoteSsh", "offline", None, [], RuntimeError("offline")),
+        ])
+        self.assertTrue(plugin._claimInventoryReady)
+        self.assertEqual(2, plugin._claimBaselines[(
+            "localWindowsTcp", "local-windows", "77",
+        )])
+        self.assertEqual(7, plugin._claimBaselines[("remoteSsh", "work", "88")])
+        self.assertEqual({
+            ("localWindowsTcp", "local-windows"), ("remoteSsh", "work"),
+        }, plugin._claimEligibleTargets)
+        self.assertIn("could not be checked", self.messages[-1])
+        plugin.terminate()
+
+    def test_f12_resolves_changed_claim_across_all_targets_not_a_default(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        first = parse_profile({
+            "id": "one", "name": "One", "host": "one", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        second = parse_profile({
+            "id": "two", "name": "Two", "host": "two", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        plugin._claimBaselines = {
+            ("localWindowsTcp", "local-windows", "77"): 2,
+            ("remoteSsh", "one", "88"): 4,
+            ("remoteSsh", "two", "99"): 6,
+        }
+        plugin._claimInventoryGeneration = 9
+        connected = []
+        plugin._connectAutomaticClaim = lambda terminal, candidate: connected.append(
+            (terminal, candidate)
+        )
+        plugin._finishAutomaticClaimResolution(9, [
+            ("localWindowsTcp", "local-windows", None, [LocalWindowsSession(
+                "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
+            )], None),
+            ("remoteSsh", "one", first, [RemoteSession(
+                "88", "Remote one", "/one", claim_sequence=5,
+            )], None),
+            ("remoteSsh", "two", second, [RemoteSession(
+                "99", "Remote two", "/two", claim_sequence=6,
+            )], None),
+        ], identity)
+        self.assertEqual("one", connected[0][1][1].identifier)
+        self.assertEqual("88", connected[0][1][2].identifier)
+        self.assertEqual(5, plugin._claimBaselines[("remoteSsh", "one", "88")])
+        plugin.terminate()
+
+    def test_local_f12_claim_does_not_wait_for_ssh_scans(self) -> None:
+        from globalPlugins import nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        profile = parse_profile({
+            "id": "slow", "name": "Slow", "host": "slow", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        local = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
+        )
+        completed = []
+        plugin._finishAutomaticClaimResolution = lambda *args: completed.append(args)
+
+        class LocalLister:
+            def list(inner_self): return [local]
+
+        class UnexpectedSshLister:
+            def list(inner_self, *_args, **_kwargs):
+                raise AssertionError("a conclusive local claim must not start SSH discovery")
+
+        with mock.patch.object(addon_module, "LocalSessionLister", LocalLister), mock.patch.object(
+            addon_module, "SshSessionLister", UnexpectedSshLister,
+        ):
+            plugin._scanAutomaticClaimTargets(
+                5, [profile], {}, identity,
+                {("localWindowsTcp", "local-windows", "77"): 1},
+            )
+
+        self.assertEqual(1, len(completed))
+        self.assertEqual("localWindowsTcp", completed[0][1][0][0])
+        plugin.terminate()
+
+    def test_automatic_local_claim_retries_an_initial_pre_claim_snapshot(self) -> None:
+        from globalPlugins import nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        snapshots = [
+            LocalWindowsSession(
+                "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=1,
+            ),
+            LocalWindowsSession(
+                "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
+            ),
+        ]
+        calls = []
+
+        class DelayedLocalLister:
+            def list(inner_self):
+                calls.append(True)
+                return [snapshots[min(len(calls) - 1, 1)]]
+
+        completed = []
+        plugin._finishAutomaticClaimResolution = lambda *args: completed.append(args)
+        with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
+            addon_module.time, "sleep", lambda _seconds: None,
+        ):
+            plugin._scanAutomaticClaimTargets(
+                6, [], {}, identity,
+                {("localWindowsTcp", "local-windows", "77"): 1},
+            )
+
+        self.assertEqual(2, len(calls))
+        self.assertEqual(1, len(completed))
+        self.assertEqual(2, completed[0][1][0][3][0].claim_sequence)
+        plugin.terminate()
+
+    def test_explicit_local_claim_retries_until_registry_write_arrives(self) -> None:
+        from globalPlugins import nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        stale = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77,
+            claim_age_ms=100, claimed_monotonic_ns=4_000, claim_sequence=1,
+        )
+        fresh = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77,
+            claim_age_ms=10, claimed_monotonic_ns=6_000, claim_sequence=2,
+        )
+        calls = []
+
+        class DelayedLocalLister:
+            def list(inner_self):
+                calls.append(True)
+                return [[stale], [fresh]][min(len(calls) - 1, 1)]
+
+        completed = []
+        plugin._finishLocalSessionDiscovery = lambda *args: completed.append(args)
+        with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
+            addon_module.time, "sleep", lambda _seconds: None,
+        ):
+            plugin._discoverLocalSessions(
+                7, identity, True, True, True, None, 5_000,
+            )
+
+        self.assertEqual(2, len(calls))
+        self.assertEqual("77", completed[0][2][0].identifier)
+        self.assertEqual(2, completed[0][2][0].claim_sequence)
+        plugin.terminate()
+
+    def test_multiple_changed_claims_require_explicit_accessible_choice(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        plugin._claimBaselines = {
+            ("localWindowsTcp", "local-windows", "77"): 1,
+            ("remoteSsh", "work", "88"): 3,
+        }
+        plugin._claimInventoryGeneration = 12
+        choices = []
+        plugin._showAutomaticClaimChoice = lambda *args: choices.append(args)
+        plugin._finishAutomaticClaimResolution(12, [
+            ("localWindowsTcp", "local-windows", None, [LocalWindowsSession(
+                "77", "Local", "C:/work", "127.0.0.1", 45678, 77,
+                claim_sequence=2,
+            )], None),
+            ("remoteSsh", "work", profile, [RemoteSession(
+                "88", "Remote", "/work", claim_sequence=4,
+            )], None),
+        ], identity)
+        self.assertEqual(1, len(choices))
+        self.assertEqual(2, len(choices[0][2]))
+        plugin.terminate()
+
+    def test_activation_inventories_local_and_all_saved_connections_before_f12(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        self.focus = types.SimpleNamespace(
+            processID=1001, windowHandle=2001, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="windowsterminal"),
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 2001, 4, 6),
+            ),
+        )
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._settings.update({
+            "connections": [{
+                "id": "work", "name": "editor@example-host", "host": "example-host", "user": "editor",
+                "port": 22, "identityFile": "", "authentication": "openSsh",
+            }],
+        })
+        discoveries = []
+        plugin._beginClaimInventory = lambda: discoveries.append(True)
+        plugin._toggleNeovimMode()
+        self.assertTrue(plugin._gate.manual_enabled)
+        self.assertEqual([True], discoveries)
+        self.assertIn("local and saved", self.messages[-1])
+        plugin.terminate()
+
+    def test_terminal_actions_refresh_focus_without_a_new_gain_focus_event(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+
+        plugin = GlobalPlugin()
+        stale = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 53))
+        plugin._gate.focused = stale
+        plugin._focusedTerminalObject = None
+        inventories = []
+        plugin._beginClaimInventory = lambda: inventories.append(plugin._gate.focused)
+        app_module = AppModule()
+
+        app_module.script_toggleNeovimMode(None)
+
+        expected = plugin._identity(self.focus)
+        self.assertEqual(expected, plugin._gate.focused)
+        self.assertIs(self.focus, plugin._focusedTerminalObject)
+        self.assertEqual([expected], inventories)
+        self.assertIn('"category": "terminalActionFocusRefreshed"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_activation_in_unbound_second_tab_remains_a_global_toggle(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+
+        class Client:
+            def __init__(inner_self): inner_self.stops = 0
+            def start(inner_self): pass
+            def stop(inner_self): inner_self.stops += 1
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        first_identity = plugin._gate.focused
+        client = Client()
+        instance = plugin._instanceManager.add("work", "one", "Work", client)
+        plugin._instanceManager.bind(first_identity, instance.identifier)
+        plugin._gate.manual_enabled = True
+        plugin._gate.focused = TerminalIdentity(
+            first_identity.process_id, first_identity.window_handle,
+            first_identity.frontend_kind, (42, 200, 4, 12),
+        )
+
+        plugin._toggleNeovimMode()
+
+        self.assertFalse(plugin._gate.manual_enabled)
+        self.assertEqual(1, client.stops)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIn("off", self.messages[-1])
+        plugin.terminate()
+
+    def test_activation_in_bound_tab_still_turns_accessibility_off(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.stops = 0
+            def start(inner_self): pass
+            def stop(inner_self): inner_self.stops += 1
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        client = Client()
+        instance = plugin._instanceManager.add("work", "one", "Work", client)
+        plugin._instanceManager.bind(plugin._gate.focused, instance.identifier)
+        plugin._gate.manual_enabled = True
+
+        plugin._toggleNeovimMode()
+
+        self.assertFalse(plugin._gate.manual_enabled)
+        self.assertEqual(1, client.stops)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIn("off", self.messages[-1])
+        plugin.terminate()
+
+    def test_application_behavior_is_owned_only_by_windows_terminal_app_module(self) -> None:
+        with zipfile.ZipFile(build()) as archive:
+            names = set(archive.namelist())
+            global_source = archive.read(
+                "globalPlugins/nvimNvdaAccess/__init__.py"
+            ).decode("utf-8")
+        self.assertIn("appModules/windowsterminal.py", names)
+        self.assertNotIn("getFocusObject", global_source)
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        self.assertTrue(hasattr(AppModule, "event_gainFocus"))
+        self.assertTrue(hasattr(AppModule, "chooseNVDAObjectOverlayClasses"))
+        self.assertTrue(hasattr(AppModule, "script_claimFocusedNeovimSession"))
+        self.assertFalse(hasattr(GlobalPlugin, "event_gainFocus"))
+        self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
+        self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
+
+    def test_global_service_does_not_inspect_focus_and_app_module_clears_scope(self) -> None:
+        import api
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        focus_queries = []
+        api.getFocusObject = lambda: focus_queries.append(True) or self.focus
+        plugin = GlobalPlugin()
+        self.assertEqual([], focus_queries)
+        adapter = AppModule()
+        adapter.event_gainFocus(self.focus, lambda: None)
+        self.assertIsNotNone(plugin._gate.focused)
+        adapter.event_appModule_loseFocus()
+        self.assertIsNone(plugin._gate.focused)
+        self.assertFalse(plugin._gate.suppression_active)
+        spoken_before = list(self.spoken)
+        sounds_before = list(self.soundFeeds)
+        plugin._handleScopedNetworkEvent({
+            "type": "modeChanged",
+            "payload": {"mode": "insert", "lineText": "foreign", "cursor": {"line": 1}},
+        })
+        self.assertEqual(spoken_before, self.spoken)
+        self.assertEqual(sounds_before, self.soundFeeds)
+        plugin.terminate()
+
+    def test_stale_lose_focus_from_first_wt_cannot_clear_second_wt(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        second_focus = types.SimpleNamespace(
+            processID=9000, windowHandle=9001, role=3, parent=None,
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 9001, 4, 6),
+            ),
+        )
+        plugin = GlobalPlugin()
+        first_adapter = AppModule()
+        second_adapter = AppModule()
+        first_adapter.event_gainFocus(self.focus, lambda: None)
+        second_adapter.event_gainFocus(second_focus, lambda: None)
+        second_identity = plugin._identity(second_focus)
+        self.assertEqual(second_identity, plugin._gate.focused)
+
+        # NVDA may deliver this after the second WT has already gained focus.
+        first_adapter.event_appModule_loseFocus()
+        self.assertEqual(second_identity, plugin._gate.focused)
+        self.assertIs(second_focus, plugin._focusedTerminalObject)
+        second_adapter.event_appModule_loseFocus()
+        self.assertIsNone(plugin._gate.focused)
+        plugin.terminate()
+
+    def test_all_open_ssh_connections_are_automatic_without_a_default(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._settings.update({
+            "connections": [
+                {"id": "one", "name": "One", "host": "one", "user": "u", "port": 22,
+                 "identityFile": "", "authentication": "openSsh"},
+                {"id": "two", "name": "Two", "host": "two", "user": "v", "port": 22,
+                 "identityFile": "", "authentication": "openSsh"},
+            ],
+        })
+        self.assertEqual(["one", "two"], [
+            profile.identifier for profile in plugin._automaticClaimProfiles()
+        ])
+        self.assertNotIn("activeConnection", plugin._settings)
+        plugin.terminate()
+
+    def test_parallel_identical_instances_speak_only_when_explicitly_bound(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        clients = []
+        class FakeStdioClient:
+            def __init__(inner_self, _target, on_event, on_state, **_kwargs):
+                inner_self.on_event = on_event
+                inner_self.on_state = on_state
+                inner_self.starts = inner_self.stops = 0
+                clients.append(inner_self)
+            def start(inner_self): inner_self.starts += 1
+            def stop(inner_self): inner_self.stops += 1
+            def send_control(inner_self, *_args): return True
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._settings.update({
+            "connections": [{
+                "id": "same", "name": "Same target", "host": "example-host", "user": "editor",
+                "port": 22, "identityFile": "", "authentication": "openSsh",
+            }],
+        })
+        with mock.patch.object(addon_module, "SshStdioClient", FakeStdioClient):
+            plugin._startManagedInstance("same", "111")
+            plugin._startManagedInstance("same", "111")
+        instances = plugin._instanceManager.list()
+        self.assertEqual(2, len(instances))
+        self.assertNotEqual(instances[0].identifier, instances[1].identifier)
+        self.assertEqual([1, 1], [client.starts for client in clients])
+
+        plugin._bindManagedInstance(instances[1].identifier)
+        self.spoken.clear()
+        clients[0].on_event({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "wrong", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertEqual([], self.spoken)
+        clients[1].on_event({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "right", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertIn("right", self.spoken)
+        plugin.terminate()
+        self.assertEqual([1, 1], [client.stops for client in clients])
+
+    def test_remote_session_ids_stay_internal_and_single_session_is_selected_automatically(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        started = []
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work server", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        plugin._sessionDiscoveryGeneration = 7
+        plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(
+            (profile_id, session_id, kwargs)
+        )
+        session = RemoteSession("9842", "project", "/srv/project")
+        plugin._finishSessionDiscovery(7, profile, plugin._identity(self.focus), [session], None)
+        self.assertEqual(("work", "9842"), started[0][:2])
+        self.assertEqual("project, working directory /srv/project", started[0][2]["session_label"])
+        self.assertFalse(any("9842" in message for message in self.messages))
+        plugin.terminate()
+
+    def test_multiple_remote_sessions_use_friendly_choice_and_stale_results_are_ignored(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        sessions = [
+            RemoteSession("11", "first", "/one"), RemoteSession("22", "second", "/two"),
+        ]
+        started = []
+        plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
+        plugin._sessionDiscoveryGeneration = 4
+        plugin._finishSessionDiscovery(3, profile, plugin._identity(self.focus), sessions, None)
+        self.assertEqual([], started)
+        self.singleChoiceSelections.append(1)
+        plugin._finishSessionDiscovery(4, profile, plugin._identity(self.focus), sessions, None)
+        self.assertEqual(["22"], started)
+        self.assertEqual(["first, working directory /one", "second, working directory /two"],
+                         self.singleChoiceDialogs[-1].choices)
+        self.assertTrue(any("multiple" in message.lower() for message in self.messages))
+        plugin.terminate()
+
+    def test_f12_pairing_selects_only_the_newest_fresh_claim(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        sessions = [
+            RemoteSession("11", "same", "/same", claim_age_ms=1400),
+            RemoteSession("22", "same", "/same", claim_age_ms=180),
+            RemoteSession("33", "same", "/same", claim_age_ms=-1),
+        ]
+        started = []
+        plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
+        plugin._sessionDiscoveryGeneration = 5
+        plugin._finishSessionDiscovery(
+            5, profile, plugin._identity(self.focus), sessions, None,
+            require_recent_claim=True,
+        )
+        self.assertEqual(["22"], started)
+        self.assertEqual([], self.singleChoiceDialogs)
+        plugin.terminate()
+
+    def test_f12_pairing_rejects_unclaimed_and_old_sessions(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        plugin._sessionDiscoveryGeneration = 6
+        plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must not connect")
+        plugin._finishSessionDiscovery(
+            6, profile, plugin._identity(self.focus), [
+                RemoteSession("11", "unclaimed", "/one"),
+                RemoteSession("22", "old", "/two", claim_age_ms=15001),
+            ], None, require_recent_claim=True,
+        )
+        self.assertTrue(any("did not confirm" in message.lower() for message in self.messages))
+        plugin.terminate()
+
+    def test_repeated_f12_reuses_the_existing_claimed_session_transport(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload):
+                self.controls.append((kind, payload))
+                return True
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        client = Client()
+        instance = plugin._instanceManager.add("work", "22", "Work, project", client)
+        identity = plugin._identity(self.focus)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._sessionDiscoveryGeneration = 8
+        plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must reuse transport")
+        plugin._finishSessionDiscovery(
+            8, profile, identity,
+            [RemoteSession("22", "project", "/work", claim_age_ms=100)],
+            None, require_recent_claim=True,
+        )
+        self.assertEqual(1, len(plugin._instanceManager.list()))
+        self.assertEqual(instance.identifier, plugin._instanceManager.selected_for(identity).identifier)
+        self.assertIn(("requestFullState", {}), client.controls)
+        plugin.terminate()
+
+    def test_same_directory_sessions_have_names_time_ordinals_and_status(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        unnamed = [
+            RemoteSession("11", "", "/same", 1_700_000_000),
+            RemoteSession("22", "", "/same", 1_700_000_060),
+        ]
+        labels = plugin._remoteSessionLabels(profile, unnamed)
+        self.assertIn("session 1 of 2", labels[0])
+        self.assertIn("session 2 of 2", labels[1])
+        self.assertIn("started", labels[0])
+        named = [
+            RemoteSession("11", "Documentation", "/same", 1_700_000_000),
+            RemoteSession("22", "Programming", "/same", 1_700_000_060),
+        ]
+        self.assertEqual([
+            "Documentation, working directory /same",
+            "Programming, working directory /same",
+        ], plugin._remoteSessionLabels(profile, named))
+        instance = plugin._instanceManager.add("work", "11", "Documentation", Client())
+        self.assertIn("already connected", plugin._remoteSessionLabels(profile, named)[0])
+        plugin._instanceManager.remove(instance.identifier)
+        plugin.terminate()
+
+    def test_connect_command_explicitly_selects_profile_without_exposing_ids(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._settings["connections"] = [
+            {"id": "internal-one", "name": "editor@example-host", "host": "example-host", "user": "editor",
+             "port": 22, "identityFile": "", "authentication": "openSsh"},
+            {"id": "internal-two", "name": "admin@example-host-2", "host": "example-host-2", "user": "admin",
+             "port": 22, "identityFile": "", "authentication": "openSsh"},
+        ]
+        self.singleChoiceSelections.append(2)
+        selected = []
+        plugin._beginSessionSelection = lambda profile, identity, **kwargs: selected.append(
+            (profile, identity, kwargs)
+        )
+        plugin.action_startConnectionInstance(None)
+        self.assertEqual([
+            "This computer - local Neovim", "editor@example-host", "admin@example-host-2",
+        ], self.singleChoiceDialogs[-1].choices)
+        self.assertNotIn("internal-two", self.singleChoiceDialogs[-1].choices)
+        self.assertEqual("internal-two", selected[0][0].identifier)
+        self.assertEqual(self.focus.windowHandle, selected[0][1].window_handle)
+        self.assertTrue(selected[0][2]["replace_existing"])
+        self.assertTrue(selected[0][2]["offer_remember"])
+        self.assertTrue(selected[0][2]["preserve_dialog_identity"])
+        plugin.terminate()
+
+    def test_connect_command_can_select_local_target_without_persisted_ids(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        self.singleChoiceSelections.append(0)
+        plugin.action_startConnectionInstance(None)
+        self.assertEqual(LOCAL_WINDOWS_TCP, plugin._pendingClaimTargets[identity])
+        self.assertTrue(any("press F12" in message for message in self.messages))
+        self.assertFalse(any("local-windows" in message for message in self.messages))
+        plugin.terminate()
+
+    def test_local_f12_pairs_only_fresh_claim_and_forwards_gesture_first(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        plugin._pendingClaimTargets[identity] = LOCAL_WINDOWS_TCP
+        order = []
+        plugin._beginLocalSessionSelection = lambda *args: order.append(("discover", args))
+        gesture = types.SimpleNamespace(send=lambda: order.append(("send", ())))
+        plugin.action_claimFocusedNeovimSession(gesture)
+        self.assertEqual("send", order[0][0])
+        self.assertEqual((identity, True, True, True, None), order[1][1][:5])
+        self.assertGreater(order[1][1][5], 0)
+
+        stale = LocalWindowsSession("1", "stale", "C:/one", "127.0.0.1", 41001, 1,
+                                    claim_age_ms=15_001)
+        fresh = LocalWindowsSession("2", "fresh", "C:/two", "127.0.0.1", 41002, 2,
+                                    claim_age_ms=120)
+        started = []
+        plugin._sessionDiscoveryGeneration = 8
+        plugin._startLocalSession = lambda terminal, session, **kwargs: started.append(
+            (terminal, session, kwargs)
+        )
+        plugin._finishLocalSessionDiscovery(
+            8, identity, [stale, fresh], None, True, True, True,
+        )
+        self.assertEqual("2", started[0][1].identifier)
+        self.assertTrue(started[0][2]["replace_existing"])
+        plugin.terminate()
+
+    def test_f12_ignores_a_local_claim_from_before_the_current_keypress(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        previous_claim = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77,
+            claim_age_ms=100, claimed_monotonic_ns=4_000,
+        )
+        fallbacks = []
+        plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
+        plugin._sessionDiscoveryGeneration = 5
+        plugin._finishLocalSessionDiscovery(
+            5, identity, [previous_claim], None, True, True, True, profile, 5_000,
+        )
+        self.assertEqual((profile, identity, True, True, True), fallbacks[0])
+        plugin.terminate()
+
+    def test_local_instance_uses_typed_transport_and_coexists_with_ssh(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        class Client:
+            created = []
+            def __init__(inner_self, host, port, on_event, on_state, on_diagnostic):
+                inner_self.host, inner_self.port = host, port
+                inner_self.on_event, inner_self.on_state = on_event, on_state
+                inner_self.starts = inner_self.stops = 0
+                Client.created.append(inner_self)
+            def start(inner_self): inner_self.starts += 1
+            def stop(inner_self): inner_self.stops += 1
+            def send_control(inner_self, _kind, _payload): return True
+
+        class SshClient:
+            def start(inner_self): pass
+            def stop(inner_self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        remote = plugin._instanceManager.add("work", "ssh-session", "Work", SshClient())
+        local_identity = plugin._gate.focused
+        local = LocalWindowsSession(
+            "77", "Local docs", "C:/docs", "127.0.0.1", 45678, 77, claim_age_ms=10,
+        )
+        with mock.patch.object(addon_module, "LocalTcpClient", Client):
+            plugin._startLocalManagedInstance(local, local_identity, "Local docs")
+        instances = plugin._instanceManager.list()
+        self.assertEqual(2, len(instances))
+        local_instance = plugin._instanceManager.selected_for(local_identity)
+        self.assertEqual(LOCAL_WINDOWS_TCP, local_instance.transport_kind)
+        self.assertEqual("", local_instance.profile_id)
+        self.assertEqual(("127.0.0.1", 45678, 1), (
+            Client.created[0].host, Client.created[0].port, Client.created[0].starts,
+        ))
+        self.assertIn(remote.identifier, [instance.identifier for instance in instances])
+        pairings = []
+        plugin._beginLocalSessionSelection = lambda *args: pairings.append(args)
+        plugin.action_claimFocusedNeovimSession(types.SimpleNamespace(send=lambda: None))
+        self.assertEqual((local_identity, True, True, True, None), pairings[0][:5])
+        self.assertGreater(pairings[0][5], 0)
+        plugin.terminate()
+
+    def test_two_local_sessions_bind_independently_and_coexist_with_ssh(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        class Client:
+            created = []
+            def __init__(inner_self, host, port, on_event, on_state, on_diagnostic):
+                inner_self.host, inner_self.port = host, port
+                inner_self.starts = inner_self.stops = 0
+                Client.created.append(inner_self)
+            def start(inner_self): inner_self.starts += 1
+            def stop(inner_self): inner_self.stops += 1
+            def send_control(inner_self, _kind, _payload): return True
+
+        class SshClient:
+            def start(inner_self): pass
+            def stop(inner_self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._instanceManager.add("work", "ssh-session", "Work", SshClient())
+        first_identity = plugin._gate.focused
+        second_identity = TerminalIdentity(
+            first_identity.process_id, first_identity.window_handle,
+            "windowsTerminal", (42, first_identity.window_handle, 4, 53),
+        )
+        first = LocalWindowsSession(
+            "77", "Local docs", "C:/docs", "127.0.0.1", 45678, 77, claim_age_ms=10,
+        )
+        second = LocalWindowsSession(
+            "88", "Local code", "C:/code", "127.0.0.1", 45679, 88, claim_age_ms=20,
+        )
+        with mock.patch.object(addon_module, "LocalTcpClient", Client):
+            plugin._startLocalManagedInstance(first, first_identity, "Local docs")
+            plugin._startLocalManagedInstance(second, second_identity, "Local code")
+        instances = plugin._instanceManager.list()
+        self.assertEqual(3, len(instances))
+        self.assertEqual("77", plugin._instanceManager.selected_for(first_identity).session_id)
+        self.assertEqual("88", plugin._instanceManager.selected_for(second_identity).session_id)
+        self.assertEqual([45678, 45679], [client.port for client in Client.created])
+        self.assertEqual([1, 1], [client.starts for client in Client.created])
+        plugin.terminate()
+
+    def test_explicit_connection_survives_modal_focus_gap_for_second_wt_window(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        profile = parse_profile({
+            "id": "root", "name": "admin@example-host", "host": "example-host", "user": "admin",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        started = []
+        plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(
+            (profile_id, session_id, kwargs.get("identity"))
+        )
+
+        # A modal wx dialog moves focus away from the Windows Terminal AppModule.
+        plugin._gate.focused = None
+        plugin._sessionDiscoveryGeneration = 3
+        plugin._finishSessionDiscovery(
+            3, profile, identity, [RemoteSession("session", "root", "/root")], None,
+            replace_existing=True, offer_remember=True, preserve_dialog_identity=True,
+        )
+
+        self.assertEqual([("root", "session", identity)], started)
+        plugin.terminate()
+
+    def test_windows_terminal_runtime_id_is_stable_and_distinguishes_tabs(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        def terminal(runtime_id):
+            element = types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+            )
+            return types.SimpleNamespace(
+                processID=1001, windowHandle=2001, UIAElement=element, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+            )
+
+        first = GlobalPlugin._identity(terminal((42, 2001, 4, 6)))
+        first_again = GlobalPlugin._identity(terminal((42, 2001, 4, 6)))
+        second = GlobalPlugin._identity(terminal((42, 2001, 4, 53)))
+        self.assertEqual(first, first_again)
+        self.assertNotEqual(first, second)
+        self.assertEqual("windowsTerminal", first.frontend_kind)
+
+    def test_frontend_identity_relies_only_on_appmodule_internal_tab_constraints(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        def terminal(class_name="TermControl", runtime_id=(42, 2001, 4, 6)):
+            return types.SimpleNamespace(
+                processID=1001, windowHandle=2001, role=3, parent=None,
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName=class_name, getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        self.assertIsNotNone(GlobalPlugin._identity(terminal()))
+        self.assertIsNone(GlobalPlugin._identity(terminal("OtherControl")))
+        self.assertIsNone(GlobalPlugin._identity(terminal(runtime_id=())))
+
+    def test_activation_is_fail_open_outside_windows_terminal(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        self.focus = types.SimpleNamespace(
+            processID=900, windowHandle=901, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="putty"),
+        )
+        plugin = GlobalPlugin()
+        plugin._toggleNeovimMode()
+        self.assertFalse(plugin._gate.manual_enabled)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIn("unavailable", self.messages[-1])
+        plugin.terminate()
+
+    def test_successful_explicit_connection_can_be_remembered_for_tab(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        element = types.SimpleNamespace(
+            cachedClassName="TermControl", getRuntimeId=lambda: (42, 2001, 4, 6),
+        )
+        self.focus.UIAElement = element
+        self.focus.parent = None
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("work", "42", "editor@example-host", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._rememberOfferInstances.add(instance.identifier)
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "fullState", "payload": {
+                "mode": "normal", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        self.assertIn(identity, plugin._rememberedTerminalBindings)
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual([], client.controls)
+        self.assertTrue(any("remembered" in message.lower() for message in self.messages))
+        plugin.terminate()
+
+    def test_first_full_state_waits_for_terminal_focus_after_session_dialog(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, *_args): return True
+
+        terminal = types.SimpleNamespace(
+            processID=1001, windowHandle=2001, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="windowsterminal"),
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl",
+                getRuntimeId=lambda: (42, 2001, 4, 6),
+            ),
+        )
+        dialog = types.SimpleNamespace(processID=1001, windowHandle=999999, role=4, parent=None)
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        identity = plugin._identity(terminal)
+        instance = plugin._instanceManager.add("work", "42", "editor@example-host", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._rememberOfferInstances.add(instance.identifier)
+
+        self.focus = dialog
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "fullState", "payload": {
+                "mode": "normal", "lineText": "ready",
+                "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        self.assertIn(instance.identifier, plugin._pendingInstanceFullStates)
+        self.assertIn(instance.identifier, plugin._rememberOfferInstances)
+        self.assertFalse(plugin._gate.suppression_active)
+
+        self.focus = terminal
+        native_focus = []
+        plugin._event_gainFocus(terminal, lambda: native_focus.append(True))
+        self.assertEqual([True], native_focus)
+        self.assertNotIn(instance.identifier, plugin._pendingInstanceFullStates)
+        self.assertIn(instance.identifier, plugin._authenticatedInstances)
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertIn("ready", self.spoken)
+        plugin.terminate()
+
+    def test_detected_activity_can_confirm_and_move_ambiguous_session_binding(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        def terminal(runtime_id):
+            return types.SimpleNamespace(
+                processID=1002, windowHandle=2002, role=3, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        wrong_obj = terminal((42, 2002, 4, 26))
+        active_obj = terminal((42, 2002, 4, 6))
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin, active_obj)
+        plugin._gate.manual_enabled = True
+        client = Client()
+        instance = plugin._instanceManager.add("legacy", "session", "editor@example-host", client)
+        wrong_id, active_id = plugin._identity(wrong_obj), plugin._identity(active_obj)
+        plugin._instanceManager.bind(wrong_id, instance.identifier)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._rememberedTerminalBindings.add(wrong_id)
+
+        self.focus = active_obj
+        plugin._handleManagedEvent(instance.identifier, {"type": "characterMoved", "payload": {
+            "mode": "normal", "lineText": "hello",
+            "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertIsNone(plugin._instanceManager.selected_for(wrong_id))
+        self.assertEqual(
+            instance.identifier,
+            plugin._instanceManager.selected_for(active_id).identifier,
+        )
+        self.assertNotIn(wrong_id, plugin._rememberedTerminalBindings)
+        self.assertIn(active_id, plugin._rememberedTerminalBindings)
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertIn(("requestFullState", {}), client.controls)
+        self.assertTrue(any("moved" in message.lower() for message in self.messages))
+        plugin.terminate()
+
+    def test_focus_switch_reactivates_only_opted_in_terminal_tabs(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        def terminal(runtime_id):
+            return types.SimpleNamespace(
+                processID=1001, windowHandle=2001, role=3, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        first_obj = terminal((42, 2001, 4, 6))
+        second_obj = terminal((42, 2001, 4, 53))
+        plugin = GlobalPlugin()
+        first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
+        first_client, second_client = Client(), Client()
+        first = plugin._instanceManager.add("one", "1", "First", first_client)
+        second = plugin._instanceManager.add("two", "2", "Second", second_client)
+        plugin._instanceManager.bind(first_id, first.identifier)
+        plugin._instanceManager.bind(second_id, second.identifier)
+        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._gate.focused = plugin._gate.bound_terminal = first_id
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._client = first_client
+        self.focus = second_obj
+        native_focus_announcements = []
+        plugin._event_gainFocus(second_obj, lambda: native_focus_announcements.append("second"))
+        self.assertEqual(second_id, plugin._gate.bound_terminal)
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual([("requestFullState", {})], second_client.controls)
+        self.focus = first_obj
+        plugin._event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
+        self.assertEqual(first_id, plugin._gate.bound_terminal)
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual([("requestFullState", {})], first_client.controls)
+        self.assertEqual(["second", "first"], native_focus_announcements)
+        self.assertEqual(2, self.speechCancellations)
+        plugin.terminate()
+
+    def test_parallel_tabs_restore_independent_speech_and_typing_runtime(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, *_args): return True
+
+        def terminal(runtime_id):
+            return types.SimpleNamespace(
+                processID=1001, windowHandle=2001, role=3, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        first_obj = terminal((42, 2001, 4, 6))
+        second_obj = terminal((42, 2001, 4, 53))
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin, first_obj)
+        plugin._gate.manual_enabled = True
+        first = plugin._instanceManager.add("same", "one", "First", Client())
+        second = plugin._instanceManager.add("same", "two", "Second", Client())
+        first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
+        plugin._instanceManager.bind(first_id, first.identifier)
+        plugin._instanceManager.bind(second_id, second.identifier)
+
+        self.focus = first_obj
+        self._focusPlugin(plugin, first_obj)
+        plugin._handleManagedEvent(first.identifier, {"type": "fullState", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "first",
+            "cursor": {"line": 1, "byteColumn": 5},
+        }})
+        first_planner = plugin._planner
+        plugin._typedWord = ["firstPending"]
+
+        self.focus = second_obj
+        self._focusPlugin(plugin, second_obj)
+        plugin._handleManagedEvent(second.identifier, {"type": "fullState", "payload": {
+            "mode": "normal", "bufferId": 1, "lineText": "second",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        second_planner = plugin._planner
+        self.assertIsNot(first_planner, second_planner)
+        plugin._typedWord = ["secondPending"]
+
+        self.focus = first_obj
+        self._focusPlugin(plugin, first_obj)
+        plugin._handleManagedEvent(first.identifier, {"type": "characterMoved", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "first",
+            "cursor": {"line": 1, "byteColumn": 4},
+        }})
+        self.assertIs(first_planner, plugin._planner)
+        self.assertEqual(["firstPending"], plugin._typedWord)
+
+        self.focus = second_obj
+        self._focusPlugin(plugin, second_obj)
+        plugin._handleManagedEvent(second.identifier, {"type": "characterMoved", "payload": {
+            "mode": "normal", "bufferId": 1, "lineText": "second",
+            "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertIs(second_planner, plugin._planner)
+        self.assertEqual(["secondPending"], plugin._typedWord)
+        plugin.terminate()
+
+    def test_declined_or_stale_tab_binding_never_auto_reconnects(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, *_args): return True
+
+        def terminal(runtime_id):
+            return types.SimpleNamespace(
+                processID=1001, windowHandle=2001, role=3, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        first_obj = terminal((42, 2001, 4, 6))
+        second_obj = terminal((42, 2001, 4, 53))
+        plugin = GlobalPlugin()
+        first_id = plugin._identity(first_obj)
+        instance = plugin._instanceManager.add("one", "1", "First", Client())
+        plugin._instanceManager.bind(first_id, instance.identifier)
+        self.messageBoxAnswers.append(0)
+        plugin._offerTemporaryTerminalBinding(first_id, instance.identifier)
+        self.assertNotIn(first_id, plugin._rememberedTerminalBindings)
+        plugin._gate.focused = first_id
+        plugin._event_gainFocus(second_obj, lambda: None)
+        # Declining persistence means that focus alone never reactivates the
+        # binding.  Keep the dormant in-memory mapping, however: destroying it
+        # on a transient UIA focus identity change loses suppression and makes
+        # subsequent events from the still-running client unselectable.
+        self.assertEqual(instance.identifier, plugin._instanceManager.selected_for(first_id).identifier)
+
+        stale_id = plugin._identity(second_obj)
+        plugin._rememberedTerminalBindings.add(stale_id)
+        plugin._gate.focused = TerminalIdentity(1, 2)
+        plugin._event_gainFocus(second_obj, lambda: None)
+        self.assertNotIn(stale_id, plugin._rememberedTerminalBindings)
+        plugin.terminate()
+
+    def test_explicit_session_replacement_starts_new_before_stopping_old_client(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+
+        order = []
+        class Client:
+            def __init__(inner_self, *_args, **_kwargs): inner_self.instance = "new"
+            def start(inner_self): order.append(f"start-{inner_self.instance}")
+            def stop(inner_self): order.append(f"stop-{inner_self.instance}")
+            def send_control(inner_self, *_args): return True
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile_value = {
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        }
+        plugin._settings["connections"] = [profile_value]
+        identity = plugin._identity(self.focus)
+        old = Client()
+        old.instance = "old"
+        old_instance = plugin._instanceManager.add("work", "1", "old", old)
+        plugin._instanceManager.bind(identity, old_instance.identifier)
+        plugin._client = old
+        plugin._sessionDiscoveryGeneration = 9
+        with mock.patch.object(addon_module, "SshStdioClient", Client):
+            plugin._finishSessionDiscovery(
+                9, parse_profile(profile_value), identity,
+                [RemoteSession("2", "new", "/new")], None, True,
+            )
+        self.assertEqual(["start-old", "start-new", "stop-old"], order)
+        self.assertEqual(["2"], [item.session_id for item in plugin._instanceManager.list()])
+        plugin.terminate()
+
+    def test_remote_session_discovery_reports_empty_and_failure_without_starting(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        profile = parse_profile({
+            "id": "work", "name": "Work", "host": "host", "user": "remote",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        })
+        plugin._sessionDiscoveryGeneration = 2
+        plugin._startManagedInstance = lambda *_args, **_kwargs: self.fail("must not start")
+        plugin._finishSessionDiscovery(2, profile, plugin._identity(self.focus), [], None)
+        self.assertIn("No active Neovim session", self.messages[-1])
+        plugin._finishSessionDiscovery(2, profile, plugin._identity(self.focus), [], RuntimeError("offline"))
+        self.assertIn("Could not list", self.messages[-1])
+        plugin.terminate()
+
+    def test_parallel_ipv4_and_ipv6_hosts_keep_terminal_events_separate(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        clients = []
+        class FakeStdioClient:
+            def __init__(inner_self, target, on_event, _on_state, **kwargs):
+                inner_self.target = target
+                inner_self.on_event = on_event
+                inner_self.kwargs = kwargs
+                inner_self.stops = 0
+                clients.append(inner_self)
+            def start(inner_self): pass
+            def stop(inner_self): inner_self.stops += 1
+            def send_control(inner_self, *_args): return True
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._settings["connections"] = [
+            {"id": "v4", "name": "IPv4 host", "host": "127.0.0.1", "user": "editor",
+             "port": 22, "identityFile": "", "authentication": "openSsh"},
+            {"id": "v6", "name": "IPv6 host", "host": "::1", "user": "editor",
+             "port": 22, "identityFile": "", "authentication": "openSsh"},
+        ]
+        with mock.patch.object(addon_module, "SshStdioClient", FakeStdioClient):
+            plugin._startManagedInstance("v4", "101")
+            self.focus.windowHandle = 201
+            self._focusPlugin(plugin)
+            plugin._startManagedInstance("v6", "202")
+        self.assertEqual(["editor@127.0.0.1", "editor@::1"], [client.target for client in clients])
+
+        self.spoken.clear()
+        clients[0].on_event({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "ipv4 hidden", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        clients[1].on_event({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "ipv6 visible", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertNotIn("ipv4 hidden", self.spoken)
+        self.assertIn("ipv6 visible", self.spoken)
+
+        self.focus.windowHandle = 200
+        self._focusPlugin(plugin)
+        self.spoken.clear()
+        clients[0].on_event({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "ipv4 visible", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertIn("ipv4 visible", self.spoken)
+        plugin.terminate()
+        self.assertEqual([1, 1], [client.stops for client in clients])
+
+    def test_tools_menu_exposes_only_rootless_install_and_settings_remain_native(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.assertFalse(any("Neovim" in label for label in self.preferencesMenuLabels))
+        self.assertTrue(any(
+            label.startswith(buildVars.addon_info["summary"] + ":")
+            for label in self.toolsMenuLabels
+        ))
+        self.assertFalse(any("SSH target" in label for label in self.menuLabels))
+        self.assertEqual(1, len(self.settingsCategoryClasses))
+        panel = self.settingsCategoryClasses[0]()
+        panel.makeSettings(object())
+        self.assertEqual(("General", "Feedback", "Connections"), panel.settingsTabLabels)
+        self.assertEqual([
+            "Global action feedback", "Individual actions", "Saved SSH connections",
+        ], self.staticBoxLabels)
+        self.assertEqual(8, len(panel.feedbackControls))
+        panel.feedbackControls["delete"].SetSelection(2)
+        panel.onSave()
+        self.assertEqual(2, plugin._settings["feedback"]["delete"])
+        self.assertEqual(2, __import__("config").conf["nvimNvdaAccess"]["feedback"]["delete"])
+        self.assertIn("nvimNvdaAccess", __import__("config").conf.spec)
+        self.assertFalse((self.config_path / "nvimNvdaAccess.json").exists())
+        plugin.terminate()
+        self.assertEqual([], self.settingsCategoryClasses)
+
+    def test_nvda_profile_switch_reloads_native_addon_settings(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        plugin = GlobalPlugin()
+        config.conf["nvimNvdaAccess"] = {
+            "schemaVersion": 5,
+            "connections": json.dumps([{
+                "id": "quiet", "name": "Quiet server", "host": "host", "user": "user",
+                "port": 22, "identityFile": "", "authentication": "openSsh",
+            }]),
+            "feedback": {
+                "global": 1, "mode": 0, "delete": 2, "replace": 3,
+                "lineBoundary": 2, "fileBoundary": 1,
+                "lineCrossed": 0, "matchingError": 3,
+            },
+        }
+        config.post_configProfileSwitch.notify()
+        self.assertEqual(0, plugin._settings["feedback"]["mode"])
+        self.assertEqual("user@host", plugin._connectionProfileById("quiet").ssh_target)
+        self.assertEqual(1, len(config.post_configProfileSwitch.handlers))
+        plugin.terminate()
+        self.assertEqual(0, len(config.post_configProfileSwitch.handlers))
+
+    def test_nvda_profile_switch_does_not_interrupt_an_active_connection(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        class Client:
+            def __init__(inner_self): inner_self.stops = 0
+            def stop(inner_self): inner_self.stops += 1
+
+        plugin = GlobalPlugin()
+        client = Client()
+        plugin._client = client
+        plugin._connected = True
+        plugin._gate.manual_enabled = True
+        config.conf["nvimNvdaAccess"]["feedback"]["global"] = 0
+
+        config.post_configProfileSwitch.notify()
+
+        self.assertIs(client, plugin._client)
+        self.assertEqual(0, client.stops)
+        self.assertTrue(plugin._connected)
+        self.assertEqual(0, plugin._settings["feedback"]["global"])
+        plugin.terminate()
+        self.assertEqual(1, client.stops)
+
+    def test_connection_profile_buttons_add_duplicate_targets_edit_and_remove(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        panel = self.settingsCategoryClasses[0]()
+        panel.makeSettings(object())
+        queued = [
+            {"id": "example-host-one", "name": "Example host one", "host": "example-host", "user": "editor", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "example-host-two", "name": "Example host two", "host": "example-host", "user": "editor", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+        ]
+        plugin._promptConnectionProfile = lambda _existing, _profiles: queued.pop(0)
+        panel._onAddConnection(None)
+        panel._onAddConnection(None)
+        self.assertEqual(["editor@example-host", "editor@example-host"], [
+            f"{profile['user']}@{profile['host']}" for profile in panel.connectionProfiles
+        ])
+        self.assertEqual([
+            "Example host one — editor@example-host", "Example host two — editor@example-host",
+        ], panel.connectionChoice.items)
+        panel.connectionChoice.SetSelection(1)
+        plugin._promptConnectionProfile = lambda existing, _profiles: {**existing, "name": "Edited", "port": 2222}
+        panel._onEditConnection(None)
+        self.assertEqual(("Edited", 2222), (
+            panel.connectionProfiles[1]["name"], panel.connectionProfiles[1]["port"],
+        ))
+        panel._onRemoveConnection(None)
+        self.assertEqual(["example-host-one"], [profile["id"] for profile in panel.connectionProfiles])
+        panel.connectionChoice.SetSelection(0)
+        inventories = []
+        plugin._gate.manual_enabled = True
+        plugin._beginClaimInventory = lambda: inventories.append(True)
+        panel.onSave()
+        self.assertNotIn("activeConnection", plugin._settings)
+        self.assertEqual([True], inventories)
+        plugin.terminate()
+
+    def test_connection_profile_form_is_single_transaction_and_uses_plain_authentication_labels(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        shown = []
+        plugin._showConnectionProfileDialog = lambda values: shown.append(dict(values)) or {
+            "name": "Work", "host": "host.example", "user": "linux-user", "port": "2222",
+            "identityFile": r"C:\keys\work key", "authentication": "openSsh",
+        }
+        profile = plugin._promptConnectionProfile(None, [])
+        self.assertEqual(("linux-user@host.example", 2222, r"C:\keys\work key"), (
+            f"{profile['user']}@{profile['host']}", profile["port"], profile["identityFile"],
+        ))
+        self.assertEqual([{}], shown)
+        choices = plugin._authenticationChoices()
+        self.assertIn("recommended", choices[0])
+        self.assertIn("not saved", choices[1])
+        self.assertNotIn("openSsh", " ".join(choices))
+
+        plugin._showConnectionProfileDialog = lambda _values: None
+        self.assertIsNone(plugin._promptConnectionProfile(profile, [profile]))
+
+        attempts = iter((
+            {"name": "Bad", "host": "-option", "user": "user", "port": "22",
+             "identityFile": "", "authentication": "openSsh"},
+            {"name": "Password host", "host": "server", "user": "remote", "port": "22",
+             "identityFile": r"C:\unused-key", "authentication": "password"},
+        ))
+        plugin._showConnectionProfileDialog = lambda _values: next(attempts)
+        password_profile = plugin._promptConnectionProfile(None, [])
+        self.assertEqual("password", password_profile["authentication"])
+        self.assertEqual("", password_profile["identityFile"])
+        self.assertTrue(any("connection settings are invalid" in message for message in self.messages))
+        plugin.terminate()
+
+    def test_local_discovery_is_implicit_and_not_a_default_setting(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        panel = self.settingsCategoryClasses[0]()
+        panel.makeSettings(object())
+        panel.onSave()
+        self.assertEqual([], panel.connectionProfiles)
+        self.assertNotIn("activeConnection", plugin._settings)
+        self.assertNotIn("activeTargetKind", plugin._settings)
+        plugin.terminate()
+
+    def test_linux_installation_selects_multiple_saved_profiles_with_accessible_labels(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings.update({
+            "connections": [
+                {"id": "key", "name": "Production", "host": "prod", "user": "alice", "port": 22,
+                 "identityFile": r"C:\keys\prod", "authentication": "openSsh"},
+                {"id": "pw", "name": "Test server", "host": "test", "user": "bob", "port": 2222,
+                 "identityFile": "", "authentication": "password"},
+            ],
+        })
+        self.checkListSelections.append([1, 2])
+        self.modalDialogResults.append(sys.modules["wx"].ID_OK)
+        selected = plugin._chooseInstallProfiles()
+        self.assertEqual(["key", "pw"], [profile.identifier for profile in selected])
+        connection_list = self.checkListBoxes[-1]
+        self.assertEqual("Connections to update", connection_list.name)
+        self.assertIn("This computer: local Windows Neovim plugin", connection_list.choices[0])
+        self.assertIn("Production: alice@prod, port 22, OpenSSH keys or configuration", connection_list.choices[1])
+        self.assertIn("Test server: bob@test, port 2222, password prompt", connection_list.choices[2])
+        self.assertFalse(any("Nothing is selected" in label for label in self.staticTexts))
+        select_all = next(control for control in self.checkBoxControls if control.label == "Select all connections")
+        self.assertTrue(select_all.focused)
+        self.assertFalse(select_all.IsChecked())
+
+        calls = []
+        plugin._chooseInstallProfiles = lambda: selected
+        plugin._passwordForProfile = lambda profile: "temporary password" if profile.identifier == "pw" else ""
+        plugin._runServerInstalls = lambda *args: calls.append(args)
+        class ImmediateThread:
+            def __init__(inner_self, target, args, daemon):
+                inner_self.target, inner_self.args, inner_self.daemon = target, args, daemon
+            def start(inner_self): inner_self.target(*inner_self.args)
+        with mock.patch("threading.Thread", ImmediateThread):
+            plugin._onInstallServer(None)
+        jobs, package, immediate_results, local_plugin = calls[0]
+        self.assertEqual(["key", "pw"], [profile.identifier for profile, _password in jobs])
+        self.assertEqual(["", "temporary password"], [password for _profile, password in jobs])
+        self.assertTrue(package.endswith("server-user.tar.gz"))
+        self.assertTrue(local_plugin.endswith("neovim-plugin"))
+        self.assertEqual([], immediate_results)
+        self.assertIn("Updating Neovim components on 2 targets", self.messages[-1])
+        plugin.terminate()
+
+    def test_linux_installation_select_all_checkbox_checks_every_connection(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings["connections"] = [
+            {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+        ]
+        self.modalDialogResults.append(sys.modules["wx"].ID_OK)
+        original_show = sys.modules["wx"].Dialog.ShowModal
+        def select_all_then_show(dialog):
+            select_all = next(control for control in self.checkBoxControls if control.label == "Select all connections")
+            select_all.SetValue(True)
+            select_all.handlers[sys.modules["wx"].EVT_CHECKBOX](None)
+            return original_show(dialog)
+        with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", select_all_then_show):
+            selected = plugin._chooseInstallProfiles()
+        self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
+        plugin.terminate()
+
+    def test_linux_installation_manual_checks_synchronize_select_all(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings["connections"] = [
+            {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+        ]
+        self.modalDialogResults.append(sys.modules["wx"].ID_OK)
+        synchronized = []
+        original_show = sys.modules["wx"].Dialog.ShowModal
+        def manually_check_then_show(dialog):
+            connection_list = self.checkListBoxes[-1]
+            select_all = next(control for control in self.checkBoxControls if control.label == "Select all connections")
+            event = types.SimpleNamespace(Skip=lambda: None)
+            connection_list.Check(0, True)
+            connection_list.handlers[sys.modules["wx"].EVT_CHECKLISTBOX](event)
+            synchronized.append(select_all.IsChecked())
+            connection_list.Check(1, True)
+            connection_list.handlers[sys.modules["wx"].EVT_CHECKLISTBOX](event)
+            synchronized.append(select_all.IsChecked())
+            connection_list.Check(2, True)
+            connection_list.handlers[sys.modules["wx"].EVT_CHECKLISTBOX](event)
+            synchronized.append(select_all.IsChecked())
+            connection_list.Check(0, False)
+            connection_list.handlers[sys.modules["wx"].EVT_CHECKLISTBOX](event)
+            synchronized.append(select_all.IsChecked())
+            connection_list.Check(0, True)
+            return original_show(dialog)
+        with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", manually_check_then_show):
+            selected = plugin._chooseInstallProfiles()
+        self.assertEqual([False, False, True, False], synchronized)
+        self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
+        plugin.terminate()
+
+    def test_linux_installation_requires_an_explicit_selection(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings["connections"] = [{
+            "id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+            "identityFile": "", "authentication": "openSsh",
+        }]
+        self.modalDialogResults.extend((sys.modules["wx"].ID_OK, sys.modules["wx"].ID_CANCEL))
+        self.assertIsNone(plugin._chooseInstallProfiles())
+        self.assertTrue(self.messageBoxes)
+        self.assertIn("Select at least one target", self.messageBoxes[-1][0][0])
+        self.assertEqual((), self.checkListBoxes[-1].GetCheckedItems())
+        plugin.terminate()
+
+    def test_linux_installation_reports_each_success_failure_and_cancelled_password(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
+        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        profiles = parse_profiles([
+            {"id": "ok", "name": "Documentation", "host": "example-host", "user": "editor", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "bad", "name": "Production", "host": "example-host-2", "user": "admin", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "cancel", "name": "Password server", "host": "pw", "user": "tester", "port": 22,
+             "identityFile": "", "authentication": "password"},
+        ])
+        results = [
+            (profiles[0], InstallResult(True, "installed")),
+            (profiles[1], InstallResult(False, "SSH package upload failed")),
+            (profiles[2], InstallResult(False, "SSH password entry cancelled")),
+        ]
+        summary = plugin._installResultSummary(results)
+        self.assertIn("Successful: 1", summary)
+        self.assertIn("Documentation (editor@example-host)", summary)
+        self.assertIn("Failed: 2", summary)
+        self.assertIn("Production (admin@example-host-2): SSH package upload failed", summary)
+        self.assertIn("Password server (tester@pw): SSH password entry cancelled", summary)
+        plugin._finishServerInstalls(results)
+        self.assertEqual("Neovim component update results", self.messageDialogs[-1].title)
+        self.assertEqual(summary, self.messageDialogs[-1].message)
+        self.assertTrue(self.messageDialogs[-1].shown)
+        self.assertIn("1 successful, 2 failed", self.messages[-1])
+        plugin.terminate()
+
+    def test_linux_installation_runs_all_selected_jobs_and_records_each_result(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
+        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        profiles = parse_profiles([
+            {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 2222,
+             "identityFile": r"C:\keys\two", "authentication": "password"},
+        ])
+        calls = []
+        results = iter((OSError("ssh unavailable"), InstallResult(True, "installed")))
+        installer = mock.Mock()
+        def install(*args):
+            calls.append(args)
+            result = next(results)
+            if isinstance(result, Exception):
+                raise result
+            return result
+        installer.install.side_effect = install
+        finished = []
+        plugin._finishServerInstalls = finished.extend
+        with mock.patch("globalPlugins.nvimNvdaAccess.SshUserInstaller", return_value=installer), \
+                mock.patch.object(plugin._diagnostics, "record") as record:
+            plugin._runServerInstalls(
+                [(profiles[0], ""), (profiles[1], "temporary password")], "/tmp/package.tar.gz",
+            )
+        self.assertEqual(2, len(calls))
+        self.assertEqual(("alice@one", 22, ""), (calls[0][0], calls[0][2], calls[0][3]))
+        self.assertEqual(("bob@two", 2222, r"C:\keys\two", "temporary password"),
+                         (calls[1][0], calls[1][2], calls[1][3], calls[1][4]))
+        self.assertEqual(["one", "two"], [profile.identifier for profile, _result in finished])
+        self.assertEqual([False, True], [result.success for _profile, result in finished])
+        self.assertEqual("Unexpected installation error", finished[0][1].message)
+        self.assertEqual(["one", "two"], [call.kwargs["targetId"] for call in record.call_args_list])
+        plugin.terminate()
+
+    def test_password_is_prompted_once_per_activation_and_never_persisted(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings.update({
+            "connections": [{
+                "id": "password-host", "name": "Password host", "host": "host",
+                "user": "remote", "port": 22, "identityFile": "", "authentication": "password",
+            }],
+        })
+        profile = plugin._connectionProfileById("password-host")
+        self.assertEqual([], plugin._automaticClaimProfiles())
+        prompts = []
+        plugin._promptPassword = lambda name: prompts.append(name) or "not-saved secret"
+        self.assertEqual("not-saved secret", plugin._passwordForProfile(profile))
+        self.assertEqual("not-saved secret", plugin._passwordForProfile(profile))
+        self.assertEqual(["Password host"], prompts)
+        self.assertEqual(["password-host"], [
+            item.identifier for item in plugin._automaticClaimProfiles()
+        ])
+        plugin._saveSettings()
+        saved = __import__("config").conf["nvimNvdaAccess"]["connections"]
+        self.assertNotIn("not-saved secret", saved)
+        plugin._clearSessionPasswords()
+        self.assertEqual({}, plugin._sessionPasswords)
+        plugin._promptPassword = lambda _name: None
+        self.assertIsNone(plugin._passwordForProfile(profile))
+        plugin.terminate()
+
+    def test_toggle_never_activates_or_deactivates_an_nvda_profile(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        plugin._toggleNeovimMode()
+        plugin._toggleNeovimMode()
+        self.assertFalse(hasattr(plugin, "_nvdaProfileActive"))
+        self.assertFalse(hasattr(plugin, "_activateNvdaProfile"))
+        self.assertFalse(hasattr(plugin, "_deactivateNvdaProfile"))
+        source = (self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "__init__.py").read_text(
+            encoding="utf-8",
+        )
+        self.assertNotIn("manualActivateProfile", source)
+        self.assertNotIn("listProfiles", source)
+        plugin.terminate()
+
+    def test_built_plugin_loads_toggles_and_fails_open(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        called: list[bool] = []
+        plugin._event_textChange(self.focus, lambda: called.append(True))
+        self.assertEqual([True], called)
+        plugin.action_toggleNeovimMode(None)
+        self.assertIn("local and saved", self.messages[-1])
+        self.assertFalse(plugin._gate.suppression_active)
+        plugin.terminate()
+
+    def test_inactive_braille_overlay_raises_at_call_time_for_nvda_fallback(self) -> None:
+        from globalPlugins.nvimNvdaAccess import StructuredTerminalBrailleOverlay
+
+        overlay = StructuredTerminalBrailleOverlay()
+        overlay.processID = 100
+        overlay.windowHandle = 200
+        with self.assertRaises(NotImplementedError):
+            overlay.getBrailleRegions()
+
+    def test_authenticated_full_state_binds_only_focused_terminal(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        plugin.action_toggleNeovimMode(None)
+        plugin._handleEvent({
+            "type": "fullState",
+            "payload": {"modeRaw": "n", "lineText": "hello", "cursor": {"line": 1, "byteColumn": 0}},
+        })
+        self.assertTrue(plugin._gate.suppression_active)
+        called: list[bool] = []
+        cancellations_before_modes = self.speechCancellations
+        for mode in (
+            "normal", "insert", "visualCharacter", "visualLine", "visualBlock",
+            "operatorPending", "commandLine", "replace",
+        ):
+            plugin._currentState["mode"] = mode
+            plugin._event_gainFocus(self.focus, lambda: called.append(True))
+            plugin._event_textChange(self.focus, lambda: called.append(True))
+            plugin._event_typedCharacter(self.focus, lambda: called.append(True), "x")
+            plugin._event_UIA_notification(self.focus, lambda: called.append(True))
+            for handler in (
+                plugin._event_liveRegionChange, plugin._event_valueChange,
+                plugin._event_nameChange, plugin._event_descriptionChange,
+            ):
+                handler(self.focus, lambda: called.append(True))
+        # gainFocus must continue through NVDA so Terminal starts LiveText and
+        # editable-text monitoring. Its native speech is cancelled; every
+        # content event remains blocked in all structured editor modes.
+        self.assertEqual([True] * 8, called)
+        self.assertEqual(cancellations_before_modes + 8, self.speechCancellations)
+        called.clear()
+        other = types.SimpleNamespace(processID=100, windowHandle=201)
+        plugin._event_textChange(other, lambda: called.append(True))
+        self.assertEqual([True], called)
+        plugin._onNetworkState("disconnected")
+        plugin._event_textChange(self.focus, lambda: called.append(True))
+        self.assertEqual([True, True], called)
+        plugin.terminate()
+
+    def test_terminal_buffer_temporarily_restores_native_terminal_output(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        self.assertTrue(plugin._gate.suppression_active)
+        plugin._handleEvent({"type": "contextChanged", "payload": {
+            "mode": "terminal", "modeRaw": "t", "buftype": "terminal",
+            "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertTrue(plugin._gate.terminal_passthrough)
+        self.assertFalse(plugin._gate.suppression_active)
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "normal", "modeRaw": "n", "buftype": "terminal",
+            "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertFalse(plugin._gate.terminal_passthrough)
+        self.assertTrue(plugin._gate.suppression_active)
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "terminal", "modeRaw": "t", "buftype": "terminal",
+            "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertTrue(plugin._gate.terminal_passthrough)
+        plugin.terminate()
+
+    def test_structured_braille_region_preserves_indent_cursor_and_selection(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        plugin._currentState = {
+            "lineText": "\t界🙂z",
+            "tabstop": 4,
+            "cursor": {"byteColumn": 8},
+            "selection": {"currentLine": {"startByteColumn": 1, "endByteColumn": 8}},
+        }
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("    界🙂z", region.rawText)
+        self.assertEqual((4, 6), (region.selectionStart, region.selectionEnd))
+        self.assertIsNone(region.cursorPos)
+
+    def test_visual_line_delta_uses_interruptible_nvda_speech(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({"type": "selectionChanged", "payload": {
+            "mode": "visualLine", "lineText": "Petra war gestern einkaufen.",
+            "cursor": {"line": 1, "byteColumn": 0},
+            "selection": {
+                "kind": "line", "text": "Petra war gestern einkaufen.",
+                "selectedLines": [{"line": 1, "text": "Petra war gestern einkaufen."}],
+            },
+        }})
+        self.assertEqual("Petra war gestern einkaufen. selected", self.spoken[-1])
+        self.assertEqual(1, self.speechCancellations)
+        plugin.terminate()
+
+    def test_visual_symbols_ignore_nvda_punctuation_level_and_spaces_are_named(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        for text, expected in (("?", "? selected"), (" ", "space selected")):
+            plugin._planner.reset()
+            plugin._handleEvent({"type": "selectionChanged", "payload": {
+                "mode": "visualCharacter", "lineText": text,
+                "cursor": {"line": 1, "byteColumn": len(text.encode("utf-8"))},
+                "selection": {"kind": "character", "text": text},
+            }})
+            self.assertEqual(expected, self.speechTextCalls[-1][0])
+            self.assertEqual(300, self.speechTextCalls[-1][1].get("symbolLevel"))
+        plugin.terminate()
+
+    def test_missing_matching_pair_uses_nvda_speech_and_error_tone(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({"type": "matchingPairNotFound", "payload": {
+            "mode": "normal", "lineText": "plain text",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertEqual("no matching pair", self.spoken[-1])
+        self.assertEqual(1, len(self.soundFeeds))
+        self.assertEqual([], self.beeps)
+        plugin.terminate()
+
+    def test_spelling_uses_nvda_config_cached_sound_and_braille_markers(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        state = {
+            "mode": "normal", "lineText": "mispelled word", "tabstop": 4,
+            "cursor": {"line": 1, "byteColumn": 1, "characterColumn": 1},
+            "spellingError": {
+                "kind": "spelling", "startByteColumn": 0, "endByteColumn": 9,
+            },
+            "spellingErrors": [{
+                "kind": "spelling", "startByteColumn": 0, "endByteColumn": 9,
+            }],
+        }
+        plugin._handleEvent({"type": "fullState", "payload": state})
+        self.assertIn("spelling error", self.spoken)
+        self.assertEqual(1, len(self.soundFeeds))
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("⠑mispelled⡑ word", region.rawText)
+        plugin._handleEvent({
+            "type": "spellingErrorTyped", "payload": {**state, "spellingError": state["spellingError"]},
+        })
+        self.assertEqual(2, len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_spelling_off_and_sound_only_follow_nvda_formatting_mode(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        config.conf["documentFormatting"]["reportSpellingErrors2"] = 0
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        state = {
+            "mode": "normal", "lineText": "mispelled", "cursor": {"line": 1, "byteColumn": 1},
+            "spellingError": {"kind": "spelling", "startByteColumn": 0, "endByteColumn": 9},
+            "spellingErrors": [{"kind": "spelling", "startByteColumn": 0, "endByteColumn": 9}],
+        }
+        plugin._handleEvent({"type": "fullState", "payload": state})
+        self.assertNotIn("spelling error", self.spoken)
+        self.assertEqual(0, len(self.soundFeeds))
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("mispelled", region.rawText)
+
+        config.conf["documentFormatting"]["reportSpellingErrors2"] = 2
+        moved = {**state, "cursor": {"line": 2, "byteColumn": 1}}
+        plugin._handleEvent({"type": "lineChanged", "payload": moved})
+        self.assertNotIn("spelling error", self.spoken)
+        self.assertEqual(1, len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_insert_mode_sound_and_copyable_redacted_diagnostics(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        insert = {
+            "type": "modeChanged",
+            "sessionId": "session-a",
+            "sequence": 4,
+            "payload": {
+                "mode": "insert",
+                "modeRaw": "i",
+                "lineText": "private source",
+                "cursor": {"line": 1, "byteColumn": 0},
+            },
+        }
+        plugin._handleEvent(insert)
+        plugin._handleEvent(insert)
+        self.assertEqual(1, len(self.soundFeeds))
+        self.assertEqual([], self.beeps)
+        plugin._handleEvent({
+            "type": "modeChanged",
+            "payload": {"mode": "normal", "modeRaw": "n", "lineText": "x", "cursor": {"line": 1, "byteColumn": 0}},
+        })
+        self.assertEqual(2, len(self.soundFeeds))
+        self.assertEqual([], self.beeps)
+        plugin.action_copyDiagnosticReport(None)
+        self.assertTrue(self.clipboard.startswith(buildVars.addon_info["summary"] + " diagnostic report"))
+        self.assertIn('"addonVersion": "' + buildVars.version() + '"', self.clipboard)
+        self.assertNotIn("private source", self.clipboard)
+        self.assertIn("session-a", self.clipboard)
+        plugin.terminate()
+
+    def test_structured_typing_uses_nvda_typing_echo_api(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({
+            "type": "fullState",
+            "payload": {"mode": "insert", "lineText": "", "cursor": {"line": 1, "byteColumn": 0}},
+        })
+        plugin._handleEvent({
+            "type": "textChanged",
+            "payload": {"mode": "insert", "lineText": "ab", "cursor": {"line": 1, "byteColumn": 2}},
+        })
+        self.assertEqual(["blank", "a", "b"], self.spoken[-3:])
+        plugin.terminate()
+
+    def test_line_cursor_character_uses_spelling_not_abbreviation_speech(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "old",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "lineChanged", "payload": {
+            "mode": "normal", "lineText": "moin", "character": "m",
+            "indentation": 0, "shiftwidth": 4,
+            "cursor": {"line": 2, "byteColumn": 0},
+        }})
+        self.assertEqual(["m"], self.spelled)
+        self.assertEqual(["moin", "m"], self.spoken[-2:])
+        plugin.terminate()
+
+    def test_completion_menu_uses_cached_nvda_sounds_speech_and_braille(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        with mock.patch(
+            "globalPlugins.nvimNvdaAccess.suggestion_sounds.wave.open",
+            side_effect=AssertionError("menu playback must not reopen WAV files"),
+        ):
+            plugin._handleEvent({"type": "menuOpened", "payload": {
+                "mode": "insert", "itemCount": 5,
+            }})
+            plugin._handleEvent({"type": "menuSelectionChanged", "payload": {
+                "mode": "insert", "itemIndex": 1, "itemCount": 5,
+                "item": {
+                    "label": "printf", "kind": "function", "parameters": "format, ...",
+                    "documentation": "Print formatted output",
+                },
+            }})
+            plugin.action_readCompletionDocumentation(None)
+            plugin._handleEvent({"type": "menuClosed", "payload": {"mode": "insert"}})
+        expected = "printf, 1 von 5, function, Parameter format, ..."
+        self.assertIn(expected, self.spoken)
+        self.assertIn("Print formatted output", self.spoken)
+        self.assertEqual(expected, self.brailleMessages[-1])
+        self.assertEqual(2, len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_completion_sounds_follow_nvda_setting_and_missing_files_fail_open(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.suggestion_sounds import SuggestionSoundCache
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        config.conf["presentation"]["reportAutoSuggestionsWithSound"] = False
+        plugin._handleEvent({"type": "menuOpened", "payload": {"mode": "insert", "itemCount": 2}})
+        self.assertEqual([], self.soundFeeds)
+        self.assertIn("suggestionSoundSuppressed", plugin._diagnostics.report())
+        diagnostics = []
+        config.conf["presentation"]["reportAutoSuggestionsWithSound"] = True
+        missing = SuggestionSoundCache(
+            str(self.config_path / "missing"),
+            on_diagnostic=lambda category, **fields: diagnostics.append((category, fields)),
+        )
+        self.assertFalse(missing.play("open"))
+        self.assertEqual(2, sum(category == "suggestionSoundLoadError" for category, _ in diagnostics))
+        self.assertTrue(any(category == "suggestionSoundUnavailable" for category, _ in diagnostics))
+        missing.close()
+        plugin.terminate()
+
+    def test_linewise_delete_speaks_result_line_with_nvda_indent_tone(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({"type": "textDeleted", "payload": {
+            "mode": "normal", "beforeText": "old", "lineText": "    next",
+            "linewise": True, "cursor": {"line": 1, "byteColumn": 4},
+        }})
+        self.assertEqual(["deleted old", "    next"], self.spoken[-2:])
+        self.assertIn((round(220 * (2 ** (4 / 24.0))), 40), self.beeps)
+        plugin.terminate()
+
+    def test_indentation_follows_nvda_document_formatting_mode(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        config.conf["documentFormatting"]["reportLineIndentation"] = 1
+        plugin._reportIndentation(8, 2)
+        self.assertEqual("indentation level 2", self.spoken[-1])
+        self.assertEqual([], self.beeps)
+
+        config.conf["documentFormatting"]["reportLineIndentation"] = 2
+        plugin._reportIndentation(0, 0)
+        self.assertEqual((220, 40), self.beeps[-1])
+        self.assertNotEqual("no indent", self.spoken[-1])
+
+        config.conf["documentFormatting"]["reportLineIndentation"] = 3
+        plugin._reportIndentation(4, 1)
+        self.assertEqual("indentation level 1", self.spoken[-1])
+        self.assertEqual((round(220 * (2 ** (4 / 24.0))), 40), self.beeps[-1])
+        plugin.terminate()
+
+    def test_structured_typing_honors_echo_switches_but_forces_punctuation_names(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "insert", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        config.conf["keyboard"] = {"speakTypedCharacters": 2, "speakTypedWords": 0}
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "lineText": "?", "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertEqual("?", self.spoken[-1])
+        config.conf["keyboard"] = {"speakTypedCharacters": 0, "speakTypedWords": 2}
+        plugin._planner.reset()
+        plugin._typedWord = []
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "insert", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "lineText": "ab ", "cursor": {"line": 1, "byteColumn": 3},
+        }})
+        self.assertEqual("ab", self.spoken[-1])
+        plugin.terminate()
+
+    def test_typed_word_buffer_resets_when_cursor_state_contains_unreported_gap(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        config.conf["keyboard"] = {"speakTypedCharacters": 0, "speakTypedWords": 2}
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "old",
+            "cursor": {"line": 1, "byteColumn": 3},
+        }})
+        # Neovim can report the intervening space in a navigation/state event,
+        # leaving the next text diff with letters only.
+        plugin._handleEvent({"type": "cursorMoved", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "old ",
+            "cursor": {"line": 1, "byteColumn": 4},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "old new ",
+            "cursor": {"line": 1, "byteColumn": 8},
+        }})
+        self.assertEqual("new", self.spoken[-1])
+        self.assertNotIn("oldnew", self.spoken)
+        plugin.terminate()
+
+    def test_coalesced_typing_diff_does_not_repeat_processed_prefix(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        config.conf["keyboard"] = {"speakTypedCharacters": 2, "speakTypedWords": 2}
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "bufferId": 1, "lineText": "ab",
+            "cursor": {"line": 1, "byteColumn": 2},
+        }})
+        self.spoken.clear()
+        # A coalesced/stale diff may repeat "ab" while only "c " is new.
+        plugin._speakStructuredTyping("abc ", {
+            "mode": "insert", "bufferId": 1, "lineText": "abc ",
+            "cursor": {"line": 1, "byteColumn": 4},
+        })
+        self.assertEqual(["c", "abc", " "], self.spoken)
+        plugin.terminate()
+
+    def test_typed_word_buffer_survives_insert_submode_but_not_reconnect(self) -> None:
+        import config
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        config.conf["keyboard"] = {"speakTypedCharacters": 0, "speakTypedWords": 2}
+        base = {"mode": "insert", "bufferId": 1, "lineText": "", "cursor": {"line": 1, "byteColumn": 0}}
+        plugin._handleEvent({"type": "fullState", "payload": base})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **base, "lineText": "word", "cursor": {"line": 1, "byteColumn": 4},
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **base, "modeRaw": "ic", "lineText": "word", "cursor": {"line": 1, "byteColumn": 4},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **base, "lineText": "word ", "cursor": {"line": 1, "byteColumn": 5},
+        }})
+        self.assertEqual("word", self.spoken[-1])
+
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
+        }})
+        plugin._lastConnectionState = "connected"
+        plugin._handleConnectionState("disconnected")
+        plugin._handleEvent({"type": "fullState", "payload": {
+            **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **base, "lineText": "word oldnew ", "cursor": {"line": 1, "byteColumn": 12},
+        }})
+        self.assertEqual("new", self.spoken[-1])
+        self.assertNotIn("oldnew", self.spoken)
+        plugin.terminate()
+
+    def test_action_feedback_modes_gate_only_addon_owned_speech_and_sounds(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["feedback"] = {
+            "global": 3, "mode": 2, "delete": 1, "replace": 3,
+            "lineBoundary": 2, "fileBoundary": 3, "lineCrossed": 2, "matchingError": 3,
+        }
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "ab", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.spoken.clear()
+        self.soundFeeds.clear()
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            "mode": "insert", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertEqual("deleted b", self.spoken[-1])
+        self.assertEqual([], self.soundFeeds)
+
+        plugin._planner.reset()
+        plugin._lastMode = "normal"
+        self.spoken.clear()
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "insert", "modeRaw": "i", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertEqual([], self.spoken)
+        self.assertEqual(1, len(self.soundFeeds))
+
+        # Completion sounds remain governed by NVDA's own suggestion setting,
+        # even when all Add-on-owned feedback is globally disabled.
+        plugin._settings["feedback"]["global"] = 0
+        plugin._handleEvent({"type": "menuOpened", "payload": {
+            "mode": "insert", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
+        }})
+        self.assertEqual(2, len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_feedback_mode_uses_complete_nvda_style_bitmask_matrix(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        for global_mode in range(4):
+            for local_mode in range(4):
+                plugin._settings["feedback"] = {"global": global_mode, "delete": local_mode}
+                self.assertEqual(global_mode & local_mode, plugin._feedbackMode("delete"))
+        plugin.terminate()
+
+    def test_every_feedback_setting_controls_its_real_speech_and_sound_path(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        cases = {
+            "mode": (
+                {"type": "fullState", "payload": {"mode": "normal", "lineText": "x", "cursor": {"line": 1, "byteColumn": 0}}},
+                {"type": "modeChanged", "payload": {"mode": "insert", "modeRaw": "i", "lineText": "x", "cursor": {"line": 1, "byteColumn": 0}}},
+                "insert mode",
+            ),
+            "delete": (
+                {"type": "fullState", "payload": {"mode": "insert", "lineText": "ab", "cursor": {"line": 1, "byteColumn": 2}}},
+                {"type": "textChanged", "payload": {"mode": "insert", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1}}},
+                "deleted b",
+            ),
+            "replace": (
+                {"type": "fullState", "payload": {"mode": "normal", "lineText": "old", "cursor": {"line": 1, "byteColumn": 0}}},
+                {"type": "textReplaced", "payload": {"mode": "normal", "beforeText": "old", "lineText": "new", "cursor": {"line": 1, "byteColumn": 0}}},
+                "replaced old",
+            ),
+            "lineBoundary": (
+                {"type": "fullState", "payload": {"mode": "normal", "lineText": "abc", "cursor": {"line": 1, "byteColumn": 1}}},
+                {"type": "lineStart", "payload": {"mode": "normal", "lineText": "abc", "cursor": {"line": 1, "byteColumn": 0}}},
+                "line start",
+            ),
+            "fileBoundary": (
+                {"type": "fullState", "payload": {"mode": "normal", "lineText": "abc", "cursor": {"line": 2, "byteColumn": 0}}},
+                {"type": "fileStart", "payload": {"mode": "normal", "lineText": "abc", "character": "a", "cursor": {"line": 1, "byteColumn": 0}}},
+                "beginning of file, abc",
+            ),
+            "matchingError": (
+                {"type": "fullState", "payload": {"mode": "normal", "lineText": "(", "cursor": {"line": 1, "byteColumn": 0}}},
+                {"type": "matchingPairNotFound", "payload": {"mode": "normal", "lineText": "(", "cursor": {"line": 1, "byteColumn": 0}}},
+                "no matching pair",
+            ),
+        }
+        for key, (initial, event_to_test, expected_speech) in cases.items():
+            for output_mode in range(4):
+                with self.subTest(setting=key, outputMode=output_mode):
+                    plugin = GlobalPlugin()
+                    plugin._gate.manual_enabled = True
+                    plugin._settings["feedback"] = {**{
+                        "global": 3, "mode": 3, "delete": 3, "replace": 3,
+                        "lineBoundary": 2, "fileBoundary": 3,
+                        "lineCrossed": 2, "matchingError": 3,
+                    }, key: output_mode}
+                    plugin._handleEvent(initial)
+                    self.spoken.clear()
+                    self.soundFeeds.clear()
+                    plugin._handleEvent(event_to_test)
+                    self.assertEqual(bool(output_mode & 1), expected_speech in self.spoken)
+                    self.assertEqual(bool(output_mode & 2), bool(self.soundFeeds))
+                    plugin.terminate()
+
+        for output_mode in range(4):
+            with self.subTest(setting="lineCrossed", outputMode=output_mode):
+                plugin = GlobalPlugin()
+                plugin._gate.manual_enabled = True
+                plugin._settings["feedback"] = {**{
+                    "global": 3, "mode": 3, "delete": 3, "replace": 3,
+                    "lineBoundary": 2, "fileBoundary": 3,
+                    "lineCrossed": output_mode, "matchingError": 3,
+                }}
+                plugin._handleEvent({"type": "fullState", "payload": {
+                    "mode": "normal", "lineText": "a", "character": "a",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                }})
+                self.spoken.clear()
+                self.soundFeeds.clear()
+                plugin._handleEvent({"type": "characterMoved", "payload": {
+                    "mode": "normal", "lineText": "x", "character": "x",
+                    "cursor": {"line": 2, "byteColumn": 0},
+                }})
+                self.assertIn("x", self.spoken)
+                self.assertEqual(bool(output_mode & 1), "new line" in self.spoken)
+                self.assertEqual(bool(output_mode & 2), bool(self.soundFeeds))
+                plugin.terminate()
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["feedback"] = {"global": 3, "mode": 0}
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "normal", "lineText": "x", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.spoken.clear()
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "visualCharacter", "modeRaw": "v", "lineText": "x",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertIn("visual character mode", self.spoken)
+        plugin.terminate()
+
+    def test_legacy_json_is_migrated_once_into_native_nvda_configuration(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        path = self.config_path / "nvimNvdaAccess.json"
+        path.write_text(json.dumps({
+            "activateNvdaProfile": True,
+            "nvdaProfile": "Coding",
+            "schemaVersion": 3,
+            "activeConnection": "example-host",
+            "connections": [{
+                "id": "example-host", "name": "Example host", "host": "example-host", "user": "linux-editor",
+                "port": 22, "identityFile": "", "authentication": "openSsh",
+            }],
+            "authToken": "ignored obsolete value",
+            "transport": "tcp",
+            "feedback": {"global": 1, "delete": 2, "mode": 99},
+        }), encoding="utf-8")
+        plugin = GlobalPlugin()
+        self.assertNotIn("activateNvdaProfile", plugin._settings)
+        self.assertNotIn("nvdaProfile", plugin._settings)
+        self.assertEqual((1, 2, 3), (
+            plugin._settings["feedback"]["global"],
+            plugin._settings["feedback"]["delete"],
+            plugin._settings["feedback"]["mode"],
+        ))
+        self.assertEqual((5, "linux-editor", "example-host"), (
+            plugin._settings["schemaVersion"],
+            plugin._settings["connections"][0]["user"], plugin._settings["connections"][0]["host"],
+        ))
+        # Retain the legacy file as a safety backup; schema 5 prevents re-import.
+        self.assertTrue(path.exists())
+        self.assertEqual(1, self.configSaves)
+        saved = config.conf["nvimNvdaAccess"]
+        self.assertEqual(5, saved["schemaVersion"])
+        self.assertNotIn("activeConnection", saved)
+        self.assertNotIn("authToken", saved["connections"])
+        self.assertNotIn("transport", saved["connections"])
+        plugin.terminate()
+
+    def test_settings_write_uses_only_aggregated_section_supported_operations(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        class AggregatedSectionLike:
+            """Minimal public mapping surface exposed by NVDA AggregatedSection."""
+            def __init__(inner_self):
+                inner_self.values = {"feedback": {}}
+            def __getitem__(inner_self, key):
+                return inner_self.values[key]
+            def __setitem__(inner_self, key, value):
+                inner_self.values[key] = value
+
+        plugin = GlobalPlugin()
+        section = AggregatedSectionLike()
+        config.conf["nvimNvdaAccess"] = section
+        plugin._writeSettingsToNvda(plugin._settings)
+        self.assertEqual(5, section.values["schemaVersion"])
+        self.assertIsInstance(section.values["connections"], str)
+        self.assertEqual(set(plugin._settings["feedback"]), set(section.values["feedback"]))
+        plugin.terminate()
+
+    def test_settings_read_uses_aggregated_section_items(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        class AggregatedSectionLike:
+            def __init__(inner_self, values): inner_self.values = values
+            def get(inner_self, key, default=None): return inner_self.values.get(key, default)
+            def items(inner_self): return inner_self.values.items()
+            def __iter__(inner_self): return iter(inner_self.values)
+
+        feedback = AggregatedSectionLike({
+            "global": 1, "mode": 2, "delete": 3, "replace": 3,
+            "lineBoundary": 2, "fileBoundary": 3,
+            "lineCrossed": 2, "matchingError": 3,
+        })
+        config.conf["nvimNvdaAccess"] = AggregatedSectionLike({
+            "schemaVersion": 5,
+            "connections": "[]",
+            "feedback": feedback,
+        })
+
+        plugin = GlobalPlugin()
+
+        self.assertEqual(1, plugin._settings["feedback"]["global"])
+        self.assertEqual(2, plugin._settings["feedback"]["mode"])
+        self.assertEqual([], plugin._settings["connections"])
+        plugin.terminate()
+
+    def test_braille_routing_sends_only_validated_cursor_control(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        controls: list[tuple[str, dict]] = []
+        plugin._client = types.SimpleNamespace(
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+            stop=lambda: None,
+        )
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        identity = plugin._identity(self.focus)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._currentState = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "changedtick": 9,
+            "lineText": "\t界z",
+            "tabstop": 4,
+            "cursor": {"line": 3, "byteColumn": 0},
+            "_transport": {"capabilities": ["cursorRouting"]},
+        }
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        region.routeTo(4)
+        self.assertEqual("routeCursor", controls[0][0])
+        self.assertEqual(1, controls[0][1]["byteColumn"])
+        plugin.terminate()
+
+
+if __name__ == "__main__":
+    unittest.main()

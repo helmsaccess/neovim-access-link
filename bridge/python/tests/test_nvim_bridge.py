@@ -1,0 +1,824 @@
+from __future__ import annotations
+
+import os
+import json
+import pathlib
+import subprocess
+import tempfile
+import threading
+import time
+import unittest
+import pexpect
+
+from nvim_nvda_bridge import Bridge
+from nvim_nvda_protocol import LocalTcpClient
+
+
+class RecordingTransport:
+    """Record semantic bridge output without reintroducing the removed TCP protocol."""
+
+    def __init__(self) -> None:
+        self.events: list[dict] = []
+        self.condition = threading.Condition()
+
+    def start(self) -> None:
+        pass
+
+    def stop(self) -> None:
+        pass
+
+    def publish(self, event_type: str, payload: dict) -> bool:
+        with self.condition:
+            self.events.append({"type": event_type, "payload": payload})
+            self.condition.notify_all()
+        return True
+
+
+class NvimBridgeTests(unittest.TestCase):
+    def test_local_windows_loopback_client_receives_real_full_state(self) -> None:
+        root = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            environment = {
+                **os.environ,
+                "LOCALAPPDATA": directory,
+                "NVIM_NVDA_TEST_WINDOWS": "1",
+            }
+            process = subprocess.Popen(
+                [
+                    "nvim", "--headless", "-n", "-u", "NONE", "-i", "NONE",
+                    "--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
+                    "--cmd", "runtime plugin/nvim_nvda.lua",
+                ],
+                env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            client = None
+            try:
+                registry = pathlib.Path(directory) / "nvim-nvda" / "sessions" / f"{process.pid}.json"
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline and not registry.is_file():
+                    if process.poll() is not None:
+                        self.fail("local Windows Neovim exited before registry creation")
+                    time.sleep(0.02)
+                self.assertTrue(registry.is_file(), "local Windows registry timeout")
+                value = json.loads(registry.read_text(encoding="utf-8"))
+                self.assertEqual(("localWindowsTcp", "127.0.0.1"), (
+                    value["transportKind"], value["host"],
+                ))
+                events, states = [], []
+                condition = threading.Condition()
+
+                def receive_event(event):
+                    with condition:
+                        events.append(event)
+                        condition.notify_all()
+
+                def receive_state(state):
+                    with condition:
+                        states.append(state)
+                        condition.notify_all()
+
+                client = LocalTcpClient(value["host"], value["port"], receive_event, receive_state)
+                client.start()
+                self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+                self.assertIn("connected", states)
+                full_state = next(event for event in events if event["type"] == "fullState")
+                self.assertEqual("windows-loopback-tcp", full_state["payload"]["_transport"]["kind"])
+            finally:
+                if client is not None:
+                    client.stop()
+                process.terminate()
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=3)
+
+    def test_real_tui_omnifunc_emits_popup_selection_and_close(self) -> None:
+        root = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            nvim_socket = os.path.join(directory, "nvim.sock")
+            process = pexpect.spawn(
+                "nvim",
+                [
+                    "-n", "-u", "NONE", "-i", "NONE",
+                    "--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
+                    "--listen", nvim_socket,
+                ],
+                env={**os.environ, "TERM": "xterm-256color"},
+                encoding=None,
+                timeout=3,
+            )
+            self._wait_socket(nvim_socket, process)
+            transport = RecordingTransport()
+            bridge = Bridge(nvim_socket, transport=transport)
+            bridge.start()
+            events, condition = transport.events, transport.condition
+            try:
+                self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    """
+                    _G.NvimNvdaTestComplete = function(findstart, base)
+                      if findstart == 1 then return 0 end
+                      return {
+                        {word='printf', abbr='printf(format, ...)', kind='f'},
+                        {word='print', abbr='print(value)', kind='f'},
+                      }
+                    end
+                    vim.bo.omnifunc = 'v:lua.NvimNvdaTestComplete'
+                    """,
+                    [],
+                )
+                time.sleep(0.05)
+                process.send(b"i\x18\x0f")  # Insert, CTRL-X CTRL-O.
+                self._wait(condition, lambda: any(e["type"] == "menuSelectionChanged" for e in events))
+                selected = next(e for e in reversed(events) if e["type"] == "menuSelectionChanged")
+                self.assertEqual(("printf", "format, ..."), (
+                    selected["payload"]["item"]["label"],
+                    selected["payload"]["item"]["parameters"],
+                ))
+                process.send(b"\x0e")  # CTRL-N selects the next item.
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "menuSelectionChanged" and e["payload"].get("itemIndex") == 2
+                        for e in events
+                    ),
+                )
+                process.send(b"\x1b")
+                self._wait(condition, lambda: any(e["type"] == "menuClosed" for e in events))
+                opened_index = next(i for i, e in enumerate(events) if e["type"] == "menuOpened")
+                closed_index = next(
+                    i for i, e in enumerate(events[opened_index:], start=opened_index)
+                    if e["type"] == "menuClosed"
+                )
+                self.assertFalse(any(
+                    e["type"] == "textChanged" for e in events[opened_index:closed_index + 1]
+                ))
+                prior = len(events)
+                process.send(b":set wildm\t")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "menuSelectionChanged"
+                        and e["payload"].get("menuKind") == "wildmenu"
+                        for e in events[prior:]
+                    ),
+                )
+                wildmenu = next(
+                    e for e in reversed(events[prior:])
+                    if e["type"] == "menuSelectionChanged" and e["payload"].get("menuKind") == "wildmenu"
+                )
+                self.assertGreater(wildmenu["payload"]["itemCount"], 1)
+                process.send(b"\x03")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "modeChanged" and e["payload"].get("modeRaw") == "n"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.ui.select({'main','development'}, "
+                    "{prompt='Branch'}, function() end) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened" and e["payload"].get("prompt") == "Branch"
+                                for e in events[prior:]),
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "menuSelectionChanged"
+                                and e["payload"].get("menuKind") == "select"
+                                for e in events[prior:]),
+                )
+                time.sleep(0.05)
+                process.send(b"1\r")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed" and e["payload"].get("selectedLabel") == "main"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.ui.input({prompt='Branch name'}, function() end) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened" and e["payload"].get("promptKind") == "input"
+                                for e in events[prior:]),
+                )
+                time.sleep(0.05)
+                process.send(b"feature\r")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed" and e["payload"].get("promptKind") == "input"
+                                and e["payload"].get("accepted") is True for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.fn.confirm('Proceed?', '&Yes\\n&No', 2) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened"
+                                and e["payload"].get("promptKind") == "confirm"
+                                and "Proceed?" in e["payload"].get("prompt", "")
+                                for e in events[prior:]),
+                )
+                time.sleep(0.05)
+                process.send(b"n")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed"
+                                and e["payload"].get("promptKind") == "confirm"
+                                for e in events[prior:]),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'section {{{','inside','end }}}','target'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); vim.wo.foldmethod='marker'; vim.wo.foldlevel=99; "
+                    "vim.bo.modified=false",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"zc")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "foldChanged" and e["payload"].get("foldAction") == "close"
+                                and e["payload"].get("endLine") == 3 for e in events[prior:]),
+                )
+                process.send(b"zo")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "foldChanged" and e["payload"].get("foldAction") == "open"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                process.send(b"maG'a")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "markSet" and e["payload"].get("markName") == "a"
+                                for e in events[prior:]),
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "markMoved" and e["payload"].get("markName") == "a"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                process.send(b'"byy')
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "registerSelected" and e["payload"].get("registerName") == "b"
+                                for e in events[prior:]),
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "registerChanged" and e["payload"].get("registerName") == "b"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                process.send(b"qajq")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "macroRecordingStarted"
+                                and e["payload"].get("registerName") == "a" for e in events[prior:]),
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "macroRecordingStopped"
+                                and e["payload"].get("registerName") == "a" for e in events[prior:]),
+                )
+                process.send(b"@a")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "macroPlayed" and e["payload"].get("registerName") == "a"
+                                for e in events[prior:]),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'alpha beta','beta tail'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); vim.bo.modified=false",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"Vj")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "selectionChanged"
+                        and e["payload"].get("selection", {}).get("kind") == "line"
+                        and len(e["payload"]["selection"].get("selectedLines", [])) == 2
+                        for e in events[prior:]
+                    ),
+                )
+                line_selection = next(
+                    e for e in reversed(events) if e["type"] == "selectionChanged"
+                    and e["payload"].get("selection", {}).get("kind") == "line"
+                )
+                self.assertEqual(["alpha beta", "beta tail"], [
+                    item["text"] for item in line_selection["payload"]["selection"]["selectedLines"]
+                ])
+                process.send(b"\x1b")
+                time.sleep(0.05)
+                bridge.nvim.notify("nvim_win_set_cursor", 0, [1, 0])
+                process.send(b"\x16jl")  # CTRL-V, down, right.
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "selectionChanged"
+                        and e["payload"].get("selection", {}).get("kind") == "block"
+                        and e["payload"]["selection"].get("text") == "al\nbe"
+                        for e in events
+                    ),
+                )
+                process.send(b"\x1b")
+                process.send(b"/beta\r")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "searchMatchChanged" and e["payload"].get("matchCount") == 2
+                        for e in events
+                    ),
+                )
+                first_match = next(e for e in reversed(events) if e["type"] == "searchMatchChanged")
+                self.assertEqual((1, 2, 1), (
+                    first_match["payload"]["matchIndex"],
+                    first_match["payload"]["matchCount"],
+                    first_match["payload"]["matchLine"],
+                ))
+                process.send(b"n")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "searchMatchChanged" and e["payload"].get("matchLine") == 2
+                        for e in events
+                    ),
+                )
+                prior = len(events)
+                process.send(b"N")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "searchMatchChanged"
+                        and e["payload"].get("matchLine") == 1
+                        and e["payload"].get("searchDirection") == "previous"
+                        for e in events[prior:]
+                    ),
+                )
+                process.send(b"?alpha\r")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "searchMatchChanged"
+                        and e["payload"].get("matchCount") == 1
+                        and e["payload"].get("searchDirection") == "?"
+                        for e in events
+                    ),
+                )
+                prior = len(events)
+                process.send(b"/does-not-exist\r")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "errorReceived" and "E486" in e["payload"].get("message", "")
+                        for e in events[prior:]
+                    ),
+                )
+                process.send(b":%s/beta/gamma/g\r")
+                self._wait(condition, lambda: any(e["type"] == "replacementPerformed" for e in events))
+                replacement = next(e for e in reversed(events) if e["type"] == "replacementPerformed")
+                self.assertIn("replacementMessage", replacement["payload"])
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "local lines={'function demo() {','  return (x)','}'}; "
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,lines); "
+                    "vim.api.nvim_win_set_cursor(0,{1,lines[1]:find('{',1,true)-1})",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"%")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "matchingPairMoved"
+                        and e["payload"].get("cursor", {}).get("line") == 3
+                        and e["payload"].get("character") == "}"
+                        for e in events[prior:]
+                    ),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'plain text'}); vim.api.nvim_win_set_cursor(0,{1,0})",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"%")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "matchingPairNotFound" for e in events[prior:]),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{''}); vim.api.nvim_win_set_cursor(0,{1,0}); "
+                    "vim.opt.spelllang='en_us'; vim.wo.spell=true",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"imispelled ")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "spellingErrorTyped"
+                        and e["payload"].get("spellingError", {}).get("word") == "mispelled"
+                        for e in events[prior:]
+                    ),
+                )
+                spelling_event_count = sum(e["type"] == "spellingErrorTyped" for e in events)
+                process.send(b".")
+                time.sleep(0.12)
+                self.assertEqual(
+                    spelling_event_count,
+                    sum(e["type"] == "spellingErrorTyped" for e in events),
+                    "punctuation after a completed misspelling must not replay the sound",
+                )
+                process.send(b"\x1b")
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.wo.spell=false; local ns=vim.api.nvim_create_namespace('nvim_nvda_test_cspell'); "
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'bad wrd'}); vim.api.nvim_win_set_cursor(0,{1,5}); "
+                    "vim.diagnostic.set(ns,0,{{lnum=0,col=4,end_lnum=0,end_col=7,message='Unknown word',source='cspell'}})",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "diagnosticChanged"
+                        and e["payload"].get("spellingError", {}).get("source") == "cspell"
+                        for e in events
+                    ),
+                )
+                bridge.nvim.notify("nvim_exec_lua", "require('nvim_nvda')._test_emit('diagnosticMoved')", [])
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "diagnosticMoved"
+                        and e["payload"].get("diagnostic", {}).get("source") == "cspell"
+                        for e in events
+                    ),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.notify('Accessible notice', vim.log.levels.INFO, {title='Test'})",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "messageReceived"
+                        and e["payload"].get("message") == "Accessible notice"
+                        and e["payload"].get("messageTitle") == "Test"
+                        for e in events
+                    ),
+                )
+                prior = len(events)
+                bridge.nvim.notify("nvim_command", "new")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "contextChanged"
+                        and e["payload"].get("windowCount") == 2
+                        for e in events[prior:]
+                    ),
+                )
+                bridge.nvim.notify("nvim_command", "close!")
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.fn.setqflist({{filename='script.sh',lnum=4,col=2,text='SC2086 quote variable'}}); vim.cmd('copen')",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "contextChanged"
+                        and e["payload"].get("windowType") == "quickfix"
+                        for e in events
+                    ),
+                )
+                bridge.nvim.notify("nvim_command", "cclose")
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'(x)'}); vim.api.nvim_win_set_cursor(0,{1,0})",
+                    [],
+                )
+                prior = len(events)
+                process.send(b"%")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "matchingPairMoved"
+                        and e["payload"].get("cursor", {}).get("line") == 1
+                        and e["payload"].get("character") == ")"
+                        for e in events[prior:]
+                    ),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'modified'}); vim.bo.modified=true",
+                    [],
+                )
+                time.sleep(0.05)
+                process.send(b":q\r")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "errorReceived" and "E37" in e["payload"].get("message", "")
+                        for e in events
+                    ),
+                )
+            finally:
+                bridge.stop()
+                if process.isalive():
+                    process.terminate(force=True)
+
+    def test_real_tui_terminal_passthrough_boundary_is_direct_input_only(self) -> None:
+        root = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            nvim_socket = os.path.join(directory, "nvim.sock")
+            process = pexpect.spawn(
+                "nvim",
+                ["-n", "-u", "NONE", "-i", "NONE", "--cmd",
+                 f"set runtimepath^={root / 'neovim-plugin'}", "--listen", nvim_socket],
+                env={**os.environ, "TERM": "xterm-256color"}, encoding=None, timeout=3,
+            )
+            self._wait_socket(nvim_socket, process)
+            transport = RecordingTransport()
+            bridge = Bridge(nvim_socket, transport=transport)
+            bridge.start()
+            events, condition = transport.events, transport.condition
+            try:
+                self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.cmd('enew'); vim.fn.termopen({'sh'}); vim.cmd('startinsert')",
+                    [],
+                )
+                self._wait(condition, lambda: any(
+                    e["payload"].get("buftype") == "terminal" and e["payload"].get("mode") == "terminal"
+                    for e in events
+                ))
+                prior = len(events)
+                process.send(b"\x1c\x0e")
+                self._wait(condition, lambda: any(
+                    e["type"] == "modeChanged" and e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "normal" for e in events[prior:]
+                ))
+                prior = len(events)
+                process.send(b"i")
+                self._wait(condition, lambda: any(
+                    e["type"] == "modeChanged" and e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminal" for e in events[prior:]
+                ))
+            finally:
+                bridge.stop()
+                if process.isalive():
+                    process.terminate(force=True)
+
+    def test_neovim_restart_reconnects_and_pushes_full_state(self) -> None:
+        root = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            nvim_socket = os.path.join(directory, "nvim.sock")
+            process = self._start_nvim(root, nvim_socket)
+            transport = RecordingTransport()
+            bridge = Bridge(nvim_socket, transport=transport)
+            bridge.start()
+            events, condition = transport.events, transport.condition
+            restarted = None
+            try:
+                self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "n" for e in events))
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'a界z'}); vim.api.nvim_win_set_cursor(0,{1,0}); require('nvim_nvda')._test_emit('fullState')",
+                    [],
+                )
+                self._wait(condition, lambda: any(e["payload"].get("lineText") == "a界z" for e in events))
+                routed_state = next(e["payload"] for e in reversed(events) if e["payload"].get("lineText") == "a界z")
+                bridge._on_client_control("routeCursor", {
+                    "bufferId": routed_state["bufferId"],
+                    "windowId": routed_state["windowId"],
+                    "line": 1,
+                    "byteColumn": 1,
+                    "changedtick": routed_state["changedtick"],
+                })
+                self._wait_cursor(nvim_socket, 2)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'hello world'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); vim.api.nvim_feedkeys('w','x',false)",
+                    [],
+                )
+                self._wait(condition, lambda: any(e["type"] == "wordMoved" for e in events))
+                self.assertEqual("world", next(e for e in reversed(events) if e["type"] == "wordMoved")["payload"]["word"])
+                word_event_count = sum(e["type"] == "wordMoved" for e in events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'hallo, wie geht es'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); vim.api.nvim_feedkeys('w','x',false)",
+                    [],
+                )
+                self._wait(condition, lambda: sum(e["type"] == "wordMoved" for e in events) > word_event_count)
+                punctuation = next(e for e in reversed(events) if e["type"] == "wordMoved")["payload"]
+                self.assertEqual((",", ",", 5), (
+                    punctuation["word"], punctuation["character"], punctuation["cursor"]["byteColumn"],
+                ))
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'delete line','next'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); vim.api.nvim_feedkeys('dd','x',false)",
+                    [],
+                )
+                self._wait(condition, lambda: any(e["type"] == "textDeleted" for e in events))
+                deleted_event = next(e for e in reversed(events) if e["type"] == "textDeleted")
+                self.assertTrue(deleted_event["payload"]["linewise"])
+                self.assertEqual("delete line", deleted_event["payload"]["beforeText"])
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'hello world'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); "
+                    "vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('cw<Esc>',true,false,true),'x',false)",
+                    [],
+                )
+                self._wait(condition, lambda: any(e["type"] == "textReplaced" for e in events))
+                word_events_before_change = sum(e["type"] == "wordMoved" for e in events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'word ist next'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); "
+                    "vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('cwe<Esc>',true,false,true),'x',false)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "textReplaced" and e["payload"].get("lineText") == "e ist next"
+                        for e in events
+                    ),
+                )
+                time.sleep(0.1)
+                self.assertEqual(
+                    word_events_before_change,
+                    sum(e["type"] == "wordMoved" for e in events),
+                    "cw motion leaked as word navigation after first inserted character",
+                )
+                cancelled_edit_events = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{'abc'}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); "
+                    "vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('d<Esc>iX<Esc>',true,false,true),'x',false)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "textChanged" and e["payload"].get("lineText") == "Xabc"
+                        for e in events[cancelled_edit_events:]
+                    ),
+                )
+                self.assertFalse(any(
+                    e["type"] == "textDeleted" for e in events[cancelled_edit_events:]
+                ), "cancelled d operator leaked into later insert")
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.api.nvim_buf_set_lines(0,0,-1,true,{''}); "
+                    "vim.api.nvim_win_set_cursor(0,{1,0}); "
+                    "vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('id!?<Esc>',true,false,true),'x',false)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "textChanged" and e["payload"].get("lineText") == "d!?" for e in events),
+                )
+                bridge.nvim.notify("nvim_input", ":set nu")
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "commandLineChanged" and e["payload"].get("commandLine") == "set nu"
+                        for e in events
+                    ),
+                )
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "local p=...; require('nvim_nvda').accessible_menu_open(p.items, p.options)",
+                    [{
+                        "options": {"kind": "omni", "selected": 1},
+                        "items": [
+                            {"word": "printf", "abbr": "printf(format, ...)", "kind": "f"},
+                            {"word": "print", "abbr": "print(value)", "kind": "f"},
+                        ],
+                    }],
+                )
+                self._wait(condition, lambda: any(e["type"] == "menuSelectionChanged" for e in events))
+                menu_event = next(e for e in reversed(events) if e["type"] == "menuSelectionChanged")
+                self.assertEqual(("printf", "format, ..."), (
+                    menu_event["payload"]["item"]["label"],
+                    menu_event["payload"]["item"]["parameters"],
+                ))
+                self.assertEqual((1, 2), (
+                    menu_event["payload"]["itemIndex"], menu_event["payload"]["itemCount"],
+                ))
+                bridge.nvim.notify("nvim_exec_lua", "require('nvim_nvda').accessible_menu_close()", [])
+                self._wait(condition, lambda: any(e["type"] == "menuClosed" for e in events))
+                process.terminate()
+                process.wait(timeout=2)
+                self._wait(
+                    condition,
+                    lambda: any(e["payload"].get("connection", {}).get("neovim") == "disconnected" for e in events),
+                )
+                restarted = self._start_nvim(root, nvim_socket)
+                prior = len(events)
+                self._wait(
+                    condition,
+                    lambda: any(e["payload"].get("modeRaw") == "n" for e in events[prior:]),
+                    timeout=4.0,
+                )
+            finally:
+                bridge.stop()
+                if restarted is not None:
+                    restarted.terminate()
+                    restarted.wait(timeout=2)
+                elif process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=2)
+
+    def _start_nvim(self, root: pathlib.Path, socket_path: str) -> subprocess.Popen:
+        process = subprocess.Popen(
+            [
+                "nvim",
+                "--headless",
+                "-n",
+                "-u",
+                "NONE",
+                "-i",
+                "NONE",
+                "--cmd",
+                f"set runtimepath^={root / 'neovim-plugin'}",
+                "--listen",
+                socket_path,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            if os.path.exists(socket_path):
+                return process
+            if process.poll() is not None:
+                self.fail("Neovim exited before creating RPC socket")
+            time.sleep(0.01)
+        process.terminate()
+        self.fail("Neovim RPC socket timeout")
+
+    def _wait_socket(self, socket_path: str, process) -> None:
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            if os.path.exists(socket_path):
+                return
+            if not process.isalive():
+                self.fail("Neovim exited before creating RPC socket")
+            time.sleep(0.01)
+        process.terminate(force=True)
+        self.fail("Neovim RPC socket timeout")
+
+    def _wait(self, condition: threading.Condition, predicate, timeout: float = 3.0) -> None:
+        deadline = time.monotonic() + timeout
+        with condition:
+            while not predicate():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self.fail("condition timeout")
+                condition.wait(remaining)
+
+    def _wait_cursor(self, socket_path: str, expected_one_based_byte_column: int) -> None:
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            result = subprocess.run(
+                ["nvim", "--server", socket_path, "--remote-expr", "col('.')"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0 and int(result.stdout.strip()) == expected_one_based_byte_column:
+                return
+            time.sleep(0.02)
+        self.fail("routed Neovim cursor timeout")
+
+
+if __name__ == "__main__":
+    unittest.main()

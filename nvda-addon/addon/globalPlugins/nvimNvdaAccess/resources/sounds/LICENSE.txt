@@ -1,0 +1,21 @@
+Kenney UI Audio
+===============
+
+Source: https://kenney.nl/assets/ui-audio
+Archive version: 1.0, downloaded 2026-07-12
+Creator: Kenney Vleugels (Kenney.nl)
+License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+License text: https://creativecommons.org/publicdomain/zero/1.0/
+
+The source OGG files were converted without creative modification to PCM WAV:
+
+- delete.wav: Audio/click3.ogg
+- replace.wav: Audio/switch12.ogg
+- lineStart.wav: Audio/mouseclick1.ogg
+- lineEnd.wav: Audio/mouserelease1.ogg
+- fileStart.wav: Audio/switch13.ogg
+- fileEnd.wav: Audio/switch14.ogg
+- lineCrossed.wav: Audio/rollover2.ogg
+
+Kenney's original notice states that the assets may be used in personal and
+commercial projects and that credit is appreciated but not mandatory.

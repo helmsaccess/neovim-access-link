@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 5,
+  "connections": [
+    {
+      "id": "example-host",
+      "name": "Example host",
+      "host": "editor.example.invalid",
+      "user": "linux-user",
+      "port": 22,
+      "identityFile": "",
+      "authentication": "openSsh"
+    }
+  ]
+}

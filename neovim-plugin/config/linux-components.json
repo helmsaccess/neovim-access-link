@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "sessionClaim": {
+    "neovimKey": "<F12>",
+    "nvdaGesture": "kb:f12"
+  }
+}
