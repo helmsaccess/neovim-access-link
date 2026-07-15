@@ -33,6 +33,7 @@
 
 ## Additional rules
 
+- GitHub releases publish the `.nvda-addon` plus one ZIP containing all German and English quick-guide, handbook, and developer-documentation HTML files; prerelease status also requires explicit user instruction.
 - Prefer stable public NVDA and Neovim APIs.
 - Document private API usage in an ADR before release.
 - Never disturb existing tmux or Neovim sessions for testing.
