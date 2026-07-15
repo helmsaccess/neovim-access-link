@@ -1,21 +1,22 @@
 # Current status
 
-Status: 2026-07-15, beta prerelease 0.89.35; overall maturity remains between
+Status: 2026-07-15, beta version 0.90.0; overall maturity remains between
 alpha and beta.
 
 The development branch requests correlated structured context from Neovim's
 state cache when an authenticated registered WT control regains focus. File or
 special-buffer identity, state, and mode are planned compactly for speech and
-Braille. Unbound controls and late or mismatched replies have no effect. The
-practical NVDA/WT test of this development state is still pending, so it is
-not classified as stable.
+Braille. Unbound controls and late or mismatched replies have no effect.
+Practical NVDA/WT testing confirmed the announcement when returning from
+Explorer and the configured connection-name suffix. The result is still not
+classified as stable.
 
 The first `0.89.0-dev.1` practical test produced no filename announcement when
 returning from Explorer to the same WT control. Diagnostics contained focus
 loss, renewed focus, and suppression, but no focus-context request. An early
 return had treated the deliberately retained authenticated binding as an
 internal same-control focus event. `0.89.0-dev.2` distinguishes real focus
-return; renewed practical testing remains pending.
+return; the correction was confirmed in practical testing.
 
 Registry schema 3 validates local and remote sessions with a random RPC
 endpoint nonce and, on Linux, process-start identity. Definitively dead private

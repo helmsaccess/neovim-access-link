@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.90.0 beta release
+
+- Includes the practically confirmed focus-context announcement with filename,
+  mode, and configured connection name.
+- Overall maturity remains between alpha and beta; this is not classified as
+  stable.
+
 ## 0.89.0-dev.3 unreleased feature-branch test build
 
 - Focus announcements additionally name the user-configured connection, for

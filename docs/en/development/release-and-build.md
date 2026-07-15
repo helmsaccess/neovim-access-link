@@ -18,7 +18,7 @@ must not make that switch as an independent stability or release decision.
 The visible product is “Neovim Access Link”, author Emanuel Helms
 `<emanuel@helmsaccess.de>`. The stable
 internal ID `nvimNvdaAccess` preserves installation and NVDA profile
-compatibility. The current beta prerelease is 0.89.35; overall product maturity
+compatibility. The current beta version is 0.90.0; overall product maturity
 remains between alpha and beta.
 
 The user controls product version and release channel. The coding agent

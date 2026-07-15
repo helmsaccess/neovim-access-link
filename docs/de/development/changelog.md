@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.90.0 (Beta-Veröffentlichung)
+
+- Übernimmt die praktisch bestätigte Fokus-Kontextansage einschließlich
+  Dateiname, Modus und konfiguriertem Verbindungsnamen.
+- Der Gesamtstand bleibt zwischen Alpha und Beta und wird nicht als stabil
+  eingestuft.
+
 ## 0.89.0-dev.3 (unveröffentlichter Featurebranch-Testbuild)
 
 - Fokusansagen nennen zusätzlich den in den Einstellungen vergebenen

@@ -540,10 +540,11 @@ class BuiltAddonTests(unittest.TestCase):
             f"{buildVars.product_slug()}-{buildVars.artifact_version()}-user.tar.gz",
             build_user_package.build().name,
         )
-        self.assertRegex(
-            buildVars.development_version(include_metadata=False),
-            r"^\d+\.\d+\.\d+-dev\.\d+$",
-        )
+        with mock.patch.object(buildVars, "development_build", 1):
+            self.assertRegex(
+                buildVars.development_version(include_metadata=False),
+                r"^\d+\.\d+\.\d+-dev\.\d+$",
+            )
         for pattern in ("*.py", "*.sh"):
             for source in pathlib.Path(".").rglob(pattern):
                 if source == pathlib.Path("buildVars.py") or any(
@@ -560,7 +561,8 @@ class BuiltAddonTests(unittest.TestCase):
             self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "build_info.py"
         ).read_text(encoding="utf-8")
         self.assertIn(repr(buildVars.artifact_version()), build_info)
-        self.assertNotEqual(buildVars.store_version(), buildVars.artifact_version())
+        with mock.patch.object(buildVars, "development_build", 1):
+            self.assertNotEqual(buildVars.store_version(), buildVars.artifact_version())
         with mock.patch.object(buildVars, "development_build", None):
             self.assertEqual(buildVars.store_version(), buildVars.artifact_version())
 
