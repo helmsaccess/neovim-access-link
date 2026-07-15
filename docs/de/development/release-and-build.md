@@ -11,8 +11,8 @@ Enthalten sind:
 - interner NVDA-Identifier `nvimNvdaAccess`,
 - sichtbarer Produktname „Neovim Access Link“,
 - Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
-- vom Benutzer bestimmte Produktversion `0.89`,
-- vom Coding Agent fortlaufend verwaltete Buildnummer,
+- vom Benutzer bestimmte Produktversion `0.89.0`,
+- eine pro Featurebranch verwaltete Entwicklungsbuildnummer,
 - Releasekanal `beta`,
 - minimale und zuletzt getestete NVDA-Version.
 
@@ -23,17 +23,26 @@ zweiter sichtbarer Produktname.
 
 ## Abgeleitete Werte
 
-`buildVars.version()` verbindet Produktversion und Buildnummer. Die aktuelle
-Beta-Vorabversion lautet daher `0.89.35`; der Gesamtstand bleibt zwischen Alpha
-und Beta. Dieses rein numerische Dreierformat
-entspricht der Validierung des NVDA Add-on Store und bleibt korrekt sortierbar.
+`buildVars.store_version()` liefert ausschließlich die normale numerische
+Produktversion `0.89.0` für `manifest.ini` und den NVDA Add-on Store.
+`buildVars.development_version()` ergänzt für Entwicklungsstände eine
+branchlokale SemVer-Kennung wie `0.89.0-dev.1` und nach Möglichkeit
+Build-Metadaten aus Branch und Commit. `buildVars.artifact_version()` verwendet
+diese vollständige Kennung für Pakete und Laufzeitdiagnosen. Der Store sieht
+damit keine interne Buildnummer.
+
+`development_build = None` ist ausschließlich für ein vom Benutzer
+freigegebenes Release vorgesehen. Dann entspricht auch die Artefaktversion der
+normalen Produktversion. Coding Agents dürfen diesen Wechsel nicht selbst als
+Stabilitäts- oder Releaseentscheidung vornehmen.
 
 Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
-- den Archivnamen `nvimNvdaAccess-0.89.35.nvda-addon`,
+- einen eindeutigen Archivnamen wie
+  `nvimNvdaAccess-0.89.0-dev.1+feature.version-schema.<commit>.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-0.89.35-user.tar.gz`,
+  `neovim-access-link-0.89.0-dev.1+feature.version-schema.<commit>-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
 - die Version des gebündelten Linux-Komponentenpakets.
 
@@ -45,8 +54,10 @@ Manifest.
 ## Zuständigkeiten
 
 - Der Benutzer bestimmt Produktversion und Releasekanal.
-- Der Coding Agent erhöht nur die Buildnummer, sobald sich installierbarer
-  Inhalt seit dem letzten bereitgestellten Build geändert hat.
+- Der Coding Agent erhöht die Entwicklungsbuildnummer innerhalb des jeweiligen
+  Branches, sobald sich der bereitgestellte installierbare Inhalt ändert.
+- Ein neuer Featurebranch beginnt mit einer eigenen Buildfolge; Branch- und
+  Commit-Metadaten verhindern Verwechslungen zwischen parallelen Branches.
 - Ein unverändert reproduzierter Stand darf denselben Namen behalten.
 - Tags, stabile Releases und Änderungen der Produktversion benötigen eine
   ausdrückliche Freigabe des Benutzers.

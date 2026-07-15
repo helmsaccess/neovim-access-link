@@ -104,7 +104,10 @@ _CODE_ADDON = addonHandler.getCodeAddon()
 _ADDON_MANIFEST = _CODE_ADDON.manifest
 _ADDON_ID = _ADDON_MANIFEST["name"]
 _PRODUCT_NAME = _ADDON_MANIFEST["summary"]
-_ADDON_VERSION = _ADDON_MANIFEST["version"]
+try:
+    from .build_info import ARTIFACT_VERSION as _ADDON_VERSION
+except ImportError:
+    _ADDON_VERSION = _ADDON_MANIFEST["version"]
 
 _activePlugin = None
 

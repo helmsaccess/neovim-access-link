@@ -15,8 +15,9 @@ Die Verzeichnisse folgen den Laufzeitgrenzen des Produkts:
 | `docs/de/development/` | Erklärung, Architektur, Referenz und Nachweise |
 | `docs/en/` | englische Quick-Guide-, Handbuch- und Entwicklerquellen |
 
-`buildVars.py` ist die einzige gepflegte Quelle für Produktname, Version,
-Buildnummer, Autor und NVDA-Kompatibilitätsangaben.
+`buildVars.py` ist die einzige gepflegte Quelle für Produktname, numerische
+Store-Version, branchlokale Entwicklungsbuildnummer,
+Autor und NVDA-Kompatibilitätsangaben.
 
 ## Quellen und Ergebnisse
 

@@ -38,7 +38,7 @@ def linux_component_config() -> dict:
     return value
 
 def project_version() -> str:
-    return buildVars.version()
+    return buildVars.artifact_version()
 
 
 def copy_python_package(source: pathlib.Path, destination: pathlib.Path) -> None:
