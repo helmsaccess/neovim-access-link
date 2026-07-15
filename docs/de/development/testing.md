@@ -67,9 +67,14 @@ durch ein verspätetes Fokusverlustereignis des ersten Fensters abwählen.
 Die F12-Tests prüfen zusätzlich, dass bei identischen Sitzungsmerkmalen nur die
 jüngste frische Registry-Markierung verbunden und eine alte oder fehlende
 Markierung abgewiesen wird. Der vollständige Gestenpfad prüft außerdem, dass
-NVDA F12 zuerst an Neovim weiterreicht, außerhalb von Windows Terminal keine
-SSH-Suche startet, Neovim keinen sichtbaren TUI-Hinweis erzeugt und wiederholtes
-F12 denselben Bridge-Transport wiederverwendet. Bei einem ungebundenen Tab muss
+NVDAs Windows-Terminal-AppModule die ungebundene F12-Geste nur bei aktivierter
+Unterstützung über `decide_executeGesture` beobachtet, den ursprünglichen
+physischen Tastendruck normal zum Betriebssystem durchlaufen lässt und die
+Claim-Auswertung getrennt einreiht. Bei deaktivierter Unterstützung darf kein
+Add-on-Dialog oder Scan entstehen. Neovim muss den unveränderten `typed`-Wert
+erkennen, den Registry-Schreibzugriff aus `vim.on_key` heraus planen und darf
+keinen sichtbaren TUI-Hinweis erzeugen. Wiederholtes F12 verwendet denselben
+Bridge-Transport. Bei einem ungebundenen Tab muss
 die einzige gegenüber der Aktivierungsinventur erhöhte Claim-Sequenz über
 lokale Registry und alle automatisch erreichbaren SSH-Profile gewählt werden.
 Ein zurückgehaltener künstlicher `wx.CallLater` muss bis zur Ausführung stark
@@ -220,9 +225,11 @@ Dieser Pfad ist vor dem Merge praktisch zu prüfen:
    noch ungebundener Tab muss per F12 sowohl eine lokale als auch jede der
    entfernten Sitzungen finden können, unabhängig von Reihenfolge oder
    Einstellungsposition.
-8. F12 einmal vor Abschluss der Erfassung drücken. Die Taste darf Neovim dann
-   nicht markieren; NVDA muss zum Warten und anschließenden erneuten Drücken
-   auffordern. Nach der Bereitschaftsmeldung muss der zweite Versuch gelingen.
+8. F12 einmal vor Abschluss der Erfassung drücken. Der physische Tastendruck
+   darf Neovim bereits markieren, aber NVDA darf diesen Claim ohne fertige
+   Baseline nicht zur Verbindung auswerten und muss zum Warten und erneuten
+   Drücken auffordern. Nach der Bereitschaftsmeldung muss der zweite Versuch
+   gelingen.
 9. Ein Passwortprofil ohne bereits für diese NVDA-Laufzeit eingegebenes
    Passwort darf keinen Dialog aus dem Hintergrund öffnen. Es muss weiterhin
    über den manuellen Verbindungsdialog erreichbar sein.

@@ -44,8 +44,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   ausdrücklich ausgewählten lokalen oder entfernten Zielen. Er bewahrt
   Verbindungsprofile, Benutzerkonfiguration, SSH-Dateien und fremde Plugins und
   meldet jedes Ziel in einer nicht blockierenden Ergebnisübersicht.
-  Die validierte Paketkonfiguration hält Neovims Zuordnungstaste und NVDAs
-  korrespondierende Geste konsistent. Ein normales `nvim datei` genügt
+  Die validierte Paketkonfiguration hält die Kennung von Neovims
+  Markierungstaste und die Kennung der von NVDA beobachteten Geste konsistent;
+  sie bindet selbst weder ein Neovim-Mapping noch ein NVDA-Skript. Ein normales
+  `nvim datei` genügt
   anschließend.
 - Mehrere Verbindungsprofile, Hosts, Benutzer und parallele Neovim-Sitzungen
   werden getrennt verwaltet. F12 markiert die tatsächlich fokussierte
@@ -110,6 +112,12 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   verbunden, geriet aber unmittelbar in den `r?`-/Hit-Enter-Zustand und verlor
   anschließend seinen RPC-Server. 0.89.16 plant den Registry-Schreibzugriff
   deshalb mit `vim.schedule()` außerhalb von `vim.on_key` ein.
+- Der abschließende 0.89.16-Praxistest bestätigte die automatische Zuordnung
+  sowohl für lokales Neovim 0.12.3 als auch für Tessa mit Neovim 0.10.1.
+  Wiederholte F12-Markierungen funktionierten, und bei deaktivierter
+  Unterstützung blieb die Beobachtung vollständig inaktiv: Es erschien kein
+  Zuordnungsdialog. Damit sind Markierung, Registry-Claim, Add-on-Zuordnung und
+  Transportverbindung als getrennte Schritte praktisch bestätigt.
 - Der Aktivierungsbefehl erfasst mögliche Ziele, öffnet aber noch keine
   dauerhaften Bridgeverbindungen. Nach der Bereitschaftsmeldung verbindet F12
   den eindeutigen Treffer; der explizite Dialogweg bleibt für Passwort- und

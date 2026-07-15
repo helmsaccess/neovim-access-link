@@ -12,8 +12,10 @@ Neovim 0.10.1 is the provisional minimum. Newer optional APIs require feature
 tests. NVDA manifest values are minimum 2026.1 and last tested 2026.1.1; this
 boundary intentionally follows NVDA's 64-bit Python 3.13 transition.
 
-The local Windows CLI and parallel local/SSH tabs were tested. Windows Terminal
-is the only approved front end. PuTTY or another terminal requires a dedicated
+The local Windows CLI and parallel local/SSH tabs were tested. Automatic F12
+binding and the following RPC connection were also confirmed practically with
+Neovim 0.12.3 on Windows. Windows Terminal is the only approved front end.
+PuTTY or another terminal requires a dedicated
 identity, focus, output, suppression, and fail-open adapter.
 
 No physical Braille display has been tested. Automated Braille tests cover only

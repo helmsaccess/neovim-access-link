@@ -47,6 +47,11 @@ support was disabled. Local Neovim 0.12.3 connected automatically but
 immediately entered the `r?`/hit-enter state and then lost its RPC server.
 Build 0.89.16 schedules the registry write with `vim.schedule()` outside
 `vim.on_key`.
+Final practical testing of 0.89.16 confirmed automatic binding for both local
+Neovim 0.12.3 and Tessa with Neovim 0.10.1. Repeated physical F12 marks worked,
+and with support disabled the observer remained completely inert and opened no
+binding dialog. Marking, the transient registry claim, add-on binding, and the
+transport connection are therefore distinct and practically confirmed stages.
 
 The main connection paths were tested with the reference environment, but the
 overall maturity remains alpha to beta. Not every speech, menu, editor-mode,

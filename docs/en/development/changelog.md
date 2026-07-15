@@ -8,6 +8,9 @@
 - The regression test explicitly verifies that the claim sequence remains
   unchanged inside the key callback and advances only in the scheduled
   callback.
+- Final practical testing confirmed repeated automatic F12 binding with both
+  local Neovim 0.12.3 and Neovim 0.10.1 on Tessa. With support disabled, the
+  observer remained inert and opened no binding dialog.
 
 ## 0.89.15 failed beta test build
 

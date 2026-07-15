@@ -59,6 +59,29 @@ lokal atomar in
 `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`; die lokale
 Installation benötigt weder SSH noch Administratorrechte.
 
+## Begriffe: Markierung, Claim, Zuordnung und Verbindung
+
+Eine **Sitzungsmarkierung** ist die ausdrückliche Benutzeraktion im
+fokussierten Neovim, standardmäßig ein physischer Druck auf F12. Sie ist nicht
+mit Neovims Editor-**Marks** wie `ma` oder `'a` zu verwechseln.
+
+Ein **Claim** ist ausschließlich der flüchtige, maschinenlesbare Nachweis
+dieser Sitzungsmarkierung im privaten Registryeintrag der Neovim-Instanz:
+`claimSequence` wird monoton erhöht und `claimedMonotonic` aktualisiert. Ein
+Claim öffnet noch keinen Transport, authentifiziert keine Gegenstelle, wählt
+keinen Terminal-Tab dauerhaft aus und wird nach einem Pluginneustart nicht
+beibehalten.
+
+Die **Claim-Auswertung** vergleicht die nach dem Tastendruck gelesenen Werte
+mit der bei der Aktivierung erfassten Baseline. Nur genau ein frischer Treffer
+darf zur **Zuordnung** führen. Diese Zuordnung bindet die stabile
+`TerminalIdentity` des fokussierten Windows-Terminal-Tabs an eine neu gestartete
+`ConnectionInstance`. Erst deren erfolgreicher TCP- oder SSH-Handshake ergibt
+eine **Verbindung** und erlaubt strukturierte Ausgabe beziehungsweise native
+Terminalunterdrückung. Die manuelle Profil- und Sitzungsauswahl überspringt
+Markierung und Claim-Auswertung, erzeugt danach aber denselben typisierten
+Verbindungs- und Zuordnungspfad.
+
 ## Neovim-Sitzungsregistry
 
 Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten

@@ -96,9 +96,13 @@ Liste ohne `heartbeat`.
 
 Lokale und entfernte Registryeinträge enthalten neben Sitzungsmetadaten eine
 monoton steigende Ganzzahl `claimSequence`. Der Wert beginnt beim Pluginstart
-bei 0 und wird bei jeder vom konfigurierten Zuordnungsbefehl angenommenen
-Markierung erhöht. Er ist kein Transport-Sequenzzähler und wird nicht über
-Pluginneustarts hinweg erhalten.
+bei 0 und wird bei jeder über den unveränderten `typed`-Wert erkannten
+Sitzungsmarkierung erhöht; `claimedMonotonic` hält den zugehörigen monotonen
+Zeitpunkt. Der Schreibzugriff läuft über `vim.schedule()` außerhalb von
+`vim.on_key`. Beide Werte sind nur ein flüchtiger Claim: weder
+Transport-Sequenzzähler noch Authentisierung, Terminalbindung oder dauerhafte
+Auswahl. Sie werden nicht über Pluginneustarts hinweg erhalten. Neovims
+Editor-Marks sind davon vollständig unabhängig.
 
 Beim Aktivieren liest das Add-on die lokale Registry und die Sitzungslisten der
 automatisch erreichbaren SSH-Ziele im Hintergrund und merkt die jeweiligen

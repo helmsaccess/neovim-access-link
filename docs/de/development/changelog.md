@@ -12,6 +12,10 @@ deren vollständigen Verlauf.
 - Der Regressionstest prüft ausdrücklich, dass die Claim-Sequenz während des
   Tastencallbacks unverändert bleibt und erst durch den geplanten Callback
   erhöht wird.
+- Der abschließende Praxistest bestätigte wiederholte automatische
+  F12-Zuordnungen sowohl mit lokalem Neovim 0.12.3 als auch mit Neovim 0.10.1
+  auf Tessa. Bei deaktivierter Unterstützung blieb die Beobachtung inaktiv und
+  öffnete keinen Zuordnungsdialog.
 
 ## 0.89.15 (nicht bestandener Beta-Testbuild)
 

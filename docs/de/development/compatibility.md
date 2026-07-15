@@ -34,9 +34,11 @@ getestet. NVDA definiert für diese Serie
 64-Bit-Migration bewusst die Mindestversion.
 
 Die native Windows-CLI von Neovim in Windows Terminal ist implementiert und
-automatisiert gegen Neovim 0.10.1 geprüft. Der
-lokale Grundpfad sowie parallele lokale und SSH-Tabs wurden unter Windows
-praktisch bestätigt. Die zielübergreifende Discovery und zwei parallele
+automatisiert gegen Neovim 0.10.1 geprüft. Die automatische F12-Zuordnung und
+die anschließende RPC-Verbindung wurden außerdem praktisch mit Neovim 0.12.3
+unter Windows bestätigt. Der lokale Grundpfad sowie parallele lokale und
+SSH-Tabs wurden unter Windows praktisch bestätigt. Die zielübergreifende
+Discovery und zwei parallele
 lokale Tabs, mehrere Windows-Terminal-Fenster, tmux sowie die dev.42-spezifische
 Aktivierungs- und Fokuskorrektur wurden ebenfalls praktisch bestätigt.
 Unterstützt wird vorerst nur Neovims

@@ -11,6 +11,26 @@ and plans speech/Braille. The Windows Terminal AppModule owns focus, gestures,
 terminal identity, overlays, and native-output suppression. The global plugin
 owns only lifecycle, settings, installation, and connection services.
 
+## Terms: marking, claim, binding, and connection
+
+A **session mark** is the explicit user action in the focused Neovim,
+normally one physical F12 press. It is distinct from Neovim editor **marks**
+such as `ma` or `'a`.
+
+A **claim** is only the transient, machine-readable evidence of that action in
+the Neovim instance's private registry entry: `claimSequence` increases
+monotonically and `claimedMonotonic` is updated. A claim does not open a
+transport, authenticate a peer, permanently select a terminal tab, or survive
+a plugin restart.
+
+**Claim resolution** compares values read after the key press with the
+activation inventory baseline. Exactly one fresh result may create a
+**binding** from the focused Windows Terminal tab's stable `TerminalIdentity`
+to a new `ConnectionInstance`. Only a successful TCP or SSH handshake by that
+instance creates a **connection** and permits structured output or native
+terminal suppression. Manual profile/session selection bypasses marking and
+claim resolution, then enters the same typed connection and binding path.
+
 For F12 pairing, the Windows Terminal AppModule observes the gesture through
 the public `decide_executeGesture` extension point without binding a script.
 Normal NVDA resolution therefore reaches `NoInputGestureAction` and lets the
