@@ -1,6 +1,22 @@
 # Current status
 
-Status: 2026-07-15, beta test build 0.89.16.
+Status: 2026-07-15, corrective test build 0.89.35.
+
+Registry schema 3 validates local and remote sessions with a random RPC
+endpoint nonce and, on Linux, process-start identity. Definitively dead private
+entries and exact PID-plus-nonce plugin sockets are pruned; inherited and
+user-defined socket paths are never unlinked.
+Uncertainty remains non-destructive.
+Closed individual WT tabs or whole windows require two negative five-minute sweeps,
+detach fail-open, and stop their NVDA client
+off the main thread without terminating Neovim or tmux. Isolated local and
+`eh@tessa` SIGKILL tests left no visible session or owned nonce-qualified
+registry/socket debris.
+Focused tabs are never removed by UIA maintenance, and lifecycle validation
+does not run from editor, connection-state, or terminal-action paths.
+Discovery reads registry, process identity, and endpoint metadata passively.
+The nonce is verified only on the permanent RPC channel, before plugin setup
+or registration; inventory and polling never create throwaway channels.
 
 Protocol v2, remote SSH stdio, local Windows loopback RPC, rootless component
 installation and explicit per-target removal, F12 claims, multiple runtime instances, and explicit Windows
@@ -53,6 +69,19 @@ and with support disabled the observer remained completely inert and opened no
 binding dialog. Marking, the transient registry claim, add-on binding, and the
 transport connection are therefore distinct and practically confirmed stages.
 
+Practical testing of 0.89.35 confirmed the correction for the later `r?`
+regression. With a native swap-file confirmation active, the first F12 did not
+create a claim (`changed=false`, no candidate). After the prompt was resolved
+in Neovim, the next F12 connected with `keyModeAfterClaim=n`; the first `i`
+entered Insert mode and subsequent text and newline input produced structured
+`textChanged` events. Fresh local Windows Neovim and Tessa SSH sessions showed
+the same normal-to-insert transition, and switching among remembered local and
+remote terminal tabs returned a current `fullState`. No hidden `r?` state
+recurred in this test. The first local editor's later exit disconnected its
+client; bounded retries did not restore suppression, and disabling support
+stopped the client. Subsequent local and SSH sessions used distinct connection
+instances, so the original connection was not silently reused.
+
 The main connection paths were tested with the reference environment, but the
 overall maturity remains alpha to beta. Not every speech, menu, editor-mode,
 file-manager, profile, reconnect, and error path has extensive practical
@@ -62,7 +91,11 @@ contains bugs. Physical-display testing and correction are a priority.
 Known limits include Windows Terminal as the only approved front end, no GUI
 Neovim, no portable or automatic `NVIM_APPNAME` layout, an uninvestigated older
 Rocky Linux 9/Neovim failure, limited long-duration and interruption testing,
-and no broad Braille hardware matrix.
+and no broad Braille hardware matrix. In addition, complete non-interference
+with unbound Windows Terminal panes is not yet proven. Remembered binding,
+application-wide F12 observation, activity-confirmed rebind prompts, and the
+Braille overlay require further isolation analysis and negative multi-pane
+tests; uncertain state must remain fail-open.
 
 The reproducible build produces separate German and English Quick Guide,
 manual, and developer HTML files.

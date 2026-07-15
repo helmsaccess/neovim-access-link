@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-15, Beta-Testbuild 0.89.16
+Stand: 2026-07-15, Korrektur-Testbuild 0.89.35
 
 ## Gesamtbewertung
 
@@ -21,6 +21,22 @@ Handbuch in getrennten Markdown-Quellen vor. Der reproduzierbare Build erzeugt
 Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
 
 ## Aktueller technischer Stand
+
+- Registry-Schema 3 schützt lokale und entfernte Discovery mit zufälliger
+  Endpoint-Nonce sowie unter Linux mit Prozessstartkennung. Eindeutig tote
+  Einträge und exakt nonce-eindeutige eigene Pluginsockets werden bereinigt;
+  übernommene oder benutzerdefinierte Pfade bleiben unangetastet. Unklare Fehler bleiben
+  nicht-destruktiv. Geschlossene einzelne WT-Tabs oder ganze Fenster entfernen
+  nach zwei negativen Prüfungen im Abstand von fünf Minuten ihre jeweilige NVDA-Bindung und
+  stoppen den Client außerhalb des Hauptthreads, ohne Neovim oder tmux zu
+  beenden. Isolierte SIGKILL-Tests lokal und auf `eh@tessa` hinterließen keine
+  sichtbare Sitzung und keine eigenen nonce-eindeutigen Registry-/Socketreste.
+  Fokussierte Tabs werden nie durch die UIA-Wartungsprüfung entfernt; diese
+  Prüfung läuft nicht in Editor-, Status- oder Aktionspfaden.
+  Discovery liest Registry, Prozessidentität und Endpunkt nur passiv. Die
+  Nonce wird erst auf dem anschließend dauerhaft verwendeten RPC-Kanal und vor
+  jeder Pluginregistrierung geprüft; Inventur und Polling öffnen keine
+  Wegwerfkanäle.
 
 - Protokoll v2 ist die einzige unterstützte Neovim-NVDA-Schnittstelle.
 - Entfernte Linux-Sitzungen verwenden ausschließlich längenbegrenztes
@@ -118,6 +134,21 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   Unterstützung blieb die Beobachtung vollständig inaktiv: Es erschien kein
   Zuordnungsdialog. Damit sind Markierung, Registry-Claim, Add-on-Zuordnung und
   Transportverbindung als getrennte Schritte praktisch bestätigt.
+- Der 0.89.35-Praxistest bestätigte die Korrektur der späteren
+  `r?`-Regression. Während einer nativen Swap-Datei-Rückfrage erzeugte der
+  erste F12-Druck keinen Claim (`changed=false`, kein Kandidat). Nach dem
+  Beantworten der Rückfrage in Neovim verband der nächste F12-Druck mit
+  `keyModeAfterClaim=n`; das erste `i` wechselte in den Insert-Modus, und Text
+  sowie Zeilenwechsel erzeugten anschließend strukturierte `textChanged`-
+  Ereignisse. Frische lokale Windows-Neovim- und Tessa-SSH-Sitzungen zeigten
+  denselben Normal-zu-Insert-Wechsel. Beim Wechsel zwischen gemerkten lokalen
+  und entfernten Terminal-Tabs wurde jeweils ein aktueller `fullState`
+  geliefert. Der verborgene `r?`-Zustand trat in diesem Test nicht erneut auf.
+  Das spätere Beenden des ersten lokalen Editors trennte dessen Client;
+  begrenzte Wiederverbindungsversuche stellten die Unterdrückung nicht wieder
+  her, und das Deaktivieren der Unterstützung stoppte den Client. Spätere
+  lokale und SSH-Sitzungen erhielten eigene Verbindungsinstanzen; die erste
+  Verbindung wurde nicht unbemerkt wiederverwendet.
 - Der Aktivierungsbefehl erfasst mögliche Ziele, öffnet aber noch keine
   dauerhaften Bridgeverbindungen. Nach der Bereitschaftsmeldung verbindet F12
   den eindeutigen Treffer; der explizite Dialogweg bleibt für Passwort- und
@@ -190,3 +221,10 @@ Reproduzierbare Befehle stehen in [testing.md](testing.md).
 7. Auch außerhalb von Braille wurden noch nicht alle Add-on-Funktionen
    ausführlich praktisch geprüft. Lokalisierung, Releaseprüfung und ein
    erschöpfender stabiler Abnahmelauf stehen noch aus.
+8. Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Panes ist
+   noch nicht nachgewiesen. Gemerkte Bindungen, der AppModule-weite
+   F12-Beobachter, aktivitätsbestätigte Wiederbindungsdialoge und das
+   Braille-Overlay müssen weiter auf Seiteneffekte untersucht und
+   gegebenenfalls enger pro Terminal-Steuerelement abgeschottet werden.
+   Negative Mehrfenster-, Mehrtab- und Split-Pane-Tests sind verpflichtende
+   Folgearbeit; Unsicherheit muss fail-open bleiben.

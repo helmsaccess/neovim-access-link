@@ -28,6 +28,41 @@ active and does not synthesize or consume the key. Neovim matches the
 unchanged `typed` value and schedules the registry write outside `vim.on_key`.
 Manual selection bypasses claim resolution but uses the same connection path.
 
+Lifecycle regressions cover graceful exit, SIGKILL, PID/endpoint nonce reuse,
+legacy schemas, passive bounded inventory, permission uncertainty,
+bounded entry counts, UTF-8-safe names, uncertain process checks,
+nonce-owned versus inherited socket handling, one closed WT
+window beside a live window, individual tabs sharing one HWND, the periodic
+idle-tab sweep, off-main-thread client shutdown, and fail-open suppression.
+Socket tests prove that cleanup removes only an exact nonce-owned plugin path.
+Real RPC tests prove that the permanent channel verifies the nonce before
+setup and that mismatch disconnects without a reconnect loop.
+Isolated local and Tessa SIGKILL tests must leave discovery empty
+without touching existing user Neovim or tmux sessions.
+
+## Required Windows Terminal isolation tests
+
+Complete non-interference with unbound Windows Terminal controls is an open
+test area, not an established guarantee. Future hardening must add automated
+coverage where possible and practical tests for all of these negative cases:
+
+- unbound PowerShell, Command Prompt, and WSL panes retain native focus, text,
+  input, speech, LiveText, and Braille behavior while add-on support is active;
+- F12 in an unbound shell does not scan, announce, bind, or open a dialog unless
+  that exact terminal control has first entered an explicit pairing state;
+- events from another connected Neovim never offer or perform a rebind in an
+  unrelated shell pane;
+- a remembered identity cannot suppress native output before fresh structured
+  state, including when a shell replaces Neovim in the pane while its RPC
+  channel remains alive;
+- separate Windows Terminal processes, windows, tabs, and split panes neither
+  cross-bind nor register duplicate gesture observers; and
+- the add-on overlay does not change unbound Braille or LiveText fallback.
+
+Tests must record the focused UIA class and runtime identity so pane-level and
+tab-level behavior are not conflated. Any uncertain result is a fail-open
+defect and remains documented until practically reproduced and corrected.
+
 Manual tests must record prerequisites, exact actions, expected and actual
 results, and avoid confidential text. Confirmed tests used Windows 11 25H2,
 NVDA 2026.1.1, Windows Terminal 1.24.x, OpenSSH 9.5p2/LibreSSL 3.8.2, Rocky

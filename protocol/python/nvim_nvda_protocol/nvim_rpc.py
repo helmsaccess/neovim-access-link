@@ -34,12 +34,17 @@ class NvimRpcEndpoint:
         return cls(socket.AF_INET, (host, port))
 
 
+class SessionIdentityError(RuntimeError):
+    """The selected registry record does not own the connected RPC endpoint."""
+
+
 class NvimRpcSource:
     def __init__(
         self,
         endpoint: NvimRpcEndpoint | str,
         on_event: Callable[[str, dict[str, Any]], None],
         on_connection_state: Callable[[str], None],
+        expected_session_nonce: str | None = None,
     ) -> None:
         # A string remains the compatibility shorthand used by the Linux bridge.
         self.endpoint = NvimRpcEndpoint.unix(endpoint) if isinstance(endpoint, str) else endpoint
@@ -47,6 +52,13 @@ class NvimRpcSource:
             raise ValueError("typed Neovim RPC endpoint is required")
         self.on_event = on_event
         self.on_connection_state = on_connection_state
+        if expected_session_nonce is not None and (
+            not isinstance(expected_session_nonce, str)
+            or len(expected_session_nonce) != 32
+            or any(character not in "0123456789abcdef" for character in expected_session_nonce)
+        ):
+            raise ValueError("invalid expected Neovim session nonce")
+        self.expected_session_nonce = expected_session_nonce
         self._stop = threading.Event()
         self._socket_lock = threading.Lock()
         self._socket: socket.socket | None = None
@@ -77,6 +89,7 @@ class NvimRpcSource:
     def _run(self) -> None:
         backoff = ExponentialBackoff()
         while not self._stop.is_set():
+            identity_rejected = False
             self.on_connection_state("connecting")
             try:
                 connection = socket.socket(self.endpoint.family, socket.SOCK_STREAM)
@@ -88,6 +101,7 @@ class NvimRpcSource:
                 self._unpacker = msgpack.Unpacker(raw=False, strict_map_key=False)
                 self._pending_notifications.clear()
                 channel, _ = self._request("nvim_get_api_info")
+                self._verify_session_identity()
                 self._request(
                     "nvim_exec_lua",
                     "local p=require('nvim_nvda'); p.setup(); p.register_channel(...)",
@@ -96,6 +110,11 @@ class NvimRpcSource:
                 backoff.reset()
                 self.on_connection_state("connected")
                 self._notifications_loop()
+            except SessionIdentityError:
+                # A mismatch is definitive for this selected registry record.
+                # Reopening the same endpoint would add load without ever
+                # making the unauthenticated session safe to use.
+                identity_rejected = True
             except (OSError, EOFError, RuntimeError, msgpack.UnpackException):
                 pass
             finally:
@@ -105,7 +124,21 @@ class NvimRpcSource:
                     self._socket = None
             if not self._stop.is_set():
                 self.on_connection_state("disconnected")
+                if identity_rejected:
+                    break
                 self._stop.wait(backoff.next_delay())
+
+    def _verify_session_identity(self) -> None:
+        """Authenticate the selected registry entry on this permanent channel."""
+        if self.expected_session_nonce is None:
+            return
+        actual = self._request(
+            "nvim_exec_lua",
+            "return require('nvim_nvda.session').identity()",
+            [],
+        )
+        if actual != self.expected_session_nonce:
+            raise SessionIdentityError("Neovim session identity mismatch")
 
     def _send(self, message: list[Any]) -> None:
         assert self._socket is not None

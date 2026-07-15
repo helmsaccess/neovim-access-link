@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import types
 import unittest
 import wave
@@ -468,6 +469,63 @@ class BuiltAddonTests(unittest.TestCase):
     def test_manifest_uses_scalar_strings_accepted_by_nvda_parser(self) -> None:
         manifest = validate_manifest(self.extract_path / "manifest.ini")
         self.assertEqual(buildVars.manifest(), dict(manifest))
+
+    def test_built_addon_local_discovery_does_not_open_probe_channels(self) -> None:
+        core = self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "core"
+        self.assertFalse((core / "registry_probe.py").exists())
+        source = (core / "local_sessions.py").read_text(encoding="utf-8")
+        self.assertNotIn("query_registry_nonce", source)
+
+    def test_bundled_neovim_plugin_supports_old_and_new_utfindex_signatures(self) -> None:
+        lua = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            / "neovim-plugin" / "lua" / "nvim_nvda" / "state.lua"
+        ).read_text(encoding="utf-8")
+        self.assertIn('vim.fn.has("nvim-0.11")', lua)
+        self.assertIn('vim.str_utfindex(line, "utf-32", byte_column, false)', lua)
+        self.assertIn("vim.str_utfindex(line, byte_column)", lua)
+
+    def test_bundled_snapshot_failure_closes_rpc_channel_fail_open(self) -> None:
+        lua = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
+        ).read_text(encoding="utf-8")
+        self.assertIn("pcall(state.snapshot, reason)", lua)
+        self.assertIn("pcall(vim.fn.chanclose, channel)", lua)
+
+    def test_bundled_key_observer_contains_errors_and_records_only_f12_metadata(self) -> None:
+        lua = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
+        ).read_text(encoding="utf-8")
+        self.assertIn("local observer_ok, observer_error = pcall(function()", lua)
+        self.assertIn("local claim_ok, claim_error = pcall", lua)
+        self.assertIn("key_observer_diagnostics.translatedTyped = typed_translated", lua)
+        self.assertIn("key_observer_diagnostics.promptClass", lua)
+        self.assertNotIn("key_observer_diagnostics.promptText", lua)
+        setup_body = lua.split("function M.setup()", 1)[1].split("vim.on_key", 1)[0]
+        register_body = lua.split("function M.register_channel", 1)[1].split(
+            "function M.unregister_channel", 1,
+        )[0]
+        self.assertNotIn("setup_ui_events()", setup_body)
+        self.assertIn("setup_ui_events()", register_body)
+        self.assertIn('claim_mode:sub(1, 1) == "r"', lua)
+        self.assertNotIn("key_observer_diagnostics.normalKey", lua)
+
+    def test_built_plugin_imports_without_source_protocol_registry_package(self) -> None:
+        real_import = builtins.__import__
+
+        def isolated_import(name, *args, **kwargs):
+            if name == "nvim_nvda_protocol.registry_probe":
+                raise ModuleNotFoundError(name)
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch.object(builtins, "__import__", side_effect=isolated_import):
+            from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.assertIsNotNone(plugin)
+        plugin.terminate()
 
     def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
         archive = build()
@@ -1157,6 +1215,51 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
         self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
 
+    def test_windows_terminal_events_fail_open_exactly_once(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._identity(self.focus)
+        plugin._gate.bound_terminal = plugin._gate.focused
+        native = []
+
+        def broken(_obj, _nextHandler):
+            raise RuntimeError("frontend failed")
+
+        plugin._event_textChange = broken
+        adapter.event_textChange(self.focus, lambda: native.append("native"))
+
+        self.assertEqual(["native"], native)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIn(
+            '"category": "terminalEventFailedOpen"',
+            plugin._diagnostics.report(),
+        )
+        plugin.terminate()
+
+    def test_windows_terminal_does_not_repeat_native_handler_after_late_failure(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        native = []
+
+        def broken_after_delegation(_obj, nextHandler, app_module=None):
+            nextHandler()
+            raise RuntimeError("late frontend failure")
+
+        plugin._event_gainFocus = broken_after_delegation
+        with self.assertRaisesRegex(RuntimeError, "late frontend failure"):
+            adapter.event_gainFocus(self.focus, lambda: native.append("native"))
+        self.assertEqual(["native"], native)
+        plugin.terminate()
+
     def test_global_service_does_not_inspect_focus_and_app_module_clears_scope(self) -> None:
         import api
         from appModules.windowsterminal import AppModule
@@ -1448,6 +1551,196 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.remove(instance.identifier)
         plugin.terminate()
 
+    def test_closed_terminal_prunes_binding_and_stops_client_off_main_thread(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        stopped = threading.Event()
+        stop_threads = []
+
+        class Client:
+            def start(self): pass
+            def stop(self):
+                stop_threads.append(threading.current_thread().name)
+                stopped.set()
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._identity(self.focus)
+        instance = plugin._instanceManager.add("work", "22", "Work", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.manual_enabled = True
+        plugin._gate.bound_terminal = identity
+        plugin._gate.authenticated = True
+        plugin._gate.focused = None
+        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+            self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
+            self.assertEqual({instance.identifier}, plugin._pruneClosedTerminalBindings())
+        self.assertTrue(stopped.wait(1))
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIsNone(plugin._gate.focused)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertEqual(["nvim-nvda-closed-terminal-stop"], stop_threads)
+        plugin.terminate()
+
+    def test_closed_terminal_pruning_preserves_other_window_and_client(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+
+        class Client:
+            def __init__(self): self.stops = 0
+            def start(self): pass
+            def stop(self): self.stops += 1
+
+        plugin = GlobalPlugin()
+        dead = TerminalIdentity(100, 200, "windowsTerminal", (1,))
+        live = TerminalIdentity(100, 200, "windowsTerminal", (2,))
+        dead_client, live_client = Client(), Client()
+        dead_instance = plugin._instanceManager.add("one", "1", "One", dead_client)
+        live_instance = plugin._instanceManager.add("two", "2", "Two", live_client)
+        plugin._instanceManager.bind(dead, dead_instance.identifier)
+        plugin._instanceManager.bind(live, live_instance.identifier)
+        with mock.patch.object(
+            addon_module, "_terminalIdentityExists",
+            side_effect=lambda identity, _element=None: identity == live,
+        ):
+            self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
+            self.assertEqual({dead_instance.identifier}, plugin._pruneClosedTerminalBindings())
+        self.assertEqual([live_instance], plugin._instanceManager.list())
+        self.assertEqual(live_instance, plugin._instanceManager.selected_for(live))
+        self.assertEqual(0, live_client.stops)
+        plugin.terminate()
+
+    def test_whole_closed_window_prunes_all_its_tabs_but_not_other_window(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        closed_instances = []
+        for index in range(6):
+            identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, index))
+            instance = plugin._instanceManager.add("target", str(index), f"Closed {index}", Client())
+            plugin._instanceManager.bind(identity, instance.identifier)
+            closed_instances.append(instance.identifier)
+        survivor_identity = TerminalIdentity(101, 201, "windowsTerminal", (42, 201, 4, 1))
+        survivor = plugin._instanceManager.add("other", "live", "Live", Client())
+        plugin._instanceManager.bind(survivor_identity, survivor.identifier)
+        with mock.patch.object(
+            addon_module, "_terminalIdentityExists",
+            side_effect=lambda identity, _element=None: identity.window_handle == 201,
+        ):
+            self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
+            self.assertEqual(set(closed_instances), plugin._pruneClosedTerminalBindings())
+        self.assertEqual([survivor], plugin._instanceManager.list())
+        self.assertEqual(survivor, plugin._instanceManager.selected_for(survivor_identity))
+        plugin.terminate()
+
+    def test_terminal_lifecycle_sweep_repeats_and_prunes_idle_closed_tab(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._identity(self.focus)
+        instance = plugin._instanceManager.add("local", "1", "Idle local", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        scheduled = []
+
+        def schedule(delay, callback, *args):
+            scheduled.append((delay, callback, args))
+            return object()
+
+        plugin._scheduleMainThreadCall = schedule
+        plugin._ensureTerminalLifecycleSweep()
+        self.assertEqual(1, len(scheduled))
+        self.assertEqual(addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS, scheduled[0][0])
+        plugin._gate.focused = None
+        plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+            scheduled[0][1](*scheduled[0][2])
+            self.assertEqual([instance], plugin._instanceManager.list())
+            self.assertEqual(2, len(scheduled))
+            plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+            scheduled[1][1](*scheduled[1][2])
+        self.assertEqual([], plugin._instanceManager.list())
+        plugin.terminate()
+
+    def test_terminal_lifecycle_never_prunes_focused_tab_on_negative_uia_result(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._gate.focused
+        instance = plugin._instanceManager.add("local", "1", "Focused local", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False) as exists:
+            self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
+            self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
+        exists.assert_not_called()
+        self.assertEqual([instance], plugin._instanceManager.list())
+        plugin.terminate()
+
+    def test_editor_and_action_paths_do_not_run_terminal_lifecycle_pruning(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._pruneClosedTerminalBindings = mock.Mock(
+            side_effect=AssertionError("lifecycle pruning must only run in its timer"),
+        )
+        plugin._refreshFocusedTerminalForAction(self.focus)
+        plugin._handleManagedState("missing", "disconnected")
+        plugin._handleManagedEvent("missing", {"type": "modeChanged", "payload": {}})
+        plugin._pruneClosedTerminalBindings.assert_not_called()
+        plugin.terminate()
+
+    def test_terminal_lifecycle_failure_drops_suppression_and_does_not_repeat(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._gate.focused
+        instance = plugin._instanceManager.add("local", "1", "Local", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = identity
+        self.assertTrue(plugin._gate.suppression_active)
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args) or object()
+        plugin._pruneClosedTerminalBindings = mock.Mock(side_effect=RuntimeError("broken UIA"))
+
+        plugin._runTerminalLifecycleSweep()
+
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertEqual([], scheduled)
+        self.assertIn(
+            '"category": "terminalLifecycleFailedOpen"',
+            plugin._diagnostics.report(),
+        )
+        plugin.terminate()
+
     def test_connect_command_explicitly_selects_profile_without_exposing_ids(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
@@ -1562,8 +1855,12 @@ class BuiltAddonTests(unittest.TestCase):
 
         class Client:
             created = []
-            def __init__(inner_self, host, port, on_event, on_state, on_diagnostic):
+            def __init__(
+                inner_self, host, port, on_event, on_state, on_diagnostic,
+                session_nonce=None,
+            ):
                 inner_self.host, inner_self.port = host, port
+                inner_self.session_nonce = session_nonce
                 inner_self.on_event, inner_self.on_state = on_event, on_state
                 inner_self.starts = inner_self.stops = 0
                 Client.created.append(inner_self)
@@ -1582,6 +1879,7 @@ class BuiltAddonTests(unittest.TestCase):
         local_identity = plugin._gate.focused
         local = LocalWindowsSession(
             "77", "Local docs", "C:/docs", "127.0.0.1", 45678, 77, claim_age_ms=10,
+            session_nonce="a" * 32,
         )
         with mock.patch.object(addon_module, "LocalTcpClient", Client):
             plugin._startLocalManagedInstance(local, local_identity, "Local docs")
@@ -1593,6 +1891,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(("127.0.0.1", 45678, 1), (
             Client.created[0].host, Client.created[0].port, Client.created[0].starts,
         ))
+        self.assertEqual("a" * 32, Client.created[0].session_nonce)
         self.assertIn(remote.identifier, [instance.identifier for instance in instances])
         pairings = []
         plugin._beginLocalSessionSelection = lambda *args: pairings.append(args)
@@ -1613,8 +1912,12 @@ class BuiltAddonTests(unittest.TestCase):
 
         class Client:
             created = []
-            def __init__(inner_self, host, port, on_event, on_state, on_diagnostic):
+            def __init__(
+                inner_self, host, port, on_event, on_state, on_diagnostic,
+                session_nonce=None,
+            ):
                 inner_self.host, inner_self.port = host, port
+                inner_self.session_nonce = session_nonce
                 inner_self.starts = inner_self.stops = 0
                 Client.created.append(inner_self)
             def start(inner_self): inner_self.starts += 1
@@ -1636,9 +1939,11 @@ class BuiltAddonTests(unittest.TestCase):
         )
         first = LocalWindowsSession(
             "77", "Local docs", "C:/docs", "127.0.0.1", 45678, 77, claim_age_ms=10,
+            session_nonce="a" * 32,
         )
         second = LocalWindowsSession(
             "88", "Local code", "C:/code", "127.0.0.1", 45679, 88, claim_age_ms=20,
+            session_nonce="b" * 32,
         )
         with mock.patch.object(addon_module, "LocalTcpClient", Client):
             plugin._startLocalManagedInstance(first, first_identity, "Local docs")
@@ -1648,6 +1953,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("77", plugin._instanceManager.selected_for(first_identity).session_id)
         self.assertEqual("88", plugin._instanceManager.selected_for(second_identity).session_id)
         self.assertEqual([45678, 45679], [client.port for client in Client.created])
+        self.assertEqual(["a" * 32, "b" * 32], [client.session_nonce for client in Client.created])
         self.assertEqual([1, 1], [client.starts for client in Client.created])
         plugin.terminate()
 
@@ -1698,6 +2004,50 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(first, first_again)
         self.assertNotEqual(first, second)
         self.assertEqual("windowsTerminal", first.frontend_kind)
+
+    def test_terminal_identity_checks_exact_runtime_id_with_conservative_errors(self) -> None:
+        import globalPlugins.nvimNvdaAccess as addon_module
+        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+
+        live = (42, 2001, 4, 6)
+        closed = (42, 2001, 4, 53)
+
+        class Root:
+            def findFirst(self, scope, condition):
+                self.scope = scope
+                return object() if condition == live else None
+
+        root = Root()
+        client = types.SimpleNamespace(
+            elementFromHandle=lambda handle: root,
+            createPropertyCondition=lambda prop, value: tuple(value),
+        )
+        uia = types.SimpleNamespace(
+            handler=types.SimpleNamespace(clientObject=client),
+            UIA_RuntimeIdPropertyId=30000, TreeScope_Subtree=7,
+        )
+        with mock.patch.object(addon_module, "_windowIdentityExists", return_value=True), \
+                mock.patch.dict(sys.modules, {"UIAHandler": uia}):
+            self.assertTrue(addon_module._terminalIdentityExists(
+                TerminalIdentity(1001, 2001, "windowsTerminal", live),
+            ))
+            self.assertFalse(addon_module._terminalIdentityExists(
+                TerminalIdentity(1001, 2001, "windowsTerminal", closed),
+            ))
+            inactive_element = types.SimpleNamespace(getRuntimeId=lambda: closed)
+            self.assertTrue(addon_module._terminalIdentityExists(
+                TerminalIdentity(1001, 2001, "windowsTerminal", closed), inactive_element,
+            ), "a directly live hidden tab is retained even when subtree search misses it")
+        with mock.patch.object(addon_module, "_windowIdentityExists", return_value=False):
+            self.assertFalse(addon_module._terminalIdentityExists(
+                TerminalIdentity(1001, 2001, "windowsTerminal", live),
+            ))
+        client.elementFromHandle = lambda _handle: (_ for _ in ()).throw(OSError())
+        with mock.patch.object(addon_module, "_windowIdentityExists", return_value=True), \
+                mock.patch.dict(sys.modules, {"UIAHandler": uia}):
+            self.assertTrue(addon_module._terminalIdentityExists(
+                TerminalIdentity(1001, 2001, "windowsTerminal", closed),
+            ), "uncertain UIA failure must retain the binding")
 
     def test_frontend_identity_relies_only_on_appmodule_internal_tab_constraints(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
@@ -2682,6 +3032,44 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._onNetworkState("disconnected")
         plugin._event_textChange(self.focus, lambda: called.append(True))
         self.assertEqual([True, True], called)
+        plugin.terminate()
+
+    def test_event_diagnostics_expose_safe_key_observer_and_blocking_state(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._handleEvent({
+            "type": "fullState",
+            "payload": {
+                "mode": "unknown",
+                "modeRaw": "r?",
+                "modeBlocking": True,
+                "currentErrorCode": "E565",
+                "currentErrorKind": "other",
+                "keyObserverDiagnostics": {
+                    "observerErrorCount": 0,
+                    "observerErrorKind": "",
+                    "claimErrorKind": "",
+                    "modeAfterClaim": "r?",
+                    "translatedKey": "<F12>",
+                    "translatedTyped": "<F12>",
+                    "keyByteLength": 3,
+                    "typedByteLength": 3,
+                    "promptActive": True,
+                    "promptKind": "confirm",
+                    "promptClass": "unsavedChanges",
+                    "promptLength": 42,
+                },
+            },
+        })
+        report = plugin._diagnostics.report()
+        self.assertIn('"modeBlocking": true', report)
+        self.assertIn('"currentErrorCode": "E565"', report)
+        self.assertIn('"keyTranslated": "<F12>"', report)
+        self.assertIn('"keyModeAfterClaim": "r?"', report)
+        self.assertIn('"keyPromptKind": "confirm"', report)
+        self.assertIn('"keyPromptClass": "unsavedChanges"', report)
+        self.assertNotIn("promptText", report)
         plugin.terminate()
 
     def test_terminal_buffer_temporarily_restores_native_terminal_output(self) -> None:

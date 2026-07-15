@@ -89,6 +89,18 @@ class ConnectionInstanceManagerTests(unittest.TestCase):
             manager.add("one", "1", "One", FakeClient(fail_start=True))
         self.assertEqual([], manager.list())
 
+    def test_detach_clears_bindings_without_blocking_on_client_stop(self) -> None:
+        manager = ConnectionInstanceManager()
+        client = FakeClient()
+        instance = manager.add("one", "1", "One", client)
+        terminal = TerminalIdentity(10, 100)
+        manager.bind(terminal, instance.identifier)
+        detached, detached_client = manager.detach(instance.identifier)
+        self.assertEqual(instance, detached)
+        self.assertIs(client, detached_client)
+        self.assertEqual(0, client.stops)
+        self.assertIsNone(manager.selected_for(terminal))
+
     def test_non_ssh_transport_cannot_bypass_typed_target(self) -> None:
         manager = ConnectionInstanceManager()
         with self.assertRaisesRegex(ValueError, "add_target"):

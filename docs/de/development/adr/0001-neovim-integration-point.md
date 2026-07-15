@@ -42,4 +42,8 @@ Neovim-RPC-Zugang.
 - Ein zusätzlicher Prozess und RPC-Kanal werden paketiert und überwacht.
 - Lua wartet nie synchron auf Transport oder NVDA.
 - UI- und semantische Ereignisse benötigen Deduplikation.
+- Externe UI-Fähigkeiten für Meldungen und Popup-Menüs werden nur während eines
+  registrierten, authentifizierten Bridge-Kanals angehängt. Vor der Verbindung
+  und nach einer Trennung bleibt die native TUI zuständig, damit
+  Wiederherstellungs- und Bestätigungsabfragen fail-open sichtbar bleiben.
 - Reconnect registriert den Channel neu und fordert `fullState` an.

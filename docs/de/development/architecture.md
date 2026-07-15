@@ -86,13 +86,25 @@ Verbindungs- und Zuordnungspfad.
 
 Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten
 Unix-RPC-Socket. Unter Windows startet sie zusätzlich einen dynamischen
-`127.0.0.1`-RPC-Port. Beide schreiben eine Registrydatei mit Schema 2,
+`127.0.0.1`-RPC-Port. Beide schreiben eine Registrydatei mit Schema 3,
 Transporttyp, PID, Endpoint, Startzeit, Name und Arbeitsverzeichnis. Die
 Registry liegt im privaten Laufzeitverzeichnis des Linux-Benutzers
 beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda`.
 
-Die Bridge akzeptiert ausschließlich aktuelle Schema-2-Einträge, prüft
-Prozess und Socket und kann eine Sitzung über die interne PID auswählen. Das
+Aktuelle Einträge enthalten zusätzlich eine zufällige `sessionNonce`, den
+Besitzstatus des Endpoints und unter Linux die Prozessstartkennung aus `/proc`.
+Schema-3-Dateinamen enthalten PID und Nonce, sodass die Bereinigung eines alten
+Eintrags niemals die Datei eines Prozesses mit wiederverwendeter PID trifft.
+Discovery prüft PID, Prozessstart und Registrystruktur passiv. Erst nach der
+Auswahl prüft der anschließend dauerhaft verwendete RPC-Kanal seine Nonce vor
+Plugin-Setup und Registrierung. Ein Unterschied trennt fail-open ohne
+Wiederverbindung. Eindeutig tote Einträge und exakt nonce-eindeutige eigene Pluginsockets
+werden entfernt; übernommene oder benutzerdefinierte Socketpfade nie.
+Timeouts und Zugriffsfehler bleiben nicht-destruktiv. Ältere Registry-Schemata
+werden wegen fehlender Prozess-/Endpointidentität nicht mehr zur Auswahl
+angeboten; laufende ältere Neovim-Instanzen müssen nach dem Komponentenupdate
+neu gestartet werden. Die Bridge kann eine
+Sitzung über die interne PID auswählen. Das
 Add-on listet Sitzungen mit Anzeigename und Arbeitsverzeichnis; IDs bleiben
 interne Transportdaten.
 
@@ -168,6 +180,15 @@ Bei unbekannter, abgelehnter, verschwundener oder nicht mehr gebundener ID wird
 nichts geraten und keine Verbindung automatisch erzeugt. Der Transporttyp
 hält lokales Windows-Neovim dabei strikt von `remoteSsh` getrennt.
 
+Solange Verbindungen bestehen, prüft ausschließlich ein fünfminütiger
+Wartungslauf HWND, Prozess-ID und UIA-Runtime-ID. Diese Prüfung läuft nie aus
+Editorereignissen, Verbindungsstatus, Fokusbehandlung oder Aktionen heraus.
+Die fokussierte Identität ist ein positiver Lebensnachweis; ein inaktiver Tab
+wird erst nach zwei aufeinanderfolgenden negativen Wartungsprüfungen getrennt.
+Damit kann eine einzelne vorübergehende UIA-Lücke keine aktive oder inaktive
+Zuordnung zerstören. Das Stoppen des zugehörigen Clients geschieht außerhalb
+des NVDA-Hauptthreads und beendet weder Neovim noch tmux.
+
 ## Threading und Lebenszyklus
 
 - Neovim-Callbacks erzeugen kleine Zustands-Snapshots und RPC-Notifications.
@@ -218,6 +239,44 @@ Das `SessionGate` unterdrückt native Terminalausgabe nur, wenn manuelle
 Aktivierung, authentifizierter vollständiger Zustand, Neovim-Kontext und
 Terminalbindung gleichzeitig gültig sind. Disconnect, Fehler, Terminalmodus
 mit direkter Eingabe und Deaktivierung stellen normale NVDA-Ausgabe wieder her.
+
+## Offene Isolationsprüfung für Windows Terminal
+
+Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe, beweist
+aber noch nicht, dass ein ungebundenes Windows-Terminal-Steuerelement bei
+aktivem Add-on vollständig unbeeinflusst bleibt. Windows Terminal unterscheidet
+Fenster, Tabs und Panes. Die aktuelle `TerminalIdentity` bezeichnet ein
+UI-Automation-`TermControl` über Prozess, Fensterhandle und Runtime-ID. Bis dies
+für alle unterstützten Windows-Terminal-Layouts praktisch belegt ist, muss die
+Entwicklerdokumentation von Terminal-Steuerelement oder Pane sprechen und darf
+nicht pauschal einen Tab annehmen.
+
+Folgende Pfade bleiben ausdrücklich weiter zu untersuchen und gegebenenfalls
+besser abzuschotten:
+
+- Der F12-Beobachter sieht bei aktivierter Unterstützung Gesten in jedem
+  fokussierten geeigneten Windows-Terminal-Steuerelement und kann Suche oder
+  Rückmeldungen auslösen, auch wenn dieses Steuerelement nicht gebunden ist.
+- Ein Ereignis einer anderen verbundenen Neovim-Instanz kann bei Fokus in
+  einem ungebundenen Terminal-Steuerelement eine aktivitätsbestätigte
+  Wiederbindung anbieten.
+- Der Fokus auf eine gemerkte Identität aktiviert Unterdrückung sofort aus der
+  bestehenden authentifizierten Verbindung, noch bevor der neu angeforderte
+  `fullState` eintrifft. Dieselbe Pane kann inzwischen eine Shell zeigen,
+  während der entfernte Neovim-RPC-Kanal weiterlebt.
+- Die Braille-Overlayklasse wird für jedes geeignete
+  Windows-Terminal-Steuerelement erwogen und ist ohne gebundenen strukturierten
+  Zustand auf korrektes Fallback angewiesen.
+
+Diese Pfade belegen nicht, dass normale Shellausgabe derzeit in jedem Fall
+verloren geht. Sie bedeuten jedoch, dass vollständige Wirkungslosigkeit in
+ungebundenen Panes noch nicht nachgewiesen ist. Weitere Arbeit soll Aktivierung
+pro Steuerelement explizit begrenzen, vor Unterdrückung oder Wiederbindung
+frische strukturierte Neovim-Evidenz verlangen, F12 und Dialoge außerhalb
+dieses Bereichs wirkungslos halten und native Sprache, Braille und Eingabe mit
+negativen Mehrfenster-, Mehrtab- und Split-Pane-Tests belegen. Terminaltext oder
+Titel dürfen diese Evidenzlücke nicht durch Screen Scraping schließen;
+Unsicherheit muss fail-open bleiben.
 
 ## Sicherheitsgrenzen
 

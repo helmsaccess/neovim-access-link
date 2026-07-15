@@ -34,6 +34,34 @@ class AppModule(appModuleHandler.AppModule):
     def _prepareTerminalAction(self, plugin):
         plugin._refreshFocusedTerminalForAction(api.getFocusObject(), self)
 
+    def _delegateEventFailOpen(self, plugin, method_name, nextHandler, *args, **kwargs):
+        """Delegate an NVDA event while guaranteeing native handling once.
+
+        An add-on failure must never prevent Windows Terminal's own event
+        handler from starting or continuing LiveText output.  The guarded
+        callback also avoids invoking ``nextHandler`` twice when an exception
+        happens after the plug-in already delegated the event.
+        """
+        delegated = False
+
+        def guardedNextHandler():
+            nonlocal delegated
+            if delegated:
+                return
+            delegated = True
+            nextHandler()
+
+        try:
+            getattr(plugin, method_name)(*args, guardedNextHandler, **kwargs)
+        except Exception as error:
+            if delegated:
+                raise
+            try:
+                plugin._failOpenTerminalEvent(method_name, error)
+            except Exception:
+                pass
+            guardedNextHandler()
+
     def chooseNVDAObjectOverlayClasses(self, obj, clsList):
         plugin = self._plugin()
         if plugin is not None:
@@ -44,7 +72,9 @@ class AppModule(appModuleHandler.AppModule):
         if plugin is None:
             nextHandler()
             return
-        plugin._event_gainFocus(obj, nextHandler, self)
+        self._delegateEventFailOpen(
+            plugin, "_event_gainFocus", nextHandler, obj, app_module=self,
+        )
 
     def event_appModule_loseFocus(self):
         plugin = self._plugin()
@@ -56,49 +86,55 @@ class AppModule(appModuleHandler.AppModule):
         if plugin is None:
             nextHandler()
             return
-        plugin._event_textChange(obj, nextHandler)
+        self._delegateEventFailOpen(plugin, "_event_textChange", nextHandler, obj)
 
     def event_typedCharacter(self, obj, nextHandler, ch):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_typedCharacter(obj, nextHandler, ch)
+        self._delegateEventFailOpen(
+            plugin, "_event_typedCharacter", nextHandler, obj, ch=ch,
+        )
 
     def event_UIA_notification(self, obj, nextHandler, **kwargs):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_UIA_notification(obj, nextHandler, **kwargs)
+        self._delegateEventFailOpen(
+            plugin, "_event_UIA_notification", nextHandler, obj, **kwargs,
+        )
 
     def event_liveRegionChange(self, obj, nextHandler):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_liveRegionChange(obj, nextHandler)
+        self._delegateEventFailOpen(plugin, "_event_liveRegionChange", nextHandler, obj)
 
     def event_valueChange(self, obj, nextHandler):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_valueChange(obj, nextHandler)
+        self._delegateEventFailOpen(plugin, "_event_valueChange", nextHandler, obj)
 
     def event_nameChange(self, obj, nextHandler):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_nameChange(obj, nextHandler)
+        self._delegateEventFailOpen(plugin, "_event_nameChange", nextHandler, obj)
 
     def event_descriptionChange(self, obj, nextHandler):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        plugin._event_descriptionChange(obj, nextHandler)
+        self._delegateEventFailOpen(
+            plugin, "_event_descriptionChange", nextHandler, obj,
+        )
 
     @scriptHandler.script(
         description=_("Turn Neovim accessibility on or off and discover configured connections"),

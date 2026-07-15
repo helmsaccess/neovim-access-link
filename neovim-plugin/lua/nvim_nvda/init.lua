@@ -39,6 +39,31 @@ local command_changedtick = 0
 local last_message_text
 local last_message_time = 0
 local emit
+local key_observer_diagnostics = { observerErrorCount = 0 }
+
+local function fixed_error_kind(value)
+  local text = tostring(value or "")
+  if text == "" then return "" end
+  if text:find("textlock", 1, true) then return "textlock" end
+  if text:find("keytrans", 1, true) then return "keytrans" end
+  if text:find("fs_rename", 1, true) then return "registryRename" end
+  if text:find("nvim_nvda", 1, true) then return "nvimNvdaLua" end
+  return "other"
+end
+
+local function fixed_prompt_kind(value)
+  local text = tostring(value or ""):lower()
+  if text == "" then return "" end
+  if text:find("swap", 1, true) then return "swap" end
+  if text:find("overwrite", 1, true) then return "overwrite" end
+  if text:find("write", 1, true) or text:find("save", 1, true)
+    or text:find("changed", 1, true) or text:find("modified", 1, true) then
+    return "unsavedChanges"
+  end
+  if text:find("delete", 1, true) then return "delete" end
+  if text:find("quit", 1, true) or text:find("exit", 1, true) then return "quit" end
+  return "other"
+end
 
 local motion_events = {
   h = "characterMoved", l = "characterMoved",
@@ -133,12 +158,26 @@ emit = function(event_type, reason, extra)
     last_message_time = now
   end
   sequence = sequence + 1
-  local payload = state.snapshot(reason)
+  local snapshot_ok, payload = pcall(state.snapshot, reason)
+  if not snapshot_ok then
+    -- Never turn an accessibility snapshot bug into a Neovim hit-enter
+    -- prompt. Closing the RPC channel makes the NVDA side disconnect and
+    -- restore native terminal output fail-open.
+    pcall(vim.fn.chanclose, channel)
+    pcall(vim.ui_detach, ui_namespace)
+    channel = nil
+    pending_navigation = false
+    return
+  end
   if extra then
     for key, value in pairs(extra) do
       payload[key] = value
     end
   end
+  local current_error = tostring(vim.v.errmsg or "")
+  payload.currentErrorCode = current_error:match("E%d+") or ""
+  payload.currentErrorKind = fixed_error_kind(current_error)
+  payload.keyObserverDiagnostics = vim.deepcopy(key_observer_diagnostics)
   local ok = pcall(vim.rpcnotify, channel, "nvim_nvda_event", {
     sequence = sequence,
     timestampMonotonic = vim.uv.hrtime(),
@@ -146,6 +185,7 @@ emit = function(event_type, reason, extra)
     payload = payload,
   })
   if not ok then
+    pcall(vim.ui_detach, ui_namespace)
     channel = nil
     pending_navigation = false
   end
@@ -307,6 +347,10 @@ local function setup_ui_events()
       if prompt_kind then
         local text = message_text(content)
         ui_message_prompt_kind = prompt_kind
+        key_observer_diagnostics.promptActive = true
+        key_observer_diagnostics.promptKind = prompt_kind
+        key_observer_diagnostics.promptClass = fixed_prompt_kind(text)
+        key_observer_diagnostics.promptLength = #text
         emit("promptOpened", "uiMessage", {
           promptKind = prompt_kind, prompt = text ~= "" and text or "Continue",
         })
@@ -320,6 +364,7 @@ local function setup_ui_events()
       return
     elseif event == "msg_clear" then
       if ui_message_prompt_kind then
+        key_observer_diagnostics.promptActive = false
         emit("promptClosed", "uiMessage", {
           promptKind = ui_message_prompt_kind, accepted = true,
         })
@@ -360,13 +405,35 @@ function M.register_channel(rpc_channel)
   assert(type(rpc_channel) == "number" and rpc_channel > 0, "valid RPC channel required")
   channel = rpc_channel
   sequence = 0
-  emit("fullState", "registerChannel")
+  -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
+  -- Attach only while an authenticated consumer exists, otherwise startup
+  -- prompts (notably swap-file recovery) become invisible and violate the
+  -- required fail-open behavior.
+  setup_ui_events()
+  local error_text = tostring(vim.v.errmsg or "")
+  local error_code = error_text:match("E%d+") or ""
+  local error_kind = error_text:find("str_utfindex", 1, true) and "strUtfIndex"
+    or error_text:find("textlock", 1, true) and "textlock"
+    or error_text:find("fs_rename", 1, true) and "registryRename"
+    or error_text:find("nvim_nvda", 1, true) and "nvimNvdaLua"
+    or error_text ~= "" and "other"
+    or ""
+  emit("fullState", "registerChannel", {
+    preConnectErrorCode = error_code,
+    preConnectErrorKind = error_kind,
+    keyObserverDiagnostics = key_observer_diagnostics,
+  })
 end
 
 function M.unregister_channel(rpc_channel)
   if channel == rpc_channel then
+    pcall(vim.ui_detach, ui_namespace)
     channel = nil
   end
+end
+
+function M.key_observer_diagnostics()
+  return vim.deepcopy(key_observer_diagnostics)
 end
 
 function M.setup()
@@ -375,18 +442,31 @@ function M.setup()
   setup_signature_help()
   setup_notifications()
   setup_ui_functions()
-  setup_ui_events()
   completion_adapters.stop()
   vim.on_key(function(key, typed)
+    local observer_ok, observer_error = pcall(function()
     local translated = vim.fn.keytrans(key)
     local typed_translated = vim.fn.keytrans(typed or "")
     if typed_translated:lower() == component_config.sessionClaim.neovimKey:lower() then
+      key_observer_diagnostics.keyByteLength = #key
+      key_observer_diagnostics.typedByteLength = #(typed or "")
+      key_observer_diagnostics.translatedKey = translated
+      key_observer_diagnostics.translatedTyped = typed_translated
+      local claim_mode = vim.api.nvim_get_mode().mode
+      if claim_mode:sub(1, 1) == "r" then
+        key_observer_diagnostics.claimSkippedMode = claim_mode
+        return
+      end
+      key_observer_diagnostics.claimSkippedMode = ""
       -- Registry writes call regular Vim functions and filesystem APIs. Keep
       -- them outside the input callback: newer Neovim versions enforce the
       -- on_key/textlock boundary more strictly and otherwise enter a hit-enter
       -- error state even though the physical key was recognized correctly.
       vim.schedule(function()
-        require("nvim_nvda.session").claim()
+        local claim_ok, claim_error = pcall(require("nvim_nvda.session").claim)
+        key_observer_diagnostics.claimErrorKind = claim_ok and "" or fixed_error_kind(claim_error)
+        local mode_ok, mode_value = pcall(vim.api.nvim_get_mode)
+        key_observer_diagnostics.modeAfterClaim = mode_ok and mode_value.mode or "unavailable"
       end)
       return
     end
@@ -543,6 +623,11 @@ function M.setup()
       vim.defer_fn(function() emit_typed_spelling_error(before) end, 50)
     end
     pending_g = false
+    end)
+    if not observer_ok then
+      key_observer_diagnostics.observerErrorCount = key_observer_diagnostics.observerErrorCount + 1
+      key_observer_diagnostics.observerErrorKind = fixed_error_kind(observer_error)
+    end
   end, key_namespace)
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,

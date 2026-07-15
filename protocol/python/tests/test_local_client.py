@@ -6,10 +6,11 @@ from nvim_nvda_protocol import LocalTcpClient
 
 
 class FakeSource:
-    def __init__(self, endpoint, on_event, on_state):
+    def __init__(self, endpoint, on_event, on_state, expected_session_nonce=None):
         self.endpoint = endpoint
         self.on_event = on_event
         self.on_state = on_state
+        self.expected_session_nonce = expected_session_nonce
         self.started = 0
         self.stopped = 0
         self.notifications = []
@@ -26,7 +27,7 @@ class FakeSource:
 
 
 class LocalTcpClientTests(unittest.TestCase):
-    def make_client(self):
+    def make_client(self, session_nonce="a" * 32):
         events, states, diagnostics, sources = [], [], [], []
 
         def source_factory(*arguments):
@@ -37,8 +38,13 @@ class LocalTcpClientTests(unittest.TestCase):
         client = LocalTcpClient(
             "127.0.0.1", 45678, events.append, states.append,
             lambda category, fields: diagnostics.append((category, fields)), source_factory,
+            session_nonce,
         )
         return client, sources[0], events, states, diagnostics
+
+    def test_selected_registry_nonce_reaches_permanent_rpc_source(self) -> None:
+        _client, source, _events, _states, _diagnostics = self.make_client("b" * 32)
+        self.assertEqual("b" * 32, source.expected_session_nonce)
 
     def test_rejects_non_loopback_and_invalid_ports(self) -> None:
         for host, port in (("localhost", 1234), ("0.0.0.0", 1234), ("127.0.0.1", 0)):

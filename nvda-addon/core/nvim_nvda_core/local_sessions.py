@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 LOCAL_SESSION_MAX_BYTES = 65_536
+LOCAL_SESSION_MAX_ENTRIES = 256
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class LocalWindowsSession:
     claim_age_ms: int = -1
     claimed_monotonic_ns: int = 0
     claim_sequence: int = 0
+    session_nonce: str = ""
 
 
 def local_registry_directory(environment: dict[str, str] | None = None) -> pathlib.Path:
@@ -50,7 +52,7 @@ class LocalSessionLister:
     def __init__(
         self,
         directory: pathlib.Path | None = None,
-        process_alive: Callable[[int], bool] | None = None,
+        process_alive: Callable[[int], bool | None] | None = None,
         monotonic_ns: Callable[[], int] = time.monotonic_ns,
     ) -> None:
         self.directory = directory
@@ -58,7 +60,14 @@ class LocalSessionLister:
         self._monotonic_ns = monotonic_ns
 
     @staticmethod
-    def _default_process_alive(pid: int) -> bool:
+    def _discard_entry(entry: pathlib.Path) -> None:
+        try:
+            entry.unlink()
+        except OSError:
+            pass
+
+    @staticmethod
+    def _default_process_alive(pid: int) -> bool | None:
         if os.name == "nt":
             # os.kill(pid, 0) does not have POSIX probe semantics on every
             # supported Windows Python build. Query the process handle without
@@ -76,36 +85,45 @@ class LocalSessionLister:
                 kernel32.CloseHandle.restype = wintypes.BOOL
                 handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
                 if not handle:
-                    return False
+                    error = ctypes.get_last_error()
+                    return False if error == 87 else None  # ERROR_INVALID_PARAMETER
                 try:
                     exit_code = wintypes.DWORD()
-                    return bool(kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))) and (
-                        exit_code.value == 259  # STILL_ACTIVE
-                    )
+                    if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                        return None
+                    return exit_code.value == 259  # STILL_ACTIVE
                 finally:
                     kernel32.CloseHandle(handle)
             except (AttributeError, OSError, TypeError, ValueError):
-                return False
+                return None
         try:
             os.kill(pid, 0)
             return True
-        except OSError:
+        except ProcessLookupError:
             return False
+        except (PermissionError, OSError):
+            return None
 
     def list(self) -> list[LocalWindowsSession]:
         directory = self.directory or local_registry_directory()
         try:
-            entries = list(directory.glob("*.json"))
+            entries = []
+            for entry in directory.glob("*.json"):
+                entries.append(entry)
+                if len(entries) >= LOCAL_SESSION_MAX_ENTRIES:
+                    break
         except OSError as error:
             raise RuntimeError(f"cannot read local Neovim session registry: {error}") from error
         sessions = []
         now = self._monotonic_ns()
         for entry in entries:
             try:
-                if entry.stat().st_size > LOCAL_SESSION_MAX_BYTES:
+                with entry.open("rb") as source:
+                    payload = source.read(LOCAL_SESSION_MAX_BYTES + 1)
+                if len(payload) > LOCAL_SESSION_MAX_BYTES:
                     continue
-                value: Any = json.loads(entry.read_text(encoding="utf-8"))
-                if not isinstance(value, dict) or value.get("version") != 2:
+                value: Any = json.loads(payload.decode("utf-8"))
+                if not isinstance(value, dict) or value.get("version") != 3:
                     continue
                 if value.get("transportKind") != "localWindowsTcp" or value.get("host") != "127.0.0.1":
                     continue
@@ -116,17 +134,31 @@ class LocalSessionLister:
                 claim_sequence = _integer(value.get("claimSequence", 0), positive=False)
                 started_unix = _integer(value.get("startedUnix", 0), positive=False)
                 name, cwd = value.get("name", ""), value.get("cwd", "")
+                nonce = value.get("sessionNonce")
+                owns_entry = (
+                    pid is not None
+                    and isinstance(nonce, str) and entry.name == f"{pid}-{nonce}.json"
+                )
+                alive = pid is not None and self._process_alive(pid)
+                if owns_entry and alive is False:
+                    self._discard_entry(entry)
                 if (
                     pid is None or port is None or port > 65535 or started is None
                     or claimed is None or claim_sequence is None
                     or not isinstance(name, str) or not isinstance(cwd, str)
-                    or len(name) > 120 or len(cwd) > 4096 or not self._process_alive(pid)
+                    or len(name) > 120 or len(cwd) > 4096 or alive is not True
+                ):
+                    continue
+                if (
+                    not isinstance(nonce, str) or len(nonce) != 32
+                    or any(character not in "0123456789abcdef" for character in nonce)
+                    or not owns_entry
                 ):
                     continue
                 claim_age = -1 if claimed == 0 or claimed > now else (now - claimed) // 1_000_000
                 sessions.append(LocalWindowsSession(
                     str(pid), name, cwd, "127.0.0.1", port, pid,
-                    started_unix or 0, int(claim_age), claimed, claim_sequence,
+                    started_unix or 0, int(claim_age), claimed, claim_sequence, nonce,
                 ))
             except (OSError, UnicodeError, json.JSONDecodeError, AttributeError):
                 continue
