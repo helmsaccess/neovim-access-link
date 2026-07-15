@@ -469,6 +469,8 @@ class BuiltAddonTests(unittest.TestCase):
     def test_manifest_uses_scalar_strings_accepted_by_nvda_parser(self) -> None:
         manifest = validate_manifest(self.extract_path / "manifest.ini")
         self.assertEqual(buildVars.manifest(), dict(manifest))
+        self.assertEqual(buildVars.store_version(), manifest["version"])
+        self.assertNotIn("dev", manifest["version"])
 
     def test_built_addon_local_discovery_does_not_open_probe_channels(self) -> None:
         core = self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "core"
@@ -531,12 +533,16 @@ class BuiltAddonTests(unittest.TestCase):
         archive = build()
         metadata = buildVars.manifest()
         self.assertEqual(
-            f"{metadata['name']}-{metadata['version']}.nvda-addon",
+            f"{metadata['name']}-{buildVars.artifact_version()}.nvda-addon",
             archive.name,
         )
         self.assertEqual(
-            f"{buildVars.product_slug()}-{metadata['version']}-user.tar.gz",
+            f"{buildVars.product_slug()}-{buildVars.artifact_version()}-user.tar.gz",
             build_user_package.build().name,
+        )
+        self.assertRegex(
+            buildVars.development_version(include_metadata=False),
+            r"^\d+\.\d+\.\d+-dev\.\d+$",
         )
         for pattern in ("*.py", "*.sh"):
             for source in pathlib.Path(".").rglob(pattern):
@@ -548,6 +554,15 @@ class BuiltAddonTests(unittest.TestCase):
                 self.assertNotIn(metadata["summary"], contents, source)
                 self.assertNotIn(metadata["author"], contents, source)
                 self.assertNotIn(metadata["version"], contents, source)
+
+    def test_built_addon_keeps_store_and_diagnostic_versions_separate(self) -> None:
+        build_info = (
+            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "build_info.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(repr(buildVars.artifact_version()), build_info)
+        self.assertNotEqual(buildVars.store_version(), buildVars.artifact_version())
+        with mock.patch.object(buildVars, "development_build", None):
+            self.assertEqual(buildVars.store_version(), buildVars.artifact_version())
 
     def test_linux_package_rejects_mismatched_claim_gestures(self) -> None:
         config_path = pathlib.Path(self.temporary.name) / "bad-linux-components.json"

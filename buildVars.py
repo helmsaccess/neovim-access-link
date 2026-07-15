@@ -1,17 +1,14 @@
-"""Single source of truth for product identity and release metadata.
-
-The layout deliberately follows NVDA's official Add-on Template convention.
-The user owns ``product_version`` and ``release_channel``; coding agents only
-advance ``build_number`` when installable content changes.
-"""
+"""Single source of truth for product identity and release metadata."""
 
 from __future__ import annotations
 
 import re
+import subprocess
 
 
-product_version = "0.89"
-build_number = 35
+product_version = "0.89.0"
+# Set to ``None`` only for a user-approved release artifact.
+development_build: int | None = 1
 release_channel = "beta"
 
 addon_info = {
@@ -27,13 +24,48 @@ addon_info = {
 }
 
 
+def store_version() -> str:
+    """Return the normal numeric product version exposed to the NVDA Store."""
+    if re.fullmatch(r"\d+\.\d+\.\d+", product_version) is None:
+        raise ValueError("product_version must contain three numeric components")
+    return product_version
+
+
+def _git_value(*arguments: str) -> str:
+    try:
+        return subprocess.run(
+            ("git", *arguments), check=True, capture_output=True, text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+def _metadata_identifier(value: str) -> str:
+    value = re.sub(r"[^0-9A-Za-z-]+", ".", value).strip(".")
+    return value or "source"
+
+
+def development_version(*, include_metadata: bool = True) -> str:
+    """Return the branch-local SemVer identifier used outside the Store manifest."""
+    if not isinstance(development_build, int) or development_build < 1:
+        raise ValueError("development_build must be a positive integer for development artifacts")
+    value = f"{store_version()}-dev.{development_build}"
+    if not include_metadata:
+        return value
+    branch = _git_value("branch", "--show-current")
+    commit = _git_value("rev-parse", "--short=8", "HEAD")
+    metadata = [item for item in (_metadata_identifier(branch), commit) if item]
+    return f"{value}+{'.'.join(metadata)}" if metadata else value
+
+
+def artifact_version() -> str:
+    """Return the unique traceable version for packages and diagnostics."""
+    return store_version() if development_build is None else development_version()
+
+
 def version() -> str:
-    """Return the strictly orderable, Add-on Store-compatible build version."""
-    if re.fullmatch(r"\d+\.\d+", product_version) is None:
-        raise ValueError("product_version must contain two numeric components")
-    if not isinstance(build_number, int) or build_number < 1:
-        raise ValueError("build_number must be a positive integer")
-    return f"{product_version}.{build_number}"
+    """Backward-compatible alias for the externally visible artifact version."""
+    return artifact_version()
 
 
 def product_slug() -> str:
@@ -46,4 +78,4 @@ def product_slug() -> str:
 
 def manifest() -> dict[str, str]:
     """Return all scalar fields required by an NVDA add-on manifest."""
-    return {**addon_info, "version": version()}
+    return {**addon_info, "version": store_version()}

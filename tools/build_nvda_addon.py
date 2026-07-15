@@ -78,7 +78,8 @@ def copy_python_files(source: pathlib.Path, destination: pathlib.Path, names: tu
 
 def build() -> pathlib.Path:
     metadata = buildVars.manifest()
-    output = ROOT / "dist" / f"{metadata['name']}-{metadata['version']}.nvda-addon"
+    artifact_version = buildVars.artifact_version()
+    output = ROOT / "dist" / f"{metadata['name']}-{artifact_version}.nvda-addon"
     msgpack_distribution = importlib.metadata.distribution("msgpack")
     if msgpack_distribution.version != "1.1.1":
         raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack_distribution.version}")
@@ -92,6 +93,10 @@ def build() -> pathlib.Path:
             raise RuntimeError("generated manifest differs from central product metadata")
         shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
         plugin = stage / "globalPlugins" / metadata["name"]
+        (plugin / "build_info.py").write_text(
+            f"ARTIFACT_VERSION = {artifact_version!r}\n",
+            encoding="utf-8",
+        )
         core = plugin / "core"
         copy_python_files(ROOT / "protocol" / "python" / "nvim_nvda_protocol", core, PROTOCOL_MODULES)
         copy_python_files(ROOT / "nvda-addon" / "core" / "nvim_nvda_core", core, CORE_MODULES)
