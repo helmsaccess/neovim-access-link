@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-15, Beta-Testbuild 0.89.5
+Stand: 2026-07-15, Beta-Testbuild 0.89.16
 
 ## Gesamtbewertung
 
@@ -44,8 +44,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   ausdrücklich ausgewählten lokalen oder entfernten Zielen. Er bewahrt
   Verbindungsprofile, Benutzerkonfiguration, SSH-Dateien und fremde Plugins und
   meldet jedes Ziel in einer nicht blockierenden Ergebnisübersicht.
-  Die validierte Paketkonfiguration hält Neovims Zuordnungstaste und NVDAs
-  korrespondierende Geste konsistent. Ein normales `nvim datei` genügt
+  Die validierte Paketkonfiguration hält die Kennung von Neovims
+  Markierungstaste und die Kennung der von NVDA beobachteten Geste konsistent;
+  sie bindet selbst weder ein Neovim-Mapping noch ein NVDA-Skript. Ein normales
+  `nvim datei` genügt
   anschließend.
 - Mehrere Verbindungsprofile, Hosts, Benutzer und parallele Neovim-Sitzungen
   werden getrennt verwaltet. F12 markiert die tatsächlich fokussierte
@@ -75,6 +77,47 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   sichtbare atomare Registry-Updates ab. Die automatisierten Regressionstests
   sind bestanden; die lokale automatische und manuelle Zuordnung wurde mit
   dem installierten Beta-Build praktisch als zuverlässig bestätigt.
+- Ein unveränderter interaktiver Mapping-Test mit sicher aktualisierten
+  Komponenten zeigte, dass F12 bei aktiver NVDA-Unterstützung Neovim nicht
+  erreichte. `decide_handleRawKey=True` erlaubt zwar NVDAs weitere Verarbeitung,
+  garantiert aber keine OS-Weitergabe. 0.89.11 entfernt diesen Beobachter,
+  bindet F12 lokal im Windows-Terminal-App-Modul und gibt die Originalgeste mit
+  `gesture.send()` vor der Claim-Auswertung ausdrücklich an Neovim weiter.
+- Der interaktive 0.89.11-Test bestätigte anschließend `onKey`, den originalen
+  Mapping-Callback und einen erfolgreichen Claim. 0.89.12 übernimmt den direkt
+  vor `gesture.send()` erfassten monotonen Zeitanker in die automatische lokale
+  Auswertung. Dadurch bleibt die Aktivierungsbaseline erhalten, während der
+  konkrete frische Tastendruck zusätzlich eindeutig erkannt wird.
+- 0.89.12 bestätigte lokale Zuordnung und eine entfernte Tessa-Verbindung,
+  zeigte beim Wiederholen aber unveränderte Claim-Sequenzen in beiden
+  tatsächlich laufenden Tessa-Sitzungen. 0.89.13 gibt F12 deshalb mit zehn
+  Millisekunden GUI-Schleifenabstand erst nach Rückkehr aus NVDAs Input-Hook
+  weiter; die Auswertung beginnt unverändert nach 250 Millisekunden. Der
+  praktische 0.89.13-Test widerlegte auch diese synthetische Weitergabe.
+- Nach manueller Auswahl funktionierte dieselbe Tessa-Sitzung; ein physischer
+  F12-Kontrolltest und weitere Versuche erhöhten ihr Register anschließend auf
+  `claimSequence=3`. 0.89.14 beobachtet F12 daher mit
+  `decide_executeGesture`, bindet kein NVDA-Skript und lässt den ursprünglichen
+  Tastendruck über NVDAs `NoInputGestureAction`-Pfad direkt durch. Nur die
+  Claim-Auswertung wird auf die NVDA-Ereigniswarteschlange übergeben.
+- Der 0.89.14-Bericht bestätigte anschließend nur die lokale automatische
+  Zuordnung; die Tessa-Verbindung entstand manuell. Ein isolierter Neovim-
+  0.10.1-Lauf empfing F12 zuverlässig als `typed=<F12>`, stellte den internen
+  Schlüssel jedoch als Terminalcode dar und löste das `<F12>`-Mapping nicht
+  aus. 0.89.15 wertet deshalb `typed` im vorhandenen `vim.on_key`-Beobachter
+  aus. Bei deaktivierter Unterstützung ignoriert der NVDA-Beobachter F12 nun
+  vollständig.
+- Der 0.89.15-Praxistest bestätigte Tessa und die inaktive F12-Beobachtung bei
+  deaktivierter Unterstützung. Lokales Neovim 0.12.3 wurde automatisch
+  verbunden, geriet aber unmittelbar in den `r?`-/Hit-Enter-Zustand und verlor
+  anschließend seinen RPC-Server. 0.89.16 plant den Registry-Schreibzugriff
+  deshalb mit `vim.schedule()` außerhalb von `vim.on_key` ein.
+- Der abschließende 0.89.16-Praxistest bestätigte die automatische Zuordnung
+  sowohl für lokales Neovim 0.12.3 als auch für Tessa mit Neovim 0.10.1.
+  Wiederholte F12-Markierungen funktionierten, und bei deaktivierter
+  Unterstützung blieb die Beobachtung vollständig inaktiv: Es erschien kein
+  Zuordnungsdialog. Damit sind Markierung, Registry-Claim, Add-on-Zuordnung und
+  Transportverbindung als getrennte Schritte praktisch bestätigt.
 - Der Aktivierungsbefehl erfasst mögliche Ziele, öffnet aber noch keine
   dauerhaften Bridgeverbindungen. Nach der Bereitschaftsmeldung verbindet F12
   den eindeutigen Treffer; der explizite Dialogweg bleibt für Passwort- und
@@ -111,13 +154,13 @@ die Architektur in [architecture.md](architecture.md) und die Bedienung im
 
 ## Verifikation dieses Branches
 
-- 239 Python-Tests: 199 Add-on/Core einschließlich Repositoryrichtlinien,
+- 243 Python-Tests: 203 Add-on/Core einschließlich Repositoryrichtlinien,
   26 Protokoll und 14 Bridge
-- 148 Lua-Assertions mit echtem Neovim
+- 151 Lua-Assertions mit echtem Neovim
 - alle Bridge-/TUI-/Sockettests bestanden; vier in der eingeschränkten
   Socket-Sandbox erwartbar gescheiterte Fälle wurden isoliert außerhalb dieser
   Sandbox vollständig und erfolgreich wiederholt
-- Add-on-Archiv 0.89.5, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
+- Add-on-Archiv 0.89.16, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
   Manifestversion und interne Links wurden automatisiert geprüft
 - Die vollständige Komponentenentfernung wurde mit dem installierten
   Testbuild praktisch bestätigt.

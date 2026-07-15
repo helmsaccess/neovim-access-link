@@ -48,8 +48,11 @@ Bytes über SSH-stdin; die Zielmaschine greift weder auf das Repository noch auf
 einen Downloadserver zu.
 
 `linux-components.json` ist der gemeinsame, versionierte Vertrag zwischen
-Add-on und Linux-Komponenten. Er enthält derzeit die Zuordnungstaste für
-Neovim und die entsprechende NVDA-Geste, standardmäßig `<F12>` und `kb:f12`.
+Add-on und Linux-Komponenten. Er deklariert derzeit denselben Bezeichner für
+Neovims Sitzungsmarkierung und NVDAs ausschließlich beobachtete Geste,
+standardmäßig `<F12>` und `kb:f12`. Das ist keine NVDA-Skriptbindung und kein
+Neovim-Keymapping; beide Seiten erkennen denselben physischen Tastendruck an
+ihren jeweiligen öffentlichen Eingabeschnittstellen.
 Der Paketbau akzeptiert nur zusammenpassende Funktionstasten F1 bis F24. Das
 Plugin liest seine installierte Kopie; eine zusätzliche Kopie liegt zur
 Diagnose unter `~/.local/share/nvim-nvda/linux-components.json`. Änderungen

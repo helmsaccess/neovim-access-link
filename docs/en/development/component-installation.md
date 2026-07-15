@@ -19,8 +19,8 @@ Local installation atomically replaces the plugin in
 `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`. Running Neovim
 instances must be restarted after an update.
 
-The packaged JSON configuration keeps the Neovim claim key and NVDA gesture
-consistent. Changing only one installed copy is unsupported; rebuild and
+The packaged JSON configuration keeps the Neovim claim-key identifier
+consistent with NVDA's observed gesture identifier. Changing only one installed copy is unsupported; rebuild and
 update both sides together.
 
 ## Removal from NVDA

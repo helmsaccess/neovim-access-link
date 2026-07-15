@@ -420,7 +420,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             name="nvim-nvda-claim-inventory", daemon=True,
         ).start()
 
-    def _beginAutomaticClaimResolution(self, identity):
+    def _beginAutomaticClaimResolution(self, identity, local_claim_not_before_ns=0):
         self._claimInventoryGeneration += 1
         generation = self._claimInventoryGeneration
         profiles = [
@@ -434,11 +434,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         baseline = dict(self._claimBaselines)
         threading.Thread(
             target=self._scanAutomaticClaimTargets,
-            args=(generation, profiles, passwords, identity, baseline),
+            args=(
+                generation, profiles, passwords, identity, baseline,
+                local_claim_not_before_ns,
+            ),
             name="nvim-nvda-claim-resolution", daemon=True,
         ).start()
 
-    def _scanAutomaticClaimTargets(self, generation, profiles, passwords, identity, baseline):
+    def _scanAutomaticClaimTargets(
+        self, generation, profiles, passwords, identity, baseline,
+        local_claim_not_before_ns=0,
+    ):
         """Resolve a local claim without waiting for unrelated SSH probes.
 
         F12 reaches only the focused terminal.  Therefore a newly incremented
@@ -451,6 +457,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return any(
                 self._claimSequence(session) > baseline.get(
                     ("localWindowsTcp", "local-windows", session.identifier), 0,
+                )
+                or (
+                    local_claim_not_before_ns > 0
+                    and 0 <= session.claim_age_ms <= 15_000
+                    and session.claimed_monotonic_ns >= local_claim_not_before_ns
                 )
                 for session in sessions
             )
@@ -468,7 +479,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if local_changed:
             queueHandler.queueFunction(
                 queueHandler.eventQueue, self._finishAutomaticClaimResolution,
-                generation, [local_result], identity,
+                generation, [local_result], identity, local_claim_not_before_ns,
             )
             return
 
@@ -612,7 +623,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 "Neovim connections ready. Focus Neovim and press {key}"
             ).format(key=_SESSION_CLAIM_KEY_NAME))
 
-    def _finishAutomaticClaimResolution(self, generation, results, identity):
+    def _finishAutomaticClaimResolution(
+        self, generation, results, identity, local_claim_not_before_ns=0,
+    ):
         if (
             generation != self._claimInventoryGeneration
             or not self._gate.manual_enabled or self._gate.focused != identity
@@ -634,7 +647,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 current_keys.add(key)
                 sequence = self._claimSequence(session)
                 previous = self._claimBaselines.get(key, 0)
-                if sequence > previous:
+                fresh_local_claim = (
+                    kind == "localWindowsTcp"
+                    and local_claim_not_before_ns > 0
+                    and 0 <= session.claim_age_ms <= 15_000
+                    and session.claimed_monotonic_ns >= local_claim_not_before_ns
+                )
+                if sequence > previous or fresh_local_claim:
                     candidates.append((kind, profile, session))
                 new_baselines[key] = sequence
             for key in list(new_baselines):
@@ -773,8 +792,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         # Terminal or interfere with NVDA event processing.
         gui.runScriptModalDialog(profile_dialog, finish_profile_selection)
 
-    def action_claimFocusedNeovimSession(self, gesture):
-        """Let Neovim mark its registry, then select only that fresh claim."""
+    def action_claimFocusedNeovimSession(self, gesture, forward_gesture=True):
+        """Observe F12 reaching Neovim, then select only that fresh claim."""
         identity = self._gate.focused
         selected = self._instanceManager.selected_for(identity) if identity is not None else None
         self._diagnostics.record(
@@ -792,7 +811,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if not pending_target and selected is not None and selected.transport_kind == LOCAL_WINDOWS_TCP:
             pending_target = LOCAL_WINDOWS_TCP
         if identity is None or identity.frontend_kind != "windowsTerminal":
-            gesture.send()
+            if forward_gesture and gesture is not None:
+                gesture.send()
             return
         if selected is None and not pending_target and not self._claimInventoryReady:
             if not self._gate.manual_enabled:
@@ -808,7 +828,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ).format(key=_SESSION_CLAIM_KEY_NAME))
             return
         local_claim_not_before_ns = time.monotonic_ns()
-        gesture.send()
+        if forward_gesture and gesture is not None:
+            gesture.send()
         if pending_target == LOCAL_WINDOWS_TCP:
             if not self._gate.manual_enabled:
                 self._gate.manual_enabled = True
@@ -836,6 +857,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("Connecting the focused Neovim session"))
             self._scheduleMainThreadCall(
                 250, self._beginAutomaticClaimResolution, identity,
+                local_claim_not_before_ns,
             )
             return
         if profile is None:

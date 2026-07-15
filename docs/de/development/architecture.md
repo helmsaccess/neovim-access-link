@@ -59,6 +59,29 @@ lokal atomar in
 `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`; die lokale
 Installation benötigt weder SSH noch Administratorrechte.
 
+## Begriffe: Markierung, Claim, Zuordnung und Verbindung
+
+Eine **Sitzungsmarkierung** ist die ausdrückliche Benutzeraktion im
+fokussierten Neovim, standardmäßig ein physischer Druck auf F12. Sie ist nicht
+mit Neovims Editor-**Marks** wie `ma` oder `'a` zu verwechseln.
+
+Ein **Claim** ist ausschließlich der flüchtige, maschinenlesbare Nachweis
+dieser Sitzungsmarkierung im privaten Registryeintrag der Neovim-Instanz:
+`claimSequence` wird monoton erhöht und `claimedMonotonic` aktualisiert. Ein
+Claim öffnet noch keinen Transport, authentifiziert keine Gegenstelle, wählt
+keinen Terminal-Tab dauerhaft aus und wird nach einem Pluginneustart nicht
+beibehalten.
+
+Die **Claim-Auswertung** vergleicht die nach dem Tastendruck gelesenen Werte
+mit der bei der Aktivierung erfassten Baseline. Nur genau ein frischer Treffer
+darf zur **Zuordnung** führen. Diese Zuordnung bindet die stabile
+`TerminalIdentity` des fokussierten Windows-Terminal-Tabs an eine neu gestartete
+`ConnectionInstance`. Erst deren erfolgreicher TCP- oder SSH-Handshake ergibt
+eine **Verbindung** und erlaubt strukturierte Ausgabe beziehungsweise native
+Terminalunterdrückung. Die manuelle Profil- und Sitzungsauswahl überspringt
+Markierung und Claim-Auswertung, erzeugt danach aber denselben typisierten
+Verbindungs- und Zuordnungspfad.
+
 ## Neovim-Sitzungsregistry
 
 Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten
@@ -75,10 +98,22 @@ interne Transportdaten.
 
 Die bevorzugte Zuordnung erfolgt über die konfigurierte Markierungstaste. Beim
 Aktivieren erfasst ein begrenzter Hintergrundscan die lokale Registry und alle
-ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. NVDA reicht die Taste
-an das fokussierte Neovim weiter; anschließend vergleicht das Add-on die
+ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. Das Windows-Terminal-
+App-Modul beobachtet F12 am öffentlichen Erweiterungspunkt
+`decide_executeGesture`, ohne ein Skript zu binden. NVDAs normale Auflösung
+endet daher mit `NoInputGestureAction`, und der Keyboard-Hook lässt den
+ursprünglichen physischen Tastendruck direkt zu Windows Terminal und Neovim
+durch. Der Beobachter stellt nur die begrenzte Claim-Auswertung getrennt in
+NVDAs Ereigniswarteschlange und bleibt bei deaktivierter Unterstützung inaktiv.
+Neovim erkennt die konfigurierte Claim-Taste am unveränderten `typed`-Wert von
+`vim.on_key` statt über eine terminalcodeabhängige Zuordnung. Den Registry-
+Schreibzugriff stellt es mit `vim.schedule()` in den normalen Ereigniszyklus,
+sodass der Tastencallback keine Dateisystem- oder regulären Vim-Funktionszugriffe
+ausführt. Anschließend vergleicht das Add-on die
 monotone Claim-Sequenz jeder erfassten Sitzung mit ihrer Baseline. Genau eine
-veränderte Sitzung wird gebunden, mehrere echte Treffer werden zugänglich zur
+veränderte Sitzung wird gebunden. Für lokale Sitzungen gilt zusätzlich der
+für den beobachteten Tastendruck erfasste monotone Zeitanker; dadurch wird
+genau der zu diesem F12-Druck gehörende Registry-Claim erkannt. Mehrere echte Treffer werden zugänglich zur
 Auswahl angeboten und kein Treffer führt zu keiner geratenen Verbindung. Eine
 Standardverbindung existiert nicht. Alternativ wählen NVDA-Dialoge Ziel und
 gegebenenfalls Sitzung mit verständlichen Namen. Fenstertitel werden nicht

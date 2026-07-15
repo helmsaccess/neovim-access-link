@@ -21,6 +21,13 @@ editing, completion, menus, settings profiles, installation, multiple local
 and SSH sessions, focus/runtime IDs, F12 claims, delayed callbacks, redaction,
 and fail-open suppression.
 
+The F12 path distinguishes four stages: physical session marking, the
+transient registry claim, unique claim resolution, and terminal-to-connection
+binding. NVDA observes an otherwise unbound gesture only while support is
+active and does not synthesize or consume the key. Neovim matches the
+unchanged `typed` value and schedules the registry write outside `vim.on_key`.
+Manual selection bypasses claim resolution but uses the same connection path.
+
 Manual tests must record prerequisites, exact actions, expected and actual
 results, and avoid confidential text. Confirmed tests used Windows 11 25H2,
 NVDA 2026.1.1, Windows Terminal 1.24.x, OpenSSH 9.5p2/LibreSSL 3.8.2, Rocky

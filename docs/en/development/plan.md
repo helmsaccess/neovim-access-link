@@ -1,6 +1,6 @@
 # Active plan
 
-Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 binding,
+Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
 The beta close-out work is documentation consistency, full automated package

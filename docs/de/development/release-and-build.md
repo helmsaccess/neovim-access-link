@@ -24,15 +24,15 @@ zweiter sichtbarer Produktname.
 ## Abgeleitete Werte
 
 `buildVars.version()` verbindet Produktversion und Buildnummer. Der aktuelle
-Beta-Testbuild lautet daher `0.89.5`. Dieses rein numerische Dreierformat
+Beta-Testbuild lautet daher `0.89.16`. Dieses rein numerische Dreierformat
 entspricht der Validierung des NVDA Add-on Store und bleibt korrekt sortierbar.
 
 Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
-- den Archivnamen `nvimNvdaAccess-0.89.5.nvda-addon`,
+- den Archivnamen `nvimNvdaAccess-0.89.16.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-0.89.5-user.tar.gz`,
+  `neovim-access-link-0.89.16-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
 - die Version des gebündelten Linux-Komponentenpakets.
 

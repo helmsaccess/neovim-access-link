@@ -177,6 +177,7 @@ class BuiltAddonTests(unittest.TestCase):
             def register(inner_self, handler): inner_self.handlers.append(handler)
             def unregister(inner_self, handler): inner_self.handlers.remove(handler)
         self.inputDecider = input_core.decide_executeGesture = Decider()
+        self.rawKeyDecider = input_core.decide_handleRawKey = Decider()
         sys.modules["inputCore"] = input_core
 
         global_vars = types.ModuleType("globalVars")
@@ -509,10 +510,9 @@ class BuiltAddonTests(unittest.TestCase):
             '{"format":1,"sessionClaim":{"neovimKey":"<F9>","nvdaGesture":"kb:f9"}}',
             encoding="utf-8",
         )
-        from appModules.windowsterminal import AppModule
+        from globalPlugins import nvimNvdaAccess
 
-        metadata = AppModule.script_claimFocusedNeovimSession._test_script_kwargs
-        self.assertEqual("kb:f9", metadata["gesture"])
+        self.assertEqual("kb:f9", nvimNvdaAccess._SESSION_CLAIM_GESTURE)
 
     def test_addon_reuses_nvda_sounds_and_bundles_only_cc0_editor_earcons(self) -> None:
         with zipfile.ZipFile(build()) as archive:
@@ -620,12 +620,12 @@ class BuiltAddonTests(unittest.TestCase):
             AppModule.script_startConnectionInstance._test_script_kwargs["description"].lower(),
         )
         self.assertNotIn("gesture", AppModule.script_disconnectConnectionInstance._test_script_kwargs)
-        self.assertEqual(
-            "kb:f12", AppModule.script_claimFocusedNeovimSession._test_script_kwargs["gesture"],
-        )
+        self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
+        self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
         self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
 
-    def test_f12_forwards_to_neovim_then_requests_only_a_fresh_claim(self) -> None:
+    def test_f12_observer_keeps_original_gesture_unbound_and_starts_claim_resolution(self) -> None:
+        from appModules.windowsterminal import AppModule
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
         self.focus = types.SimpleNamespace(
@@ -637,22 +637,65 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
         plugin._settings.update({
             "connections": [{
                 "id": "work", "name": "Work", "host": "host", "user": "remote",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
             }],
         })
-        selections = []
-        plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
-        plugin._beginAutomaticClaimResolution = lambda *args: selections.append(args)
-        gesture = types.SimpleNamespace(sent=0)
-        gesture.send = lambda: setattr(gesture, "sent", gesture.sent + 1)
-        plugin.action_claimFocusedNeovimSession(gesture)
-        self.assertEqual(1, gesture.sent)
-        self.assertEqual("windowsTerminal", selections[0][0].frontend_kind)
-        self.assertTrue(plugin._gate.manual_enabled)
+        order = []
+        adapter = AppModule()
+        adapter.event_gainFocus(self.focus, lambda: None)
+        adapter._prepareTerminalAction = lambda current: order.append(("focus", current))
+        gesture = types.SimpleNamespace(
+            normalizedIdentifiers=("kb:f12",),
+            send=lambda: order.append(("send", gesture)),
+        )
+        plugin.action_claimFocusedNeovimSession = lambda current, forward_gesture=True: (
+            order.append(("claim", plugin, current, forward_gesture))
+        )
+
+        allowed = adapter._decideExecuteGesture(gesture)
+
+        self.assertTrue(allowed)
+        self.assertEqual(["focus", "claim"], [item[0] for item in order])
+        self.assertIs(plugin, order[1][1])
+        self.assertIsNone(order[1][2])
+        self.assertFalse(order[1][3])
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_f12_observer_passes_through_without_active_plugin(self) -> None:
+        from appModules.windowsterminal import AppModule
+
+        adapter = AppModule()
+        adapter._plugin = lambda: None
+        gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
+
+        allowed = adapter._decideExecuteGesture(gesture)
+
+        self.assertTrue(allowed)
+        adapter.terminate()
+
+    def test_f12_observer_is_inert_while_support_is_disabled(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = False
+        adapter = AppModule()
+        handled = []
+        adapter._handleObservedClaimGesture = lambda: handled.append(True)
+
+        allowed = adapter._decideExecuteGesture(
+            types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual([], handled)
+        adapter.terminate()
         plugin.terminate()
 
     def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
@@ -683,6 +726,23 @@ class BuiltAddonTests(unittest.TestCase):
         finally:
             wx.CallLater = original_call_later
 
+    def test_observed_f12_is_not_synthetically_reinjected(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
+            (delay, callback, args)
+        )
+        plugin.action_claimFocusedNeovimSession(None, forward_gesture=False)
+
+        self.assertEqual([250], [call[0] for call in scheduled])
+        self.assertEqual("_beginAutomaticClaimResolution", scheduled[0][1].__name__)
+        plugin.terminate()
+
     def test_f12_before_inventory_ready_waits_without_claiming_wrong_session(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
@@ -692,10 +752,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._claimInventoryReady = False
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(True)
-        gesture = types.SimpleNamespace(sent=0)
-        gesture.send = lambda: setattr(gesture, "sent", gesture.sent + 1)
-        plugin.action_claimFocusedNeovimSession(gesture)
-        self.assertEqual(0, gesture.sent)
+        plugin.action_claimFocusedNeovimSession(types.SimpleNamespace(send=lambda: None))
         self.assertEqual([True], inventories)
         self.assertTrue(plugin._gate.manual_enabled)
         self.assertIn("after the ready message", self.messages[-1])
@@ -877,6 +934,38 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(2, len(calls))
         self.assertEqual(1, len(completed))
         self.assertEqual(2, completed[0][1][0][3][0].claim_sequence)
+        plugin.terminate()
+
+    def test_automatic_local_claim_accepts_f12_timestamp_when_baseline_sequence_is_equal(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        plugin._claimInventoryGeneration = 7
+        plugin._claimBaselines = {
+            ("localWindowsTcp", "local-windows", "77"): 2,
+        }
+        session = LocalWindowsSession(
+            "77", "Local", "C:/work", "127.0.0.1", 45678, 77,
+            claim_age_ms=5, claimed_monotonic_ns=1_001, claim_sequence=2,
+        )
+        connected = []
+        plugin._connectAutomaticClaim = lambda terminal, candidate: connected.append(
+            (terminal, candidate)
+        )
+
+        plugin._finishAutomaticClaimResolution(
+            7,
+            [("localWindowsTcp", "local-windows", None, [session], None)],
+            identity,
+            1_000,
+        )
+
+        self.assertEqual(1, len(connected))
+        self.assertEqual("77", connected[0][1][2].identifier)
         plugin.terminate()
 
     def test_explicit_local_claim_retries_until_registry_write_arrives(self) -> None:
@@ -1062,7 +1151,8 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(hasattr(AppModule, "event_gainFocus"))
         self.assertTrue(hasattr(AppModule, "chooseNVDAObjectOverlayClasses"))
-        self.assertTrue(hasattr(AppModule, "script_claimFocusedNeovimSession"))
+        self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
+        self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertFalse(hasattr(GlobalPlugin, "event_gainFocus"))
         self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
         self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
@@ -1402,7 +1492,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(any("local-windows" in message for message in self.messages))
         plugin.terminate()
 
-    def test_local_f12_pairs_only_fresh_claim_and_forwards_gesture_first(self) -> None:
+    def test_local_f12_pairs_only_fresh_claim(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
         from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
         from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
@@ -1412,13 +1502,15 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
         plugin._pendingClaimTargets[identity] = LOCAL_WINDOWS_TCP
-        order = []
-        plugin._beginLocalSessionSelection = lambda *args: order.append(("discover", args))
-        gesture = types.SimpleNamespace(send=lambda: order.append(("send", ())))
-        plugin.action_claimFocusedNeovimSession(gesture)
-        self.assertEqual("send", order[0][0])
-        self.assertEqual((identity, True, True, True, None), order[1][1][:5])
-        self.assertGreater(order[1][1][5], 0)
+        selections = []
+        plugin._beginLocalSessionSelection = lambda *args: selections.append(args)
+        sent = []
+        plugin.action_claimFocusedNeovimSession(
+            types.SimpleNamespace(send=lambda: sent.append(True)),
+        )
+        self.assertEqual([True], sent)
+        self.assertEqual((identity, True, True, True, None), selections[0][:5])
+        self.assertGreater(selections[0][5], 0)
 
         stale = LocalWindowsSession("1", "stale", "C:/one", "127.0.0.1", 41001, 1,
                                     claim_age_ms=15_001)
@@ -1504,7 +1596,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn(remote.identifier, [instance.identifier for instance in instances])
         pairings = []
         plugin._beginLocalSessionSelection = lambda *args: pairings.append(args)
-        plugin.action_claimFocusedNeovimSession(types.SimpleNamespace(send=lambda: None))
+        sent = []
+        plugin.action_claimFocusedNeovimSession(
+            types.SimpleNamespace(send=lambda: sent.append(True)),
+        )
+        self.assertEqual([True], sent)
         self.assertEqual((local_identity, True, True, True, None), pairings[0][:5])
         self.assertGreater(pairings[0][5], 0)
         plugin.terminate()

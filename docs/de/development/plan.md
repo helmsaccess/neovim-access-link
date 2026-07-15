@@ -3,7 +3,7 @@
 Stand: 2026-07-15
 
 Kernarchitektur, Protokoll v2, SSH-stdio, lokale Windows-CLI, explizite
-F12-Zuordnung, parallele Sitzungen sowie rootlose Komponenteninstallation und
+F12-Claim-Handshake und -Zuordnung, parallele Sitzungen sowie rootlose Komponenteninstallation und
 -entfernung sind
 implementiert. Der verifizierte Funktionsstand steht in
 [Aktueller Status](current-status.md); abgeschlossene Änderungen stehen im

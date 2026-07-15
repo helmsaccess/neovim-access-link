@@ -19,6 +19,13 @@ or configurable port.
 
 F12 is the default claim gesture shared by packaged configuration. Activation
 inventories eligible targets; F12 selects only a newly incremented claim.
+The Windows Terminal app module observes F12 through
+`decide_executeGesture` without binding an NVDA script. NVDA therefore passes
+the original physical key directly to Neovim, while the observer separately
+queues claim evaluation. Neovim matches the unchanged `typed` value instead
+of relying on terminal-code mapping. While support is disabled, the observer
+is inert and F12 has no add-on effect. Only then does
+the add-on refresh terminal identity and look for the fresh claim.
 Manual target/session selection remains available for passwords and special
 cases. Remembered terminal bindings use stable runtime IDs and live only in
 memory.
