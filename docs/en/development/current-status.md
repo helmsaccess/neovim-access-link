@@ -1,6 +1,7 @@
 # Current status
 
-Status: 2026-07-15, corrective test build 0.89.35.
+Status: 2026-07-15, beta prerelease 0.89.35; overall maturity remains between
+alpha and beta.
 
 Registry schema 3 validates local and remote sessions with a random RPC
 endpoint nonce and, on Linux, process-start identity. Definitively dead private

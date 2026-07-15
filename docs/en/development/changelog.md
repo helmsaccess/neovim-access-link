@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.89.35 corrective test build
+## 0.89.35 beta release
+
+- Registry lifecycle hardening and Windows Terminal binding maintenance are
+  published as a prerelease after practical local Windows and Tessa SSH
+  verification. Overall product maturity remains between alpha and beta.
+- Complete non-interference with unbound Windows Terminal panes remains a
+  documented follow-up; uncertain suppression state continues to fail open.
 
 - The 0.89.34 trace identifies the apparent F12 failure as an already-active
   swap-file confirmation (`r?`, confirm, swap), not an input or RPC failure.

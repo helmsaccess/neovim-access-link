@@ -4,7 +4,14 @@ Dieses Changelog beschreibt auslieferbare Beta-Stände. Die zahlreichen
 experimentellen Vor-Beta-Builds werden nicht einzeln fortgeführt; Git enthält
 deren vollständigen Verlauf.
 
-## 0.89.35 (Korrektur-Testbuild)
+## 0.89.35 (Beta-Veröffentlichung)
+
+- Die Härtung des Registry-Lebenszyklus und die Pflege der
+  Windows-Terminal-Bindungen werden nach praktischer Prüfung mit lokalem
+  Windows-Neovim und Tessa-SSH als Vorabversion veröffentlicht. Der
+  Gesamtstand bleibt zwischen Alpha und Beta.
+- Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Panes bleibt
+  dokumentierte Folgearbeit; unsicherer Unterdrückungszustand bleibt fail-open.
 
 - Die Diagnose von 0.89.34 identifiziert den vermeintlichen F12-Fehler als
   bereits aktive Swap-Datei-Bestätigung (`r?`, confirm, swap), nicht als

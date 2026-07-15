@@ -8,7 +8,8 @@ archive names, and embedded component version are derived from it.
 The visible product is “Neovim Access Link”, author Emanuel Helms
 `<emanuel@helmsaccess.de>`. The stable
 internal ID `nvimNvdaAccess` preserves installation and NVDA profile
-compatibility. The current numeric beta build is 0.89.16.
+compatibility. The current beta prerelease is 0.89.35; overall product maturity
+remains between alpha and beta.
 
 The user controls product version and release channel. The coding agent
 increments only the build number when shipped content changes. Stable tags,

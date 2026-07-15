@@ -1,6 +1,7 @@
 # Aktueller Status
 
-Stand: 2026-07-15, Korrektur-Testbuild 0.89.35
+Stand: 2026-07-15, Beta-Vorabversion 0.89.35; der Gesamtstand bleibt zwischen
+Alpha und Beta.
 
 ## Gesamtbewertung
 
@@ -191,7 +192,7 @@ die Architektur in [architecture.md](architecture.md) und die Bedienung im
 - alle Bridge-/TUI-/Sockettests bestanden; vier in der eingeschränkten
   Socket-Sandbox erwartbar gescheiterte Fälle wurden isoliert außerhalb dieser
   Sandbox vollständig und erfolgreich wiederholt
-- Add-on-Archiv 0.89.16, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
+- Add-on-Archiv 0.89.35, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
   Manifestversion und interne Links wurden automatisiert geprüft
 - Die vollständige Komponentenentfernung wurde mit dem installierten
   Testbuild praktisch bestätigt.
