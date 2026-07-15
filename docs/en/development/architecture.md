@@ -11,6 +11,21 @@ and plans speech/Braille. The Windows Terminal AppModule owns focus, gestures,
 terminal identity, overlays, and native-output suppression. The global plugin
 owns only lifecycle, settings, installation, and connection services.
 
+For F12 pairing, the Windows Terminal AppModule observes the gesture through
+the public `decide_executeGesture` extension point without binding a script.
+Normal NVDA resolution therefore reaches `NoInputGestureAction` and lets the
+keyboard hook pass the original physical key directly to Windows Terminal and
+Neovim. The observer queues bounded claim evaluation separately and remains
+inert while support is disabled. Neovim recognizes the configured claim key
+from `vim.on_key`'s unchanged `typed` value rather than a terminal-code-sensitive
+mapping. It schedules the registry write into the normal event cycle so the
+input callback remains free of filesystem and regular Vim-function work, then
+atomically increments its registry claim sequence. The add-on
+then compares current sequences with the inventory baseline and binds only the
+freshly changed session. Local pairing also carries a monotonic timestamp
+captured for the observed key press, identifying the registry claim
+from that exact F12 press. It never guesses from terminal text or titles.
+
 Each `ConnectionInstance` has its own target, transport, session, client, and
 state. A stable UI Automation runtime ID binds one instance to one tab. Only
 the focused bound instance can produce output. Switching clears planners and

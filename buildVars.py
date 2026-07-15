@@ -11,7 +11,7 @@ import re
 
 
 product_version = "0.89"
-build_number = 5
+build_number = 16
 release_channel = "beta"
 
 addon_info = {

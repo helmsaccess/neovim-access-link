@@ -75,10 +75,22 @@ interne Transportdaten.
 
 Die bevorzugte Zuordnung erfolgt über die konfigurierte Markierungstaste. Beim
 Aktivieren erfasst ein begrenzter Hintergrundscan die lokale Registry und alle
-ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. NVDA reicht die Taste
-an das fokussierte Neovim weiter; anschließend vergleicht das Add-on die
+ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. Das Windows-Terminal-
+App-Modul beobachtet F12 am öffentlichen Erweiterungspunkt
+`decide_executeGesture`, ohne ein Skript zu binden. NVDAs normale Auflösung
+endet daher mit `NoInputGestureAction`, und der Keyboard-Hook lässt den
+ursprünglichen physischen Tastendruck direkt zu Windows Terminal und Neovim
+durch. Der Beobachter stellt nur die begrenzte Claim-Auswertung getrennt in
+NVDAs Ereigniswarteschlange und bleibt bei deaktivierter Unterstützung inaktiv.
+Neovim erkennt die konfigurierte Claim-Taste am unveränderten `typed`-Wert von
+`vim.on_key` statt über eine terminalcodeabhängige Zuordnung. Den Registry-
+Schreibzugriff stellt es mit `vim.schedule()` in den normalen Ereigniszyklus,
+sodass der Tastencallback keine Dateisystem- oder regulären Vim-Funktionszugriffe
+ausführt. Anschließend vergleicht das Add-on die
 monotone Claim-Sequenz jeder erfassten Sitzung mit ihrer Baseline. Genau eine
-veränderte Sitzung wird gebunden, mehrere echte Treffer werden zugänglich zur
+veränderte Sitzung wird gebunden. Für lokale Sitzungen gilt zusätzlich der
+für den beobachteten Tastendruck erfasste monotone Zeitanker; dadurch wird
+genau der zu diesem F12-Druck gehörende Registry-Claim erkannt. Mehrere echte Treffer werden zugänglich zur
 Auswahl angeboten und kein Treffer führt zu keiner geratenen Verbindung. Eine
 Standardverbindung existiert nicht. Alternativ wählen NVDA-Dialoge Ziel und
 gegebenenfalls Sitzung mit verständlichen Namen. Fenstertitel werden nicht

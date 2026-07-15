@@ -146,11 +146,18 @@ Session-Registry; das Add-on wählt lokal beziehungsweise über SSH nur die jün
 auch bei identischen Konten, Arbeitsverzeichnissen und Sitzungsnamen keine ID-
 Eingabe und kein Raten anhand des Terminalinhalts nötig. Nach einer
 Komponentenaktualisierung muss Neovim neu gestartet werden, damit die
-F12-Belegung verfügbar ist.
+F12-Erkennung verfügbar ist.
+Das Windows-Terminal-App-Modul beobachtet F12 mit
+`decide_executeGesture`, ohne ein NVDA-Skript zu binden. NVDA lässt dadurch den
+ursprünglichen physischen Tastendruck direkt zu Neovim durch; der Beobachter
+stellt die Claim-Auswertung getrennt in die Ereigniswarteschlange. Neovim
+vergleicht den unveränderten `typed`-Wert statt einer terminalcodeabhängigen
+Zuordnung. Bei deaktivierter Unterstützung ist der Beobachter inaktiv und F12
+hat keine Add-on-Wirkung. Anschließend aktualisiert das Add-on die
+Terminalzuordnung und sucht nach genau dem dadurch neu entstandenen Claim.
 
-Der Aktivierungsbefehl startet die Hintergrunderfassung. Wird F12 vorher
-gedrückt, aktiviert es die Barrierefreiheit und fordert nach Abschluss der
-Erfassung zu einem zweiten Tastendruck auf. Der gesonderte Befehl „Server wählen und dieses
+Der Aktivierungsbefehl startet die Hintergrunderfassung. F12 wird erst nach der
+Bereitschaftsmeldung zur Zuordnung ausgewertet. Der gesonderte Befehl „Server wählen und dieses
 Terminal mit einer neuen Neovim-Sitzung verbinden“ behält bewusst seine Dialoge.
 
 Diese Befehle werden derzeit ausschließlich in eindeutig erkanntem Windows

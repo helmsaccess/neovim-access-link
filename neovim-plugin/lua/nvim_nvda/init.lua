@@ -377,11 +377,19 @@ function M.setup()
   setup_ui_functions()
   setup_ui_events()
   completion_adapters.stop()
-  vim.keymap.set({ "n", "i", "v", "s", "o", "c", "t" }, component_config.sessionClaim.neovimKey, function()
-    require("nvim_nvda.session").claim()
-  end, { silent = true, desc = "Mark this Neovim session for NVDA" })
-  vim.on_key(function(key)
+  vim.on_key(function(key, typed)
     local translated = vim.fn.keytrans(key)
+    local typed_translated = vim.fn.keytrans(typed or "")
+    if typed_translated:lower() == component_config.sessionClaim.neovimKey:lower() then
+      -- Registry writes call regular Vim functions and filesystem APIs. Keep
+      -- them outside the input callback: newer Neovim versions enforce the
+      -- on_key/textlock boundary more strictly and otherwise enter a hit-enter
+      -- error state even though the physical key was recognized correctly.
+      vim.schedule(function()
+        require("nvim_nvda.session").claim()
+      end)
+      return
+    end
     local raw_mode = vim.api.nvim_get_mode().mode
     local operator_context = raw_mode:sub(1, 1) == "n"
     if operator_context and pending_register_prefix then

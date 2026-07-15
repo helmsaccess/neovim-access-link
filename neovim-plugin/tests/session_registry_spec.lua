@@ -25,9 +25,17 @@ vim.fn.writefile({ '{"format":1,"sessionClaim":{"neovimKey":"<F9>","nvdaGesture"
 truth(component_config.load(invalid_config).sessionClaim.neovimKey == "<F12>", "mismatched gestures fail safe")
 vim.fn.delete(invalid_config)
 vim.env.NVIM_NVDA_SESSION_NAME = "Documentation"
+local claim_on_key
+local original_on_key = vim.on_key
+vim.on_key = function(callback, namespace)
+  claim_on_key = callback
+  return original_on_key(callback, namespace)
+end
 dofile(root .. "/neovim-plugin/plugin/nvim_nvda.lua")
+vim.on_key = original_on_key
 local mapping = vim.fn.maparg("<F12>", "n", false, true)
-truth(type(mapping) == "table" and mapping.desc == "Mark this Neovim session for NVDA", "F12 marks session")
+truth(type(mapping) == "table" and next(mapping) == nil, "F12 remains unbound for direct terminal delivery")
+truth(type(claim_on_key) == "function", "typed-key observer is registered")
 
 local runtime = vim.env.XDG_RUNTIME_DIR
 if not runtime or runtime == "" then runtime = "/tmp/nvim-nvda-" .. tostring(vim.fn.getuid()) end
@@ -44,7 +52,14 @@ truth(value.claimSequence == 0, "registry claim sequence starts at zero")
 local notifications = 0
 local original_notify = vim.notify
 vim.notify = function() notifications = notifications + 1 end
-mapping.callback()
+local f12 = vim.api.nvim_replace_termcodes("<F12>", true, false, true)
+claim_on_key(f12, f12)
+value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
+truth(value.claimSequence == 0, "on_key defers registry writes")
+truth(vim.wait(1000, function()
+  local current = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
+  return current.claimSequence == 1
+end, 10), "scheduled typed F12 claim completes")
 vim.notify = original_notify
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
 truth(type(value.claimedMonotonic) == "number" and value.claimedMonotonic > 0, "claim timestamp recorded")
@@ -58,5 +73,5 @@ vim.cmd("NvimNvdaSessionName Programming")
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
 truth(value.name == "Programming", "session name can be changed at runtime")
 
-print("session registry tests: 16 assertions passed")
+print("session registry tests: 19 assertions passed")
 vim.cmd("qa!")
