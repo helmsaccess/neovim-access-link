@@ -47,6 +47,36 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertFalse(result.success)
             self.assertEqual("keep", marker.read_text(encoding="utf-8"))
 
+    def test_uninstall_removes_only_owned_plugin_and_empty_package_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = pathlib.Path(directory_name)
+            destination = root / "data" / "site" / "pack" / "nvim-nvda" / "start" / "nvim-nvda"
+            unrelated = root / "data" / "site" / "pack" / "other-plugin" / "keep.txt"
+            unrelated.parent.mkdir(parents=True)
+            unrelated.write_text("keep", encoding="utf-8")
+            installer = LocalPluginInstaller()
+            self.assertTrue(installer.install(self.make_plugin(root, "installed"), destination).success)
+
+            result = installer.uninstall(destination)
+
+            self.assertTrue(result.success)
+            self.assertFalse(destination.exists())
+            self.assertFalse((root / "data" / "site" / "pack" / "nvim-nvda").exists())
+            self.assertEqual("keep", unrelated.read_text(encoding="utf-8"))
+
+    def test_uninstall_is_idempotent_and_preserves_nonempty_owned_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = pathlib.Path(directory_name)
+            destination = root / "pack" / "nvim-nvda" / "start" / "nvim-nvda"
+            marker = destination.parent.parent / "keep.txt"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("user file", encoding="utf-8")
+
+            result = LocalPluginInstaller().uninstall(destination)
+
+            self.assertTrue(result.success)
+            self.assertEqual("user file", marker.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

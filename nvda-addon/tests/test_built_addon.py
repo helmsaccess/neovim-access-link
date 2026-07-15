@@ -2021,15 +2021,17 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
         self.assertEqual([1, 1], [client.stops for client in clients])
 
-    def test_tools_menu_exposes_only_rootless_install_and_settings_remain_native(self) -> None:
+    def test_tools_menu_exposes_component_install_and_removal_and_settings_remain_native(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
         plugin = GlobalPlugin()
         self.assertFalse(any("Neovim" in label for label in self.preferencesMenuLabels))
-        self.assertTrue(any(
-            label.startswith(buildVars.addon_info["summary"] + ":")
-            for label in self.toolsMenuLabels
-        ))
+        addon_tools = [label for label in self.toolsMenuLabels if label.startswith(
+            buildVars.addon_info["summary"] + ":"
+        )]
+        self.assertEqual(2, len(addon_tools))
+        self.assertTrue(any("Install or update components" in label for label in addon_tools))
+        self.assertTrue(any("Remove components" in label for label in addon_tools))
         self.assertFalse(any("SSH target" in label for label in self.menuLabels))
         self.assertEqual(1, len(self.settingsCategoryClasses))
         panel = self.settingsCategoryClasses[0]()
@@ -2371,6 +2373,107 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([False, True], [result.success for _profile, result in finished])
         self.assertEqual("Unexpected installation error", finished[0][1].message)
         self.assertEqual(["one", "two"], [call.kwargs["targetId"] for call in record.call_args_list])
+        plugin.terminate()
+
+    def test_component_removal_uses_matching_accessible_multi_target_dialog(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._settings["connections"] = [
+            {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 2222,
+             "identityFile": "", "authentication": "password"},
+        ]
+        self.checkListSelections.append([0, 2])
+        self.modalDialogResults.append(sys.modules["wx"].ID_OK)
+
+        selected = plugin._chooseUninstallProfiles()
+
+        self.assertEqual(["local-windows", "two"], [target.identifier for target in selected])
+        connection_list = self.checkListBoxes[-1]
+        self.assertEqual("Connections to remove components from", connection_list.name)
+        self.assertTrue(any("Close Neovim" in label for label in self.staticTexts))
+        self.assertTrue(any("Connections to remove components from:" == label for label in self.staticTexts))
+        select_all = next(control for control in self.checkBoxControls if control.label == "Select all connections")
+        self.assertTrue(select_all.focused)
+        self.assertFalse(select_all.IsChecked())
+        plugin.terminate()
+
+    def test_component_removal_runs_local_and_remote_jobs_in_background(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import local_windows_target
+        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        remote = parse_profiles([{
+            "id": "remote", "name": "Remote", "host": "host", "user": "user", "port": 2222,
+            "identityFile": r"C:\keys\remote", "authentication": "password",
+        }])[0]
+        local = local_windows_target("This computer")
+        plugin._chooseUninstallProfiles = lambda: [local, remote]
+        plugin._passwordForProfile = lambda _profile: "temporary password"
+        calls = []
+        run_removals = plugin._runComponentRemovals
+        plugin._runComponentRemovals = lambda *args: calls.append(args)
+        class ImmediateThread:
+            def __init__(inner_self, target, args, daemon):
+                inner_self.target, inner_self.args, inner_self.daemon = target, args, daemon
+            def start(inner_self): inner_self.target(*inner_self.args)
+        with mock.patch("threading.Thread", ImmediateThread):
+            plugin._onRemoveComponents(None)
+        self.assertEqual(["local-windows", "remote"], [target.identifier for target, _password in calls[0][0]])
+        self.assertEqual(["", "temporary password"], [password for _target, password in calls[0][0]])
+        self.assertIn("Removing Neovim components from 2 targets", self.messages[-1])
+
+        local_installer = mock.Mock()
+        local_installer.uninstall.return_value = InstallResult(True, "local removed")
+        ssh_installer = mock.Mock()
+        ssh_installer.uninstall.return_value = InstallResult(True, "remote removed")
+        finished = []
+        plugin._runComponentRemovals = run_removals
+        plugin._finishComponentRemovals = finished.extend
+        with mock.patch("globalPlugins.nvimNvdaAccess.LocalPluginInstaller", return_value=local_installer), \
+                mock.patch("globalPlugins.nvimNvdaAccess.SshUserInstaller", return_value=ssh_installer), \
+                mock.patch.object(plugin._diagnostics, "record") as record:
+            plugin._runComponentRemovals([(local, ""), (remote, "temporary password")])
+        local_installer.uninstall.assert_called_once_with()
+        ssh_installer.uninstall.assert_called_once_with(
+            "user@host", 2222, r"C:\keys\remote", "temporary password", plugin._askpassPath(),
+        )
+        self.assertEqual(["local-windows", "remote"], [target.identifier for target, _result in finished])
+        self.assertEqual(["componentRemoval", "componentRemoval"], [call.args[0] for call in record.call_args_list])
+        plugin.terminate()
+
+    def test_component_removal_summary_reports_every_target_without_changing_settings(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
+        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        profiles = parse_profiles([
+            {"id": "ok", "name": "Documentation", "host": "example", "user": "editor", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "bad", "name": "Production", "host": "prod", "user": "admin", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+        ])
+        results = [
+            (profiles[0], InstallResult(True, "removed")),
+            (profiles[1], InstallResult(False, "permission denied")),
+        ]
+        before = list(plugin._settings["connections"])
+
+        summary = plugin._componentRemovalResultSummary(results)
+        plugin._finishComponentRemovals(results)
+
+        self.assertIn("Successful: 1", summary)
+        self.assertIn("Documentation (editor@example)", summary)
+        self.assertIn("Failed: 1", summary)
+        self.assertIn("Production (admin@prod): permission denied", summary)
+        self.assertEqual("Neovim component removal results", self.messageDialogs[-1].title)
+        self.assertTrue(self.messageDialogs[-1].shown)
+        self.assertEqual(before, plugin._settings["connections"])
         plugin.terminate()
 
     def test_password_is_prompted_once_per_activation_and_never_persisted(self) -> None:

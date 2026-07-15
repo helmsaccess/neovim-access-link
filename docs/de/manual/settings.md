@@ -365,6 +365,42 @@ Nach einer Änderung am Neovim-Plugin oder an der Linux-Bridge muss Neovim auf
 dem betreffenden Ziel einmal neu gestartet werden. Eine reine Änderung am
 NVDA-seitigen Code erfordert keine erneute Linux-Installation.
 
+## Komponenten vollständig entfernen
+
+Der Menüpunkt unter `NVDA-Menü → Werkzeuge` lautet:
+
+```text
+Neovim Access Link: Remove components...
+```
+
+Neovim muss auf den gewählten Zielen vorher beendet werden. Das Add-on beendet
+oder verändert keine laufende Neovim- oder tmux-Sitzung. Der Dialog verwendet
+dieselben zugänglich beschrifteten Einzelcheckboxen und die initial fokussierte
+Checkbox „Select all connections“ wie die Installation. Anfangs ist kein Ziel
+ausgewählt. Passwortabfragen, Hintergrundverarbeitung, Fortschrittsmeldungen
+und die abschließende Ergebnisübersicht funktionieren ebenfalls entsprechend.
+
+Auf „This computer“ wird ausschließlich das installierte Plugin entfernt:
+
+```text
+%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda
+```
+
+Auf jedem ausgewählten Linux-Konto entfernt das Add-on ausschließlich seine
+eigenen Benutzerkomponenten und den temporären Installationsbereich:
+
+```text
+~/.local/bin/nvim-nvda-bridge
+~/.local/share/nvim/site/pack/nvim-nvda
+~/.local/share/nvim-nvda
+~/.cache/nvim-nvda-install
+```
+
+Bereits fehlende Komponenten gelten als erfolgreich entfernt. Gespeicherte
+Verbindungsprofile, Neovim-Konfiguration, SSH-Schlüssel und -Konfiguration,
+andere Plugins und Sitzungsdaten bleiben erhalten. Deshalb kann dieselbe
+Verbindung später direkt wieder für eine Installation ausgewählt werden.
+
 ## Mehrere Hosts, Konten und Neovim-Sitzungen
 
 Jedes gespeicherte Verbindungsprofil besitzt eigene Werte für Host, Port,

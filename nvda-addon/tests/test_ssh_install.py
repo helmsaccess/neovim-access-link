@@ -77,6 +77,54 @@ class SshUserInstallerTests(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertEqual("SSH package upload timed out", result.message)
 
+    def test_uninstall_removes_only_project_owned_remote_paths(self) -> None:
+        calls = []
+        def runner(command, **kwargs):
+            calls.append((command, kwargs))
+            return subprocess.CompletedProcess(command, 0, stdout=b"removed", stderr=b"")
+
+        result = SshUserInstaller(runner).uninstall(
+            "user@example-host", 2222, r"C:\keys\example",
+        )
+
+        self.assertTrue(result.success)
+        self.assertEqual(1, len(calls))
+        command, options = calls[0]
+        self.assertEqual("user@example-host", command[-2])
+        script = command[-1]
+        self.assertIn('"$p/bin/nvim-nvda-bridge"', script)
+        self.assertIn('"$p/share/nvim/site/pack/nvim-nvda"', script)
+        self.assertIn('"$p/share/nvim-nvda"', script)
+        self.assertIn('"$HOME/.cache/nvim-nvda-install"', script)
+        self.assertNotIn(".ssh", script)
+        self.assertNotIn("init.lua", script)
+        self.assertEqual(30, options["timeout"])
+
+    def test_uninstall_uses_password_askpass_without_exposing_secret(self) -> None:
+        calls = []
+        def runner(command, **kwargs):
+            calls.append((command, kwargs.get("env")))
+            return subprocess.CompletedProcess(command, 0, stdout=b"removed", stderr=b"")
+
+        result = SshUserInstaller(runner).uninstall(
+            "user@host", password="temporary secret", askpass_path=r"C:\addon\askpass.cmd",
+        )
+
+        self.assertTrue(result.success)
+        command, environment = calls[0]
+        self.assertNotIn("temporary secret", " ".join(command))
+        self.assertEqual("temporary secret", environment["NVIM_NVDA_SSH_PASSWORD"])
+        self.assertIn("BatchMode=no", command)
+
+    def test_uninstall_timeout_and_invalid_target_fail_normally(self) -> None:
+        def runner(command, **kwargs):
+            raise subprocess.TimeoutExpired(command, kwargs.get("timeout", 0))
+
+        result = SshUserInstaller(runner).uninstall("user@host")
+        self.assertFalse(result.success)
+        self.assertEqual("remote user removal timed out", result.message)
+        self.assertFalse(SshUserInstaller().uninstall("-invalid").success)
+
 
 if __name__ == "__main__":
     unittest.main()

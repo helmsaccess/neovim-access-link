@@ -4,6 +4,17 @@ Dieses Changelog beschreibt auslieferbare Beta-Stände. Die zahlreichen
 experimentellen Vor-Beta-Builds werden nicht einzeln fortgeführt; Git enthält
 deren vollständigen Verlauf.
 
+## 0.89.5 (Beta-Testbuild)
+
+- Unter `NVDA-Menü → Werkzeuge → Neovim Access Link: Remove components...`
+  können die eingebetteten Komponenten auf dem lokalen Windows-Rechner und
+  auf ausdrücklich ausgewählten gespeicherten Linux-Verbindungen vollständig
+  entfernt werden.
+- Der zugängliche Mehrfachauswahldialog, die Hintergrundverarbeitung und die
+  kompakte Ergebnisübersicht entsprechen dem Installationsablauf. Gespeicherte
+  Verbindungen, Neovim- und SSH-Konfiguration sowie fremde Plugins bleiben
+  erhalten.
+
 ## 0.89.4 (Beta-Testbuild)
 
 - Quick Guide, Handbuch und Entwicklerdokumentation liegen vollständig auf

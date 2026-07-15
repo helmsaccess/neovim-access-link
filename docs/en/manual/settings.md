@@ -48,6 +48,35 @@ Linux targets. “Select all connections” follows the individual checkboxes. T
 operation runs in the background and ends with spoken counts and a compact
 success/failure summary.
 
+## Completely removing components
+
+Close Neovim on every intended target, then open
+`NVDA menu → Tools → Neovim Access Link: Remove components...`. The add-on
+does not stop or alter running Neovim or tmux sessions. The initially clear,
+accessible checklist and its initially focused “Select all connections” box
+work like the installation dialog. Password prompts, background processing,
+spoken progress, and the final results summary also follow the same workflow.
+
+For “This computer”, removal is limited to:
+
+```text
+%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda
+```
+
+For each selected Linux account, removal is limited to:
+
+```text
+~/.local/bin/nvim-nvda-bridge
+~/.local/share/nvim/site/pack/nvim-nvda
+~/.local/share/nvim-nvda
+~/.cache/nvim-nvda-install
+```
+
+Already absent components count as successfully removed. Saved connection
+profiles, Neovim configuration, SSH keys and configuration, unrelated plugins,
+and session data remain intact. The same connection can therefore be selected
+for installation again later.
+
 Use `NVDA menu → Preferences → Input gestures... → Neovim Access Link` to
 assign activation, manual connection, disconnect, forget-binding, and
 diagnostic-report commands. F12 is the default session-claim key shared with
