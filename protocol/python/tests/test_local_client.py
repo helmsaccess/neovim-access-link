@@ -78,6 +78,17 @@ class LocalTcpClientTests(unittest.TestCase):
         self.assertTrue(client.send_control("requestFullState", {}))
         self.assertEqual([0, 1], [event["sequence"] for event in events])
 
+    def test_focus_context_control_correlates_cached_state(self) -> None:
+        client, source, events, _states, diagnostics = self.make_client()
+        source.on_event("fullState", {"mode": "insert", "bufferName": "example.txt"})
+        self.assertTrue(client.send_control("requestFocusContext", {"requestId": 7}))
+        self.assertEqual("focusContext", events[-1]["type"])
+        self.assertEqual(7, events[-1]["payload"]["_focusRequestId"])
+        self.assertEqual("example.txt", events[-1]["payload"]["bufferName"])
+        for value in (True, -1, 2_147_483_648, None):
+            self.assertFalse(client.send_control("requestFocusContext", {"requestId": value}))
+        self.assertEqual(4, sum(category == "controlRejected" for category, _ in diagnostics))
+
     def test_cursor_control_is_validated_before_rpc_notification(self) -> None:
         client, source, _events, _states, diagnostics = self.make_client()
         self.assertFalse(client.send_control("routeCursor", {"line": 1}))

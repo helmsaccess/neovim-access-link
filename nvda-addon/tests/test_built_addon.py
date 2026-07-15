@@ -1528,7 +1528,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertEqual(1, len(plugin._instanceManager.list()))
         self.assertEqual(instance.identifier, plugin._instanceManager.selected_for(identity).identifier)
-        self.assertIn(("requestFullState", {}), client.controls)
+        self.assertEqual("requestFocusContext", client.controls[-1][0])
         plugin.terminate()
 
     def test_same_directory_sessions_have_names_time_ordinals_and_status(self) -> None:
@@ -2215,7 +2215,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn(wrong_id, plugin._rememberedTerminalBindings)
         self.assertIn(active_id, plugin._rememberedTerminalBindings)
         self.assertTrue(plugin._gate.suppression_active)
-        self.assertIn(("requestFullState", {}), client.controls)
+        self.assertEqual("requestFocusContext", client.controls[-1][0])
         self.assertTrue(any("moved" in message.lower() for message in self.messages))
         plugin.terminate()
 
@@ -2239,6 +2239,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         first_obj = terminal((42, 2001, 4, 6))
         second_obj = terminal((42, 2001, 4, 53))
+        unbound_obj = terminal((42, 2001, 4, 99))
         plugin = GlobalPlugin()
         first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
         first_client, second_client = Client(), Client()
@@ -2256,14 +2257,64 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._event_gainFocus(second_obj, lambda: native_focus_announcements.append("second"))
         self.assertEqual(second_id, plugin._gate.bound_terminal)
         self.assertTrue(plugin._gate.suppression_active)
-        self.assertEqual([("requestFullState", {})], second_client.controls)
+        self.assertEqual("requestFocusContext", second_client.controls[0][0])
+        second_request = second_client.controls[0][1]["requestId"]
+        plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": second_request, "bufferName": "/work/second.lua",
+            "mode": "insert",
+        }})
+        self.assertIn("second.lua, insert mode, on Second", self.spoken)
         self.focus = first_obj
         plugin._event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
         self.assertEqual(first_id, plugin._gate.bound_terminal)
         self.assertTrue(plugin._gate.suppression_active)
-        self.assertEqual([("requestFullState", {})], first_client.controls)
-        self.assertEqual(["second", "first"], native_focus_announcements)
-        self.assertEqual(2, self.speechCancellations)
+        self.assertEqual("requestFocusContext", first_client.controls[0][0])
+        # The late reply from the no-longer-focused second tab is discarded.
+        plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": second_request, "bufferName": "/work/stale.lua",
+            "mode": "normal",
+        }})
+        self.assertNotIn("stale.lua, normal mode", self.spoken)
+        previous_controls = (list(first_client.controls), list(second_client.controls))
+        self.focus = unbound_obj
+        plugin._event_gainFocus(unbound_obj, lambda: native_focus_announcements.append("unbound"))
+        self.assertEqual(previous_controls, (first_client.controls, second_client.controls))
+        self.assertEqual(["second", "first", "unbound"], native_focus_announcements)
+        self.assertEqual(3, self.speechCancellations)
+        plugin.terminate()
+
+    def test_return_from_another_application_requests_context_for_same_wt_control(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("one", "1", "First", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._rememberedTerminalBindings.add(identity)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+
+        plugin._event_appModule_loseFocus()
+        self.assertIsNone(plugin._gate.focused)
+        plugin._event_gainFocus(self.focus, lambda: None)
+
+        self.assertEqual("requestFocusContext", client.controls[-1][0])
+        request_id = client.controls[-1][1]["requestId"]
+        plugin._handleManagedEvent(instance.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": request_id, "bufferName": "/work/returned.lua",
+            "mode": "normal",
+        }})
+        self.assertIn("returned.lua, normal mode, on First", self.spoken)
         plugin.terminate()
 
     def test_parallel_tabs_restore_independent_speech_and_typing_runtime(self) -> None:

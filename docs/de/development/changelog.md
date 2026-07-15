@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.89.0-dev.3 (unveröffentlichter Featurebranch-Testbuild)
+
+- Fokusansagen nennen zusätzlich den in den Einstellungen vergebenen
+  Verbindungsnamen, beispielsweise „on Tessa“. Lokale Windows-Sitzungen werden
+  als „on local“ bezeichnet; technische Hostnamen werden nicht zusätzlich
+  offengelegt.
+
+## 0.89.0-dev.2 (unveröffentlichter Featurebranch-Testbuild)
+
+- Beim Rückwechsel aus einer anderen Anwendung in dasselbe registrierte
+  WT-Control wird die Fokus-Kontextabfrage nun tatsächlich ausgelöst. Der
+  vorherige Frühabbruch hielt die erhaltene authentifizierte Bindung
+  fälschlich für ein Fokusereignis innerhalb desselben Controls.
+
+## 0.89.0-dev.1 (unveröffentlichter Featurebranch-Testbuild)
+
+- Ein erneut fokussiertes, authentifiziertes und registriertes WT-Control kann
+  Datei beziehungsweise Spezialbuffer, Status und Modus kompakt ausgeben.
+- Die Abfrage ist ereignisgetrieben und korreliert. Ungebundene Controls sowie
+  verspätete oder nicht mehr passende Antworten bleiben wirkungslos; Polling
+  und Terminal-Screen-Scraping werden nicht verwendet.
+- Der praktische NVDA-/WT-Test steht aus. Dieser Stand ist nicht stabil und
+  bleibt zwischen Alpha und Beta.
+
 Dieses Changelog beschreibt auslieferbare Beta-Stände. Die zahlreichen
 experimentellen Vor-Beta-Builds werden nicht einzeln fortgeführt; Git enthält
 deren vollständigen Verlauf.

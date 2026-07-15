@@ -315,6 +315,29 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual(directory.text, directory.braille_message)
         self.assertEqual("current, symbolic link, collapsed", link.text)
 
+    def test_focus_context_announces_file_mode_and_special_buffers_compactly(self) -> None:
+        planner = SpeechPlanner()
+        file_action = planner.plan(event(
+            "focusContext", bufferName="C:\\work\\example.lua", mode="insert",
+            modified=True, _connectionLabel="Tessa",
+        ))[0]
+        terminal_action = planner.plan(event(
+            "focusContext", bufferName="term://sensitive-shell", buftype="terminal",
+            mode="terminal",
+        ))[0]
+        manager_action = planner.plan(event(
+            "focusContext", mode="normal", fileManager={
+                "name": "netrw", "root": "/work", "entry": {
+                    "name": "src", "type": "directory", "expanded": True,
+                },
+            },
+        ))[0]
+        self.assertEqual("example.lua, modified, insert mode, on Tessa", file_action.text)
+        self.assertEqual("terminal, terminal mode", terminal_action.text)
+        self.assertNotIn("sensitive", terminal_action.text)
+        self.assertEqual("netrw, src, directory, expanded, normal mode", manager_action.text)
+        self.assertEqual(manager_action.text, manager_action.braille_message)
+
     def test_notify_message_priority_title_and_braille(self) -> None:
         planner = SpeechPlanner()
         normal = planner.plan({

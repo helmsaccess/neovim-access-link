@@ -15,6 +15,7 @@ class ConnectionInstance:
     session_id: str
     label: str
     transport_kind: str = REMOTE_SSH
+    context_label: str = ""
 
     @property
     def profile_id(self) -> str:
@@ -31,13 +32,16 @@ class ConnectionInstanceManager:
         self._terminal_bindings: dict[Any, str] = {}
 
     def add(self, profile_id: str, session_id: str, label: str, client: Any,
-            transport_kind: str = REMOTE_SSH) -> ConnectionInstance:
+            transport_kind: str = REMOTE_SSH, context_label: str = "") -> ConnectionInstance:
         if transport_kind != REMOTE_SSH:
             raise ValueError("non-SSH instances require add_target")
-        return self.add_target(remote_ssh_target(profile_id, label), session_id, label, client)
+        return self.add_target(
+            remote_ssh_target(profile_id, label), session_id, label, client,
+            context_label=context_label,
+        )
 
     def add_target(self, target: ConnectionTarget, session_id: str, label: str,
-                   client: Any) -> ConnectionInstance:
+                   client: Any, context_label: str = "") -> ConnectionInstance:
         if not isinstance(target, ConnectionTarget):
             raise ValueError("typed connection target is required")
         if not session_id or not label:
@@ -46,6 +50,7 @@ class ConnectionInstanceManager:
         self._next += 1
         instance = ConnectionInstance(
             identifier, target.identifier, session_id, label, target.kind,
+            context_label or label,
         )
         self._instances[identifier] = (instance, client)
         try:

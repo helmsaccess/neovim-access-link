@@ -3,6 +3,21 @@
 Stand: 2026-07-15, Beta-Vorabversion 0.89.35; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Auf dem Entwicklungsbranch wird beim erneuten Fokus eines authentifizierten,
+registrierten WT-Controls ein korrelierter strukturierter Kontext aus dem
+Neovim-Zustands-Cache angefordert. Datei beziehungsweise Spezialbuffer,
+Änderungsstatus und Modus werden kompakt für Sprache und Braille geplant.
+Ungebundene Controls sowie verspätete oder nicht mehr passende Antworten
+bleiben wirkungslos. Der praktische NVDA-/WT-Test dieses Entwicklungsstands
+steht noch aus; er ist daher nicht als stabil bewertet.
+
+Der erste Praxistest mit `0.89.0-dev.1` zeigte beim Wechsel Explorer → dasselbe
+WT-Control keine Dateinamenansage. Die Diagnose enthielt Fokusverlust,
+erneuten Fokus und Unterdrückung, aber keine Fokus-Kontextanfrage. Ursache war
+ein Frühabbruch anhand der absichtlich erhaltenen authentifizierten Bindung.
+`0.89.0-dev.2` unterscheidet nun echte Fokuswiederkehr von internen
+Fokusereignissen; die erneute praktische Prüfung steht aus.
+
 ## Gesamtbewertung
 
 Das Add-on wurde unter Windows 11 25H2 mit NVDA 2026.1.1,

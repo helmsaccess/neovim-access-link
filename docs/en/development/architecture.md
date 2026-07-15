@@ -84,6 +84,19 @@ The session gate suppresses native terminal output only when activation,
 authenticated full state, a Neovim context, focus, and exact binding all hold.
 Any failure clears the gate and fails open.
 
+## Focus context for registered terminal controls
+
+When an already authenticated remembered Windows Terminal control regains
+focus, the add-on requests its current structured context once. The local
+client or SSH bridge answers from the canonical state cache maintained by
+Neovim events. A request ID binds the reply to that focus event. Current focus
+identity, instance, exact binding, and authentication are checked again before
+output; focus loss invalidates pending requests. Unbound controls send no
+request and receive no add-on output. This path is event-driven and explicitly
+uses neither polling nor terminal screen scraping.
+Output adds the user-configured connection name from instance metadata;
+technical SSH target addresses are not inserted into semantic editor state.
+
 ## Open Windows Terminal isolation audit
 
 The strict session gate limits native-output suppression, but it does not yet

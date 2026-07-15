@@ -253,6 +253,14 @@ in dieser ersten Fassung ausdrücklich außerhalb des Testumfangs.
 
 ### Verpflichtende Isolationsprüfungen für Windows Terminal
 
+Für die Fokus-Kontextausgabe zusätzlich einen gebundenen Neovim-Tab, einen
+ungebundenen Shell-Tab und nach Möglichkeit zwei Splits abwechselnd fokussieren.
+Erwartet wird genau eine kompakte Datei-/Spezialbuffer- und Modusausgabe nur
+beim gebundenen Control. Schnelles Weg- und Zurückwechseln darf keine veraltete
+Datei nennen. Nach Verbindungsabbruch muss native WT-Ausgabe sofort normal
+bleiben. Request-ID, Ergebnis und tatsächliche Ausgabe im redigierten
+Testprotokoll festhalten.
+
 Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Steuerelementen
 ist ein offener Prüfbereich und noch keine belegte Garantie. Eine spätere
 Abschottung braucht soweit möglich automatisierte Regressionstests sowie

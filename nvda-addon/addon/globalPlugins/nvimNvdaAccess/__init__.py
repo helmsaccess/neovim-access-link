@@ -291,6 +291,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._activeInstanceId = None
         self._instanceRuntimeStates = {}
         self._pendingInstanceFullStates = {}
+        self._focusContextRequestId = 0
+        self._pendingFocusContexts = {}
         self._activityRebindOffers = set()
         self._pendingClaimTargets = {}
         self._claimInventoryGeneration = 0
@@ -1178,7 +1180,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             label = _("Local Neovim, {session}").format(
                 session=session_label or _("Neovim session"),
             )
-            instance = self._instanceManager.add_target(target, session.identifier, label, client)
+            instance = self._instanceManager.add_target(
+                target, session.identifier, label, client, context_label=_("local"),
+            )
             self._instanceManager.bind(identity, instance.identifier)
             self._ensureTerminalLifecycleSweep()
             self._switchInstanceRuntime(instance.identifier)
@@ -1522,7 +1526,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             instance = self._instanceManager.add(
                 profile.identifier, session_id,
                 f"{profile.name}, {session_label}" if session_label else profile.name,
-                client,
+                client, context_label=profile.name,
             )
             self._instanceManager.bind(identity, instance.identifier)
             self._ensureTerminalLifecycleSweep()
@@ -1672,13 +1676,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._lastConnectionState = runtime["lastConnectionState"]
             self._activeInstanceId = None
 
-    def _activateRememberedBinding(self, identity, instance_id):
+    def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
         try:
             client = self._instanceManager.client_for(instance_id)
             if (
                 self._gate.bound_terminal == identity and self._client is client
                 and self._gate.authenticated and self._gate.nvim_active
                 and self._activeInstanceId == instance_id
+                and not focus_regained
             ):
                 return
             self._switchInstanceRuntime(instance_id)
@@ -1723,7 +1728,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             return
         try:
-            self._instanceManager.client_for(instance_id).send_control("requestFullState", {})
+            client = self._instanceManager.client_for(instance_id)
+            if instance_id in self._authenticatedInstances:
+                self._focusContextRequestId = (self._focusContextRequestId + 1) % 2_147_483_648
+                request_id = self._focusContextRequestId
+                self._pendingFocusContexts[instance_id] = (request_id, identity)
+                sent = client.send_control("requestFocusContext", {"requestId": request_id})
+                if not sent:
+                    self._pendingFocusContexts.pop(instance_id, None)
+                self._diagnostics.record(
+                    "temporaryTerminalFocusContextRequested", instanceId=instance_id,
+                    requestId=request_id, sent=sent,
+                )
+                return
+            client.send_control("requestFullState", {})
             self._diagnostics.record(
                 "temporaryTerminalBindingStateRequested", instanceId=instance_id,
             )
@@ -1736,6 +1754,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _handleManagedEvent(self, instance_id, event):
         identity = self._gate.focused
         selected = self._instanceManager.selected_for(identity) if identity else None
+        if event.get("type") == "focusContext":
+            payload = event.get("payload")
+            pending = self._pendingFocusContexts.get(instance_id)
+            request_id = payload.get("_focusRequestId") if isinstance(payload, dict) else None
+            if (
+                pending is None or pending != (request_id, identity)
+                or selected is None or selected.identifier != instance_id
+                or instance_id not in self._authenticatedInstances
+            ):
+                self._diagnostics.record(
+                    "focusContextIgnored", instanceId=instance_id, reason="staleOrUnbound",
+                )
+                return
+            self._pendingFocusContexts.pop(instance_id, None)
         if selected is None or selected.identifier != instance_id:
             if event.get("type") == "fullState":
                 # A modal profile/session chooser can still own NVDA focus when
@@ -1776,6 +1808,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if event.get("type") == "fullState":
             self._authenticatedInstances.add(instance_id)
         if isinstance(payload, dict):
+            if event.get("type") == "focusContext":
+                payload = dict(payload)
+                payload["_connectionLabel"] = selected.context_label
+                event = {**event, "payload": payload}
             self._instanceTerminalPassthrough[instance_id] = (
                 payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
             )
@@ -1797,6 +1833,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._authenticatedInstances.discard(instance_id)
             self._instanceTerminalPassthrough.pop(instance_id, None)
             self._pendingInstanceFullStates.pop(instance_id, None)
+            self._pendingFocusContexts.pop(instance_id, None)
         identity = self._gate.focused
         selected = self._instanceManager.selected_for(identity) if identity else None
         if selected is not None and selected.identifier == instance_id:
@@ -1852,6 +1889,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         previous = self._gate.focused
         identity = self._identity(obj)
         if previous != identity:
+            self._pendingFocusContexts.clear()
             self._diagnostics.record(
                 "terminalFocusIdentityChanged",
                 previous=self._identityFields(previous),
@@ -1873,7 +1911,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if instance is None:
                 self._rememberedTerminalBindings.discard(identity)
             else:
-                self._activateRememberedBinding(identity, instance.identifier)
+                self._activateRememberedBinding(
+                    identity, instance.identifier, focus_regained=previous != identity,
+                )
         suppress_focus_speech = self._shouldSuppress(obj) or pending_full_state is not None
         nextHandler()
         if suppress_focus_speech:
@@ -2001,6 +2041,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         previous = self._gate.focused
         self._gate.focused = None
+        self._pendingFocusContexts.clear()
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._resetTypedEcho()

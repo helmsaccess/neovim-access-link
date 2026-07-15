@@ -42,6 +42,13 @@ without touching existing user Neovim or tmux sessions.
 
 ## Required Windows Terminal isolation tests
 
+For focus-context output, alternate focus between a bound Neovim control, an
+unbound shell-only tab, and, where possible, two split panes. Expect exactly
+one compact file/special-buffer and mode announcement only for the bound
+control. Rapid switching must never announce stale context. After disconnect,
+native WT output must remain immediately available. Record the request ID,
+result, and actual output in the redacted test report.
+
 Complete non-interference with unbound Windows Terminal controls is an open
 test area, not an established guarantee. Future hardening must add automated
 coverage where possible and practical tests for all of these negative cases:
