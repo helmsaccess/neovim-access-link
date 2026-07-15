@@ -221,3 +221,10 @@ Reproduzierbare Befehle stehen in [testing.md](testing.md).
 7. Auch außerhalb von Braille wurden noch nicht alle Add-on-Funktionen
    ausführlich praktisch geprüft. Lokalisierung, Releaseprüfung und ein
    erschöpfender stabiler Abnahmelauf stehen noch aus.
+8. Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Panes ist
+   noch nicht nachgewiesen. Gemerkte Bindungen, der AppModule-weite
+   F12-Beobachter, aktivitätsbestätigte Wiederbindungsdialoge und das
+   Braille-Overlay müssen weiter auf Seiteneffekte untersucht und
+   gegebenenfalls enger pro Terminal-Steuerelement abgeschottet werden.
+   Negative Mehrfenster-, Mehrtab- und Split-Pane-Tests sind verpflichtende
+   Folgearbeit; Unsicherheit muss fail-open bleiben.

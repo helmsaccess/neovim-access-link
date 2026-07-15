@@ -251,6 +251,34 @@ Dieser Pfad ist vor dem Merge praktisch zu prüfen:
 Eigene `NVIM_APPNAME`-Datenverzeichnisse, portable Layouts und GUI-Neovim sind
 in dieser ersten Fassung ausdrücklich außerhalb des Testumfangs.
 
+### Verpflichtende Isolationsprüfungen für Windows Terminal
+
+Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Steuerelementen
+ist ein offener Prüfbereich und noch keine belegte Garantie. Eine spätere
+Abschottung braucht soweit möglich automatisierte Regressionstests sowie
+praktische Negativtests für alle folgenden Fälle:
+
+1. Ungebundene PowerShell-, Eingabeaufforderungs- und WSL-Panes behalten bei
+   aktivierter Add-on-Unterstützung ihr natives Fokus-, Text-, Eingabe-,
+   Sprach-, LiveText- und Brailleverhalten.
+2. F12 in einer ungebundenen Shell startet weder Suche noch Ansage, Bindung oder
+   Dialog, sofern nicht exakt dieses Terminal-Steuerelement zuvor ausdrücklich
+   in einen Zuordnungszustand versetzt wurde.
+3. Ereignisse einer anderen verbundenen Neovim-Instanz bieten in einer
+   unabhängigen Shell-Pane keine Wiederbindung an und führen keine aus.
+4. Eine gemerkte Identität darf native Ausgabe nicht vor frischem
+   strukturiertem Zustand unterdrücken. Das gilt insbesondere, wenn in der Pane
+   inzwischen eine Shell statt Neovim sichtbar ist, der RPC-Kanal aber weiterlebt.
+5. Getrennte Windows-Terminal-Prozesse, Fenster, Tabs und Split-Panes dürfen
+   weder quergebunden werden noch Gestenbeobachter mehrfach registrieren.
+6. Das Add-on-Overlay darf natives Braille- oder LiveText-Fallback in
+   ungebundenen Steuerelementen nicht verändern.
+
+Die Tests müssen fokussierte UIA-Klasse und Runtime-Identität festhalten, damit
+Pane- und Tabverhalten nicht verwechselt werden. Jedes unklare Ergebnis gilt
+als fail-open-Defekt und bleibt dokumentiert, bis es praktisch reproduziert
+und korrigiert ist.
+
 Praktischer Regressionstest am 14. Juli 2026: Build 0.89.3 wurde unter NVDA
 2026.1.1 installiert, lokales CLI-Neovim in Windows Terminal neu gestartet und
 nach der Bereitschaftsmeldung per F12 sowie über die manuelle lokale Auswahl

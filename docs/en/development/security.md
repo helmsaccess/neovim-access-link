@@ -27,3 +27,11 @@ against current state. Diagnostic editor text and secrets are redacted.
 
 Terminal suppression requires an authenticated, active, focused, exact binding
 and always fails open on error, timeout, disconnect, or deactivation.
+
+That gate does not yet constitute a complete non-interference proof for every
+unbound Windows Terminal pane. Remembered-binding activation, the application-
+wide F12 observer, activity-confirmed rebind prompts, and overlay selection are
+under an explicit continuing isolation audit. A `TerminalIdentity` proves the
+focused UIA terminal control, not by itself that Neovim is still the foreground
+application inside that control. Until fresh structured evidence and negative
+pane tests close this gap, uncertain state must not gain suppression authority.

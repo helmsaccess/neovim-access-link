@@ -91,7 +91,11 @@ contains bugs. Physical-display testing and correction are a priority.
 Known limits include Windows Terminal as the only approved front end, no GUI
 Neovim, no portable or automatic `NVIM_APPNAME` layout, an uninvestigated older
 Rocky Linux 9/Neovim failure, limited long-duration and interruption testing,
-and no broad Braille hardware matrix.
+and no broad Braille hardware matrix. In addition, complete non-interference
+with unbound Windows Terminal panes is not yet proven. Remembered binding,
+application-wide F12 observation, activity-confirmed rebind prompts, and the
+Braille overlay require further isolation analysis and negative multi-pane
+tests; uncertain state must remain fail-open.
 
 The reproducible build produces separate German and English Quick Guide,
 manual, and developer HTML files.

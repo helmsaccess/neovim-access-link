@@ -240,6 +240,44 @@ Aktivierung, authentifizierter vollständiger Zustand, Neovim-Kontext und
 Terminalbindung gleichzeitig gültig sind. Disconnect, Fehler, Terminalmodus
 mit direkter Eingabe und Deaktivierung stellen normale NVDA-Ausgabe wieder her.
 
+## Offene Isolationsprüfung für Windows Terminal
+
+Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe, beweist
+aber noch nicht, dass ein ungebundenes Windows-Terminal-Steuerelement bei
+aktivem Add-on vollständig unbeeinflusst bleibt. Windows Terminal unterscheidet
+Fenster, Tabs und Panes. Die aktuelle `TerminalIdentity` bezeichnet ein
+UI-Automation-`TermControl` über Prozess, Fensterhandle und Runtime-ID. Bis dies
+für alle unterstützten Windows-Terminal-Layouts praktisch belegt ist, muss die
+Entwicklerdokumentation von Terminal-Steuerelement oder Pane sprechen und darf
+nicht pauschal einen Tab annehmen.
+
+Folgende Pfade bleiben ausdrücklich weiter zu untersuchen und gegebenenfalls
+besser abzuschotten:
+
+- Der F12-Beobachter sieht bei aktivierter Unterstützung Gesten in jedem
+  fokussierten geeigneten Windows-Terminal-Steuerelement und kann Suche oder
+  Rückmeldungen auslösen, auch wenn dieses Steuerelement nicht gebunden ist.
+- Ein Ereignis einer anderen verbundenen Neovim-Instanz kann bei Fokus in
+  einem ungebundenen Terminal-Steuerelement eine aktivitätsbestätigte
+  Wiederbindung anbieten.
+- Der Fokus auf eine gemerkte Identität aktiviert Unterdrückung sofort aus der
+  bestehenden authentifizierten Verbindung, noch bevor der neu angeforderte
+  `fullState` eintrifft. Dieselbe Pane kann inzwischen eine Shell zeigen,
+  während der entfernte Neovim-RPC-Kanal weiterlebt.
+- Die Braille-Overlayklasse wird für jedes geeignete
+  Windows-Terminal-Steuerelement erwogen und ist ohne gebundenen strukturierten
+  Zustand auf korrektes Fallback angewiesen.
+
+Diese Pfade belegen nicht, dass normale Shellausgabe derzeit in jedem Fall
+verloren geht. Sie bedeuten jedoch, dass vollständige Wirkungslosigkeit in
+ungebundenen Panes noch nicht nachgewiesen ist. Weitere Arbeit soll Aktivierung
+pro Steuerelement explizit begrenzen, vor Unterdrückung oder Wiederbindung
+frische strukturierte Neovim-Evidenz verlangen, F12 und Dialoge außerhalb
+dieses Bereichs wirkungslos halten und native Sprache, Braille und Eingabe mit
+negativen Mehrfenster-, Mehrtab- und Split-Pane-Tests belegen. Terminaltext oder
+Titel dürfen diese Evidenzlücke nicht durch Screen Scraping schließen;
+Unsicherheit muss fail-open bleiben.
+
 ## Sicherheitsgrenzen
 
 - Das Anwendungsprotokoll erlaubt keinen allgemeinen Neovim-RPC-Zugriff.

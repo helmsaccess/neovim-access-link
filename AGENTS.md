@@ -11,6 +11,8 @@ and current user instructions take precedence over this file.
   2026.1.x on Windows and Neovim on Rocky Linux 10.
 - Obtain editor state from Neovim APIs and semantic events. Do not substitute
   terminal screen scraping for structured data that Neovim can provide.
+- Use polling between the NVDA add-on and Neovim plugin only as a fallback when
+  no reliable event structure or event-driven solution exists.
 - Keep transport, protocol, state modeling, speech/Braille planning, and
   focus/gating logic separated.
 - Never block NVDA's main thread with SSH, DNS, network I/O, reconnects,

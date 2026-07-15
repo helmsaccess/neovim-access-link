@@ -122,3 +122,13 @@ Terminaltext, Prompt, Hostname und Benutzername werden nicht zur Erkennung
 ausgelesen. Die Zuordnung wird nicht in der Konfiguration gespeichert und nach
 NVDA-Ende, Verbindungsende oder ungültiger Identität verworfen. Ohne vorherige
 Zustimmung erfolgt keine automatische Wiederbindung zwischen Tabs.
+
+Das Session-Gate ist noch kein vollständiger Nachweis der Wirkungslosigkeit in
+jedem ungebundenen Windows-Terminal-Pane. Aktivierung gemerkter Bindungen, der
+AppModule-weite F12-Beobachter, aktivitätsbestätigte Wiederbindungsdialoge und
+die Overlayauswahl stehen deshalb unter einer ausdrücklich fortzuführenden
+Isolationsprüfung. Eine `TerminalIdentity` belegt das fokussierte
+UIA-Terminal-Steuerelement, aber allein noch nicht, dass innerhalb dieses
+Steuerelements weiterhin Neovim im Vordergrund steht. Bis frische strukturierte
+Evidenz und negative Pane-Tests diese Lücke schließen, darf unsicherer Zustand
+keine Berechtigung zur Unterdrückung erhalten.
