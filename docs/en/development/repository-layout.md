@@ -11,7 +11,8 @@
 | `tools/` | reproducible builds and checks |
 | `docs/` | maintained German and English documentation |
 
-`buildVars.py` is the single maintained source for product identity and
+`buildVars.py` is the single maintained source for product identity, numeric
+Store version, branch-local development build number, and
 version metadata. Generated packages go to `dist/`, generated documentation to
 `build/`, and private temporary material to ignored `tmp/`.
 
