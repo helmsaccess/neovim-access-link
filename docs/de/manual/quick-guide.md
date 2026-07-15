@@ -81,6 +81,12 @@ laden während der Installation nichts aus dem Internet. Unter Linux erfolgt
 die Installation ohne root-Rechte in das Home-Verzeichnis des jeweiligen
 Benutzers.
 
+Zum vollständigen Entfernen zuerst Neovim auf den gewünschten Zielen beenden
+und „NVDA-Menü → Werkzeuge → Neovim Access Link: Remove components...“ öffnen.
+Ziele wie bei der Installation ausdrücklich markieren und die Ergebnisübersicht
+prüfen. Verbindungsprofile, Neovim- und SSH-Konfiguration sowie andere Plugins
+bleiben erhalten.
+
 ## 5. Linux-Verbindung anlegen
 
 Dieser Schritt entfällt für lokales Windows-Neovim.

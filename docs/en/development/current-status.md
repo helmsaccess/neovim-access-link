@@ -1,13 +1,19 @@
 # Current status
 
-Status: 2026-07-14, beta test build 0.89.4.
+Status: 2026-07-15, beta test build 0.89.5.
 
 Protocol v2, remote SSH stdio, local Windows loopback RPC, rootless component
-installation, F12 claims, multiple runtime instances, and explicit Windows
+installation and explicit per-target removal, F12 claims, multiple runtime instances, and explicit Windows
 Terminal bindings are implemented. Local and SSH sessions can run in parallel
 across tabs, windows, accounts, and tmux. The global service contains no global
 input or focus hooks; Windows-specific behavior is confined to the Windows
 Terminal AppModule and failures restore native terminal output.
+
+Component removal runs outside NVDA's main thread for explicitly checked local
+or SSH targets. It preserves saved connection profiles, user configuration,
+SSH files, unrelated plugins, and running-session data, and reports every
+result in a non-blocking summary.
+Complete component removal was also confirmed with the installed test build.
 
 The main connection paths were tested with the reference environment, but the
 overall maturity remains alpha to beta. Not every speech, menu, editor-mode,

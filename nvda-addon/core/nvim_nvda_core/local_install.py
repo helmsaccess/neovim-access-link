@@ -62,6 +62,33 @@ class LocalPluginInstaller:
             if destination.exists():
                 shutil.rmtree(backup, ignore_errors=True)
 
+    def uninstall(self, destination: pathlib.Path | None = None) -> InstallResult:
+        try:
+            destination = destination or default_local_plugin_directory()
+        except ValueError as error:
+            return InstallResult(False, "local Neovim data directory is unavailable", str(error))
+        destination = pathlib.Path(destination)
+        if destination.exists() and not destination.is_dir():
+            return InstallResult(False, "local Neovim plugin target is not a directory")
+        try:
+            if destination.exists():
+                shutil.rmtree(destination)
+            # The installer owns these two package directories, but remove them
+            # only while empty so unrelated files are never lost.
+            for directory in (destination.parent, destination.parent.parent):
+                try:
+                    directory.rmdir()
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    break
+            return InstallResult(
+                True, "Local Neovim plugin removed",
+                f"removed Neovim plugin: {destination}",
+            )
+        except OSError as error:
+            return InstallResult(False, "local Neovim plugin removal failed", str(error))
+
     @staticmethod
     def _valid_source(source: pathlib.Path) -> bool:
         try:

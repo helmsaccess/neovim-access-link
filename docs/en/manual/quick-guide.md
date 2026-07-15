@@ -41,6 +41,12 @@ Close running Neovim instances first, then:
 The add-on contains the plugin, bridge, and configuration. Linux installation
 uses `~/.local`, requires no root privileges, and downloads nothing at runtime.
 
+To remove the components completely, first close Neovim on the intended
+targets and open `NVDA menu → Tools → Neovim Access Link: Remove
+components...`. Explicitly select targets as for installation and review the
+summary. Saved connections, Neovim and SSH configuration, and other plugins
+remain intact.
+
 ## Add a Linux connection
 
 This step is not needed for local Windows Neovim.

@@ -2689,13 +2689,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             import wx
             tray = gui.mainFrame.sysTrayIcon
             menu = tray.toolsMenu
-            handler = self._onInstallServer
-            item = menu.Append(
+            install_handler = self._onInstallServer
+            install_item = menu.Append(
                 wx.ID_ANY,
                 _PRODUCT_NAME + _(': Install or update components...'),
             )
-            tray.Bind(wx.EVT_MENU, handler, item)
-            self._menuItems.append((tray, menu, item, handler, wx))
+            tray.Bind(wx.EVT_MENU, install_handler, install_item)
+            self._menuItems.append((tray, menu, install_item, install_handler, wx))
+            remove_handler = self._onRemoveComponents
+            remove_item = menu.Append(
+                wx.ID_ANY,
+                _PRODUCT_NAME + _(': Remove components...'),
+            )
+            tray.Bind(wx.EVT_MENU, remove_handler, remove_item)
+            self._menuItems.append((tray, menu, remove_item, remove_handler, wx))
         except Exception as error:
             self._diagnostics.record("menuUnavailable", errorType=type(error).__name__, error=str(error))
 
@@ -2730,7 +2737,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return target.name, _("this computer")
         return target.name, target.ssh_target
 
-    def _chooseInstallProfiles(self):
+    def _chooseComponentTargets(self, remove=False):
         import gui
         import wx
         from gui.nvdaControls import CustomCheckListBox
@@ -2741,11 +2748,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("The saved Linux connections are invalid; correct them in settings first"))
             return None
         targets = [local_windows_target(_("This computer - local Neovim")), *profiles]
-        dialog = wx.Dialog(gui.mainFrame, title=_("Install or update Neovim components"))
+        dialog = wx.Dialog(
+            gui.mainFrame,
+            title=_("Remove Neovim components") if remove else _("Install or update Neovim components"),
+        )
         outer_sizer = wx.BoxSizer(wx.VERTICAL)
         instructions = wx.StaticText(
             dialog,
             label=_(
+                "Close Neovim on the selected targets, then choose where to remove the components. "
+                "Other Neovim plugins and configuration are preserved."
+            ) if remove else _(
                 "Select one or more targets. Administrator rights are not required."
             ),
         )
@@ -2753,12 +2766,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         outer_sizer.Add(instructions, 0, wx.ALL | wx.EXPAND, 12)
         select_all = wx.CheckBox(dialog, label=_("Select all connections"))
         outer_sizer.Add(select_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
-        list_label = wx.StaticText(dialog, label=_("Connections to update:"))
+        list_label = wx.StaticText(
+            dialog, label=_("Connections to remove components from:") if remove else _("Connections to update:"),
+        )
         outer_sizer.Add(list_label, 0, wx.LEFT | wx.RIGHT, 12)
         connection_list = CustomCheckListBox(
             dialog, choices=[self._installTargetLabel(target) for target in targets],
         )
-        connection_list.SetName(_("Connections to update"))
+        connection_list.SetName(
+            _("Connections to remove components from") if remove else _("Connections to update")
+        )
         outer_sizer.Add(connection_list, 1, wx.ALL | wx.EXPAND, 12)
 
         def on_select_all(_event):
@@ -2782,13 +2799,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 if selected:
                     return selected
                 wx.MessageBox(
-                    _("Select at least one target to update."),
+                    _("Select at least one target to remove components from.") if remove else _(
+                        "Select at least one target to update."
+                    ),
                     _("No target selected"), wx.OK | wx.ICON_WARNING, dialog,
                 )
                 select_all.SetFocus()
             return None
         finally:
             dialog.Destroy()
+
+    def _chooseInstallProfiles(self):
+        return self._chooseComponentTargets(remove=False)
+
+    def _chooseUninstallProfiles(self):
+        return self._chooseComponentTargets(remove=True)
 
     def _onInstallServer(self, _event):
         targets = self._chooseInstallProfiles()
@@ -2895,5 +2920,107 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         message = self._installResultSummary(results)
         dialog = gui.MessageDialog(
             gui.mainFrame, message, _("Neovim component update results"),
+        )
+        dialog.Show()
+
+    def _onRemoveComponents(self, _event):
+        targets = self._chooseUninstallProfiles()
+        if targets is None:
+            return
+        jobs = []
+        immediate_results = []
+        for profile in targets:
+            if isinstance(profile, ConnectionTarget) and profile.kind == LOCAL_WINDOWS_TCP:
+                jobs.append((profile, ""))
+                continue
+            password = self._passwordForProfile(profile)
+            if profile.authentication == "password" and password is None:
+                immediate_results.append((profile, InstallResult(False, _("SSH password entry cancelled"))))
+                continue
+            jobs.append((profile, password or ""))
+        if not jobs:
+            self._finishComponentRemovals(immediate_results)
+            return
+        ui.message(
+            _("Removing Neovim components from {count} targets").format(count=len(jobs))
+        )
+        threading.Thread(
+            target=self._runComponentRemovals,
+            args=(jobs, immediate_results),
+            daemon=True,
+        ).start()
+
+    def _runComponentRemovals(self, jobs, initial_results=None):
+        results = list(initial_results or [])
+        installer = SshUserInstaller()
+        local_installer = LocalPluginInstaller()
+        total = len(jobs) + len(results)
+        completed = len(results)
+        for profile, password in jobs:
+            try:
+                if isinstance(profile, ConnectionTarget) and profile.kind == LOCAL_WINDOWS_TCP:
+                    result = local_installer.uninstall()
+                else:
+                    result = installer.uninstall(
+                        profile.ssh_target, profile.port, profile.identity_file,
+                        password, self._askpassPath(),
+                    )
+            except Exception as error:
+                result = InstallResult(
+                    False, _("Unexpected removal error"),
+                    "{kind}: {message}".format(kind=type(error).__name__, message=error),
+                )
+            results.append((profile, result))
+            self._diagnostics.record(
+                "componentRemoval", targetId=profile.identifier,
+                targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),
+                success=result.success, message=result.message, diagnostics=result.diagnostics,
+            )
+            completed += 1
+            queueHandler.queueFunction(
+                queueHandler.eventQueue, self._reportComponentRemovalProgress,
+                profile, result, completed, total,
+            )
+        queueHandler.queueFunction(queueHandler.eventQueue, self._finishComponentRemovals, results)
+
+    def _reportComponentRemovalProgress(self, profile, result, completed, total):
+        name = self._installTargetSummary(profile)[0]
+        if result.success:
+            ui.message(_("{name} removed, {completed} of {total}").format(
+                name=name, completed=completed, total=total,
+            ))
+        else:
+            ui.message(_("{name} failed, {completed} of {total}").format(
+                name=name, completed=completed, total=total,
+            ))
+
+    @staticmethod
+    def _componentRemovalResultSummary(results):
+        successful = [(profile, result) for profile, result in results if result.success]
+        failed = [(profile, result) for profile, result in results if not result.success]
+        lines = [_('Neovim component removal completed.')]
+        lines.extend(("", _("Successful: {count}").format(count=len(successful))))
+        lines.extend(_("- {name} ({target})").format(
+            name=GlobalPlugin._installTargetSummary(profile)[0],
+            target=GlobalPlugin._installTargetSummary(profile)[1],
+        ) for profile, _result in successful)
+        lines.extend(("", _("Failed: {count}").format(count=len(failed))))
+        lines.extend(_("- {name} ({target}): {reason}").format(
+            name=GlobalPlugin._installTargetSummary(profile)[0],
+            target=GlobalPlugin._installTargetSummary(profile)[1], reason=result.message,
+        ) for profile, result in failed)
+        lines.extend(("", _("Saved connection settings were preserved.")))
+        return "\n".join(lines)
+
+    def _finishComponentRemovals(self, results):
+        import gui
+        successful = len([result for _profile, result in results if result.success])
+        failed = len(results) - successful
+        ui.message(_(
+            "Neovim component removal completed: {successful} successful, {failed} failed"
+        ).format(successful=successful, failed=failed))
+        dialog = gui.MessageDialog(
+            gui.mainFrame, self._componentRemovalResultSummary(results),
+            _("Neovim component removal results"),
         )
         dialog.Show()

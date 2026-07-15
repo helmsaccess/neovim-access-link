@@ -1,7 +1,7 @@
 # Active plan
 
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 binding,
-parallel sessions, and rootless installation are implemented.
+parallel sessions, and rootless installation and removal are implemented.
 
 The beta close-out work is documentation consistency, full automated package
 and documentation verification, practical local/remote multi-session and

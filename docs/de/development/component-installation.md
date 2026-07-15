@@ -115,6 +115,32 @@ Passwort ausschließlich im Speicher. Danach ist Neovim einmal neu zu starten.
 Künftige Add-on-Aktivierungen starten und beenden den SSH-stdio-Prozess
 automatisch.
 
+## Entfernung aus NVDA
+
+`NVDA-Menü → Werkzeuge → Neovim Access Link: Remove components...` verwendet
+dieselbe zunächst leere, zugänglich beschriftete Mehrfachauswahl wie die
+Installation. Neovim muss auf den gewählten Zielen vorher beendet werden; das
+Add-on beendet keine laufenden Neovim- oder tmux-Sitzungen. Die Arbeit läuft
+außerhalb des NVDA-Hauptthreads und endet mit einer nicht blockierenden
+Ergebnisübersicht pro Ziel.
+
+Lokal wird nur
+`%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda` gelöscht. Leere,
+vom Installer angelegte Paketverzeichnisse werden anschließend aufgeräumt,
+nichtleere Elternverzeichnisse aber erhalten. Über SSH löscht ein einzelner,
+auf 30 Sekunden begrenzter Benutzerbefehl ausschließlich:
+
+```text
+~/.local/bin/nvim-nvda-bridge
+~/.local/share/nvim/site/pack/nvim-nvda
+~/.local/share/nvim-nvda
+~/.cache/nvim-nvda-install
+```
+
+Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
+Neovim-Konfiguration, andere Plugins und Laufzeit-Sitzungsdaten gehören nicht
+zu den installierten Komponenten und werden nicht gelöscht.
+
 Installation und Laufzeit setzen `ClearAllForwardings=yes`. Dadurch werden alte
 `LocalForward`-Einträge aus der 0.1-Konfiguration für diese Prozesse ignoriert
 und können nicht mit einer bereits laufenden interaktiven SSH-Sitzung kollidieren.

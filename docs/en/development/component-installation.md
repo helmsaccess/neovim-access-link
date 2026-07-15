@@ -22,3 +22,27 @@ instances must be restarted after an update.
 The packaged JSON configuration keeps the Neovim claim key and NVDA gesture
 consistent. Changing only one installed copy is unsupported; rebuild and
 update both sides together.
+
+## Removal from NVDA
+
+`NVDA menu → Tools → Neovim Access Link: Remove components...` uses the same
+initially clear, accessible multi-target checklist as installation. Neovim must
+be closed on selected targets first; the add-on does not stop running Neovim or
+tmux sessions. Work runs outside NVDA's main thread and ends with a non-blocking
+per-target results summary.
+
+Local removal deletes only
+`%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`, pruning installer
+package directories only while they are empty. Over SSH, one 30-second bounded
+user command removes only:
+
+```text
+~/.local/bin/nvim-nvda-bridge
+~/.local/share/nvim/site/pack/nvim-nvda
+~/.local/share/nvim-nvda
+~/.cache/nvim-nvda-install
+```
+
+Removal is idempotent. Saved connections, SSH and Neovim configuration,
+unrelated plugins, and runtime session data are not installed components and
+are not deleted.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.89.5 beta test build
+
+- `NVDA menu → Tools → Neovim Access Link: Remove components...` can completely
+  remove the bundled components from this Windows computer and from explicitly
+  selected saved Linux connections.
+- The accessible multi-target checklist, background work, and compact results
+  summary match the installation workflow. Saved connections, Neovim and SSH
+  configuration, and unrelated plugins are preserved.
+
 ## 0.89.4 beta test build
 
 - Complete German and English Markdown sources and separate HTML outputs for

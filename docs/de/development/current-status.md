@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-14, Beta-Testbuild 0.89.4
+Stand: 2026-07-15, Beta-Testbuild 0.89.5
 
 ## Gesamtbewertung
 
@@ -40,6 +40,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   jeweils auf 60 Sekunden begrenzt. Der Aktualisierungsbefehl
   liegt unter NVDAs „Tools“-Menü; die Add-on-Einstellungen werden ausschließlich
   als reguläre NVDA-Einstellungskategorie angeboten.
+  Ein zweiter Werkzeugmenüeintrag entfernt die Komponenten im Hintergrund von
+  ausdrücklich ausgewählten lokalen oder entfernten Zielen. Er bewahrt
+  Verbindungsprofile, Benutzerkonfiguration, SSH-Dateien und fremde Plugins und
+  meldet jedes Ziel in einer nicht blockierenden Ergebnisübersicht.
   Die validierte Paketkonfiguration hält Neovims Zuordnungstaste und NVDAs
   korrespondierende Geste konsistent. Ein normales `nvim datei` genügt
   anschließend.
@@ -107,13 +111,16 @@ die Architektur in [architecture.md](architecture.md) und die Bedienung im
 
 ## Verifikation dieses Branches
 
-- 227 Python-Tests: 187 Add-on/Core, 26 Protokoll und 14 Bridge
+- 239 Python-Tests: 199 Add-on/Core einschließlich Repositoryrichtlinien,
+  26 Protokoll und 14 Bridge
 - 148 Lua-Assertions mit echtem Neovim
 - alle Bridge-/TUI-/Sockettests bestanden; vier in der eingeschränkten
   Socket-Sandbox erwartbar gescheiterte Fälle wurden isoliert außerhalb dieser
   Sandbox vollständig und erfolgreich wiederholt
-- Add-on-Archiv 0.89.4, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
+- Add-on-Archiv 0.89.5, getrennte deutsche und englische HTML-Dokumente, zentrale Metadatenableitung,
   Manifestversion und interne Links wurden automatisiert geprüft
+- Die vollständige Komponentenentfernung wurde mit dem installierten
+  Testbuild praktisch bestätigt.
 
 Reproduzierbare Befehle stehen in [testing.md](testing.md).
 

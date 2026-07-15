@@ -23,44 +23,16 @@ class SshUserInstaller:
     def install(self, ssh_target: str, package_path: pathlib.Path,
                 ssh_port: int = 22, identity_file: str = "",
                 password: str = "", askpass_path: str = "") -> InstallResult:
-        if not ssh_target or ssh_target.startswith("-") or any(character.isspace() for character in ssh_target):
-            return InstallResult(False, "invalid SSH target")
-        if not isinstance(ssh_port, int) or isinstance(ssh_port, bool) or not 1 <= ssh_port <= 65535:
-            return InstallResult(False, "invalid SSH port")
-        if identity_file and (
-            not isinstance(identity_file, str) or identity_file.startswith("-")
-            or "\r" in identity_file or "\n" in identity_file or "\0" in identity_file
-        ):
-            return InstallResult(False, "invalid SSH identity file")
-        if password and (not isinstance(password, str) or "\0" in password or not askpass_path):
-            return InstallResult(False, "invalid SSH password authentication")
+        validation = self._validate(ssh_target, ssh_port, identity_file, password, askpass_path)
+        if validation is not None:
+            return validation
         try:
             payload = package_path.read_bytes()
         except OSError as error:
             return InstallResult(False, "bundled server package is unavailable", str(error))
-        base = [
-            "ssh.exe", "-T", "-o", f"BatchMode={'no' if password else 'yes'}", "-o", "ConnectTimeout=10",
-            "-o", "ClearAllForwardings=yes",
-            "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=2",
-        ]
-        if password:
-            base.extend((
-                "-o", "PreferredAuthentications=keyboard-interactive,password",
-                "-o", "PubkeyAuthentication=no", "-o", "NumberOfPasswordPrompts=1",
-            ))
-        if ssh_port != 22:
-            base.extend(("-p", str(ssh_port)))
-        if identity_file:
-            base.extend(("-i", identity_file))
-        base.append(ssh_target)
-        environment = None
-        if password:
-            environment = os.environ.copy()
-            environment.update({
-                "SSH_ASKPASS": askpass_path, "SSH_ASKPASS_REQUIRE": "force",
-                "DISPLAY": environment.get("DISPLAY", "nvim-nvda"),
-                "NVIM_NVDA_SSH_PASSWORD": password,
-            })
+        base, environment = self._ssh_command(
+            ssh_target, ssh_port, identity_file, password, askpass_path,
+        )
         upload_command = (
             'umask 077; mkdir -p "$HOME/.cache/nvim-nvda-install" && '
             'cat > "$HOME/.cache/nvim-nvda-install/package.tar.gz"'
@@ -95,6 +67,78 @@ class SshUserInstaller:
         if installed.returncode != 0:
             return InstallResult(False, "remote user installation failed", self._diagnostics(installed))
         return InstallResult(True, "Neovim server components installed", self._diagnostics(installed))
+
+    def uninstall(self, ssh_target: str, ssh_port: int = 22, identity_file: str = "",
+                  password: str = "", askpass_path: str = "") -> InstallResult:
+        validation = self._validate(ssh_target, ssh_port, identity_file, password, askpass_path)
+        if validation is not None:
+            return validation
+        base, environment = self._ssh_command(
+            ssh_target, ssh_port, identity_file, password, askpass_path,
+        )
+        command = (
+            'set -e; p="$HOME/.local"; '
+            'rm -f "$p/bin/nvim-nvda-bridge"; '
+            'rm -rf "$p/share/nvim/site/pack/nvim-nvda"; '
+            'rm -rf "$p/share/nvim-nvda"; '
+            'rm -rf "$HOME/.cache/nvim-nvda-install"; '
+            "printf '%s\\n' 'removed Neovim accessibility components'"
+        )
+        try:
+            removed = self._runner(
+                [*base, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), env=environment,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired as error:
+            return InstallResult(False, "remote user removal timed out", str(error))
+        if removed.returncode != 0:
+            return InstallResult(False, "remote user removal failed", self._diagnostics(removed))
+        return InstallResult(True, "Neovim server components removed", self._diagnostics(removed))
+
+    @staticmethod
+    def _validate(ssh_target: str, ssh_port: int, identity_file: str,
+                  password: str, askpass_path: str) -> InstallResult | None:
+        if not ssh_target or ssh_target.startswith("-") or any(character.isspace() for character in ssh_target):
+            return InstallResult(False, "invalid SSH target")
+        if not isinstance(ssh_port, int) or isinstance(ssh_port, bool) or not 1 <= ssh_port <= 65535:
+            return InstallResult(False, "invalid SSH port")
+        if identity_file and (
+            not isinstance(identity_file, str) or identity_file.startswith("-")
+            or "\r" in identity_file or "\n" in identity_file or "\0" in identity_file
+        ):
+            return InstallResult(False, "invalid SSH identity file")
+        if password and (not isinstance(password, str) or "\0" in password or not askpass_path):
+            return InstallResult(False, "invalid SSH password authentication")
+        return None
+
+    @staticmethod
+    def _ssh_command(ssh_target: str, ssh_port: int, identity_file: str,
+                     password: str, askpass_path: str) -> tuple[list[str], dict[str, str] | None]:
+        base = [
+            "ssh.exe", "-T", "-o", f"BatchMode={'no' if password else 'yes'}", "-o", "ConnectTimeout=10",
+            "-o", "ClearAllForwardings=yes",
+            "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=2",
+        ]
+        if password:
+            base.extend((
+                "-o", "PreferredAuthentications=keyboard-interactive,password",
+                "-o", "PubkeyAuthentication=no", "-o", "NumberOfPasswordPrompts=1",
+            ))
+        if ssh_port != 22:
+            base.extend(("-p", str(ssh_port)))
+        if identity_file:
+            base.extend(("-i", identity_file))
+        base.append(ssh_target)
+        environment = None
+        if password:
+            environment = os.environ.copy()
+            environment.update({
+                "SSH_ASKPASS": askpass_path, "SSH_ASKPASS_REQUIRE": "force",
+                "DISPLAY": environment.get("DISPLAY", "nvim-nvda"),
+                "NVIM_NVDA_SSH_PASSWORD": password,
+            })
+        return base, environment
 
     @staticmethod
     def _diagnostics(result: subprocess.CompletedProcess) -> str:
