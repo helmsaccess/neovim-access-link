@@ -11,6 +11,11 @@ implementiert. Der verifizierte Funktionsstand steht in
 
 ## Beta-Abschluss
 
+Vor dem Beta-Abschluss ist die neue Fokus-Kontextausgabe praktisch mit lokaler
+und entfernter Verbindung, mehreren gebundenen und ungebundenen WT-Tabs und
+-Panes sowie schnellen Fokuswechseln zu prüfen. Insbesondere dürfen verspätete
+Antworten und reine Shell-Tabs keine Ausgabe oder Unterdrückung auslösen.
+
 1. Deutsche Anwender- und Entwicklungsdokumentation auf Korrektheit,
    Verständlichkeit und einheitliche Begriffe prüfen.
 2. Vollständige Python-, Lua-, Paket- und Dokumentationsprüfungen ausführen.

@@ -41,6 +41,28 @@ class StdioTransportTests(unittest.TestCase):
         self.assertEqual([("routeCursor", {"line": 2})], controls)
         transport.stop()
 
+    def test_focus_context_control_correlates_cached_state(self) -> None:
+        controls = b"".join(encode_frame(MessageFactory().create(
+            "requestFocusContext", {"requestId": value},
+        )) for value in (9, True, -1, 2_147_483_648))
+        output = io.BytesIO()
+        read_fd, write_fd = os.pipe()
+        transport = StdioTransport(
+            lambda: {"mode": "normal", "bufferName": "example.txt"},
+            os.fdopen(read_fd, "rb", buffering=0), output, heartbeat_seconds=10.0,
+        )
+        transport.start()
+        transport.publish("fullState", {"mode": "normal"})
+        os.write(write_fd, controls)
+        os.close(write_fd)
+        self.assertTrue(transport.closed.wait(1.0))
+        messages = FrameDecoder().feed(output.getvalue()[len(STDIO_MARKER):])
+        focus = [message for message in messages if message["type"] == "focusContext"]
+        self.assertEqual(1, len(focus))
+        self.assertEqual(9, focus[0]["payload"]["_focusRequestId"])
+        self.assertEqual("example.txt", focus[0]["payload"]["bufferName"])
+        transport.stop()
+
 
 if __name__ == "__main__":
     unittest.main()

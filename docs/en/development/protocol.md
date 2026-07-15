@@ -48,3 +48,11 @@ sequence increase may bind the focused terminal identity and start its typed
 TCP or SSH connection. No match produces no guessed connection; multiple
 matches require explicit selection. Manual profile/session selection bypasses
 the claim but starts the same connection path.
+
+An authenticated remembered binding may send `requestFocusContext` with an
+integer `requestId` from 0 through 2147483647. Local and SSH transports answer
+once with `focusContext`, copying the latest canonical event state and adding
+the matching `_focusRequestId`. The add-on discards a reply if request ID,
+instance, exact terminal binding, authentication, or current focus no longer
+matches. This focus-event-driven exchange performs no polling and no terminal
+screen scraping.

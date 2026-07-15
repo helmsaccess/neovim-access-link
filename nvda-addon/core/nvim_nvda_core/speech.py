@@ -102,6 +102,11 @@ class SpeechPlanner:
                     if selection_action is not None:
                         actions.append(replace(selection_action, interrupt=False))
             self._last_mode = canonical
+        elif kind == "focusContext":
+            action = self._focus_context(state)
+            if action is not None:
+                actions.append(action)
+            self._last_mode = state.get("mode")
         elif kind in {
             "cursorMoved", "characterMoved", "wordMoved", "lineChanged",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "matchingPairMoved", "fullState",
@@ -547,6 +552,51 @@ class SpeechPlanner:
             parts.append("modified")
         if state.get("readonly"):
             parts.append("read only")
+        text = ", ".join(parts)
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _focus_context(self, state: dict[str, Any]) -> SpeechAction | None:
+        parts: list[str] = []
+        manager = state.get("fileManager")
+        if isinstance(manager, dict):
+            name = manager.get("name")
+            parts.append(name if isinstance(name, str) and name else "file manager")
+            entry = self._file_manager_entry(state)
+            if entry is not None:
+                parts.append(entry.text)
+            else:
+                root = manager.get("root")
+                if isinstance(root, str) and root:
+                    parts.append(root)
+        else:
+            window_type = state.get("windowType")
+            buftype = state.get("buftype")
+            filetype = state.get("filetype")
+            if window_type in {"quickfix", "locationList"}:
+                parts.append("location list" if window_type == "locationList" else "quickfix")
+            elif buftype == "terminal":
+                parts.append("terminal")
+            elif buftype == "help" or filetype == "help":
+                parts.append("help")
+            name = state.get("bufferName")
+            if buftype != "terminal" and isinstance(name, str) and name:
+                parts.append(name.replace("\\", "/").rsplit("/", 1)[-1])
+            elif not parts:
+                parts.append("unnamed buffer")
+            if state.get("modified"):
+                parts.append("modified")
+            if state.get("readonly"):
+                parts.append("read only")
+        canonical = state.get("mode")
+        raw = state.get("modeRaw")
+        mode = _CANONICAL_MODES.get(canonical, _MODES.get(raw))
+        if mode:
+            parts.append(mode)
+        connection_label = state.get("_connectionLabel")
+        if isinstance(connection_label, str) and connection_label:
+            parts.append(f"on {connection_label}")
+        if not parts:
+            return None
         text = ", ".join(parts)
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 

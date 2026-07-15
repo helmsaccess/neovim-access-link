@@ -240,6 +240,21 @@ Aktivierung, authentifizierter vollständiger Zustand, Neovim-Kontext und
 Terminalbindung gleichzeitig gültig sind. Disconnect, Fehler, Terminalmodus
 mit direkter Eingabe und Deaktivierung stellen normale NVDA-Ausgabe wieder her.
 
+## Fokus-Kontext registrierter Terminal-Controls
+
+Erhält ein bereits authentifiziertes und gemerktes Windows-Terminal-Control
+erneut Fokus, fordert das Add-on einmalig den aktuellen strukturierten Kontext
+an. Lokaler Client oder SSH-Bridge antworten aus ihrem durch Neovim-Ereignisse
+gepflegten Zustands-Cache. Eine Request-ID bindet die Antwort an genau dieses
+Fokusereignis. Vor jeder Ausgabe werden aktuelle Fokusidentität, Instanz,
+Bindung und Authentifizierung erneut geprüft. Fokusverlust verwirft offene
+Anfragen. Ungebundene Controls senden keine Anfrage und empfangen keine
+Add-on-Ausgabe. Dieses Verfahren ist ereignisgetrieben; Polling und
+Terminal-Screen-Scraping sind dafür ausdrücklich ausgeschlossen.
+Die Ausgabe ergänzt den benutzerdefinierten Verbindungsnamen aus der
+Instanzmetadatenverwaltung; technische SSH-Zieladressen gelangen dafür nicht
+in den semantischen Editorzustand.
+
 ## Offene Isolationsprüfung für Windows Terminal
 
 Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe, beweist

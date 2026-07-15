@@ -139,6 +139,9 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
 `messageReceived`, `errorReceived` und `connectionStateChanged`.
+`focusContext` ist eine korrelierte Momentaufnahme aus demselben kanonischen
+Zustands-Cache. `_focusRequestId` ordnet sie genau der auslösenden Fokusanfrage
+zu; sie ist kein frei laufender Editorstream.
 
 Die maßgebliche Payloadstruktur wird vom Neovim-Zustandsmodell erzeugt und in
 der Funktionsmatrix `accessibility.md` beschrieben. Buffertext wird nicht
@@ -149,8 +152,15 @@ blind vollständig übertragen.
 Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 
 - `requestFullState` ohne inhaltliche Payload;
+- `requestFocusContext` mit einer ganzzahligen `requestId` zwischen 0 und
+  2147483647;
 - `routeCursor` mit `bufferId`, `windowId`, `line`, `byteColumn` und
-  `changedtick`.
+`changedtick`.
+
+`requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
+aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
+wird bei abweichender Request-ID, Instanz, Bindung oder Fokusidentität
+verworfen. Der Ablauf ist fokusereignisgetrieben und verwendet kein Polling.
 
 `routeCursor` prüft aktuelle Buffer-/Fensterkennung, `changedtick`, Zeilen- und
 UTF-8-Bytespalten-Grenzen, bevor Neovims Cursor-API aufgerufen wird. Empfangener

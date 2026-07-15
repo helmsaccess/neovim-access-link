@@ -17,7 +17,10 @@ STDIO_MARKER = b"NVIM-NVDA-STDIO/2\n"
 class StdioTransport:
     """Expose one bridge session through pipes owned by an SSH process."""
 
-    capabilities = ("heartbeat", "resync", "semanticEvents", "cursorRouting", "accessibleMenus")
+    capabilities = (
+        "heartbeat", "resync", "semanticEvents", "cursorRouting", "accessibleMenus",
+        "focusContext",
+    )
 
     def __init__(
         self,
@@ -101,6 +104,13 @@ class StdioTransport:
                     kind = control["type"]
                     if kind == "requestFullState":
                         self.publish("fullState", self._full_state())
+                    elif kind == "requestFocusContext":
+                        payload = control.get("payload", {})
+                        request_id = payload.get("requestId") if isinstance(payload, dict) else None
+                        if self._valid_request_id(request_id):
+                            state = dict(self._full_state())
+                            state["_focusRequestId"] = request_id
+                            self.publish("focusContext", state)
                     elif kind == "routeCursor":
                         self.on_control(kind, dict(control["payload"]))
         except (OSError, ProtocolError):
@@ -118,3 +128,7 @@ class StdioTransport:
         result = dict(self._full_state() if state is None else state)
         result["_transport"] = {"capabilities": list(self.capabilities), "kind": "ssh-stdio"}
         return result
+
+    @staticmethod
+    def _valid_request_id(value: Any) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647

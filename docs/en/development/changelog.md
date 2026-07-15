@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.89.0-dev.3 unreleased feature-branch test build
+
+- Focus announcements additionally name the user-configured connection, for
+  example “on Tessa”. Local Windows sessions use “on local”; technical host
+  names are not exposed separately.
+
+## 0.89.0-dev.2 unreleased feature-branch test build
+
+- Returning from another application to the same registered WT control now
+  actually requests focus context. The previous early return mistook the
+  deliberately retained authenticated binding for an internal focus event in
+  the same control.
+
+## 0.89.0-dev.1 unreleased feature-branch test build
+
+- A refocused authenticated registered WT control can announce its file or
+  special buffer, state, and mode compactly.
+- The request is event-driven and correlated. Unbound controls and late or
+  mismatched replies have no effect; neither polling nor terminal screen
+  scraping is used.
+- Practical NVDA/WT testing remains pending. This is not a stable build and
+  remains between alpha and beta.
+
 ## 0.89.35 beta release
 
 - Registry lifecycle hardening and Windows Terminal binding maintenance are

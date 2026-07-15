@@ -29,7 +29,9 @@ _ROUTE_CURSOR_LUA = """
 
 
 class LocalTcpClient:
-    capabilities = ("resync", "semanticEvents", "cursorRouting", "accessibleMenus")
+    capabilities = (
+        "resync", "semanticEvents", "cursorRouting", "accessibleMenus", "focusContext",
+    )
 
     def __init__(
         self,
@@ -71,6 +73,18 @@ class LocalTcpClient:
                 self.on_diagnostic("controlRejected", {"type": kind, "reason": "notConnected"})
                 return False
             return self._publish("fullState", state)
+        if kind == "requestFocusContext":
+            request_id = payload.get("requestId") if isinstance(payload, dict) else None
+            if not self._valid_request_id(request_id):
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+                return False
+            with self._state_lock:
+                state = dict(self._state) if self._state is not None else None
+            if state is None:
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "notConnected"})
+                return False
+            state["_focusRequestId"] = request_id
+            return self._publish("focusContext", state)
         if kind != "routeCursor" or not self._valid_cursor_payload(payload):
             self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
             return False
@@ -83,6 +97,10 @@ class LocalTcpClient:
             isinstance(payload.get(field), int) and not isinstance(payload.get(field), bool)
             for field in required
         )
+
+    @staticmethod
+    def _valid_request_id(value: Any) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
         state = dict(payload)
