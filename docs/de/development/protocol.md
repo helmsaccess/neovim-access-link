@@ -94,6 +94,21 @@ Liste ohne `heartbeat`.
 
 ## Registry und ausdrückliche Zuordnung
 
+Schema 3 bindet einen Eintrag mit einer zufälligen `sessionNonce` an den
+tatsächlichen Neovim-RPC-Endpunkt. Unter Linux muss zusätzlich
+`processStartTicks` mit `/proc/<pid>/stat` übereinstimmen; `ownsSocket` erlaubt
+die Bereinigung nur für den exakt zu PID und Nonce gehörenden Plugin-Socket.
+Übernommene oder benutzerdefinierte Sockets werden nie gelöscht. PID oder
+Dateiexistenz allein gelten nicht als Identitätsnachweis.
+Der private Dateiname enthält PID und Nonce; nur genau diese eindeutige Datei
+darf Discovery bei zweifelsfrei veralteter Identität entfernen.
+Ein Scan verarbeitet höchstens 256 Registrydateien; jede Datei ist auf 65.536
+Byte begrenzt. Discovery und Claim-Polling bleiben passiv und öffnen keinen
+RPC-Kanal. Nach der eindeutigen Auswahl wird die Registry-Nonce auf demselben
+dauerhaften RPC-Kanal abgefragt, der anschließend Ereignisse liefert, und zwar
+vor Plugin-Setup und Kanalregistrierung. Ein Unterschied beendet diesen Kanal
+fail-open ohne Wiederverbindung.
+
 Lokale und entfernte Registryeinträge enthalten neben Sitzungsmetadaten eine
 monoton steigende Ganzzahl `claimSequence`. Der Wert beginnt beim Pluginstart
 bei 0 und wird bei jeder über den unveränderten `typed`-Wert erkannten

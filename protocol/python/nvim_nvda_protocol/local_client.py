@@ -39,6 +39,7 @@ class LocalTcpClient:
         on_connection_state: Callable[[str], None],
         on_diagnostic: Callable[[str, dict[str, Any]], None] | None = None,
         source_factory: Callable[..., Any] = NvimRpcSource,
+        session_nonce: str | None = None,
     ) -> None:
         self.endpoint = NvimRpcEndpoint.windows_loopback_tcp(host, port)
         self.on_event = on_event
@@ -50,6 +51,7 @@ class LocalTcpClient:
         self._authenticated = False
         self._source = source_factory(
             self.endpoint, self._on_nvim_event, self._on_nvim_connection,
+            session_nonce,
         )
 
     def start(self) -> None:

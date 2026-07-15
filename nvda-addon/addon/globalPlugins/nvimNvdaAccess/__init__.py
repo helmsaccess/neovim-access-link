@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 import unicodedata
+import array
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import addonHandler
@@ -22,6 +23,57 @@ import tones
 import ui
 from logHandler import log
 from speech.priorities import SpeechPriority as NvdaSpeechPriority
+
+
+_TERMINAL_LIFECYCLE_INTERVAL_MS = 5 * 60 * 1_000
+
+
+def _windowIdentityExists(identity):
+    """Return True/False for a conclusive HWND check, or None on uncertainty."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        user32.IsWindow.argtypes = (wintypes.HWND,)
+        user32.IsWindow.restype = wintypes.BOOL
+        user32.GetWindowThreadProcessId.argtypes = (wintypes.HWND, ctypes.POINTER(wintypes.DWORD))
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        if not user32.IsWindow(identity.window_handle):
+            return False
+        process_id = wintypes.DWORD()
+        if not user32.GetWindowThreadProcessId(identity.window_handle, ctypes.byref(process_id)):
+            return False
+        return process_id.value == identity.process_id
+    except (AttributeError, OSError, TypeError, ValueError):
+        return None
+
+
+def _terminalIdentityExists(identity, known_element=None):
+    """Validate the exact WT tab; uncertainty is deliberately non-destructive."""
+    window_exists = _windowIdentityExists(identity)
+    if window_exists is False:
+        return False
+    if window_exists is None or not identity.runtime_id:
+        return True
+    if known_element is not None:
+        try:
+            if tuple(int(value) for value in known_element.getRuntimeId()) == identity.runtime_id:
+                return True
+        except Exception:
+            pass
+    try:
+        import UIAHandler
+        client = UIAHandler.handler.clientObject
+        root = client.elementFromHandle(identity.window_handle)
+        condition = client.createPropertyCondition(
+            UIAHandler.UIA_RuntimeIdPropertyId,
+            array.array("l", identity.runtime_id),
+        )
+        return bool(root.findFirst(UIAHandler.TreeScope_Subtree, condition))
+    except Exception:
+        # COM failure, unavailable handler, or a transient provider failure is
+        # not proof that a tab was closed.
+        return True
 
 _PACKAGE_DIR = os.path.dirname(__file__)
 _VENDOR_DIR = os.path.join(_PACKAGE_DIR, "vendor")
@@ -244,7 +296,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._claimEligibleTargets = set()
         self._claimInventoryErrors = {}
         self._pendingMainThreadCalls = set()
+        self._terminalLifecycleCall = None
+        self._terminalLifecycleScheduledAt = 0.0
+        self._terminalLifecycleMisses = {}
         self._focusedTerminalObject = None
+        self._terminalIdentityElements = {}
         self._focusedAppModule = None
         _activePlugin = self
         _registerNvdaConfigSpec()
@@ -268,6 +324,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             except Exception:
                 pass
         self._pendingMainThreadCalls.clear()
+        self._terminalLifecycleCall = None
+        self._terminalLifecycleMisses.clear()
         self._gate.disable()
         config.post_configProfileSwitch.unregister(self._onNvdaConfigProfileSwitch)
         self._clearSessionPasswords()
@@ -277,6 +335,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except Exception as error:
             self._diagnostics.record("connectionInstancesStopError", error=str(error))
         self._rememberedTerminalBindings.clear()
+        self._terminalIdentityElements.clear()
         self._rememberOfferInstances.clear()
         self._authenticatedInstances.clear()
         self._instanceTerminalPassthrough.clear()
@@ -319,6 +378,35 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             delayMs=delay_ms,
         )
         return pending
+
+    def _ensureTerminalLifecycleSweep(self):
+        """Periodically notice closed WT tabs even when Neovim is otherwise idle."""
+        if self._terminalLifecycleCall is not None or not self._instanceManager.list():
+            return
+        self._terminalLifecycleScheduledAt = time.monotonic()
+        self._terminalLifecycleCall = self._scheduleMainThreadCall(
+            _TERMINAL_LIFECYCLE_INTERVAL_MS, self._runTerminalLifecycleSweep,
+        )
+
+    def _runTerminalLifecycleSweep(self):
+        self._terminalLifecycleCall = None
+        # Some unit-test wx shims execute CallLater synchronously. Avoid a
+        # recursive reschedule while retaining the real delayed behavior.
+        elapsed_ms = (time.monotonic() - self._terminalLifecycleScheduledAt) * 1_000
+        try:
+            self._pruneClosedTerminalBindings()
+        except Exception as error:
+            # This maintenance task must never retain suppression or become a
+            # repeating source of failures on NVDA's main thread.
+            self._gate.disconnect()
+            self._client = None
+            self._diagnostics.record(
+                "terminalLifecycleFailedOpen", errorType=type(error).__name__,
+            )
+            log.exception("terminal lifecycle sweep failed open")
+            return
+        if elapsed_ms >= _TERMINAL_LIFECYCLE_INTERVAL_MS / 2:
+            self._ensureTerminalLifecycleSweep()
 
     def _chooseNVDAObjectOverlayClasses(self, obj, clsList):
         if (
@@ -1012,7 +1100,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if terminal != identity:
                 self._instanceManager.unbind(terminal)
                 self._rememberedTerminalBindings.discard(terminal)
+                self._terminalIdentityElements.pop(terminal, None)
         self._instanceManager.bind(identity, instance.identifier)
+        self._ensureTerminalLifecycleSweep()
         if offer_remember and identity not in self._rememberedTerminalBindings:
             self._rememberOfferInstances.add(instance.identifier)
         self._activateRememberedBinding(identity, instance.identifier)
@@ -1078,6 +1168,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
                 category, {**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
             ),
+            session_nonce=session.session_nonce,
         )
         try:
             target = local_windows_target(_("This computer - local Neovim"))
@@ -1086,6 +1177,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             instance = self._instanceManager.add_target(target, session.identifier, label, client)
             self._instanceManager.bind(identity, instance.identifier)
+            self._ensureTerminalLifecycleSweep()
             self._switchInstanceRuntime(instance.identifier)
             if offer_remember:
                 self._rememberOfferInstances.add(instance.identifier)
@@ -1126,6 +1218,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("No Neovim connection instance is selected for this terminal"))
             return
         self._rememberedTerminalBindings.discard(identity)
+        self._terminalIdentityElements.pop(identity, None)
         self._rememberOfferInstances.discard(instance.identifier)
         self._instanceManager.remove(instance.identifier)
         self._authenticatedInstances.discard(instance.identifier)
@@ -1298,7 +1391,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if terminal != identity:
                 self._instanceManager.unbind(terminal)
                 self._rememberedTerminalBindings.discard(terminal)
+                self._terminalIdentityElements.pop(terminal, None)
         self._instanceManager.bind(identity, instance.identifier)
+        self._ensureTerminalLifecycleSweep()
         if offer_remember and identity not in self._rememberedTerminalBindings:
             self._rememberOfferInstances.add(instance.identifier)
         client = self._instanceManager.client_for(instance.identifier)
@@ -1427,6 +1522,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 client,
             )
             self._instanceManager.bind(identity, instance.identifier)
+            self._ensureTerminalLifecycleSweep()
             self._switchInstanceRuntime(instance.identifier)
             if offer_remember:
                 self._rememberOfferInstances.add(instance.identifier)
@@ -1463,6 +1559,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         try:
             instance = self._instanceManager.bind(identity, instance_id)
+            self._ensureTerminalLifecycleSweep()
             self._switchInstanceRuntime(instance_id)
             self._client = self._instanceManager.client_for(instance_id)
             self._gate.focused = identity
@@ -1736,7 +1833,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         for terminal in previous_terminals:
             self._instanceManager.unbind(terminal)
             self._rememberedTerminalBindings.discard(terminal)
+            self._terminalIdentityElements.pop(terminal, None)
         self._instanceManager.bind(identity, instance_id)
+        self._ensureTerminalLifecycleSweep()
         self._rememberedTerminalBindings.add(identity)
         self._gate.focused = identity
         self._activateRememberedBinding(identity, instance_id)
@@ -1756,6 +1855,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 current=self._identityFields(identity),
             )
         self._gate.focused = identity
+        if identity is not None:
+            element = self._identityElement(obj, identity)
+            if element is not None:
+                self._terminalIdentityElements[identity] = element
         self._focusedTerminalObject = obj if identity is not None else None
         self._focusedAppModule = app_module
         instance = self._instanceManager.selected_for(identity) if identity else None
@@ -1786,11 +1889,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             self._handleManagedEvent(instance.identifier, pending_full_state)
 
+    def _failOpenTerminalEvent(self, event_name, error):
+        """Drop suppression after a frontend event failure."""
+        self._gate.disconnect()
+        self._client = None
+        self._diagnostics.record(
+            "terminalEventFailedOpen",
+            event=event_name,
+            errorType=type(error).__name__,
+        )
+
     def _refreshFocusedTerminalForAction(self, obj, app_module=None):
         """Refresh focus when an action does not receive a new gainFocus event."""
         identity = self._identity(obj)
         previous = self._gate.focused
         self._gate.focused = identity
+        if identity is not None:
+            element = self._identityElement(obj, identity)
+            if element is not None:
+                self._terminalIdentityElements[identity] = element
         self._focusedTerminalObject = obj if identity is not None else None
         self._focusedAppModule = app_module if identity is not None else None
         self._diagnostics.record(
@@ -1799,6 +1916,77 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             current=self._identityFields(identity),
         )
         return identity
+
+    def _pruneClosedTerminalBindings(self):
+        removed = set()
+        for instance in list(self._instanceManager.list()):
+            try:
+                terminals = self._instanceManager.bound_terminals_for(instance.identifier)
+            except ValueError:
+                continue
+            invalid = []
+            for terminal in terminals:
+                # A focused terminal is direct positive evidence of life. UIA
+                # tree searches can transiently miss an otherwise active WT
+                # tab while focus or accessibility objects are being rebuilt.
+                if terminal == self._gate.focused:
+                    self._terminalLifecycleMisses.pop(terminal, None)
+                    continue
+                exists = _terminalIdentityExists(
+                    terminal, self._terminalIdentityElements.get(terminal),
+                )
+                if exists:
+                    self._terminalLifecycleMisses.pop(terminal, None)
+                    continue
+                misses = self._terminalLifecycleMisses.get(terminal, 0) + 1
+                self._terminalLifecycleMisses[terminal] = misses
+                # Never destroy a binding on one negative UIA observation.
+                if misses >= 2:
+                    invalid.append(terminal)
+            if not invalid:
+                continue
+            for terminal in invalid:
+                self._instanceManager.unbind(terminal)
+                self._rememberedTerminalBindings.discard(terminal)
+                self._terminalIdentityElements.pop(terminal, None)
+                self._terminalLifecycleMisses.pop(terminal, None)
+                if self._gate.focused == terminal:
+                    self._gate.focused = None
+                    self._gate.disconnect()
+                    self._client = None
+            if self._instanceManager.bound_terminals_for(instance.identifier):
+                continue
+            try:
+                _detached, client = self._instanceManager.detach(instance.identifier)
+            except ValueError:
+                continue
+            removed.add(instance.identifier)
+            self._authenticatedInstances.discard(instance.identifier)
+            self._instanceTerminalPassthrough.pop(instance.identifier, None)
+            self._pendingInstanceFullStates.pop(instance.identifier, None)
+            self._rememberOfferInstances.discard(instance.identifier)
+            self._activityRebindOffers = {
+                offer for offer in self._activityRebindOffers if offer[1] != instance.identifier
+            }
+            self._dropInstanceRuntime(instance.identifier)
+            threading.Thread(
+                target=self._stopPrunedClient, args=(instance.identifier, client),
+                name="nvim-nvda-closed-terminal-stop", daemon=True,
+            ).start()
+            self._diagnostics.record(
+                "closedTerminalBindingPruned", instanceId=instance.identifier,
+                terminals=[self._identityFields(terminal) for terminal in invalid],
+            )
+        return removed
+
+    def _stopPrunedClient(self, instance_id, client):
+        try:
+            client.stop()
+        except Exception as error:
+            self._diagnostics.record(
+                "closedTerminalClientStopError", instanceId=instance_id,
+                errorType=type(error).__name__, error=str(error),
+            )
 
     def _event_appModule_loseFocus(self, app_module=None):
         if (
@@ -1890,6 +2078,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _handleEvent(self, event):
         activated = False
         payload = event.get("payload")
+        keyObserverDiagnostics = (
+            payload.get("keyObserverDiagnostics", {})
+            if isinstance(payload, dict) else {}
+        )
+        if not isinstance(keyObserverDiagnostics, dict):
+            keyObserverDiagnostics = {}
         if isinstance(payload, dict):
             self._currentState = payload
         self._diagnostics.record(
@@ -1899,12 +2093,40 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             sequence=event.get("sequence"),
             mode=payload.get("mode") if isinstance(payload, dict) else None,
             modeRaw=payload.get("modeRaw") if isinstance(payload, dict) else None,
+            modeBlocking=(
+                payload.get("modeBlocking") if isinstance(payload, dict) else None
+            ),
             bufferId=payload.get("bufferId") if isinstance(payload, dict) else None,
             windowId=payload.get("windowId") if isinstance(payload, dict) else None,
             changedtick=payload.get("changedtick") if isinstance(payload, dict) else None,
             cursor=payload.get("cursor") if isinstance(payload, dict) else None,
             lineText=payload.get("lineText") if isinstance(payload, dict) else None,
             transport=payload.get("_transport") if isinstance(payload, dict) else None,
+            preConnectErrorCode=(
+                payload.get("preConnectErrorCode") if isinstance(payload, dict) else None
+            ),
+            preConnectErrorKind=(
+                payload.get("preConnectErrorKind") if isinstance(payload, dict) else None
+            ),
+            currentErrorCode=(
+                payload.get("currentErrorCode") if isinstance(payload, dict) else None
+            ),
+            currentErrorKind=(
+                payload.get("currentErrorKind") if isinstance(payload, dict) else None
+            ),
+            keyObserverErrorCount=keyObserverDiagnostics.get("observerErrorCount"),
+            keyObserverErrorKind=keyObserverDiagnostics.get("observerErrorKind"),
+            keyClaimErrorKind=keyObserverDiagnostics.get("claimErrorKind"),
+            keyClaimSkippedMode=keyObserverDiagnostics.get("claimSkippedMode"),
+            keyModeAfterClaim=keyObserverDiagnostics.get("modeAfterClaim"),
+            keyTranslated=keyObserverDiagnostics.get("translatedKey"),
+            keyTypedTranslated=keyObserverDiagnostics.get("translatedTyped"),
+            keyByteLength=keyObserverDiagnostics.get("keyByteLength"),
+            keyTypedByteLength=keyObserverDiagnostics.get("typedByteLength"),
+            keyPromptActive=keyObserverDiagnostics.get("promptActive"),
+            keyPromptKind=keyObserverDiagnostics.get("promptKind"),
+            keyPromptClass=keyObserverDiagnostics.get("promptClass"),
+            keyPromptLength=keyObserverDiagnostics.get("promptLength"),
         )
         mode = payload.get("mode") if isinstance(payload, dict) else None
         previous_mode = self._lastMode
@@ -2169,6 +2391,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                             return TerminalIdentity(
                                 candidate_process, candidate_window, "windowsTerminal", runtime_id,
                             )
+                except Exception:
+                    pass
+            try:
+                candidate = candidate.parent
+            except Exception:
+                break
+            if candidate is None:
+                break
+        return None
+
+    @staticmethod
+    def _identityElement(obj, identity):
+        candidate = obj
+        for _depth in range(8):
+            element = getattr(candidate, "UIAElement", None)
+            if element is not None:
+                try:
+                    runtime_id = tuple(int(value) for value in element.getRuntimeId())
+                    if runtime_id == identity.runtime_id:
+                        return element
                 except Exception:
                     pass
             try:

@@ -4,6 +4,14 @@ local file_manager = require("nvim_nvda.file_manager")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
+local modern_string_indices = vim.fn.has("nvim-0.11") == 1
+
+local function character_column(line, byte_column)
+  if modern_string_indices then
+    return vim.str_utfindex(line, "utf-32", byte_column, false)
+  end
+  return vim.str_utfindex(line, byte_column)
+end
 
 function M.normalize_mode(raw)
   if raw:sub(1, 2) == "no" then return "operatorPending" end
@@ -85,7 +93,8 @@ function M.snapshot(reason)
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_get_current_buf()
   local cursor = vim.api.nvim_win_get_cursor(win)
-  local mode_raw = vim.api.nvim_get_mode().mode
+  local mode_info = vim.api.nvim_get_mode()
+  local mode_raw = mode_info.mode
   local line = vim.api.nvim_buf_get_lines(buf, cursor[1] - 1, cursor[1], true)[1] or ""
   local tabs, tab_index = vim.api.nvim_list_tabpages(), 1
   for index, tab in ipairs(tabs) do if tab == vim.api.nvim_get_current_tabpage() then tab_index = index end end
@@ -102,6 +111,7 @@ function M.snapshot(reason)
     reason = reason,
     mode = M.normalize_mode(mode_raw),
     modeRaw = mode_raw,
+    modeBlocking = mode_info.blocking == true,
     bufferId = buf,
     windowId = win,
     tabpageId = vim.api.nvim_get_current_tabpage(),
@@ -119,7 +129,7 @@ function M.snapshot(reason)
     cursor = {
       line = cursor[1],
       byteColumn = cursor[2],
-      characterColumn = vim.str_utfindex(line, cursor[2]),
+      characterColumn = character_column(line, cursor[2]),
       virtualColumn = vim.fn.virtcol(".") - 1,
     },
     lineText = line,

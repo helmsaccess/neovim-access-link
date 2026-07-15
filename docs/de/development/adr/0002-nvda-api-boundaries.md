@@ -36,12 +36,16 @@ Hook zwischen Terminal-Diff und nativer LiveText-Ausgabe existiert nicht.
 Windows Terminal stellt keine vom Add-on kontrollierte dauerhafte Tab-ID bereit.
 Für die ausschließlich laufzeitbezogene, niemals gespeicherte Tabzuordnung liest
 das Add-on `cachedClassName` und `getRuntimeId()` vom zugrunde liegenden
-`UIAElement`. Die Werte werden nur nach Prüfung des Windows-Terminal-AppModules,
-des Prozesses und der freigegebenen UIA-Klasse verwendet.
+`UIAElement`. Zum Erkennen geschlossener Tabs wird dasselbe Element zunächst
+direkt geprüft und anschließend nach NVDAs eigenem UIA-Muster über eine
+`RuntimeId`-Property-Condition im Teilbaum des weiterhin validierten
+Fensterhandles gesucht. Die Werte werden nur nach Prüfung des Windows-Terminal-
+AppModules, des Prozesses und der freigegebenen UIA-Klasse verwendet.
 
 - Risiko: Form und Lebensdauer des UIA-Wrappers können sich ändern.
 - Begrenzung: Fehlende oder ungültige Werte deaktivieren Zuordnung und
-  Unterdrückung; Fenstertitel oder Terminaltext dienen nie als Ersatzheuristik.
+  Unterdrückung; COM-/UIA-Fehler gelten als unklar und lösen keine Bereinigung
+  aus. Fenstertitel oder Terminaltext dienen nie als Ersatzheuristik.
 - Ablöseplan: Einen späteren öffentlichen, stabilen Terminal-/Tab-Identifier
   bevorzugen und die Runtime-ID-Abhängigkeit entfernen.
 
@@ -65,6 +69,6 @@ Erweiterungsschnittstellen zugesagt.
 
 Globale Eingabe-Hooks, Monkeypatches, Terminal-Screen-Scraping, dauerhafte
 UIA-IDs, private Netzwerkschnittstellen und blockierende Arbeit im NVDA-
-Hauptthread bleiben ausgeschlossen. F12 ist ein reguläres Script des nur für
-Windows Terminal geladenen AppModules und wird vor der Claim-Prüfung an Neovim
-weitergereicht.
+Hauptthread bleiben ausgeschlossen. F12 wird vom nur für Windows Terminal
+geladenen AppModule beobachtet, aber weder als NVDA-Skript gebunden noch
+synthetisch weitergereicht.

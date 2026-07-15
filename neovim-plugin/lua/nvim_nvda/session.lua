@@ -4,8 +4,33 @@ local registry_file
 local socket_path
 local owns_socket = false
 local registry_value
+local is_windows
 
-local function is_windows()
+local function random_nonce()
+  local bytes = vim.uv.random(16)
+  assert(type(bytes) == "string" and #bytes == 16, "secure registry nonce unavailable")
+  return (bytes:gsub(".", function(byte)
+    return string.format("%02x", string.byte(byte))
+  end))
+end
+
+local function linux_process_start_ticks()
+  if is_windows() then return nil end
+  local file = io.open("/proc/self/stat", "r")
+  if not file then return nil end
+  local value = file:read("*a")
+  file:close()
+  local fields = value:match("^%d+ %b() (.+)$")
+  if not fields then return nil end
+  local index = 0
+  for field in fields:gmatch("%S+") do
+    index = index + 1
+    if index == 20 then return tonumber(field) end -- Linux /proc field 22.
+  end
+  return nil
+end
+
+is_windows = function()
   return vim.fn.has("win32") == 1
     or vim.g.nvim_nvda_test_windows == true
     or vim.g.nvim_nvda_test_windows == 1
@@ -18,7 +43,16 @@ local function normalize_name(value)
   end
   value = value:gsub("[%z\1-\31\127]", " "):gsub("^%s+", ""):gsub("%s+$", "")
   if #value > 120 then
-    value = value:sub(1, 120)
+    local offset = 1
+    local last_complete = 0
+    while offset <= #value and offset <= 120 do
+      local byte = value:byte(offset)
+      local width = byte < 0x80 and 1 or byte < 0xE0 and 2 or byte < 0xF0 and 3 or 4
+      if offset + width - 1 > 120 then break end
+      last_complete = offset + width - 1
+      offset = offset + width
+    end
+    value = value:sub(1, last_complete)
   end
   return value
 end
@@ -62,6 +96,7 @@ function M.start()
     vim.uv.fs_chmod(sessions, 448)
   end
   local pid = vim.fn.getpid()
+  local session_nonce = random_nonce()
   local transport_kind = "remoteSsh"
   local host
   local port
@@ -80,18 +115,20 @@ function M.start()
     -- instead of publishing the incompatible TCP address.
     local is_unix_socket = socket_path and socket_path ~= "" and socket_path:find("/", 1, true) ~= nil
     if not is_unix_socket then
-      socket_path = root .. "/nvim-" .. tostring(pid) .. ".sock"
+      socket_path = root .. "/nvim-" .. tostring(pid) .. "-" .. session_nonce .. ".sock"
       vim.fn.serverstart(socket_path)
       owns_socket = true
     end
   end
-  registry_file = sessions .. "/" .. tostring(pid) .. ".json"
+  -- A nonce-qualified filename prevents a stale lister from unlinking a new
+  -- process's record after PID reuse.
+  registry_file = sessions .. "/" .. tostring(pid) .. "-" .. session_nonce .. ".json"
   local configured_name = vim.g.nvim_nvda_session_name
   if type(configured_name) ~= "string" or configured_name == "" then
     configured_name = vim.env.NVIM_NVDA_SESSION_NAME
   end
   registry_value = {
-    version = 2,
+    version = 3,
     pid = pid,
     socket = socket_path,
     transportKind = transport_kind,
@@ -101,6 +138,9 @@ function M.start()
     name = normalize_name(configured_name),
     startedMonotonic = vim.uv.hrtime(),
     startedUnix = os.time(),
+    processStartTicks = linux_process_start_ticks(),
+    sessionNonce = session_nonce,
+    ownsSocket = owns_socket,
     claimedMonotonic = 0,
     claimSequence = 0,
   }
@@ -111,6 +151,10 @@ function M.start()
     callback = M.stop,
   })
   return socket_path
+end
+
+function M.identity()
+  return registry_value and registry_value.sessionNonce or ""
 end
 
 function M.claim()

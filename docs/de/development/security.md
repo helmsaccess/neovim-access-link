@@ -14,6 +14,15 @@
 - Empfangene Nachrichten werden typ- und größenvalidiert. Text aus einer
   Nachricht wird niemals als Python-, Lua- oder Ex-Code ausgeführt.
 
+Die Registry-Bereinigung beendet keinen Prozess. Schema-3-Dateien sind durch
+PID plus zufällige Nonce eindeutig. Nur eine zweifelsfrei tote oder durch die
+Prozessstartkennung widerlegte Datei wird entfernt. Die Nonce-Prüfung erfolgt
+erst auf dem ausgewählten dauerhaften RPC-Kanal und löscht bei einem
+Unterschied nichts. Ein Socket wird nur bei `ownsSocket=true`
+und dem exakt zu PID plus Nonce gehörenden Pluginpfad entfernt; übernommene und
+benutzerdefinierte Pfade bleiben unangetastet. Timeout, SSH-/UIA-Fehler oder
+Zugriffsunsicherheit bleiben nicht-destruktiv.
+
 ## SSH-Anmeldung
 
 Empfohlen sind Windows-OpenSSH-Konfiguration, Schlüssel und ssh-agent. Ein
@@ -51,6 +60,13 @@ Laufzeitverzeichnis beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda`. Linux-
 Einträge benötigen lebende PIDs und private Unix-Sockets; Windows-Einträge
 benötigen lebende PIDs, den Typ `localWindowsTcp` und exakt `127.0.0.1`.
 Die Windows-PID-Prüfung fordert ausschließlich lesende Prozessrechte an.
+
+Registry-Bereinigung beendet keine Prozesse. Sie löscht nur einen eindeutig
+toten oder durch Prozessstart/Nonce widerlegten privaten Eintrag. Ein Socket
+wird nur bei `ownsSocket=true` und exakt erwartetem privaten Standardpfad
+entfernt. Timeout, SSH-Ausfall, Fokusverlust oder fehlende Leserechte führen
+niemals zum Löschen. Geschlossene WT-Tabs oder ganze Fenster stoppen nur den lokalen
+NVDA-Client; entfernte Neovim-/tmux-Prozesse bleiben unangetastet.
 
 Die Installation läuft ohne Root-Rechte und schreibt ausschließlich in
 `~/.local` des ausdrücklich ausgewählten Linux-Kontos. Sie ändert weder

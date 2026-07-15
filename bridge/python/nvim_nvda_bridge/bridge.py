@@ -15,6 +15,7 @@ class Bridge:
         nvim_socket: str,
         stdio_streams: tuple[Any, Any] | None = None,
         transport: Any | None = None,
+        session_nonce: str | None = None,
     ) -> None:
         self._state_lock = threading.Lock()
         self._state: dict[str, Any] = {"connection": {"neovim": "connecting"}}
@@ -28,7 +29,10 @@ class Bridge:
             )
         else:
             raise ValueError("SSH stdio streams are required")
-        self.nvim = NvimRpcSource(nvim_socket, self._on_nvim_event, self._on_nvim_connection)
+        self.nvim = NvimRpcSource(
+            nvim_socket, self._on_nvim_event, self._on_nvim_connection,
+            session_nonce,
+        )
 
     def start(self) -> None:
         self.transport.start()

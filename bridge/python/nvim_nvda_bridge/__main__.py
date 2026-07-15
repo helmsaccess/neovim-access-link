@@ -8,7 +8,7 @@ import threading
 import time
 
 from .bridge import Bridge
-from .session_registry import discover_socket, list_sessions
+from .session_registry import discover_session, list_sessions
 
 
 def main() -> int:
@@ -29,12 +29,18 @@ def main() -> int:
             for session in list_sessions()
         ], ensure_ascii=False))
         return 0
+    session_nonce = None
     if not args.nvim_socket:
         try:
-            args.nvim_socket = discover_socket(selector=args.session or "")
+            session = discover_session(selector=args.session or "")
+            args.nvim_socket = session.socket
+            session_nonce = session.session_nonce
         except RuntimeError as error:
             parser.error(str(error))
-    bridge = Bridge(args.nvim_socket, stdio_streams=(sys.stdin.buffer, sys.stdout.buffer))
+    bridge = Bridge(
+        args.nvim_socket, stdio_streams=(sys.stdin.buffer, sys.stdout.buffer),
+        session_nonce=session_nonce,
+    )
     stopped = threading.Event()
 
     def stop(_signum=None, _frame=None) -> None:

@@ -15,7 +15,10 @@ vim.env.NVIM_NVDA_TEST_WINDOWS = "1"
 package.loaded["nvim_nvda.session"] = nil
 local session = dofile(root .. "/neovim-plugin/lua/nvim_nvda/session.lua")
 local address = session.start()
-local registry = temporary .. "/nvim-nvda/sessions/" .. tostring(vim.fn.getpid()) .. ".json"
+local registry_matches = vim.fn.glob(
+  temporary .. "/nvim-nvda/sessions/" .. tostring(vim.fn.getpid()) .. "-*.json", false, true)
+truth(#registry_matches == 1, "one nonce-qualified local registry file created")
+local registry = registry_matches[1]
 truth(vim.fn.filereadable(registry) == 1,
   "local registry is created: " .. vim.inspect(vim.fn.glob(temporary .. "/**/*", true, true)))
 local value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
@@ -26,6 +29,10 @@ truth(value.host == "127.0.0.1", "registry host is exact loopback")
 truth(type(value.port) == "number" and value.port >= 1 and value.port <= 65535,
   "registry contains the allocated port")
 truth(value.socket == address, "registry address matches the Neovim server")
+truth(value.version == 3, "local registry uses current schema")
+truth(type(value.sessionNonce) == "string" and #value.sessionNonce == 32,
+  "local registry records a session nonce")
+truth(value.ownsSocket == true, "local plugin owns its loopback endpoint")
 
 session.claim()
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
@@ -36,5 +43,5 @@ truth(value.claimSequence == 1, "local claim sequence increments")
 session.stop()
 truth(vim.fn.filereadable(registry) == 0, "local registry is removed on stop")
 vim.fn.delete(temporary, "rf")
-print("local Windows session tests: 9 assertions passed")
+print("local Windows session tests: registry lifecycle assertions passed")
 vim.cmd("qa!")

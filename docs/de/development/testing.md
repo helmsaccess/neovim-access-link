@@ -29,7 +29,7 @@ python3 -m unittest discover -s nvda-addon/tests -v
 Die Protokolltests prüfen v2-Pflichtfelder, Größenlimits, UTF-8, Framing,
 Sequenzierung, Resync, den SSH-stdio-Marker sowie den streng auf
 `127.0.0.1` begrenzten lokalen Client. Protokoll v1 wird ausdrücklich
-abgewiesen. Die Bridge-Tests prüfen die Registry v2, Neovim-RPC, semantische
+abgewiesen. Die Bridge-Tests prüfen die Registry v3, Neovim-RPC, semantische
 Ereignisse, Steuerbefehle und Braille-Routing. Alte TCP-Listener, Tokens und
 Kompatibilitätstests sind absichtlich entfernt.
 
@@ -95,12 +95,19 @@ seine Profilauswahl.
 Alle Dateien unter `neovim-plugin/tests/*_spec.lua` werden mit dem unterstützten
 Neovim ausgeführt. Die Tests modellieren und integrieren Completion,
 Pluginadapter, Visual-Auswahl, Spell/Diagnostics, Dateimanager und die atomare
-Session-Registry v2. TUI-Tests verwenden eine eigene temporäre Neovim-Instanz
+Session-Registry v3. TUI-Tests verwenden eine eigene temporäre Neovim-Instanz
 und ein Pseudoterminal; sie hängen sich niemals an eine Sitzung des Anwenders.
+Registry-Regressionen decken geordnetes Ende, SIGKILL, PID-/Endpoint-/Nonce-
+Wiederverwendung, ausgeblendete Altschemata, passive und begrenzte Inventur,
+Berechtigungsunsicherheit, begrenzte Dateianzahlen, UTF-8-sichere Namen,
+nonce-eindeutige eigene Sockets und nicht-destruktive Fehlerpfade ab.
+Reale RPC-Tests verlangen außerdem, dass die Nonce auf dem dauerhaften Kanal
+vor `setup()` geprüft wird und ein Unterschied ohne Wiederverbindung endet.
 
 Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
-Dateimanager-Test lädt zusätzlich Neovims eingebautes `netrwPlugin.vim`.
+Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
+seit Neovim 0.12 optionale Paket mit `packadd netrw`.
 
 Der reproduzierbare Einstiegspunkt berücksichtigt beide Bedingungen:
 

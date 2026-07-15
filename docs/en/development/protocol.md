@@ -21,6 +21,19 @@ supported.
 
 ## Registry claim and explicit binding
 
+Schema 3 binds an entry to the actual Neovim RPC endpoint through a random
+`sessionNonce`. On Linux, `processStartTicks` must also match `/proc/<pid>/stat`;
+`ownsSocket` authorizes cleanup only for the exact plugin endpoint containing
+the same PID and nonce; inherited or user-defined sockets are never unlinked.
+A live PID or existing path alone is not an identity proof.
+The private filename contains PID plus nonce; discovery may remove only that
+uniquely owned record after proving it stale.
+A scan processes at most 256 registry files and each file is limited to 65,536
+bytes. Discovery and claim polling are passive and open no RPC channel. Once a
+record is selected, its nonce is queried on the same permanent RPC channel
+that will carry events, before plugin setup and channel registration. A
+mismatch disconnects fail-open without reconnecting the rejected endpoint.
+
 Local and remote registry entries contain a monotonically increasing
 `claimSequence` and the corresponding `claimedMonotonic` timestamp. Neovim
 recognizes the configured session-marking key from `vim.on_key`'s unchanged

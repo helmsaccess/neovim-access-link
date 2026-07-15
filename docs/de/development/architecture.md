@@ -86,13 +86,25 @@ Verbindungs- und Zuordnungspfad.
 
 Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten
 Unix-RPC-Socket. Unter Windows startet sie zusätzlich einen dynamischen
-`127.0.0.1`-RPC-Port. Beide schreiben eine Registrydatei mit Schema 2,
+`127.0.0.1`-RPC-Port. Beide schreiben eine Registrydatei mit Schema 3,
 Transporttyp, PID, Endpoint, Startzeit, Name und Arbeitsverzeichnis. Die
 Registry liegt im privaten Laufzeitverzeichnis des Linux-Benutzers
 beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda`.
 
-Die Bridge akzeptiert ausschließlich aktuelle Schema-2-Einträge, prüft
-Prozess und Socket und kann eine Sitzung über die interne PID auswählen. Das
+Aktuelle Einträge enthalten zusätzlich eine zufällige `sessionNonce`, den
+Besitzstatus des Endpoints und unter Linux die Prozessstartkennung aus `/proc`.
+Schema-3-Dateinamen enthalten PID und Nonce, sodass die Bereinigung eines alten
+Eintrags niemals die Datei eines Prozesses mit wiederverwendeter PID trifft.
+Discovery prüft PID, Prozessstart und Registrystruktur passiv. Erst nach der
+Auswahl prüft der anschließend dauerhaft verwendete RPC-Kanal seine Nonce vor
+Plugin-Setup und Registrierung. Ein Unterschied trennt fail-open ohne
+Wiederverbindung. Eindeutig tote Einträge und exakt nonce-eindeutige eigene Pluginsockets
+werden entfernt; übernommene oder benutzerdefinierte Socketpfade nie.
+Timeouts und Zugriffsfehler bleiben nicht-destruktiv. Ältere Registry-Schemata
+werden wegen fehlender Prozess-/Endpointidentität nicht mehr zur Auswahl
+angeboten; laufende ältere Neovim-Instanzen müssen nach dem Komponentenupdate
+neu gestartet werden. Die Bridge kann eine
+Sitzung über die interne PID auswählen. Das
 Add-on listet Sitzungen mit Anzeigename und Arbeitsverzeichnis; IDs bleiben
 interne Transportdaten.
 
@@ -167,6 +179,15 @@ Zuordnung `TerminalIdentity → ConnectionInstance` lebt ausschließlich im RAM.
 Bei unbekannter, abgelehnter, verschwundener oder nicht mehr gebundener ID wird
 nichts geraten und keine Verbindung automatisch erzeugt. Der Transporttyp
 hält lokales Windows-Neovim dabei strikt von `remoteSsh` getrennt.
+
+Solange Verbindungen bestehen, prüft ausschließlich ein fünfminütiger
+Wartungslauf HWND, Prozess-ID und UIA-Runtime-ID. Diese Prüfung läuft nie aus
+Editorereignissen, Verbindungsstatus, Fokusbehandlung oder Aktionen heraus.
+Die fokussierte Identität ist ein positiver Lebensnachweis; ein inaktiver Tab
+wird erst nach zwei aufeinanderfolgenden negativen Wartungsprüfungen getrennt.
+Damit kann eine einzelne vorübergehende UIA-Lücke keine aktive oder inaktive
+Zuordnung zerstören. Das Stoppen des zugehörigen Clients geschieht außerhalb
+des NVDA-Hauptthreads und beendet weder Neovim noch tmux.
 
 ## Threading und Lebenszyklus
 
