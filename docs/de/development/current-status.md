@@ -3,15 +3,27 @@
 Stand: 2026-07-16, Beta-Version 0.91.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
-Auf `feature/focus-context-settings` ist die Ausgabe nach einer bestätigten
-Fokusrückkehr profilabhängig wahlweise still, die aktuelle strukturierte Zeile
-oder der bisherige Datei-/Spezialkontext mit Modus und Verbindungsname. Das
-bisherige Verhalten bleibt Standard. Insert-/Normalmodusklänge sind davon
-getrennt und werden nach gültiger Fokuskorrelation durch die vorhandenen
-Klangoptionen gesteuert. Fokus-Gate, strukturierte Braillezeile und fail-open
-Verhalten bleiben bei jeder Auswahl aktiv. Die automatisierten Add-on-Tests
-sind bestanden. Der praktische NVDA-/WT-Test bestätigte alle drei Auswahlwerte
-und die Modusklänge lokal und über SSH ohne Probleme.
+Auf `feature/copy-paste` sind vier frei belegbare, ausdrücklich ausgelöste
+NVDA-Befehle implementiert: Visual-Auswahl kopieren, Register 0 kopieren,
+Windows-Zwischenablagentext über Neovims Paste-API einfügen oder in Neovims
+Register 0 speichern und das unbenannte Register für normales `p` darauf
+zeigen lassen. Lokal und über SSH gilt derselbe korrelierte Protokollpfad. Er prüft Fokus, Control-Bindung,
+Instanz, Anfrage-ID, Buffer, Fenster, Tab, `changedtick` und Modus, begrenzt
+Text auf 256 KiB UTF-8 und hält Copy-Text aus Zustands-Cache und Diagnosen fern.
+Paste bleibt auf normale veränderbare Editorbuffer beschränkt. 38 Protokoll-,
+28 Bridge-, 244 Add-on/Core-/Pakettests und alle Lua-Spezifikationen inklusive
+28 Zwischenablageassertionen bestehen; Add-on und sechs HTML-Dokumente bauen
+erfolgreich. Alle vier Befehle wurden im bereitgestellten `dev.4`-Build
+praktisch ohne Probleme bestätigt.
+
+Der erste Build registrierte die frei belegbaren Befehle nur im Windows-
+Terminal-AppModule. Nach NVDAs anwendungsbezogener Filterung fehlte deshalb die
+gesamte Produktkategorie, wenn der Tastenbefehldialog etwa aus dem Explorer
+geöffnet wurde. Die Korrektur registriert unbelegte globale Metadaten, prüft
+beim Aufruf erneut die exakte WT-`TermControl`-Identität und gibt die Geste in
+anderen Anwendungen unverändert weiter. Der `dev.4`-Praxistest bestätigte die
+Kategorie aus einer Fremdanwendung, die unveränderte Weitergabe dort und die
+korrekte Ausführung im gebundenen Neovim-Control vollständig.
 
 Der erste Praxistest mit `0.89.0-dev.1` zeigte beim Wechsel Explorer → dasselbe
 WT-Control keine Dateinamenansage. Die Diagnose enthielt Fokusverlust,
@@ -47,7 +59,7 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   nicht-destruktiv. Geschlossene einzelne WT-Tabs oder ganze Fenster entfernen
   nach zwei negativen Prüfungen im Abstand von fünf Minuten ihre jeweilige NVDA-Bindung und
   stoppen den Client außerhalb des Hauptthreads, ohne Neovim oder tmux zu
-  beenden. Isolierte SIGKILL-Tests lokal und auf `eh@tessa` hinterließen keine
+  beenden. Isolierte SIGKILL-Tests lokal und auf `user@example.invalid` hinterließen keine
   sichtbare Sitzung und keine eigenen nonce-eindeutigen Registry-/Socketreste.
   Fokussierte Tabs werden nie durch die UIA-Wartungsprüfung entfernt; diese
   Prüfung läuft nicht in Editor-, Status- oder Aktionspfaden.
@@ -183,9 +195,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   NVDA-AppModule. Darin müssen freigegebene UIA-Klasse und stabile Runtime-ID
   gemeinsam passen. PuTTY ist in der Frontendrichtlinie nur als geplant
   vermerkt und kann ohne implementierten Adapter nicht freigeschaltet werden.
-  Ereignisse, Overlays und F12-Zuordnung liegen im ausschließlich für
-  `windowsterminal.exe` geladenen NVDA-AppModule. Das globale Dienstmodul fragt
-  fremde Fenster nicht ab und besitzt keine globalen Eingabeskripte.
+  Ereignisse, Overlays, F12-Zuordnung und der standardbelegte Diagnosebefehl
+  liegen im ausschließlich für `windowsterminal.exe` geladenen NVDA-AppModule.
+  Unbelegte globale Skriptadapter dienen nur der dauerhaften Sichtbarkeit im
+  Tastenbefehldialog und delegieren ausschließlich nach strikter WT-Prüfung.
 - Strukturierte Sprache und Braille decken Modi, Navigation, Bearbeitung,
   Visual Character/Line/Block, Einrückung, Completion und Menüs, Suche,
   Diagnostics und Rechtschreibung, Folds, Marks, Register, Makros, Terminal-

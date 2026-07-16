@@ -42,6 +42,49 @@ setup and that mismatch disconnects without a reconnect loop.
 Isolated local and Tessa SIGKILL tests must leave discovery empty
 without touching existing user Neovim or tmux sessions.
 
+## Copy/paste feature-branch acceptance
+
+Prerequisites: the current feature build, updated local and remote components,
+one explicitly bound local and one SSH session, and freely assigned NVDA
+gestures for all four clipboard commands.
+
+Before testing a session, open NVDA's Input Gestures dialog from an unrelated
+application. “Neovim Access Link” and its freely assignable commands must be
+visible. An assigned test gesture must reach the focused non-WT application
+unchanged and must produce no add-on output, activation, or binding change.
+
+1. Copy characterwise, linewise, and blockwise selections containing ASCII,
+   non-ASCII text, emoji, tabs, and multiple lines; verify in a neutral Windows
+   application.
+2. Use `yy` and another yank to populate register 0, then copy it with the
+   second command. Delete registers must not be selected accidentally.
+3. Paste single- and multiline Windows text with Unicode and CRLF in Normal
+   and Insert mode; verify cursor position, one undo with `u`, and `.` behavior.
+4. Store Windows text with and without a trailing newline in Neovim's unnamed
+   paste register. Normal `p` and `"0p` must use characterwise or linewise type
+   as appropriate; named user registers must remain unchanged.
+5. Change focus, tab, pane, buffer, or mode during a request. A late response
+   to copy must not change the clipboard. A paste already dispatched may reach
+   the previously and explicitly addressed buffer at most once, but must never
+   affect the new session, repeat, or announce success there.
+6. Check a shell pane, Neovim terminal buffer, file manager, read-only buffer,
+   and `nomodifiable` buffer. The command must reject clearly and leave native
+   terminal output unchanged.
+7. Repeat locally and over SSH, then inspect the redacted diagnostic report.
+   Transferred text must not be present.
+
+Expected: identical local/remote behavior, exactly one mutation per command,
+no automatic synchronization or retry, and success feedback governed by “Copy
+and paste”.
+
+Practical test on 16 July 2026: the installed `0.91.0-dev.4` feature build and
+the existing bound Neovim sessions were used. NVDA's Input Gestures dialog was
+opened from an unrelated application; a freely assigned gesture was invoked
+outside WT and then in the bound Neovim control. The exact key was not
+recorded. Expected were a visible product category, unchanged pass-through
+outside WT, and a Neovim action only in the bound control. These points and
+all four clipboard commands worked without problems. Result: passed.
+
 ## Required Windows Terminal isolation tests
 
 For focus-context output, alternate focus between a bound Neovim control, an

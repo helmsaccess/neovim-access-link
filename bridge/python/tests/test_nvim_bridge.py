@@ -35,6 +35,40 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+    def test_clipboard_control_uses_only_fixed_plugin_entry_points(self) -> None:
+        notifications = []
+        bridge = Bridge.__new__(Bridge)
+        bridge.nvim = type("Nvim", (), {
+            "notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+        })()
+        state = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "changedtick": 4, "modeRaw": "n", "requestId": 5,
+        }
+        bridge._on_client_control("copyTextRequest", {**state, "source": "yankRegister"})
+        bridge._on_client_control("pasteTextRequest", {**state, "text": "remote text"})
+        bridge._on_client_control("setRegisterRequest", {**state, "text": "current register"})
+        bridge._on_client_control("pasteTextRequest", {**state, "text": "bad\0text"})
+        self.assertEqual(3, len(notifications))
+        self.assertTrue(all(method == "nvim_exec_lua" for method, _ in notifications))
+        self.assertIn("request_copy_text", notifications[0][1][0])
+        self.assertIn("request_paste_text", notifications[1][1][0])
+        self.assertIn("request_set_register", notifications[2][1][0])
+
+    def test_bridge_publishes_clipboard_text_once_but_never_caches_it(self) -> None:
+        transport = RecordingTransport()
+        bridge = Bridge.__new__(Bridge)
+        bridge._state_lock = threading.Lock()
+        bridge._state = {}
+        bridge.transport = transport
+        bridge._on_nvim_event("copyTextResult", {
+            "mode": "normal", "requestId": 9, "ok": True,
+            "resultCode": "copied", "clipboardText": "private text",
+        })
+        self.assertEqual("private text", transport.events[-1]["payload"]["clipboardText"])
+        self.assertNotIn("clipboardText", bridge.full_state())
+        self.assertNotIn("requestId", bridge.full_state())
+
     def test_real_tui_f12_claim_leaves_normal_mode(self) -> None:
         root = pathlib.Path.cwd()
         with tempfile.TemporaryDirectory() as directory:

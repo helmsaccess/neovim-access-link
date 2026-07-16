@@ -58,10 +58,14 @@ unbekannte oder nur ähnlich benannte UIA-Controls und selbst künstlich gebunde
 Fremd-Frontends müssen vollständig fail-open bleiben. Eine Richtlinie darf
 keinen nicht implementierten Adapter allein per Konfiguration aktivieren.
 Das Paket muss `appModules/windowsterminal.py` enthalten. Nur dieses AppModule
-darf Fokusereignisse, Overlays und Eingabeskripte bereitstellen; die globale
-Dienstklasse darf keine `event_*`-, `script_*`- oder
-`chooseNVDAObjectOverlayClasses`-Hooks besitzen und keinen globalen Fokus
-abfragen. `event_appModule_loseFocus` muss Fokus und Unterdrückung löschen,
+darf Fokusereignisse, Overlays, F12 und standardbelegte Eingabeskripte
+bereitstellen. Die globale Dienstklasse darf keine `event_*`- oder
+`chooseNVDAObjectOverlayClasses`-Hooks besitzen. Ihre frei belegbaren
+`script_*`-Adapter müssen ohne Standardgeste und mit Produktkategorie
+registriert sein. Bei Fokus außerhalb eines exakt erkannten WT-Controls müssen
+sie die Originalgeste genau einmal weitergeben, ohne Gate oder Bindung zu
+verändern; innerhalb von WT müssen sie den aktuellen Fokus vor Delegation neu
+prüfen. `event_appModule_loseFocus` muss Fokus und Unterdrückung löschen,
 darf aber ein inzwischen fokussiertes zweites Windows-Terminal-AppModule nicht
 durch ein verspätetes Fokusverlustereignis des ersten Fensters abwählen.
 Die F12-Tests prüfen zusätzlich, dass bei identischen Sitzungsmerkmalen nur die
@@ -157,6 +161,54 @@ getestet.
 Für manuelle Tests sind Voraussetzungen, exakte Befehle und Tasten, erwartete
 und tatsächliche Ausgabe sowie Ergebnis festzuhalten. Passwörter, Editorinhalt
 und andere vertrauliche Daten gehören nicht in Testartefakte oder Logs.
+
+### Copy/Paste-Abnahme für den Featurebranch
+
+Voraussetzungen: aktueller Featurebranch-Build, aktualisierte lokale und
+entfernte Komponenten, je eine ausdrücklich gebundene lokale und SSH-Sitzung
+sowie frei zugewiesene NVDA-Gesten für alle vier Zwischenablagebefehle.
+
+Vor dem Sitzungstest NVDAs Tastenbefehldialog einmal aus einer fremden
+Anwendung öffnen. „Neovim Access Link“ und die frei belegbaren Befehle müssen
+sichtbar sein. Eine zugewiesene Testgeste muss außerhalb eines erkannten
+WT-Controls unverändert in der fokussierten Anwendung ankommen und darf keine
+Add-on-Ausgabe, Aktivierung oder Bindungsänderung auslösen.
+
+1. Zeichen-, Zeilen- und Blockauswahl mit ASCII, Umlauten, Emoji, Tabs und
+   mehreren Zeilen nach Windows kopieren und den Inhalt in einer neutralen
+   Windows-Anwendung prüfen.
+2. Mit `yy` und einem weiteren Yank Register 0 füllen und über den zweiten
+   Befehl kopieren. Löschregister dürfen nicht versehentlich verwendet werden.
+3. Ein- und mehrzeiligen Windows-Text mit Unicode und CRLF in Normal- und
+   Insertmodus einfügen; Cursorposition, Undo mit `u` und Wiederholung mit `.`
+   prüfen.
+4. Windows-Text mit und ohne abschließenden Zeilenumbruch in Neovims unbenanntes
+   Paste-Register übertragen. Normales `p` und `"0p` müssen Zeichen- beziehungsweise
+   Zeilentyp verwenden; benannte Benutzerregister müssen unverändert bleiben.
+5. Während einer laufenden Aktion Fokus, Tab, Pane, Buffer oder Modus wechseln.
+   Eine verspätete Copy-Antwort darf die Zwischenablage nicht ändern. Ein
+   bereits abgesandter Paste darf im zuvor ausdrücklich adressierten Buffer
+   höchstens einmal ankommen, aber niemals die neue Sitzung treffen, wiederholt
+   werden oder dort eine Erfolgsmeldung erzeugen.
+6. Shell-Pane, Neovim-Terminalbuffer, Dateimanager, Readonly- und
+   `nomodifiable`-Buffer prüfen. Der Befehl muss verständlich ablehnen und
+   native Terminalausgabe unverändert lassen.
+7. Dasselbe lokal und über SSH wiederholen; anschließend den redigierten
+   Diagnosebericht prüfen. Der übertragene Text darf darin nicht vorkommen.
+
+Erwartet ist identisches lokales/entferntes Verhalten, genau eine Änderung pro
+Aufruf, keine automatische Synchronisation oder Wiederholung und eine durch
+„Copy and paste“ gesteuerte Erfolgsrückmeldung.
+
+Praxistest vom 16. Juli 2026: Voraussetzung war der installierte
+`0.91.0-dev.4`-Featurebuild mit den vorhandenen gebundenen Neovim-Sitzungen.
+NVDAs Tastenbefehldialog wurde aus einer Fremdanwendung geöffnet, eine frei
+zugewiesene Geste außerhalb WT und anschließend im gebundenen Neovim-Control
+ausgeführt; die konkrete Taste wurde nicht protokolliert. Erwartet waren die
+sichtbare Produktkategorie, unveränderte Weitergabe außerhalb WT und die
+Neovim-Aktion nur im gebundenen Control. Tatsächlich funktionierten diese
+Punkte sowie alle vier Zwischenablagebefehle ohne Probleme. Ergebnis:
+bestanden.
 
 ### Bestätigter lokaler und entfernter Mehrfachbetrieb
 

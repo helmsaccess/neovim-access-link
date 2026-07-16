@@ -156,16 +156,6 @@ class AppModule(appModuleHandler.AppModule):
         )
 
     @scriptHandler.script(
-        description=_("Turn Neovim accessibility on or off and discover configured connections"),
-        category=scriptCategory,
-    )
-    def script_toggleNeovimMode(self, gesture):
-        plugin = self._plugin()
-        if plugin is not None:
-            self._prepareTerminalAction(plugin)
-            plugin.action_toggleNeovimMode(gesture)
-
-    @scriptHandler.script(
         description=_("Copy Neovim accessibility diagnostic report"),
         category=scriptCategory,
         gesture="kb:NVDA+alt+d",
@@ -175,24 +165,50 @@ class AppModule(appModuleHandler.AppModule):
         if plugin is not None:
             plugin.action_copyDiagnosticReport(gesture)
 
-    @scriptHandler.script(
-        description=_("Read documentation for the selected Neovim completion item"),
-        category=scriptCategory,
-    )
-    def script_readCompletionDocumentation(self, gesture):
-        plugin = self._plugin()
-        if plugin is not None:
-            plugin.action_readCompletionDocumentation(gesture)
-
-    @scriptHandler.script(
-        description=_("Choose a server and connect this terminal to a new Neovim session"),
-        category=scriptCategory,
-    )
-    def script_startConnectionInstance(self, gesture):
+    def _delegateLegacyConfiguredScript(self, gesture, action_name):
+        """Keep user gestures saved against pre-dev.4 AppModule script IDs."""
         plugin = self._plugin()
         if plugin is not None:
             self._prepareTerminalAction(plugin)
-            plugin.action_startConnectionInstance(gesture)
+            getattr(plugin, action_name)(gesture)
+
+    # Deliberately undocumented: NVDA keeps resolving existing user gesture
+    # assignments by these old AppModule script IDs, while the documented
+    # global scripts provide the one always-visible configuration surface.
+    def script_toggleNeovimMode(self, gesture):
+        self._delegateLegacyConfiguredScript(gesture, "action_toggleNeovimMode")
+
+    def script_readCompletionDocumentation(self, gesture):
+        self._delegateLegacyConfiguredScript(
+            gesture, "action_readCompletionDocumentation",
+        )
+
+    def script_copyNeovimSelection(self, gesture):
+        self._delegateLegacyConfiguredScript(gesture, "action_copyNeovimSelection")
+
+    def script_copyLastNeovimYank(self, gesture):
+        self._delegateLegacyConfiguredScript(gesture, "action_copyLastNeovimYank")
+
+    def script_pasteWindowsClipboard(self, gesture):
+        self._delegateLegacyConfiguredScript(gesture, "action_pasteWindowsClipboard")
+
+    def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
+        self._delegateLegacyConfiguredScript(
+            gesture, "action_setNeovimRegisterFromWindowsClipboard",
+        )
+
+    def script_startConnectionInstance(self, gesture):
+        self._delegateLegacyConfiguredScript(gesture, "action_startConnectionInstance")
+
+    def script_disconnectConnectionInstance(self, gesture):
+        self._delegateLegacyConfiguredScript(
+            gesture, "action_disconnectConnectionInstance",
+        )
+
+    def script_forgetTemporaryTerminalBinding(self, gesture):
+        self._delegateLegacyConfiguredScript(
+            gesture, "action_forgetTemporaryTerminalBinding",
+        )
 
     def _decideExecuteGesture(self, gesture):
         identifiers = tuple(
@@ -231,21 +247,3 @@ class AppModule(appModuleHandler.AppModule):
             None, forward_gesture=False,
             expected_identity=identity, claim_generation=generation,
         )
-
-    @scriptHandler.script(
-        description=_("Disconnect the selected Neovim connection instance"),
-        category=scriptCategory,
-    )
-    def script_disconnectConnectionInstance(self, gesture):
-        plugin = self._plugin()
-        if plugin is not None:
-            plugin.action_disconnectConnectionInstance(gesture)
-
-    @scriptHandler.script(
-        description=_("Forget the temporary Neovim connection for the focused terminal"),
-        category=scriptCategory,
-    )
-    def script_forgetTemporaryTerminalBinding(self, gesture):
-        plugin = self._plugin()
-        if plugin is not None:
-            plugin.action_forgetTemporaryTerminalBinding(gesture)

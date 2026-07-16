@@ -14,6 +14,11 @@ Confirmed session-focus presentation is profile-selectable as silent, current
 structured line, or existing file/special context with mode and connection
 name. Insert/Normal sounds remain independently governed by their existing
 feedback settings.
+Explicit copy/paste uses four freely assignable NVDA commands and correlated
+Neovim controls for the Visual selection, register 0, `nvim_paste`, and fixed
+register 0 as the unnamed paste register's backing store.
+Protocol, Lua, bridge, and built-add-on coverage exists; practical local/SSH
+acceptance of the extended register command remains pending.
 Multiple bound sessions are isolated by process, window handle, complete UIA
 runtime identity, session, sequence, and structured focus validation. Exact
 one-shot, control-specific physical F12 proofs and switching between

@@ -16,6 +16,14 @@ current structured line, or the existing file/special context with mode and
 connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
 
+Feedback also contains a profile-aware copy/paste success setting using the
+same Off, Speech, Sounds, or Speech and sounds values. Failures remain audible.
+The four clipboard commands have no default gestures and are assigned through
+NVDA's Input Gestures dialog. Transfer direction, register, and target buffer
+cannot be supplied as free-form commands, and no automatic synchronization is
+provided. The register command replaces fixed register 0 and points the
+unnamed register to it; named user registers are not touched.
+
 SSH profile schema 2 stores ID, display name, host/alias, optional Linux user,
 port, optional key, and authentication method. Inputs are validated against
 option injection and duplicate IDs. Password values are runtime-only. Local

@@ -7,6 +7,15 @@ from typing import Any
 
 from .nvim_rpc import NvimRpcSource
 from .stdio import StdioTransport
+from nvim_nvda_protocol import (
+    clipboard_result_state, valid_copy_text_request, valid_paste_text_request,
+    valid_set_register_request,
+)
+
+
+_COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
+_PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
+_SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
 
 
 class Bridge:
@@ -47,10 +56,17 @@ class Bridge:
             return dict(self._state)
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        published = dict(payload)
+        published["connection"] = {"neovim": "connected"}
+        state = (
+            clipboard_result_state(payload)
+            if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}
+            else dict(payload)
+        )
         with self._state_lock:
-            self._state = dict(payload)
+            self._state = state
             self._state["connection"] = {"neovim": "connected"}
-        self.transport.publish(event_type, self.full_state())
+        self.transport.publish(event_type, published)
 
     def _on_nvim_connection(self, state: str) -> None:
         with self._state_lock:
@@ -59,6 +75,18 @@ class Bridge:
             self.transport.publish("connectionStateChanged", self.full_state())
 
     def _on_client_control(self, kind: str, payload: dict[str, Any]) -> None:
+        if kind == "copyTextRequest":
+            if valid_copy_text_request(payload):
+                self.nvim.notify("nvim_exec_lua", _COPY_TEXT_LUA, [dict(payload)])
+            return
+        if kind == "pasteTextRequest":
+            if valid_paste_text_request(payload):
+                self.nvim.notify("nvim_exec_lua", _PASTE_TEXT_LUA, [dict(payload)])
+            return
+        if kind == "setRegisterRequest":
+            if valid_set_register_request(payload):
+                self.nvim.notify("nvim_exec_lua", _SET_REGISTER_LUA, [dict(payload)])
+            return
         if kind != "routeCursor":
             return
         required = ("bufferId", "windowId", "line", "byteColumn", "changedtick")

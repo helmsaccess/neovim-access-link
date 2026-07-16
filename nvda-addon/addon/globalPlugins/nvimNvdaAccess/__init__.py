@@ -18,6 +18,7 @@ import config
 import globalPluginHandler
 import globalVars
 import queueHandler
+import scriptHandler
 import speech
 import tones
 import ui
@@ -82,6 +83,10 @@ if _VENDOR_DIR not in sys.path:
 
 from .core.stdio_client import SshStdioClient
 from .core.local_client import LocalTcpClient
+from .core.clipboard import (
+    MAX_CLIPBOARD_TEXT_BYTES, clipboard_result_state,
+    valid_clipboard_text, valid_request_id,
+)
 from .core.braille import plan_braille, source_offset_for_expanded
 from .core.diagnostics import DiagnosticBuffer
 from .core.connection_profiles import (
@@ -148,6 +153,7 @@ _SESSION_CLAIM_GESTURE = _LINUX_COMPONENT_CONFIG["sessionClaim"]["nvdaGesture"]
 _SESSION_CLAIM_KEY_NAME = _LINUX_COMPONENT_CONFIG["sessionClaim"]["neovimKey"].strip("<>")
 _LOCAL_CLAIM_WAIT_SECONDS = 1.5
 _LOCAL_CLAIM_POLL_SECONDS = 0.05
+_MAX_PENDING_CLIPBOARD_REQUESTS = 32
 
 
 def _frontendPolicy():
@@ -173,6 +179,7 @@ _FRONTEND_POLICY = _frontendPolicy()
 _FEEDBACK_DEFAULTS = {
     "global": 3, "mode": 3, "delete": 3, "replace": 3,
     "lineBoundary": 2, "fileBoundary": 3, "lineCrossed": 2, "matchingError": 3,
+    "clipboard": 3,
 }
 _FEEDBACK_FOR_SOUND = {
     "delete": "delete", "replace": "replace",
@@ -184,7 +191,7 @@ _FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
 _FOCUS_ANNOUNCEMENT_DEFAULT = 2
 _NVDA_CONFIG_SECTION = "nvimNvdaAccess"
 _NATIVE_CONFIG_SCHEMA_VERSION = 5
-_NVDA_CONFIG_SCHEMA_VERSION = 6
+_NVDA_CONFIG_SCHEMA_VERSION = 7
 _NVDA_CONFIG_SPEC = {
     "schemaVersion": "integer(default=0, min=0)",
     "connections": 'string(default="[]")',
@@ -257,6 +264,8 @@ class StructuredTerminalBrailleOverlay:
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
+    scriptCategory = _PRODUCT_NAME
+
     def __init__(self):
         global _activePlugin
         super().__init__()
@@ -297,6 +306,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._pendingInstanceFullStates = {}
         self._focusContextRequestId = 0
         self._pendingFocusContexts = {}
+        self._clipboardRequestId = 0
+        self._pendingClipboardRequests = {}
+        self._transportCapabilities = frozenset()
         self._pendingClaimTargets = {}
         self._claimGestureGeneration = 0
         self._pendingObservedClaim = None
@@ -326,6 +338,115 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._installMenus()
         self._registerSettingsPanel()
 
+    def _dispatchConfiguredTerminalScript(self, gesture, action_name):
+        """Run a configurable command only for an exact Windows Terminal control.
+
+        These scripts are global solely so NVDA can always expose them in the
+        Input Gestures dialog.  They must not consume a user-assigned gesture
+        in another application or mutate terminal focus state there.
+        """
+        try:
+            obj = api.getFocusObject()
+            app_module = getattr(obj, "appModule", None)
+            descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
+            if (
+                descriptor is None
+                or getattr(app_module, "appName", None) != descriptor.app_module
+            ):
+                identity = None
+            else:
+                identity = self._identity(obj)
+        except Exception as error:
+            obj = None
+            identity = None
+            self._diagnostics.record(
+                "configuredGestureFocusFailed",
+                action=action_name,
+                errorType=type(error).__name__,
+            )
+        if identity is None:
+            self._diagnostics.record(
+                "configuredGesturePassedThrough", action=action_name,
+            )
+            if gesture is not None:
+                gesture.send()
+            return
+        self._refreshFocusedTerminalForAction(
+            obj, app_module,
+        )
+        getattr(self, action_name)(gesture)
+
+    @scriptHandler.script(
+        description=_("Turn Neovim accessibility on or off and discover configured connections"),
+        category=scriptCategory,
+    )
+    def script_toggleNeovimMode(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_toggleNeovimMode")
+
+    @scriptHandler.script(
+        description=_("Read documentation for the selected Neovim completion item"),
+        category=scriptCategory,
+    )
+    def script_readCompletionDocumentation(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_readCompletionDocumentation",
+        )
+
+    @scriptHandler.script(
+        description=_("Copy the active Neovim Visual selection to the Windows clipboard"),
+        category=scriptCategory,
+    )
+    def script_copyNeovimSelection(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_copyNeovimSelection")
+
+    @scriptHandler.script(
+        description=_("Copy Neovim's last yank to the Windows clipboard"),
+        category=scriptCategory,
+    )
+    def script_copyLastNeovimYank(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_copyLastNeovimYank")
+
+    @scriptHandler.script(
+        description=_("Paste Windows clipboard text into the active Neovim buffer"),
+        category=scriptCategory,
+    )
+    def script_pasteWindowsClipboard(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_pasteWindowsClipboard")
+
+    @scriptHandler.script(
+        description=_("Store Windows clipboard text in Neovim's unnamed register"),
+        category=scriptCategory,
+    )
+    def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_setNeovimRegisterFromWindowsClipboard",
+        )
+
+    @scriptHandler.script(
+        description=_("Choose a server and connect this terminal to a new Neovim session"),
+        category=scriptCategory,
+    )
+    def script_startConnectionInstance(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_startConnectionInstance")
+
+    @scriptHandler.script(
+        description=_("Disconnect the selected Neovim connection instance"),
+        category=scriptCategory,
+    )
+    def script_disconnectConnectionInstance(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_disconnectConnectionInstance",
+        )
+
+    @scriptHandler.script(
+        description=_("Forget the temporary Neovim connection for the focused terminal"),
+        category=scriptCategory,
+    )
+    def script_forgetTemporaryTerminalBinding(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_forgetTemporaryTerminalBinding",
+        )
+
     def terminate(self):
         global _activePlugin
         for pending in tuple(self._pendingMainThreadCalls):
@@ -351,6 +472,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._instanceTerminalPassthrough.clear()
         self._instanceRuntimeStates.clear()
         self._pendingInstanceFullStates.clear()
+        self._pendingFocusContexts.clear()
+        self._pendingClipboardRequests.clear()
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
@@ -848,6 +971,165 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("Neovim diagnostic report copied"))
         else:
             ui.message(_("Could not copy Neovim diagnostic report"))
+
+    def action_copyNeovimSelection(self, gesture):
+        self._requestNeovimCopy("visualSelection")
+
+    def action_copyLastNeovimYank(self, gesture):
+        self._requestNeovimCopy("yankRegister")
+
+    def action_pasteWindowsClipboard(self, gesture):
+        context = self._clipboardControlContext()
+        if context is None:
+            return
+        identity, instance_id, client, state, expected = context
+        if state.get("mode") not in {"normal", "insert"} or state.get("modeBlocking") is True:
+            self._clipboardFailure(_("Paste is available only in Normal or Insert mode"))
+            return
+        if (
+            state.get("buftype", "") != "" or state.get("modifiable") is not True
+            or state.get("readonly") is True or state.get("fileManager")
+        ):
+            self._clipboardFailure(_("The current Neovim buffer cannot be edited by this command"))
+            return
+        text = self._readWindowsClipboardText()
+        if text is None:
+            return
+        request_id = self._nextClipboardRequestId()
+        payload = {**expected, "requestId": request_id, "text": text}
+        self._rememberClipboardRequest(request_id, (
+            instance_id, identity, "pasteTextRequest",
+        ))
+        accepted = client.send_control("pasteTextRequest", payload)
+        if not accepted:
+            self._pendingClipboardRequests.pop(request_id, None)
+            self._clipboardFailure(_("Could not send text to the active Neovim session"))
+        self._diagnostics.record(
+            "clipboardPasteRequested", requestId=request_id, accepted=accepted,
+            bytes=len(text.encode("utf-8")),
+        )
+
+    def action_setNeovimRegisterFromWindowsClipboard(self, gesture):
+        context = self._clipboardControlContext()
+        if context is None:
+            return
+        identity, instance_id, client, _state, expected = context
+        text = self._readWindowsClipboardText()
+        if text is None:
+            return
+        request_id = self._nextClipboardRequestId()
+        payload = {**expected, "requestId": request_id, "text": text}
+        self._rememberClipboardRequest(request_id, (
+            instance_id, identity, "setRegisterRequest",
+        ))
+        accepted = client.send_control("setRegisterRequest", payload)
+        if not accepted:
+            self._pendingClipboardRequests.pop(request_id, None)
+            self._clipboardFailure(_("Could not send text to the active Neovim session"))
+        self._diagnostics.record(
+            "clipboardRegisterRequested", requestId=request_id, accepted=accepted,
+            bytes=len(text.encode("utf-8")),
+        )
+
+    def _readWindowsClipboardText(self):
+        try:
+            text = api.getClipData()
+        except Exception as error:
+            self._diagnostics.record(
+                "clipboardReadFailed", errorType=type(error).__name__,
+            )
+            self._clipboardFailure(_("Could not read text from the Windows clipboard"))
+            return None
+        if not valid_clipboard_text(text):
+            reason = (
+                "tooLarge"
+                if isinstance(text, str)
+                and len(text.encode("utf-8", "ignore")) > MAX_CLIPBOARD_TEXT_BYTES
+                else "emptyOrInvalid"
+            )
+            self._diagnostics.record("clipboardTextRejected", reason=reason)
+            self._clipboardFailure(_("The Windows clipboard does not contain supported text"))
+            return None
+        return text
+
+    def _requestNeovimCopy(self, source):
+        context = self._clipboardControlContext()
+        if context is None:
+            return
+        identity, instance_id, client, state, expected = context
+        if source == "visualSelection" and state.get("modeRaw") not in {"v", "V", "\x16"}:
+            self._clipboardFailure(_("Select text in Neovim Visual mode before copying"))
+            return
+        request_id = self._nextClipboardRequestId()
+        payload = {**expected, "requestId": request_id, "source": source}
+        self._rememberClipboardRequest(request_id, (
+            instance_id, identity, "copyTextRequest",
+        ))
+        accepted = client.send_control("copyTextRequest", payload)
+        if not accepted:
+            self._pendingClipboardRequests.pop(request_id, None)
+            self._clipboardFailure(_("Could not request text from the active Neovim session"))
+        self._diagnostics.record(
+            "clipboardCopyRequested", requestId=request_id, source=source, accepted=accepted,
+        )
+
+    def _clipboardControlContext(self):
+        identity = self._gate.focused
+        selected = self._instanceManager.selected_for(identity) if identity else None
+        if (
+            identity is None or selected is None or self._client is None
+            or selected.identifier != self._activeInstanceId
+            or not self._gate.suppression_active
+        ):
+            self._clipboardFailure(_("No active Neovim session is bound to this terminal"))
+            return None
+        if "clipboardTransfer" not in self._transportCapabilities:
+            self._clipboardFailure(_("The connected Neovim components do not support copy and paste"))
+            return None
+        state = self._currentState
+        expected = {
+            "bufferId": state.get("bufferId"),
+            "windowId": state.get("windowId"),
+            "tabpageId": state.get("tabpageId"),
+            "changedtick": state.get("changedtick"),
+            "modeRaw": state.get("modeRaw"),
+        }
+        if (
+            any(
+                not isinstance(expected[name], int) or isinstance(expected[name], bool)
+                for name in ("bufferId", "windowId", "tabpageId", "changedtick")
+            )
+            or not isinstance(expected["modeRaw"], str)
+        ):
+            self._clipboardFailure(_("The active Neovim state is incomplete; try again"))
+            return None
+        return identity, selected.identifier, self._client, state, expected
+
+    def _nextClipboardRequestId(self):
+        self._clipboardRequestId = (self._clipboardRequestId + 1) % 2_147_483_648
+        return self._clipboardRequestId
+
+    def _rememberClipboardRequest(self, request_id, request):
+        while len(self._pendingClipboardRequests) >= _MAX_PENDING_CLIPBOARD_REQUESTS:
+            discarded_id = next(iter(self._pendingClipboardRequests))
+            self._pendingClipboardRequests.pop(discarded_id, None)
+            self._diagnostics.record(
+                "clipboardRequestDiscarded", requestId=discarded_id, reason="queueLimit",
+            )
+        self._pendingClipboardRequests[request_id] = request
+
+    def _clipboardSuccess(self, message):
+        mode = self._feedbackMode("clipboard")
+        if mode & 2:
+            tones.beep(660, 25)
+        if mode & 1:
+            speech.speakText(message, priority=NvdaSpeechPriority.NEXT)
+
+    def _clipboardFailure(self, message):
+        if self._feedbackMode("clipboard") & 2:
+            tones.beep(220, 35)
+        # Failures remain audible even if optional action feedback is off.
+        ui.message(message)
 
     def action_readCompletionDocumentation(self, gesture):
         if self._menuDocumentation:
@@ -1671,6 +1953,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             "menuDocumentation": self._menuDocumentation,
             "connected": self._connected,
             "lastConnectionState": self._lastConnectionState,
+            "transportCapabilities": self._transportCapabilities,
         }
 
     @staticmethod
@@ -1684,6 +1967,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             "menuDocumentation": "",
             "connected": False,
             "lastConnectionState": None,
+            "transportCapabilities": frozenset(),
         }
 
     def _switchInstanceRuntime(self, instance_id):
@@ -1700,6 +1984,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._menuDocumentation = runtime["menuDocumentation"]
         self._connected = runtime["connected"]
         self._lastConnectionState = runtime["lastConnectionState"]
+        self._transportCapabilities = runtime["transportCapabilities"]
         self._activeInstanceId = instance_id
 
     def _dropInstanceRuntime(self, instance_id):
@@ -1714,6 +1999,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._menuDocumentation = runtime["menuDocumentation"]
             self._connected = runtime["connected"]
             self._lastConnectionState = runtime["lastConnectionState"]
+            self._transportCapabilities = runtime["transportCapabilities"]
             self._activeInstanceId = None
 
     def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
@@ -1852,6 +2138,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         self._switchInstanceRuntime(instance_id)
         self._client = self._instanceManager.client_for(instance_id)
+        if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
+            event = self._handleClipboardResult(instance_id, identity, event)
+            if event is None:
+                return
         payload = event.get("payload")
         if event.get("type") == "fullState":
             self._authenticatedInstances.add(instance_id)
@@ -1873,6 +2163,94 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             wx.CallAfter(self._offerTemporaryTerminalBinding, identity, instance_id)
             return
 
+    def _handleClipboardResult(self, instance_id, identity, event):
+        payload = event.get("payload")
+        event_type = event.get("type")
+        request_id = payload.get("requestId") if isinstance(payload, dict) else None
+        if not valid_request_id(request_id):
+            self._diagnostics.record(
+                "clipboardResultIgnored", instanceId=instance_id, reason="invalidRequestId",
+            )
+            return None
+        pending = self._pendingClipboardRequests.pop(request_id, None)
+        expected_control = {
+            "copyTextResult": "copyTextRequest",
+            "pasteTextResult": "pasteTextRequest",
+            "setRegisterResult": "setRegisterRequest",
+        }.get(event_type)
+        if pending != (instance_id, identity, expected_control):
+            self._diagnostics.record(
+                "clipboardResultIgnored", instanceId=instance_id, requestId=request_id,
+                reason="staleOrUnbound",
+            )
+            return None
+        safe_payload = dict(payload)
+        text = safe_payload.pop("clipboardText", None)
+        safe_payload.pop("text", None)
+        ok = payload.get("ok") is True
+        result_code = payload.get("resultCode")
+        if not isinstance(result_code, str) or len(result_code) > 64:
+            ok = False
+            result_code = "invalidResult"
+        if event_type == "copyTextResult" and ok:
+            if not valid_clipboard_text(text):
+                ok = False
+                result_code = "invalidText"
+            else:
+                try:
+                    copied = bool(api.copyToClip(text))
+                except Exception as error:
+                    copied = False
+                    self._diagnostics.record(
+                        "clipboardWriteFailed", errorType=type(error).__name__,
+                    )
+                if copied:
+                    self._clipboardSuccess(_("Copied from Neovim"))
+                else:
+                    ok = False
+                    result_code = "clipboardWriteFailed"
+        elif event_type == "pasteTextResult" and ok:
+            self._clipboardSuccess(_("Pasted into Neovim"))
+        elif event_type == "setRegisterResult" and ok:
+            self._clipboardSuccess(_("Stored the Windows clipboard in Neovim's unnamed register"))
+        if not ok:
+            if result_code == "staleState":
+                message = _("Neovim changed before the copy or paste completed; try again")
+            elif result_code in {"visualSelectionRequired", "selectionUnavailable"}:
+                message = _("The Neovim Visual selection is no longer available")
+            elif result_code in {"bufferNotEditable", "unsupportedContext", "unsupportedMode"}:
+                message = _("The current Neovim context does not accept this paste")
+            elif result_code == "textTooLarge":
+                message = _("The selected Neovim text is too large to copy")
+            elif result_code == "emptyText":
+                message = _("There is no Neovim text to copy")
+            elif result_code == "clipboardWriteFailed":
+                message = _("Could not write text to the Windows clipboard")
+            elif result_code == "registerRejected":
+                message = _("Neovim could not replace its unnamed register")
+            else:
+                message = _("Neovim could not complete the copy or paste command")
+            self._clipboardFailure(message)
+        self._diagnostics.record(
+            "clipboardResult", instanceId=instance_id, requestId=request_id,
+            type=event_type, ok=ok, resultCode=result_code,
+            copiedCharacterCount=safe_payload.get("copiedCharacterCount"),
+            copiedLineCount=safe_payload.get("copiedLineCount"),
+            insertedBytes=safe_payload.get("insertedBytes"),
+            insertedLines=safe_payload.get("insertedLines"),
+            storedBytes=safe_payload.get("storedBytes"),
+            storedLineCount=safe_payload.get("storedLineCount"),
+        )
+        return {**event, "payload": clipboard_result_state(safe_payload)}
+
+    def _discardClipboardRequests(self, *, instance_id=None):
+        if instance_id is None:
+            self._pendingClipboardRequests.clear()
+            return
+        for request_id, pending in tuple(self._pendingClipboardRequests.items()):
+            if pending[0] == instance_id:
+                self._pendingClipboardRequests.pop(request_id, None)
+
     def _onManagedState(self, instance_id, state):
         queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
 
@@ -1882,6 +2260,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._instanceTerminalPassthrough.pop(instance_id, None)
             self._pendingInstanceFullStates.pop(instance_id, None)
             self._pendingFocusContexts.pop(instance_id, None)
+            self._discardClipboardRequests(instance_id=instance_id)
         identity = self._gate.focused
         selected = self._instanceManager.selected_for(identity) if identity else None
         if selected is not None and selected.identifier == instance_id:
@@ -1893,6 +2272,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         identity = self._identity(obj)
         if previous != identity:
             self._pendingFocusContexts.clear()
+            self._pendingClipboardRequests.clear()
             self._gate.disconnect()
             self._diagnostics.record(
                 "terminalFocusIdentityChanged",
@@ -2044,6 +2424,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._gate.disconnect()
         self._gate.focused = None
         self._pendingFocusContexts.clear()
+        self._pendingClipboardRequests.clear()
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._resetTypedEcho()
@@ -2132,6 +2513,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             keyObserverDiagnostics = {}
         if isinstance(payload, dict):
             self._currentState = payload
+            transport = payload.get("_transport")
+            if isinstance(transport, dict) and isinstance(transport.get("capabilities"), list):
+                self._transportCapabilities = frozenset(
+                    value for value in transport["capabilities"] if isinstance(value, str)
+                )
         self._diagnostics.record(
             "eventDispatch",
             type=event.get("type"),
@@ -2685,6 +3071,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._claimBaselines.clear()
         self._claimEligibleTargets.clear()
         self._claimInventoryErrors.clear()
+        self._pendingFocusContexts.clear()
+        self._pendingClipboardRequests.clear()
         if hasattr(self, "_instanceManager") and self._instanceManager.list():
             try:
                 self._instanceManager.stop_all()
@@ -2881,6 +3269,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 ("fileBoundary", _("&File boundaries:")),
                 ("lineCrossed", _("Crossing into another &line:")),
                 ("matchingError", _("Missing matching &bracket:")),
+                ("clipboard", _("Copy and &paste:")),
             )
 
             class NeovimNvdaSettingsPanel(SettingsPanel):

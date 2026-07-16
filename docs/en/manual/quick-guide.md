@@ -25,8 +25,22 @@ can be used.
 3. Under “Neovim Access Link”, assign a convenient gesture to “Turn Neovim
    accessibility on or off and discover configured connections”.
 
+The freely assignable commands remain visible there regardless of which
+application had focus before the dialog opened. Outside an exactly recognized
+Windows Terminal control, an assigned gesture is passed unchanged to the
+focused application.
+
 Do not use F12 as the activation gesture. F12 identifies the currently focused
 Neovim session after activation. `Ctrl+Alt+N` may already start NVDA.
+
+The same input-gesture category contains four more commands without default
+gestures: copy the active Neovim Visual selection, copy Neovim register 0 (the
+last yank), paste Windows clipboard text into the active Neovim buffer, and
+store Windows clipboard text in Neovim's current unnamed register for later
+use with `p`.
+Assign gestures only if needed. These commands affect only the explicitly bound
+and currently focused Neovim session; normal Windows Terminal copy and paste is
+unchanged.
 
 ## Install or update components
 

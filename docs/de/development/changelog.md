@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.91.0-dev.4 (unveröffentlichter Featurebranch-Testbuild)
+
+- Ergänzt vier frei belegbare NVDA-Befehle ohne Standardgesten: aktuelle
+  Visual-Auswahl nach Windows kopieren, Neovims Register 0 kopieren und
+  Windows-Zwischenablagentext über `nvim_paste` einfügen oder in Neovims
+  Register 0 speichern und Neovims unbenanntes Register für normales `p`
+  darauf zeigen lassen.
+- Lokaler und SSH-Pfad verwenden dieselben festen, korrelierten Steuerungen.
+  Fokus, Control-Bindung, Instanz, Anfrage-ID, Buffer, Fenster, Tab,
+  `changedtick` und Modus werden geprüft; Text ist NUL-frei und auf 256 KiB
+  UTF-8 begrenzt. Es gibt kein Polling, Auto-Sync oder Auto-Retry.
+- Paste ist auf normale veränderbare Editorbuffer beschränkt. Einmalig
+  übertragener Copy-Text wird aus Cache und redigierter Diagnose entfernt.
+  Die Erfolgsrückmeldung ist profilfähig als Aus/Sprache/Töne/Beides; Fehler
+  bleiben hörbar. Offene Anfragen sind begrenzt.
+- Alle vier Befehle wurden im bereitgestellten `dev.4`-Build praktisch ohne
+  Probleme bestätigt.
+- Frei belegbare Befehle sind im Tastenbefehldialog nun unabhängig von der
+  zuvor fokussierten Anwendung sichtbar. Außerhalb eines exakt erkannten
+  Windows-Terminal-Controls wird eine zugewiesene Geste unverändert
+  weitergegeben; Ereignisse, F12, Overlays und Standardgesten bleiben im
+  WT-AppModule. Bereits in früheren Featurebuilds gespeicherte Gestenzuweisungen
+  bleiben über undokumentierte Kompatibilitätsaliase wirksam.
+- Der `dev.4`-Praxistest bestätigte die Produktkategorie beim Öffnen des
+  Tastenbefehldialogs aus einer Fremdanwendung, unveränderte Gestenweitergabe
+  außerhalb WT und korrekte Ausführung im gebundenen Neovim-Control.
+- 38 Protokoll-, 28 Bridge-, 244 Add-on/Core-/Pakettests und alle
+  Lua-Spezifikationen einschließlich 28 Zwischenablageassertionen bestehen;
+  Add-on und sechs HTML-Dokumente bauen erfolgreich.
+
 ## 0.91.0-dev.1 (unveröffentlichter Featurebranch-Testbuild)
 
 - Ergänzt eine profilfähige Fokusauswahl: keine Ansage, aktuelle strukturierte

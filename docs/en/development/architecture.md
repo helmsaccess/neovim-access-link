@@ -7,9 +7,36 @@ same plugin starts a dynamic Neovim RPC endpoint bound only to `127.0.0.1`, and
 the add-on uses a dedicated local client.
 
 The NVDA-independent core validates sessions, sequences, Unicode positions,
-and plans speech/Braille. The Windows Terminal AppModule owns focus, gestures,
-terminal identity, overlays, and native-output suppression. The global plugin
-owns only lifecycle, settings, installation, and connection services.
+and plans speech/Braille. The Windows Terminal AppModule owns focus events,
+F12 observation, terminal identity, overlays, native-output suppression, and
+the default-bound diagnostic command. The global plugin owns lifecycle,
+settings, installation, connection services, and unbound script metadata for
+freely configurable commands.
+
+## Explicit clipboard path
+
+NVDA owns the Windows clipboard. Four freely assignable, globally discoverable
+NVDA scripts read or write it through NVDA's public `api.copyToClip` and
+`api.getClipData`; the bridge and Neovim receive no general Windows clipboard
+access. Neovim exposes only the active Visual selection, register 0, a fixed
+`nvim_paste` entry point, and register 0 as the fixed backing store for the
+unnamed paste register. Writing changes no buffer and no named user register.
+
+Every action carries a request ID and expected buffer, window, tab, changed
+tick, and raw mode. NVDA accepts the result only for the still-focused,
+authenticated, and bound instance. One-shot copied text is removed before the
+client or bridge updates canonical state. The path is event driven and uses no
+polling, automatic clipboard synchronization, or automatic retry.
+
+NVDA therefore lists configurable commands even when Input Gestures is opened
+from another application. On invocation, the global adapter reads focus once
+and delegates only for a complete, allowed Windows Terminal `TermControl`
+identity. Otherwise it sends the original user-assigned gesture unchanged and
+does not alter the gate, bindings, or suppression. This discoverability layer
+does not move focus events, F12, overlays, or terminal suppression out of the
+Windows Terminal AppModule. Undocumented AppModule aliases preserve gesture
+assignments saved before this move without creating a second configuration
+surface.
 
 ## Terms: marking, claim, binding, and connection
 

@@ -100,6 +100,44 @@ class LocalTcpClientTests(unittest.TestCase):
         self.assertEqual([payload], source.notifications[0][1][1])
         self.assertEqual("controlRejected", diagnostics[0][0])
 
+    def test_clipboard_controls_are_fixed_validated_rpc_calls(self) -> None:
+        client, source, _events, _states, diagnostics = self.make_client()
+        state = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "changedtick": 4, "modeRaw": "n", "requestId": 5,
+        }
+        self.assertTrue(client.send_control("copyTextRequest", {
+            **state, "source": "yankRegister",
+        }))
+        self.assertTrue(client.send_control("pasteTextRequest", {
+            **state, "text": "local text",
+        }))
+        self.assertTrue(client.send_control("setRegisterRequest", {
+            **state, "text": "new current register",
+        }))
+        self.assertFalse(client.send_control("copyTextRequest", {
+            **state, "source": "arbitraryRegister",
+        }))
+        self.assertEqual(["nvim_exec_lua", "nvim_exec_lua", "nvim_exec_lua"], [
+            notification[0] for notification in source.notifications
+        ])
+        self.assertIn("request_copy_text", source.notifications[0][1][0])
+        self.assertIn("request_paste_text", source.notifications[1][1][0])
+        self.assertIn("request_set_register", source.notifications[2][1][0])
+        self.assertEqual("controlRejected", diagnostics[-1][0])
+
+    def test_clipboard_result_text_never_enters_cached_full_state(self) -> None:
+        client, source, events, _states, _diagnostics = self.make_client()
+        source.on_event("fullState", {"mode": "visualCharacter", "bufferId": 1})
+        source.on_event("copyTextResult", {
+            "mode": "visualCharacter", "bufferId": 1, "requestId": 7,
+            "ok": True, "resultCode": "copied", "clipboardText": "private text",
+        })
+        self.assertEqual("private text", events[-1]["payload"]["clipboardText"])
+        self.assertTrue(client.send_control("requestFullState", {}))
+        self.assertNotIn("clipboardText", events[-1]["payload"])
+        self.assertNotIn("requestId", events[-1]["payload"])
+
     def test_disconnect_clears_cached_state_and_stop_is_delegated(self) -> None:
         client, source, _events, states, _diagnostics = self.make_client()
         source.on_event("fullState", {"mode": "normal"})

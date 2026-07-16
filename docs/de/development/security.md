@@ -78,7 +78,7 @@ unter `%LOCALAPPDATA%\nvim-data\site\pack`; sie ändert keine `init.lua` und
 benötigt keine Administratorrechte. Symbolische Links in der eingebetteten
 Quelle werden abgewiesen.
 
-## Protokoll und Cursorrouting
+## Protokoll, Cursorrouting und Zwischenablage
 
 Frames sind auf 1 MiB begrenzt. Sitzungskennung, Sequenz und `fullState`-
 Resynchronisation verhindern die Ausgabe alter oder ungeordneter Ereignisse.
@@ -87,6 +87,21 @@ Der einzige zustandsändernde Rückkanal ist `routeCursor`. Vor dem Aufruf der
 Neovim-Cursor-API prüft die Bridge Buffer, Fenster, `changedtick`, Zeile,
 UTF-8-Bytespalte und Zeichenrand. Ein veralteter Braille-Routingbefehl wird
 verworfen.
+
+Zusätzlich existiert ein eng begrenzter, ausdrücklich durch frei belegbare
+NVDA-Befehle ausgelöster Zwischenablagepfad. Er akzeptiert keine frei wählbaren
+Lua-, Ex- oder Registernamen: Kopieren liest nur die aktuelle Visual-Auswahl
+oder Register 0, Einfügen verwendet nur Neovims Paste-API, und der
+Register-Schreibbefehl verwendet fest Register 0 und lässt das unbenannte
+Register darauf zeigen. Alle Richtungen
+prüfen Anfrage-ID, aktive Control-Bindung, Instanz, Buffer, Fenster, Tab,
+`changedtick` und Modus. Paste ist auf normale veränderbare Editorbuffer
+begrenzt; Text ist NUL-frei und auf 256 KiB UTF-8 beschränkt. Fokusverlust,
+Disconnect oder Zustandsabweichung verwirft die ausstehende Antwort ohne
+Wiederholung. Ein bereits an die zuvor ausdrücklich fokussierte Sitzung
+abgesandter Paste kann nicht nachträglich zurückgezogen werden, darf aber nie
+die neue Sitzung treffen oder wiederholt werden. Copy-Text wird nie im
+Bridge-/Client-Zustands-Cache behalten und in Diagnosen redigiert.
 
 ## Diagnose und vertraulicher Text
 
@@ -109,10 +124,14 @@ eine nichtleere Runtime-ID voraus. Das Session-Gate prüft die Frontendart
 unabhängig ein zweites Mal.
 Unbekannte, deaktivierte oder nur geplante Adapter bleiben fail-open; die
 Konfiguration kann keinen nicht implementierten Adapter freischalten.
-Ereignisse, Overlays und Zuordnungsgesten gehören ausschließlich zum von NVDA
-an `windowsterminal.exe` gebundenen AppModule. Das Global Plugin bietet keine
-Eingabeskripte oder globalen Ereignishandler und fragt den globalen Fokus nicht
-ab. Fremde Anwendungen erreichen daher keinen anwendungsspezifischen Codepfad.
+Ereignisse, Overlays, F12 und der standardbelegte Diagnosebefehl gehören
+ausschließlich zum von NVDA an `windowsterminal.exe` gebundenen AppModule. Das
+Global Plugin bietet nur unbelegte Skriptmetadaten für frei konfigurierbare
+Befehle, damit diese im Eingabedialog immer sichtbar sind. Bei einem Aufruf
+fragt der Adapter den Fokus einmal ab und delegiert nur für ein vollständig
+validiertes Windows-Terminal-Control. In fremden Anwendungen gibt er die
+Originalgeste unverändert weiter und verändert weder Gate noch Bindungen oder
+Unterdrückung. Globale Ereignishandler existieren nicht.
 Beim Verlassen von Windows Terminal räumt `event_appModule_loseFocus` den
 fokussierten Terminal- und Unterdrückungszustand auf.
 

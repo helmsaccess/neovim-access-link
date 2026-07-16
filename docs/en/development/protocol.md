@@ -19,6 +19,28 @@ Capabilities are fixed by v2. Protocol v1, generic TCP listeners, application
 tokens, tunnel ports, and capability hello negotiation are intentionally not
 supported.
 
+`clipboardTransfer` exposes only three typed controls. `copyTextRequest` carries
+a correlated request ID, expected buffer/window/tab, changed tick and raw mode,
+plus exactly one source: `visualSelection` or `yankRegister` (register 0).
+`pasteTextRequest` carries the same expected identity and at most 256 KiB of
+valid, NUL-free UTF-8 text. No Lua, Ex command, or arbitrary register name is
+accepted. `setRegisterRequest` carries the same expected identity and text
+limit; its target is fixed to register 0 as the unnamed register's backing
+store, and no register name crosses the protocol.
+
+`copyTextResult`, `pasteTextResult`, and `setRegisterResult` return the same
+request ID and a fixed result code. Only a copy result may carry one-shot
+`clipboardText`. A response
+that no longer matches focus, control, instance, or request is discarded. The
+text is removed before the local client or bridge updates canonical state, so
+it cannot appear in later `fullState` or `focusContext`. Paste invokes only
+`nvim_paste(..., true, -1)` and stale or failed actions are never retried
+automatically.
+Register storage normalizes CRLF, chooses characterwise or linewise type from
+the trailing newline, and invokes only fixed `setreg('0', ..., type .. '"')`.
+This replaces register 0 and points the unnamed register to it without using a
+named user register.
+
 ## Registry claim and explicit binding
 
 Schema 3 binds an entry to the actual Neovim RPC endpoint through a random

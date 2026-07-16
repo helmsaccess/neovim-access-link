@@ -25,8 +25,29 @@ checked. Untrusted messages cannot request arbitrary code or general Neovim
 RPC. Cursor routing is the only state-changing reverse action and is validated
 against current state. Diagnostic editor text and secrets are redacted.
 
+The clipboard path runs only from explicit, freely assignable NVDA commands.
+It accepts no arbitrary Lua, Ex, or register name: copy reads only the current
+Visual selection or register 0, paste uses only Neovim's paste API, and
+register storage uses only fixed register 0 while pointing the unnamed
+register to it. Every direction validates
+request ID, active control binding, instance, buffer,
+window, tab, changed tick, and mode. Paste is limited to normal modifiable
+editor buffers; text must be NUL-free and at most 256 KiB in UTF-8. Focus loss,
+disconnect, or state mismatch discards the pending result without retry. A
+paste already sent to the previously and explicitly focused session cannot be
+retracted, but it must never affect the new session or run more than once.
+Copied text is not retained in bridge/client state and is redacted from
+diagnostics.
+
 Terminal suppression requires an authenticated, active, focused, exact binding
 and always fails open on error, timeout, disconnect, or deactivation.
+
+Freely configurable commands have global, unbound script metadata so NVDA can
+always show them in Input Gestures. Invocation reads focus once and delegates
+only for a complete, allowed Windows Terminal control identity. In every other
+application the adapter sends the original gesture unchanged and leaves the
+gate, bindings, and suppression untouched. Focus events, overlays, F12, and
+the default-bound diagnostic command remain Windows-Terminal-AppModule-only.
 
 Each physical F12 press authorizes one claim attempt for the exact focused
 `TerminalIdentity`. Any intervening focus change rejects it; without a fresh
