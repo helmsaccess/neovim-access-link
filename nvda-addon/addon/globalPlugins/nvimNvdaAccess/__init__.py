@@ -180,11 +180,15 @@ _FEEDBACK_FOR_SOUND = {
     "fileStart": "fileBoundary", "fileEnd": "fileBoundary",
     "lineCrossed": "lineCrossed", "matchingError": "matchingError",
 }
+_FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
+_FOCUS_ANNOUNCEMENT_DEFAULT = 2
 _NVDA_CONFIG_SECTION = "nvimNvdaAccess"
-_NVDA_CONFIG_SCHEMA_VERSION = 5
+_NATIVE_CONFIG_SCHEMA_VERSION = 5
+_NVDA_CONFIG_SCHEMA_VERSION = 6
 _NVDA_CONFIG_SPEC = {
     "schemaVersion": "integer(default=0, min=0)",
     "connections": 'string(default="[]")',
+    "focusAnnouncement": f"integer(default={_FOCUS_ANNOUNCEMENT_DEFAULT}, min=0, max=2)",
     "feedback": {
         key: f"integer(default={value}, min=0, max=3)"
         for key, value in _FEEDBACK_DEFAULTS.items()
@@ -2178,15 +2182,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._menuDocumentation = documentation if isinstance(documentation, str) else ""
         elif event.get("type") == "menuClosed":
             self._menuDocumentation = ""
-        if event.get("type") == "modeChanged" and mode == "insert" and self._lastMode != "insert":
-            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("insertMode"):
-                tones.beep(880, 45)
-            self._diagnostics.record("insertModeSound", cue="focusMode.wav")
-        elif event.get("type") == "modeChanged" and mode == "normal" and self._lastMode == "insert":
-            speech.cancelSpeech()
-            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("normalMode"):
-                tones.beep(330, 28)
-            self._diagnostics.record("normalModeSound", cue="browseMode.wav")
+        event_type = event.get("type")
+        if (
+            event_type == "focusContext" and self._gate.manual_enabled
+            and mode in {"insert", "normal"}
+        ):
+            self._playModeSound(mode, focus_context=True)
+        elif event_type == "modeChanged" and mode == "insert" and self._lastMode != "insert":
+            self._playModeSound(mode)
+        elif event_type == "modeChanged" and mode == "normal" and self._lastMode == "insert":
+            self._playModeSound(mode)
         if event.get("type") == "fullState" or (
             event.get("type") == "modeChanged" and mode != self._lastMode
         ):
@@ -2214,7 +2219,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
         if not self._gate.manual_enabled:
             return
-        for action in self._planner.plan(event):
+        for action in self._planner.plan(
+            event, focus_announcement=self._focusAnnouncement(),
+        ):
             indentation = getattr(action, "indentation_tones", None)
             if indentation is not None:
                 self._reportIndentation(indentation, getattr(action, "indentation_level", None))
@@ -2478,6 +2485,28 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         local_mode = feedback.get(key, _FEEDBACK_DEFAULTS.get(key, 3)) if key else 3
         return int(global_mode) & int(local_mode)
 
+    def _focusAnnouncement(self):
+        value = self._settings.get("focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT)
+        if isinstance(value, int) and 0 <= value < len(_FOCUS_ANNOUNCEMENT_VALUES):
+            return _FOCUS_ANNOUNCEMENT_VALUES[value]
+        return _FOCUS_ANNOUNCEMENT_VALUES[_FOCUS_ANNOUNCEMENT_DEFAULT]
+
+    def _playModeSound(self, mode, *, focus_context=False):
+        if mode == "insert":
+            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("insertMode"):
+                tones.beep(880, 45)
+            self._diagnostics.record(
+                "insertModeSound", cue="focusMode.wav", focusContext=focus_context,
+            )
+        elif mode == "normal":
+            if not focus_context:
+                speech.cancelSpeech()
+            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("normalMode"):
+                tones.beep(330, 28)
+            self._diagnostics.record(
+                "normalModeSound", cue="browseMode.wav", focusContext=focus_context,
+            )
+
     def _actionSpeechAllowed(self, event_type, feedback_key):
         if feedback_key in {"delete", "replace"} and event_type in {
             "textChanged", "textDeleted", "textReplaced", "replacementPerformed",
@@ -2499,6 +2528,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             settings = {
                 "schemaVersion": section.get("schemaVersion", 0),
                 "connections": json.loads(connections_value),
+                "focusAnnouncement": section.get(
+                    "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
+                ),
                 # NVDA exposes nested configuration through AggregatedSection.
                 # Iterating that object does not have normal mapping semantics,
                 # while its public items() method does.
@@ -2515,7 +2547,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except (TypeError, ValueError):
             schema_version = 0
             self._diagnostics.record("configError", error="invalid schemaVersion")
-        if schema_version < _NVDA_CONFIG_SCHEMA_VERSION:
+        if schema_version < _NATIVE_CONFIG_SCHEMA_VERSION:
             legacy = self._loadLegacySettings()
             if legacy is not None:
                 normalized = self._normalizeSettings(legacy)
@@ -2568,8 +2600,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except ValueError as error:
             self._diagnostics.record("configError", error=str(error), option="connections")
             connections = []
+        focus_announcement = settings.get(
+            "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
+        )
+        if not (
+            isinstance(focus_announcement, int)
+            and 0 <= focus_announcement < len(_FOCUS_ANNOUNCEMENT_VALUES)
+        ):
+            self._diagnostics.record(
+                "configError", error="invalid focus announcement", option="focusAnnouncement",
+            )
+            focus_announcement = _FOCUS_ANNOUNCEMENT_DEFAULT
         return {
             "feedback": feedback,
+            "focusAnnouncement": focus_announcement,
             "schemaVersion": _NVDA_CONFIG_SCHEMA_VERSION,
             "connections": [profile.as_dict() for profile in connections],
         }
@@ -2581,6 +2625,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._diagnostics.record(
             "nvdaConfigProfileSettingsReloaded",
             feedbackChanged=previous.get("feedback") != self._settings.get("feedback"),
+            focusAnnouncementChanged=(
+                previous.get("focusAnnouncement") != self._settings.get("focusAnnouncement")
+            ),
             connectionsChanged=connections_changed,
         )
         if connections_changed and self._gate.manual_enabled:
@@ -2673,6 +2720,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _writeSettingsToNvda(settings):
         section = config.conf[_NVDA_CONFIG_SECTION]
         section["schemaVersion"] = _NVDA_CONFIG_SCHEMA_VERSION
+        section["focusAnnouncement"] = int(settings.get(
+            "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
+        ))
         section["connections"] = json.dumps(
             settings.get("connections", []), ensure_ascii=False, separators=(",", ":"),
         )
@@ -2868,6 +2918,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     control.SetSelection(int(feedback.get(key, _FEEDBACK_DEFAULTS[key])))
                     self.feedbackControls[key] = control
 
+                    focus_sizer = wx.StaticBoxSizer(
+                        wx.VERTICAL, general_page, label=_("Session focus"),
+                    )
+                    general_helper.addItem(focus_sizer)
+                    focus_group = guiHelper.BoxSizerHelper(general_page, sizer=focus_sizer)
+                    self.focusAnnouncement = focus_group.addLabeledControl(
+                        _("When focusing a Neovim session:"), wx.Choice,
+                        choices=[
+                            _("No announcement"),
+                            _("Current line"),
+                            _("Current context, mode and connection name"),
+                        ],
+                    )
+                    self.focusAnnouncement.SetSelection(int(plugin._settings.get(
+                        "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
+                    )))
+
                     actions_sizer = wx.StaticBoxSizer(wx.VERTICAL, feedback_page, label=_("Individual actions"))
                     feedback_helper.addItem(actions_sizer)
                     actions_group = guiHelper.BoxSizerHelper(feedback_page, sizer=actions_sizer)
@@ -2962,6 +3029,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
                 def onSave(self):
                     previous_connections = plugin._settings.get("connections", [])
+                    plugin._settings["focusAnnouncement"] = self.focusAnnouncement.GetSelection()
                     plugin._settings["feedback"] = {
                         key: control.GetSelection() for key, control in self.feedbackControls.items()
                     }

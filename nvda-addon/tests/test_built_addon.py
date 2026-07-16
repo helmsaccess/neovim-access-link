@@ -2395,11 +2395,13 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("requestFocusContext", first_client.controls[0][0])
         first_request = first_client.controls[0][1]["requestId"]
         # The late reply from the no-longer-focused second tab is discarded.
+        sounds_before_stale_reply = len(self.soundFeeds)
         plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": second_request, "bufferName": "/work/stale.lua",
             "mode": "normal",
         }})
         self.assertNotIn("stale.lua, normal mode", self.spoken)
+        self.assertEqual(sounds_before_stale_reply, len(self.soundFeeds))
         plugin._handleManagedEvent(first.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": first_request, "bufferName": "/work/first.lua",
             "mode": "normal",
@@ -2449,6 +2451,48 @@ class BuiltAddonTests(unittest.TestCase):
         }})
         self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("returned.lua, normal mode, on First", self.spoken)
+        plugin.terminate()
+
+    def test_focus_announcement_choices_keep_mode_sounds_independent(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        payload = {
+            "bufferName": "/work/example.lua", "mode": "insert",
+            "lineText": "\tprint('Grüße 👋')", "cursor": {"line": 7, "byteColumn": 1},
+            "_connectionLabel": "Example",
+        }
+        cases = (
+            (0, None, None),
+            (1, "\tprint('Grüße 👋')", "\tprint('Grüße 👋')"),
+            (2, "example.lua, insert mode, on Example", "example.lua, insert mode, on Example"),
+        )
+        for setting, expected_speech, expected_braille in cases:
+            with self.subTest(focusAnnouncement=setting):
+                plugin._settings["focusAnnouncement"] = setting
+                plugin._planner.reset()
+                self.spoken.clear()
+                self.brailleMessages.clear()
+                self.soundFeeds.clear()
+
+                plugin._handleEvent({"type": "focusContext", "payload": payload})
+
+                self.assertEqual(
+                    [] if expected_speech is None else [expected_speech], self.spoken,
+                )
+                self.assertEqual(
+                    [] if expected_braille is None else [expected_braille], self.brailleMessages,
+                )
+                self.assertEqual(1, len(self.soundFeeds))
+
+        plugin._settings["focusAnnouncement"] = 0
+        plugin._settings["feedback"]["mode"] = 1
+        self.spoken.clear()
+        self.soundFeeds.clear()
+        plugin._handleEvent({"type": "focusContext", "payload": {**payload, "mode": "normal"}})
+        self.assertEqual([], self.spoken)
+        self.assertEqual([], self.soundFeeds)
         plugin.terminate()
 
     def test_events_remain_silent_while_remembered_control_awaits_focus_context(self) -> None:
@@ -2778,11 +2822,15 @@ class BuiltAddonTests(unittest.TestCase):
         panel.makeSettings(object())
         self.assertEqual(("General", "Feedback", "Connections"), panel.settingsTabLabels)
         self.assertEqual([
-            "Global action feedback", "Individual actions", "Saved SSH connections",
+            "Global action feedback", "Session focus", "Individual actions", "Saved SSH connections",
         ], self.staticBoxLabels)
         self.assertEqual(8, len(panel.feedbackControls))
+        self.assertEqual(2, panel.focusAnnouncement.GetSelection())
+        panel.focusAnnouncement.SetSelection(1)
         panel.feedbackControls["delete"].SetSelection(2)
         panel.onSave()
+        self.assertEqual(1, plugin._settings["focusAnnouncement"])
+        self.assertEqual(1, __import__("config").conf["nvimNvdaAccess"]["focusAnnouncement"])
         self.assertEqual(2, plugin._settings["feedback"]["delete"])
         self.assertEqual(2, __import__("config").conf["nvimNvdaAccess"]["feedback"]["delete"])
         self.assertIn("nvimNvdaAccess", __import__("config").conf.spec)
@@ -2797,6 +2845,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         config.conf["nvimNvdaAccess"] = {
             "schemaVersion": 5,
+            "focusAnnouncement": 0,
             "connections": json.dumps([{
                 "id": "quiet", "name": "Quiet server", "host": "host", "user": "user",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
@@ -2808,6 +2857,7 @@ class BuiltAddonTests(unittest.TestCase):
             },
         }
         config.post_configProfileSwitch.notify()
+        self.assertEqual(0, plugin._settings["focusAnnouncement"])
         self.assertEqual(0, plugin._settings["feedback"]["mode"])
         self.assertEqual("user@host", plugin._connectionProfileById("quiet").ssh_target)
         self.assertEqual(1, len(config.post_configProfileSwitch.handlers))
@@ -3940,18 +3990,50 @@ class BuiltAddonTests(unittest.TestCase):
             plugin._settings["feedback"]["delete"],
             plugin._settings["feedback"]["mode"],
         ))
-        self.assertEqual((5, "linux-editor", "example-host"), (
+        self.assertEqual((6, "linux-editor", "example-host"), (
             plugin._settings["schemaVersion"],
             plugin._settings["connections"][0]["user"], plugin._settings["connections"][0]["host"],
         ))
-        # Retain the legacy file as a safety backup; schema 5 prevents re-import.
+        # Retain the legacy file as a safety backup; native schemas prevent re-import.
         self.assertTrue(path.exists())
         self.assertEqual(1, self.configSaves)
         saved = config.conf["nvimNvdaAccess"]
-        self.assertEqual(5, saved["schemaVersion"])
+        self.assertEqual(6, saved["schemaVersion"])
         self.assertNotIn("activeConnection", saved)
         self.assertNotIn("authToken", saved["connections"])
         self.assertNotIn("transport", saved["connections"])
+        plugin.terminate()
+
+    def test_native_schema_upgrade_does_not_reimport_legacy_json_backup(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import config
+
+        (self.config_path / "nvimNvdaAccess.json").write_text(json.dumps({
+            "schemaVersion": 3,
+            "connections": [{
+                "id": "obsolete", "name": "Obsolete", "host": "obsolete.example.invalid",
+                "user": "editor", "port": 22, "identityFile": "",
+                "authentication": "openSsh",
+            }],
+            "feedback": {"global": 0},
+        }), encoding="utf-8")
+        config.conf["nvimNvdaAccess"] = {
+            "schemaVersion": 5,
+            "connections": "[]",
+            "feedback": {
+                "global": 3, "mode": 3, "delete": 3, "replace": 3,
+                "lineBoundary": 2, "fileBoundary": 3,
+                "lineCrossed": 2, "matchingError": 3,
+            },
+        }
+
+        plugin = GlobalPlugin()
+
+        self.assertEqual([], plugin._settings["connections"])
+        self.assertEqual(3, plugin._settings["feedback"]["global"])
+        self.assertEqual(2, plugin._settings["focusAnnouncement"])
+        self.assertEqual(6, plugin._settings["schemaVersion"])
+        self.assertEqual(0, self.configSaves)
         plugin.terminate()
 
     def test_settings_write_uses_only_aggregated_section_supported_operations(self) -> None:
@@ -3971,9 +4053,22 @@ class BuiltAddonTests(unittest.TestCase):
         section = AggregatedSectionLike()
         config.conf["nvimNvdaAccess"] = section
         plugin._writeSettingsToNvda(plugin._settings)
-        self.assertEqual(5, section.values["schemaVersion"])
+        self.assertEqual(6, section.values["schemaVersion"])
+        self.assertEqual(2, section.values["focusAnnouncement"])
         self.assertIsInstance(section.values["connections"], str)
         self.assertEqual(set(plugin._settings["feedback"]), set(section.values["feedback"]))
+        plugin.terminate()
+
+    def test_invalid_focus_announcement_falls_back_to_existing_context(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        normalized = plugin._normalizeSettings({
+            "connections": [], "feedback": {}, "focusAnnouncement": 99,
+        })
+
+        self.assertEqual(2, normalized["focusAnnouncement"])
+        self.assertIn('"option": "focusAnnouncement"', plugin._diagnostics.report())
         plugin.terminate()
 
     def test_settings_read_uses_aggregated_section_items(self) -> None:
@@ -3994,6 +4089,7 @@ class BuiltAddonTests(unittest.TestCase):
         config.conf["nvimNvdaAccess"] = AggregatedSectionLike({
             "schemaVersion": 5,
             "connections": "[]",
+            "focusAnnouncement": 1,
             "feedback": feedback,
         })
 
@@ -4001,6 +4097,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual(1, plugin._settings["feedback"]["global"])
         self.assertEqual(2, plugin._settings["feedback"]["mode"])
+        self.assertEqual(1, plugin._settings["focusAnnouncement"])
         self.assertEqual([], plugin._settings["connections"])
         plugin.terminate()
 

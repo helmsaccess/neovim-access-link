@@ -10,6 +10,21 @@ Values use NVDA's normal configuration profiles. Manage those through
 `NVDA menu → Configuration profiles...`; the add-on neither selects nor
 activates a profile itself.
 
+## Session focus
+
+“When focusing a Neovim session” controls the additional output after a bound
+Neovim control regains focus and its structured context is confirmed:
+
+- No announcement;
+- Current line, using “blank” for an empty line;
+- Current context, mode and connection name as before. This remains the
+  default.
+
+The choice affects only the focus announcement and its transient Braille
+message. Structured Braille and secure focus confirmation remain active.
+Insert- and Normal-mode sounds also play for confirmed focus when Global action
+feedback and Insert and normal mode changes permit sounds.
+
 ## Feedback
 
 Global action feedback and individual actions use Off, Speech, Sounds, or

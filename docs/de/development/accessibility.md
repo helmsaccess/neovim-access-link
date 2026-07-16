@@ -9,6 +9,7 @@ wahrscheinlich Fehler; Hardwaretests und Korrekturen sind ein wichtiges TODO.
 | Funktion | Ereignisquelle | benötigte Metadaten | NVDA-Ausgabe | implementiert | getestet |
 |---|---|---|---|---|---|
 | Windows-Terminal-Abschottung | physischer control-spezifischer F12-Nachweis, UIA-Fokus und korrelierter Neovim-Fokuskontext | Prozess, Fensterhandle, vollständige Runtime-ID, Instanz und Anfrage-ID | nativ in ungebundenen Controls; strukturiert erst nach Bestätigung | ja | automatisiert für mehrere Controls und Fenster; lokale/SSH-Tabs sowie horizontale/vertikale Split-Panes praktisch bestätigt; getrennte Fenster und vollständige Shell-Pane-Negativmatrix offen |
+| Ausgabe beim Sitzungsfokus | korrelierter `focusContext` | Zeilentext, Datei-/Spezialkontext, Modus, konfigurierter Verbindungsname | profilabhängig keine Ansage, aktuelle Zeile oder bisheriger Kontext; strukturierte Braillezeile bleibt aktiv | ja | automatisiert; praktischer Auswahltest offen |
 | Moduswechsel | `ModeChanged` + `nvim_get_mode()` | Modus roh/kanonisch | Modus oder Ton | ja | automatisiert und Windows/NVDA |
 | Cursor, Zeichen | `CursorMoved`/`CursorMovedI` | Byte-, Zeichen-, virtuelle Spalte; Zeile | Zeichen | ja | automatisiert und Windows/NVDA |
 | Zeilennavigation | Cursorereignis + Zustandsdifferenz | alte/neue Position, Zeilentext | neue Zeile | ja | automatisiert und Windows/NVDA |
@@ -31,7 +32,7 @@ wahrscheinlich Fehler; Hardwaretests und Korrekturen sind ein wichtiges TODO.
 | Braille aktuelle Zeile | strukturierter Zustand | Zeilentext, tabstop, Cursor | Liblouis-Region | ja | automatisiert |
 | Braille Auswahl | `selectionChanged` + `vim.region()` | zeilenlokale Bytegrenzen | Punkte 7+8 durch NVDA | ja | automatisiert, nicht Hardware |
 | Braille Routing | Routingtaste | Braille-zu-Text-Offset, validierter Rückkanal | Cursorbewegung | ja | automatisiert, nicht Hardware |
-| Modus-Earcons | `modeChanged` | kanonischer Modus | NVDA `focusMode.wav`/`browseMode.wav`, im RAM vorgeladen | ja | automatisiert |
+| Modus-Earcons | `modeChanged` oder bestätigter `focusContext` | kanonischer Modus | NVDA `focusMode.wav`/`browseMode.wav`, im RAM vorgeladen | ja | automatisiert |
 | Einrückung | Zeilentext + `shiftwidth` | vorherige/neue Einrückung | NVDA-Modus Sprache/Töne/Beides, semantische Ebene | ja | automatisiert |
 | Completion-Menü | `CompleteChanged`/`complete_info()` | Kandidat, Index, Anzahl, Typ, Parameter | Sprache, Braille, NVDA-Vorschlagsklänge | ja | echtes TUI und Windows/NVDA |
 | Command-line-Wildmenu | `ext_popupmenu` | Kandidat, Index, Anzahl | Standard-Menüausgabe und Klänge | ja | echtes TUI automatisiert |

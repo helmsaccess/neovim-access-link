@@ -252,9 +252,13 @@ Bindung und Authentifizierung erneut geprüft. Fokusverlust verwirft offene
 Anfragen. Ungebundene Controls senden keine Anfrage und empfangen keine
 Add-on-Ausgabe. Dieses Verfahren ist ereignisgetrieben; Polling und
 Terminal-Screen-Scraping sind dafür ausdrücklich ausgeschlossen.
-Die Ausgabe ergänzt den benutzerdefinierten Verbindungsnamen aus der
-Instanzmetadatenverwaltung; technische SSH-Zieladressen gelangen dafür nicht
-in den semantischen Editorzustand.
+Die Präsentation der bestätigten Antwort ist profilabhängig wahlweise still,
+die aktuelle strukturierte Zeile oder der bisherige Datei-/Spezialkontext mit
+Modus und benutzerdefiniertem Verbindungsnamen. Diese Auswahl verändert weder
+die Anfrage noch ihre Gate-Wirkung. Insert- und Normalmodusklänge werden erst
+nach derselben erfolgreichen Korrelation und unabhängig von der gewählten
+Ansage geplant; die vorhandenen Klangschalter bleiben maßgeblich. Technische
+SSH-Zieladressen gelangen nicht in den semantischen Editorzustand.
 
 ## Control-spezifische Zuordnung in Windows Terminal
 

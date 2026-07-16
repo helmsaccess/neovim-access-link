@@ -338,6 +338,24 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("netrw, src, directory, expanded, normal mode", manager_action.text)
         self.assertEqual(manager_action.text, manager_action.braille_message)
 
+    def test_focus_context_presentation_can_be_silent_or_announce_current_line(self) -> None:
+        state = event(
+            "focusContext", bufferName="C:\\work\\example.lua", mode="insert",
+            lineText="\tprint('Grüße 👋')", _connectionLabel="Example",
+        )
+        silent = SpeechPlanner().plan(state, focus_announcement="none")
+        line = SpeechPlanner().plan(state, focus_announcement="line")[0]
+        blank = SpeechPlanner().plan(
+            event("focusContext", mode="normal", lineText=""),
+            focus_announcement="line",
+        )[0]
+
+        self.assertEqual([], silent)
+        self.assertEqual("\tprint('Grüße 👋')", line.text)
+        self.assertEqual(line.text, line.braille_message)
+        self.assertIsNotNone(line.indentation_tones)
+        self.assertEqual(("blank", "blank"), (blank.text, blank.braille_message))
+
     def test_notify_message_priority_title_and_braille(self) -> None:
         planner = SpeechPlanner()
         normal = planner.plan({

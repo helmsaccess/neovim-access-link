@@ -95,8 +95,13 @@ identity, instance, exact binding, and authentication are checked again before
 output; focus loss invalidates pending requests. Unbound controls send no
 request and receive no add-on output. This path is event-driven and explicitly
 uses neither polling nor terminal screen scraping.
-Output adds the user-configured connection name from instance metadata;
-technical SSH target addresses are not inserted into semantic editor state.
+Presentation of the confirmed response is profile-selectable: silent, current
+structured line, or the existing file/special context with mode and the
+user-configured connection name. This selection changes neither the request
+nor its gating effect. Insert/Normal sounds are offered only after the same
+successful correlation and independently of the announcement choice; existing
+sound settings remain authoritative. Technical SSH target addresses are not
+inserted into semantic editor state.
 
 ## Control-specific Windows Terminal pairing
 

@@ -70,7 +70,9 @@ class SpeechPlanner:
         self._previous = None
         self._last_mode = None
 
-    def plan(self, event: dict[str, Any]) -> list[SpeechAction]:
+    def plan(
+        self, event: dict[str, Any], *, focus_announcement: str = "context",
+    ) -> list[SpeechAction]:
         kind = event["type"]
         state = event.get("payload", {})
         actions: list[SpeechAction] = []
@@ -103,7 +105,12 @@ class SpeechPlanner:
                         actions.append(replace(selection_action, interrupt=False))
             self._last_mode = canonical
         elif kind == "focusContext":
-            action = self._focus_context(state)
+            if focus_announcement == "none":
+                action = None
+            elif focus_announcement == "line":
+                action = self._focus_line(state)
+            else:
+                action = self._focus_context(state)
             if action is not None:
                 actions.append(action)
             self._last_mode = state.get("mode")
@@ -599,6 +606,17 @@ class SpeechPlanner:
             return None
         text = ", ".join(parts)
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _focus_line(self, state: dict[str, Any]) -> SpeechAction | None:
+        line = state.get("lineText")
+        if not isinstance(line, str):
+            return None
+        text = line if line else "blank"
+        return SpeechAction(
+            text, Priority.STATUS, interrupt=True,
+            indentation_tones=self._indentation_quarter_tones(line),
+            braille_message=text,
+        )
 
     @staticmethod
     def _file_manager_entry(state: dict[str, Any]) -> SpeechAction | None:

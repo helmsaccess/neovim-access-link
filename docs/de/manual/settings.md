@@ -11,7 +11,8 @@ Einstellungs-Menüpunkt hinzu.
 
 Die Kategorie enthält drei Registerkarten:
 
-- `General` für die globale Rückmeldungsart;
+- `General` für die globale Rückmeldungsart und die Ausgabe beim erneuten
+  Sitzungsfokus;
 - `Feedback` für Rückmeldungen einzelner Editoraktionen;
 - `Connections` für Linux-Rechner und Linux-Benutzerkonten.
 
@@ -71,6 +72,25 @@ aufgeführten, vom Add-on kontrollierten Aktionsrückmeldungen. Er schaltet wede
 NVDA insgesamt stumm noch verändert er Zeichen-/Wortecho, Einrückung,
 Rechtschreibung, Braille oder Vorschlagsmeldungen.
 
+### Gruppe Session focus
+
+#### When focusing a Neovim session
+
+Steuert die zusätzliche Ausgabe, nachdem ein gebundenes Neovim-Control erneut
+Fokus erhalten hat und die Sitzung strukturiert bestätigt wurde:
+
+| Auswahl | Wirkung |
+| --- | --- |
+| `No announcement` | Keine zusätzliche Fokusansage. |
+| `Current line` | Die aktuelle strukturierte Zeile oder „blank“. |
+| `Current context, mode and connection name` | Datei beziehungsweise Spezialkontext, Modus und gespeicherter Verbindungsname wie bisher. |
+
+Der letzte Wert ist Standard. Die Auswahl ändert nur diese Fokusansage und
+deren vorübergehende Braillemeldung. Die strukturierte Braillezeile und die
+sichere Sitzungsbestätigung bleiben immer aktiv. Beim bestätigten Fokus werden
+für Insert- und Normalmodus außerdem die Modusklänge ausgegeben, sofern
+`Global action feedback` und `Insert and normal mode changes` Klänge erlauben.
+
 ## Registerkarte Feedback
 
 Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Off`,
@@ -82,6 +102,8 @@ zusätzlich durch `Global action feedback` begrenzt.
 Steuert die Add-on-Rückmeldung beim Wechsel zwischen Insert Mode und Normal
 Mode. Sprache nennt den neuen Modus; die Klangkomponente verwendet kurze,
 bereits beim Add-on-Start in den Arbeitsspeicher geladene Modusklänge.
+Dieselben Klänge bestätigen auch den aktuellen Insert- oder Normalmodus beim
+erneuten Fokus einer gebundenen Sitzung.
 
 Der Wechsel von Insert nach Normal unterbricht eine noch laufende gewöhnliche
 Navigationsausgabe, damit die Modusrückmeldung nicht hinter veraltetem Text
@@ -466,6 +488,7 @@ NVDA-Benutzerkonfiguration gespeichert und unterstützen dadurch Vererbung,
 manuelle Profile und Profil-Auslöser. Enthalten sind unter anderem:
 
 - Rückmeldungsmodi;
+- Auswahl der Ausgabe beim Sitzungsfokus;
 - gespeicherte Verbindungsprofile;
 
 Nicht gespeichert werden:
