@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-16, Beta-Version 0.91.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-16, Beta-Version 0.92.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
 Auf `feature/copy-paste` sind vier frei belegbare, ausdrücklich ausgelöste

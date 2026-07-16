@@ -4,6 +4,16 @@ Terminology note: “registry” in every historical entry means Neovim's
 file-based session registry of short-lived JSON records, never the Windows
 Registry. The product uses no `HKCU` or `HKLM` keys.
 
+## 0.92.0 beta pre-release
+
+- The product version was advanced to `0.92.0` at the user's explicit
+  direction. The GitHub entry is published as a pre-release.
+- The release channel remains `beta`; overall maturity remains between alpha
+  and beta and is not classified as stable.
+- Includes configurable focus output for bound Neovim sessions,
+  control-specific Windows Terminal isolation, and explicitly invoked
+  clipboard commands for local and SSH connections.
+
 ## 0.91.0-dev.4 unreleased feature-branch test build
 
 - Adds four freely assignable NVDA commands without default gestures: copy

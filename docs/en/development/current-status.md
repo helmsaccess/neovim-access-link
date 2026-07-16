@@ -1,6 +1,6 @@
 # Current status
 
-Status: 2026-07-16, beta version 0.91.0; overall maturity remains between
+Status: 2026-07-16, beta version 0.92.0; overall maturity remains between
 alpha and beta.
 
 Branch `feature/copy-paste` implements four freely assignable, explicitly

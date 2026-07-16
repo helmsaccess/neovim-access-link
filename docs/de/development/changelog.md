@@ -5,6 +5,16 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.92.0 (Beta-Vorabveröffentlichung)
+
+- Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.92.0` angehoben.
+  Der GitHub-Eintrag wird als Pre-Release veröffentlicht.
+- Der Releasekanal bleibt `beta`; der Gesamtstand bleibt zwischen Alpha und
+  Beta und wird nicht als stabil eingestuft.
+- Enthält die einstellbare Fokusausgabe für gebundene Neovim-Sitzungen, die
+  control-spezifische Windows-Terminal-Abschottung sowie die ausdrücklich
+  ausgelösten Zwischenablagebefehle für lokale und SSH-Verbindungen.
+
 ## 0.91.0-dev.4 (unveröffentlichter Featurebranch-Testbuild)
 
 - Ergänzt vier frei belegbare NVDA-Befehle ohne Standardgesten: aktuelle
