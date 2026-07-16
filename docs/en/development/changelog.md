@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.91.0 beta release
+
+- Includes control-specific Windows Terminal isolation with fail-open focus
+  switching and no activity-based rebinding.
+- The activation command remains the global toggle everywhere; each physical
+  F12 authorizes exactly one pairing attempt for the focused terminal control.
+- Local and remote connections across multiple tabs plus horizontal and
+  vertical split panes were practically confirmed without errors.
+- Overall maturity remains between alpha and beta; this is not classified as
+  stable.
+
 ## 0.90.0-dev.3 unreleased feature-branch test build
 
 - Practical `dev.1` testing exposed two linked regressions: F12 did nothing in

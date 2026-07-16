@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.91.0 (Beta-Veröffentlichung)
+
+- Übernimmt die control-spezifische Windows-Terminal-Abschottung mit
+  fail-open Fokuswechseln und ohne aktivitätsbasierte Umbindung.
+- Der Aktivierungsbefehl bleibt überall globaler Ein-/Ausschalter; F12
+  autorisiert jeweils genau einen Zuordnungsversuch für das fokussierte
+  Terminal-Control.
+- Lokale und entfernte Verbindungen in mehreren Tabs sowie horizontale und
+  vertikale Split-Panes wurden praktisch ohne Fehler bestätigt.
+- Der Gesamtstand bleibt zwischen Alpha und Beta und wird nicht als stabil
+  eingestuft.
+
 ## 0.90.0-dev.3 (unveröffentlichter Featurebranch-Testbuild)
 
 - Der Praxistest von `dev.1` zeigte zwei gekoppelte Regressionen: F12 blieb im

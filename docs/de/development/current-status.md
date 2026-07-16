@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-15, Beta-Version 0.90.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-16, Beta-Version 0.91.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
 Auf dem Entwicklungsbranch wird beim erneuten Fokus eines authentifizierten,
