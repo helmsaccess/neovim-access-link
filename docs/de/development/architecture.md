@@ -38,6 +38,25 @@ SSH authentifiziert Host und Linux-Konto. `ClearAllForwardings=yes` verhindert,
 dass Benutzerkonfiguration unbeabsichtigt Forwardings in den Bridgeprozess
 übernimmt. ServerAlive und begrenzter Backoff behandeln Abbrüche.
 
+## Expliziter Zwischenablagepfad
+
+Die Windows-Zwischenablage bleibt Eigentum von NVDA. Vier frei belegbare,
+global auffindbare NVDA-Skripte lesen oder schreiben sie über NVDAs
+`api.copyToClip` und `api.getClipData`; Bridge und Neovim erhalten keinen
+allgemeinen Zugriff auf Windows. Neovim stellt nur zwei feste Copy-Quellen
+bereit – aktive Visual-Auswahl und Register 0 – sowie einen festen
+`nvim_paste`-Einstiegspunkt und Register 0 als festen Speicher für das
+unbenannte Paste-Register. Das Schreiben verändert weder einen Buffer noch ein
+benanntes Benutzerregister.
+
+Jede Aktion trägt eine Anfrage-ID und die erwartete Buffer-, Fenster-, Tab-,
+`changedtick`- und Modusidentität. NVDA akzeptiert das Ergebnis nur für die
+weiterhin fokussierte, authentifizierte und gebundene Instanz. Der einmalig
+übertragene Copy-Text wird vor Aktualisierung des kanonischen Client-/Bridge-
+Zustands entfernt. Offene Anfragen sind begrenzt. Der Pfad ist
+ereignisgetrieben; es gibt weder Polling noch
+automatische Zwischenablagesynchronisation oder automatische Wiederholung.
+
 ## Verteilung der Linux-Komponenten
 
 Der Add-on-Build erzeugt aus den versionierten Bridge-, Protokoll-, Plugin- und
@@ -169,11 +188,17 @@ behandelte Runtime-ID. Dadurch bleiben Tabs oder Panes mit gleichem Prozess und
 Fenster unterscheidbar. Generische Fensteridentitäten werden nicht mehr als
 Terminalfrontend akzeptiert.
 
-Vor Aktivierung, manueller Verbindung und F12-Zuordnung liest ausschließlich
-dieses Windows-Terminal-AppModule das aktuell fokussierte NVDA-Objekt erneut
-ein. Das ist nötig, weil bei einem bereits fokussierten Terminal kein neues
-`gainFocus`-Ereignis eintreffen muss; die globale Dienstklasse fragt den Fokus
-weiterhin nicht selbst ab.
+Frei belegbare Befehle ohne Standardgeste liegen als globale Skriptmetadaten
+vor, damit NVDA sie unabhängig von der vor dem Eingabedialog fokussierten
+Anwendung immer auflistet. Bei ihrer Ausführung liest die globale Dienstklasse
+einmal das aktuelle Fokusobjekt. Nur eine vollständig freigegebene
+Windows-Terminal-`TermControl`-Identität wird an die Aktion delegiert und als
+aktueller Fokus übernommen. Außerhalb davon wird die Benutzer-Geste unverändert
+mit `gesture.send()` weitergegeben; Gate, Bindungen und Unterdrückung bleiben
+unverändert. F12, Fokusereignisse, Overlays und der standardbelegte
+Diagnosebefehl bleiben ausschließlich im Windows-Terminal-AppModule.
+Undokumentierte AppModule-Aliase erhalten bereits vor dieser Umstellung
+gespeicherte Gestenzuweisungen, bilden aber keine zweite Konfigurationsfläche.
 
 Nach einer expliziten Verbindung kann der Anwender das Merken bestätigen. Die
 Zuordnung `TerminalIdentity → ConnectionInstance` lebt ausschließlich im RAM.
@@ -223,10 +248,11 @@ semantische Zustände statt des gesamten Buffers.
 
 Der NVDA-unabhängige `SpeechPlanner` wandelt Ereignisse in priorisierte
 Aktionen um. Das Windows-Terminal-AppModule nimmt anwendungsspezifische NVDA-
-Ereignisse und Gesten entgegen; der gemeinsame Dienst führt Speech-, Sound- und
-Braille-APIs aus. Das Global Plugin besitzt selbst keine Ereignishandler,
-Overlays oder Eingabeskripte und verwaltet nur Lebenszyklus, Einstellungen und
-Verbindungen. Braille verwendet einen eigenen Planer und überlässt
+Ereignisse, F12 und die Standardgeste für den Diagnosebericht entgegen; der
+gemeinsame Dienst führt Speech-, Sound- und Braille-APIs aus. Das Global Plugin
+besitzt keine Ereignishandler oder Overlays. Seine unbelegten Skriptadapter
+machen konfigurierbare Befehle global auffindbar und delegieren erst nach
+strikter WT-Fokusprüfung. Braille verwendet einen eigenen Planer und überlässt
 Liblouis-Übersetzung, Cursorform und Auswahlpunkte 7/8 NVDA.
 
 Das Add-on registriert einen validierten Abschnitt `nvimNvdaAccess` in NVDAs

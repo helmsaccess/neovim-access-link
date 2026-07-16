@@ -2,6 +2,7 @@ local state = require("nvim_nvda.state")
 local menu = require("nvim_nvda.menu")
 local completion_adapters = require("nvim_nvda.completion_adapters")
 local file_manager = require("nvim_nvda.file_manager")
+local clipboard = require("nvim_nvda.clipboard")
 local M = {}
 
 local channel
@@ -434,6 +435,24 @@ end
 
 function M.key_observer_diagnostics()
   return vim.deepcopy(key_observer_diagnostics)
+end
+
+function M.request_copy_text(payload)
+  local result = clipboard.copy_text(payload)
+  emit("copyTextResult", "copyTextRequest", result)
+  return result.ok
+end
+
+function M.request_paste_text(payload)
+  local result = clipboard.paste_text(payload)
+  emit("pasteTextResult", "pasteTextRequest", result)
+  return result.ok
+end
+
+function M.request_set_register(payload)
+  local result = clipboard.set_register(payload)
+  emit("setRegisterResult", "setRegisterRequest", result)
+  return result.ok
 end
 
 function M.setup()

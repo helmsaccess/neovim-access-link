@@ -41,6 +41,38 @@ class StdioTransportTests(unittest.TestCase):
         self.assertEqual([("routeCursor", {"line": 2})], controls)
         transport.stop()
 
+    def test_only_valid_clipboard_controls_are_dispatched(self) -> None:
+        state = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "changedtick": 4, "modeRaw": "n", "requestId": 5,
+        }
+        controls = b"".join((
+            encode_frame(MessageFactory().create("copyTextRequest", {
+                **state, "source": "yankRegister",
+            })),
+            encode_frame(MessageFactory().create("pasteTextRequest", {
+                **state, "text": "remote text",
+            })),
+            encode_frame(MessageFactory().create("setRegisterRequest", {
+                **state, "text": "current register",
+            })),
+            encode_frame(MessageFactory().create("copyTextRequest", {
+                **state, "source": "untrusted",
+            })),
+        ))
+        dispatched: list[tuple[str, dict]] = []
+        transport = StdioTransport(
+            lambda: {}, io.BytesIO(controls), io.BytesIO(),
+            on_control=lambda kind, payload: dispatched.append((kind, payload)),
+            heartbeat_seconds=10.0,
+        )
+        transport.start()
+        self.assertTrue(transport.closed.wait(1.0))
+        self.assertEqual(["copyTextRequest", "pasteTextRequest", "setRegisterRequest"], [
+            kind for kind, _payload in dispatched
+        ])
+        transport.stop()
+
     def test_focus_context_control_correlates_cached_state(self) -> None:
         controls = b"".join(encode_frame(MessageFactory().create(
             "requestFocusContext", {"requestId": value},

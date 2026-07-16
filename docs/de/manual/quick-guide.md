@@ -44,7 +44,8 @@ Für ein Linux-Ziel werden zusätzlich benötigt:
 Nach dem Neustart erscheint unter „NVDA-Menü → Optionen → Einstellungen…“ die
 Kategorie „Neovim Access Link“. Unter „NVDA-Menü → Optionen →
 Tastenbefehle…“ gibt es ebenfalls eine gleichnamige Kategorie für die
-Tastenzuweisungen.
+Tastenzuweisungen. Die frei belegbaren Befehle werden dort unabhängig davon
+angezeigt, welche Anwendung vor dem Öffnen des Dialogs fokussiert war.
 
 ## 3. Eigene Aktivierungstaste festlegen
 
@@ -61,6 +62,22 @@ die gerade fokussierte Neovim-Instanz eindeutig mit dem aktuellen
 Windows-Terminal-Control zu verbinden. Bei eingeschaltetem Dienst autorisiert
 jeder physische F12-Druck genau einen Zuordnungsversuch für das gerade
 fokussierte Control.
+
+Für die Zwischenablage stehen in derselben Kategorie vier weitere Befehle ohne
+Standardbelegung bereit:
+
+- aktive Neovim-Visual-Auswahl in die Windows-Zwischenablage kopieren;
+- Neovims letzten Yank aus Register 0 in die Windows-Zwischenablage kopieren;
+- Windows-Zwischenablagentext in den aktiven Neovim-Buffer einfügen;
+- Windows-Zwischenablagentext in Neovims aktuelles unbenanntes Register
+  übertragen, damit er anschließend mit `p` verwendet werden kann.
+
+Diese Befehle müssen bei Bedarf mit eigenen NVDA-Tastenkombinationen belegt
+werden. Sie wirken nur in der ausdrücklich gebundenen und aktuell fokussierten
+Neovim-Sitzung. Außerhalb eines eindeutig erkannten Windows-Terminal-Controls
+wird eine solche eigene Tastenkombination unverändert an die fokussierte
+Anwendung weitergegeben; normales Windows-Terminal-Copy-and-Paste bleibt
+unverändert.
 
 ## 4. Komponenten installieren
 

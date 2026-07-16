@@ -133,6 +133,24 @@ Steuert Sprache und Klang für Ersetzen beziehungsweise Ändern von Text, etwa
 bei Änderungsoperatoren wie `cw` oder bei zuverlässig erkannten
 Ersetzungsereignissen.
 
+### Copy and paste
+
+Steuert die Erfolgsrückmeldung der vier frei belegbaren NVDA-Befehle zum
+Kopieren der aktuellen Visual-Auswahl, zum Kopieren von Neovims letztem Yank
+und zum Einfügen von Windows-Zwischenablagentext sowie zum Ersetzen von Neovims
+aktuellem unbenannten Register. Fehler bleiben unabhängig von dieser Auswahl
+hörbar. Es gibt keine automatische Synchronisation und keine feste
+Tastenkombination.
+
+Kopieren liest ausschließlich die aktuelle Visual-Auswahl oder Neovims
+Register 0. Einfügen verwendet Neovims strukturierte Paste-API und ist auf
+normale veränderbare Editorbuffer im Normal- oder Insertmodus beschränkt.
+Terminalbuffer, Dateimanager, schreibgeschützte und nicht veränderbare Buffer
+werden abgewiesen. Der Registerbefehl verändert keinen Buffer. Er ersetzt
+Register 0 und lässt das unbenannte Register darauf zeigen; normales `p` und
+`"0p` verwenden danach den übertragenen Text. Lokal und über SSH gilt dasselbe
+Verhalten.
+
 Der Ersetzungsklang unterscheidet sich vom Löschklang. Nachfolgende Navigation
 oder Texteingabe wird nicht fälschlich als Teil des vorherigen Operators
 behandelt.
@@ -466,6 +484,12 @@ Sitzung; bei mehreren echten Treffern kann eine Auswahl nach Name und
 Arbeitsverzeichnis erscheinen. Interne IDs und Fenstertitel werden nicht
 verwendet.
 
+Die frei belegbaren Befehle dieser Kategorie sind auch sichtbar, wenn der
+Dialog aus einer anderen Anwendung geöffnet wurde. Bei der Ausführung prüft
+das Add-on das aktuell fokussierte UIA-Control erneut. Außerhalb eines
+eindeutig erkannten Windows-Terminal-Controls wird die eigene Tastenkombination
+unverändert weitergegeben und keine Neovim-Aktion ausgelöst.
+
 Nach erfolgreicher Verbindung fragt das Add-on bei Windows Terminal optional,
 ob diese Verbindung für das Terminal-Control gemerkt werden soll. Bei „Ja“ kann
 anschließend zwischen so verbundenen Fenstern, Tabs und Panes gewechselt werden, ohne den Dialog
@@ -480,6 +504,12 @@ stabile `TermControl`-Runtime-ID gelesen werden, erscheint die Nachfrage nicht.
 Weitere Befehle zum ausdrücklichen Verbinden, Trennen und Vergessen einer
 temporären Terminalbindung können unter `NVDA-Menü → Optionen → Tastenbefehle…
 → Neovim Access Link` mit eigenen Tastenkombinationen belegt werden.
+
+Dort werden auch die vier Copy/Paste-Befehle frei belegt. Sie ersetzen weder
+Windows-Terminals eigene Auswahl noch dessen `Ctrl+Shift+C`/`Ctrl+Shift+V`.
+Jeder Aufruf ist eine einzelne, auf die aktuelle Terminal-Control-Bindung und
+den aktuellen Neovim-Zustand korrelierte Aktion. Bei einem Fokus-, Tab-, Pane-,
+Buffer- oder Moduswechsel wird eine verspätete Antwort verworfen.
 
 ## Speicherung und Datenschutz
 

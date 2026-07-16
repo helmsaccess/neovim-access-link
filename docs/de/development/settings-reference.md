@@ -34,6 +34,7 @@ Option besitzt:
 - Dateianfang und Dateiende
 - Hinweis beim Überschreiten einer Zeilengrenze
 - fehlendes passendes Klammerzeichen
+- Erfolg beim expliziten Kopieren und Einfügen
 
 Folgende Funktionen werden bewusst nicht dupliziert:
 
@@ -48,6 +49,13 @@ Die Rückmeldungswerte werden im Abschnitt `nvimNvdaAccess` von NVDAs regulärer
 Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
 0 bis 2. Unbekannte oder ungültige Werte werden verworfen und im redigierten
 Diagnosebericht gemeldet.
+
+Die vier Zwischenablagebefehle besitzen keine Standardgesten. Anwender weisen ihnen
+in NVDAs Dialog „Eingaben“ eigene Tastenkombinationen zu. Konfiguriert wird nur
+die Erfolgsrückmeldung; Übertragungsrichtung, Register und Zielbuffer werden
+nicht durch frei eingegebene Befehle oder automatische Synchronisation
+gesteuert. Der Registerbefehl ersetzt fest Register 0 und lässt das unbenannte
+Register darauf zeigen; benannte Benutzerregister bleiben unverändert.
 
 ## NVDA-Konfigurationsprofil
 

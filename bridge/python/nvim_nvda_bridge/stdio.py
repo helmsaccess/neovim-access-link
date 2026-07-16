@@ -8,7 +8,11 @@ import time
 from collections.abc import Callable
 from typing import Any, BinaryIO
 
-from nvim_nvda_protocol import FrameDecoder, MessageFactory, ProtocolError, encode_frame
+from nvim_nvda_protocol import (
+    FrameDecoder, MessageFactory, ProtocolError, encode_frame,
+    valid_copy_text_request, valid_paste_text_request,
+    valid_set_register_request,
+)
 
 
 STDIO_MARKER = b"NVIM-NVDA-STDIO/2\n"
@@ -19,7 +23,7 @@ class StdioTransport:
 
     capabilities = (
         "heartbeat", "resync", "semanticEvents", "cursorRouting", "accessibleMenus",
-        "focusContext",
+        "focusContext", "clipboardTransfer",
     )
 
     def __init__(
@@ -112,6 +116,12 @@ class StdioTransport:
                             state["_focusRequestId"] = request_id
                             self.publish("focusContext", state)
                     elif kind == "routeCursor":
+                        self.on_control(kind, dict(control["payload"]))
+                    elif kind == "copyTextRequest" and valid_copy_text_request(control.get("payload")):
+                        self.on_control(kind, dict(control["payload"]))
+                    elif kind == "pasteTextRequest" and valid_paste_text_request(control.get("payload")):
+                        self.on_control(kind, dict(control["payload"]))
+                    elif kind == "setRegisterRequest" and valid_set_register_request(control.get("payload")):
                         self.on_control(kind, dict(control["payload"]))
         except (OSError, ProtocolError):
             pass

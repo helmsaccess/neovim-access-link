@@ -125,6 +125,7 @@ function M.snapshot(reason)
     filetype = vim.bo[buf].filetype,
     buftype = vim.bo[buf].buftype,
     modified = vim.bo[buf].modified,
+    modifiable = vim.bo[buf].modifiable,
     readonly = vim.bo[buf].readonly,
     cursor = {
       line = cursor[1],

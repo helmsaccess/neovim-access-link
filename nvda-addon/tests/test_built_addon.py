@@ -80,6 +80,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.clipboard = text
             return True
         api.copyToClip = copy_to_clip
+        api.getClipData = lambda: self.clipboard
         sys.modules["api"] = api
 
         build_version = types.ModuleType("buildVersion")
@@ -121,7 +122,7 @@ class BuiltAddonTests(unittest.TestCase):
                         "feedback": {
                             "global": 3, "mode": 3, "delete": 3, "replace": 3,
                             "lineBoundary": 2, "fileBoundary": 3,
-                            "lineCrossed": 2, "matchingError": 3,
+                            "lineCrossed": 2, "matchingError": 3, "clipboard": 3,
                         },
                     }
                 return super().__getitem__(key)
@@ -677,27 +678,66 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, _PRODUCT_NAME
 
-        metadata = AppModule.script_toggleNeovimMode._test_script_kwargs
-        self.assertNotIn("gesture", metadata)
-        self.assertIn("description", metadata)
-        documentation = AppModule.script_readCompletionDocumentation._test_script_kwargs
-        self.assertNotIn("gesture", documentation)
+        configurable_scripts = (
+            "script_toggleNeovimMode",
+            "script_readCompletionDocumentation",
+            "script_copyNeovimSelection",
+            "script_copyLastNeovimYank",
+            "script_pasteWindowsClipboard",
+            "script_setNeovimRegisterFromWindowsClipboard",
+            "script_startConnectionInstance",
+            "script_disconnectConnectionInstance",
+            "script_forgetTemporaryTerminalBinding",
+        )
+        for name in configurable_scripts:
+            metadata = getattr(GlobalPlugin, name)._test_script_kwargs
+            self.assertNotIn("gesture", metadata, name)
+            self.assertEqual(_PRODUCT_NAME, metadata["category"], name)
+            self.assertTrue(metadata["description"], name)
+            self.assertTrue(hasattr(AppModule, name), name)
+            self.assertFalse(
+                hasattr(getattr(AppModule, name), "_test_script_kwargs"), name,
+            )
         self.assertFalse(hasattr(GlobalPlugin, "script_selectConnection"))
         self.assertFalse(hasattr(GlobalPlugin, "script_nextConnection"))
-        self.assertNotIn("gesture", AppModule.script_startConnectionInstance._test_script_kwargs)
-        self.assertNotIn(
-            "gesture", AppModule.script_forgetTemporaryTerminalBinding._test_script_kwargs,
-        )
         self.assertIn(
             "choose a server",
-            AppModule.script_startConnectionInstance._test_script_kwargs["description"].lower(),
+            GlobalPlugin.script_startConnectionInstance._test_script_kwargs["description"].lower(),
         )
-        self.assertNotIn("gesture", AppModule.script_disconnectConnectionInstance._test_script_kwargs)
+        self.assertEqual(
+            "kb:NVDA+alt+d",
+            AppModule.script_copyDiagnosticReport._test_script_kwargs["gesture"],
+        )
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
-        self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
+
+    def test_configured_global_gesture_passes_through_outside_windows_terminal(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        previous = plugin._gate.focused
+        self.focus = types.SimpleNamespace(
+            processID=300, windowHandle=400, role=3, parent=None,
+            appModule=types.SimpleNamespace(appName="explorer"),
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 400, 4, 1),
+            ),
+        )
+        forwarded = []
+        gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
+
+        plugin.script_toggleNeovimMode(gesture)
+
+        self.assertEqual([True], forwarded)
+        self.assertEqual(previous, plugin._gate.focused)
+        self.assertEqual([], self.messages)
+        report = plugin._diagnostics.report()
+        self.assertIn('"category": "configuredGesturePassedThrough"', report)
+        self.assertIn('"action": "action_toggleNeovimMode"', report)
+        plugin.terminate()
 
     def test_f12_observer_keeps_original_gesture_unbound_and_starts_claim_resolution(self) -> None:
         from appModules.windowsterminal import AppModule
@@ -1264,9 +1304,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._focusedTerminalObject = None
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(plugin._gate.focused)
-        app_module = AppModule()
+        AppModule()
 
-        app_module.script_toggleNeovimMode(None)
+        plugin.script_toggleNeovimMode(None)
 
         expected = plugin._identity(self.focus)
         self.assertEqual(expected, plugin._gate.focused)
@@ -1327,14 +1367,15 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("off", self.messages[-1])
         plugin.terminate()
 
-    def test_application_behavior_is_owned_only_by_windows_terminal_app_module(self) -> None:
+    def test_terminal_events_stay_in_app_module_while_configurable_scripts_are_global(self) -> None:
         with zipfile.ZipFile(build()) as archive:
             names = set(archive.namelist())
             global_source = archive.read(
                 "globalPlugins/nvimNvdaAccess/__init__.py"
             ).decode("utf-8")
         self.assertIn("appModules/windowsterminal.py", names)
-        self.assertNotIn("getFocusObject", global_source)
+        self.assertIn("_dispatchConfiguredTerminalScript", global_source)
+        self.assertIn("getFocusObject", global_source)
         from appModules.windowsterminal import AppModule
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
@@ -1344,7 +1385,19 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertFalse(hasattr(GlobalPlugin, "event_gainFocus"))
         self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
-        self.assertFalse(any(name.startswith("script_") for name in vars(GlobalPlugin)))
+        self.assertTrue(hasattr(GlobalPlugin, "script_toggleNeovimMode"))
+        self.assertTrue(hasattr(AppModule, "script_toggleNeovimMode"))
+        self.assertFalse(
+            hasattr(AppModule.script_toggleNeovimMode, "_test_script_kwargs"),
+        )
+        self.assertEqual(
+            ["script_copyDiagnosticReport"],
+            sorted(
+                name for name, value in vars(AppModule).items()
+                if name.startswith("script_")
+                and hasattr(value, "_test_script_kwargs")
+            ),
+        )
 
     def test_windows_terminal_events_fail_open_exactly_once(self) -> None:
         from appModules.windowsterminal import AppModule
@@ -2824,7 +2877,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([
             "Global action feedback", "Session focus", "Individual actions", "Saved SSH connections",
         ], self.staticBoxLabels)
-        self.assertEqual(8, len(panel.feedbackControls))
+        self.assertEqual(9, len(panel.feedbackControls))
         self.assertEqual(2, panel.focusAnnouncement.GetSelection())
         panel.focusAnnouncement.SetSelection(1)
         panel.feedbackControls["delete"].SetSelection(2)
@@ -2863,6 +2916,173 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(config.post_configProfileSwitch.handlers))
         plugin.terminate()
         self.assertEqual(0, len(config.post_configProfileSwitch.handlers))
+
+    def test_clipboard_actions_are_correlated_to_the_bound_foreground_session(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
+        base = {
+            "bufferId": 1, "windowId": 1000, "tabpageId": 1, "changedtick": 9,
+            "mode": "visualCharacter", "modeRaw": "v", "modeBlocking": False,
+            "buftype": "", "modifiable": True, "readonly": False,
+            "fileManager": None, "lineText": "selected",
+            "cursor": {"line": 1, "byteColumn": 7},
+        }
+        plugin._currentState = base
+
+        plugin.action_copyNeovimSelection(None)
+        kind, request = client.controls[-1]
+        self.assertEqual("copyTextRequest", kind)
+        self.assertEqual("visualSelection", request["source"])
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "copyTextResult", "payload": {
+                **base, "requestId": request["requestId"], "ok": True,
+                "resultCode": "copied", "clipboardText": "private selection",
+                "copiedCharacterCount": 17, "copiedLineCount": 1,
+            },
+        })
+        self.assertEqual("private selection", self.clipboard)
+        self.assertIn("Copied from Neovim", self.spoken)
+        self.assertNotIn("private selection", plugin._diagnostics.report())
+
+        self.clipboard = "Windows text 😀\nsecond line"
+        plugin._currentState = {**base, "mode": "normal", "modeRaw": "n"}
+        plugin.action_pasteWindowsClipboard(None)
+        kind, request = client.controls[-1]
+        self.assertEqual("pasteTextRequest", kind)
+        self.assertEqual(self.clipboard, request["text"])
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "pasteTextResult", "payload": {
+                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                "resultCode": "pasted", "insertedBytes": 29, "insertedLines": 2,
+            },
+        })
+        self.assertIn("Pasted into Neovim", self.spoken)
+        self.assertNotIn("Windows text", plugin._diagnostics.report())
+
+        self.clipboard = "new unnamed register\r\n"
+        plugin.action_setNeovimRegisterFromWindowsClipboard(None)
+        kind, request = client.controls[-1]
+        self.assertEqual("setRegisterRequest", kind)
+        self.assertEqual(self.clipboard, request["text"])
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "setRegisterResult", "payload": {
+                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                "resultCode": "registerStored", "registerType": "V",
+                "storedBytes": 21, "storedLineCount": 1,
+            },
+        })
+        self.assertTrue(any("unnamed register" in item for item in self.spoken))
+        self.assertNotIn("new unnamed register", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        controls = []
+        client = types.SimpleNamespace(
+            start=lambda: None, stop=lambda: None,
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+        )
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
+        plugin._currentState = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
+            "mode": "normal", "modeRaw": "n", "modeBlocking": False,
+            "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
+        }
+        plugin.action_copyLastNeovimYank(None)
+        request = controls[-1][1]
+        self.clipboard = "unchanged"
+        plugin._event_appModule_loseFocus()
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "copyTextResult", "payload": {
+                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                "resultCode": "copied", "clipboardText": "must not escape",
+            },
+        })
+        self.assertEqual("unchanged", self.clipboard)
+        self.assertNotIn("must not escape", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_pending_clipboard_requests_are_bounded(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        for request_id in range(40):
+            plugin._rememberClipboardRequest(request_id, ("instance", None, "copyTextRequest"))
+
+        self.assertEqual(32, len(plugin._pendingClipboardRequests))
+        self.assertNotIn(0, plugin._pendingClipboardRequests)
+        self.assertIn(39, plugin._pendingClipboardRequests)
+        self.assertIn('"reason": "queueLimit"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_paste_result_after_focus_loss_has_no_feedback_in_new_context(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        controls = []
+        client = types.SimpleNamespace(
+            start=lambda: None, stop=lambda: None,
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+        )
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
+        plugin._currentState = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
+            "mode": "normal", "modeRaw": "n", "modeBlocking": False,
+            "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
+        }
+        self.clipboard = "one authorized paste"
+        plugin.action_pasteWindowsClipboard(None)
+        request = controls[-1][1]
+        spoken_before = len(self.spoken)
+
+        plugin._event_appModule_loseFocus()
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "pasteTextResult", "payload": {
+                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                "resultCode": "pasted", "insertedBytes": 20, "insertedLines": 1,
+            },
+        })
+
+        self.assertNotIn("Pasted into Neovim", self.spoken[spoken_before:])
+        self.assertEqual({}, plugin._pendingClipboardRequests)
+        plugin.terminate()
 
     def test_nvda_profile_switch_does_not_interrupt_an_active_connection(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
@@ -3990,7 +4210,7 @@ class BuiltAddonTests(unittest.TestCase):
             plugin._settings["feedback"]["delete"],
             plugin._settings["feedback"]["mode"],
         ))
-        self.assertEqual((6, "linux-editor", "example-host"), (
+        self.assertEqual((7, "linux-editor", "example-host"), (
             plugin._settings["schemaVersion"],
             plugin._settings["connections"][0]["user"], plugin._settings["connections"][0]["host"],
         ))
@@ -3998,7 +4218,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(path.exists())
         self.assertEqual(1, self.configSaves)
         saved = config.conf["nvimNvdaAccess"]
-        self.assertEqual(6, saved["schemaVersion"])
+        self.assertEqual(7, saved["schemaVersion"])
         self.assertNotIn("activeConnection", saved)
         self.assertNotIn("authToken", saved["connections"])
         self.assertNotIn("transport", saved["connections"])
@@ -4032,7 +4252,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], plugin._settings["connections"])
         self.assertEqual(3, plugin._settings["feedback"]["global"])
         self.assertEqual(2, plugin._settings["focusAnnouncement"])
-        self.assertEqual(6, plugin._settings["schemaVersion"])
+        self.assertEqual(7, plugin._settings["schemaVersion"])
         self.assertEqual(0, self.configSaves)
         plugin.terminate()
 
@@ -4053,7 +4273,7 @@ class BuiltAddonTests(unittest.TestCase):
         section = AggregatedSectionLike()
         config.conf["nvimNvdaAccess"] = section
         plugin._writeSettingsToNvda(plugin._settings)
-        self.assertEqual(6, section.values["schemaVersion"])
+        self.assertEqual(7, section.values["schemaVersion"])
         self.assertEqual(2, section.values["focusAnnouncement"])
         self.assertIsInstance(section.values["connections"], str)
         self.assertEqual(set(plugin._settings["feedback"]), set(section.values["feedback"]))

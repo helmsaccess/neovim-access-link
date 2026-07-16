@@ -3,49 +3,33 @@
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
-## Active: configurable session-focus output
+## Active: explicit copy/paste
 
-Branch `feature/focus-context-settings` adds one profile-aware choice to the
-General settings tab:
+Branch `feature/copy-paste` adds four commands without default gestures to
+NVDA's Input Gestures dialog: copy the Visual selection, copy register 0, and
+paste Windows clipboard text or store it in Neovim's unnamed register for
+normal `p`. NVDA's public clipboard API is the only Windows
+access; local and SSH transports carry only fixed typed Neovim controls.
 
-1. no focus announcement;
-2. current line;
-3. current file or special context, mode, and connection name as before.
+Implemented work includes correlated request/result events, a 256-KiB limit,
+UTF-8 and NUL validation, immediate Neovim state validation, `nvim_paste`
+without retry, rejection of special/terminal/file-manager/read-only/non-
+modifiable buffers, and removal of one-shot copy text from every canonical
+state cache and diagnostic. Profile-aware success feedback uses the existing
+Off/Speech/Sounds/Both model; failures remain audible. Pending requests are
+bounded.
 
-The existing context output remains the default. This setting controls only
-the focus announcement and its transient Braille message. Structured Braille,
-focus correlation, authentication, exact control binding, and fail-open
-suppression remain independent. A correlated `focusContext` must therefore
-still be requested and validated even when announcements are disabled.
+After practical testing showed that the product category disappeared when
+Input Gestures was opened outside Windows Terminal, freely assignable commands
+are exposed as global unbound script metadata. Execution remains isolated by
+revalidating the exact WT `TermControl`; elsewhere the original gesture is
+passed through unchanged. Automated regression coverage is implemented;
+the practical `dev.4` test confirmed visibility, pass-through outside WT, and
+execution in the bound Neovim control without problems.
 
-Every accepted focus context additionally offers the Insert- or Normal-mode
-sound for all three choices. Existing global and mode-specific sound settings
-still gate that sound; the new choice does not change normal mode-change speech
-or sound settings.
-
-Implementation plan:
-
-1. Add a validated native NVDA setting with the compatibility-preserving
-   default and integrate it with the dialog, persistence, normalization, and
-   profile switching. A schema upgrade must never re-import an obsolete legacy
-   JSON backup over an already migrated native configuration.
-2. Model the three presentation variants in the NVDA-independent speech
-   planner. Current-line output uses structured `lineText`, identifies an empty
-   line, and reuses indentation handling; the existing file/special-context
-   output remains available unchanged.
-3. Separate focus-time Insert/Normal sound playback from speech selection.
-   Each accepted response produces at most one mode sound; stale, unbound, or
-   unauthenticated responses remain completely inert.
-4. Add regression coverage for the compatible default, every choice, empty and
-   Unicode lines, local and remote labels, NVDA profiles, invalid values,
-   legacy migration, Braille, and independent speech/sound gating.
-5. Update settings, architecture, accessibility, testing, current status, and
-   changelog documentation, then run practical local/SSH NVDA and Windows
-   Terminal tests across bound and unbound tabs/panes and rapid focus changes.
-
-All steps are implemented. Practical NVDA and Windows Terminal testing
-confirmed all three choices and their independent mode sounds locally and over
-SSH without problems.
+All four commands, including Windows text to the unnamed paste register, were
+practically confirmed without problems in the supplied `dev.4` build. Feature
+acceptance is complete; merging remains a separate user decision.
 
 The beta close-out work is documentation consistency, full automated package
 and documentation verification, practical local/remote multi-session and

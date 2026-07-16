@@ -39,6 +39,20 @@ Existing NVDA settings remain authoritative:
 | Indentation and spelling | Preferences → Settings... → Document Formatting |
 | Automatic suggestions | Preferences → Settings... → Object Presentation |
 
+“Copy and paste” controls success feedback for four freely assignable NVDA
+commands: copy the active Visual selection, copy Neovim register 0 (the last
+yank), paste Windows clipboard text, and store Windows text in Neovim's current
+unnamed register. Failures remain audible. There is no default gesture,
+automatic synchronization, or automatic retry.
+
+Copy reads only the current Visual selection or register 0. Paste uses
+Neovim's structured paste API and is limited to normal modifiable editor
+buffers in Normal or Insert mode. Terminal buffers, file managers, read-only
+buffers, and non-modifiable buffers are rejected. The register command changes
+no buffer. It replaces register 0 and points the unnamed register to it, so
+normal `p` and `"0p` subsequently use the transferred text. Local and SSH
+sessions use the same behavior.
+
 ## Connections
 
 Local Windows Neovim needs no saved profile. “Saved SSH connections” stores a
@@ -96,6 +110,18 @@ Use `NVDA menu → Preferences → Input gestures... → Neovim Access Link` to
 assign activation, manual connection, disconnect, forget-binding, and
 diagnostic-report commands. F12 is the default session-claim key shared with
 the installed plugin and should not be reassigned as activation.
+
+Freely assignable commands remain visible in that category even when the
+dialog was opened from another application. Invocation rechecks the current
+UI Automation control. Outside an exactly recognized Windows Terminal control,
+the user-assigned gesture is passed through unchanged and no Neovim action is
+run.
+
+The four copy/paste commands are assigned in that dialog as well. They do not
+replace Windows Terminal selection or `Ctrl+Shift+C`/`Ctrl+Shift+V`. Each use
+is one action correlated with the current terminal-control binding and current
+Neovim state; a late response after a focus, tab, pane, buffer, or mode change
+is discarded.
 
 Temporary tab bindings use a stable Windows Terminal UI Automation runtime ID,
 remain only in memory, and never inspect terminal text or titles.

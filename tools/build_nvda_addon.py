@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
 import buildVars
 
 PROTOCOL_MODULES = (
-    "codec.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
+    "clipboard.py", "codec.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
     "session.py", "stdio_client.py", "text.py",
 )
 CORE_MODULES = (

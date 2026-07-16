@@ -9,7 +9,7 @@ from collections import deque
 from typing import Any
 
 _SENSITIVE = frozenset({
-    "password", "lineText", "selectedText", "text", "beforeText", "registerText",
+    "password", "lineText", "selectedText", "text", "clipboardText", "beforeText", "registerText",
 })
 
 

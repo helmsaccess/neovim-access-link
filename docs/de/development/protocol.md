@@ -84,7 +84,9 @@ den tatsächlich gestarteten v2-Transport:
     "resync",
     "semanticEvents",
     "cursorRouting",
-    "accessibleMenus"
+    "accessibleMenus",
+    "focusContext",
+    "clipboardTransfer"
   ]
 }
 ```
@@ -155,7 +157,15 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `requestFocusContext` mit einer ganzzahligen `requestId` zwischen 0 und
   2147483647;
 - `routeCursor` mit `bufferId`, `windowId`, `line`, `byteColumn` und
-`changedtick`.
+  `changedtick`;
+- `copyTextRequest` mit korrelierter `requestId`, erwarteter Buffer-, Fenster-,
+  Tab-, `changedtick`- und Modusidentität sowie genau einer Quelle
+  `visualSelection` oder `yankRegister`;
+- `pasteTextRequest` mit derselben erwarteten Identität und höchstens 256 KiB
+  gültigem, NUL-freiem UTF-8-Text;
+- `setRegisterRequest` mit derselben erwarteten Identität und Textgrenze; das
+  Ziel ist fest Register 0 als Speicher des unbenannten Registers; ein
+  Registername wird nicht übertragen.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
@@ -165,6 +175,21 @@ verworfen. Der Ablauf ist fokusereignisgetrieben und verwendet kein Polling.
 `routeCursor` prüft aktuelle Buffer-/Fensterkennung, `changedtick`, Zeilen- und
 UTF-8-Bytespalten-Grenzen, bevor Neovims Cursor-API aufgerufen wird. Empfangener
 Text wird nie als Lua- oder Ex-Code ausgeführt.
+
+`copyTextResult`, `pasteTextResult` und `setRegisterResult` tragen dieselbe
+Anfrage-ID und einen festen Ergebniscode. Nur `copyTextResult` darf einmalig das Feld
+`clipboardText` enthalten. Add-on, lokaler Client und Bridge verwerfen eine
+nicht mehr zu Fokus, Control, Instanz und Anfrage passende Antwort. Der Text
+wird nach der einmaligen Übergabe an NVDAs Zwischenablage-API aus dem
+kanonischen Zustands-Cache entfernt und erscheint weder in späterem
+`fullState` noch in `focusContext`. Einfügen ruft ausschließlich
+`nvim_paste(..., true, -1)` auf; fehlgeschlagene oder zeitlich veraltete
+Aktionen werden nicht automatisch wiederholt.
+`setRegisterRequest` normalisiert CRLF, wählt anhand eines abschließenden
+Zeilenumbruchs Zeichen- oder Zeilentyp und ruft ausschließlich das feste
+`setreg('0', ..., type .. '"')` auf. Das ersetzt Register 0 und lässt das
+unbenannte Register darauf zeigen, ohne ein benanntes Benutzerregister zu
+verwenden.
 
 ## Sicherheitsgrenze
 

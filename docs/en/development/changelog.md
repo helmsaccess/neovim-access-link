@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.91.0-dev.4 unreleased feature-branch test build
+
+- Adds four freely assignable NVDA commands without default gestures: copy
+  the current Visual selection, copy Neovim register 0, and paste Windows
+  clipboard text through `nvim_paste` or store it in register 0 and point
+  Neovim's unnamed register to it for normal `p`.
+- Local and SSH paths use the same fixed correlated controls. Focus, control
+  binding, instance, request ID, buffer, window, tab, changed tick, and mode
+  are validated; text is NUL-free and limited to 256 KiB of UTF-8. There is no
+  polling, automatic synchronization, or automatic retry.
+- Paste is limited to normal modifiable editor buffers. One-shot copied text is
+  removed from caches and redacted diagnostics. Success feedback is profile-
+  aware as Off/Speech/Sounds/Both; failures remain audible. Pending requests
+  are bounded.
+- All four commands were practically confirmed without problems in the
+  supplied `dev.4` build.
+- Freely assignable commands are now visible in Input Gestures regardless of
+  the previously focused application. Outside an exactly recognized Windows
+  Terminal control, an assigned gesture is passed through unchanged; events,
+  F12, overlays, and default gestures remain in the WT AppModule. Undocumented
+  compatibility aliases retain assignments saved by earlier feature builds.
+- The `dev.4` practical test confirmed the product category when opening Input
+  Gestures from an unrelated application, unchanged gesture pass-through
+  outside WT, and correct execution in the bound Neovim control.
+- All 38 protocol, 28 bridge, 244 add-on/core/package tests and all Lua
+  specifications, including 28 clipboard assertions, pass; the add-on and six
+  HTML documents build successfully.
+
 ## 0.91.0-dev.1 unreleased feature-branch test build
 
 - Adds a profile-aware focus choice: no announcement, current structured line,

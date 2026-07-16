@@ -3,14 +3,27 @@
 Status: 2026-07-16, beta version 0.91.0; overall maturity remains between
 alpha and beta.
 
-On `feature/focus-context-settings`, output after confirmed focus return is
-profile-selectable as silent, current structured line, or the existing
-file/special context with mode and connection name. Existing behavior remains
-the default. Insert/Normal sounds are independent and follow the existing
-sound settings after valid focus correlation. The focus gate, structured
-Braille, and fail-open behavior remain active for every choice. Automated
-add-on tests pass. Practical NVDA/Windows Terminal testing confirmed all three
-choices and their mode sounds locally and over SSH without problems.
+Branch `feature/copy-paste` implements four freely assignable, explicitly
+invoked NVDA commands: copy the Visual selection, copy register 0, paste
+Windows clipboard text through Neovim's paste API, or store it in register 0
+and point the unnamed register to it for normal `p`. Local and SSH use the same
+correlated protocol path. It validates focus, control binding, instance,
+request ID, buffer, window, tab, changed tick, and mode; limits text to 256 KiB
+of UTF-8; and keeps copied text out of canonical state and diagnostics. Paste
+is limited to normal modifiable editor buffers. All 38 protocol, 28 bridge,
+244 add-on/core/package tests and all Lua specifications, including 28
+clipboard assertions, pass; the add-on and six HTML documents build
+successfully. All four commands were practically confirmed without problems
+in the supplied `dev.4` build.
+
+The first build registered freely assignable commands only in the Windows
+Terminal AppModule. NVDA's applicability filtering therefore hid the entire
+product category when Input Gestures was opened from Explorer or another
+application. The correction adds unbound global metadata, revalidates the
+exact WT `TermControl` identity on invocation, and passes the gesture unchanged
+in every other application. `dev.4` practical acceptance fully confirmed the
+category from an unrelated application, unchanged pass-through there, and
+correct execution in the bound Neovim control.
 
 The released control-isolation path still treats each physical F12 press as one
 authorization for exactly the focused Windows Terminal control. Activity from
@@ -41,7 +54,7 @@ Uncertainty remains non-destructive.
 Closed individual WT tabs or whole windows require two negative five-minute sweeps,
 detach fail-open, and stop their NVDA client
 off the main thread without terminating Neovim or tmux. Isolated local and
-`eh@tessa` SIGKILL tests left no visible session or owned nonce-qualified
+`user@example.invalid` SIGKILL tests left no visible session or owned nonce-qualified
 registry/socket debris.
 Focused tabs are never removed by UIA maintenance, and lifecycle validation
 does not run from editor, connection-state, or terminal-action paths.

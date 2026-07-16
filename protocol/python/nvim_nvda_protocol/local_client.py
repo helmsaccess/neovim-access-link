@@ -7,6 +7,10 @@ from collections.abc import Callable
 from typing import Any
 
 from .codec import ProtocolError, encode_frame
+from .clipboard import (
+    clipboard_result_state, valid_copy_text_request, valid_paste_text_request,
+    valid_set_register_request,
+)
 from .messages import MessageFactory
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 
@@ -27,10 +31,15 @@ _ROUTE_CURSOR_LUA = """
   return true
 """
 
+_COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
+_PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
+_SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
+
 
 class LocalTcpClient:
     capabilities = (
         "resync", "semanticEvents", "cursorRouting", "accessibleMenus", "focusContext",
+        "clipboardTransfer",
     )
 
     def __init__(
@@ -85,6 +94,21 @@ class LocalTcpClient:
                 return False
             state["_focusRequestId"] = request_id
             return self._publish("focusContext", state)
+        if kind == "copyTextRequest":
+            if not valid_copy_text_request(payload):
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+                return False
+            return self._source.notify("nvim_exec_lua", _COPY_TEXT_LUA, [dict(payload)])
+        if kind == "pasteTextRequest":
+            if not valid_paste_text_request(payload):
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+                return False
+            return self._source.notify("nvim_exec_lua", _PASTE_TEXT_LUA, [dict(payload)])
+        if kind == "setRegisterRequest":
+            if not valid_set_register_request(payload):
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+                return False
+            return self._source.notify("nvim_exec_lua", _SET_REGISTER_LUA, [dict(payload)])
         if kind != "routeCursor" or not self._valid_cursor_payload(payload):
             self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
             return False
@@ -107,6 +131,8 @@ class LocalTcpClient:
         event = self._validated_event(event_type, state)
         if event is None:
             return
+        if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
+            state = clipboard_result_state(state)
         with self._state_lock:
             self._state = state
         if event_type == "fullState" and not self._authenticated:
