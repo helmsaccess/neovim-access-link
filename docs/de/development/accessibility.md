@@ -8,6 +8,7 @@ wahrscheinlich Fehler; Hardwaretests und Korrekturen sind ein wichtiges TODO.
 
 | Funktion | Ereignisquelle | benötigte Metadaten | NVDA-Ausgabe | implementiert | getestet |
 |---|---|---|---|---|---|
+| Windows-Terminal-Abschottung | physischer control-spezifischer F12-Nachweis, UIA-Fokus und korrelierter Neovim-Fokuskontext | Prozess, Fensterhandle, vollständige Runtime-ID, Instanz und Anfrage-ID | nativ in ungebundenen Controls; strukturiert erst nach Bestätigung | ja | automatisiert für mehrere Controls und Fenster; lokale/SSH-Tabs sowie horizontale/vertikale Split-Panes praktisch bestätigt; getrennte Fenster und vollständige Shell-Pane-Negativmatrix offen |
 | Moduswechsel | `ModeChanged` + `nvim_get_mode()` | Modus roh/kanonisch | Modus oder Ton | ja | automatisiert und Windows/NVDA |
 | Cursor, Zeichen | `CursorMoved`/`CursorMovedI` | Byte-, Zeichen-, virtuelle Spalte; Zeile | Zeichen | ja | automatisiert und Windows/NVDA |
 | Zeilennavigation | Cursorereignis + Zustandsdifferenz | alte/neue Position, Zeilentext | neue Zeile | ja | automatisiert und Windows/NVDA |

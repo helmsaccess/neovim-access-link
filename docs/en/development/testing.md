@@ -23,10 +23,12 @@ and fail-open suppression.
 
 The F12 path distinguishes four stages: physical session marking, the
 transient registry claim, unique claim resolution, and terminal-to-connection
-binding. NVDA observes an otherwise unbound gesture only while support is
-active and does not synthesize or consume the key. Neovim matches the
+binding. While support is enabled, NVDA treats each physical F12 as one
+authorization for the exact focused control and does not synthesize or consume
+the key. Neovim matches the
 unchanged `typed` value and schedules the registry write outside `vim.on_key`.
-Manual selection bypasses claim resolution but uses the same connection path.
+Manual target selection prepares the same physical F12 proof before using the
+typed connection path.
 
 Lifecycle regressions cover graceful exit, SIGKILL, PID/endpoint nonce reuse,
 legacy schemas, passive bounded inventory, permission uncertainty,
@@ -49,14 +51,15 @@ control. Rapid switching must never announce stale context. After disconnect,
 native WT output must remain immediately available. Record the request ID,
 result, and actual output in the redacted test report.
 
-Complete non-interference with unbound Windows Terminal controls is an open
-test area, not an established guarantee. Future hardening must add automated
-coverage where possible and practical tests for all of these negative cases:
+Automated tests establish the intended gating behavior, but complete practical
+non-interference across Windows Terminal layouts remains an open acceptance
+area. Practical tests must cover all of these negative cases:
 
 - unbound PowerShell, Command Prompt, and WSL panes retain native focus, text,
   input, speech, LiveText, and Braille behavior while add-on support is active;
-- F12 in an unbound shell does not scan, announce, bind, or open a dialog unless
-  that exact terminal control has first entered an explicit pairing state;
+- F12 in an unbound shell may perform one bounded claim check as an explicit
+  user action, but without a fresh claim it does not announce, bind, suppress,
+  or open a dialog;
 - events from another connected Neovim never offer or perform a rebind in an
   unrelated shell pane;
 - a remembered identity cannot suppress native output before fresh structured
@@ -69,6 +72,19 @@ coverage where possible and practical tests for all of these negative cases:
 Tests must record the focused UIA class and runtime identity so pane-level and
 tab-level behavior are not conflated. Any uncertain result is a fail-open
 defect and remains documented until practically reproduced and corrected.
+
+Practical regression test on 16 July 2026 with NVDA 2026.1.1 and
+`0.90.0-dev.3`: local `nvim test.txt` was started in the first WT tab, support
+was enabled, F12 was pressed, and the control binding was remembered. A second
+tab opened `ssh user@example.invalid` and remote `nvim test.txt`; F12 connected
+it without another activation command. Deactivation was then invoked from the
+second tab. Expected and actual results matched: independent second-tab pairing
+worked and the global off command worked from that tab. Result: passed. Split
+panes were then tested in both horizontal and vertical orientations while
+local and SSH connections remained active in other tabs. Both orientations
+worked without errors or crossed connections. Result: passed. Separate WT
+windows, tmux, and the complete unbound-shell-pane negative matrix remain
+practically unverified.
 
 Manual tests must record prerequisites, exact actions, expected and actual
 results, and avoid confidential text. Confirmed tests used Windows 11 25H2,

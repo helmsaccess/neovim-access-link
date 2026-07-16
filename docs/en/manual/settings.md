@@ -84,3 +84,9 @@ the installed plugin and should not be reassigned as activation.
 
 Temporary tab bindings use a stable Windows Terminal UI Automation runtime ID,
 remain only in memory, and never inspect terminal text or titles.
+
+While the service is enabled, every physical F12 press authorizes one pairing
+attempt for exactly the focused terminal control. Without a fresh Neovim claim,
+that attempt stays silent and creates no binding, dialog, or suppression.
+Separate windows, tabs, and panes can remain bound in parallel and can be
+switched without repeating F12.

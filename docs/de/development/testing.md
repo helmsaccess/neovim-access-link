@@ -67,16 +67,18 @@ durch ein verspätetes Fokusverlustereignis des ersten Fensters abwählen.
 Die F12-Tests prüfen zusätzlich, dass bei identischen Sitzungsmerkmalen nur die
 jüngste frische Registry-Markierung verbunden und eine alte oder fehlende
 Markierung abgewiesen wird. Der vollständige Gestenpfad prüft außerdem, dass
-NVDAs Windows-Terminal-AppModule die ungebundene F12-Geste nur bei aktivierter
-Unterstützung über `decide_executeGesture` beobachtet, den ursprünglichen
+NVDAs Windows-Terminal-AppModule F12 nur bei aktivierter Unterstützung und
+für exakt das fokussierte Control über `decide_executeGesture` beobachtet, den
+physischen Tastendruck selbst mit einer einmaligen Generation autorisiert, den ursprünglichen
 physischen Tastendruck normal zum Betriebssystem durchlaufen lässt und die
-Claim-Auswertung getrennt einreiht. Bei deaktivierter Unterstützung darf kein
-Add-on-Dialog oder Scan entstehen. Neovim muss den unveränderten `typed`-Wert
+Claim-Auswertung getrennt einreiht. Bei ausgeschalteter Unterstützung darf
+keine Auswertung entstehen; ohne frischen Claim dürfen kein Add-on-Dialog,
+keine Bindung und keine Unterdrückung entstehen. Neovim muss den unveränderten `typed`-Wert
 erkennen, den Registry-Schreibzugriff aus `vim.on_key` heraus planen und darf
-keinen sichtbaren TUI-Hinweis erzeugen. Wiederholtes F12 verwendet denselben
-Bridge-Transport. Bei einem ungebundenen Tab muss
-die einzige gegenüber der Aktivierungsinventur erhöhte Claim-Sequenz über
-lokale Registry und alle automatisch erreichbaren SSH-Profile gewählt werden.
+keinen sichtbaren TUI-Hinweis erzeugen. Nach F12 in einem ungebundenen Control
+muss die einzige gegenüber der Aktivierungsinventur erhöhte Claim-
+Sequenz über lokale Registry und alle automatisch erreichbaren SSH-Profile
+gewählt werden.
 Ein zurückgehaltener künstlicher `wx.CallLater` muss bis zur Ausführung stark
 referenziert bleiben, genau einmal aufrufen und danach freigegeben werden.
 Aktivierung, manuelle Verbindung und F12 müssen außerdem unmittelbar den vom
@@ -241,10 +243,11 @@ Dieser Pfad ist vor dem Merge praktisch zu prüfen:
    Passwort darf keinen Dialog aus dem Hintergrund öffnen. Es muss weiterhin
    über den manuellen Verbindungsdialog erreichbar sein.
 10. Bei bereits aktiver Unterstützung in einen noch ungebundenen zweiten Tab
-    wechseln und den Aktivierungsbefehl erneut ausführen. Bestehende lokale
-    und SSH-Verbindungen müssen weiterlaufen; NVDA muss stattdessen zum
-    Drücken von F12 auffordern. Im gebundenen Tab schaltet der Befehl die
-    Unterstützung weiterhin aus.
+    wechseln und dort F12 drücken. Bestehende lokale und SSH-Verbindungen
+    müssen weiterlaufen und nur dieses Control darf den frischen Claim binden.
+    Danach den Aktivierungsbefehl sowohl in einem gebundenen als auch einem
+    ungebundenen Control prüfen: Er muss überall global ausschalten und native
+    Ausgabe wiederherstellen.
 11. Ein Diagnosebericht darf beim Start keinen `configError` für
     `nvdaConfig` und keine erneute `legacyConfigMigrated`-Meldung enthalten.
 
@@ -261,17 +264,17 @@ Datei nennen. Nach Verbindungsabbruch muss native WT-Ausgabe sofort normal
 bleiben. Request-ID, Ergebnis und tatsächliche Ausgabe im redigierten
 Testprotokoll festhalten.
 
-Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Steuerelementen
-ist ein offener Prüfbereich und noch keine belegte Garantie. Eine spätere
-Abschottung braucht soweit möglich automatisierte Regressionstests sowie
-praktische Negativtests für alle folgenden Fälle:
+Die beabsichtigte Wirkungslosigkeit in ungebundenen Windows-Terminal-
+Steuerelementen ist automatisiert abgedeckt, aber über die realen Windows-
+Terminal-Layouts noch praktisch abzunehmen. Die praktischen Negativtests
+umfassen alle folgenden Fälle:
 
 1. Ungebundene PowerShell-, Eingabeaufforderungs- und WSL-Panes behalten bei
    aktivierter Add-on-Unterstützung ihr natives Fokus-, Text-, Eingabe-,
    Sprach-, LiveText- und Brailleverhalten.
-2. F12 in einer ungebundenen Shell startet weder Suche noch Ansage, Bindung oder
-   Dialog, sofern nicht exakt dieses Terminal-Steuerelement zuvor ausdrücklich
-   in einen Zuordnungszustand versetzt wurde.
+2. F12 in einer ungebundenen Shell darf als ausdrückliche Benutzeraktion genau
+   eine bounded Claim-Prüfung starten. Ohne frischen Neovim-Claim entstehen
+   weder Ansage, Auswahl, Bindung, Dialog noch Unterdrückung.
 3. Ereignisse einer anderen verbundenen Neovim-Instanz bieten in einer
    unabhängigen Shell-Pane keine Wiederbindung an und führen keine aus.
 4. Eine gemerkte Identität darf native Ausgabe nicht vor frischem
@@ -286,6 +289,27 @@ Die Tests müssen fokussierte UIA-Klasse und Runtime-Identität festhalten, dami
 Pane- und Tabverhalten nicht verwechselt werden. Jedes unklare Ergebnis gilt
 als fail-open-Defekt und bleibt dokumentiert, bis es praktisch reproduziert
 und korrigiert ist.
+
+Automatisiert wird zusätzlich geprüft, dass beim Wechsel zwischen zwei
+gebundenen Controls desselben WT-Fensters sowie zwischen getrennten WT-Fenstern
+zunächst native Ausgabe gilt, die korrelierte Antwort nur die passende Instanz
+reaktiviert und beide Verbindungen erhalten bleiben. Ereignisse vor dieser
+Antwort sowie Aktivität einer anderen Instanz in einer Shell bleiben stumm.
+
+Praktischer Regressionstest am 16. Juli 2026 mit NVDA 2026.1.1 und
+`0.90.0-dev.3`: In einem ersten WT-Tab wurde `nvim test.txt` lokal gestartet,
+der Dienst aktiviert, F12 gedrückt und die Control-Zuordnung gemerkt. In einem
+zweiten Tab wurden mit `ssh user@example.invalid` und `nvim test.txt` eine
+entfernte Sitzung geöffnet und ohne erneuten Aktivierungsbefehl per F12
+verbunden. Anschließend wurde der Dienst aus dem zweiten Tab deaktiviert.
+Erwartet waren die unabhängige zweite Zuordnung und ein überall wirksamer
+globaler Ausschalter; beides funktionierte vollständig. Ergebnis: bestanden.
+Anschließend wurden horizontale und vertikale WT-Split-Panes bei weiterhin
+bestehenden lokalen und SSH-Verbindungen in anderen Tabs gewechselt und
+bedient. Beide Orientierungen arbeiteten ohne Fehler und ohne Vermischung der
+Verbindungen. Ergebnis: bestanden. Getrennte WT-Fenster, tmux und die
+vollständige Negativmatrix ungebundener Shell-Panes sind damit noch nicht
+praktisch bestätigt.
 
 Praktischer Regressionstest am 14. Juli 2026: Build 0.89.3 wurde unter NVDA
 2026.1.1 installiert, lokales CLI-Neovim in Windows Terminal neu gestartet und

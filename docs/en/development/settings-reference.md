@@ -24,8 +24,10 @@ The Windows Terminal app module observes F12 through
 the original physical key directly to Neovim, while the observer separately
 queues claim evaluation. Neovim matches the unchanged `typed` value instead
 of relying on terminal-code mapping. While support is disabled, the observer
-is inert and F12 has no add-on effect. Only then does
-the add-on refresh terminal identity and look for the fresh claim.
+is inert and F12 has no add-on effect. While support is enabled, each physical
+F12 authorizes one attempt for the exact focused control; the add-on refreshes
+terminal identity and looks for the fresh claim. Without one, it remains silent
+and creates no binding, dialog, or suppression.
 Manual target/session selection remains available for passwords and special
 cases. Remembered terminal bindings use stable runtime IDs and live only in
 memory.

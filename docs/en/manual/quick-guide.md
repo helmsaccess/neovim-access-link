@@ -73,10 +73,20 @@ ssh user@example.invalid
 3. Focus the intended Neovim and press F12 once.
 4. Wait up to two seconds for confirmation.
 
-Repeat F12 in each additional tab that should be connected. F12 is forwarded
-to Neovim first; it does not choose by title, terminal text, account, or current
-directory. For special cases assign a gesture to “Choose a server and connect
-this terminal to a new Neovim session”.
+For each additional window, tab, or pane, focus its Neovim and press F12 once
+while the service remains enabled. Existing connections continue running. Each
+physical F12 press authorizes one pairing attempt for exactly the focused
+terminal control. F12 is forwarded to Neovim first; it does not choose by
+title, terminal text, account, or current directory. Without a fresh Neovim
+claim, the attempt stays silent and creates no binding, dialog, or suppression.
+For special cases assign a gesture to “Choose a server and connect this terminal
+to a new Neovim session”; after choosing the target, press F12 in Neovim.
+
+Switching among already bound windows, tabs, and panes needs no new F12. Native
+terminal output remains available until the matching authenticated connection
+answers the newly focused control's context request.
+
+The activation gesture remains the global on/off command in every control.
 
 ## First safety check
 

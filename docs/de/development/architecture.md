@@ -75,12 +75,13 @@ beibehalten.
 Die **Claim-Auswertung** vergleicht die nach dem Tastendruck gelesenen Werte
 mit der bei der Aktivierung erfassten Baseline. Nur genau ein frischer Treffer
 darf zur **Zuordnung** führen. Diese Zuordnung bindet die stabile
-`TerminalIdentity` des fokussierten Windows-Terminal-Tabs an eine neu gestartete
+`TerminalIdentity` des fokussierten Windows-Terminal-Controls an eine neu gestartete
 `ConnectionInstance`. Erst deren erfolgreicher TCP- oder SSH-Handshake ergibt
 eine **Verbindung** und erlaubt strukturierte Ausgabe beziehungsweise native
-Terminalunterdrückung. Die manuelle Profil- und Sitzungsauswahl überspringt
-Markierung und Claim-Auswertung, erzeugt danach aber denselben typisierten
-Verbindungs- und Zuordnungspfad.
+Terminalunterdrückung. Die manuelle Zielauswahl schränkt die Suche auf das
+gewählte Profil ein, verlangt danach aber dieselbe physische Markierung und
+frische Claim-Auswertung, bevor sie den typisierten Verbindungs- und
+Zuordnungspfad startet.
 
 ## Neovim-Sitzungsregistry
 
@@ -255,41 +256,50 @@ Die Ausgabe ergänzt den benutzerdefinierten Verbindungsnamen aus der
 Instanzmetadatenverwaltung; technische SSH-Zieladressen gelangen dafür nicht
 in den semantischen Editorzustand.
 
-## Offene Isolationsprüfung für Windows Terminal
+## Control-spezifische Zuordnung in Windows Terminal
 
-Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe, beweist
-aber noch nicht, dass ein ungebundenes Windows-Terminal-Steuerelement bei
-aktivem Add-on vollständig unbeeinflusst bleibt. Windows Terminal unterscheidet
+Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe. Windows Terminal unterscheidet
 Fenster, Tabs und Panes. Die aktuelle `TerminalIdentity` bezeichnet ein
 UI-Automation-`TermControl` über Prozess, Fensterhandle und Runtime-ID. Bis dies
 für alle unterstützten Windows-Terminal-Layouts praktisch belegt ist, muss die
 Entwicklerdokumentation von Terminal-Steuerelement oder Pane sprechen und darf
 nicht pauschal einen Tab annehmen.
 
-Folgende Pfade bleiben ausdrücklich weiter zu untersuchen und gegebenenfalls
-besser abzuschotten:
+Die erste Abschottungsstufe setzt folgende Grenzen:
 
-- Der F12-Beobachter sieht bei aktivierter Unterstützung Gesten in jedem
-  fokussierten geeigneten Windows-Terminal-Steuerelement und kann Suche oder
-  Rückmeldungen auslösen, auch wenn dieses Steuerelement nicht gebunden ist.
-- Ein Ereignis einer anderen verbundenen Neovim-Instanz kann bei Fokus in
-  einem ungebundenen Terminal-Steuerelement eine aktivitätsbestätigte
-  Wiederbindung anbieten.
-- Der Fokus auf eine gemerkte Identität aktiviert Unterdrückung sofort aus der
-  bestehenden authentifizierten Verbindung, noch bevor der neu angeforderte
-  `fullState` eintrifft. Dieselbe Pane kann inzwischen eine Shell zeigen,
-  während der entfernte Neovim-RPC-Kanal weiterlebt.
+- Der Aktivierungsbefehl ist in jedem Control ausschließlich der globale
+  Ein-/Ausschalter. Bei eingeschaltetem Dienst autorisiert der physische
+  F12-Druck selbst genau einen Zuordnungsversuch für das fokussierte
+  `TermControl`; die verzögerte Hauptthread-Prüfung verwirft ihn bei jedem
+  zwischenzeitlichen Identitätswechsel.
+- Eine zentrale, von den WT-AppModule-Instanzen gemeinsam besessene
+  Beobachterregistrierung verhindert mehrfache Add-on-Aktionen.
+- In einem ungebundenen Control darf F12 als ausdrückliche Benutzeraktion eine
+  einmalige, bounded Registry-/Zielprüfung starten. Ohne frischen Neovim-Claim
+  entstehen keine Meldung, Auswahl, Bindung oder Unterdrückung.
+- Ereignisse anderer verbundener Instanzen werden verworfen und dürfen keine
+  aktivitätsbasierte Umbindung oder Add-on-Oberfläche auslösen.
+- Fokusverlust suspendiert das Gate fail-open. Beim Wechsel zu einer gemerkten
+  Bindung wird die vorhandene authentifizierte Verbindung nur ausgewählt. Erst
+  die zu Control, Instanz und Request-ID passende frische `focusContext`-Antwort
+  reaktiviert Unterdrückung. Verspätete Antworten und zwischenzeitliche
+  Editorereignisse bleiben wirkungslos.
+- Mehrere gebundene Tabs, Split-Panes und Fenster behalten getrennte
+  Instanz- und Laufzeitzustände und können weiterhin gewechselt werden.
+
+Folgende Pfade bleiben weiter zu untersuchen:
+
+- `focusContext` beweist eine frische Antwort der richtigen Neovim-Instanz,
+  aber noch nicht unabhängig, dass innerhalb desselben `TermControl` nicht
+  inzwischen eine Shell oder ein anderes tmux-Fenster sichtbar ist. Eine
+  zusätzliche ereignisgetriebene Korrelation mit Neovim `FocusGained` und
+  `FocusLost` ist zu prototypisieren.
 - Die Braille-Overlayklasse wird für jedes geeignete
   Windows-Terminal-Steuerelement erwogen und ist ohne gebundenen strukturierten
   Zustand auf korrektes Fallback angewiesen.
 
-Diese Pfade belegen nicht, dass normale Shellausgabe derzeit in jedem Fall
-verloren geht. Sie bedeuten jedoch, dass vollständige Wirkungslosigkeit in
-ungebundenen Panes noch nicht nachgewiesen ist. Weitere Arbeit soll Aktivierung
-pro Steuerelement explizit begrenzen, vor Unterdrückung oder Wiederbindung
-frische strukturierte Neovim-Evidenz verlangen, F12 und Dialoge außerhalb
-dieses Bereichs wirkungslos halten und native Sprache, Braille und Eingabe mit
-negativen Mehrfenster-, Mehrtab- und Split-Pane-Tests belegen. Terminaltext oder
+Die verbleibenden Pfade bedeuten, dass vollständige Wirkungslosigkeit in allen
+Layouts erst nach praktischem Negativtest als belegt gelten kann. Terminaltext oder
 Titel dürfen diese Evidenzlücke nicht durch Screen Scraping schließen;
 Unsicherheit muss fail-open bleiben.
 

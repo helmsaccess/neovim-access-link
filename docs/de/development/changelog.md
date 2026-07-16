@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.90.0-dev.3 (unveröffentlichter Featurebranch-Testbuild)
+
+- Der Praxistest von `dev.1` zeigte zwei gekoppelte Regressionen: F12 blieb im
+  zweiten WT-Tab wirkungslos, und der Aktivierungsbefehl konnte dort den Dienst
+  nicht mehr ausschalten. Das Vorab-Arming wurde deshalb entfernt.
+- Der Aktivierungsbefehl ist wieder in jedem Control der globale
+  Ein-/Ausschalter. Bei eingeschaltetem Dienst autorisiert jeder physische
+  F12-Druck genau einen Zuordnungsversuch für das exakt fokussierte Control.
+- Ohne frischen Neovim-Claim bleibt dieser ausdrückliche Versuch still und
+  erzeugt weder Auswahl, Bindung noch Unterdrückung. Regressionstests decken
+  den zweiten Tab, die globale Deaktivierung und den stillen Shell-Fall ab.
+- Der praktische `dev.3`-Test bestätigte die lokale Zuordnung im ersten Tab,
+  eine entfernte F12-Zuordnung im zweiten Tab ohne erneute Aktivierung und die
+  globale Deaktivierung aus diesem zweiten Tab vollständig.
+- Horizontale und vertikale WT-Split-Panes funktionierten im anschließenden
+  Praxistest bei parallelen lokalen und SSH-Verbindungen in anderen Tabs
+  fehlerfrei und ohne Querzuordnung.
+
+## 0.90.0-dev.1 (bereitgestellter Featurebranch-Testbuild)
+
+- F12 bleibt der physische Neovim-/Registry-Handshake, wird aber nur noch für
+  genau ein zuvor ausdrücklich vorbereitetes WT-`TermControl`, einmalig und
+  höchstens 60 Sekunden ausgewertet. Andere Shell-Panes bleiben auch bei
+  laufender Unterstützung ohne Suche, Dialog oder Bindung.
+- Ein erneuter Aktivierungsbefehl in einem ungebundenen Control armiert dieses
+  Control, ohne bestehende lokale oder entfernte Verbindungen in anderen Tabs,
+  Split-Panes oder Fenstern zu beenden. Im gebundenen Control bleibt der Befehl
+  die globale Deaktivierung.
+- WT-AppModule-Instanzen teilen eine einzige Gestenbeobachterregistrierung.
+  Netzwerkaktivität einer anderen Instanz kann keine ungebundene Pane mehr
+  umbinden oder dort einen Bestätigungsdialog öffnen.
+- Fokusverlust suspendiert Unterdrückung fail-open. Gemerkte Verbindungen werden
+  beim Wechsel erst nach einer zu Control, Instanz und Request-ID passenden
+  frischen Kontextantwort reaktiviert. Mehrere Tabs und Fenster behalten dabei
+  getrennte Verbindungen und Editor-Laufzeitzustände.
+- Automatisierte Negativ-, Mehrcontrol- und Mehrfenstertests sind ergänzt; der
+  praktische NVDA-/WT-Test steht aus. Ein zusätzlicher unabhängiger Nachweis des
+  Vordergrundprogramms innerhalb desselben Controls bleibt Folgearbeit.
+
 ## 0.90.0 (Beta-Veröffentlichung)
 
 - Übernimmt die praktisch bestätigte Fokus-Kontextansage einschließlich

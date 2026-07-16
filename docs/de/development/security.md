@@ -123,12 +123,25 @@ ausgelesen. Die Zuordnung wird nicht in der Konfiguration gespeichert und nach
 NVDA-Ende, Verbindungsende oder ungültiger Identität verworfen. Ohne vorherige
 Zustimmung erfolgt keine automatische Wiederbindung zwischen Tabs.
 
-Das Session-Gate ist noch kein vollständiger Nachweis der Wirkungslosigkeit in
-jedem ungebundenen Windows-Terminal-Pane. Aktivierung gemerkter Bindungen, der
-AppModule-weite F12-Beobachter, aktivitätsbestätigte Wiederbindungsdialoge und
-die Overlayauswahl stehen deshalb unter einer ausdrücklich fortzuführenden
-Isolationsprüfung. Eine `TerminalIdentity` belegt das fokussierte
+Der physische F12-Druck autorisiert bei eingeschaltetem Dienst genau einen
+Registry-Claim-Versuch für die fokussierte `TerminalIdentity`. Ein
+zwischenzeitlicher Fokuswechsel verwirft ihn; ohne frischen Neovim-Claim bleibt
+die Prüfung ohne Bindung, Dialog, Ausgabe oder Unterdrückung. Alle WT-
+AppModule-Instanzen teilen eine Beobachterregistrierung; die einmalige
+Generation verhindert doppelte Verarbeitung. Netzwerkaktivität darf keine
+Umbindung an ein ungebundenes Control anbieten oder durchführen.
+
+Beim Fokusverlust wird Unterdrückung sofort suspendiert. Eine gemerkte Bindung
+wird erst nach einer frischen, zu Control, Instanz und Request-ID passenden
+`focusContext`-Antwort reaktiviert; bis dahin werden auch Ereignisse der
+authentifizierten Instanz verworfen. Mehrere gebundene Controls in Tabs,
+Split-Panes und Fenstern bleiben getrennt auswählbar.
+
+Das Session-Gate ist trotzdem noch kein vollständiger unabhängiger Nachweis
+des Vordergrundprogramms innerhalb desselben Windows-Terminal-Panes. Eine
+`TerminalIdentity` belegt das fokussierte
 UIA-Terminal-Steuerelement, aber allein noch nicht, dass innerhalb dieses
 Steuerelements weiterhin Neovim im Vordergrund steht. Bis frische strukturierte
-Evidenz und negative Pane-Tests diese Lücke schließen, darf unsicherer Zustand
-keine Berechtigung zur Unterdrückung erhalten.
+Evidenz, ein zusätzlicher Fokusnachweis und praktische negative Pane-Tests diese
+Lücke schließen, muss jeder unklare Zustand fail-open bleiben. Die passive
+Overlayauswahl bleibt ebenfalls Teil dieser Prüfung.

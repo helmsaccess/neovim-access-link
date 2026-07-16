@@ -1,7 +1,23 @@
 # Current status
 
-Status: 2026-07-15, beta version 0.90.0; overall maturity remains between
+Status: 2026-07-16, beta version 0.90.0; overall maturity remains between
 alpha and beta.
+
+On `feature/addon-isolation`, each physical F12 press now authorizes one
+pairing attempt for the exact focused Windows Terminal control. Without a
+fresh Neovim claim, the attempt is silent and creates no binding, dialog, or
+suppression. The activation command remains the global toggle everywhere. The
+first `dev.1` practical test exposed and `dev.3` fixes regressions that blocked
+F12 and deactivation in a second tab. Activity from
+another connected Neovim can no longer offer or perform a rebind. Switching
+among separately remembered controls clears suppression first and restores the
+matching connection only after a correlated structured focus-context reply.
+Automated multi-control and multi-window coverage is implemented. Practical
+`dev.3` testing confirmed local first-tab pairing, remote second-tab pairing
+without reactivation, switching, and global deactivation from the second tab.
+Horizontal and vertical split panes then worked without errors while local and
+SSH connections remained active in other tabs. Separate-window, tmux, and the
+complete unbound-shell-pane negative matrix remain pending.
 
 The development branch requests correlated structured context from Neovim's
 state cache when an authenticated registered WT control regains focus. File or
@@ -107,11 +123,10 @@ contains bugs. Physical-display testing and correction are a priority.
 Known limits include Windows Terminal as the only approved front end, no GUI
 Neovim, no portable or automatic `NVIM_APPNAME` layout, an uninvestigated older
 Rocky Linux 9/Neovim failure, limited long-duration and interruption testing,
-and no broad Braille hardware matrix. In addition, complete non-interference
-with unbound Windows Terminal panes is not yet proven. Remembered binding,
-application-wide F12 observation, activity-confirmed rebind prompts, and the
-Braille overlay require further isolation analysis and negative multi-pane
-tests; uncertain state must remain fail-open.
+and no broad Braille hardware matrix. Exact one-shot F12 gating and removal of
+activity-based rebinding now have automated negative coverage, but practical
+multi-pane non-interference and the Braille overlay fallback still require
+acceptance testing; uncertain state must remain fail-open.
 
 The reproducible build produces separate German and English Quick Guide,
 manual, and developer HTML files.
