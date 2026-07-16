@@ -415,15 +415,16 @@ erscheint keine Neovim-Statusmeldung. Nur die jüngste, höchstens 15 Sekunden
 alte Markierung wird verbunden. Interne Sitzungs-IDs, Fenstertitel und
 Terminaltext werden nicht ausgewertet.
 
-Für einen bereits verbundenen Tab verwendet F12 ausschließlich dessen Ziel.
-Bei einem neuen Tab vergleicht das Add-on die Claim-Sequenz der lokalen Registry
-und aller bei der Aktivierung erfolgreich erfassten SSH-Profile. Nur die durch
-den aktuellen Tastendruck veränderte Sitzung wird verbunden. Profile mit noch
-nicht eingegebenem Passwort und Sonderfälle werden über den folgenden
-dialogbasierten Befehl verwendet.
+Bei eingeschaltetem Dienst autorisiert jeder physische F12-Druck genau einen
+Zuordnungsversuch für das fokussierte Windows-Terminal-Control. Bei einem neuen
+Control vergleicht das Add-on die Claim-Sequenz der lokalen Registry und aller
+bei der Aktivierung erfolgreich erfassten SSH-Profile. Nur die durch den
+aktuellen Tastendruck veränderte Sitzung wird verbunden. Ohne frischen Treffer
+bleiben Shells und Dateimanager nativ: keine Bindung, kein Dialog und keine
+Unterdrückung.
 
-Beim dialogbasierten Aktivieren fragt das Add-on den gewählten Host nach
-registrierten Neovim-Sitzungen:
+Nach der Zielauswahl und dem physischen F12-Nachweis fragt das Add-on den
+gewählten Host nach frisch markierten Neovim-Sitzungen:
 
 - genau eine Sitzung wird automatisch verwendet;
 - bei mehreren Sitzungen erscheint eine Auswahl mit Name und
@@ -436,12 +437,16 @@ registrierten Neovim-Sitzungen:
 
 Der NVDA-Befehl „Server wählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ kann
 unter „NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link“ frei belegt werden. Er
-fragt zuerst das Verbindungsprofil und danach bei Bedarf die Sitzung nach Name
-und Arbeitsverzeichnis ab. Interne IDs und Fenstertitel werden nicht verwendet.
+fragt zuerst das Verbindungsziel ab und gibt danach genau das fokussierte
+Control für den nächsten physischen F12-Nachweis vor. So bleibt der Nachweis auch bei
+Passwortprofilen und Sonderfällen erhalten. Erst der frische Claim bestimmt die
+Sitzung; bei mehreren echten Treffern kann eine Auswahl nach Name und
+Arbeitsverzeichnis erscheinen. Interne IDs und Fenstertitel werden nicht
+verwendet.
 
 Nach erfolgreicher Verbindung fragt das Add-on bei Windows Terminal optional,
-ob diese Verbindung für den Terminal-Tab gemerkt werden soll. Bei „Ja“ kann
-anschließend zwischen so verbundenen Tabs gewechselt werden, ohne den Dialog
+ob diese Verbindung für das Terminal-Control gemerkt werden soll. Bei „Ja“ kann
+anschließend zwischen so verbundenen Fenstern, Tabs und Panes gewechselt werden, ohne den Dialog
 erneut zu öffnen. Die Zuordnung gilt nur bis NVDA oder Windows Terminal beendet
 wird und wird nicht in einem Einstellungsprofil gespeichert. „Nein“ lässt den
 bisherigen expliziten Ablauf unverändert.

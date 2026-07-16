@@ -722,13 +722,14 @@ class BuiltAddonTests(unittest.TestCase):
         order = []
         adapter = AppModule()
         adapter.event_gainFocus(self.focus, lambda: None)
+        plugin._claimInventoryReady = True
         adapter._prepareTerminalAction = lambda current: order.append(("focus", current))
         gesture = types.SimpleNamespace(
             normalizedIdentifiers=("kb:f12",),
             send=lambda: order.append(("send", gesture)),
         )
-        plugin.action_claimFocusedNeovimSession = lambda current, forward_gesture=True: (
-            order.append(("claim", plugin, current, forward_gesture))
+        plugin.action_claimFocusedNeovimSession = lambda current, forward_gesture=True, **kwargs: (
+            order.append(("claim", plugin, current, forward_gesture, kwargs))
         )
 
         allowed = adapter._decideExecuteGesture(gesture)
@@ -738,6 +739,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIs(plugin, order[1][1])
         self.assertIsNone(order[1][2])
         self.assertFalse(order[1][3])
+        self.assertEqual(plugin._identity(self.focus), order[1][4]["expected_identity"])
         adapter.terminate()
         plugin.terminate()
 
@@ -771,6 +773,113 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(allowed)
         self.assertEqual([], handled)
         adapter.terminate()
+        plugin.terminate()
+
+    def test_f12_observer_authorizes_the_focused_control_while_support_is_enabled(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        adapter = AppModule()
+        handled = []
+        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+
+        allowed = adapter._decideExecuteGesture(
+            types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual(1, len(handled))
+        self.assertEqual(plugin._gate.focused, handled[0]["expected_identity"])
+        self.assertGreater(handled[0]["claim_generation"], 0)
+        self.assertIn("sessionClaimGestureCaptured", plugin._diagnostics.report())
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_f12_authorization_is_exact_one_shot_and_observer_registration_is_shared(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        first_identity = plugin._gate.focused
+        other = TerminalIdentity(
+            first_identity.process_id, first_identity.window_handle, first_identity.frontend_kind,
+            (42, first_identity.window_handle, 4, 99),
+        )
+        first, second = AppModule(), AppModule()
+        self.assertEqual(1, len(self.inputDecider.handlers))
+        gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
+        handled = []
+        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+
+        plugin._focusedAppModule = first
+        self.assertTrue(self.inputDecider.handlers[0](gesture))
+        self.assertEqual(1, len(handled))
+        self.assertEqual(first_identity, handled[0]["expected_identity"])
+
+        plugin._gate.focused = other
+        plugin._focusedAppModule = second
+        self.assertTrue(self.inputDecider.handlers[0](gesture))
+        self.assertEqual(2, len(handled))
+        self.assertEqual(other, handled[1]["expected_identity"])
+        self.assertNotEqual(
+            handled[0]["claim_generation"], handled[1]["claim_generation"],
+        )
+
+        first.terminate()
+        self.assertEqual(1, len(self.inputDecider.handlers))
+        second.terminate()
+        self.assertEqual(0, len(self.inputDecider.handlers))
+        plugin.terminate()
+
+    def test_f12_without_a_fresh_claim_is_silent_and_fails_open(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryGeneration = 4
+        before = list(self.messages)
+
+        plugin._finishAutomaticClaimResolution(
+            4, [], plugin._gate.focused,
+        )
+
+        self.assertEqual(before, self.messages)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIn('"candidates": 0', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_queued_f12_is_rejected_after_switching_terminal_controls(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        original = plugin._gate.focused
+        generation = plugin._captureObservedSessionClaim(original)
+        plugin._gate.focused = TerminalIdentity(
+            original.process_id, original.window_handle, original.frontend_kind,
+            (42, original.window_handle, 4, 101),
+        )
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args)
+
+        plugin.action_claimFocusedNeovimSession(
+            None, forward_gesture=False,
+            expected_identity=original, claim_generation=generation,
+        )
+
+        self.assertEqual([], scheduled)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIn("notAuthorizedOrFocusChanged", plugin._diagnostics.report())
         plugin.terminate()
 
     def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
@@ -818,19 +927,23 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("_beginAutomaticClaimResolution", scheduled[0][1].__name__)
         plugin.terminate()
 
-    def test_f12_before_inventory_ready_waits_without_claiming_wrong_session(self) -> None:
+    def test_f12_before_inventory_ready_is_inert_until_pairing_is_ready(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
-        plugin._gate.manual_enabled = False
+        plugin._gate.manual_enabled = True
         plugin._claimInventoryReady = False
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(True)
-        plugin.action_claimFocusedNeovimSession(types.SimpleNamespace(send=lambda: None))
-        self.assertEqual([True], inventories)
+        sent = []
+        plugin.action_claimFocusedNeovimSession(
+            types.SimpleNamespace(send=lambda: sent.append(True)),
+        )
+        self.assertEqual([], inventories)
+        self.assertEqual([True], sent)
         self.assertTrue(plugin._gate.manual_enabled)
-        self.assertIn("after the ready message", self.messages[-1])
+        self.assertFalse(plugin._claimInventoryReady)
         plugin.terminate()
 
     def test_explicit_local_discovery_can_fall_back_to_a_selected_ssh_profile(self) -> None:
@@ -1162,7 +1275,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn('"category": "terminalActionFocusRefreshed"', plugin._diagnostics.report())
         plugin.terminate()
 
-    def test_activation_in_unbound_second_tab_remains_a_global_toggle(self) -> None:
+    def test_activation_in_unbound_second_control_still_disables_globally(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
 
         class Client:
@@ -1177,6 +1290,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = plugin._instanceManager.add("work", "one", "Work", client)
         plugin._instanceManager.bind(first_identity, instance.identifier)
         plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
         plugin._gate.focused = TerminalIdentity(
             first_identity.process_id, first_identity.window_handle,
             first_identity.frontend_kind, (42, 200, 4, 12),
@@ -1771,20 +1885,26 @@ class BuiltAddonTests(unittest.TestCase):
              "port": 22, "identityFile": "", "authentication": "openSsh"},
         ]
         self.singleChoiceSelections.append(2)
-        selected = []
-        plugin._beginSessionSelection = lambda profile, identity, **kwargs: selected.append(
-            (profile, identity, kwargs)
-        )
+        identity = plugin._gate.focused
         plugin.action_startConnectionInstance(None)
         self.assertEqual([
             "This computer - local Neovim", "editor@example-host", "admin@example-host-2",
         ], self.singleChoiceDialogs[-1].choices)
         self.assertNotIn("internal-two", self.singleChoiceDialogs[-1].choices)
-        self.assertEqual("internal-two", selected[0][0].identifier)
-        self.assertEqual(self.focus.windowHandle, selected[0][1].window_handle)
-        self.assertTrue(selected[0][2]["replace_existing"])
-        self.assertTrue(selected[0][2]["offer_remember"])
-        self.assertTrue(selected[0][2]["preserve_dialog_identity"])
+        self.assertEqual(("remoteSsh", "internal-two"), plugin._pendingClaimTargets[identity])
+        self.assertTrue(any("press F12" in message for message in self.messages))
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
+            (delay, callback, args)
+        )
+        plugin.action_claimFocusedNeovimSession(
+            types.SimpleNamespace(send=lambda: None),
+        )
+        self.assertEqual(250, scheduled[0][0])
+        self.assertEqual("_beginSessionSelection", scheduled[0][1].__name__)
+        self.assertEqual("internal-two", scheduled[0][2][0].identifier)
+        self.assertEqual(identity, scheduled[0][2][1])
+        self.assertEqual((True, True, True), scheduled[0][2][2:])
         plugin.terminate()
 
     def test_connect_command_can_select_local_target_without_persisted_ids(self) -> None:
@@ -1797,7 +1917,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._gate.focused
         self.singleChoiceSelections.append(0)
         plugin.action_startConnectionInstance(None)
-        self.assertEqual(LOCAL_WINDOWS_TCP, plugin._pendingClaimTargets[identity])
+        self.assertEqual((LOCAL_WINDOWS_TCP, ""), plugin._pendingClaimTargets[identity])
         self.assertTrue(any("press F12" in message for message in self.messages))
         self.assertFalse(any("local-windows" in message for message in self.messages))
         plugin.terminate()
@@ -1811,7 +1931,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._pendingClaimTargets[identity] = LOCAL_WINDOWS_TCP
+        plugin._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
         selections = []
         plugin._beginLocalSessionSelection = lambda *args: selections.append(args)
         sent = []
@@ -2174,7 +2294,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("ready", self.spoken)
         plugin.terminate()
 
-    def test_detected_activity_can_confirm_and_move_ambiguous_session_binding(self) -> None:
+    def test_activity_from_another_session_never_rebinds_an_unbound_control(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
         class Client:
@@ -2209,16 +2329,16 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal", "lineText": "hello",
             "cursor": {"line": 1, "byteColumn": 1},
         }})
-        self.assertIsNone(plugin._instanceManager.selected_for(wrong_id))
         self.assertEqual(
             instance.identifier,
-            plugin._instanceManager.selected_for(active_id).identifier,
+            plugin._instanceManager.selected_for(wrong_id).identifier,
         )
-        self.assertNotIn(wrong_id, plugin._rememberedTerminalBindings)
-        self.assertIn(active_id, plugin._rememberedTerminalBindings)
-        self.assertTrue(plugin._gate.suppression_active)
-        self.assertEqual("requestFocusContext", client.controls[-1][0])
-        self.assertTrue(any("moved" in message.lower() for message in self.messages))
+        self.assertIsNone(plugin._instanceManager.selected_for(active_id))
+        self.assertIn(wrong_id, plugin._rememberedTerminalBindings)
+        self.assertNotIn(active_id, plugin._rememberedTerminalBindings)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertEqual([], client.controls)
+        self.assertFalse(any("move" in message.lower() for message in self.messages))
         plugin.terminate()
 
     def test_focus_switch_reactivates_only_opted_in_terminal_tabs(self) -> None:
@@ -2257,32 +2377,41 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus = second_obj
         native_focus_announcements = []
         plugin._event_gainFocus(second_obj, lambda: native_focus_announcements.append("second"))
-        self.assertEqual(second_id, plugin._gate.bound_terminal)
-        self.assertTrue(plugin._gate.suppression_active)
+        self.assertIsNone(plugin._gate.bound_terminal)
+        self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual("requestFocusContext", second_client.controls[0][0])
         second_request = second_client.controls[0][1]["requestId"]
         plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": second_request, "bufferName": "/work/second.lua",
             "mode": "insert",
         }})
+        self.assertEqual(second_id, plugin._gate.bound_terminal)
+        self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("second.lua, insert mode, on Second", self.spoken)
         self.focus = first_obj
         plugin._event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
-        self.assertEqual(first_id, plugin._gate.bound_terminal)
-        self.assertTrue(plugin._gate.suppression_active)
+        self.assertIsNone(plugin._gate.bound_terminal)
+        self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual("requestFocusContext", first_client.controls[0][0])
+        first_request = first_client.controls[0][1]["requestId"]
         # The late reply from the no-longer-focused second tab is discarded.
         plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": second_request, "bufferName": "/work/stale.lua",
             "mode": "normal",
         }})
         self.assertNotIn("stale.lua, normal mode", self.spoken)
+        plugin._handleManagedEvent(first.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": first_request, "bufferName": "/work/first.lua",
+            "mode": "normal",
+        }})
+        self.assertEqual(first_id, plugin._gate.bound_terminal)
+        self.assertTrue(plugin._gate.suppression_active)
         previous_controls = (list(first_client.controls), list(second_client.controls))
         self.focus = unbound_obj
         plugin._event_gainFocus(unbound_obj, lambda: native_focus_announcements.append("unbound"))
         self.assertEqual(previous_controls, (first_client.controls, second_client.controls))
         self.assertEqual(["second", "first", "unbound"], native_focus_announcements)
-        self.assertEqual(3, self.speechCancellations)
+        self.assertFalse(plugin._gate.suppression_active)
         plugin.terminate()
 
     def test_return_from_another_application_requests_context_for_same_wt_control(self) -> None:
@@ -2308,24 +2437,109 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin._event_appModule_loseFocus()
         self.assertIsNone(plugin._gate.focused)
+        self.assertFalse(plugin._gate.suppression_active)
         plugin._event_gainFocus(self.focus, lambda: None)
 
         self.assertEqual("requestFocusContext", client.controls[-1][0])
+        self.assertFalse(plugin._gate.suppression_active)
         request_id = client.controls[-1][1]["requestId"]
         plugin._handleManagedEvent(instance.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": request_id, "bufferName": "/work/returned.lua",
             "mode": "normal",
         }})
+        self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("returned.lua, normal mode, on First", self.spoken)
+        plugin.terminate()
+
+    def test_events_remain_silent_while_remembered_control_awaits_focus_context(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("one", "1", "First", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._rememberedTerminalBindings.add(identity)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.manual_enabled = True
+        plugin._gate.focused = None
+
+        plugin._event_gainFocus(self.focus, lambda: None)
+        plugin._handleManagedEvent(instance.identifier, {"type": "lineChanged", "payload": {
+            "mode": "normal", "lineText": "must remain silent",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertNotIn("must remain silent", self.spoken)
+        self.assertIn('"reason": "foregroundUnconfirmed"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_focus_switch_between_separate_wt_windows_restores_each_binding(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def __init__(self): self.controls = []
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
+
+        def terminal(pid, handle, runtime_id):
+            return types.SimpleNamespace(
+                processID=pid, windowHandle=handle, role=3, parent=None,
+                appModule=types.SimpleNamespace(appName="windowsterminal"),
+                UIAElement=types.SimpleNamespace(
+                    cachedClassName="TermControl", getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        first_obj = terminal(1001, 2001, (42, 2001, 4, 6))
+        second_obj = terminal(1002, 2002, (42, 2002, 4, 6))
+        plugin = GlobalPlugin()
+        first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
+        first_client, second_client = Client(), Client()
+        first = plugin._instanceManager.add("one", "1", "First", first_client)
+        second = plugin._instanceManager.add("two", "2", "Second", second_client)
+        plugin._instanceManager.bind(first_id, first.identifier)
+        plugin._instanceManager.bind(second_id, second.identifier)
+        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._gate.manual_enabled = True
+
+        for obj, identity, instance, client in (
+            (second_obj, second_id, second, second_client),
+            (first_obj, first_id, first, first_client),
+        ):
+            self.focus = obj
+            plugin._event_gainFocus(obj, lambda: None)
+            self.assertFalse(plugin._gate.suppression_active)
+            request_id = client.controls[-1][1]["requestId"]
+            plugin._handleManagedEvent(instance.identifier, {
+                "type": "focusContext", "payload": {
+                    "_focusRequestId": request_id, "bufferName": "/work/file.lua",
+                    "mode": "normal",
+                },
+            })
+            self.assertEqual(identity, plugin._gate.bound_terminal)
+            self.assertTrue(plugin._gate.suppression_active)
+
+        self.assertEqual(2, len(plugin._instanceManager.list()))
         plugin.terminate()
 
     def test_parallel_tabs_restore_independent_speech_and_typing_runtime(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 
         class Client:
+            def __init__(self): self.controls = []
             def start(self): pass
             def stop(self): pass
-            def send_control(self, *_args): return True
+            def send_control(self, kind, payload): self.controls.append((kind, payload)); return True
 
         def terminal(runtime_id):
             return types.SimpleNamespace(
@@ -2341,8 +2555,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin, first_obj)
         plugin._gate.manual_enabled = True
-        first = plugin._instanceManager.add("same", "one", "First", Client())
-        second = plugin._instanceManager.add("same", "two", "Second", Client())
+        first_client, second_client = Client(), Client()
+        first = plugin._instanceManager.add("same", "one", "First", first_client)
+        second = plugin._instanceManager.add("same", "two", "Second", second_client)
         first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
@@ -2365,9 +2580,15 @@ class BuiltAddonTests(unittest.TestCase):
         second_planner = plugin._planner
         self.assertIsNot(first_planner, second_planner)
         plugin._typedWord = ["secondPending"]
+        plugin._rememberedTerminalBindings.update((first_id, second_id))
 
         self.focus = first_obj
-        self._focusPlugin(plugin, first_obj)
+        plugin._event_gainFocus(first_obj, lambda: None)
+        first_request = first_client.controls[-1][1]["requestId"]
+        plugin._handleManagedEvent(first.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": first_request, "bufferName": "/work/first.lua",
+            "mode": "insert",
+        }})
         plugin._handleManagedEvent(first.identifier, {"type": "characterMoved", "payload": {
             "mode": "insert", "bufferId": 1, "lineText": "first",
             "cursor": {"line": 1, "byteColumn": 4},
@@ -2376,7 +2597,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["firstPending"], plugin._typedWord)
 
         self.focus = second_obj
-        self._focusPlugin(plugin, second_obj)
+        plugin._event_gainFocus(second_obj, lambda: None)
+        second_request = second_client.controls[-1][1]["requestId"]
+        plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": second_request, "bufferName": "/work/second.lua",
+            "mode": "normal",
+        }})
         plugin._handleManagedEvent(second.identifier, {"type": "characterMoved", "payload": {
             "mode": "normal", "bufferId": 1, "lineText": "second",
             "cursor": {"line": 1, "byteColumn": 1},

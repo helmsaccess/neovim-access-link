@@ -16,17 +16,36 @@ from globalPlugins import nvimNvdaAccess
 
 class AppModule(appModuleHandler.AppModule):
     scriptCategory = nvimNvdaAccess._PRODUCT_NAME
+    _observerAdapters = []
+    _observerCallback = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        inputCore.decide_executeGesture.register(self._decideExecuteGesture)
+        cls = type(self)
+        cls._observerAdapters.append(self)
+        if cls._observerCallback is None:
+            cls._observerCallback = cls._dispatchClaimGesture
+            inputCore.decide_executeGesture.register(cls._observerCallback)
 
     def terminate(self):
-        try:
-            inputCore.decide_executeGesture.unregister(self._decideExecuteGesture)
-        except LookupError:
-            pass
+        cls = type(self)
+        if self in cls._observerAdapters:
+            cls._observerAdapters.remove(self)
+        if not cls._observerAdapters and cls._observerCallback is not None:
+            try:
+                inputCore.decide_executeGesture.unregister(cls._observerCallback)
+            except LookupError:
+                pass
+            cls._observerCallback = None
         super().terminate()
+
+    @classmethod
+    def _dispatchClaimGesture(cls, gesture):
+        plugin = nvimNvdaAccess.getActivePlugin()
+        adapter = getattr(plugin, "_focusedAppModule", None) if plugin is not None else None
+        if adapter not in cls._observerAdapters:
+            adapter = cls._observerAdapters[-1] if len(cls._observerAdapters) == 1 else None
+        return adapter._decideExecuteGesture(gesture) if adapter is not None else True
 
     def _plugin(self):
         return nvimNvdaAccess.getActivePlugin()
@@ -189,21 +208,29 @@ class AppModule(appModuleHandler.AppModule):
             or plugin._gate.focused is None
         ):
             return True
+        identity = plugin._gate.focused
+        generation = plugin._captureObservedSessionClaim(identity)
+        if generation is None:
+            return True
         plugin._diagnostics.record(
             "sessionClaimGestureCaptured", source="decideExecuteGesture",
-            terminal=plugin._identityFields(plugin._gate.focused),
+            terminal=plugin._identityFields(identity), generation=generation,
         )
         queueHandler.queueFunction(
             queueHandler.eventQueue, self._handleObservedClaimGesture,
+            identity, generation,
         )
         return True
 
-    def _handleObservedClaimGesture(self):
+    def _handleObservedClaimGesture(self, identity, generation):
         plugin = self._plugin()
         if plugin is None:
             return
         self._prepareTerminalAction(plugin)
-        plugin.action_claimFocusedNeovimSession(None, forward_gesture=False)
+        plugin.action_claimFocusedNeovimSession(
+            None, forward_gesture=False,
+            expected_identity=identity, claim_generation=generation,
+        )
 
     @scriptHandler.script(
         description=_("Disconnect the selected Neovim connection instance"),

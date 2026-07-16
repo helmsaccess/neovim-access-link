@@ -238,10 +238,21 @@ Reproduzierbare Befehle stehen in [testing.md](testing.md).
 7. Auch außerhalb von Braille wurden noch nicht alle Add-on-Funktionen
    ausführlich praktisch geprüft. Lokalisierung, Releaseprüfung und ein
    erschöpfender stabiler Abnahmelauf stehen noch aus.
-8. Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Panes ist
-   noch nicht nachgewiesen. Gemerkte Bindungen, der AppModule-weite
-   F12-Beobachter, aktivitätsbestätigte Wiederbindungsdialoge und das
-   Braille-Overlay müssen weiter auf Seiteneffekte untersucht und
-   gegebenenfalls enger pro Terminal-Steuerelement abgeschottet werden.
-   Negative Mehrfenster-, Mehrtab- und Split-Pane-Tests sind verpflichtende
-   Folgearbeit; Unsicherheit muss fail-open bleiben.
+8. Der Branch `feature/addon-isolation` begrenzt jeden durch den physischen
+   F12-Druck einmalig autorisierten Claim auf ein einzelnes WT-`TermControl`, entfernt
+   aktivitätsbasierte Wiederbindungen und suspendiert gemerkte Verbindungen
+   beim Fokuswechsel bis zur passenden frischen Kontextantwort. Automatisierte
+   Tests belegen getrennte Controls und Fenster sowie stille, bindungs- und
+   unterdrückungsfreie F12-Versuche ohne frischen Claim. Der erste Praxistest
+   deckte einen fehlerhaften Vorab-Arming-Entwurf auf: F12 funktionierte im
+   zweiten Tab nicht und der globale Ausschalter war dort blockiert. Beides ist
+   für `dev.3` mit Regressionstests korrigiert. Der anschließende Praxistest
+   bestätigte lokale und entfernte Zuordnung in zwei Tabs ohne erneute
+   Aktivierung, den Tabwechsel und die globale Deaktivierung aus dem zweiten
+   Tab. Horizontale und vertikale Split-Panes funktionierten anschließend bei
+   parallelen lokalen und SSH-Verbindungen in anderen Tabs fehlerfrei.
+   Getrennte WT-Fenster, tmux und die vollständige Negativmatrix ungebundener
+   Shell-Panes stehen noch aus.
+   `focusContext` ist außerdem noch kein unabhängiger
+   Beweis des Vordergrundprogramms innerhalb desselben Controls; Overlay und
+   weitergehende Fokuskorrelation bleiben Folgearbeit.

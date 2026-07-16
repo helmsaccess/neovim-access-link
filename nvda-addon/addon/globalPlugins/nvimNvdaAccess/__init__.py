@@ -293,8 +293,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._pendingInstanceFullStates = {}
         self._focusContextRequestId = 0
         self._pendingFocusContexts = {}
-        self._activityRebindOffers = set()
         self._pendingClaimTargets = {}
+        self._claimGestureGeneration = 0
+        self._pendingObservedClaim = None
         self._claimInventoryGeneration = 0
         self._claimInventoryReady = False
         self._claimBaselines = {}
@@ -346,7 +347,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._instanceTerminalPassthrough.clear()
         self._instanceRuntimeStates.clear()
         self._pendingInstanceFullStates.clear()
-        self._activityRebindOffers.clear()
+        self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._activeInstanceId = None
@@ -434,6 +435,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         identity = self._gate.focused
         if self._gate.manual_enabled:
             self._sessionDiscoveryGeneration += 1
+            self._pendingObservedClaim = None
             self._gate.disable()
             self._planner.reset()
             self._resetTypedEcho()
@@ -462,6 +464,34 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._queueBrailleRefresh(rebuild=True)
         else:
             ui.message(_("Checking local and saved Neovim connections"))
+
+    def _captureObservedSessionClaim(self, identity):
+        """Authorize this physical F12 for exactly the focused WT control."""
+        if (
+            not self._gate.manual_enabled
+            or identity is None
+            or identity.frontend_kind != "windowsTerminal"
+            or (
+                not self._claimInventoryReady
+                and identity not in self._pendingClaimTargets
+                and self._instanceManager.selected_for(identity) is None
+            )
+        ):
+            return None
+        self._claimGestureGeneration += 1
+        generation = self._claimGestureGeneration
+        self._pendingObservedClaim = (identity, generation)
+        self._diagnostics.record(
+            "sessionClaimAuthorized", generation=generation,
+            terminal=self._identityFields(identity),
+        )
+        return generation
+
+    def _acceptObservedSessionClaim(self, identity, generation):
+        if self._pendingObservedClaim != (identity, generation):
+            return False
+        self._pendingObservedClaim = None
+        return self._gate.manual_enabled and self._gate.focused == identity
 
     def _promptForSessionClaim(self, profile, identity):
         self._diagnostics.record(
@@ -758,9 +788,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             targets=len(results),
         )
         if not candidates:
-            ui.message(_(
-                "No Neovim session confirmed this F12 press. Try again or choose a connection manually"
-            ))
             return
         if len(candidates) == 1:
             self._connectAutomaticClaim(identity, candidates[0])
@@ -857,7 +884,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 ui.message(_("The selected connection profile is unavailable"))
                 return
             if selection == 0:
-                self._pendingClaimTargets[identity] = LOCAL_WINDOWS_TCP
+                self._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
                 self._diagnostics.record(
                     "connectionTargetDialogClosed", accepted=True,
                     targetKind=LOCAL_WINDOWS_TCP, terminal=self._identityFields(identity),
@@ -875,19 +902,35 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 "connectionProfileDialogClosed", accepted=True,
                 profileId=parsed_profile.identifier,
             )
-            self._beginSessionSelection(
-                parsed_profile, identity, replace_existing=True, offer_remember=True,
-                preserve_dialog_identity=True,
-            )
+            if parsed_profile.authentication == "password":
+                password = self._passwordForProfile(parsed_profile)
+                if password is None:
+                    return
+            self._pendingClaimTargets[identity] = ("remoteSsh", parsed_profile.identifier)
+            self._promptForSessionClaim(parsed_profile, identity)
 
         # NVDA's helper schedules the modal dialog for a fresh GUI-loop turn and
         # manages popup focus. A direct ShowModal call can remain behind Windows
         # Terminal or interfere with NVDA event processing.
         gui.runScriptModalDialog(profile_dialog, finish_profile_selection)
 
-    def action_claimFocusedNeovimSession(self, gesture, forward_gesture=True):
+    def action_claimFocusedNeovimSession(
+        self, gesture, forward_gesture=True, expected_identity=None, claim_generation=None,
+    ):
         """Observe F12 reaching Neovim, then select only that fresh claim."""
         identity = self._gate.focused
+        if expected_identity is None:
+            expected_identity = identity
+        if claim_generation is None:
+            claim_generation = self._captureObservedSessionClaim(expected_identity)
+        if claim_generation is None or not self._acceptObservedSessionClaim(
+            expected_identity, claim_generation,
+        ):
+            self._diagnostics.record("sessionClaimIgnored", reason="notAuthorizedOrFocusChanged")
+            if forward_gesture and gesture is not None:
+                gesture.send()
+            return
+        identity = expected_identity
         selected = self._instanceManager.selected_for(identity) if identity is not None else None
         self._diagnostics.record(
             "sessionClaimGestureReceived",
@@ -900,22 +943,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if selected is not None and selected.transport_kind == "remoteSsh"
             else None
         )
-        pending_target = self._pendingClaimTargets.pop(identity, "") if identity is not None else ""
+        pending_target = self._pendingClaimTargets.pop(identity, None) if identity is not None else None
         if not pending_target and selected is not None and selected.transport_kind == LOCAL_WINDOWS_TCP:
-            pending_target = LOCAL_WINDOWS_TCP
+            pending_target = (LOCAL_WINDOWS_TCP, "")
         if identity is None or identity.frontend_kind != "windowsTerminal":
             if forward_gesture and gesture is not None:
                 gesture.send()
             return
         if selected is None and not pending_target and not self._claimInventoryReady:
-            if not self._gate.manual_enabled:
-                self._gate.manual_enabled = True
-                self._planner.reset()
-                self._resetTypedEcho()
-                self._diagnostics.record(
-                    "manualMode", enabled=True, terminal=self._identityFields(identity),
-                )
-                self._beginClaimInventory()
             ui.message(_(
                 "Neovim connections are still being checked. Press {key} again after the ready message"
             ).format(key=_SESSION_CLAIM_KEY_NAME))
@@ -923,7 +958,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         local_claim_not_before_ns = time.monotonic_ns()
         if forward_gesture and gesture is not None:
             gesture.send()
-        if pending_target == LOCAL_WINDOWS_TCP:
+        if pending_target and pending_target[0] == LOCAL_WINDOWS_TCP:
             if not self._gate.manual_enabled:
                 self._gate.manual_enabled = True
                 self._planner.reset()
@@ -936,6 +971,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._scheduleMainThreadCall(
                 250, self._beginLocalSessionSelection, identity, True, True, True,
                 None, local_claim_not_before_ns,
+            )
+            return
+        if pending_target:
+            pending_profile = self._connectionProfileById(pending_target[1])
+            if pending_profile is None:
+                ui.message(_("The selected connection profile is unavailable"))
+                return
+            ui.message(_("Connecting the focused Neovim session"))
+            self._scheduleMainThreadCall(
+                250, self._beginSessionSelection, pending_profile, identity,
+                True, True, True,
             )
             return
         if selected is None:
@@ -1206,9 +1252,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._authenticatedInstances.discard(instance_id)
             self._instanceTerminalPassthrough.pop(instance_id, None)
             self._pendingInstanceFullStates.pop(instance_id, None)
-            self._activityRebindOffers = {
-                offer for offer in self._activityRebindOffers if offer[1] != instance_id
-            }
             self._dropInstanceRuntime(instance_id)
         except Exception as error:
             self._diagnostics.record(
@@ -1231,9 +1274,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._authenticatedInstances.discard(instance.identifier)
         self._instanceTerminalPassthrough.pop(instance.identifier, None)
         self._pendingInstanceFullStates.pop(instance.identifier, None)
-        self._activityRebindOffers = {
-            offer for offer in self._activityRebindOffers if offer[1] != instance.identifier
-        }
         self._dropInstanceRuntime(instance.identifier)
         if self._client is not None:
             self._client = None
@@ -1539,10 +1579,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     self._authenticatedInstances.discard(replace_instance_id)
                     self._instanceTerminalPassthrough.pop(replace_instance_id, None)
                     self._pendingInstanceFullStates.pop(replace_instance_id, None)
-                    self._activityRebindOffers = {
-                        offer for offer in self._activityRebindOffers
-                        if offer[1] != replace_instance_id
-                    }
                     self._dropInstanceRuntime(replace_instance_id)
                 except Exception as error:
                     self._diagnostics.record(
@@ -1690,18 +1726,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._client = client
             trusted = instance_id in self._authenticatedInstances
             if trusted:
-                # This client already delivered an authenticated fullState and
-                # has not disconnected. Suppress native terminal output before
-                # event_gainFocus delegates to NVDA; the delayed fullState is
-                # synchronization, not a new authentication round trip.
+                # A live authenticated client proves session identity, not that
+                # Neovim is still visible in this WT control. Keep the transport
+                # selected but fail open until the focus-correlated context reply.
                 self._connected = True
                 self._gate.focused = identity
-                self._gate.bound_terminal = identity
-                self._gate.authenticated = True
-                self._gate.nvim_active = True
-                self._gate.terminal_passthrough = self._instanceTerminalPassthrough.get(
-                    instance_id, False
-                )
+                self._gate.disconnect()
+                self._gate.focused = identity
             else:
                 self._connected = False
                 self._gate.disconnect()
@@ -1713,7 +1744,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             self._diagnostics.record(
                 "temporaryTerminalBindingActivated", instanceId=instance_id,
-                terminal=self._identityFields(identity), suppressionImmediate=trusted,
+                terminal=self._identityFields(identity), suppressionImmediate=False,
             )
         except ValueError:
             self._rememberedTerminalBindings.discard(identity)
@@ -1768,6 +1799,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 )
                 return
             self._pendingFocusContexts.pop(instance_id, None)
+            self._switchInstanceRuntime(instance_id)
+            self._client = self._instanceManager.client_for(instance_id)
+            self._connected = True
+            self._gate.focused = identity
+            self._gate.bound_terminal = identity
+            self._gate.authenticated = True
+            self._gate.nvim_active = True
+            self._gate.terminal_passthrough = self._instanceTerminalPassthrough.get(
+                instance_id, False
+            )
+            self._diagnostics.record(
+                "temporaryTerminalForegroundConfirmed", instanceId=instance_id,
+                terminal=self._identityFields(identity),
+            )
         if selected is None or selected.identifier != instance_id:
             if event.get("type") == "fullState":
                 # A modal profile/session chooser can still own NVDA focus when
@@ -1784,23 +1829,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     reason="terminalNotFocused",
                 )
                 return
-            interactive_events = {
-                "modeChanged", "characterMoved", "wordMoved", "lineChanged",
-                "lineStart", "lineEnd", "fileStart", "fileEnd",
-                "selectionChanged", "textChanged", "textDeleted", "textReplaced",
-                "commandLineChanged", "searchMatchChanged", "matchingPairMoved",
-            }
-            if (
-                selected is None and identity is not None
-                and identity.frontend_kind == "windowsTerminal"
-                and event.get("type") in interactive_events
-            ):
-                offer = (identity, instance_id)
-                if offer not in self._activityRebindOffers:
-                    self._activityRebindOffers.add(offer)
-                    import wx
-                    wx.CallAfter(self._offerActivityConfirmedRebind, identity, instance_id)
             self._diagnostics.record("instanceEventIgnored", instanceId=instance_id, reason="notSelected")
+            return
+        if (
+            instance_id in self._authenticatedInstances
+            and event.get("type") != "focusContext"
+            and not (
+                self._gate.authenticated
+                and self._gate.nvim_active
+                and self._gate.bound_terminal == identity
+                and self._activeInstanceId == instance_id
+            )
+        ):
+            self._diagnostics.record(
+                "instanceEventIgnored", instanceId=instance_id,
+                reason="foregroundUnconfirmed",
+            )
             return
         self._switchInstanceRuntime(instance_id)
         self._client = self._instanceManager.client_for(instance_id)
@@ -1840,56 +1884,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._switchInstanceRuntime(instance_id)
             self._handleConnectionState(state)
 
-    def _offerActivityConfirmedRebind(self, identity, instance_id):
-        if self._gate.focused != identity:
-            return
-        if self._instanceManager.selected_for(identity) is not None:
-            return
-        try:
-            instance = next(
-                item for item in self._instanceManager.list() if item.identifier == instance_id
-            )
-            previous_terminals = self._instanceManager.bound_terminals_for(instance_id)
-        except (StopIteration, ValueError):
-            return
-        import gui
-        import wx
-        answer = wx.MessageBox(
-            _(
-                "Neovim activity from this connection was detected while this unconnected "
-                "Windows Terminal tab was focused:\n\n{connection}\n\n"
-                "Move the connection to this tab? Choose Yes only if you just used Neovim here."
-            ).format(connection=instance.label),
-            _("Confirm Neovim terminal connection"),
-            wx.YES_NO | wx.ICON_QUESTION,
-            gui.mainFrame,
-        )
-        if answer != wx.YES:
-            self._diagnostics.record(
-                "activityRebindDeclined", instanceId=instance_id,
-                terminal=self._identityFields(identity),
-            )
-            return
-        for terminal in previous_terminals:
-            self._instanceManager.unbind(terminal)
-            self._rememberedTerminalBindings.discard(terminal)
-            self._terminalIdentityElements.pop(terminal, None)
-        self._instanceManager.bind(identity, instance_id)
-        self._ensureTerminalLifecycleSweep()
-        self._rememberedTerminalBindings.add(identity)
-        self._gate.focused = identity
-        self._activateRememberedBinding(identity, instance_id)
-        self._diagnostics.record(
-            "activityRebindAccepted", instanceId=instance_id,
-            terminal=self._identityFields(identity),
-        )
-        ui.message(_("Neovim connection moved to this terminal tab"))
-
     def _event_gainFocus(self, obj, nextHandler, app_module=None):
         previous = self._gate.focused
         identity = self._identity(obj)
         if previous != identity:
             self._pendingFocusContexts.clear()
+            self._gate.disconnect()
             self._diagnostics.record(
                 "terminalFocusIdentityChanged",
                 previous=self._identityFields(previous),
@@ -2008,9 +2008,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._instanceTerminalPassthrough.pop(instance.identifier, None)
             self._pendingInstanceFullStates.pop(instance.identifier, None)
             self._rememberOfferInstances.discard(instance.identifier)
-            self._activityRebindOffers = {
-                offer for offer in self._activityRebindOffers if offer[1] != instance.identifier
-            }
             self._dropInstanceRuntime(instance.identifier)
             threading.Thread(
                 target=self._stopPrunedClient, args=(instance.identifier, client),
@@ -2040,6 +2037,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._diagnostics.record("staleAppModuleLoseFocusIgnored")
             return
         previous = self._gate.focused
+        self._gate.disconnect()
         self._gate.focused = None
         self._pendingFocusContexts.clear()
         self._focusedTerminalObject = None
@@ -2634,6 +2632,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     def _stopClient(self):
         self._pendingClaimTargets.clear()
+        self._pendingObservedClaim = None
         self._claimInventoryGeneration += 1
         self._claimInventoryReady = False
         self._claimBaselines.clear()
@@ -2651,7 +2650,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._instanceTerminalPassthrough.clear()
                 self._instanceRuntimeStates.clear()
                 self._pendingInstanceFullStates.clear()
-                self._activityRebindOffers.clear()
                 self._activeInstanceId = None
             self._diagnostics.record("clientInstancesStopped")
             return

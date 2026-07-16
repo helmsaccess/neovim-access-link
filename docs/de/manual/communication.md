@@ -8,16 +8,17 @@ Es gilt für lokales Neovim unter Windows und für Neovim auf Linux über SSH.
 
 Bei der Arbeit sind drei Dinge voneinander zu unterscheiden:
 
-1. **Windows Terminal:** Hier liegt der Tastaturfokus. Der Tab kann ein lokales
-   `nvim.exe` oder eine sichtbare SSH-Sitzung anzeigen.
+1. **Windows Terminal:** Hier liegt der Tastaturfokus. Das aktuelle Control in
+   einem Fenster, Tab oder Pane kann ein lokales `nvim.exe` oder eine sichtbare
+   SSH-Sitzung anzeigen.
 2. **Die gewünschte Neovim-Instanz:** In ihr läuft das Lua-Plugin. Es kennt
    Modi, Cursor, Buffer, Auswahl und Completion aus Neovims APIs.
 3. **Die Accessibility-Verbindung:** Sie überträgt diese strukturierten Daten
    zum NVDA-Add-on. Sie ist nicht dasselbe wie die sichtbare Terminalsitzung.
 
 Das Add-on liest nicht den Terminalbildschirm, um eine Instanz zu erraten. Ein
-Windows-Terminal-Tab wird ausdrücklich einer laufenden Neovim-Instanz
-zugeordnet. Erst dann darf NVDA die native Terminalausgabe dieses Tabs
+Windows-Terminal-Control wird ausdrücklich einer laufenden Neovim-Instanz
+zugeordnet. Erst dann darf NVDA die native Terminalausgabe dieses Controls
 unterdrücken und stattdessen strukturierte Editorereignisse ausgeben.
 
 ## Beteiligte Komponenten
@@ -69,8 +70,9 @@ Ein besonderer Wrapper ist nicht erforderlich.
 
 ## Was beim Aktivieren passiert
 
-Der frei belegbare NVDA-Aktivierungsbefehl ist ein globaler Ein-/Ausschalter.
-Beim Einschalten geschieht Folgendes:
+Der frei belegbare NVDA-Aktivierungsbefehl schaltet den gemeinsamen Dienst ein
+oder wieder aus.
+Beim ersten Einschalten geschieht Folgendes:
 
 1. Das Windows-Terminal-AppModule übernimmt unmittelbar das aktuell fokussierte
    Terminalobjekt. Das gilt auch, wenn Windows Terminal schon vorher fokussiert
@@ -79,6 +81,12 @@ Beim Einschalten geschieht Folgendes:
    Sitzungslisten aller automatisch erreichbaren gespeicherten SSH-Ziele.
 3. Es merkt sich die aktuelle Zuordnungsnummer jeder Sitzung als Ausgangswert.
 4. NVDA meldet, dass die Erfassung bereit ist und F12 gedrückt werden kann.
+
+Solange der Dienst eingeschaltet ist, autorisiert jeder physische F12-Druck
+genau einen Zuordnungsversuch für die vollständige UIA-Identität des aktuell
+fokussierten Controls. Der Aktivierungsbefehl bleibt dagegen überall der
+globale Ein-/Ausschalter. Weitere Fenster, Tabs oder Panes werden deshalb direkt
+mit F12 zugeordnet; bestehende Verbindungen bleiben erhalten.
 
 Diese Erfassung öffnet noch keine dauerhafte Editorverbindung. Es gibt keine
 Standardverbindung und keine Priorität zwischen lokalem Windows und SSH.
@@ -91,7 +99,12 @@ vorliegendes Passwort bleiben über den manuellen Verbindungsdialog erreichbar.
 ## Die Aufgabe von F12
 
 F12 ist eine **kurzlebige Sitzungsmarkierung**, kein Profil und kein
-Ein-/Ausschalter.
+Ein-/Ausschalter. Bei eingeschaltetem Dienst gilt der physische Tastendruck
+selbst als einmalige, control-spezifische Freigabe. In einer normalen Shell,
+einem Dateimanager oder einem anderen ungebundenen Control bleibt F12 eine
+gewöhnliche Taste. Die daraufhin nur einmal ausgeführte Claim-Prüfung bleibt
+ohne frischen Neovim-Treffer still und löst weder Bindung noch Dialog noch
+Unterdrückung aus.
 
 1. Der Anwender fokussiert den gewünschten Tab oder das gewünschte Pane und
    drückt F12.
@@ -110,9 +123,23 @@ Ein-/Ausschalter.
    bindet sie an den fokussierten Tab. Bei mehreren Treffern erscheint eine
    zugängliche Auswahl. Ohne Treffer wird nicht geraten.
 
-Die Markierung ist ungefähr 15 Sekunden gültig. Interne Sitzungs-IDs,
-Fenstertitel und Terminaltext werden nicht benötigt. F12 kann in jedem noch
-ungebundenen unterstützten Tab erneut verwendet werden.
+Die Freigabe gilt nur für diesen einen Tastendruck und genau dieses Control.
+Der anschließend entstehende Registry-Claim wird nur in seinem kurzen
+Frischefenster akzeptiert. Interne Sitzungs-IDs, Fenstertitel und Terminaltext
+werden nicht benötigt. Für jedes weitere ungebundene Control genügt bei bereits
+eingeschaltetem Dienst ein neuer physischer F12-Druck.
+
+## Wechsel zwischen Fenstern, Tabs und Panes
+
+Die Zuordnung verwendet Prozess, Fensterhandle und die vollständige UIA-
+Runtime-ID des jeweiligen `TermControl`. Deshalb können mehrere Verbindungen im
+gleichen Windows-Terminal-Fenster und in getrennten Fenstern parallel bestehen.
+Beim Fokuswechsel wird die bisherige Unterdrückung sofort aufgehoben. Für ein
+gemerktes, verbundenes Control fordert das Add-on über dessen authentifizierte
+Verbindung einen neuen Fokuskontext an. Erst die passend korrelierte Antwort
+aktiviert Sprache, Braille, Klänge und Unterdrückung wieder. Antworten einer
+anderen oder zuvor fokussierten Verbindung werden verworfen. Ein ungebundenes
+Control bleibt nativ.
 
 ## Lokaler Kommunikationsweg unter Windows
 

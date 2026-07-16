@@ -135,11 +135,11 @@ verschiedene Terminals gebunden werden. SSH-Port, Schlüssel und
 Authentifizierung gelten je Profil und werden nicht global geteilt.
 
 `F12` ist standardmäßig mit „Fokussierte Neovim-Sitzung markieren und
-verbinden“ belegt. NVDA fängt die Geste technisch ab, reicht sie zuerst
-unverändert an Windows Terminal und Neovim weiter und startet nur in einem
-erkannten Windows-Terminal-Tab die zum gebundenen Ziel passende Abfrage. Bei
-einem ungebundenen Tab vergleicht es die Claim-Sequenzen der lokalen Registry
-und aller automatisch erfassten SSH-Verbindungen. Das Plugin schreibt ohne
+verbinden“ belegt. Bei eingeschaltetem Dienst autorisiert jeder physische
+F12-Druck genau einen Zuordnungsversuch für die vollständige UIA-Identität des
+fokussierten Windows-Terminal-Controls. NVDA reicht die Geste unverändert an
+Windows Terminal und Neovim weiter und vergleicht danach die Claim-Sequenzen
+der lokalen Registry und aller automatisch erfassten SSH-Verbindungen. Das Plugin schreibt ohne
 sichtbare Neovim-Meldung eine monotone Markierung in seine private
 Session-Registry; das Add-on wählt lokal beziehungsweise über SSH nur die jüngste, höchstens
 15 Sekunden alte Markierung. Dadurch ist
@@ -152,13 +152,15 @@ Das Windows-Terminal-App-Modul beobachtet F12 mit
 ursprünglichen physischen Tastendruck direkt zu Neovim durch; der Beobachter
 stellt die Claim-Auswertung getrennt in die Ereigniswarteschlange. Neovim
 vergleicht den unveränderten `typed`-Wert statt einer terminalcodeabhängigen
-Zuordnung. Bei deaktivierter Unterstützung ist der Beobachter inaktiv und F12
-hat keine Add-on-Wirkung. Anschließend aktualisiert das Add-on die
-Terminalzuordnung und sucht nach genau dem dadurch neu entstandenen Claim.
+Zuordnung. Bei ausgeschaltetem Dienst ist der Beobachter inaktiv. Bei
+eingeschaltetem Dienst aktualisiert das Add-on nach F12 die Terminalzuordnung
+und sucht nach genau dem dadurch neu entstandenen Claim; ohne Treffer bleibt
+die Prüfung still und ohne Bindung, Dialog oder Unterdrückung.
 
 Der Aktivierungsbefehl startet die Hintergrunderfassung. F12 wird erst nach der
 Bereitschaftsmeldung zur Zuordnung ausgewertet. Der gesonderte Befehl „Server wählen und dieses
-Terminal mit einer neuen Neovim-Sitzung verbinden“ behält bewusst seine Dialoge.
+Terminal mit einer neuen Neovim-Sitzung verbinden“ wählt ein Ziel und bereitet
+danach denselben control-spezifischen F12-Nachweis vor.
 
 Diese Befehle werden derzeit ausschließlich in eindeutig erkanntem Windows
 Terminal aktiv. Die ausgelieferte `frontend-policy.json` führt Windows Terminal
@@ -173,7 +175,7 @@ Anwendungen laden diesen Eingabescriptpfad überhaupt nicht. Beim Verlassen von
 Windows Terminal löscht NVDAs AppModule-Lebenszyklus den aktiven
 Unterdrückungszustand.
 
-Die SSH-Abfrage verwendet das aktuell aktive Verbindungsprofil. Neovim kann vor
+Die SSH-Abfrage verwendet das ausdrücklich gewählte Verbindungsprofil. Neovim kann vor
 der ersten Bridgeverbindung nicht selbst aus der entfernten SSH-Sitzung zum
 Windows-Add-on zurückrufen. Für ein anderes Konto oder einen anderen Host muss
 daher zuerst das passende Profil aktiviert oder der dialogbasierte
@@ -188,14 +190,11 @@ kollisionsanfällige Standardbelegung für diesen dialogbasierten Zusatzbefehl
 und keine heuristische Zuordnung anhand von Fenstertiteln. Die Auswahl gilt für
 das beim Aufruf fokussierte Terminal.
 
-Beim Aktivieren ermittelt das Add-on die laufenden Neovim-Sitzungen des aktiven
-Profils. Gibt es genau eine, wird sie automatisch mit dem fokussierten Terminal
-verbunden. Bei mehreren erscheint eine kurze Auswahl mit Name und
-Arbeitsverzeichnis; numerische Sitzungs-IDs müssen nicht eingegeben werden.
 Der Befehl „Server wählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ lässt
 sich in NVDAs Dialog „Eingaben“ frei mit einer Taste belegen. Er fragt immer
-ausdrücklich nach dem Profil und zeigt bei mehreren Sitzungen eine kurze Auswahl
-mit Name und Arbeitsverzeichnis. Interne IDs werden nicht angezeigt, und das
+ausdrücklich nach dem Profil, verlangt danach F12 im gewünschten Neovim und
+zeigt nur bei mehreren frisch markierten Sitzungen eine kurze Auswahl mit Name
+und Arbeitsverzeichnis. Interne IDs werden nicht angezeigt, und das
 Add-on versucht keine Zuordnung anhand von Fenstertiteln oder Terminaltext.
 
 Ein Profil reicht für mehrere parallele Neovim-Instanzen desselben Kontos.
@@ -206,7 +205,7 @@ Startzeit und laufende Nummer und kennzeichnet bereits verbundene Sitzungen.
 
 Der Verbindungsbefehl erzeugt eine eigene Laufzeitinstanz.
 Nach deren erstem gültigen `fullState` kann der Anwender eine ausschließlich im
-RAM gehaltene Zuordnung zum aktuellen Windows-Terminal-Tab bestätigen. Sie
+RAM gehaltene Zuordnung zum aktuellen Windows-Terminal-Control bestätigen. Sie
 verwendet die UIA-Runtime-ID statt Titel oder Terminaltext. Ein eigener
 NVDA-Befehl vergisst die Zuordnung wieder. Abgelehnte oder veraltete IDs lösen
 keine automatische Verbindung aus.

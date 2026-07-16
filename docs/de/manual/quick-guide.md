@@ -58,7 +58,9 @@ nach NVDA-Installation für einen NVDA-Neustart verwenden kann.
 
 `F12` muss nicht als Aktivierungstaste eingerichtet werden. F12 dient nur dazu,
 die gerade fokussierte Neovim-Instanz eindeutig mit dem aktuellen
-Windows-Terminal-Tab zu verbinden.
+Windows-Terminal-Control zu verbinden. Bei eingeschaltetem Dienst autorisiert
+jeder physische F12-Druck genau einen Zuordnungsversuch für das gerade
+fokussierte Control.
 
 ## 4. Komponenten installieren
 
@@ -133,13 +135,22 @@ Die sichtbare SSH-Sitzung bleibt unverändert. Das Add-on öffnet zusätzlich ei
 unsichtbare SSH-stdio-Verbindung zur installierten Bridge. Es liest weder den
 Fenstertitel noch den Terminalinhalt, um Server oder Neovim zu erraten.
 
-## 8. Mehrere Tabs und Sitzungen
+## 8. Mehrere Fenster, Tabs, Panes und Sitzungen
 
-Jeder Windows-Terminal-Tab wird getrennt zugeordnet:
+Jedes Windows-Terminal-Control wird getrennt zugeordnet. Ein Control entspricht
+je nach Aufbau dem Inhalt eines Tabs oder Panes:
 
-1. Zum noch unverbundenen Tab wechseln.
-2. Falls nötig die Aktivierungstaste drücken.
-3. Im gewünschten Neovim F12 drücken.
+1. Zum noch unverbundenen Fenster, Tab oder Pane wechseln.
+2. Im gewünschten Neovim F12 drücken. Bereits verbundene andere Controls laufen
+   dabei weiter.
+
+Zwischen bereits verbundenen Controls kann ohne erneutes F12 gewechselt werden.
+Das Add-on lässt beim Wechsel zunächst die native Terminalausgabe aktiv und
+übernimmt erst nach einer passenden Neovim-Fokusantwort wieder die strukturierte
+Ausgabe. Ein nicht verbundenes Control bleibt vollständig im nativen NVDA-
+Terminalverhalten. F12 prüft dort nur als ausdrückliche Benutzeraktion auf einen
+frischen Neovim-Claim; ohne Treffer gibt es keine Bindung, keinen Dialog und
+keine Unterdrückung.
 
 Für mehrere Neovim-Instanzen mit gleichem Arbeitsverzeichnis kann vor dem Start
 ein freiwilliger Name gesetzt werden:

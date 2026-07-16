@@ -48,7 +48,7 @@ Die erwartete Ausgabe ist `2`. Bei einem anderen Wert:
 
 1. Nach dem Aktivieren die Bereitschaftsmeldung abwarten.
 2. Das gewünschte Neovim fokussieren.
-3. F12 einmal drücken und bis zu zwei Sekunden warten.
+3. F12 genau einmal drücken und bis zu zwei Sekunden warten.
 4. Nicht mehrfach schnell hintereinander drücken; jeder neue Tastendruck startet
    eine neue Zuordnungsauflösung.
 5. Den manuellen Befehl „Server wählen und dieses Terminal mit einer neuen
@@ -62,9 +62,10 @@ Im Diagnosebericht sind besonders diese Kategorien hilfreich:
 - `automaticClaimResolutionCompleted`: Anzahl eindeutiger Treffer,
 - `localTcpStart` oder `sshProcessStart`: der Transport wurde gestartet.
 
-Fehlt `sessionClaimGestureReceived`, war entweder nicht Windows Terminal
-fokussiert oder die F12-Geste erreichte das AppModule nicht. Werden null lokale
-Sitzungen gemeldet, ist meist das lokale Plugin nicht geladen.
+Fehlt `sessionClaimGestureReceived`, war der Dienst nicht eingeschaltet, ein
+anderes Control war fokussiert oder die F12-Geste erreichte das AppModule
+nicht. Ohne frischen Neovim-Claim bleibt die Prüfung absichtlich still. Werden
+null lokale Sitzungen gemeldet, ist meist das lokale Plugin nicht geladen.
 
 ## SSH-Verbindung schlägt fehl
 
@@ -107,11 +108,11 @@ Add-on die native Terminalausgabe und verwendet strukturierte Ereignisse. Die
 Unterdrückung ist absichtlich nicht global. Sie endet insbesondere:
 
 - nach einer Deaktivierung oder einem Verbindungsabbruch,
-- in einem nicht zugeordneten Tab,
+- in einem nicht zugeordneten Fenster, Tab oder Pane,
 - bei einem eingebetteten `:terminal` im direkten Terminalmodus,
 - wenn das Sitzungs- oder Fokus-Gate die Zuordnung nicht sicher bestätigen kann.
 
-Treten Fragmente nur nach einem Tabwechsel auf, im Diagnosebericht die
+Treten Fragmente nur nach einem Fenster-, Tab- oder Panewechsel auf, im Diagnosebericht die
 Terminalidentität und die ausgewählte Verbindungsinstanz prüfen. Der Bericht
 sollte unmittelbar nach dem unerwünschten Fragment kopiert werden.
 

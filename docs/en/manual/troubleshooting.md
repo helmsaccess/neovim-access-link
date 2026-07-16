@@ -25,12 +25,16 @@ Expected result is `2`.
 
 ## F12 does not connect
 
-Wait for the inventory-ready message, focus Neovim, press F12 once, and wait
-up to two seconds. Do not press repeatedly. Try the manually assigned “Choose a
-server...” command. Diagnostic categories `claimInventoryReady`,
+Wait for the inventory-ready message, focus Neovim in the same terminal
+control, press F12 once, and wait up to two seconds. Do not
+press repeatedly. The manually assigned “Choose a server...” command selects a
+target and then also requires F12. Diagnostic categories `claimInventoryReady`,
 `sessionClaimGestureReceived`, `automaticLocalClaimChecked`,
 `automaticClaimResolutionCompleted`, `localTcpStart`, and `sshProcessStart`
 separate discovery, key handling, claim resolution, and transport startup.
+If `sessionClaimGestureReceived` is absent, support may be disabled, focus may
+have moved, or the gesture may not have reached the Windows Terminal AppModule.
+Without a fresh Neovim claim, claim evaluation is deliberately silent.
 
 ## SSH failure
 

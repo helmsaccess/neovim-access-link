@@ -46,8 +46,9 @@ Activation inventories eligible local and SSH sessions and records their
 claim sequences as a baseline. After the physical F12 press, exactly one fresh
 sequence increase may bind the focused terminal identity and start its typed
 TCP or SSH connection. No match produces no guessed connection; multiple
-matches require explicit selection. Manual profile/session selection bypasses
-the claim but starts the same connection path.
+matches require explicit selection. Manual target selection narrows the target
+but still requires a fresh physical F12 claim before starting the same typed
+connection path.
 
 An authenticated remembered binding may send `requestFocusContext` with an
 integer `requestId` from 0 through 2147483647. Local and SSH transports answer

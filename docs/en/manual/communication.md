@@ -2,14 +2,22 @@
 
 ## What activation does
 
-Activation starts a bounded background inventory. It reads local registered
+Activation turns the shared service on or off. When turning it on, it starts a bounded background inventory. It reads local registered
 sessions and queries saved SSH targets that can be reached without opening a
 password dialog. It does not immediately create permanent connections to every
-target. Wait for the ready message before pressing F12.
+target. Wait for the ready message before pressing F12. While the service is
+enabled, each physical F12 press authorizes one pairing attempt for the exact
+focused control's complete UIA identity. The activation command remains the
+global off switch even when an unbound control has focus.
 
 ## What F12 does
 
-F12 is forwarded to Windows Terminal and Neovim first. The plugin increments a
+The physical F12 press itself is the exact, one-shot authorization. In unbound
+shells, file managers, and other controls, F12 remains an ordinary key. A
+single claim check may run in response to that explicit action, but without a
+fresh Neovim claim it remains silent and creates no dialog, binding, or
+suppression. F12 is
+forwarded to Windows Terminal and Neovim first. The plugin increments a
 monotonic claim value in its private session registry without displaying a
 message. The add-on compares that value with its activation baseline:
 
@@ -18,7 +26,8 @@ message. The add-on compares that value with its activation baseline:
 - no change produces no guessed connection.
 
 Titles, terminal text, current directory, user name, and wall-clock
-synchronization are not used. Each additional tab is claimed independently.
+synchronization are not used. Each additional window, tab, or pane is claimed
+independently with its own physical F12 press.
 
 ## Local Windows path
 
@@ -39,9 +48,11 @@ window and stopping the bridge connection are separate operations.
 ## Switching and failure
 
 Each runtime connection has its own client, state, sequence, and terminal
-binding. On tab changes, only the instance bound to the focused tab may reach
-speech, Braille, sounds, or terminal suppression. Stale and unbound events are
-ignored and a fresh full state is requested when required.
+binding. On window, tab, or pane changes, suppression is cleared immediately.
+Only the instance bound to the focused control receives a correlated context
+request; its matching authenticated response may restore speech, Braille,
+sounds, and suppression. Stale, unbound, and previously focused instance events
+are ignored.
 
 Disconnect, timeout, invalid sequence, deactivation, or loss of focus clears
 the gate and restores normal terminal output. The add-on never suppresses an
@@ -51,5 +62,6 @@ unknown application or an unbound tab.
 
 Assign “Choose a server and connect this terminal to a new Neovim session” in
 `NVDA menu → Preferences → Input gestures...`. Use it for password profiles or
-when automatic inventory cannot see the intended target. Choose the target and
-then, if necessary, the session by name and working directory.
+when automatic inventory cannot see the intended target. Choose the target,
+focus the intended Neovim in the same control, and press F12. A session choice
+appears only if multiple fresh matches genuinely remain.

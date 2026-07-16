@@ -25,11 +25,12 @@ a plugin restart.
 
 **Claim resolution** compares values read after the key press with the
 activation inventory baseline. Exactly one fresh result may create a
-**binding** from the focused Windows Terminal tab's stable `TerminalIdentity`
+**binding** from the focused Windows Terminal control's stable `TerminalIdentity`
 to a new `ConnectionInstance`. Only a successful TCP or SSH handshake by that
 instance creates a **connection** and permits structured output or native
-terminal suppression. Manual profile/session selection bypasses marking and
-claim resolution, then enters the same typed connection and binding path.
+terminal suppression. Manual target selection narrows discovery to the chosen
+profile but still requires the same physical mark and fresh claim resolution
+before entering the typed connection and binding path.
 
 For F12 pairing, the Windows Terminal AppModule observes the gesture through
 the public `decide_executeGesture` extension point without binding a script.
@@ -97,37 +98,33 @@ uses neither polling nor terminal screen scraping.
 Output adds the user-configured connection name from instance metadata;
 technical SSH target addresses are not inserted into semantic editor state.
 
-## Open Windows Terminal isolation audit
+## Control-specific Windows Terminal pairing
 
-The strict session gate limits native-output suppression, but it does not yet
-prove that an unbound Windows Terminal control is completely unaffected by an
-enabled add-on. Windows Terminal distinguishes windows, tabs, and panes; the
-current `TerminalIdentity` identifies a UI Automation `TermControl` by process,
-window handle, and runtime ID. Until this is verified against every supported
-Windows Terminal layout, documentation and code should call that object a
-terminal control or pane rather than assume that it always represents a tab.
+Windows Terminal distinguishes windows, tabs, and panes. `TerminalIdentity`
+therefore names the actual UI Automation `TermControl` by process, window
+handle, and complete runtime ID instead of assuming that every control is a
+tab.
 
-The following paths remain explicitly open for further investigation and
-hardening:
+- The activation command is always the global on/off toggle. While enabled,
+  the physical F12 press itself authorizes one pairing attempt for exactly the
+  focused control. Delayed main-thread handling rejects it after any intervening
+  identity change. The observer is shared by all Windows Terminal AppModules.
+- In an unbound control, explicit F12 may run one bounded registry/target
+  check. Without a fresh Neovim claim it remains silent and creates no choice,
+  binding, feedback, or suppression.
+- Events from a different connected Neovim instance never offer or perform an
+  activity-based rebind.
+- Focus loss and every control change clear suppression immediately. A
+  remembered authenticated control only becomes active again after its bound
+  client answers a request-ID-correlated focus-context request while the exact
+  control remains focused.
+- Multiple explicitly bound controls may coexist in the same window or in
+  separate Windows Terminal windows. Switching selects only the corresponding
+  client; late replies and unbound controls remain native.
 
-- the F12 observer sees gestures in every focused eligible Windows Terminal
-  control while support is enabled and may start discovery or show feedback,
-  even when that control is not bound;
-- an event from another connected Neovim instance can offer an
-  activity-confirmed rebind while focus is in an unbound terminal control;
-- focusing a remembered identity reactivates suppression immediately from the
-  existing authenticated connection before a newly requested `fullState`
-  arrives, although the same pane may meanwhile display a shell while the
-  remote Neovim RPC channel remains alive; and
-- the Braille overlay class is considered for every eligible Windows Terminal
-  control and relies on fallback behavior when no bound structured state is
-  available.
-
-These paths are not evidence that ordinary shell text is currently lost in
-every case, but they mean that complete non-interference has not been
-established. Future work must prefer per-control explicit activation, require
-fresh structured Neovim evidence before suppression or rebinding, keep F12 and
-dialogs inert outside that scope, and prove native speech, Braille, and input
-behavior with negative multi-window, multi-tab, and split-pane tests. Terminal
-screen text or titles must not be scraped to close this evidence gap; uncertain
-state must remain fail-open.
+The remaining structural limit is that a Neovim focus-context response proves
+the bound authenticated RPC state, but not independently that a shell or tmux
+program has not replaced Neovim inside the same `TermControl`. A future
+Neovim-to-add-on `FocusGained`/`FocusLost` prototype should investigate this
+without screen scraping. The Braille overlay is still considered for eligible
+terminal controls and must continue to fall back when the gate is inactive.

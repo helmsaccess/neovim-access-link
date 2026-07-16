@@ -28,10 +28,15 @@ against current state. Diagnostic editor text and secrets are redacted.
 Terminal suppression requires an authenticated, active, focused, exact binding
 and always fails open on error, timeout, disconnect, or deactivation.
 
-That gate does not yet constitute a complete non-interference proof for every
-unbound Windows Terminal pane. Remembered-binding activation, the application-
-wide F12 observer, activity-confirmed rebind prompts, and overlay selection are
-under an explicit continuing isolation audit. A `TerminalIdentity` proves the
-focused UIA terminal control, not by itself that Neovim is still the foreground
-application inside that control. Until fresh structured evidence and negative
-pane tests close this gap, uncertain state must not gain suppression authority.
+Each physical F12 press authorizes one claim attempt for the exact focused
+`TerminalIdentity`. Any intervening focus change rejects it; without a fresh
+Neovim claim, the check creates no binding, dialog, output, or suppression.
+Activity from another Neovim instance cannot move a binding. On focus loss
+or a control change, suppression is cleared before a request-ID-correlated
+focus-context response may reactivate the exact remembered connection.
+
+This still does not independently prove that Neovim remains the visible
+foreground program inside an already bound `TermControl` when a shell or tmux
+client replaces it while RPC stays alive. That residual limit remains under
+investigation; it grants no authority to uncertain or unbound controls and may
+not be closed with terminal screen scraping.

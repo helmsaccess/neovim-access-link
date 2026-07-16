@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.90.0-dev.3 unreleased feature-branch test build
+
+- Practical `dev.1` testing exposed two linked regressions: F12 did nothing in
+  a second WT tab, and the activation command could no longer turn the service
+  off there. The separate pre-arm has been removed.
+- The activation command is again the global toggle in every control. While
+  enabled, each physical F12 authorizes one pairing attempt for exactly the
+  focused control.
+- Without a fresh Neovim claim, that explicit attempt remains silent and
+  creates no choice, binding, or suppression. Regression coverage includes the
+  second tab, global deactivation, and silent shell case.
+- Practical `dev.3` testing fully confirmed local pairing in the first tab,
+  remote F12 pairing in a second tab without reactivation, and global
+  deactivation from that second tab.
+- Horizontal and vertical WT split panes subsequently worked without errors or
+  cross-binding while local and SSH connections remained active in other tabs.
+
+## 0.90.0-dev.1 supplied feature-branch test build
+
+- F12 pairing is a 60-second, one-shot permission for the exact focused Windows
+  Terminal control. Unarmed shells, file managers, tabs, panes, and windows are
+  inert at the add-on level.
+- Events from another connection can no longer move or offer to move a binding.
+- Switching among explicitly remembered controls clears suppression first and
+  restores only the instance whose correlated focus-context response matches
+  the still-focused control.
+- Automated multi-control and multi-window coverage is included; practical
+  split-pane acceptance remains pending. Product maturity remains between alpha
+  and beta.
+
 ## 0.90.0 beta release
 
 - Includes the practically confirmed focus-context announcement with filename,
