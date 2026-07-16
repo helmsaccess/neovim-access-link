@@ -102,14 +102,23 @@ gewählte Profil ein, verlangt danach aber dieselbe physische Markierung und
 frische Claim-Auswertung, bevor sie den typisierten Verbindungs- und
 Zuordnungspfad startet.
 
-## Neovim-Sitzungsregistry
+## Dateibasierte Neovim-Sitzungsregistrierung
+
+„Registry“ ist hier ein historischer Kurzname für ein privates Verzeichnis mit
+JSON-Sitzungsdateien und ausdrücklich **nicht** die Windows-Registry. Der Code
+verwendet keine Schlüssel unter `HKCU` oder `HKLM`. Unter Windows liegen die
+Dateien normalerweise in `%LOCALAPPDATA%\nvim-nvda\sessions`, unter Linux in
+`$XDG_RUNTIME_DIR/nvim-nvda/sessions` beziehungsweise im benutzerbezogenen
+Fallback-Verzeichnis unter `/tmp`. Die Dateien registrieren Neovim-Sitzungen,
+nicht Windows-Terminal-Fenster, -Tabs oder -Panes. Deren konkrete Bindung an
+eine Verbindung existiert ausschließlich im Arbeitsspeicher des NVDA-Add-ons.
 
 Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten
 Unix-RPC-Socket. Unter Windows startet sie zusätzlich einen dynamischen
-`127.0.0.1`-RPC-Port. Beide schreiben eine Registrydatei mit Schema 3,
+`127.0.0.1`-RPC-Port. Beide schreiben eine JSON-Sitzungsdatei mit Schema 3,
 Transporttyp, PID, Endpoint, Startzeit, Name und Arbeitsverzeichnis. Die
-Registry liegt im privaten Laufzeitverzeichnis des Linux-Benutzers
-beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda`.
+Sitzungsregistrierung liegt im privaten Laufzeitverzeichnis des Linux-Benutzers
+beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda\sessions`.
 
 Aktuelle Einträge enthalten zusätzlich eine zufällige `sessionNonce`, den
 Besitzstatus des Endpoints und unter Linux die Prozessstartkennung aus `/proc`.
@@ -129,7 +138,7 @@ Add-on listet Sitzungen mit Anzeigename und Arbeitsverzeichnis; IDs bleiben
 interne Transportdaten.
 
 Die bevorzugte Zuordnung erfolgt über die konfigurierte Markierungstaste. Beim
-Aktivieren erfasst ein begrenzter Hintergrundscan die lokale Registry und alle
+Aktivieren erfasst ein begrenzter Hintergrundscan die lokalen Sitzungsdateien und alle
 ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. Das Windows-Terminal-
 App-Modul beobachtet F12 am öffentlichen Erweiterungspunkt
 `decide_executeGesture`, ohne ein Skript zu binden. NVDAs normale Auflösung

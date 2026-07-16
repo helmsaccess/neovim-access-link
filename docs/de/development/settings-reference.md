@@ -154,9 +154,11 @@ verbinden“ belegt. Bei eingeschaltetem Dienst autorisiert jeder physische
 F12-Druck genau einen Zuordnungsversuch für die vollständige UIA-Identität des
 fokussierten Windows-Terminal-Controls. NVDA reicht die Geste unverändert an
 Windows Terminal und Neovim weiter und vergleicht danach die Claim-Sequenzen
-der lokalen Registry und aller automatisch erfassten SSH-Verbindungen. Das Plugin schreibt ohne
-sichtbare Neovim-Meldung eine monotone Markierung in seine private
-Session-Registry; das Add-on wählt lokal beziehungsweise über SSH nur die jüngste, höchstens
+der lokalen JSON-Sitzungsdateien und aller automatisch erfassten
+SSH-Verbindungen. Diese dateibasierte Sitzungsregistrierung ist keine Windows-
+Registry. Das Plugin schreibt ohne sichtbare Neovim-Meldung eine monotone
+Markierung in seine private Sitzungsdatei; das Add-on wählt lokal
+beziehungsweise über SSH nur die jüngste, höchstens
 15 Sekunden alte Markierung. Dadurch ist
 auch bei identischen Konten, Arbeitsverzeichnissen und Sitzungsnamen keine ID-
 Eingabe und kein Raten anhand des Terminalinhalts nötig. Nach einer

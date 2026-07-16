@@ -9,10 +9,12 @@ to the short-lived SSH process through askpass, and erased on deactivation or
 exit. They are never persisted, logged, or placed in arguments.
 
 Local Windows RPC accepts only an endpoint registered by the plugin and bound
-exactly to `127.0.0.1`; users cannot configure another address. The registry is
-private to the user and stale PID/endpoint entries are rejected.
+exactly to `127.0.0.1`; users cannot configure another address. The file-based
+session registry is private to the user and stale PID/endpoint entries are
+rejected. It consists of short-lived JSON files, not Windows Registry keys;
+the implementation uses neither `HKCU` nor `HKLM`.
 
-Registry cleanup never terminates a process. It removes only a definitively
+Session-file cleanup never terminates a process. It removes only a definitively
 dead or process-start-mismatched private entry. Nonce verification happens on
 the selected permanent RPC channel and never deletes anything on mismatch. A socket is removed only
 when `ownsSocket=true` and its plugin path exactly contains the same PID and

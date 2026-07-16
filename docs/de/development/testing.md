@@ -29,7 +29,7 @@ python3 -m unittest discover -s nvda-addon/tests -v
 Die Protokolltests prüfen v2-Pflichtfelder, Größenlimits, UTF-8, Framing,
 Sequenzierung, Resync, den SSH-stdio-Marker sowie den streng auf
 `127.0.0.1` begrenzten lokalen Client. Protokoll v1 wird ausdrücklich
-abgewiesen. Die Bridge-Tests prüfen die Registry v3, Neovim-RPC, semantische
+abgewiesen. Die Bridge-Tests prüfen das Sitzungsdatei-Schema 3, Neovim-RPC, semantische
 Ereignisse, Steuerbefehle und Braille-Routing. Alte TCP-Listener, Tokens und
 Kompatibilitätstests sind absichtlich entfernt.
 
@@ -69,7 +69,7 @@ prüfen. `event_appModule_loseFocus` muss Fokus und Unterdrückung löschen,
 darf aber ein inzwischen fokussiertes zweites Windows-Terminal-AppModule nicht
 durch ein verspätetes Fokusverlustereignis des ersten Fensters abwählen.
 Die F12-Tests prüfen zusätzlich, dass bei identischen Sitzungsmerkmalen nur die
-jüngste frische Registry-Markierung verbunden und eine alte oder fehlende
+jüngste frische Sitzungsmarkierung verbunden und eine alte oder fehlende
 Markierung abgewiesen wird. Der vollständige Gestenpfad prüft außerdem, dass
 NVDAs Windows-Terminal-AppModule F12 nur bei aktivierter Unterstützung und
 für exakt das fokussierte Control über `decide_executeGesture` beobachtet, den
@@ -78,10 +78,10 @@ physischen Tastendruck normal zum Betriebssystem durchlaufen lässt und die
 Claim-Auswertung getrennt einreiht. Bei ausgeschalteter Unterstützung darf
 keine Auswertung entstehen; ohne frischen Claim dürfen kein Add-on-Dialog,
 keine Bindung und keine Unterdrückung entstehen. Neovim muss den unveränderten `typed`-Wert
-erkennen, den Registry-Schreibzugriff aus `vim.on_key` heraus planen und darf
+erkennen, den Schreibzugriff auf die Sitzungsdatei aus `vim.on_key` heraus planen und darf
 keinen sichtbaren TUI-Hinweis erzeugen. Nach F12 in einem ungebundenen Control
 muss die einzige gegenüber der Aktivierungsinventur erhöhte Claim-
-Sequenz über lokale Registry und alle automatisch erreichbaren SSH-Profile
+Sequenz über lokale Sitzungsdateien und alle automatisch erreichbaren SSH-Profile
 gewählt werden.
 Ein zurückgehaltener künstlicher `wx.CallLater` muss bis zur Ausführung stark
 referenziert bleiben, genau einmal aufrufen und danach freigegeben werden.
@@ -100,10 +100,10 @@ seine Profilauswahl.
 
 Alle Dateien unter `neovim-plugin/tests/*_spec.lua` werden mit dem unterstützten
 Neovim ausgeführt. Die Tests modellieren und integrieren Completion,
-Pluginadapter, Visual-Auswahl, Spell/Diagnostics, Dateimanager und die atomare
-Session-Registry v3. TUI-Tests verwenden eine eigene temporäre Neovim-Instanz
+Pluginadapter, Visual-Auswahl, Spell/Diagnostics, Dateimanager und das atomare
+Sitzungsdatei-Schema 3. TUI-Tests verwenden eine eigene temporäre Neovim-Instanz
 und ein Pseudoterminal; sie hängen sich niemals an eine Sitzung des Anwenders.
-Registry-Regressionen decken geordnetes Ende, SIGKILL, PID-/Endpoint-/Nonce-
+Sitzungsdatei-Regressionen decken geordnetes Ende, SIGKILL, PID-/Endpoint-/Nonce-
 Wiederverwendung, ausgeblendete Altschemata, passive und begrenzte Inventur,
 Berechtigungsunsicherheit, begrenzte Dateianzahlen, UTF-8-sichere Namen,
 nonce-eindeutige eigene Sockets und nicht-destruktive Fehlerpfade ab.
@@ -384,7 +384,7 @@ Praktischer Regressionstest am 14. Juli 2026: Build 0.89.3 wurde unter NVDA
 2026.1.1 installiert, lokales CLI-Neovim in Windows Terminal neu gestartet und
 nach der Bereitschaftsmeldung per F12 sowie über die manuelle lokale Auswahl
 verbunden. Erwartet waren wiederholbar eine eindeutige Verbindung und keine
-lautlosen Fehlversuche durch einen zu frühen Registry-Snapshot. Tatsächlich
+lautlosen Fehlversuche durch einen zu frühen Sitzungsdatei-Snapshot. Tatsächlich
 arbeiteten beide Wege zuverlässig; Ergebnis: bestanden.
 
 ## Aktueller Nachweis

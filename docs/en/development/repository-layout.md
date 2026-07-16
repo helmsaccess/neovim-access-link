@@ -2,7 +2,7 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `neovim-plugin/` | Lua state, semantic events, registry, adapters |
+| `neovim-plugin/` | Lua state, semantic events, JSON session-file registry, adapters |
 | `bridge/python/` | Linux Neovim RPC to SSH-stdio bridge |
 | `protocol/python/` | framing, validation, sequencing, Unicode helpers |
 | `nvda-addon/core/` | NVDA-independent state, connection, speech, Braille |

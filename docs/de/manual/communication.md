@@ -68,6 +68,26 @@ nvim datei
 
 Ein besonderer Wrapper ist nicht erforderlich.
 
+## Begriff: dateibasierte Sitzungsregistrierung
+
+Die in dieser Dokumentation erwähnte „Registry“ ist **nicht die Windows-
+Registry**. Neovim Access Link liest und schreibt weder `HKCU` noch `HKLM` und
+legt keine Windows-Registry-Schlüssel an. Gemeint ist ausschließlich eine vom
+Neovim-Plugin verwaltete, dateibasierte Sitzungsregistrierung aus kurzlebigen
+JSON-Dateien:
+
+- unter Windows normalerweise
+  `%LOCALAPPDATA%\nvim-nvda\sessions\<PID>-<Nonce>.json`;
+- unter Linux unter
+  `$XDG_RUNTIME_DIR/nvim-nvda/sessions/<PID>-<Nonce>.json`, mit einem privaten
+  benutzerbezogenen Verzeichnis unter `/tmp` als Fallback.
+
+Die Dateien enthalten nur die für Discovery und F12-Zuordnung erforderlichen
+Sitzungs- und Endpunktmetadaten. Sie werden beim normalen Neovim-Ende entfernt;
+eindeutig veraltete eigene Dateien können begrenzt bereinigt werden.
+Sie speichern keine Windows-Terminal-Fenster-, Tab- oder Pane-Zuordnung. Diese
+Bindung hält das NVDA-Add-on nur für seine aktuelle Laufzeit im Arbeitsspeicher.
+
 ## Was beim Aktivieren passiert
 
 Der frei belegbare NVDA-Aktivierungsbefehl schaltet den gemeinsamen Dienst ein
@@ -77,7 +97,7 @@ Beim ersten Einschalten geschieht Folgendes:
 1. Das Windows-Terminal-AppModule übernimmt unmittelbar das aktuell fokussierte
    Terminalobjekt. Das gilt auch, wenn Windows Terminal schon vorher fokussiert
    war und deshalb kein neues NVDA-Fokusereignis eintrifft.
-2. Das Add-on liest im Hintergrund die lokale Windows-Registry und die
+2. Das Add-on liest im Hintergrund die lokalen JSON-Sitzungsdateien und die
    Sitzungslisten aller automatisch erreichbaren gespeicherten SSH-Ziele.
 3. Es merkt sich die aktuelle Zuordnungsnummer jeder Sitzung als Ausgangswert.
 4. NVDA meldet, dass die Erfassung bereit ist und F12 gedrückt werden kann.
@@ -114,7 +134,7 @@ Unterdrückung aus.
 4. Windows Terminal liefert die Taste an das laufende Programm. Bei SSH und
    tmux läuft sie durch diese sichtbare Sitzung bis zu Neovim.
 5. Das Plugin erhöht still seine `claimSequence` und schreibt den Wert atomar
-   in seinen Registryeintrag. Es zeigt keine Statusmeldung an.
+   in seine Sitzungsdatei. Es zeigt keine Statusmeldung an.
 6. Nach einer kurzen Verzögerung liest das Add-on die zuvor erfassten lokalen
    und entfernten Sitzungen erneut.
 7. Nur eine gegenüber dem Ausgangswert erhöhte `claimSequence` gilt als
@@ -124,7 +144,7 @@ Unterdrückung aus.
    zugängliche Auswahl. Ohne Treffer wird nicht geraten.
 
 Die Freigabe gilt nur für diesen einen Tastendruck und genau dieses Control.
-Der anschließend entstehende Registry-Claim wird nur in seinem kurzen
+Der anschließend entstehende dateibasierte Sitzungs-Claim wird nur in seinem kurzen
 Frischefenster akzeptiert. Interne Sitzungs-IDs, Fenstertitel und Terminaltext
 werden nicht benötigt. Für jedes weitere ungebundene Control genügt bei bereits
 eingeschaltetem Dienst ein neuer physischer F12-Druck.
@@ -161,7 +181,9 @@ Lua-Plugin
 Jede lokale Neovim-Instanz legt einen eigenen dynamischen RPC-Port an, der
 exakt an IPv4-Loopback `127.0.0.1` gebunden ist. Host und Port sind nicht frei
 konfigurierbar und werden nicht dauerhaft gespeichert. Das Plugin schreibt sie
-in die Registry unter `%LOCALAPPDATA%\nvim-nvda`.
+in eine kurzlebige JSON-Sitzungsdatei unter
+`%LOCALAPPDATA%\nvim-nvda\sessions`. Die Windows-Registry ist daran nicht
+beteiligt.
 
 Nach der Zuordnung verbindet sich das Add-on direkt zu diesem Port und
 registriert seinen RPC-Kanal beim Plugin. Das Plugin sendet danach `fullState`

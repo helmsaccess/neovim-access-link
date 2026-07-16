@@ -40,12 +40,20 @@ surface.
 
 ## Terms: marking, claim, binding, and connection
 
+“Registry” below means a file-based Neovim session registry, never the Windows
+Registry. The implementation creates no `HKCU` or `HKLM` keys. Records are
+short-lived JSON files below `%LOCALAPPDATA%\nvim-nvda\sessions` on Windows and
+`$XDG_RUNTIME_DIR/nvim-nvda/sessions` (or a private per-user `/tmp` fallback)
+on Linux. These files register Neovim sessions, not Windows Terminal windows,
+tabs, or panes. Their concrete connection binding exists only in the NVDA
+add-on's memory.
+
 A **session mark** is the explicit user action in the focused Neovim,
 normally one physical F12 press. It is distinct from Neovim editor **marks**
 such as `ma` or `'a`.
 
 A **claim** is only the transient, machine-readable evidence of that action in
-the Neovim instance's private registry entry: `claimSequence` increases
+the Neovim instance's private JSON session record: `claimSequence` increases
 monotonically and `claimedMonotonic` is updated. A claim does not open a
 transport, authenticate a peer, permanently select a terminal tab, or survive
 a plugin restart.
@@ -79,7 +87,7 @@ state. A stable UI Automation runtime ID binds one instance to one tab. Only
 the focused bound instance can produce output. Switching clears planners and
 may request `fullState`; stale or unbound events are ignored.
 
-Registry schema 3 binds discovery to a random RPC-confirmed `sessionNonce` and,
+File-based session-registry schema 3 binds discovery to a random RPC-confirmed `sessionNonce` and,
 on Linux, `/proc/<pid>/stat` process-start ticks. Definitively stale private
 records and plugin-owned socket paths both use PID plus nonce, so exactly stale
 owned pairs can be pruned without touching a reused PID's new session.

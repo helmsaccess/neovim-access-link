@@ -4,7 +4,7 @@ Die Verzeichnisse folgen den Laufzeitgrenzen des Produkts:
 
 | Pfad | Inhalt |
 | --- | --- |
-| `neovim-plugin/` | Lua-Plugin, semantische Ereignisse, Sitzungsregistry und Adapter |
+| `neovim-plugin/` | Lua-Plugin, semantische Ereignisse, JSON-Sitzungsdateien und Adapter |
 | `bridge/python/` | Verbindung einer Linux-Neovim-Sitzung mit SSH-stdio |
 | `protocol/python/` | Framing, Validierung, Sequenzierung und Unicode-Hilfen |
 | `nvda-addon/core/` | NVDA-unabhängige Verbindungs-, Zustands-, Sprach- und Braillelogik |

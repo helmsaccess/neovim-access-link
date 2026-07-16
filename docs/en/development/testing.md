@@ -22,11 +22,11 @@ and SSH sessions, focus/runtime IDs, F12 claims, delayed callbacks, redaction,
 and fail-open suppression.
 
 The F12 path distinguishes four stages: physical session marking, the
-transient registry claim, unique claim resolution, and terminal-to-connection
+transient session-file claim, unique claim resolution, and terminal-to-connection
 binding. While support is enabled, NVDA treats each physical F12 as one
 authorization for the exact focused control and does not synthesize or consume
 the key. Neovim matches the
-unchanged `typed` value and schedules the registry write outside `vim.on_key`.
+unchanged `typed` value and schedules the session-file write outside `vim.on_key`.
 Manual target selection prepares the same physical F12 proof before using the
 typed connection path.
 

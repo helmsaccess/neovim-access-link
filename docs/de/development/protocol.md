@@ -94,7 +94,14 @@ den tatsächlich gestarteten v2-Transport:
 Lokal lautet `kind` `windows-loopback-tcp`; die Fähigkeiten entsprechen der
 Liste ohne `heartbeat`.
 
-## Registry und ausdrückliche Zuordnung
+## Dateibasierte Sitzungsregistrierung und ausdrückliche Zuordnung
+
+Die folgenden „Registry“-Einträge sind kurzlebige JSON-Dateien des Neovim-
+Plugins. Sie haben nichts mit der Windows-Registry zu tun; weder `HKCU` noch
+`HKLM` werden gelesen oder beschrieben. Windows verwendet normalerweise
+`%LOCALAPPDATA%\nvim-nvda\sessions`, Linux das private Laufzeitverzeichnis
+`$XDG_RUNTIME_DIR/nvim-nvda/sessions` oder einen benutzerbezogenen `/tmp`-
+Fallback.
 
 Schema 3 bindet einen Eintrag mit einer zufälligen `sessionNonce` an den
 tatsächlichen Neovim-RPC-Endpunkt. Unter Linux muss zusätzlich
@@ -104,14 +111,14 @@ die Bereinigung nur für den exakt zu PID und Nonce gehörenden Plugin-Socket.
 Dateiexistenz allein gelten nicht als Identitätsnachweis.
 Der private Dateiname enthält PID und Nonce; nur genau diese eindeutige Datei
 darf Discovery bei zweifelsfrei veralteter Identität entfernen.
-Ein Scan verarbeitet höchstens 256 Registrydateien; jede Datei ist auf 65.536
+Ein Scan verarbeitet höchstens 256 JSON-Sitzungsdateien; jede Datei ist auf 65.536
 Byte begrenzt. Discovery und Claim-Polling bleiben passiv und öffnen keinen
-RPC-Kanal. Nach der eindeutigen Auswahl wird die Registry-Nonce auf demselben
+RPC-Kanal. Nach der eindeutigen Auswahl wird die Nonce der Sitzungsdatei auf demselben
 dauerhaften RPC-Kanal abgefragt, der anschließend Ereignisse liefert, und zwar
 vor Plugin-Setup und Kanalregistrierung. Ein Unterschied beendet diesen Kanal
 fail-open ohne Wiederverbindung.
 
-Lokale und entfernte Registryeinträge enthalten neben Sitzungsmetadaten eine
+Lokale und entfernte Sitzungsdateien enthalten neben Sitzungsmetadaten eine
 monoton steigende Ganzzahl `claimSequence`. Der Wert beginnt beim Pluginstart
 bei 0 und wird bei jeder über den unveränderten `typed`-Wert erkannten
 Sitzungsmarkierung erhöht; `claimedMonotonic` hält den zugehörigen monotonen
@@ -121,7 +128,7 @@ Transport-Sequenzzähler noch Authentisierung, Terminalbindung oder dauerhafte
 Auswahl. Sie werden nicht über Pluginneustarts hinweg erhalten. Neovims
 Editor-Marks sind davon vollständig unabhängig.
 
-Beim Aktivieren liest das Add-on die lokale Registry und die Sitzungslisten der
+Beim Aktivieren liest das Add-on die lokalen Sitzungsdateien und die Sitzungslisten der
 automatisch erreichbaren SSH-Ziele im Hintergrund und merkt die jeweiligen
 Claim-Sequenzen als Baseline. Nach F12 wird derselbe Bestand erneut gelesen.
 Nur eine gegenüber ihrer Baseline erhöhte Sequenz gilt als ausdrücklicher

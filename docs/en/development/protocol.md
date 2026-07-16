@@ -41,7 +41,13 @@ the trailing newline, and invokes only fixed `setreg('0', ..., type .. '"')`.
 This replaces register 0 and points the unnamed register to it without using a
 named user register.
 
-## Registry claim and explicit binding
+## File-based session-registry claim and explicit binding
+
+These “registry” entries are short-lived JSON files owned by the Neovim
+plugin, not Windows Registry data. The implementation reads or writes neither
+`HKCU` nor `HKLM`. Windows normally uses
+`%LOCALAPPDATA%\nvim-nvda\sessions`; Linux uses
+`$XDG_RUNTIME_DIR/nvim-nvda/sessions` or a private per-user `/tmp` fallback.
 
 Schema 3 binds an entry to the actual Neovim RPC endpoint through a random
 `sessionNonce`. On Linux, `processStartTicks` must also match `/proc/<pid>/stat`;
@@ -50,16 +56,16 @@ the same PID and nonce; inherited or user-defined sockets are never unlinked.
 A live PID or existing path alone is not an identity proof.
 The private filename contains PID plus nonce; discovery may remove only that
 uniquely owned record after proving it stale.
-A scan processes at most 256 registry files and each file is limited to 65,536
+A scan processes at most 256 JSON session files and each file is limited to 65,536
 bytes. Discovery and claim polling are passive and open no RPC channel. Once a
 record is selected, its nonce is queried on the same permanent RPC channel
 that will carry events, before plugin setup and channel registration. A
 mismatch disconnects fail-open without reconnecting the rejected endpoint.
 
-Local and remote registry entries contain a monotonically increasing
+Local and remote session files contain a monotonically increasing
 `claimSequence` and the corresponding `claimedMonotonic` timestamp. Neovim
 recognizes the configured session-marking key from `vim.on_key`'s unchanged
-`typed` value and schedules the registry write outside the key callback. These
+`typed` value and schedules the session-file write outside the key callback. These
 fields are only a transient claim: they are not protocol event sequencing,
 authentication, a terminal binding, a connection, or Neovim editor marks, and
 they do not survive a plugin restart.

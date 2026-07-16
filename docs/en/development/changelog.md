@@ -1,5 +1,9 @@
 # Changelog
 
+Terminology note: “registry” in every historical entry means Neovim's
+file-based session registry of short-lived JSON records, never the Windows
+Registry. The product uses no `HKCU` or `HKLM` keys.
+
 ## 0.91.0-dev.4 unreleased feature-branch test build
 
 - Adds four freely assignable NVDA commands without default gestures: copy

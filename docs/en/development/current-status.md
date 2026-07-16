@@ -46,7 +46,9 @@ return had treated the deliberately retained authenticated binding as an
 internal same-control focus event. `0.89.0-dev.2` distinguishes real focus
 return; the correction was confirmed in practical testing.
 
-Registry schema 3 validates local and remote sessions with a random RPC
+The project historically calls its short-lived JSON session files a
+“registry”; this is not the Windows Registry, and neither `HKCU` nor `HKLM` is
+used. File-based session-registry schema 3 validates local and remote sessions with a random RPC
 endpoint nonce and, on Linux, process-start identity. Definitively dead private
 entries and exact PID-plus-nonce plugin sockets are pruned; inherited and
 user-defined socket paths are never unlinked.
@@ -55,10 +57,10 @@ Closed individual WT tabs or whole windows require two negative five-minute swee
 detach fail-open, and stop their NVDA client
 off the main thread without terminating Neovim or tmux. Isolated local and
 `user@example.invalid` SIGKILL tests left no visible session or owned nonce-qualified
-registry/socket debris.
+session-file/socket debris.
 Focused tabs are never removed by UIA maintenance, and lifecycle validation
 does not run from editor, connection-state, or terminal-action paths.
-Discovery reads registry, process identity, and endpoint metadata passively.
+Discovery reads session files, process identity, and endpoint metadata passively.
 The nonce is verified only on the permanent RPC channel, before plugin setup
 or registration; inventory and polling never create throwaway channels.
 
@@ -92,7 +94,7 @@ after a ten-millisecond GUI-loop delay, once NVDA's input-hook callback has
 returned; evaluation still starts after 250 milliseconds.
 Practical testing disproved that synthetic path as well. Manual selection
 connected the same Tessa session, and a physical F12 control followed by
-further presses advanced its registry to `claimSequence=3`. Build 0.89.14
+further presses advanced its session record to `claimSequence=3`. Build 0.89.14
 therefore observes F12 through `decide_executeGesture` without binding an NVDA
 script. NVDA's resulting `NoInputGestureAction` path passes the original key
 directly, while only claim evaluation is queued to NVDA's event queue.
@@ -105,12 +107,12 @@ completely while support is disabled.
 Practical testing of 0.89.15 confirmed Tessa and the inactive observer while
 support was disabled. Local Neovim 0.12.3 connected automatically but
 immediately entered the `r?`/hit-enter state and then lost its RPC server.
-Build 0.89.16 schedules the registry write with `vim.schedule()` outside
+Build 0.89.16 schedules the session-file write with `vim.schedule()` outside
 `vim.on_key`.
 Final practical testing of 0.89.16 confirmed automatic binding for both local
 Neovim 0.12.3 and Tessa with Neovim 0.10.1. Repeated physical F12 marks worked,
 and with support disabled the observer remained completely inert and opened no
-binding dialog. Marking, the transient registry claim, add-on binding, and the
+binding dialog. Marking, the transient session-file claim, add-on binding, and the
 transport connection are therefore distinct and practically confirmed stages.
 
 Practical testing of 0.89.35 confirmed the correction for the later `r?`

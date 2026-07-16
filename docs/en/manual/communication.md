@@ -1,5 +1,23 @@
 # Manual: Communication, connections, and session binding
 
+## Term: file-based session registry
+
+“Registry” in this documentation never means the Windows Registry. Neovim
+Access Link neither reads nor writes `HKCU` or `HKLM` and creates no Windows
+Registry keys. It means only a plugin-managed directory of short-lived JSON
+session records:
+
+- on Windows, normally
+  `%LOCALAPPDATA%\nvim-nvda\sessions\<PID>-<nonce>.json`;
+- on Linux,
+  `$XDG_RUNTIME_DIR/nvim-nvda/sessions/<PID>-<nonce>.json`, with a private
+  per-user directory below `/tmp` as fallback.
+
+These files contain only the session and endpoint metadata needed for
+discovery and F12 binding. They do not store a Windows Terminal window, tab,
+or pane mapping. The NVDA add-on keeps that binding only in memory for its
+current runtime.
+
 ## What activation does
 
 Activation turns the shared service on or off. When turning it on, it starts a bounded background inventory. It reads local registered
@@ -18,7 +36,7 @@ single claim check may run in response to that explicit action, but without a
 fresh Neovim claim it remains silent and creates no dialog, binding, or
 suppression. F12 is
 forwarded to Windows Terminal and Neovim first. The plugin increments a
-monotonic claim value in its private session registry without displaying a
+monotonic claim value in its private JSON session record without displaying a
 message. The add-on compares that value with its activation baseline:
 
 - one changed session is connected;
@@ -32,7 +50,9 @@ independently with its own physical F12 press.
 ## Local Windows path
 
 The plugin starts a dynamic Neovim RPC endpoint bound exactly to `127.0.0.1`
-and records it under `%LOCALAPPDATA%\nvim-nvda`. After a claim, the add-on opens
+and records it in a short-lived JSON session file below
+`%LOCALAPPDATA%\nvim-nvda\sessions`. This does not use the Windows Registry.
+After a claim, the add-on opens
 a dedicated background RPC client for that one session. No fixed port,
 `nvim --listen`, wrapper, SSH process, or administrator privilege is required.
 

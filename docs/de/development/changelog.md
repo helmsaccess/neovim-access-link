@@ -1,5 +1,10 @@
 # Changelog
 
+Begriffshinweis: „Registry“ bezeichnet in allen historischen Einträgen die
+dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
+die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
+`HKLM`.
+
 ## 0.91.0-dev.4 (unveröffentlichter Featurebranch-Testbuild)
 
 - Ergänzt vier frei belegbare NVDA-Befehle ohne Standardgesten: aktuelle

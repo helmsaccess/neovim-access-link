@@ -244,7 +244,9 @@ Anwenders und tmux bleiben unberührt.
 Beim lokalen Ziel wird kein dauerhafter Port gespeichert. Nach Installation
 und Neovim-Neustart legt das Plugin selbst einen dynamischen Port ausschließlich
 auf `127.0.0.1` an. F12 markiert die fokussierte lokale Instanz; das Add-on liest
-Port und interne Sitzungskennung aus der benutzerbezogenen Registry. Eigene
+Port und interne Sitzungskennung aus der benutzerbezogenen, dateibasierten
+Sitzungsregistrierung unter `%LOCALAPPDATA%\nvim-nvda\sessions`. Die Windows-
+Registry wird nicht verwendet. Eigene
 `NVIM_APPNAME`-Datenverzeichnisse und portable Neovim-Layouts werden in dieser
 ersten Fassung noch nicht automatisch installiert.
 
@@ -450,14 +452,15 @@ Rechner und mehrere Konten auf demselben Rechner unabhängig verwaltet werden.
 Der schnellste Verbindungsweg ist F12 im fokussierten Neovim. NVDA fängt diese
 Geste technisch ab, reicht sie zuerst an Windows Terminal, tmux und Neovim
 weiter und prüft anschließend die passende lokale oder entfernte
-Session-Registry. Neovim markiert seine private Registry dabei still; es
+dateibasierte Sitzungsregistrierung. Neovim markiert seine private
+JSON-Sitzungsdatei dabei still; es
 erscheint keine Neovim-Statusmeldung. Nur die jüngste, höchstens 15 Sekunden
 alte Markierung wird verbunden. Interne Sitzungs-IDs, Fenstertitel und
 Terminaltext werden nicht ausgewertet.
 
 Bei eingeschaltetem Dienst autorisiert jeder physische F12-Druck genau einen
 Zuordnungsversuch für das fokussierte Windows-Terminal-Control. Bei einem neuen
-Control vergleicht das Add-on die Claim-Sequenz der lokalen Registry und aller
+Control vergleicht das Add-on die Claim-Sequenz der lokalen Sitzungsdateien und aller
 bei der Aktivierung erfolgreich erfassten SSH-Profile. Nur die durch den
 aktuellen Tastendruck veränderte Sitzung wird verbunden. Ohne frischen Treffer
 bleiben Shells und Dateimanager nativ: keine Bindung, kein Dialog und keine

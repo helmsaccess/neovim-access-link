@@ -61,7 +61,11 @@ danach die Linux-Komponenten über das NVDA-Menü aktualisieren. Eine isolierte
 Änderung nur auf dem Linux-Ziel würde die beiden Seiten auseinanderbringen und
 ist daher nicht unterstützt.
 
-## Neovim-Sitzungsregistry
+## Dateibasierte Neovim-Sitzungsregistrierung
+
+Diese Sitzungsregistrierung besteht aus JSON-Dateien im Dateisystem und hat
+nichts mit der Windows-Registry zu tun. Auf dem hier beschriebenen Linux-Ziel
+liegt sie im privaten Laufzeitverzeichnis des Benutzers.
 
 Das installierte Plugin startet über `serverstart()` selbst einen privaten
 Unix-RPC-Socket und registriert PID, Socket, monotone und reale Startzeit,

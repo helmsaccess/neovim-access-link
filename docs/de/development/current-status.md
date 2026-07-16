@@ -52,7 +52,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
 
 ## Aktueller technischer Stand
 
-- Registry-Schema 3 schützt lokale und entfernte Discovery mit zufälliger
+- Die im Projekt historisch „Registry“ genannte Sitzungsregistrierung besteht
+  ausschließlich aus kurzlebigen JSON-Dateien und ist nicht die Windows-
+  Registry; `HKCU` und `HKLM` werden nicht verwendet.
+- Schema 3 dieser dateibasierten Sitzungsregistrierung schützt lokale und entfernte Discovery mit zufälliger
   Endpoint-Nonce sowie unter Linux mit Prozessstartkennung. Eindeutig tote
   Einträge und exakt nonce-eindeutige eigene Pluginsockets werden bereinigt;
   übernommene oder benutzerdefinierte Pfade bleiben unangetastet. Unklare Fehler bleiben
@@ -60,10 +63,10 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   nach zwei negativen Prüfungen im Abstand von fünf Minuten ihre jeweilige NVDA-Bindung und
   stoppen den Client außerhalb des Hauptthreads, ohne Neovim oder tmux zu
   beenden. Isolierte SIGKILL-Tests lokal und auf `user@example.invalid` hinterließen keine
-  sichtbare Sitzung und keine eigenen nonce-eindeutigen Registry-/Socketreste.
+  sichtbare Sitzung und keine eigenen nonce-eindeutigen Sitzungsdatei-/Socketreste.
   Fokussierte Tabs werden nie durch die UIA-Wartungsprüfung entfernt; diese
   Prüfung läuft nicht in Editor-, Status- oder Aktionspfaden.
-  Discovery liest Registry, Prozessidentität und Endpunkt nur passiv. Die
+  Discovery liest Sitzungsdateien, Prozessidentität und Endpunkt nur passiv. Die
   Nonce wird erst auf dem anschließend dauerhaft verwendeten RPC-Kanal und vor
   jeder Pluginregistrierung geprüft; Inventur und Polling öffnen keine
   Wegwerfkanäle.
@@ -100,7 +103,7 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   Neovim-Instanz kurzzeitig und bindet genau sie an den fokussierten
   Windows-Terminal-Tab; interne IDs müssen nicht eingegeben werden. Für einen
   bereits gebundenen Tab gilt dessen Ziel. Beim Aktivieren erfasst ein
-  begrenzter Hintergrundscan die lokale Registry und alle ohne Passwortdialog
+  begrenzter Hintergrundscan die lokalen Sitzungsdateien und alle ohne Passwortdialog
   erreichbaren gespeicherten SSH-Verbindungen. In einem ungebundenen Tab sucht
   F12 die veränderte Claim-Sequenz über diesen gesamten Bestand; ein
   Standardziel gibt es nicht. Passwortprofile ohne Laufzeitpasswort und
@@ -120,7 +123,7 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
   bestätigt.
 - In 0.89.3 wird ein frischer lokaler F12-Claim vor SSH geprüft und unmittelbar
   verbunden. Eine bis zu 1,5 Sekunden begrenzte Nachsuche fängt verzögert
-  sichtbare atomare Registry-Updates ab. Die automatisierten Regressionstests
+  sichtbare atomare Sitzungsdatei-Updates ab. Die automatisierten Regressionstests
   sind bestanden; die lokale automatische und manuelle Zuordnung wurde mit
   dem installierten Beta-Build praktisch als zuverlässig bestätigt.
 - Ein unveränderter interaktiver Mapping-Test mit sicher aktualisierten
@@ -156,13 +159,13 @@ Handbuch und Entwicklerdokumentation werden zusätzlich auf Englisch erzeugt.
 - Der 0.89.15-Praxistest bestätigte Tessa und die inaktive F12-Beobachtung bei
   deaktivierter Unterstützung. Lokales Neovim 0.12.3 wurde automatisch
   verbunden, geriet aber unmittelbar in den `r?`-/Hit-Enter-Zustand und verlor
-  anschließend seinen RPC-Server. 0.89.16 plant den Registry-Schreibzugriff
+  anschließend seinen RPC-Server. 0.89.16 plant den Sitzungsdatei-Schreibzugriff
   deshalb mit `vim.schedule()` außerhalb von `vim.on_key` ein.
 - Der abschließende 0.89.16-Praxistest bestätigte die automatische Zuordnung
   sowohl für lokales Neovim 0.12.3 als auch für Tessa mit Neovim 0.10.1.
   Wiederholte F12-Markierungen funktionierten, und bei deaktivierter
   Unterstützung blieb die Beobachtung vollständig inaktiv: Es erschien kein
-  Zuordnungsdialog. Damit sind Markierung, Registry-Claim, Add-on-Zuordnung und
+  Zuordnungsdialog. Damit sind Markierung, Sitzungsdatei-Claim, Add-on-Zuordnung und
   Transportverbindung als getrennte Schritte praktisch bestätigt.
 - Der 0.89.35-Praxistest bestätigte die Korrektur der späteren
   `r?`-Regression. Während einer nativen Swap-Datei-Rückfrage erzeugte der

@@ -14,7 +14,9 @@
 - Empfangene Nachrichten werden typ- und größenvalidiert. Text aus einer
   Nachricht wird niemals als Python-, Lua- oder Ex-Code ausgeführt.
 
-Die Registry-Bereinigung beendet keinen Prozess. Schema-3-Dateien sind durch
+Die Bereinigung der dateibasierten Sitzungsregistrierung beendet keinen Prozess.
+Diese JSON-Dateien sind keine Windows-Registry-Daten; das Produkt verwendet
+weder `HKCU` noch `HKLM`. Schema-3-Dateien sind durch
 PID plus zufällige Nonce eindeutig. Nur eine zweifelsfrei tote oder durch die
 Prozessstartkennung widerlegte Datei wird entfernt. Die Nonce-Prüfung erfolgt
 erst auf dem ausgewählten dauerhaften RPC-Kanal und löscht bei einem
@@ -53,15 +55,17 @@ dieser NVDA-Laufzeit vorliegt. Die Erfassung ist auf vier parallele Arbeiter
 begrenzt. Ein fehlgeschlagenes oder nicht erreichbares Ziel darf weder eine
 andere Zuordnung vortäuschen noch den NVDA-Hauptthread blockieren.
 
-## Registry und Installation
+## Sitzungsdateien und Installation
 
-Registryverzeichnis und Sitzungsdateien liegen im privaten Linux-
-Laufzeitverzeichnis beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda`. Linux-
+Das Verzeichnis der dateibasierten Sitzungsregistrierung und seine JSON-Dateien
+liegen im privaten Linux-Laufzeitverzeichnis beziehungsweise unter
+`%LOCALAPPDATA%\nvim-nvda\sessions`. Es handelt sich nicht um die Windows-
+Registry. Linux-
 Einträge benötigen lebende PIDs und private Unix-Sockets; Windows-Einträge
 benötigen lebende PIDs, den Typ `localWindowsTcp` und exakt `127.0.0.1`.
 Die Windows-PID-Prüfung fordert ausschließlich lesende Prozessrechte an.
 
-Registry-Bereinigung beendet keine Prozesse. Sie löscht nur einen eindeutig
+Die Sitzungsdateibereinigung beendet keine Prozesse. Sie löscht nur einen eindeutig
 toten oder durch Prozessstart/Nonce widerlegten privaten Eintrag. Ein Socket
 wird nur bei `ownsSocket=true` und exakt erwartetem privaten Standardpfad
 entfernt. Timeout, SSH-Ausfall, Fokusverlust oder fehlende Leserechte führen
@@ -143,7 +147,7 @@ NVDA-Ende, Verbindungsende oder ungültiger Identität verworfen. Ohne vorherige
 Zustimmung erfolgt keine automatische Wiederbindung zwischen Tabs.
 
 Der physische F12-Druck autorisiert bei eingeschaltetem Dienst genau einen
-Registry-Claim-Versuch für die fokussierte `TerminalIdentity`. Ein
+Sitzungsdatei-Claim-Versuch für die fokussierte `TerminalIdentity`. Ein
 zwischenzeitlicher Fokuswechsel verwirft ihn; ohne frischen Neovim-Claim bleibt
 die Prüfung ohne Bindung, Dialog, Ausgabe oder Unterdrückung. Alle WT-
 AppModule-Instanzen teilen eine Beobachterregistrierung; die einmalige
