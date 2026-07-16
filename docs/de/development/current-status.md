@@ -3,14 +3,15 @@
 Stand: 2026-07-16, Beta-Version 0.91.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
-Auf dem Entwicklungsbranch wird beim erneuten Fokus eines authentifizierten,
-registrierten WT-Controls ein korrelierter strukturierter Kontext aus dem
-Neovim-Zustands-Cache angefordert. Datei beziehungsweise Spezialbuffer,
-Änderungsstatus und Modus werden kompakt für Sprache und Braille geplant.
-Ungebundene Controls sowie verspätete oder nicht mehr passende Antworten
-bleiben wirkungslos. Der praktische NVDA-/WT-Test bestätigte die Ansage beim
-Rückwechsel aus dem Explorer sowie die Ergänzung des konfigurierten
-Verbindungsnamens. Der Stand wird deshalb weiterhin nicht als stabil bewertet.
+Auf `feature/focus-context-settings` ist die Ausgabe nach einer bestätigten
+Fokusrückkehr profilabhängig wahlweise still, die aktuelle strukturierte Zeile
+oder der bisherige Datei-/Spezialkontext mit Modus und Verbindungsname. Das
+bisherige Verhalten bleibt Standard. Insert-/Normalmodusklänge sind davon
+getrennt und werden nach gültiger Fokuskorrelation durch die vorhandenen
+Klangoptionen gesteuert. Fokus-Gate, strukturierte Braillezeile und fail-open
+Verhalten bleiben bei jeder Auswahl aktiv. Die automatisierten Add-on-Tests
+sind bestanden. Der praktische NVDA-/WT-Test bestätigte alle drei Auswahlwerte
+und die Modusklänge lokal und über SSH ohne Probleme.
 
 Der erste Praxistest mit `0.89.0-dev.1` zeigte beim Wechsel Explorer → dasselbe
 WT-Control keine Dateinamenansage. Die Diagnose enthielt Fokusverlust,

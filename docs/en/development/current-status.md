@@ -3,21 +3,20 @@
 Status: 2026-07-16, beta version 0.91.0; overall maturity remains between
 alpha and beta.
 
-On `feature/addon-isolation`, each physical F12 press now authorizes one
-pairing attempt for the exact focused Windows Terminal control. Without a
-fresh Neovim claim, the attempt is silent and creates no binding, dialog, or
-suppression. The activation command remains the global toggle everywhere. The
-first `dev.1` practical test exposed and `dev.3` fixes regressions that blocked
-F12 and deactivation in a second tab. Activity from
-another connected Neovim can no longer offer or perform a rebind. Switching
-among separately remembered controls clears suppression first and restores the
-matching connection only after a correlated structured focus-context reply.
-Automated multi-control and multi-window coverage is implemented. Practical
-`dev.3` testing confirmed local first-tab pairing, remote second-tab pairing
-without reactivation, switching, and global deactivation from the second tab.
-Horizontal and vertical split panes then worked without errors while local and
-SSH connections remained active in other tabs. Separate-window, tmux, and the
-complete unbound-shell-pane negative matrix remain pending.
+On `feature/focus-context-settings`, output after confirmed focus return is
+profile-selectable as silent, current structured line, or the existing
+file/special context with mode and connection name. Existing behavior remains
+the default. Insert/Normal sounds are independent and follow the existing
+sound settings after valid focus correlation. The focus gate, structured
+Braille, and fail-open behavior remain active for every choice. Automated
+add-on tests pass. Practical NVDA/Windows Terminal testing confirmed all three
+choices and their mode sounds locally and over SSH without problems.
+
+The released control-isolation path still treats each physical F12 press as one
+authorization for exactly the focused Windows Terminal control. Activity from
+another Neovim cannot rebind it. Local/SSH tabs and horizontal/vertical split
+panes were practically confirmed; separate windows, tmux, and the complete
+unbound-shell-pane negative matrix remain pending.
 
 The development branch requests correlated structured context from Neovim's
 state cache when an authenticated registered WT control regains focus. File or

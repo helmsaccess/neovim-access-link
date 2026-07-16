@@ -14,6 +14,12 @@ Rückmeldung, „Feedback“ mit den Einzelaktionen und „Connections“ mit
 lokalem Windows-Neovim sowie Linux-Verbindungen. Innerhalb der Registerkarten sorgen
 beschriftete Gruppen für eine nachvollziehbare Tab-Reihenfolge.
 
+„General“ enthält außerdem die profilfähige Auswahl für bestätigten
+Sitzungsfokus: keine Ansage, aktuelle strukturierte Zeile oder den bisherigen
+Datei-/Spezialkontext mit Modus und Verbindungsname. Der bisherige Kontext ist
+Standard. Die Auswahl steuert weder Fokuskorrelation noch strukturierte
+Braillezeile oder die vorhandenen Modusklang-Einstellungen.
+
 Der globale Wert wird mit dem Wert der einzelnen Aktion kombiniert. Steht der
 globale Wert beispielsweise auf „Sprache“, kann keine Aktion einen Ton
 ausgeben, ihre aktivierte Sprachausgabe bleibt jedoch erhalten.
@@ -38,9 +44,10 @@ Folgende Funktionen werden bewusst nicht dupliziert:
 | Vorschlagsmenüs | Optionen → Einstellungen… → Objekt-Darstellung → Automatische Vorschläge mit Klang melden |
 | Zeichen- und Wortecho | Tastatur, eingegebene Zeichen/Wörter ansagen |
 
-Die Werte werden im Abschnitt `nvimNvdaAccess` von NVDAs regulärer
-Konfiguration als Zahlen von 0 bis 3 gespeichert. Unbekannte oder ungültige
-Werte werden verworfen und im redigierten Diagnosebericht gemeldet.
+Die Rückmeldungswerte werden im Abschnitt `nvimNvdaAccess` von NVDAs regulärer
+Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
+0 bis 2. Unbekannte oder ungültige Werte werden verworfen und im redigierten
+Diagnosebericht gemeldet.
 
 ## NVDA-Konfigurationsprofil
 

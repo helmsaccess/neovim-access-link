@@ -10,6 +10,10 @@ marks, registers and macros; command line; embedded terminal transitions; and
 adapters for common file managers.
 
 Speech and sounds are configurable where NVDA has no better native setting.
+Confirmed session-focus presentation is profile-selectable as silent, current
+structured line, or existing file/special context with mode and connection
+name. Insert/Normal sounds remain independently governed by their existing
+feedback settings.
 Multiple bound sessions are isolated by process, window handle, complete UIA
 runtime identity, session, sequence, and structured focus validation. Exact
 one-shot, control-specific physical F12 proofs and switching between

@@ -3,27 +3,57 @@
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
-## Active: stronger Windows Terminal isolation
+## Active: configurable session-focus output
 
-- Treat each physical F12 press as one authorization for exactly the focused
-  UIA terminal-control identity; keep no separate time-limited pre-arm.
-- Keep no-claim attempts silent and remove activity-based rebinding. The
-  activation command remains the global on/off toggle in every control.
-- Preserve parallel windows, tabs, and panes; every focus switch fails open
-  until the exact authenticated instance returns a correlated focus context.
-- Automated negative multi-control and multi-window tests are in place.
-  Practical NVDA/Windows Terminal tests passed for local and remote tabs and
-  horizontal and vertical split panes. Separate windows, tmux, and the complete
-  shell-only-pane negative matrix remain required.
+Branch `feature/focus-context-settings` adds one profile-aware choice to the
+General settings tab:
+
+1. no focus announcement;
+2. current line;
+3. current file or special context, mode, and connection name as before.
+
+The existing context output remains the default. This setting controls only
+the focus announcement and its transient Braille message. Structured Braille,
+focus correlation, authentication, exact control binding, and fail-open
+suppression remain independent. A correlated `focusContext` must therefore
+still be requested and validated even when announcements are disabled.
+
+Every accepted focus context additionally offers the Insert- or Normal-mode
+sound for all three choices. Existing global and mode-specific sound settings
+still gate that sound; the new choice does not change normal mode-change speech
+or sound settings.
+
+Implementation plan:
+
+1. Add a validated native NVDA setting with the compatibility-preserving
+   default and integrate it with the dialog, persistence, normalization, and
+   profile switching. A schema upgrade must never re-import an obsolete legacy
+   JSON backup over an already migrated native configuration.
+2. Model the three presentation variants in the NVDA-independent speech
+   planner. Current-line output uses structured `lineText`, identifies an empty
+   line, and reuses indentation handling; the existing file/special-context
+   output remains available unchanged.
+3. Separate focus-time Insert/Normal sound playback from speech selection.
+   Each accepted response produces at most one mode sound; stale, unbound, or
+   unauthenticated responses remain completely inert.
+4. Add regression coverage for the compatible default, every choice, empty and
+   Unicode lines, local and remote labels, NVDA profiles, invalid values,
+   legacy migration, Braille, and independent speech/sound gating.
+5. Update settings, architecture, accessibility, testing, current status, and
+   changelog documentation, then run practical local/SSH NVDA and Windows
+   Terminal tests across bound and unbound tabs/panes and rapid focus changes.
+
+All steps are implemented. Practical NVDA and Windows Terminal testing
+confirmed all three choices and their independent mode sounds locally and over
+SSH without problems.
 
 The beta close-out work is documentation consistency, full automated package
 and documentation verification, practical local/remote multi-session and
 fail-open acceptance, and alignment of known limits with evidence.
 
-Before beta close-out, the new focus-context announcement must be tested with
-local and remote connections, multiple bound and unbound WT tabs and panes,
-and rapid focus switching. Late replies and shell-only controls must cause no
-output or suppression.
+Configurable focus-context output is practically confirmed locally and over
+SSH. The broader negative matrix across multiple unbound WT tabs/panes and
+rapid focus switching remains part of beta close-out.
 
 Next priorities are physical Braille display testing and fixes, long-running
 and repeated-disconnect tests, broader practical coverage of all add-on

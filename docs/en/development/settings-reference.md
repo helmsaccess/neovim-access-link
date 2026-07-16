@@ -11,6 +11,11 @@ Off, Speech, Sounds, or Speech and sounds. Existing NVDA Keyboard, Document
 Formatting, and Object Presentation settings remain authoritative for typing
 echo, indentation/spelling, and automatic suggestions.
 
+General also contains a profile-aware session-focus choice: no announcement,
+current structured line, or the existing file/special context with mode and
+connection name. Existing context is the default. The choice does not alter
+focus correlation, structured Braille, or the existing mode-sound settings.
+
 SSH profile schema 2 stores ID, display name, host/alias, optional Linux user,
 port, optional key, and authentication method. Inputs are validated against
 option injection and duplicate IDs. Password values are runtime-only. Local

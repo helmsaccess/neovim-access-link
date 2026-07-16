@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.91.0-dev.1 unreleased feature-branch test build
+
+- Adds a profile-aware focus choice: no announcement, current structured line,
+  or the existing file/special context with mode and connection name. Existing
+  behavior remains the default.
+- Confirmed Insert/Normal session focus plays the sound permitted by existing
+  mode-sound settings independently of the focus choice.
+- Focus correlation, gating, structured Braille, and fail-open behavior always
+  remain active. Automated coverage includes every choice, Unicode/blank
+  lines, Braille, independent sound gating, NVDA profiles, and safe schema-5
+  migration without re-importing a legacy backup.
+- Practical NVDA/Windows Terminal testing confirmed all three choices and mode
+  sounds with local and remote SSH sessions without problems.
+
 ## 0.91.0 beta release
 
 - Includes control-specific Windows Terminal isolation with fail-open focus

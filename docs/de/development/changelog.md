@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.91.0-dev.1 (unveröffentlichter Featurebranch-Testbuild)
+
+- Ergänzt eine profilfähige Fokusauswahl: keine Ansage, aktuelle strukturierte
+  Zeile oder der bisherige Datei-/Spezialkontext mit Modus und Verbindungsname.
+  Das bisherige Verhalten bleibt Standard.
+- Bestätigter Sitzungsfokus gibt für Insert und Normal unabhängig von der
+  Fokusauswahl den durch die vorhandenen Modusklang-Einstellungen erlaubten
+  Klang aus.
+- Fokuskorrelation, Gate, strukturierte Braillezeile und fail-open Verhalten
+  bleiben immer aktiv. Automatisierte Tests decken alle Auswahlwerte,
+  Unicode-/Leerzeilen, Braille, Klangtrennung, NVDA-Profile und eine sichere
+  Schema-5-Migration ohne erneuten Altdateiimport ab.
+- Der praktische NVDA-/WT-Test bestätigte die drei Auswahlwerte und die
+  Modusklänge mit lokaler sowie entfernter SSH-Sitzung ohne Probleme.
+
 ## 0.91.0 (Beta-Veröffentlichung)
 
 - Übernimmt die control-spezifische Windows-Terminal-Abschottung mit

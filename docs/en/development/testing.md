@@ -45,11 +45,25 @@ without touching existing user Neovim or tmux sessions.
 ## Required Windows Terminal isolation tests
 
 For focus-context output, alternate focus between a bound Neovim control, an
-unbound shell-only tab, and, where possible, two split panes. Expect exactly
-one compact file/special-buffer and mode announcement only for the bound
-control. Rapid switching must never announce stale context. After disconnect,
-native WT output must remain immediately available. Record the request ID,
-result, and actual output in the redacted test report.
+unbound shell-only tab, and, where possible, two split panes. Test all three
+choices: no announcement, current line, and existing file/special context with
+mode and connection name. In the bound control, Insert or Normal focus must
+offer the permitted mode sound independently of that choice; speech-only mode
+feedback remains silent. Rapid switching must never announce stale context.
+After disconnect, native WT output must remain immediately available. Record
+the request ID, choice, sound, result, and actual output in the redacted test
+report.
+
+Practical acceptance on 2026-07-16:
+
+- Prerequisites: installed `0.91.0-dev.1` feature build plus one bound local
+  and one bound SSH Neovim session in Windows Terminal.
+- Procedure: select and save each `General → Session focus` value in turn, then
+  move focus from another application back to each Neovim session.
+- Expected: respectively no announcement, current line, or existing context;
+  all three retain the Insert/Normal sound permitted by existing settings and
+  produce no stale or foreign output.
+- Actual result: no problems locally or over SSH; passed.
 
 Automated tests establish the intended gating behavior, but complete practical
 non-interference across Windows Terminal layouts remains an open acceptance

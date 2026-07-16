@@ -258,11 +258,28 @@ in dieser ersten Fassung ausdrücklich außerhalb des Testumfangs.
 
 Für die Fokus-Kontextausgabe zusätzlich einen gebundenen Neovim-Tab, einen
 ungebundenen Shell-Tab und nach Möglichkeit zwei Splits abwechselnd fokussieren.
-Erwartet wird genau eine kompakte Datei-/Spezialbuffer- und Modusausgabe nur
-beim gebundenen Control. Schnelles Weg- und Zurückwechseln darf keine veraltete
-Datei nennen. Nach Verbindungsabbruch muss native WT-Ausgabe sofort normal
-bleiben. Request-ID, Ergebnis und tatsächliche Ausgabe im redigierten
-Testprotokoll festhalten.
+Nacheinander alle drei Fokusauswahlen prüfen: keine Ansage, aktuelle Zeile und
+bisheriger Datei-/Spezialkontext mit Modus und Verbindungsname. Im gebundenen
+Control muss bei Insert beziehungsweise Normal unabhängig von der Auswahl der
+jeweils erlaubte Modusklang erscheinen; eine reine Sprachkonfiguration bleibt
+klanglos. Schnelles Weg- und Zurückwechseln darf keine veraltete Datei oder
+Zeile nennen. Nach Verbindungsabbruch muss native WT-Ausgabe sofort normal
+bleiben. Request-ID, Auswahl, Klang, Ergebnis und tatsächliche Ausgabe im
+redigierten Testprotokoll festhalten.
+
+Praktische Abnahme am 2026-07-16:
+
+- Voraussetzungen: installierter Featurebuild `0.91.0-dev.1`, eine gebundene
+  lokale und eine gebundene SSH-Neovim-Sitzung in Windows Terminal.
+- Ablauf: unter `General → Session focus` nacheinander `No announcement`,
+  `Current line` und `Current context, mode and connection name` wählen,
+  speichern und den Fokus aus einer anderen Anwendung zurück zur jeweiligen
+  Neovim-Sitzung wechseln.
+- Erwartung: keine Ansage beziehungsweise aktuelle Zeile beziehungsweise
+  bisheriger Kontext; in allen drei Fällen der durch die vorhandenen
+  Einstellungen erlaubte Insert-/Normalmodusklang, ohne veraltete oder fremde
+  Ausgabe.
+- Tatsächliches Ergebnis: lokal und über SSH ohne Probleme; bestanden.
 
 Die beabsichtigte Wirkungslosigkeit in ungebundenen Windows-Terminal-
 Steuerelementen ist automatisiert abgedeckt, aber über die realen Windows-
