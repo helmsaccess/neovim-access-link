@@ -1,7 +1,49 @@
 # Current status
 
-Status: 2026-07-16, beta version 0.92.0; overall maturity remains between
+Status: 2026-07-17, beta version 0.92.0; overall maturity remains between
 alpha and beta.
+
+Test build `0.92.0-dev.11` on branch `feature/terminal-file-manager-hardening`
+implements eleven focused hardening steps. Successful `:bp`/`:bn` buffer
+switches within the same tab and window now use the profile-aware session-focus
+choice: silent, current destination line, or destination context with mode and
+saved connection name. Processing remains driven by `BufEnter`-based
+`contextChanged`; an earlier mode event cannot swallow the announcement.
+Tab/window destination positions remain present and mode cues stay independent.
+Transient spoken return
+modes are coalesced into that configured destination presentation,
+so No announcement stays silent and neither a clipped mode fragment nor a
+duplicate mode overwrites the line. Structured command-line type keeps Ex
+commands distinct from search. Automatic destination
+cursor/change events neither overwrite the destination line nor compare its
+text with the source buffer. The same entry policy now covers a terminal
+buffer created by `:terminal`: the focus choice controls its presentation,
+Current line waits for the first real terminal line, and the automatic cursor
+event stays silent. Reversed terminal-context/final-mode ordering is coalesced
+as well, and command-line text cannot leak into the new buffer as a Normal-mode
+motion. Entering direct terminal input presents the complete
+cursor line while retaining the Insert cue. Raw `nt` is canonical
+`terminalNormal`; command-line echo uses its UTF-8 byte position; a freely
+assignable fixed, validated local/SSH `stopinsert` command can replace the
+layout-dependent `Ctrl+\`, `Ctrl+N`; and `TermClose` reports process status.
+Passthrough changes fail open before feedback and duplicate terminal context
+events do not replay the cue. Command-line entry now has a distinct tone;
+return, no-op buffer navigation, and Neovim's `E89` for `:bd` on a running
+terminal job are explicit without ever invoking `:bd!`. UI messages on Neovim
+0.12 are processed outside the `vim.ui_attach` fast-event context and no longer
+create an `E5560` hit-enter state. For window and tab changes, the Context
+choice now combines destination position, explicit file or special context,
+state, mode, and connection in one announcement. A short name is therefore
+reported as `file T`, while terminal modes no longer duplicate “terminal”;
+mode cues remain separate. A disconnected but still remembered local instance
+no longer blocks fresh SSH pairing: only authenticated bindings constrain F12
+to their prior target kind; otherwise the physical gesture is resolved again
+across the complete inventoried target set. All 265 add-on/core/package tests, 41 protocol
+tests, 31 bridge/TUI tests, and all Lua specifications pass; the add-on and six
+HTML documents build successfully. Practical acceptance confirmed the
+implemented terminal, buffer, window/tab, and fresh SSH-pairing paths without
+further issues. Pager variants and the complete negative Windows Terminal
+matrix remain open.
 
 Branch `feature/copy-paste` implements four freely assignable, explicitly
 invoked NVDA commands: copy the Visual selection, copy register 0, paste

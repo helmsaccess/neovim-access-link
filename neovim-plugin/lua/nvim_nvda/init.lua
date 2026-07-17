@@ -37,6 +37,8 @@ local command_line_active = false
 local command_line_text = ""
 local command_line_type = ""
 local command_changedtick = 0
+local last_command_line_echo = ""
+local predicted_ui_error_code
 local last_message_text
 local last_message_time = 0
 local emit
@@ -129,6 +131,44 @@ end
 local function is_word_terminator(key)
   return type(key) == "string" and #key == 1 and key ~= "'"
     and (key:match("%s") ~= nil or key:match("[%p]") ~= nil)
+end
+
+local buffer_navigation_commands = {
+  bp = true, bprevious = true, bN = true, bNext = true,
+  bn = true, bnext = true,
+  bf = true, bfirst = true, brewind = true,
+  bl = true, blast = true,
+}
+
+local function trimmed_command(value)
+  return tostring(value or ""):gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function listed_buffer_count()
+  local count = 0
+  for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.fn.buflisted(buffer) == 1 then count = count + 1 end
+  end
+  return count
+end
+
+local function emit_command_preflight(command)
+  local normalized = trimmed_command(command)
+  if vim.bo.buftype == "terminal" and (normalized == "bd" or normalized == "bdelete") then
+    local job = tonumber(vim.b.terminal_job_id)
+    local status = job and job > 0 and vim.fn.jobwait({ job }, 0)[1] or nil
+    if status == -1 then
+      predicted_ui_error_code = "E89"
+      emit("errorReceived", "terminalCommandGuard", {
+        message = "E89: terminal job is still running; the buffer was not closed. "
+          .. "Press Enter to continue. Use bd! only when you intend to terminate the job.",
+      })
+    end
+  elseif buffer_navigation_commands[normalized] and listed_buffer_count() <= 1 then
+    emit("messageReceived", "terminalBufferNavigation", {
+      message = "no other listed buffer; the buffer command did not switch",
+    })
+  end
 end
 
 local function error_ending_at(snapshot, byte_column)
@@ -338,10 +378,12 @@ local function setup_ui_events()
     end
     return table.concat(chunks):gsub("^%s+", ""):gsub("%s+$", ""):sub(1, 2048)
   end
-  pcall(vim.ui_detach, ui_namespace)
-  pcall(vim.ui_attach, ui_namespace, { ext_popupmenu = true, ext_messages = true }, function(event, ...)
+  local function handle_ui_event(event, command_line_was_active, command_text, command_type, ...)
     if event == "msg_show" then
       local kind, content = ...
+      if kind == "search_count" then
+        return
+      end
       local prompt_kind = kind == "confirm" and "confirm"
         or kind == "confirm_sub" and "confirmSub"
         or kind == "return_prompt" and "more"
@@ -357,10 +399,23 @@ local function setup_ui_events()
         })
       elseif kind == "emsg" or kind == "echoerr" or kind == "lua_error" or kind == "rpc_error" then
         local text = message_text(content)
-        if text ~= "" then emit("errorReceived", "uiMessage", { message = text }) end
-      elseif kind == "echo" or kind == "echomsg" or kind == "wmsg" or kind == "quickfix" then
+        local error_code = text:match("E%d+")
+        if predicted_ui_error_code and error_code == predicted_ui_error_code then
+          predicted_ui_error_code = nil
+        elseif text ~= "" then
+          emit("errorReceived", "uiMessage", { message = text })
+        end
+      else
+        -- An empty kind is the normal UI-protocol fallback for messages which
+        -- do not have a more specific classification. Treat it, and future
+        -- non-prompt message kinds, as ordinary status output so command
+        -- results are not silently lost.
         local text = message_text(content)
-        if text ~= "" then emit("messageReceived", "uiMessage", { message = text }) end
+        local command_echo = text == last_command_line_echo
+          or (command_type ~= "" and text == command_type .. command_text)
+        if text ~= "" and not command_echo then
+          emit("messageReceived", "uiMessage", { message = text })
+        end
       end
       return
     elseif event == "msg_clear" then
@@ -373,7 +428,7 @@ local function setup_ui_events()
       end
       return
     end
-    if not command_line_active then return end
+    if not command_line_was_active then return end
     if event == "popupmenu_show" then
       local raw_items, selected = ...
       local items = {}
@@ -399,6 +454,20 @@ local function setup_ui_events()
       command_line_menu_items = {}
       emit_menu_events(command_line_menu:close("hidden"), "wildmenu")
     end
+  end
+  pcall(vim.ui_detach, ui_namespace)
+  pcall(vim.ui_attach, ui_namespace, { ext_popupmenu = true, ext_messages = true }, function(event, ...)
+    local arguments = { ... }
+    local command_line_was_active = command_line_active
+    local command_text = command_line_text
+    local command_type = command_line_type
+    -- Neovim 0.12 enforces the fast-event boundary for vim.ui_attach. State
+    -- snapshots and RPC notifications must run after the callback returns.
+    vim.schedule(function()
+      handle_ui_event(
+        event, command_line_was_active, command_text, command_type, unpack(arguments)
+      )
+    end)
   end)
 end
 
@@ -455,6 +524,38 @@ function M.request_set_register(payload)
   return result.ok
 end
 
+function M.request_leave_terminal_input(payload)
+  local result = {
+    requestId = type(payload) == "table" and payload.requestId or -1,
+    ok = false,
+    resultCode = "invalidRequest",
+  }
+  if type(payload) == "table"
+    and type(payload.requestId) == "number"
+    and payload.requestId % 1 == 0
+    and payload.requestId >= 0 and payload.requestId <= 2147483647
+    and type(payload.bufferId) == "number"
+    and type(payload.windowId) == "number"
+    and type(payload.tabpageId) == "number"
+    and payload.modeRaw == "t" then
+    local current_mode = vim.api.nvim_get_mode().mode
+    local exact_context = vim.api.nvim_get_current_buf() == payload.bufferId
+      and vim.api.nvim_get_current_win() == payload.windowId
+      and vim.api.nvim_get_current_tabpage() == payload.tabpageId
+      and current_mode == payload.modeRaw
+      and vim.bo[payload.bufferId].buftype == "terminal"
+    if exact_context then
+      local stopped = pcall(vim.cmd, "stopinsert")
+      result.ok = stopped
+      result.resultCode = stopped and "ok" or "stopFailed"
+    else
+      result.resultCode = "staleState"
+    end
+  end
+  emit("leaveTerminalInputResult", "leaveTerminalInputRequest", result)
+  return result.ok
+end
+
 function M.setup()
   local component_config = require("nvim_nvda.component_config").load()
   group = vim.api.nvim_create_augroup("NvimNvda", { clear = true })
@@ -491,6 +592,7 @@ function M.setup()
     end
     local raw_mode = vim.api.nvim_get_mode().mode
     local operator_context = raw_mode:sub(1, 1) == "n"
+    local visual_context = raw_mode == "v" or raw_mode == "V" or raw_mode == "\22"
     if operator_context and pending_register_prefix then
       pending_register_prefix = false
       if #translated == 1 then
@@ -622,8 +724,14 @@ function M.setup()
       pending_motion = insert_motion_events[translated]
     elseif pending_edit and operator_context then
       pending_motion = "suppress"
-    else
+    elseif operator_context or visual_context then
       pending_motion = motion_events[translated]
+    else
+      -- Command-line and direct-terminal input is text, even when a typed
+      -- character is a Normal-mode motion such as h, j, k, or l.  Retaining
+      -- such a character can misclassify the next automatic cursor update in
+      -- a newly created terminal buffer as explicit navigation.
+      pending_motion = nil
     end
     if operator_context and translated == "n" then pending_search_direction = "next" end
     if operator_context and translated == "N" then pending_search_direction = "previous" end
@@ -684,6 +792,7 @@ function M.setup()
     callback = function(event)
       if event.event == "CmdlineEnter" then
         command_line_active = true
+        predicted_ui_error_code = nil
         command_line_text = ""
         command_line_type = vim.fn.getcmdtype()
         command_changedtick = vim.api.nvim_buf_get_changedtick(0)
@@ -691,7 +800,9 @@ function M.setup()
         vim.v.statusmsg = ""
       end
       command_line_text = vim.fn.getcmdline()
-      emit("commandLineChanged", event.event)
+      emit("commandLineChanged", event.event, {
+        commandLineType = command_line_type,
+      })
     end,
   })
   vim.api.nvim_create_autocmd("CmdlineLeave", {
@@ -702,9 +813,11 @@ function M.setup()
       command_line_active = false
       local command = command_line_text
       local command_type = command_line_type
+      last_command_line_echo = command_type .. command
       local before_tick = command_changedtick
       command_line_text = ""
       command_line_type = ""
+      if command_type == ":" then emit_command_preflight(command) end
       local guarded = vim.bo.modified and (command:match("^%s*q%s*$") or command:match("^%s*quit%s*$"))
       if guarded then
         emit("errorReceived", "commandGuard", {
@@ -717,7 +830,8 @@ function M.setup()
           vim.v.errmsg = ""
           emit("errorReceived", "commandError", { message = message:sub(1, 2048) })
         elseif not command_line_active and (command_type == "/" or command_type == "?") then
-          emit("searchMatchChanged", "searchCommand", search_details(command, command_type))
+          local ok, details = pcall(search_details, command, command_type)
+          if ok then emit("searchMatchChanged", "searchCommand", details) end
         elseif not command_line_active and command_type == ":"
           and (command:match("^%s*%%?s[^%w%s]") or command:match("^%s*substitute%s+"))
           and vim.api.nvim_buf_get_changedtick(0) ~= before_tick then
@@ -757,6 +871,24 @@ function M.setup()
     group = group,
     callback = function(event)
       emit("modeChanged", event.event)
+    end,
+  })
+  vim.api.nvim_create_autocmd("TermClose", {
+    group = group,
+    callback = function()
+      -- v:event is scoped to this autocmd; copy its scalar before any
+      -- scheduling. Terminal screen output itself remains native WT output.
+      local status = tonumber((vim.v.event or {}).status) or -1
+      local message = status >= 0
+        and ("terminal process exited, status " .. tostring(status))
+        or "terminal process exited, status unknown"
+      emit("messageReceived", "TermClose", {
+        message = message,
+        messageTitle = "Terminal",
+        messageLevel = status == 0 and 2 or 4,
+        terminalExitStatus = status,
+      })
+      vim.schedule(function() emit("contextChanged", "TermClose") end)
     end,
   })
   vim.api.nvim_create_autocmd("DiagnosticChanged", {

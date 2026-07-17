@@ -5,6 +5,151 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.92.0-dev.11 (Featurebranch-Testbuild)
+
+- Eine getrennte, aber noch gemerkte lokale Verbindung zwingt eine neue
+  F12-Zuordnung nicht mehr in die lokale Sitzungssuche. Nur eine weiterhin
+  authentifizierte Bindung darf ihren lokalen oder SSH-Zieltyp vorgeben. Nach
+  dem Ende von lokalem Neovim kann dasselbe WT-Control daher per frischem F12
+  wieder gegen alle inventarisierten lokalen und SSH-Sitzungen aufgelöst
+  werden; die neue Verbindung ersetzt die veraltete Instanz kontrolliert.
+- Die Diagnose unterscheidet nun `selected` von `selectedAuthenticated`, damit
+  eine vorhandene Zuordnung nicht mehr mit einer lebenden Neovim-Verbindung
+  verwechselt wird. Temporäre Transportabbrüche bleiben fail-open und werden
+  nicht allein durch einen Netzwerkstatus automatisch umgebunden.
+- Die praktische Abnahme bestätigte die erneute Zuordnung vom beendeten lokalen
+  Neovim zur SSH-Sitzung im selben WT-Control ohne weitere Auffälligkeiten.
+
+## 0.92.0-dev.10 (Featurebranch-Testbuild)
+
+- Die Kontextwahl fasst beim Wechsel zwischen Neovim-Fenstern und -Tabs
+  Zielposition, Datei- oder Spezialkontext, Änderungs-/Schreibschutzstatus,
+  Modus und Verbindungsname in genau einer Ansage zusammen. Ein
+  vorausgehendes Modusereignis bleibt dabei sprachlich still; der unabhängige
+  Modusklang bleibt erhalten. `No announcement` und `Current line` ändern
+  ihr Verhalten nicht.
+- Kurze Dateinamen werden mit `file` eindeutig bezeichnet, beispielsweise
+  `file T, modified, normal mode`. Terminalpuffer nennen nur den semantischen
+  Modus, also `terminal mode` oder `terminal-normal mode`, statt der doppelten
+  Form `terminal, terminal mode`. Bereits vorhandene Terminalfenster werden
+  nicht mehr mit einem neu durch `:terminal` erzeugten Puffer verwechselt.
+
+## 0.92.0-dev.9 (Featurebranch-Testbuild)
+
+- Die Kontextwahl beim Einstieg über `:terminal` bleibt jetzt auch dann exakt
+  einmalig, wenn `contextChanged` vor dem abschließenden
+  `terminalNormal`-Modusereignis eintrifft. Initialer Terminaltext und das
+  automatische Cursorereignis können danach kein einzelnes „T“, „M“ oder
+  anderes Zeilenzeichen ergänzen.
+- Der Neovim-Tastenbeobachter behandelt Text in Kommandozeile und direkter
+  Terminaleingabe nicht mehr als mögliche Normalmodusbewegung. Damit kann
+  etwa das abschließende `l` aus `:terminal` kein späteres Cursorereignis als
+  ausdrücklich ausgelöste Zeichenbewegung fehlklassifizieren.
+
+## 0.92.0-dev.8 (Featurebranch-Testbuild)
+
+- Der mit `:terminal` erzeugte Terminalbuffer verwendet beim Einstieg dieselbe
+  profilfähige Auswahl wie andere Bufferwechsel. „Keine Ansage“ bleibt still,
+  „Aktuelle Zeile“ wartet ereignisgetrieben auf die erste tatsächliche
+  Terminalzeile und die Kontextwahl meldet Terminal-Normalmodus und
+  Verbindung. Ein automatisches Folge-Cursorereignis kann die Zeile nicht mehr
+  durch ihr erstes Zeichen ersetzen.
+- Beim anschließenden Eintritt in die direkte Terminaleingabe mit `i` wird die
+  vollständige Zeile am Terminalcursor einmal ausgegeben. Sie ersetzt dort
+  eine konkurrierende gesprochene Modusansage; der Insert-/Fokusklang und der
+  fail-open Passthrough bleiben erhalten.
+
+## 0.92.0-dev.7 (Featurebranch-Testbuild)
+
+- Bei `:bp`, `:bn` und den entsprechenden vollständigen Bufferbefehlen werden
+  kurzlebige gesprochene Rückkehrmodi nicht mehr vor die konfigurierte
+  Zielausgabe gestellt. „Keine Ansage“ bleibt nach dem Kommando still,
+  „Aktuelle Zeile“ spricht nur die vollständige Zielzeile und die Kontextwahl
+  spricht Ziel, Modus und Verbindung genau einmal. Der unabhängige Modusklang
+  und die Ansage beim Eintritt in die Kommandozeile bleiben erhalten.
+- `commandLineType` unterscheidet Ex-Befehle von gleich geschriebenen Suchmustern;
+  `/bn` löst daher keine Bufferwechsel-Unterdrückung aus. Ein wirkungsloser
+  Bufferbefehl im einzigen Terminalbuffer spricht weiterhin seinen
+  strukturierten Hinweis, aber keinen abgebrochenen „terminal-normal mode“.
+
+## 0.92.0-dev.6 (Featurebranch-Testbuild)
+
+- Ein nach `BufEnter`/`BufWinEnter` automatisch folgendes `cursorMoved` kann
+  die konfigurierte Zielzeile nicht mehr durch das einzelne Zeichen an der
+  Zielspalte ersetzen. Die Ansage ist damit unabhängig von der Cursorposition
+  im Ausgangsbuffer.
+- `textChanged` vergleicht keine Zeilen verschiedener Buffer mehr. Ein beim
+  Sichtbarwerden des Zielbuffers eintreffendes Änderungsereignis wird nicht
+  als Eingabe oder Ersetzung des Ausgangstextes ausgegeben.
+
+## 0.92.0-dev.5 (Featurebranch-Testbuild)
+
+- Erfolgreiche Bufferwechsel im selben Tab und Fenster, etwa mit `:bp` oder
+  `:bn`, verwenden nun ebenfalls die profilfähige Fokusauswahl: keine Ansage,
+  aktuelle Zielzeile oder Zielkontext mit Modus und gespeichertem
+  Verbindungsnamen. Die Quelle bleibt `BufEnter`/`contextChanged`; Polling wird
+  nicht eingeführt.
+- Tab- und Fensterwechsel behalten ihre eigenen Kontextansagen. Modusklänge
+  bleiben unabhängig von der gewählten Fokus-/Bufferwechselausgabe.
+
+## 0.92.0-dev.4 (Featurebranch-Testbuild)
+
+- UI-Protokollmeldungen werden unter Neovim 0.12 erst nach Verlassen des
+  `vim.ui_attach`-Fast-Event-Callbacks ausgewertet. Dadurch erzeugen
+  Zustandsabfragen weder `E5560` noch einen versteckten Enter-Hinweis; Befehle,
+  Suche und nachfolgende Meldungen bleiben bedienbar.
+- Der lange reale TUI-Test leert den PTY-Ausgabepuffer vor weiteren physischen
+  Tasten. Neovim 0.12 kann dadurch nicht mehr an Testausgabe blockieren; das
+  ist eine Härtung des Testtreibers, keine Produktverzögerung.
+
+## 0.92.0-dev.3 (Featurebranch-Testbuild)
+
+- Der Eintritt in die Neovim-Kommandozeile besitzt einen eigenen kurzen
+  600-Hz-Ton. Der Rückweg aus der Kommandozeile im Terminalkontext verwendet
+  den Normalmodusklang; der Zwischenzustand beim Erzeugen eines neuen
+  Terminalbuffers erzeugt weiterhin keinen doppelten Klang.
+- Ein exaktes `:bd` auf einem noch laufenden Terminaljob meldet vor Neovims
+  blockierendem Enter-Hinweis strukturiert `E89`, dass der Buffer nicht
+  geschlossen wurde. `:bd!` bleibt eine ausdrücklich destruktive
+  Nutzerentscheidung und wird nie automatisch ausgeführt.
+- Buffer-Navigationsbefehle wie `:bp` oder `:bn` melden im Terminalkontext
+  verständlich, wenn kein anderer gelisteter Buffer vorhanden ist. Bei einem
+  tatsächlichen Wechsel bleibt `BufEnter` die ereignisgetriebene Quelle der
+  Zielansage; Polling und Terminal-Screen-Scraping werden nicht eingeführt.
+
+## 0.92.0-dev.2 (Featurebranch-Testbuild)
+
+- `modeRaw=nt` wird nicht länger mit dem Normalmodus eines Dateibuffers
+  zusammengefasst, sondern als eigener kanonischer `terminalNormal`-Zustand
+  gesprochen und mit genau einem Normalmodusklang bestätigt.
+- Das Zeichen-Echo der Neovim-Kommandozeile verwendet nun deren eigene
+  UTF-8-Byteposition statt der unveränderten Editor-Cursorspalte. Dadurch
+  werden Folgetext und Unicode gemäß NVDAs Zeichen-/Wortecho ausgegeben.
+- Ein frei belegbarer NVDA-Befehl ohne Standardgeste verlässt direkte
+  Terminaleingabe über die feste Neovim-Operation `stopinsert`. Lokaler und
+  SSH-Pfad prüfen Anfrage-ID, Instanz, fokussierte Control-Bindung, Buffer,
+  Fenster, Tab und exakten Terminalmodus; beliebiger Lua-/Ex-Code ist nicht
+  übertragbar. `changedtick` wird bewusst nicht verlangt, weil asynchrone
+  Terminalausgabe den Buffer laufend ändert und die Operation keinen Text
+  liest oder verändert.
+- `TermClose` meldet das Ende des Terminalprozesses mit Exit-Status
+  ereignisgetrieben als strukturierte Meldung. Terminal-Screen-Scraping oder
+  Polling wird nicht eingeführt.
+- Der reale TUI-Test verwendet isolierte XDG- und Runtime-Pfade, damit ein
+  lokal installiertes älteres Plugin den getesteten Branch nicht überlagert.
+
+## 0.92.0-dev.1 (Featurebranch-Testbuild)
+
+- Direkte Eingabe in einem eingebetteten Terminal verwendet nun den
+  Insert-/Fokusklang; der Übergang in den Terminal-Normalmodus verwendet den
+  Normalmodusklang. Der Passthrough-Gate wird jeweils vor der optionalen
+  Rückmeldung fail-open umgestellt.
+- Der Command-line-Modus bleibt unabhängig von deaktivierter Insert-/Normal-
+  Sprachrückmeldung hörbar. Nach Befehlen erscheinende nichtleere
+  `msg_show`-Meldungen werden auch bei leerer oder neuer UI-Klassifikation als
+  gewöhnliche Meldung in Sprache und Braille ausgegeben; Suchzähler behalten
+  ihren eigenen strukturierten Pfad.
+
 ## 0.92.0 (Beta-Vorabveröffentlichung)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.92.0` angehoben.

@@ -108,6 +108,71 @@ Practical acceptance on 2026-07-16:
   produce no stale or foreign output.
 - Actual result: no problems locally or over SSH; passed.
 
+### Terminal mode, command line, and following messages
+
+Use a bound local or SSH Neovim session with an embedded `:terminal`. Direct
+terminal input must play the Insert/focus cue and allow native output. After
+both `Ctrl+\`, `Ctrl+N` and the assigned “Leave direct input in the active
+Neovim terminal” gesture, “terminal-normal mode” and exactly one Normal cue
+must follow and structured navigation must resume; `i` must reverse that
+transition. Then run `:echo 'test message'` and
+`:lua print('test message')`. Command-line mode must be announced before input,
+with a short mid-pitch tone, and the Normal cue must mark return; the result
+must follow Enter in speech and Braille. On a terminal buffer whose job is
+still running, execute `:bd`: expect structured `E89` guidance including the
+hit-enter instruction and no terminated job. Press Enter, then run `:bp` or
+`:bn` with no other listed buffer and expect “no other listed buffer”. With an
+actual second buffer created by `:new | terminal`, `:bp` must instead switch
+to it; test both `:bp` and `:bn` with each General → Session focus choice.
+Expect no announcement, the destination's current line, or its context with
+mode and saved connection name, respectively. Tab/window announcements remain
+unchanged, and the mode cue remains independent. Transient return modes must
+not also be spoken: No announcement stays silent after the command, Current
+line has no leading mode fragment, and Context has no duplicate mode. A `/bn`
+search must not trigger this coalescing.
+The complete destination line must remain identical for different source-buffer
+cursor columns; a following automatic cursor event must not shorten it or
+replace it with one destination character.
+With Context selected, also switch between a modified, short-named file buffer
+and a terminal buffer in separate Neovim windows and tabs. Each switch must
+produce exactly one combined announcement, for example `window 1 of 2, file T,
+modified, normal mode, on Example` and `window 2 of 2, terminal-normal mode, on
+Example`. A bare `T`, `terminal, terminal mode`, or a second prefixed spoken
+mode is a failure. No announcement and Current line must retain their already
+verified behavior; the configured mode cue remains independent in all three
+choices.
+End a local Neovim session in a bound WT control and wait for its transport to
+report `disconnected`. In that same control, focus an already inventoried SSH
+Neovim session and press F12. Diagnostics must show `selected=true` together
+with `selectedAuthenticated=false`, then start automatic resolution across
+local and SSH targets; ending in local `localClaimWaitCompleted` without an SSH
+scan is a failure. Without the physical F12 gesture, disconnect must still only
+fail open and must never rebind a session automatically.
+
+Practical acceptance on 2026-07-17: the implemented terminal, buffer,
+window/tab, and fresh pairing paths from an ended local Neovim to the SSH
+session in the same WT control worked without further issues; passed.
+
+Disabling mode speech must not hide command-line mode; disabling sounds must silence all transition
+cues. With NVDA character echo enabled, type `:terminal` and a command
+containing Unicode; every character must be heard once, not just the first.
+Run `exit` in the shell and expect one structured terminal-exit message with
+status. Running shell output remains native. Disconnect and an unbound shell
+tab must always retain native output.
+
+Also run `:terminal` from a normal file buffer with all three focus choices.
+Expect no entry output, the first complete terminal line, or Terminal-Normal
+context with connection name. This must also hold when terminal context and
+the final mode event arrive in the opposite order. The automatic cursor event
+must never speak only the line's first character. Then press `i`: the complete
+cursor line and one
+permitted Insert cue must follow without competing spoken mode output.
+
+The isolated Neovim 0.12 TUI test also exercises command-line input, an
+ordinary UI message, and search through the attached UI-protocol path. The
+structured channel must continue delivering events afterwards; `E5560` and a
+blocking hit-enter prompt are failures.
+
 Automated tests establish the intended gating behavior, but complete practical
 non-interference across Windows Terminal layouts remains an open acceptance
 area. Practical tests must cover all of these negative cases:

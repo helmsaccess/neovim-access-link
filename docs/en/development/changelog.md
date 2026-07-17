@@ -1,8 +1,139 @@
 # Changelog
 
+## 0.92.0-dev.11 (feature-branch test build)
+
+- A disconnected but still remembered local connection no longer forces a new
+  F12 pairing into local-only discovery. Only a still-authenticated binding may
+  preserve its local or SSH target type. After local Neovim exits, the same WT
+  control can therefore use a fresh F12 claim across every inventoried local
+  and SSH session, replacing the stale instance in the normal controlled path.
+- Diagnostics now distinguish `selected` from `selectedAuthenticated`, so an
+  existing mapping is not confused with a live Neovim connection. A transient
+  transport disconnect still fails open and never causes automatic rebinding
+  without the user's physical F12 action.
+- Practical acceptance confirmed rebinding from an ended local Neovim to the
+  SSH session in the same WT control without further issues.
+
+## 0.92.0-dev.10 (feature-branch test build)
+
+- For the Context choice, switches among Neovim windows and tabs now combine
+  destination position, file or special context, modified/read-only state,
+  mode, and connection name in exactly one announcement. A preceding mode
+  event stays silent in speech while its independent cue remains. No
+  announcement and Current line keep their existing behavior.
+- Short file names are made explicit with `file`, for example `file T,
+  modified, normal mode`. Terminal buffers report only their semantic mode,
+  `terminal mode` or `terminal-normal mode`, instead of `terminal, terminal
+  mode`. An existing terminal window is no longer mistaken for a buffer newly
+  created through `:terminal`.
+
+## 0.92.0-dev.9 (feature-branch test build)
+
+- The Context choice for `:terminal` entry now remains exactly once even when
+  `contextChanged` arrives before the final `terminalNormal` mode event.
+  Initial terminal text and its automatic cursor event can no longer append a
+  single “T”, “M”, or other character from that line.
+- Neovim's key observer no longer treats command-line or direct-terminal text
+  as a possible Normal-mode motion. The final `l` in `:terminal`, for example,
+  cannot misclassify a later cursor update as explicit character navigation.
+
+## 0.92.0-dev.8 (feature-branch test build)
+
+- A terminal buffer created with `:terminal` now uses the same profile-aware
+  entry choice as other buffer switches. No announcement stays silent,
+  Current line waits event-first for the first real terminal line, and Context
+  reports Terminal-Normal plus the connection. A following automatic cursor
+  event can no longer replace that line with its first character.
+- Entering direct terminal input with `i` then presents the complete line at
+  the terminal cursor once. It replaces competing spoken mode output at this
+  boundary; the Insert/focus cue and fail-open passthrough remain intact.
+
+## 0.92.0-dev.7 (feature-branch test build)
+
+- For `:bp`, `:bn`, and their full buffer-command forms, transient spoken
+  return modes are no longer placed before the configured destination output.
+  No announcement remains silent after the command, Current line speaks only
+  the complete destination line, and Context speaks destination, mode, and
+  connection once. The independent mode cue and command-line entry
+  announcement remain intact.
+- `commandLineType` distinguishes Ex commands from identically named search
+  patterns, so `/bn` does not trigger buffer-switch suppression. A no-op
+  buffer command in the sole terminal buffer still speaks its structured
+  guidance without a clipped “terminal-normal mode”.
+
+## 0.92.0-dev.6 (feature-branch test build)
+
+- An automatic `cursorMoved` following `BufEnter`/`BufWinEnter` can no longer
+  replace the configured destination line with the single character at the
+  destination column. Output is therefore independent of the source buffer's
+  cursor position.
+- `textChanged` no longer compares lines belonging to different buffers. A
+  change event arriving as the destination becomes visible is not presented as
+  typed or replaced source text.
+
+## 0.92.0-dev.5 (feature-branch test build)
+
+- Successful buffer switches within the same tab and window, such as `:bp` or
+  `:bn`, now use the profile-aware focus choice too: silent, current
+  destination line, or destination context with mode and saved connection
+  name. The source remains `BufEnter`/`contextChanged`; no polling is added.
+- Tab and window changes retain their own context announcements. Mode cues
+  remain independent of the selected focus/buffer-switch output.
+
+## 0.92.0-dev.4 (feature-branch test build)
+
+- UI-protocol messages on Neovim 0.12 are processed only after returning from
+  the `vim.ui_attach` fast-event callback. State queries therefore no longer
+  raise `E5560` or leave a hidden hit-enter prompt; commands, search, and
+  following messages remain usable.
+- The long real-TUI test drains its PTY output before sending further physical
+  keys. Neovim 0.12 can no longer block on test output; this hardens the test
+  driver and adds no product delay.
+
+## 0.92.0-dev.3 (feature-branch test build)
+
+- Entering Neovim's command line has a distinct short 600 Hz tone. Returning
+  from it in a terminal context uses the Normal cue, while the transient state
+  used to create a terminal buffer still produces no duplicate cue.
+- Exact `:bd` on a running terminal job reports structured `E89` guidance
+  before Neovim's blocking hit-enter state. Destructive `:bd!` remains an
+  explicit user decision and is never invoked automatically.
+- Buffer-navigation commands such as `:bp` or `:bn` explain when no other
+  listed buffer exists in the terminal context. A real switch continues to use
+  event-driven `BufEnter` for the destination announcement; no polling or
+  terminal screen scraping is introduced.
+
+## 0.92.0-dev.2 (feature-branch test build)
+
+- Raw `nt` is now canonical `terminalNormal`, distinct from a file buffer's
+  Normal mode, spoken explicitly, and confirmed by one Normal cue.
+- Command-line character echo uses its own UTF-8 byte position rather than the
+  unchanged editor cursor, preserving NVDA character/word echo after the first
+  character and for Unicode.
+- A freely assignable command with no default gesture leaves direct terminal
+  input through the fixed Neovim `stopinsert` operation. Local and SSH paths
+  validate request, instance, focused control binding, buffer, window, tab,
+  and exact mode; no arbitrary Lua or Ex crosses the protocol. Changed tick is
+  intentionally omitted because terminal jobs change it asynchronously and
+  this operation neither reads nor changes text.
+- Event-driven `TermClose` reports the terminal process exit status without
+  polling or terminal screen scraping.
+- The real-TUI regression uses isolated XDG and runtime paths so an installed
+  older plugin cannot shadow the branch under test.
+
 Terminology note: “registry” in every historical entry means Neovim's
 file-based session registry of short-lived JSON records, never the Windows
 Registry. The product uses no `HKCU` or `HKLM` keys.
+
+## 0.92.0-dev.1 feature-branch test build
+
+- Direct embedded-terminal input now uses the Insert/focus cue and the
+  transition to Terminal-Normal uses the Normal cue. The passthrough gate is
+  changed before optional feedback so failures remain open to native output.
+- Command-line mode remains audible independently of Insert/Normal speech.
+  Non-empty `msg_show` results with an empty or future UI classification are
+  reported as ordinary speech and Braille messages; search counts retain their
+  dedicated structured path.
 
 ## 0.92.0 beta pre-release
 

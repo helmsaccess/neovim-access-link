@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 2026-07-16
+Stand: 2026-07-17
 
 Kernarchitektur, Protokoll v2, SSH-stdio, lokale Windows-CLI, explizite
 F12-Claim-Handshake und -Zuordnung, parallele Sitzungen sowie rootlose Komponenteninstallation und
@@ -9,7 +9,61 @@ implementiert. Der verifizierte Funktionsstand steht in
 [Aktueller Status](current-status.md); abgeschlossene Änderungen stehen im
 [Changelog](changelog.md).
 
-## Aktuell: explizites Copy/Paste
+## Aktuell: Terminal- und Dateimanager-Hardening
+
+Der Branch `feature/terminal-file-manager-hardening` prüft und härtet die
+Übergänge zwischen strukturiertem Editorzustand, direkter eingebetteter
+Terminaleingabe, Terminal-Normalmodus, Neovim-Kommandozeile und semantischen
+Dateimanager-Adaptern. Der erste Umsetzungsschritt ergänzt Terminal-
+Modusklänge mit fail-open Gate-Reihenfolge und übernimmt nach Ex-Befehlen auch
+gewöhnliche UI-Meldungen ohne bekannte `msg_show`-Klassifikation. Command-line-
+Modus, Meldungsreihenfolge und Terminalübergänge erhalten Regressionstests.
+Der zweite Schritt trennt `terminalNormal` kanonisch von Dateibuffer-Normal,
+korrigiert das UTF-8-Command-line-Echo, ergänzt einen frei belegbaren,
+korrelierten `stopinsert`-Befehl und meldet `TermClose` mit Exit-Status.
+Der dritte Schritt ergänzt den Kommandozeilenton, eine eindeutige Rückkehr in
+den Terminal-Normalmodus sowie strukturierte Hinweise für `:bd` bei laufendem
+Job und wirkungslose Buffer-Navigation.
+Der vierte Schritt verschiebt die Auswertung von UI-Protokollereignissen aus
+Neovims Fast-Event-Kontext und verhindert damit `E5560`-Enter-Zustände unter
+Neovim 0.12, ohne Polling einzuführen.
+Der fünfte Schritt wendet die vorhandene profilfähige Fokusauswahl auch auf
+ereignisgetriebene Bufferwechsel im selben Tab und Fenster an. `:bp` und `:bn`
+geben damit wahlweise nichts, die Zielzeile oder Zielkontext, Modus und
+Verbindungsname aus; Tab-/Fensteransagen und Modusklänge bleiben unabhängig.
+Der sechste Schritt trennt automatische Cursor-/Änderungsereignisse des
+Zielbuffers vom Ausgangszustand, damit weder ein einzelnes Zielzeichen die
+Zeilenansage überschreibt noch Text bufferübergreifend als Änderung gilt.
+Der siebte Schritt fasst bei erkannten Ex-Bufferbefehlen die kurzlebige
+gesprochene Modusrückkehr mit der konfigurierten Zielausgabe zusammen. Der
+Modusklang bleibt unabhängig; Ex-Befehle und gleich lautende Suchmuster werden
+über den strukturierten Kommandozeilentyp unterschieden.
+Der achte Schritt behandelt `:terminal` als strukturierten Buffereinstieg,
+wartet bei Zeilenausgabe ohne Polling auf die erste echte Terminalzeile und
+unterdrückt deren automatisches Folgezeichen. Der Wechsel mit `i` in direkte
+Terminaleingabe gibt stattdessen die vollständige Cursorzeile aus; der
+Modusklang und fail-open Passthrough bleiben getrennt.
+Der neunte Schritt macht diese Zusammenfassung unabhängig von der Reihenfolge
+zwischen Terminalkontext und abschließendem Modusereignis und verhindert, dass
+Kommandozeilentext als Normalmodusbewegung in den neuen Terminalbuffer gelangt.
+Der zehnte Schritt fasst bei Neovim-Fenster- und -Tabwechseln die gewählte
+Kontextausgabe mit Zielposition, eindeutigem Datei-/Spezialkontext, Status,
+Modus und Verbindung zusammen. Modussprache wird dabei nicht vorangestellt;
+der unabhängige Modusklang und die beiden anderen Fokusvarianten bleiben
+unverändert.
+Der elfte Schritt unterscheidet bei F12 eine bloß noch gemerkte von einer
+weiterhin authentifizierten Bindung. Nach dem Ende einer lokalen Sitzung kann
+dasselbe WT-Control dadurch ausdrücklich auf eine frische SSH-Sitzung
+umgebunden werden, ohne automatische Zuordnung oder Polling einzuführen.
+
+Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
+Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
+`:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
+Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
+Dateimanager-Grenzfälle, Pager-Sonderfälle und die vollständige negative
+Windows-Terminal-Matrix.
+
+## Abgeschlossen: explizites Copy/Paste
 
 Der Branch `feature/copy-paste` ergänzt vier in NVDAs Eingabedialog frei
 belegbare Befehle ohne Standardgesten: Visual-Auswahl kopieren, Register 0

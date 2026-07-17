@@ -687,6 +687,7 @@ class BuiltAddonTests(unittest.TestCase):
             "script_copyLastNeovimYank",
             "script_pasteWindowsClipboard",
             "script_setNeovimRegisterFromWindowsClipboard",
+            "script_leaveDirectTerminalInput",
             "script_startConnectionInstance",
             "script_disconnectConnectionInstance",
             "script_forgetTemporaryTerminalBinding",
@@ -2077,6 +2078,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(2, len(instances))
         local_instance = plugin._instanceManager.selected_for(local_identity)
         self.assertEqual(LOCAL_WINDOWS_TCP, local_instance.transport_kind)
+        plugin._authenticatedInstances.add(local_instance.identifier)
         self.assertEqual("", local_instance.profile_id)
         self.assertEqual(("127.0.0.1", 45678, 1), (
             Client.created[0].host, Client.created[0].port, Client.created[0].starts,
@@ -2092,6 +2094,44 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([True], sent)
         self.assertEqual((local_identity, True, True, True, None), pairings[0][:5])
         self.assertGreater(pairings[0][5], 0)
+        plugin.terminate()
+
+    def test_disconnected_local_binding_does_not_block_fresh_remote_claim_resolution(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.nvimNvdaAccess.core.connection_targets import local_windows_target
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        identity = plugin._gate.focused
+        instance = plugin._instanceManager.add_target(
+            local_windows_target("Local"), "old-local", "Local", Client(),
+        )
+        plugin._instanceManager.bind(identity, instance.identifier)
+        self.assertNotIn(instance.identifier, plugin._authenticatedInstances)
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
+            (delay, callback, args)
+        )
+        sent = []
+
+        plugin.action_claimFocusedNeovimSession(
+            types.SimpleNamespace(send=lambda: sent.append(True)),
+        )
+
+        self.assertEqual([True], sent)
+        self.assertEqual(250, scheduled[0][0])
+        self.assertEqual("_beginAutomaticClaimResolution", scheduled[0][1].__name__)
+        self.assertEqual(identity, scheduled[0][2][0])
+        self.assertGreater(scheduled[0][2][1], 0)
+        report = plugin._diagnostics.report()
+        self.assertIn('"selected": true', report)
+        self.assertIn('"selectedAuthenticated": false', report)
         plugin.terminate()
 
     def test_two_local_sessions_bind_independently_and_coexist_with_ssh(self) -> None:
@@ -2440,7 +2480,7 @@ class BuiltAddonTests(unittest.TestCase):
         }})
         self.assertEqual(second_id, plugin._gate.bound_terminal)
         self.assertTrue(plugin._gate.suppression_active)
-        self.assertIn("second.lua, insert mode, on Second", self.spoken)
+        self.assertIn("file second.lua, insert mode, on Second", self.spoken)
         self.focus = first_obj
         plugin._event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
         self.assertIsNone(plugin._gate.bound_terminal)
@@ -2503,7 +2543,7 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal",
         }})
         self.assertTrue(plugin._gate.suppression_active)
-        self.assertIn("returned.lua, normal mode, on First", self.spoken)
+        self.assertIn("file returned.lua, normal mode, on First", self.spoken)
         plugin.terminate()
 
     def test_focus_announcement_choices_keep_mode_sounds_independent(self) -> None:
@@ -2519,7 +2559,11 @@ class BuiltAddonTests(unittest.TestCase):
         cases = (
             (0, None, None),
             (1, "\tprint('Grüße 👋')", "\tprint('Grüße 👋')"),
-            (2, "example.lua, insert mode, on Example", "example.lua, insert mode, on Example"),
+            (
+                2,
+                "file example.lua, insert mode, on Example",
+                "file example.lua, insert mode, on Example",
+            ),
         )
         for setting, expected_speech, expected_braille in cases:
             with self.subTest(focusAnnouncement=setting):
@@ -2546,6 +2590,339 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._handleEvent({"type": "focusContext", "payload": {**payload, "mode": "normal"}})
         self.assertEqual([], self.spoken)
         self.assertEqual([], self.soundFeeds)
+        plugin.terminate()
+
+    def test_in_place_buffer_switch_uses_focus_setting_and_connection_label(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("one", "1", "Example", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "fullState", "payload": {
+                "bufferId": 1, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/one.lua", "mode": "normal",
+                "lineText": "first line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        plugin._settings["focusAnnouncement"] = 0
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "contextChanged", "payload": {
+                "bufferId": 2, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/two.lua", "mode": "normal",
+                "lineText": "second line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        self.assertEqual([], self.spoken)
+        self.assertEqual([], self.brailleMessages)
+
+        plugin._settings["focusAnnouncement"] = 1
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "textChanged", "payload": {
+                "bufferId": 3, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/three.lua", "mode": "normal", "modeRaw": "n",
+                "lineText": "third line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "modeChanged", "payload": {
+                "bufferId": 3, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/three.lua", "mode": "normal", "modeRaw": "n",
+                "lineText": "third line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "contextChanged", "payload": {
+                "bufferId": 3, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/three.lua", "mode": "normal",
+                "lineText": "third line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "contextChanged", "payload": {
+                "bufferId": 3, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/three.lua", "mode": "normal",
+                "lineText": "third line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "cursorMoved", "payload": {
+                "bufferId": 3, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/three.lua", "mode": "normal",
+                "lineText": "third line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        self.assertEqual(["third line"], self.spoken)
+        self.assertEqual(["third line"], self.brailleMessages)
+
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        plugin._settings["focusAnnouncement"] = 2
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "contextChanged", "payload": {
+                "bufferId": 4, "windowId": 10, "tabpageId": 20,
+                "bufferName": "/work/four.lua", "mode": "normal",
+                "lineText": "fourth line", "cursor": {"line": 1, "byteColumn": 0},
+            },
+        })
+        self.assertEqual(["file four.lua, normal mode, on Example"], self.spoken)
+        self.assertEqual(self.spoken, self.brailleMessages)
+        plugin.terminate()
+
+    def test_context_choice_coalesces_window_switch_mode_and_target(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["focusAnnouncement"] = 2
+        text_window = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "windowIndex": 1, "windowCount": 2,
+            "bufferName": "/work/T", "buftype": "", "modified": True,
+            "lineText": "Text", "cursor": {"line": 1, "byteColumn": 0},
+            "_connectionLabel": "Example",
+        }
+        terminal_window = {
+            "bufferId": 2, "windowId": 11, "tabpageId": 20,
+            "windowIndex": 2, "windowCount": 2,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "prompt", "cursor": {"line": 1, "byteColumn": 0},
+            "_connectionLabel": "Example",
+        }
+        plugin._handleEvent({"type": "fullState", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }})
+        self.spoken.clear()
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **terminal_window, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "contextChanged", "payload": {
+            **terminal_window, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleEvent({"type": "contextChanged", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }})
+
+        self.assertEqual([
+            "window 2 of 2, terminal-normal mode, on Example",
+            "window 1 of 2, file T, modified, normal mode, on Example",
+        ], self.spoken)
+        plugin.terminate()
+
+    def test_buffer_command_keeps_one_sound_and_suppresses_return_mode_speech(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+            def send_control(self, kind, payload): return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = plugin._instanceManager.add("one", "1", "Example", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._settings["focusAnnouncement"] = 0
+        played: list[str] = []
+        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        source = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "shell prompt", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/target.txt", "buftype": "",
+            "lineText": "target line", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        plugin._handleManagedEvent(instance.identifier, {"type": "fullState", "payload": {
+            **source, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        played.clear()
+        plugin._handleManagedEvent(instance.identifier, {"type": "commandLineChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+            "commandLine": "", "commandLineType": ":", "commandLinePosition": 0,
+        }})
+        plugin._handleManagedEvent(instance.identifier, {"type": "modeChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+        }})
+        self.assertIn("command-line mode", self.spoken)
+        plugin._handleManagedEvent(instance.identifier, {"type": "commandLineChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+            "commandLine": "bp", "commandLineType": ":", "commandLinePosition": 2,
+        }})
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        plugin._handleManagedEvent(instance.identifier, {"type": "modeChanged", "payload": {
+            **source, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleManagedEvent(instance.identifier, {"type": "modeChanged", "payload": {
+            **target, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleManagedEvent(instance.identifier, {"type": "textChanged", "payload": {
+            **target, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleManagedEvent(instance.identifier, {"type": "contextChanged", "payload": {
+            **target, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleManagedEvent(instance.identifier, {"type": "cursorMoved", "payload": {
+            **target, "mode": "normal", "modeRaw": "n",
+        }})
+
+        self.assertEqual([], self.spoken)
+        self.assertEqual([], self.brailleMessages)
+        self.assertEqual(["normalMode"], played)
+        plugin.terminate()
+
+    def test_terminal_entry_obeys_focus_choice_then_reads_line_on_direct_input(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["focusAnnouncement"] = 0
+        played: list[str] = []
+        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        source = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/source.txt", "buftype": "",
+            "lineText": "source", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target_blank = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target_ready = {
+            **target_blank, "lineText": "shell prompt", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 12},
+        }
+        target_final = {
+            **target_blank, "lineText": "ready prompt", "changedtick": 5,
+            "cursor": {"line": 2, "byteColumn": 12},
+        }
+        plugin._handleEvent({"type": "fullState", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }})
+        self.spoken.clear()
+        played.clear()
+        plugin._handleEvent({"type": "commandLineChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+            "commandLine": "terminal", "commandLineType": ":", "commandLinePosition": 8,
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+        }})
+        self.spoken.clear()
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "contextChanged", "payload": {
+            **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "cursorMoved", "payload": {
+            **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **target_ready, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "cursorMoved", "payload": {
+            **target_ready, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **target_final, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "cursorMoved", "payload": {
+            **target_final, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        self.assertEqual([], self.spoken)
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **target_final, "mode": "terminal", "modeRaw": "t",
+        }})
+
+        self.assertEqual(["ready prompt"], self.spoken)
+        self.assertEqual(["normalMode", "insertMode"], played)
+        self.assertTrue(plugin._gate.terminal_passthrough)
+        plugin.terminate()
+
+    def test_terminal_context_setting_suppresses_late_initial_character(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["focusAnnouncement"] = 2
+        source = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/source.txt", "buftype": "",
+            "lineText": "source", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        terminal = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        plugin._handleEvent({"type": "fullState", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleEvent({"type": "commandLineChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+            "commandLine": "terminal", "commandLineType": ":",
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+        }})
+        self.spoken.clear()
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }})
+        plugin._handleEvent({"type": "contextChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "_connectionLabel": "Example",
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+        }})
+        plugin._handleEvent({"type": "textChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "lineText": "Terminal heading", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 8},
+        }})
+        plugin._handleEvent({"type": "cursorMoved", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "lineText": "Terminal heading", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 8},
+        }})
+
+        self.assertEqual(
+            ["terminal-normal mode, on Example"], self.spoken,
+        )
         plugin.terminate()
 
     def test_events_remain_silent_while_remembered_control_awaits_focus_context(self) -> None:
@@ -3029,6 +3406,50 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertEqual("unchanged", self.clipboard)
         self.assertNotIn("must not escape", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_leave_terminal_input_is_scoped_correlated_and_needs_no_changedtick(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        controls = []
+        client = types.SimpleNamespace(
+            start=lambda: None, stop=lambda: None,
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+        )
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._gate.terminal_passthrough = True
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._activeInstanceId = instance.identifier
+        plugin._client = client
+        plugin._transportCapabilities = frozenset({"terminalControl"})
+        plugin._currentState = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "mode": "terminal", "modeRaw": "t", "modeBlocking": False,
+            "buftype": "terminal",
+        }
+
+        plugin.action_leaveDirectTerminalInput(None)
+        kind, request = controls[-1]
+        self.assertEqual("leaveTerminalInputRequest", kind)
+        self.assertNotIn("changedtick", request)
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "leaveTerminalInputResult", "payload": {
+                **plugin._currentState, "mode": "terminalNormal", "modeRaw": "nt",
+                "requestId": request["requestId"], "ok": True, "resultCode": "ok",
+            },
+        })
+        self.assertEqual({}, plugin._pendingTerminalControlRequests)
+        self.assertNotIn("requestId", plugin._currentState)
+
+        plugin._currentState = {**plugin._currentState, "mode": "normal", "modeRaw": "n"}
+        plugin.action_leaveDirectTerminalInput(None)
+        self.assertIn("Neovim is not in direct terminal input", self.messages)
+        self.assertEqual(1, len(controls))
         plugin.terminate()
 
     def test_pending_clipboard_requests_are_bounded(self) -> None:
@@ -3643,6 +4064,10 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(self.focus)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
+        played: list[tuple[str, bool]] = []
+        plugin._editorSounds.play = lambda cue: played.append(
+            (cue, plugin._gate.terminal_passthrough)
+        ) or True
         self.assertTrue(plugin._gate.suppression_active)
         plugin._handleEvent({"type": "contextChanged", "payload": {
             "mode": "terminal", "modeRaw": "t", "buftype": "terminal",
@@ -3650,17 +4075,144 @@ class BuiltAddonTests(unittest.TestCase):
         }})
         self.assertTrue(plugin._gate.terminal_passthrough)
         self.assertFalse(plugin._gate.suppression_active)
+        self.assertEqual(("insertMode", True), played[-1])
         plugin._handleEvent({"type": "modeChanged", "payload": {
-            "mode": "normal", "modeRaw": "n", "buftype": "terminal",
+            "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
             "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
         }})
         self.assertFalse(plugin._gate.terminal_passthrough)
         self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual(("normalMode", False), played[-1])
         plugin._handleEvent({"type": "modeChanged", "payload": {
             "mode": "terminal", "modeRaw": "t", "buftype": "terminal",
             "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
         }})
         self.assertTrue(plugin._gate.terminal_passthrough)
+        self.assertEqual(("insertMode", True), played[-1])
+        report = plugin._diagnostics.report()
+        self.assertIn('"mode": "terminal"', report)
+        self.assertIn('"category": "normalModeSound"', report)
+        plugin._settings["feedback"]["mode"] = 1
+        sounds_before_speech_only = len(played)
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
+            "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "terminal", "modeRaw": "t", "buftype": "terminal",
+            "bufferId": 2, "lineText": "shell output", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertEqual(sounds_before_speech_only, len(played))
+        plugin.terminate()
+
+    def test_command_line_mode_and_following_message_remain_spoken(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        plugin._settings["feedback"]["mode"] = 0
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "normal", "modeRaw": "n", "lineText": "",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        plugin._handleEvent({"type": "commandLineChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "commandLine": "",
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "commandLine": "",
+        }})
+        for position, command_line in enumerate((
+            "t", "te", "ter", "term", "termi", "termin", "termina", "terminal",
+        ), start=1):
+            plugin._handleEvent({"type": "commandLineChanged", "payload": {
+                "mode": "commandLine", "modeRaw": "c", "bufferId": 1,
+                "commandLine": command_line, "commandLinePosition": position,
+                "cursor": {"line": 1, "byteColumn": 0},
+            }})
+        plugin._handleEvent({"type": "messageReceived", "payload": {
+            "mode": "normal", "modeRaw": "n", "message": "command completed",
+        }})
+        self.assertEqual(
+            ["command-line mode", *list("terminal"), "command completed"],
+            self.spoken,
+        )
+        self.assertEqual(list("terminal"), self.spelled)
+        self.assertEqual(["command completed"], self.brailleMessages)
+        plugin.terminate()
+
+    def test_terminal_command_line_has_distinct_enter_and_return_sounds(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        played: list[str] = []
+        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
+            "bufferId": 2, "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "commandLineChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "buftype": "terminal",
+            "bufferId": 2, "commandLine": "", "commandLinePosition": 0,
+        }})
+        self.assertEqual((600, 30), self.beeps[-1])
+        beep_count = len(self.beeps)
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "buftype": "terminal",
+            "bufferId": 2, "commandLine": "", "commandLinePosition": 0,
+        }})
+        self.assertEqual(beep_count, len(self.beeps))
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
+            "bufferId": 2, "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertEqual(["normalMode"], played)
+        report = plugin._diagnostics.report()
+        self.assertIn('"category": "commandLineModeSound"', report)
+        plugin.terminate()
+
+    def test_terminal_command_creating_terminal_plays_one_normal_cue(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        played: list[str] = []
+        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._handleEvent({"type": "fullState", "payload": {
+            "mode": "normal", "modeRaw": "n", "buftype": "", "bufferId": 1,
+            "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._handleEvent({"type": "commandLineChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "buftype": "", "bufferId": 1,
+            "commandLine": "", "commandLinePosition": 0,
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "commandLine", "modeRaw": "c", "buftype": "", "bufferId": 1,
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "normal", "modeRaw": "n", "buftype": "", "bufferId": 1,
+        }})
+        plugin._handleEvent({"type": "modeChanged", "payload": {
+            "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
+            "bufferId": 1, "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        self.assertEqual(["normalMode"], played)
+        plugin.terminate()
+
+    def test_command_line_echo_uses_utf8_command_position_not_editor_cursor(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        for text, position in (("ä", 2), ("äx", 3)):
+            plugin._handleEvent({"type": "commandLineChanged", "payload": {
+                "mode": "commandLine", "modeRaw": "c", "bufferId": 1,
+                "commandLine": text, "commandLinePosition": position,
+                "cursor": {"line": 9, "byteColumn": 27},
+            }})
+        self.assertEqual(["ä", "x"], self.spelled)
         plugin.terminate()
 
     def test_structured_braille_region_preserves_indent_cursor_and_selection(self) -> None:

@@ -45,6 +45,13 @@ class SpeechPlannerTests(unittest.TestCase):
         action = planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))[0]
         self.assertEqual("command-line mode", action.text)
 
+    def test_terminal_normal_is_distinct_from_file_normal_mode(self) -> None:
+        planner = SpeechPlanner()
+        action = planner.plan(event(
+            "modeChanged", mode="terminalNormal", modeRaw="nt", buftype="terminal",
+        ))[0]
+        self.assertEqual("terminal-normal mode", action.text)
+
     def test_search_match_speaks_text_position_and_line(self) -> None:
         planner = SpeechPlanner()
         action = planner.plan(event(
@@ -286,17 +293,370 @@ class SpeechPlannerTests(unittest.TestCase):
         tab = planner.plan(event(
             "contextChanged", bufferId=2, windowId=11, tabpageId=21,
             bufferName="/tmp/two.lua", tabIndex=2, tabCount=2,
-        ))[0]
+        ), focus_announcement="none")[0]
         self.assertEqual("tab 2 of 2, two.lua", tab.text)
         window = planner.plan(event(
             "contextChanged", bufferId=3, windowId=12, tabpageId=21,
             bufferName="/tmp/three.lua", windowIndex=2, windowCount=3, modified=True,
         ))[0]
-        self.assertEqual("window 2 of 3, three.lua, modified", window.text)
+        self.assertEqual("window 2 of 3, file three.lua, modified", window.text)
         quickfix = planner.plan(event(
             "contextChanged", windowType="quickfix", line="script.sh|4| warning SC2086",
         ))[0]
         self.assertEqual("quickfix, script.sh|4| warning SC2086", quickfix.text)
+
+    def test_context_choice_coalesces_window_mode_file_flags_and_connection(self) -> None:
+        planner = SpeechPlanner()
+        text_window = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "windowIndex": 1, "windowCount": 2,
+            "bufferName": "/work/T", "buftype": "", "modified": True,
+            "lineText": "Text", "cursor": {"line": 1, "byteColumn": 0},
+            "_connectionLabel": "Example",
+        }
+        terminal_window = {
+            "bufferId": 2, "windowId": 11, "tabpageId": 20,
+            "windowIndex": 2, "windowCount": 2,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "prompt", "cursor": {"line": 1, "byteColumn": 0},
+            "_connectionLabel": "Example",
+        }
+        planner.plan({"type": "fullState", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }})
+
+        terminal_mode = planner.plan({"type": "modeChanged", "payload": {
+            **terminal_window, "mode": "terminalNormal", "modeRaw": "nt",
+        }}, focus_announcement="context")
+        terminal_context = planner.plan({"type": "contextChanged", "payload": {
+            **terminal_window, "mode": "terminalNormal", "modeRaw": "nt",
+        }}, focus_announcement="context")
+        text_mode = planner.plan({"type": "modeChanged", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }}, focus_announcement="context")
+        text_context = planner.plan({"type": "contextChanged", "payload": {
+            **text_window, "mode": "normal", "modeRaw": "n",
+        }}, focus_announcement="context")
+
+        self.assertEqual([], terminal_mode)
+        self.assertEqual(
+            ["window 2 of 2, terminal-normal mode, on Example"],
+            [action.text for action in terminal_context],
+        )
+        self.assertEqual([], text_mode)
+        self.assertEqual(
+            ["window 1 of 2, file T, modified, normal mode, on Example"],
+            [action.text for action in text_context],
+        )
+
+    def test_in_place_buffer_switch_uses_configured_focus_presentation(self) -> None:
+        initial = event(
+            "fullState", line="first line", bufferId=1, windowId=10, tabpageId=20,
+            bufferName="/work/one.lua", mode="normal",
+        )
+        switched = event(
+            "contextChanged", line="second line", bufferId=2, windowId=10, tabpageId=20,
+            bufferName="/work/two.lua", mode="insert", _connectionLabel="Example",
+        )
+
+        def enter_target_mode(planner: SpeechPlanner) -> None:
+            planner.plan(event(
+                "modeChanged", line="second line", bufferId=2, windowId=10, tabpageId=20,
+                bufferName="/work/two.lua", mode="insert", modeRaw="i",
+            ))
+
+        silent_planner = SpeechPlanner()
+        silent_planner.plan(initial)
+        enter_target_mode(silent_planner)
+        self.assertEqual(
+            [], silent_planner.plan(switched, focus_announcement="none"),
+        )
+
+        line_planner = SpeechPlanner()
+        line_planner.plan(initial)
+        enter_target_mode(line_planner)
+        line = line_planner.plan(switched, focus_announcement="line")[0]
+        self.assertEqual(("second line", "second line"), (line.text, line.braille_message))
+
+        context_planner = SpeechPlanner()
+        context_planner.plan(initial)
+        enter_target_mode(context_planner)
+        context = context_planner.plan(switched, focus_announcement="context")[0]
+        self.assertEqual(
+            "file two.lua, insert mode, on Example", context.text,
+        )
+
+    def test_buffer_switch_line_is_not_overwritten_by_automatic_cursor_event(self) -> None:
+        for starting_column in (0, 4):
+            with self.subTest(startingColumn=starting_column):
+                planner = SpeechPlanner()
+                planner.plan(event(
+                    "fullState", line="alpha", bufferId=1, windowId=10, tabpageId=20,
+                    bufferName="/work/one.txt", mode="normal", byte_column=starting_column,
+                ))
+                target = {
+                    "bufferId": 2, "windowId": 10, "tabpageId": 20,
+                    "bufferName": "/work/two.txt", "mode": "normal",
+                }
+                self.assertEqual([], planner.plan(event(
+                    "textChanged", line="target shell heading", byte_column=0, **target,
+                )))
+                line = planner.plan(event(
+                    "contextChanged", line="target shell heading", byte_column=0, **target,
+                ), focus_announcement="line")
+                duplicate = planner.plan(event(
+                    "contextChanged", line="target shell heading", byte_column=0, **target,
+                ), focus_announcement="line")
+                cursor = planner.plan(event(
+                    "cursorMoved", line="target shell heading", byte_column=0, **target,
+                ), focus_announcement="line")
+
+                self.assertEqual(["target shell heading"], [action.text for action in line])
+                self.assertEqual([], duplicate)
+                self.assertEqual([], cursor)
+
+    def test_buffer_command_coalesces_return_modes_into_focus_presentation(self) -> None:
+        source = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "shell prompt", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/target.txt", "buftype": "",
+            "lineText": "target line", "cursor": {"line": 1, "byteColumn": 0},
+        }
+
+        for focus_announcement, expected in (
+            ("none", []),
+            ("line", ["target line"]),
+            ("context", ["file target.txt, normal mode, on Example"]),
+        ):
+            with self.subTest(focusAnnouncement=focus_announcement):
+                planner = SpeechPlanner()
+                planner.plan({"type": "fullState", "payload": {
+                    **source, "mode": "terminalNormal", "modeRaw": "nt",
+                }})
+                planner.plan({"type": "commandLineChanged", "payload": {
+                    **source, "mode": "commandLine", "modeRaw": "c",
+                    "commandLine": "", "commandLineType": ":",
+                }})
+                command_mode = planner.plan({"type": "modeChanged", "payload": {
+                    **source, "mode": "commandLine", "modeRaw": "c",
+                }})
+                planner.plan({"type": "commandLineChanged", "payload": {
+                    **source, "mode": "commandLine", "modeRaw": "c",
+                    "commandLine": "bp", "commandLineType": ":",
+                }})
+                terminal_return = planner.plan({"type": "modeChanged", "payload": {
+                    **source, "mode": "terminalNormal", "modeRaw": "nt",
+                }})
+                target_return = planner.plan({"type": "modeChanged", "payload": {
+                    **target, "mode": "normal", "modeRaw": "n",
+                }})
+                text_change = planner.plan({"type": "textChanged", "payload": {
+                    **target, "mode": "normal", "modeRaw": "n",
+                }})
+                context = planner.plan({"type": "contextChanged", "payload": {
+                    **target, "mode": "normal", "modeRaw": "n",
+                    "_connectionLabel": "Example",
+                }}, focus_announcement=focus_announcement)
+                duplicate = planner.plan({"type": "contextChanged", "payload": {
+                    **target, "mode": "normal", "modeRaw": "n",
+                    "_connectionLabel": "Example",
+                }}, focus_announcement=focus_announcement)
+                cursor = planner.plan({"type": "cursorMoved", "payload": {
+                    **target, "mode": "normal", "modeRaw": "n",
+                }}, focus_announcement=focus_announcement)
+
+                self.assertEqual(["command-line mode"], [a.text for a in command_mode])
+                self.assertEqual([], terminal_return)
+                self.assertEqual([], target_return)
+                self.assertEqual([], text_change)
+                self.assertEqual(expected, [a.text for a in context])
+                self.assertEqual([], duplicate)
+                self.assertEqual([], cursor)
+
+    def test_search_named_like_buffer_command_does_not_coalesce_mode(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event("fullState", mode="normal", modeRaw="n"))
+        planner.plan(event(
+            "commandLineChanged", mode="commandLine", modeRaw="c",
+            commandLine="bn", commandLineType="/",
+        ))
+        planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
+        returned = planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
+        self.assertEqual(["normal mode"], [action.text for action in returned])
+
+    def test_unswitched_terminal_buffer_command_speaks_message_not_return_mode(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", mode="terminalNormal", modeRaw="nt", buftype="terminal",
+        ))
+        planner.plan(event(
+            "commandLineChanged", mode="commandLine", modeRaw="c", buftype="terminal",
+            commandLine="bp", commandLineType=":",
+        ))
+        planner.plan(event(
+            "modeChanged", mode="commandLine", modeRaw="c", buftype="terminal",
+        ))
+        message = planner.plan({"type": "messageReceived", "payload": {
+            "reason": "terminalBufferNavigation",
+            "message": "no other listed buffer; the buffer command did not switch",
+        }})
+        returned = planner.plan(event(
+            "modeChanged", mode="terminalNormal", modeRaw="nt", buftype="terminal",
+        ))
+        later = planner.plan(event("modeChanged", mode="terminal", modeRaw="t", buftype="terminal"))
+        self.assertEqual(
+            ["no other listed buffer; the buffer command did not switch"],
+            [action.text for action in message],
+        )
+        self.assertEqual([], returned)
+        self.assertEqual(["a界🙂"], [action.text for action in later])
+
+    def test_terminal_command_entry_uses_focus_choice_and_direct_input_reads_line(self) -> None:
+        source = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/source.txt", "buftype": "",
+            "lineText": "source", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target_blank = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        target_ready = {
+            **target_blank, "lineText": "shell prompt", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 12},
+        }
+        target_final = {
+            **target_blank, "lineText": "ready prompt", "changedtick": 5,
+            "cursor": {"line": 2, "byteColumn": 12},
+        }
+
+        for focus_announcement, expected_context, expected_line in (
+            ("none", [], []),
+            ("line", [], ["shell prompt"]),
+            ("context", ["terminal-normal mode, on Example"], []),
+        ):
+            with self.subTest(focusAnnouncement=focus_announcement):
+                planner = SpeechPlanner()
+                planner.plan({"type": "fullState", "payload": {
+                    **source, "mode": "normal", "modeRaw": "n",
+                }})
+                planner.plan({"type": "commandLineChanged", "payload": {
+                    **source, "mode": "commandLine", "modeRaw": "c",
+                    "commandLine": "terminal", "commandLineType": ":",
+                }})
+                planner.plan({"type": "modeChanged", "payload": {
+                    **source, "mode": "commandLine", "modeRaw": "c",
+                }})
+                normal_return = planner.plan({"type": "modeChanged", "payload": {
+                    **source, "mode": "normal", "modeRaw": "n",
+                }})
+                terminal_return = planner.plan({"type": "modeChanged", "payload": {
+                    **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+                }})
+                blank_text = planner.plan({"type": "textChanged", "payload": {
+                    **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                context = planner.plan({"type": "contextChanged", "payload": {
+                    **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+                    "_connectionLabel": "Example",
+                }}, focus_announcement=focus_announcement)
+                blank_cursor = planner.plan({"type": "cursorMoved", "payload": {
+                    **target_blank, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                first_line = planner.plan({"type": "textChanged", "payload": {
+                    **target_ready, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                automatic_cursor = planner.plan({"type": "cursorMoved", "payload": {
+                    **target_ready, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                later_initialization = planner.plan({"type": "textChanged", "payload": {
+                    **target_final, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                later_cursor = planner.plan({"type": "cursorMoved", "payload": {
+                    **target_final, "mode": "terminalNormal", "modeRaw": "nt",
+                }}, focus_announcement=focus_announcement)
+                direct = planner.plan({"type": "modeChanged", "payload": {
+                    **target_final, "mode": "terminal", "modeRaw": "t",
+                }}, focus_announcement=focus_announcement)
+
+                self.assertEqual([], normal_return)
+                self.assertEqual([], terminal_return)
+                self.assertEqual([], blank_text)
+                self.assertEqual(expected_context, [action.text for action in context])
+                self.assertEqual([], blank_cursor)
+                self.assertEqual(expected_line, [action.text for action in first_line])
+                self.assertEqual([], automatic_cursor)
+                self.assertEqual([], later_initialization)
+                self.assertEqual([], later_cursor)
+                self.assertEqual(["ready prompt"], [action.text for action in direct])
+
+    def test_terminal_context_before_target_mode_still_suppresses_initial_output(self) -> None:
+        planner = SpeechPlanner()
+        source = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/source.txt", "buftype": "",
+            "lineText": "source", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        terminal = {
+            "bufferId": 2, "windowId": 10, "tabpageId": 20,
+            "bufferName": "term://shell", "buftype": "terminal",
+            "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        planner.plan({"type": "fullState", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }})
+        planner.plan({"type": "commandLineChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+            "commandLine": "terminal", "commandLineType": ":",
+        }})
+        planner.plan({"type": "modeChanged", "payload": {
+            **source, "mode": "commandLine", "modeRaw": "c",
+        }})
+        self.assertEqual([], planner.plan({"type": "modeChanged", "payload": {
+            **source, "mode": "normal", "modeRaw": "n",
+        }}))
+
+        context = planner.plan({"type": "contextChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "_connectionLabel": "Example",
+        }}, focus_announcement="context")
+        late_mode = planner.plan({"type": "modeChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+        }}, focus_announcement="context")
+        initialization = planner.plan({"type": "textChanged", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "lineText": "Terminal heading", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 8},
+        }}, focus_announcement="context")
+        cursor = planner.plan({"type": "cursorMoved", "payload": {
+            **terminal, "mode": "terminalNormal", "modeRaw": "nt",
+            "lineText": "Terminal heading", "changedtick": 4,
+            "cursor": {"line": 1, "byteColumn": 8},
+        }}, focus_announcement="context")
+
+        self.assertEqual(
+            ["terminal-normal mode, on Example"],
+            [action.text for action in context],
+        )
+        self.assertEqual([], late_mode)
+        self.assertEqual([], initialization)
+        self.assertEqual([], cursor)
+
+    def test_non_terminal_ex_command_still_announces_return_mode(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event("fullState", mode="normal", modeRaw="n"))
+        planner.plan(event(
+            "commandLineChanged", mode="commandLine", modeRaw="c",
+            commandLine="echo 1", commandLineType=":",
+        ))
+        planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
+        returned = planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
+        self.assertEqual(["normal mode"], [action.text for action in returned])
 
     def test_file_manager_entries_announce_semantic_type_and_tree_state(self) -> None:
         planner = SpeechPlanner()
@@ -319,7 +679,7 @@ class SpeechPlannerTests(unittest.TestCase):
         planner = SpeechPlanner()
         file_action = planner.plan(event(
             "focusContext", bufferName="C:\\work\\example.lua", mode="insert",
-            modified=True, _connectionLabel="Tessa",
+            modified=True, _connectionLabel="Example",
         ))[0]
         terminal_action = planner.plan(event(
             "focusContext", bufferName="term://sensitive-shell", buftype="terminal",
@@ -332,8 +692,8 @@ class SpeechPlannerTests(unittest.TestCase):
                 },
             },
         ))[0]
-        self.assertEqual("example.lua, modified, insert mode, on Tessa", file_action.text)
-        self.assertEqual("terminal, terminal mode", terminal_action.text)
+        self.assertEqual("file example.lua, modified, insert mode, on Example", file_action.text)
+        self.assertEqual("terminal mode", terminal_action.text)
         self.assertNotIn("sensitive", terminal_action.text)
         self.assertEqual("netrw, src, directory, expanded, normal mode", manager_action.text)
         self.assertEqual(manager_action.text, manager_action.braille_message)

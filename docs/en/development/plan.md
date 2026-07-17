@@ -3,7 +3,54 @@
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
-## Active: explicit copy/paste
+## Active: terminal and file-manager hardening
+
+Branch `feature/terminal-file-manager-hardening` is hardening transitions among
+structured editor state, direct embedded-terminal input, Terminal-Normal,
+Neovim's command line, and semantic file-manager adapters. The first step adds
+terminal mode cues with fail-open gate ordering and preserves ordinary command
+results whose `msg_show` kind is empty or not yet known. Regression tests cover
+command-line mode, message ordering, and terminal transitions. The second
+step models `terminalNormal` separately, fixes UTF-8 command-line
+echo, adds a correlated freely assignable fixed `stopinsert` command, and
+reports `TermClose` with exit status. The third step adds a command-line tone,
+unambiguous return feedback, and structured guidance for `:bd` on a running
+job and no-op buffer navigation. The fourth step moves UI-protocol handling
+out of Neovim's fast-event context, preventing Neovim 0.12 `E5560` hit-enter
+states without polling. The fifth step applies the existing profile-aware
+focus choice to event-driven buffer switches within the same tab and window,
+so `:bp`/`:bn` can be silent, announce the destination line, or report context,
+mode, and connection name without changing tab/window feedback or mode cues.
+The sixth step separates automatic destination cursor/change events from the
+source state so a single target character cannot overwrite the line and text
+is never diffed across buffers.
+The seventh step coalesces transient spoken return modes for recognized Ex
+buffer commands into the configured destination presentation. The mode cue
+stays independent, while structured command-line type distinguishes Ex from
+identically named search patterns.
+The eighth step treats `:terminal` as a structured buffer entry, waits without
+polling for the first real terminal line when line output is selected, and
+suppresses its automatic trailing character event. Entering direct terminal
+input with `i` presents the complete cursor line instead; the cue and fail-open
+passthrough stay separate.
+The ninth step makes that coalescing independent of terminal-context versus
+final-mode event order and prevents command-line text from leaking into the
+new terminal buffer as a Normal-mode motion.
+The tenth step coalesces Neovim window/tab destination, explicit file or
+special context, state, mode, and connection for the Context choice. Spoken
+mode is not prefixed, while its independent cue and the other two focus
+choices remain unchanged.
+The eleventh step distinguishes a merely remembered binding from a still-
+authenticated one during F12 pairing. After a local session exits, the same WT
+control can therefore be explicitly rebound to a fresh SSH session without
+introducing automatic mapping or polling.
+Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
+the exit command, process exit, all three `:bp`/`:bn` presentations,
+window/tab switching, and fresh SSH pairing without further issues.
+File-manager edge cases, pager variants, and the complete negative Windows
+Terminal matrix remain next.
+
+## Completed: explicit copy/paste
 
 Branch `feature/copy-paste` adds four commands without default gestures to
 NVDA's Input Gestures dialog: copy the Visual selection, copy register 0, and

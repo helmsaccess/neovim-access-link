@@ -11,7 +11,7 @@ from typing import Any, BinaryIO
 from nvim_nvda_protocol import (
     FrameDecoder, MessageFactory, ProtocolError, encode_frame,
     valid_copy_text_request, valid_paste_text_request,
-    valid_set_register_request,
+    valid_set_register_request, valid_leave_terminal_input_request,
 )
 
 
@@ -23,7 +23,7 @@ class StdioTransport:
 
     capabilities = (
         "heartbeat", "resync", "semanticEvents", "cursorRouting", "accessibleMenus",
-        "focusContext", "clipboardTransfer",
+        "focusContext", "clipboardTransfer", "terminalControl",
     )
 
     def __init__(
@@ -122,6 +122,11 @@ class StdioTransport:
                     elif kind == "pasteTextRequest" and valid_paste_text_request(control.get("payload")):
                         self.on_control(kind, dict(control["payload"]))
                     elif kind == "setRegisterRequest" and valid_set_register_request(control.get("payload")):
+                        self.on_control(kind, dict(control["payload"]))
+                    elif (
+                        kind == "leaveTerminalInputRequest"
+                        and valid_leave_terminal_input_request(control.get("payload"))
+                    ):
                         self.on_control(kind, dict(control["payload"]))
         except (OSError, ProtocolError):
             pass

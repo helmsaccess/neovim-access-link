@@ -15,6 +15,10 @@ end
 
 function M.normalize_mode(raw)
   if raw:sub(1, 2) == "no" then return "operatorPending" end
+  -- Neovim reports Terminal-Normal as "nt". It accepts Normal-mode
+  -- commands, but is a distinct terminal context and must not be collapsed
+  -- into an ordinary file buffer's Normal mode.
+  if raw:sub(1, 2) == "nt" then return "terminalNormal" end
   if raw == "v" then return "visualCharacter" end
   if raw == "V" then return "visualLine" end
   if raw == "\22" then return "visualBlock" end

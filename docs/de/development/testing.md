@@ -333,6 +333,82 @@ Praktische Abnahme am 2026-07-16:
   Ausgabe.
 - Tatsächliches Ergebnis: lokal und über SSH ohne Probleme; bestanden.
 
+### Terminalmodus, Kommandozeile und nachfolgende Meldungen
+
+Voraussetzung ist eine gebundene lokale oder SSH-Neovim-Sitzung mit einem
+eingebetteten `:terminal`. Direkte Terminaleingabe muss den Fokus-/Insertklang
+ausgeben und native Terminalausgabe erlauben. Sowohl nach `Ctrl+\`, `Ctrl+N`
+als auch nach der frei zugewiesenen NVDA-Geste „Direkte Eingabe im aktiven
+Neovim-Terminal verlassen“ muss „terminal-normal mode“ mit genau einem
+Normalmodusklang folgen und strukturierte Navigation wieder aktiv sein; `i`
+muss den umgekehrten Übergang herstellen. Anschließend `:echo 'test message'`
+und `:lua print('test message')` ausführen. Erwartet werden „command-line mode“
+mit einem kurzen mittleren Ton vor der Eingabe und der Normalmodusklang beim
+Rückweg; die Meldung nach Enter erscheint in Sprache sowie Braille. Mit
+aktiviertem NVDA-Zeichenecho `:terminal` und mindestens einen Befehl mit
+Unicode eingeben; jedes Zeichen muss einmal und nicht nur das erste erscheinen.
+In einem Terminalbuffer, dessen Job noch läuft, `:bd` ausführen. Erwartet wird
+die strukturierte `E89`-Erklärung einschließlich Enter-Hinweis; der Job darf
+nicht beendet werden. Enter drücken und danach `:bp` beziehungsweise `:bn`
+ohne anderen gelisteten Buffer ausführen; erwartet wird „no other listed
+buffer“. Mit `:new | terminal` und einem tatsächlich vorhandenen zweiten
+Buffer müssen `:bp` und `:bn` dagegen dorthin wechseln. Dabei nacheinander die
+drei Einstellungen unter `General → Session focus` prüfen: keine Ansage,
+aktuelle Zielzeile beziehungsweise Zielkontext mit Modus und gespeichertem
+Verbindungsnamen. Tab- und Fensterwechsel behalten ihre bisherigen Ansagen;
+der Modusklang bleibt unabhängig von der Fokusauswahl erhalten. Kurzlebige
+Rückkehrmodi dürfen nicht zusätzlich gesprochen werden: Bei „keine Ansage“
+folgt nach dem Bufferbefehl keine Zielausgabe, bei Zeile kein vorangestelltes
+„T“ und bei Kontext keine doppelte Modusansage. `/bn` als Suche darf diese
+Zusammenfassung nicht auslösen.
+Die Zielzeile muss bei unterschiedlichen Cursorpositionen im Ausgangsbuffer
+vollständig identisch bleiben; ein nachfolgendes automatisches Cursorereignis
+darf sie weder verkürzen noch durch ein einzelnes Zielzeichen ersetzen.
+Mit der Kontextwahl zusätzlich zwischen einem geänderten Dateibuffer mit
+kurzem Namen und einem Terminalbuffer in getrennten Neovim-Fenstern sowie Tabs
+wechseln. Pro Wechsel wird genau eine kombinierte Ansage erwartet, zum Beispiel
+`window 1 of 2, file T, modified, normal mode, on Example` beziehungsweise
+`window 2 of 2, terminal-normal mode, on Example`. Weder ein einzelnes `T`
+noch `terminal, terminal mode` oder eine vorangestellte zweite Modusansage ist
+zulässig. Bei `No announcement` und `Current line` muss das bereits geprüfte
+Verhalten unverändert bleiben; der konfigurierte Modusklang bleibt in allen
+drei Varianten unabhängig.
+Eine lokale Neovim-Sitzung in einem gebundenen WT-Control beenden, sodass der
+Transport sichtbar auf `disconnected` wechselt. Danach im selben Control eine
+bereits inventarisierte SSH-Neovim-Sitzung fokussieren und F12 drücken. Die
+Diagnose muss `selected=true`, aber `selectedAuthenticated=false` zeigen und
+anschließend die automatische Auflösung über lokale und SSH-Ziele starten;
+eine lokale `localClaimWaitCompleted`-Sackgasse ohne SSH-Scan ist ein Fehler.
+Ohne die physische F12-Geste darf der Verbindungsabbruch weiterhin nur
+fail-open wirken und keine Sitzung automatisch umbinden.
+
+Praktische Abnahme am 2026-07-17: Die umgesetzten Terminal-, Buffer-, Fenster-
+und Tabpfade sowie die erneute Zuordnung vom beendeten lokalen Neovim zur
+SSH-Sitzung im selben WT-Control funktionierten ohne weitere Probleme;
+bestanden.
+
+Den Shellbefehl `exit` ausführen; erwartet wird eine strukturierte Meldung mit
+Exit-Status. Laufende Shellausgabe muss weiterhin nur über NVDAs native
+Terminalunterstützung kommen. Mit deaktivierter Modus-Sprache bleibt
+Command-line hörbar; mit deaktivierten
+Klängen bleiben Kommandozeilen- und Modusübergänge klanglos. Verbindungsabbruch und ein
+ungebundener Shell-Tab müssen jederzeit native Ausgabe behalten.
+
+Zusätzlich aus einem normalen Dateibuffer `:terminal` ausführen und alle drei
+Fokusvarianten prüfen. Erwartet werden keine Einstiegsausgabe, die erste
+vollständige Terminalzeile beziehungsweise Terminal-Normal-Kontext mit
+Verbindungsname. Dies muss auch bei vertauschter Reihenfolge von
+Terminalkontext und abschließendem Modusereignis gelten. Das automatische
+Cursorereignis darf niemals nur das erste Zeichen dieser Zeile sprechen.
+Danach `i` drücken: genau die vollständige
+Cursorzeile und ein erlaubter Insertklang müssen folgen, ohne gesprochene
+Moduskonkurrenz.
+
+Der isolierte Neovim-0.12-TUI-Test führt außerdem Befehlszeile, gewöhnliche
+UI-Meldung und Suche über den angeschlossenen UI-Protokollpfad aus. Danach muss
+der strukturierte Kanal weiter Ereignisse liefern; `E5560` und ein
+blockierender Enter-Hinweis sind Fehler.
+
 Die beabsichtigte Wirkungslosigkeit in ungebundenen Windows-Terminal-
 Steuerelementen ist automatisiert abgedeckt, aber über die realen Windows-
 Terminal-Layouts noch praktisch abzunehmen. Die praktischen Negativtests

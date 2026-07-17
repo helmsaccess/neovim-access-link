@@ -1,7 +1,54 @@
 # Aktueller Status
 
-Stand: 2026-07-16, Beta-Version 0.92.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-17, Beta-Version 0.92.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
+
+Im Testbuild `0.92.0-dev.11` auf `feature/terminal-file-manager-hardening` sind
+elf Terminal-Hardening-Schritte umgesetzt. Erfolgreiche `:bp`-/`:bn`-
+Bufferwechsel im selben Tab und Fenster verwenden jetzt dieselbe profilfähige
+Auswahl wie der Sitzungsfokus: keine Ansage, aktuelle Zielzeile oder
+Zielkontext mit Modus und gespeichertem Verbindungsnamen. Die Auswertung folgt
+`BufEnter`-basierten `contextChanged`-Ereignissen; ein vorausgehendes
+Modusereignis kann die Ansage nicht verschlucken. Tab-/Fenster-Zielpositionen
+bleiben erhalten; Modusklänge bleiben unabhängig. Kurzlebige gesprochene Rückkehrmodi werden bei
+diesen Bufferbefehlen mit der Zielausgabe zusammengefasst; dadurch bleibt
+„Keine Ansage“ still und weder ein abgebrochenes „T“ noch eine doppelte
+Modusansage überlagert die Zielzeile. Der Ex-Typ wird strukturiert von Suche
+unterschieden. Automatische Cursor- und Änderungsereignisse
+des Zielbuffers überschreiben die Zielzeile nicht und vergleichen keinen Text
+mit dem Ausgangsbuffer. Dasselbe gilt beim Erzeugen eines Terminalbuffers mit
+`:terminal`: Die Fokuswahl steuert den Einstieg, die Zeilenwahl wartet auf die
+erste echte Terminalzeile und das automatische Cursorereignis bleibt stumm.
+Auch eine umgekehrte Reihenfolge von Terminalkontext und abschließendem
+Modusereignis bleibt zusammengefasst; Kommandozeilentext kann nicht als
+Normalmodusbewegung in den neuen Buffer hineinreichen.
+Der Eintritt in direkte Terminaleingabe gibt die vollständige Cursorzeile aus
+und behält den Insertklang. `modeRaw=nt` ist ein eigener
+kanonischer `terminalNormal`-Zustand, Command-line-Echo verwendet die
+UTF-8-Byteposition der Befehlszeile, und ein frei belegbarer, lokal wie über
+SSH fest validierter `stopinsert`-Befehl ersetzt bei Bedarf die
+layoutabhängige Folge `Ctrl+\`, `Ctrl+N`. `TermClose` meldet das Prozessende mit
+Exit-Status. Passthrough wird vor optionaler Rückmeldung fail-open umgestellt;
+Duplikate der Terminal-Kontextereignisse erzeugen keinen zweiten Modusklang.
+Die Kommandozeile besitzt nun einen eigenen Ton; Rückkehr, wirkungslose
+Buffer-Navigation und Neovims `E89` bei `:bd` auf einem laufenden Terminaljob
+werden eindeutig ausgegeben, ohne `:bd!` selbst auszuführen. UI-Meldungen
+werden unter Neovim 0.12 außerhalb des `vim.ui_attach`-Fast-Event-Kontexts
+ausgewertet und erzeugen daher keinen `E5560`-Enter-Zustand.
+Bei Fenster- und Tabwechseln fasst die Kontextwahl nun Zielposition,
+eindeutigen Datei- oder Spezialkontext, Status, Modus und Verbindung in einer
+Ansage zusammen. Dadurch werden `T` als `file T` und Terminalmodi ohne
+doppelte Terminalbezeichnung ausgegeben; Modusklänge bleiben getrennt.
+Eine nach Sitzungsende getrennte, aber noch gemerkte lokale Instanz blockiert
+keine neue SSH-Zuordnung mehr: Nur authentifizierte Bindungen schränken F12
+auf ihren bisherigen Zieltyp ein; sonst wird die ausdrückliche Geste erneut
+gegen das vollständige inventarisierte Zielset aufgelöst.
+Alle 265 Add-on/Core-/Pakettests, 41 Protokolltests, 31 Bridge-/TUI-Tests und
+sämtliche Lua-Spezifikationen bestehen; Add-on und sechs HTML-Dokumente bauen
+erfolgreich. Die umgesetzten Terminal-, Buffer-, Fenster-/Tab- und erneuten
+SSH-Zuordnungspfade wurden praktisch ohne weitere Probleme bestätigt.
+Pager-Sonderfälle und die vollständige negative Windows-Terminal-Matrix bleiben
+weiter zu prüfen.
 
 Auf `feature/copy-paste` sind vier frei belegbare, ausdrücklich ausgelöste
 NVDA-Befehle implementiert: Visual-Auswahl kopieren, Register 0 kopieren,

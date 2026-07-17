@@ -73,6 +73,28 @@ class StdioTransportTests(unittest.TestCase):
         ])
         transport.stop()
 
+    def test_only_exact_terminal_control_is_dispatched(self) -> None:
+        valid = {
+            "requestId": 5, "bufferId": 1, "windowId": 2,
+            "tabpageId": 3, "modeRaw": "t",
+        }
+        controls = b"".join((
+            encode_frame(MessageFactory().create("leaveTerminalInputRequest", valid)),
+            encode_frame(MessageFactory().create("leaveTerminalInputRequest", {
+                **valid, "modeRaw": "n",
+            })),
+        ))
+        dispatched = []
+        transport = StdioTransport(
+            lambda: {}, io.BytesIO(controls), io.BytesIO(),
+            on_control=lambda kind, payload: dispatched.append((kind, payload)),
+            heartbeat_seconds=10.0,
+        )
+        transport.start()
+        self.assertTrue(transport.closed.wait(1.0))
+        self.assertEqual([("leaveTerminalInputRequest", valid)], dispatched)
+        transport.stop()
+
     def test_focus_context_control_correlates_cached_state(self) -> None:
         controls = b"".join(encode_frame(MessageFactory().create(
             "requestFocusContext", {"requestId": value},

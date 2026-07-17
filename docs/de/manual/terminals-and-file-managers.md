@@ -9,10 +9,57 @@ Terminalunterstützung. SSH-Verbindung, Neovim-Sitzung und Aktivierung bleiben
 erhalten. Sobald ein normaler Neovim-Buffer wieder aktiv ist, übernimmt die
 strukturierte Ausgabe automatisch erneut.
 
-Nach `Ctrl+\`, `Ctrl+N` endet der Passthrough im Terminal-Normalmodus. Dort
+Nach `Ctrl+\`, `Ctrl+N` endet der Passthrough im Terminal-Normalmodus. Weil
+diese Folge auf manchen Tastaturlayouts unzuverlässig erreichbar ist, kann
+unter `NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link` zusätzlich
+der Befehl „Direkte Eingabe im aktiven Neovim-Terminal verlassen“ frei belegt
+werden. Er hat absichtlich keine Standardgeste und wirkt ausschließlich auf
+die authentifizierte, an das fokussierte Windows-Terminal-Control gebundene
+Neovim-Terminalinstanz. Dort
 übernimmt wieder die strukturierte Neovim-Ausgabe, damit Navigation,
 Visual-Auswahl und Kopierbefehle zugänglich sind. Mit `i` beginnt erneut die
 direkte Terminalsteuerung und damit der native Passthrough.
+
+Der Beginn der direkten Terminalsteuerung verwendet denselben Fokusklang wie
+der Insert-Modus. Der Wechsel von Terminal- in Terminal-Normalmodus verwendet
+den Normalmodusklang. Beide Klänge folgen der Einstellung „Insert and normal
+mode changes“. Die Freigabe beziehungsweise erneute Aktivierung der nativen
+Terminalausgabe erfolgt vor dieser optionalen Rückmeldung.
+
+Der frei belegbare Ausstiegsbefehl beendet nur die direkte Terminaleingabe. Er
+beendet weder den Shellprozess noch den Terminalbuffer. `:bd` verweigert
+Neovim bei einem laufenden Terminaljob mit `E89`; das Add-on nennt den Grund
+vor Neovims anschließendem Enter-Hinweis. Erst `:bd!` beendet den Job
+absichtlich und darf deshalb nicht automatisch ausgeführt werden. `:bp` und
+`:bn` wechseln nur zwischen bereits vorhandenen gelisteten Buffern. Hat
+`:terminal` den einzigen leeren Buffer ersetzt, meldet das Add-on, dass kein
+anderer gelisteter Buffer vorhanden ist. Wer sicher zurückwechseln möchte,
+öffnet das Terminal beispielsweise mit `:new | terminal` in einem eigenen
+Buffer.
+
+## Neovim-Kommandozeile und Meldungen
+
+Beim Öffnen der Neovim-Kommandozeile mit `:` wird „command-line mode“
+gesprochen und ein kurzer mittlerer Ton abgespielt. Der Rückweg aus der
+Kommandozeile im Terminalkontext verwendet den Normalmodusklang. Bei `:bp`,
+`:bn` und ihren ausgeschriebenen Varianten werden kurzlebige gesprochene
+Rückkehrmodi nicht zusätzlich vor die unter „Session focus“ gewählte
+Zielausgabe gestellt. Der Klang bleibt erhalten; „Keine Ansage“ bleibt still.
+Eingabe,
+Fehler und die nach Ausführung angezeigten gewöhnlichen
+Neovim-Meldungen werden strukturiert übernommen; Meldungen erscheinen außerdem
+kurz auf Braille. Die native Ausgabe einer eingebetteten Shell wird davon nicht
+abgeleitet oder ausgewertet. Wenn der Terminalprozess endet, meldet das Add-on
+Neovims strukturiertes `TermClose` einschließlich Exit-Status. Shellausgabe
+während des Prozesses bleibt weiterhin ausschließlich native Terminalausgabe.
+
+`:terminal` erzeugt einen neuen Terminalbuffer und verwendet dafür die unter
+„Session focus“ gewählte Einstiegsansage. Bei Zeilenausgabe wartet das Add-on
+ereignisgetrieben auf die erste echte Terminalzeile. Das folgende automatische
+Cursorereignis wird nicht als einzelnes Anfangszeichen wiederholt. Mit `i`
+beginnt die direkte Terminaleingabe; dabei wird die vollständige aktuelle
+Cursorzeile gesprochen und anschließend native Terminalausgabe fail-open
+freigegeben.
 
 ## Unterstützte Dateimanager
 

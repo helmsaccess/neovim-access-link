@@ -74,22 +74,42 @@ Rechtschreibung, Braille oder Vorschlagsmeldungen.
 
 ### Gruppe Session focus
 
-#### When focusing a Neovim session
+#### When focusing or changing buffers in a Neovim session
 
 Steuert die zusätzliche Ausgabe, nachdem ein gebundenes Neovim-Control erneut
-Fokus erhalten hat und die Sitzung strukturiert bestätigt wurde:
+Fokus erhalten hat und die Sitzung strukturiert bestätigt wurde. Dieselbe
+Auswahl gilt bei einem tatsächlichen Bufferwechsel im bestehenden Fenster,
+beispielsweise nach `:bp` oder `:bn`:
 
 | Auswahl | Wirkung |
 | --- | --- |
-| `No announcement` | Keine zusätzliche Fokusansage. |
+| `No announcement` | Keine zusätzliche Fokus- oder Bufferwechselansage. |
 | `Current line` | Die aktuelle strukturierte Zeile oder „blank“. |
-| `Current context, mode and connection name` | Datei beziehungsweise Spezialkontext, Modus und gespeicherter Verbindungsname wie bisher. |
+| `Current context, mode and connection name` | Datei beziehungsweise Spezialkontext, Änderungs-/Schreibschutzstatus, Modus und gespeicherter Verbindungsname. |
 
-Der letzte Wert ist Standard. Die Auswahl ändert nur diese Fokusansage und
-deren vorübergehende Braillemeldung. Die strukturierte Braillezeile und die
+Der letzte Wert ist Standard. Die Auswahl ändert nur diese Fokus- und
+Bufferwechselansage sowie deren vorübergehende Braillemeldung. Bei Tab- und
+Fensterwechseln bleibt die Zielposition erhalten; der Kontextwert fasst sie
+mit Ziel, Status, Modus und Verbindung in genau einer Ansage zusammen. Ein
+kurzer Dateiname wird eindeutig als `file T` ausgegeben. Ein Terminal nennt
+je nach Zustand nur `terminal mode` oder `terminal-normal mode`, nicht doppelt
+`terminal, terminal mode`. Die strukturierte Braillezeile und die
 sichere Sitzungsbestätigung bleiben immer aktiv. Beim bestätigten Fokus werden
-für Insert- und Normalmodus außerdem die Modusklänge ausgegeben, sofern
+für Insert-, direkte Terminaleingabe und Normalmodus außerdem die Modusklänge ausgegeben, sofern
 `Global action feedback` und `Insert and normal mode changes` Klänge erlauben.
+Auch Moduswechsel beim Buffer-, Fenster- oder Tabwechsel verwenden weiterhin
+unabhängig davon die vorhandenen Modusklänge. Bei `:bp`/`:bn` werden kurzlebige gesprochene
+Rückkehrmodi in die gewählte Zielausgabe einbezogen: `No announcement` bleibt
+still, `Current line` erhält kein vorangestelltes Modusfragment und der
+Kontextwert enthält den Zielmodus bereits. Der Eintritt in die Kommandozeile
+bleibt hörbar.
+
+Die Auswahl gilt auch beim Erzeugen eines Terminalbuffers mit `:terminal`.
+Bei `Current line` wartet das Add-on auf die erste tatsächliche Terminalzeile,
+statt zunächst „blank“ und danach nur deren erstes Zeichen auszugeben. Beim
+anschließenden Eintritt in direkte Terminaleingabe mit `i` wird unabhängig von
+dieser Einstiegswahl die vollständige Zeile am Terminalcursor gesprochen; der
+Insert-/Fokusklang folgt weiterhin den Feedbackeinstellungen.
 
 ## Registerkarte Feedback
 
@@ -99,10 +119,10 @@ zusätzlich durch `Global action feedback` begrenzt.
 
 ### Insert and normal mode changes
 
-Steuert die Add-on-Rückmeldung beim Wechsel zwischen Insert Mode und Normal
-Mode. Sprache nennt den neuen Modus; die Klangkomponente verwendet kurze,
+Steuert die Add-on-Rückmeldung beim Wechsel zwischen Insert Mode, direkter
+Terminaleingabe, Terminal-Normal, Command-line und Normal Mode. Sprache nennt den neuen Modus; die Klangkomponente verwendet kurze,
 bereits beim Add-on-Start in den Arbeitsspeicher geladene Modusklänge.
-Dieselben Klänge bestätigen auch den aktuellen Insert- oder Normalmodus beim
+Dieselben Klänge bestätigen auch den aktuellen Insert-, Terminal- oder Normalmodus beim
 erneuten Fokus einer gebundenen Sitzung.
 
 Der Wechsel von Insert nach Normal unterbricht eine noch laufende gewöhnliche
@@ -110,8 +130,8 @@ Navigationsausgabe, damit die Modusrückmeldung nicht hinter veraltetem Text
 wartet.
 
 Gültigkeitsbereich: Diese Einstellung gilt für die häufigen Wechsel zwischen
-Insert und Normal. Andere wichtige Modi wie Visual, Command-line, Replace oder
-Terminal bleiben aus Gründen der sicheren Orientierung sprachlich zugänglich
+Insert beziehungsweise direkter Terminaleingabe, Command-line und Normal/Terminal-Normal. Andere wichtige
+Modi wie Visual oder Replace bleiben aus Gründen der sicheren Orientierung sprachlich zugänglich
 und werden nicht vollständig durch diesen Schalter verborgen.
 
 ### Deleting text
@@ -150,6 +170,12 @@ werden abgewiesen. Der Registerbefehl verändert keinen Buffer. Er ersetzt
 Register 0 und lässt das unbenannte Register darauf zeigen; normales `p` und
 `"0p` verwenden danach den übertragenen Text. Lokal und über SSH gilt dasselbe
 Verhalten.
+
+Der ebenfalls frei belegbare Befehl „Direkte Eingabe im aktiven
+Neovim-Terminal verlassen“ ist von den Zwischenablagebefehlen unabhängig. Er
+ersetzt bei Bedarf die layoutabhängige Neovim-Folge `Ctrl+\`, `Ctrl+N`, besitzt
+keine Standardgeste und wird nur in direkter Eingabe eines exakt gebundenen
+Terminalbuffers gesendet.
 
 Der Ersetzungsklang unterscheidet sich vom Löschklang. Nachfolgende Navigation
 oder Texteingabe wird nicht fälschlich als Teil des vorherigen Operators

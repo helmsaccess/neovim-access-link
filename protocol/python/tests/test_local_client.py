@@ -126,6 +126,32 @@ class LocalTcpClientTests(unittest.TestCase):
         self.assertIn("request_set_register", source.notifications[2][1][0])
         self.assertEqual("controlRejected", diagnostics[-1][0])
 
+    def test_terminal_control_is_a_fixed_validated_rpc_call(self) -> None:
+        client, source, _events, _states, diagnostics = self.make_client()
+        payload = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "modeRaw": "t", "requestId": 5,
+        }
+        self.assertTrue(client.send_control("leaveTerminalInputRequest", payload))
+        self.assertFalse(client.send_control("leaveTerminalInputRequest", {
+            **payload, "modeRaw": "n",
+        }))
+        self.assertEqual("nvim_exec_lua", source.notifications[0][0])
+        self.assertIn("request_leave_terminal_input", source.notifications[0][1][0])
+        self.assertEqual("controlRejected", diagnostics[-1][0])
+
+    def test_terminal_control_result_fields_never_enter_cached_full_state(self) -> None:
+        client, source, events, _states, _diagnostics = self.make_client()
+        source.on_event("fullState", {"mode": "terminal", "bufferId": 1})
+        source.on_event("leaveTerminalInputResult", {
+            "mode": "terminalNormal", "bufferId": 1, "requestId": 7,
+            "ok": True, "resultCode": "ok",
+        })
+        self.assertTrue(client.send_control("requestFullState", {}))
+        self.assertEqual("terminalNormal", events[-1]["payload"]["mode"])
+        self.assertNotIn("requestId", events[-1]["payload"])
+        self.assertNotIn("resultCode", events[-1]["payload"])
+
     def test_clipboard_result_text_never_enters_cached_full_state(self) -> None:
         client, source, events, _states, _diagnostics = self.make_client()
         source.on_event("fullState", {"mode": "visualCharacter", "bufferId": 1})
