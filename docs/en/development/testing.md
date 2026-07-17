@@ -42,12 +42,18 @@ setup and that mismatch disconnects without a reconnect loop.
 Isolated local and Tessa SIGKILL tests must leave discovery empty
 without touching existing user Neovim or tmux sessions.
 
-The Neovim file-manager specification now contains 27 assertions. Its adapter
+The Neovim file-manager specification now contains 62 assertions. Its adapter
 cases enforce the 512-byte name and 2048-byte path/root budgets at exact and
 split UTF-8 boundaries. Two-/three-byte characters and four-byte emoji must be
 kept or omitted as complete code points. Invalid byte sequences discard only
 the affected optional field where possible and must never produce invalid
-transport text.
+transport text. Public mini.files, nvim-tree, and Neo-tree event stubs also
+cover same-entry reevaluation, deduplication, rapid-event coalescing, and
+inactive buffer/window rejection. Public action stubs cover success, an Oil
+failure, synchronous batching, basename minimization, and dropping output
+after a manager change. Speech tests distinguish mark, unmark, Copy, Cut,
+clipboard clear, and expansion plus typed action success, cancellation, and
+failure.
 
 ## Copy/paste feature-branch acceptance
 

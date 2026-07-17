@@ -3,15 +3,27 @@
 Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
-Test build `0.93.0-dev.1` implements the first file-manager item left open by
-the terminal-analysis comparison. Names, paths, roots, types, and external
+Test build `0.93.0-dev.3` implements the first four file-manager items left
+open by the terminal-analysis comparison. Names, paths, roots, types, and external
 adapter labels remain bounded in bytes for the protocol budget, but only at
 validated UTF-8 code-point boundaries. Invalid adapter output is discarded per
-field. Two-/three-byte characters, emoji, long paths, and invalid byte
-sequences are covered by 27 file-manager assertions, and all Lua
-specifications pass. Public plugin events for same-entry changes, distinct
-mark/copy/cut semantics, action
-results, and real plugin/Braille tests remain the next file-manager phases.
+field. A separate event-only layer subscribes to public Oil, nvim-tree,
+Neo-tree, and mini.files events, rereads only the active semantic state, and
+deduplicates it while coalescing render bursts in one scheduler cycle. Marks,
+Copy, and Cut are distinct fixed values; same-entry changes including unmark
+and clipboard clear are explicit in speech and planned Braille messages.
+Typed action results complement file-manager state. mini.files, nvim-tree, and
+Neo-tree provide confirmed successes; Oil also exposes public completion
+errors and detectable cancellations. Only basenames, fixed values, and a
+coalesced count are sent, while an intervening buffer/window/tab/manager change
+drops output. Sixty-two file-manager assertions and speech regressions pass.
+Plugin paths without public failure/cancellation events are not guessed. Real
+plugin versions, prompt/cancellation matrices, and hardware Braille remain the
+next phases; the new path adds no polling and awaits the later grouped
+practical test.
+All 267 add-on/core/package tests, 41 protocol tests, 31 bridge/TUI tests, and
+all Lua specifications pass; the add-on and six HTML documents build
+reproducibly for `dev.3`.
 
 Test build `0.92.0-dev.11` on branch `feature/terminal-file-manager-hardening`
 implements eleven focused hardening steps. Successful `:bp`/`:bn` buffer

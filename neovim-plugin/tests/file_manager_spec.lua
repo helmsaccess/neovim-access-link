@@ -40,6 +40,7 @@ equal("file", file.entry.type, "file metadata")
 equal(8, file.entry.size, "file size")
 vim.fn.matchadd("netrwMarkFile", "item\\.txt")
 equal(true, manager.current().entry.marked, "netrw marked metadata")
+equal("marked", manager.current().entry.selectionState, "netrw mark semantics")
 
 move_to("link@")
 equal("symbolicLink", manager.current().entry.type, "link metadata")
@@ -76,6 +77,7 @@ local nvim_tree = manager.current()
 equal("directory", nvim_tree.entry.type, "nvim-tree public API")
 equal(true, nvim_tree.entry.expanded, "nvim-tree expanded directory")
 equal(true, nvim_tree.entry.marked, "nvim-tree public bookmark API")
+equal("marked", nvim_tree.entry.selectionState, "nvim-tree bookmark semantics")
 equal("/" .. string.rep("r", 2046), nvim_tree.root, "nvim-tree root normalized centrally")
 package.loaded["nvim-tree.api"] = nil
 
@@ -90,6 +92,7 @@ end }
 local neo_tree = manager.current()
 equal("symbolicLink", neo_tree.entry.type, "neo-tree public state")
 equal(true, neo_tree.entry.marked, "neo-tree clipboard metadata")
+equal("copied", neo_tree.entry.clipboardState, "neo-tree copy semantics")
 equal("/" .. string.rep("r", 2046), neo_tree.root, "neo-tree root normalized centrally")
 package.loaded["neo-tree.sources.manager"] = nil
 
@@ -148,6 +151,181 @@ manager.register("invalid-utf8", function() return true end, function()
 end)
 equal(nil, manager.current().entry, "invalid UTF-8 entry discarded")
 manager.unregister("invalid-utf8")
+
+local normalized_action = manager.normalize_action({
+  manager = "tree", action = "copy", result = "success", count = 99999,
+  name = "item.txt", entryType = "file",
+})
+equal("copy", normalized_action.action, "action allowlist accepts copy")
+equal("success", normalized_action.result, "result allowlist accepts success")
+equal(10000, normalized_action.count, "action count is bounded")
+equal(nil, manager.normalize_action({
+  manager = "tree", action = "execute", result = "success",
+}), "unknown action rejected")
+equal(nil, manager.normalize_action({
+  manager = "tree", action = "copy", result = "maybe",
+}), "unknown result rejected")
+equal(nil, manager.normalize_action({
+  manager = "tree" .. string.char(0xff), action = "copy", result = "success",
+}), "invalid UTF-8 manager rejected")
+
+local event_layer = require("nvim_nvda.file_manager_events")
+local event_group = vim.api.nvim_create_augroup("NvimNvdaFileManagerSpec", { clear = true })
+local event_state = {
+  name = "event-manager", root = "/events",
+  entry = {
+    name = "same", path = "/events/same", type = "file",
+    selectionState = "unmarked",
+  },
+}
+manager.register("event-manager", function() return true end, function() return event_state end)
+local publications = {}
+local action_publications = {}
+event_layer.setup(
+  function(reason) table.insert(publications, reason) end,
+  function(action) table.insert(action_publications, action) end,
+  event_group
+)
+event_layer.observe(manager.current())
+
+local function wait_for_publications(count)
+  assert(vim.wait(200, function() return #publications == count end), "missing event publication")
+end
+
+local function wait_for_actions(count)
+  assert(vim.wait(200, function() return #action_publications == count end), "missing action")
+end
+
+event_state.entry.selectionState = "marked"
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MiniFilesBufferUpdate", modeline = false,
+  data = { buf_id = vim.api.nvim_get_current_buf() },
+})
+wait_for_publications(1)
+equal("MiniFilesBufferUpdate", publications[1], "mini.files update published")
+
+vim.api.nvim_exec_autocmds("User", { pattern = "MiniFilesBufferUpdate", modeline = false })
+vim.wait(20)
+equal(1, #publications, "unchanged semantic state suppressed")
+
+event_state.entry.selectionState = "unmarked"
+event_state.name = "mini.files"
+vim.api.nvim_exec_autocmds("User", { pattern = "MiniFilesBufferUpdate", modeline = false })
+vim.api.nvim_exec_autocmds("User", { pattern = "MiniFilesBufferUpdate", modeline = false })
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MiniFilesActionRename", modeline = false,
+  data = { action = "rename", from = "/private/old.txt", to = "/private/new.txt" },
+})
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MiniFilesActionRename", modeline = false,
+  data = { action = "rename", from = "/private/two.txt", to = "/private/second.txt" },
+})
+wait_for_publications(2)
+equal(2, #publications, "rapid semantic updates coalesced")
+wait_for_actions(1)
+equal("rename", action_publications[1].action, "mini.files action type")
+equal("success", action_publications[1].result, "mini.files action result")
+equal(2, action_publications[1].count, "mini.files actions coalesced")
+equal(nil, action_publications[1].name, "batch action omits private paths")
+
+event_state.entry.selectionState = "marked"
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MiniFilesBufferUpdate", modeline = false,
+  data = { buf_id = vim.api.nvim_get_current_buf() + 999 },
+})
+vim.wait(20)
+equal(2, #publications, "inactive mini.files buffer ignored")
+
+local nvim_tree_callbacks = {}
+package.loaded["nvim-tree.api"] = {
+  events = {
+    Event = {
+      TreeRendered = "TreeRendered", NodeRenamed = "NodeRenamed",
+      FileCreated = "FileCreated", FileRemoved = "FileRemoved",
+      FolderCreated = "FolderCreated", FolderRemoved = "FolderRemoved",
+    },
+    subscribe = function(event, callback) nvim_tree_callbacks[event] = callback end,
+  },
+}
+vim.api.nvim_exec_autocmds("FileType", { pattern = "NvimTree", modeline = false })
+equal("function", type(nvim_tree_callbacks.TreeRendered), "nvim-tree event subscribed")
+equal("function", type(nvim_tree_callbacks.NodeRenamed), "nvim-tree action subscribed")
+event_state.name = "nvim-tree"
+nvim_tree_callbacks.TreeRendered({
+  bufnr = vim.api.nvim_get_current_buf(), winnr = vim.api.nvim_get_current_win(),
+})
+wait_for_publications(3)
+equal("NvimTreeTreeRendered", publications[3], "nvim-tree render published")
+nvim_tree_callbacks.NodeRenamed({ old_name = "/private/old", new_name = "/private/new" })
+wait_for_actions(2)
+equal("rename", action_publications[2].action, "nvim-tree rename action")
+equal("new", action_publications[2].name, "nvim-tree sends basename only")
+package.loaded["nvim-tree.api"] = nil
+
+local neo_tree_callbacks = {}
+package.loaded["neo-tree.events"] = {
+  AFTER_RENDER = "after_render",
+  NEO_TREE_CLIPBOARD_CHANGED = "clipboard_changed",
+  FILE_ADDED = "file_added",
+  FILE_DELETED = "file_deleted",
+  FILE_MOVED = "file_moved",
+  FILE_RENAMED = "file_renamed",
+  FILE_RESTORED = "file_restored",
+  unsubscribe = function(handler) neo_tree_callbacks[handler.event] = nil end,
+  subscribe = function(handler) neo_tree_callbacks[handler.event] = handler.handler end,
+}
+vim.api.nvim_exec_autocmds("FileType", { pattern = "neo-tree", modeline = false })
+equal("function", type(neo_tree_callbacks.after_render), "neo-tree render subscribed")
+equal("function", type(neo_tree_callbacks.clipboard_changed), "neo-tree clipboard subscribed")
+equal("function", type(neo_tree_callbacks.file_moved), "neo-tree action subscribed")
+event_state.name = "neo-tree"
+event_state.entry.selectionState = "unmarked"
+neo_tree_callbacks.after_render({
+  bufnr = vim.api.nvim_get_current_buf(), winid = vim.api.nvim_get_current_win(),
+})
+wait_for_publications(4)
+equal("NeoTreeAfterRender", publications[4], "neo-tree render published")
+event_state.entry.clipboardState = "copied"
+neo_tree_callbacks.clipboard_changed({ state = {
+  bufnr = vim.api.nvim_get_current_buf(), winid = vim.api.nvim_get_current_win(),
+} })
+wait_for_publications(5)
+equal("NeoTreeClipboardChanged", publications[5], "neo-tree clipboard published")
+neo_tree_callbacks.file_moved({ source = "/private/from", destination = "/private/to" })
+wait_for_actions(3)
+equal("move", action_publications[3].action, "neo-tree move action")
+equal("to", action_publications[3].name, "neo-tree sends basename only")
+
+event_state.name = "oil"
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "OilActionsPost", modeline = false,
+  data = { actions = {
+    { type = "copy", src_url = "oil:///private/a", dest_url = "oil:///private/a-copy" },
+    { type = "copy", src_url = "oil:///private/b", dest_url = "oil:///private/b-copy" },
+  } },
+})
+wait_for_actions(4)
+equal("copy", action_publications[4].action, "Oil action type")
+equal(2, action_publications[4].count, "Oil action count")
+equal(nil, action_publications[4].name, "Oil batch omits private paths")
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "OilActionsPost", modeline = false,
+  data = { err = "operation failed", actions = {
+    { type = "delete", url = "oil:///private/locked.txt", entry_type = "file" },
+  } },
+})
+wait_for_actions(5)
+equal("failed", action_publications[5].result, "Oil failure is typed")
+equal("locked.txt", action_publications[5].name, "Oil failure sends basename only")
+
+event_state.name = "neo-tree"
+neo_tree_callbacks.file_deleted("/private/inactive.txt")
+event_state.name = "event-manager"
+vim.wait(20)
+equal(5, #action_publications, "action dropped after manager focus changed")
+package.loaded["neo-tree.events"] = nil
+manager.unregister("event-manager")
+vim.api.nvim_del_augroup_by_id(event_group)
 
 vim.fn.delete(directory, "rf")
 print(string.format("file manager tests: %d assertions passed", assertions))

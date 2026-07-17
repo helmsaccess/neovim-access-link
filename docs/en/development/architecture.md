@@ -28,6 +28,32 @@ authenticated, and bound instance. One-shot copied text is removed before the
 client or bridge updates canonical state. The path is event driven and uses no
 polling, automatic clipboard synchronization, or automatic retry.
 
+## Event-driven file-manager adapters
+
+`file_manager.lua` obtains and normalizes the current semantic entry. The
+separate `file_manager_events.lua` layer subscribes only to public supported
+plugin events: `OilMutationComplete`, mini.files buffer/action events,
+nvim-tree `TreeRendered`, and Neo-tree render/clipboard events. A callback
+rereads only the still-active buffer or window through the adapter. One
+central comparison drops equal state, while callbacks in one Neovim scheduler
+cycle cause at most one reread. Missing or incompatible plugin APIs fail open
+to existing navigation. There are no timer queries, filesystem polling, or
+screen scraping.
+
+State distinguishes selection marks, the plugin clipboard's Copy/Cut state,
+and expansion. The plugin sends only fixed values; NVDA plans same-entry
+deltas as one compact speech and Braille message. This layer changes neither
+terminal binding, gating, nor native output.
+
+Public completion events are normalized separately as
+`fileManagerActionResult`. Source and destination paths are reduced to an
+optional basename before transport, while action, result, and type come from
+small allowlists. Synchronous bulk actions in one target are combined within
+one scheduler cycle. Buffer, window, tab, and manager are checked again before
+output. Of the currently checked APIs, only Oil also exposes completion errors
+and some detectable cancellations; a missing failure event in another plugin
+is not guessed.
+
 NVDA therefore lists configurable commands even when Input Gestures is opened
 from another application. On invocation, the global adapter reads focus once
 and delegates only for a complete, allowed Windows Terminal `TermControl`

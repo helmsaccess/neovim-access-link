@@ -5,6 +5,42 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.3 (Featurebranch-Testbuild)
+
+- Das neue Ereignis `fileManagerActionResult` überträgt ausschließlich
+  fest typisierte Aktion, Ergebnis, Anzahl, optionalen Basename und optionalen
+  Eintragstyp. Vollständige lokale, SSH- oder virtuelle Pfade verlassen die
+  Plugin-Ereignisschicht nicht. Erfolgreiche Aktionen stammen aus öffentlichen
+  mini.files-, nvim-tree- und Neo-tree-Ereignissen; Oil liefert über
+  `OilActionsPost` zusätzlich Fehler und dort erkennbare Abbrüche.
+- Mehrere synchrone Aktionen im selben aktiven Buffer/Fenster werden innerhalb
+  eines Schedulerzyklus zusammengefasst. Wechselt Buffer, Fenster, Tab oder
+  Dateimanager vor der Ausgabe, wird das Ergebnis verworfen. Fehlende
+  Fehler-/Abbruchereignisse anderer Plugins werden nicht aus Rendern oder Text
+  geraten.
+- Sprache und Braille melden kompakt erstellt, hinzugefügt, umbenannt,
+  kopiert, verschoben, gelöscht, geändert oder wiederhergestellt. Fehler
+  unterbrechen mit hoher Priorität; Abbrüche bleiben Statusmeldungen. 62
+  Lua-Assertions und eigene Speech-Regressionen decken Erfolg, Fehler,
+  Bündelung, Pfadminimierung und Fokuswechsel ab.
+
+## 0.93.0-dev.2 (Featurebranch-Testbuild)
+
+- Eine getrennte Dateimanager-Ereignisschicht abonniert öffentliche
+  Zustandsereignisse von Oil, nvim-tree, Neo-tree und mini.files. Sie liest
+  danach ausschließlich den aktiven Buffer beziehungsweise das aktive Fenster
+  über die bestehende semantische Adapter-API neu ein, fasst schnelle
+  Renderfolgen innerhalb eines Neovim-Schedulerzyklus zusammen und sendet nur
+  echte Zustandsänderungen. Es gibt weder Timerabfrage noch Dateisystempolling.
+- Markierung und Dateimanager-Clipboard sind getrennte, fest begrenzte
+  Zustände. Änderungen am selben Eintrag melden nun markiert, Markierung
+  aufgehoben, kopiert, ausgeschnitten, Clipboard geleert sowie geöffnet oder
+  geschlossen; Neo-tree-Copy/Cut wird nicht mehr als allgemeines „markiert“
+  gesprochen.
+- 40 Lua-Assertions prüfen öffentliche Ereignisattrappen, Deduplizierung,
+  Zusammenfassung und die Abweisung inaktiver Buffer/Fenster. Speech-Tests
+  prüfen vollständige Einträge und die Zustandsdifferenzen.
+
 ## 0.93.0-dev.1 (Featurebranch-Testbuild)
 
 - Eingebaute und externe Dateimanageradapter begrenzen Namen auf 512 Byte sowie

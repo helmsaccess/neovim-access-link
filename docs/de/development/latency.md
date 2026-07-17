@@ -25,6 +25,15 @@ Der externe RPC-Test lief über SSH außerhalb der Sandbox auf demselben
 Zielsystem. Die sechs synchronen Roundtrips sind ein konservativer Basisfall;
 ein produktiver Client bündelt Aufrufe oder verwendet Push-Ereignisse.
 
+Dateimanager-Renderereignisse werden ohne Warte-Timer innerhalb genau eines
+Neovim-Schedulerzyklus zusammengefasst. Danach wird der aktive Adapterzustand
+einmal gelesen und nur bei einer echten semantischen Änderung gesendet.
+Inaktive Ziele werden vor und nach dem Schedulerwechsel verworfen. Es gibt
+keine periodische Adapter- oder Dateisystemabfrage.
+Synchrone Aktionsresultate desselben aktiven Ziels verwenden denselben
+Schedulerzyklus zur Bündelung. Das ist kein Wartefenster: Nach Ablauf dieses
+Zyklus wird sofort genau eine typisierte Sammelmeldung geplant.
+
 ## Serialisierung
 
 | Format | n | Bytes | Encode Median | Decode Median |

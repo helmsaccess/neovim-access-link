@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.93.0-dev.3 (feature-branch test build)
+
+- The new `fileManagerActionResult` event carries only a fixed action, result,
+  count, optional basename, and optional entry type. Complete local, SSH, or
+  virtual paths never leave the plugin event layer. Successful actions come
+  from public mini.files, nvim-tree, and Neo-tree events; Oil additionally
+  exposes errors and detectable cancellations through `OilActionsPost`.
+- Multiple synchronous actions in the same active buffer/window are combined
+  within one scheduler cycle. A buffer, window, tab, or manager change before
+  output drops the result. Missing error/cancellation events in other plugins
+  are not inferred from rendering or text.
+- Speech and Braille compactly report create, add, rename, copy, move, delete,
+  change, or restore. Failures interrupt at critical priority while
+  cancellation remains status output. Sixty-two Lua assertions and dedicated
+  speech regressions cover success, failure, batching, path minimization, and
+  focus changes.
+
+## 0.93.0-dev.2 (feature-branch test build)
+
+- A separate file-manager event layer subscribes to public state events from
+  Oil, nvim-tree, Neo-tree, and mini.files. It then rereads only the active
+  buffer or window through the existing semantic adapter API, coalesces rapid
+  render bursts within one Neovim scheduler cycle, and sends only real state
+  changes. It uses neither timer queries nor filesystem polling.
+- Selection marks and the file-manager clipboard are distinct fixed states.
+  Same-entry changes now report marked, unmarked, copied, cut, clipboard
+  cleared, expanded, or collapsed; Neo-tree Copy/Cut is no longer spoken as
+  the generic “marked”.
+- Forty Lua assertions cover public event stubs, deduplication, coalescing, and
+  inactive buffer/window rejection. Speech tests cover complete entries and
+  state deltas.
+
 ## 0.93.0-dev.1 (feature-branch test build)
 
 - Built-in and external file-manager adapters now centrally bound names to 512

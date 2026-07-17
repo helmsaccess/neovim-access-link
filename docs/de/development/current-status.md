@@ -3,15 +3,31 @@
 Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
-Im Testbuild `0.93.0-dev.1` ist der erste nach dem Terminal-Abgleich offene
-Dateimanagerpunkt umgesetzt. Namen, Pfade, Wurzeln, Typen und externe
+Im Testbuild `0.93.0-dev.3` sind die ersten vier nach dem Terminal-Abgleich
+offenen Dateimanagerpunkte umgesetzt. Namen, Pfade, Wurzeln, Typen und externe
 Adapterbezeichnungen werden weiterhin nach Protokollbudget in Bytes begrenzt,
 aber nur noch an validierten UTF-8-Codepointgrenzen. Ungültiger Adapteroutput
 wird feldweise verworfen. Zwei-/Dreibytezeichen, Emoji, lange Pfade und
-ungültige Bytefolgen sind in nun 27 Dateimanagerassertionen abgedeckt; alle
-Lua-Spezifikationen bestehen. Öffentliche Pluginereignisse für Änderungen am
-selben Eintrag, getrennte Markierungs-/Copy-/Cut-Semantik, Aktionsresultate und
-reale Plugin-/Brailletests bleiben die nächsten Dateimanagerphasen.
+ungültige Bytefolgen bleiben abgedeckt. Eine getrennte, ausschließlich
+ereignisgetriebene Schicht abonniert öffentliche Oil-, nvim-tree-, Neo-tree-
+und mini.files-Ereignisse, liest danach nur den aktiven semantischen Zustand
+neu ein, dedupliziert ihn und fasst Renderfolgen in einem Schedulerzyklus
+zusammen. Markierung, Copy und Cut sind getrennte Festwerte; Änderungen am
+selben Eintrag einschließlich Entmarkieren und Clipboard-Leeren werden
+ausdrücklich gesprochen und als Braillemeldung geplant. Typisierte
+Aktionsresultate ergänzen diese Dateimanagerzustände. mini.files, nvim-tree und
+Neo-tree liefern bestätigte Erfolge; Oil
+liefert auch öffentliche Abschlussfehler und erkennbare Abbrüche. Nur
+Basename, Festwerte und zusammengefasste Anzahl werden übertragen; ein
+zwischenzeitlicher Buffer-/Fenster-/Tab-/Managerwechsel verwirft die Ausgabe.
+62 Dateimanagerassertionen sowie Speech-Regressionen bestehen. Pluginpfade
+ohne öffentliche Fehler-/Abbruchereignisse werden nicht geraten. Reale
+Pluginversionen, Prompt-/Abbruchmatrizen und Hardware-Braille bleiben nächste
+Phasen; der neue Pfad führt kein Polling ein und wartet noch auf den später
+gebündelten Praxistest.
+Alle 267 Add-on-/Core-/Pakettests, 41 Protokolltests, 31 Bridge-/TUI-Tests und
+sämtliche Lua-Spezifikationen bestehen; Add-on und sechs HTML-Dokumente werden
+für `dev.3` reproduzierbar gebaut.
 
 Im Testbuild `0.92.0-dev.11` auf `feature/terminal-file-manager-hardening` sind
 elf Terminal-Hardening-Schritte umgesetzt. Erfolgreiche `:bp`-/`:bn`-

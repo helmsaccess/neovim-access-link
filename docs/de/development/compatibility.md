@@ -69,6 +69,12 @@ Dateimanager-Unterstützung verwendet die öffentlichen APIs der zum 12. Juli
 2026 geprüften Hauptzweige von Oil, nvim-tree, Neo-tree und mini.files. Adapter
 werden nur geladen, wenn der jeweilige Dateimanagerbuffer aktiv ist. netrw wird
 mit der in Neovim 0.10.1 enthaltenen Version 173 geprüft.
+Die am 17. Juli 2026 erneut geprüfte Ereignisschicht verwendet
+`OilMutationComplete`, mini.files-User-Autocmds, nvim-trees öffentliches
+`api.events` und Neo-trees öffentliches Ereignismodul. Fehlt ein Ereignis oder
+ändert ein Plugin seine öffentliche API inkompatibel, bleibt die normale
+cursorbasierte Adapterausgabe fail-open erhalten; es wird kein Polling als
+Ersatz gestartet.
 
 Details der Quellprüfung: `nvda-2026.1-api-notes.md`.
 

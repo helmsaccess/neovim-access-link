@@ -5,6 +5,13 @@ local type_names = {
   file = "file", dir = "directory", link = "symbolicLink", socket = "socket",
   fifo = "fifo", char = "characterDevice", block = "blockDevice",
 }
+local selection_states = { marked = true, unmarked = true }
+local clipboard_states = { copied = true, cut = true, none = true }
+local action_names = {
+  add = true, change = true, copy = true, create = true, delete = true,
+  move = true, multiple = true, rename = true, restore = true,
+}
+local action_results = { success = true, cancelled = true, failed = true }
 
 local function utf8_sequence_length(value, offset)
   local first = value:byte(offset)
@@ -67,11 +74,16 @@ local function normalize_entry(entry)
   if type(entry) ~= "table" then return nil end
   local name = bounded(entry.name, 512)
   if name == "" then return nil end
+  local selection_state = selection_states[entry.selectionState] and entry.selectionState or nil
+  local clipboard_state = clipboard_states[entry.clipboardState] and entry.clipboardState or nil
   return {
     name = name,
     path = bounded(entry.path, 2048),
     type = type_names[entry.type] or bounded(entry.type, 64),
-    marked = entry.marked == true,
+    marked = entry.marked == true or selection_state == "marked"
+      or clipboard_state == "copied" or clipboard_state == "cut",
+    selectionState = selection_state,
+    clipboardState = clipboard_state,
     expanded = type(entry.expanded) == "boolean" and entry.expanded or nil,
     size = type(entry.size) == "number" and entry.size or nil,
   }
@@ -122,7 +134,7 @@ local function netrw_entry()
   end
   manager.entry = normalize_entry({
     name = displayed, path = path, type = raw_type,
-    marked = marked,
+    marked = marked, selectionState = marked and "marked" or "unmarked",
     size = raw_type == "file" and vim.fn.getfsize(path) or nil,
   })
   return manager
@@ -160,6 +172,7 @@ local function nvim_tree_entry()
     entry = normalize_entry(node and {
       name = node.name, path = node.absolute_path, type = node.link_to and "link" or node.type,
       expanded = node.type == "directory" and node.open or nil, marked = marked,
+      selectionState = marked and "marked" or "unmarked",
     } or nil),
   }
 end
@@ -170,6 +183,11 @@ local function neo_tree_entry()
   if not ok then return { name = "neo-tree", root = "" } end
   local state = manager.get_state_for_window()
   local node = state and state.tree and state.tree:get_node() or nil
+  local clipboard = node and state and type(state.clipboard) == "table"
+    and state.clipboard[node.id] or nil
+  local clipboard_action = type(clipboard) == "table" and clipboard.action or nil
+  local clipboard_state = clipboard_action == "copy" and "copied"
+    or clipboard_action == "cut" and "cut" or "none"
   local expanded
   if node and node.type == "directory" and type(node.is_expanded) == "function" then
     local expanded_ok, value = pcall(node.is_expanded, node)
@@ -180,7 +198,7 @@ local function neo_tree_entry()
     entry = normalize_entry(node and {
       name = node.name, path = node.path or node.id,
       type = node.is_link and "link" or node.type, expanded = expanded,
-      marked = state and type(state.clipboard) == "table" and state.clipboard[node.id] ~= nil,
+      marked = clipboard_state ~= "none", clipboardState = clipboard_state,
     } or nil),
   }
 end
@@ -208,6 +226,26 @@ end
 
 function M.unregister(name)
   adapters[name] = nil
+end
+
+function M.normalize_action(value)
+  if type(value) ~= "table" then return nil end
+  local manager = bounded(value.manager, 64)
+  local action = action_names[value.action] and value.action or nil
+  local result = action_results[value.result] and value.result or nil
+  if manager == "" or not action or not result then return nil end
+  local count = type(value.count) == "number" and math.floor(value.count) or 1
+  if count ~= count or count == math.huge or count == -math.huge then count = 1 end
+  count = math.max(1, math.min(count, 10000))
+  local name = bounded(value.name, 512)
+  return {
+    manager = manager,
+    action = action,
+    result = result,
+    count = count,
+    name = name ~= "" and name or nil,
+    entryType = type_names[value.entryType],
+  }
 end
 
 function M.current()

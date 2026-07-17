@@ -60,14 +60,28 @@ UTF-8-validierenden Bytebegrenzung. Lange Namen und Pfade werden nur an
 Codepointgrenzen gekürzt; ungültige Adapterwerte gelangen nicht in den
 Transport. Grenztests decken Zwei-, Drei- und Vierbytezeichen sowie ungültige Folgen
 ab, ohne neue Abfragen oder Polling einzuführen.
+Der dreizehnte Schritt ergänzt eine getrennte ereignisgetriebene
+Dateimanager-Schicht. Öffentliche Oil-, nvim-tree-, Neo-tree- und
+mini.files-Ereignisse lösen eine semantische Neuauswertung ausschließlich für
+den aktiven Buffer beziehungsweise das aktive Fenster aus. Gleiche Zustände
+werden verworfen, schnelle Renderfolgen innerhalb eines Schedulerzyklus
+zusammengefasst. Markierung und Plugin-Clipboard bleiben getrennte Festwerte;
+Änderungen am selben Eintrag werden ausdrücklich ausgegeben. Polling wird
+nicht verwendet.
+Der vierzehnte Schritt ergänzt typisierte Dateimanager-Aktionsresultate aus
+öffentlichen Abschlussereignissen. Er überträgt nur Festwerte, Anzahl,
+optionalen Basename und Typ, fasst synchrone Massenaktionen zusammen und
+verwirft die Meldung nach einem Fokus-/Managerwechsel. mini.files, nvim-tree
+und Neo-tree belegen Erfolge; Oil kann zusätzlich Abschlussfehler und dort
+erkennbare Abbrüche belegen. Wo ein Plugin kein öffentliches Ergebnis liefert,
+wird nichts aus Rendern oder Text geraten.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
 `:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
 Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-ereignisgetriebenen Dateimanager-Zustandsänderungen, getrennte Markierungs- und
-Clipboardsemantik, Aktionsresultate, Pager-Sonderfälle und die vollständige
-negative Windows-Terminal-Matrix.
+reale Dateimanager-Plugin-/Prompt-/Brailleprüfungen, Pager-Sonderfälle sowie
+die vollständige negative Windows-Terminal-Matrix.
 
 ## Abgeschlossen: explizites Copy/Paste
 

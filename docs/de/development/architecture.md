@@ -57,6 +57,36 @@ Zustands entfernt. Offene Anfragen sind begrenzt. Der Pfad ist
 ereignisgetrieben; es gibt weder Polling noch
 automatische Zwischenablagesynchronisation oder automatische Wiederholung.
 
+## Ereignisgetriebene Dateimanageradapter
+
+`file_manager.lua` gewinnt und normalisiert den aktuellen semantischen
+Eintrag. Die davon getrennte Schicht `file_manager_events.lua` abonniert nur
+öffentliche Ereignisse der unterstützten Plugins: `OilMutationComplete`,
+mini.files-Buffer-/Aktionsereignisse, nvim-trees `TreeRendered` sowie
+Neo-trees Render- und Clipboardereignisse. Ein Callback liest ausschließlich
+den weiterhin aktiven Buffer beziehungsweise das aktive Fenster über den
+Adapter neu ein. Ein zentraler Vergleich verwirft gleiche Zustände; mehrere
+Callbacks im selben Neovim-Schedulerzyklus ergeben höchstens eine
+Neuauswertung. Fehlende oder inkompatible Plugin-APIs fallen auf die bereits
+vorhandene Navigation zurück. Es gibt keine Timerabfrage, kein
+Dateisystempolling und kein Screen Scraping.
+
+Der Zustand unterscheidet Auswahlmarkierung, Plugin-Clipboard mit Copy/Cut und
+Expansion. Das Plugin sendet nur Festwerte; der NVDA-Sprachplaner bildet für
+denselben Eintrag Zustandsdifferenzen und verwendet dieselbe kompakte Meldung
+auch für Braille. Diese Ereignisschicht ändert weder Terminalzuordnung noch
+Gate oder native Ausgabe.
+
+Öffentliche Abschlussereignisse werden getrennt als
+`fileManagerActionResult` normalisiert. Vor dem Transport werden Quell- und
+Zielpfade auf einen optionalen Basename reduziert; Aktion, Ergebnis und Typ
+stammen aus kleinen erlaubten Wertemengen. Synchrone Massenaktionen im selben
+Ziel werden in einem Schedulerzyklus zusammengefasst. Vor der Ausgabe werden
+Buffer, Fenster, Tab und Manager erneut geprüft. Nur Oil stellt in der aktuell
+geprüften API auch Abschlussfehler beziehungsweise einzelne erkennbare
+Abbrüche bereit; für andere Plugins wird ein fehlendes Fehlerereignis nicht
+erraten.
+
 ## Verteilung der Linux-Komponenten
 
 Der Add-on-Build erzeugt aus den versionierten Bridge-, Protokoll-, Plugin- und

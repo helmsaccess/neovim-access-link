@@ -443,7 +443,11 @@ class SpeechPlanner:
                 self._terminal_entry_waiting_line = False
                 self._terminal_entry_suppress_updates = False
         elif kind == "fileManagerEntryChanged":
-            action = self._file_manager_entry(state)
+            action = self._file_manager_change(state)
+            if action is not None:
+                actions.append(action)
+        elif kind == "fileManagerActionResult":
+            action = self._file_manager_action(state)
             if action is not None:
                 actions.append(action)
         actions = [
@@ -870,8 +874,17 @@ class SpeechPlanner:
         entry_type = entry.get("type")
         if isinstance(entry_type, str) and entry_type:
             parts.append(kind_names.get(entry_type, entry_type))
-        if entry.get("marked") is True:
+        selection_state = entry.get("selectionState")
+        clipboard_state = entry.get("clipboardState")
+        if selection_state == "marked" or (
+            selection_state not in {"marked", "unmarked"} and entry.get("marked") is True
+            and clipboard_state not in {"copied", "cut", "none"}
+        ):
             parts.append("marked")
+        if clipboard_state == "copied":
+            parts.append("copied")
+        elif clipboard_state == "cut":
+            parts.append("cut")
         if entry.get("expanded") is True:
             parts.append("expanded")
         elif entry.get("expanded") is False:
@@ -879,6 +892,97 @@ class SpeechPlanner:
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
+            force_symbols=True, braille_message=text,
+        )
+
+    def _file_manager_change(self, state: dict[str, Any]) -> SpeechAction | None:
+        manager = state.get("fileManager")
+        entry = manager.get("entry") if isinstance(manager, dict) else None
+        previous_manager = (self._previous or {}).get("fileManager")
+        previous_entry = (
+            previous_manager.get("entry") if isinstance(previous_manager, dict) else None
+        )
+        if not isinstance(entry, dict) or not isinstance(previous_entry, dict):
+            return self._file_manager_entry(state)
+        name = entry.get("name")
+        previous_name = previous_entry.get("name")
+        path = entry.get("path")
+        previous_path = previous_entry.get("path")
+        same_entry = (
+            manager.get("name") == previous_manager.get("name")
+            and isinstance(name, str) and name == previous_name
+            and (
+                not isinstance(path, str) or not path
+                or not isinstance(previous_path, str) or not previous_path
+                or path == previous_path
+            )
+        )
+        if not same_entry:
+            return self._file_manager_entry(state)
+
+        changes: list[str] = []
+        selection_state = entry.get("selectionState")
+        if selection_state != previous_entry.get("selectionState"):
+            if selection_state == "marked":
+                changes.append("marked")
+            elif selection_state == "unmarked":
+                changes.append("unmarked")
+        clipboard_state = entry.get("clipboardState")
+        if clipboard_state != previous_entry.get("clipboardState"):
+            if clipboard_state == "copied":
+                changes.append("copied")
+            elif clipboard_state == "cut":
+                changes.append("cut")
+            elif clipboard_state == "none":
+                changes.append("clipboard cleared")
+        expanded = entry.get("expanded")
+        if expanded != previous_entry.get("expanded") and isinstance(expanded, bool):
+            changes.append("expanded" if expanded else "collapsed")
+        if not changes:
+            return self._file_manager_entry(state)
+        text = ", ".join([name, *changes])
+        return SpeechAction(
+            text, Priority.NAVIGATION, interrupt=True,
+            force_symbols=True, braille_message=text,
+        )
+
+    @staticmethod
+    def _file_manager_action(state: dict[str, Any]) -> SpeechAction | None:
+        value = state.get("fileManagerAction")
+        if not isinstance(value, dict):
+            return None
+        action = value.get("action")
+        result = value.get("result")
+        verbs = {
+            "add": "added", "change": "changed", "copy": "copied",
+            "create": "created", "delete": "deleted", "move": "moved",
+            "rename": "renamed", "restore": "restored",
+        }
+        if action != "multiple" and action not in verbs:
+            return None
+        if result not in {"success", "cancelled", "failed"}:
+            return None
+        count = value.get("count")
+        count = count if isinstance(count, int) and not isinstance(count, bool) and count > 0 else 1
+        name = value.get("name")
+        name = name if isinstance(name, str) and name else None
+        if result == "success":
+            if action == "multiple":
+                text = f"{count} file-manager actions completed"
+            elif count > 1:
+                text = f"{count} items {verbs[action]}"
+            else:
+                text = f"{name}, {verbs[action]}" if name else verbs[action]
+            priority = Priority.STATUS
+            interrupt = False
+        else:
+            action_name = "file-manager action" if action == "multiple" else action
+            subject = f"{action_name} of {name}" if name else action_name
+            text = f"{subject} {'cancelled' if result == 'cancelled' else 'failed'}"
+            priority = Priority.STATUS if result == "cancelled" else Priority.CRITICAL
+            interrupt = result == "failed"
+        return SpeechAction(
+            text, priority, interrupt=interrupt,
             force_symbols=True, braille_message=text,
         )
 

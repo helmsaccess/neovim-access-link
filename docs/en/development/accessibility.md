@@ -10,10 +10,15 @@ marks, registers and macros; command line; embedded terminal transitions; and
 adapters for common file managers.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
-validated UTF-8 code-point boundaries. Automated netrw/API-stub coverage now
-includes two-, three-, and four-byte boundary cases and invalid adapter bytes.
-Public same-entry plugin events, action results, real plugin versions, and
-physical Braille remain open.
+validated UTF-8 code-point boundaries. Public plugin events now report real
+same-entry state changes with distinct mark, Copy, Cut, expansion, and clear
+semantics; equal state, inactive targets, and render bursts are suppressed or
+coalesced without polling. Typed action results use proven public completion
+events, basename-only minimization, target revalidation, and synchronous batch
+coalescing. Automated netrw/API/event-stub coverage includes
+two-, three-, and four-byte boundary cases and invalid adapter bytes. Action
+results are covered with public stubs; real plugin/prompt versions and physical
+Braille remain open.
 
 Speech and sounds are configurable where NVDA has no better native setting.
 Confirmed session-focus presentation and an event-driven in-place buffer

@@ -56,6 +56,34 @@ UTF-8-Sequenzen und schneidet ausschließlich vor einem Codepoint; ein
 ungültiger Adapterwert wird verworfen, statt eine beschädigte Nachricht zu
 senden.
 
+Ein Dateimanagereintrag kann `selectionState` mit ausschließlich `marked` oder
+`unmarked` sowie `clipboardState` mit ausschließlich `copied`, `cut` oder
+`none` enthalten. `expanded` bleibt ein Boolean. Das alte Feld `marked` wird
+nur kompatibel mitgeführt und darf Copy gegenüber Cut nicht semantisch
+ersetzen. `fileManagerEntryChanged` entsteht sowohl bei strukturierter
+Navigation als auch nach einem öffentlichen Pluginereignis, wenn sich der
+erneut gelesene Zustand tatsächlich geändert hat. Inaktive Buffer/Fenster und
+identische Zustände erzeugen kein Ereignis; Renderfolgen werden innerhalb
+eines Neovim-Schedulerzyklus zusammengefasst, nicht gepollt.
+
+`fileManagerActionResult.payload.fileManagerAction` enthält ausschließlich:
+
+```text
+manager     UTF-8-validierte Bezeichnung, höchstens 64 Byte
+action      add | change | copy | create | delete | move | multiple | rename | restore
+result      success | cancelled | failed
+count       Ganzzahl 1 bis 10000
+name        optionaler UTF-8-validierter Basename, höchstens 512 Byte
+entryType   optionaler bekannter semantischer Typ
+```
+
+Der Adapter verwirft den vollständigen Quell-/Zielpfad vor dem Senden. Mehrere
+synchrone Ergebnisse im selben aktiven Buffer/Fenster/Tab werden innerhalb
+eines Schedulerzyklus zusammengefasst. Ein Identitäts- oder Managerwechsel vor
+der Ausgabe verwirft sie. Das Ereignis bestätigt nur, was die öffentliche
+Plugin-API als Abschluss meldet; fehlende Fehler- oder Abbruchereignisse werden
+nicht aus Meldungstext oder Renderzustand rekonstruiert.
+
 ## Sitzungsbeginn, Sequenzierung und Resync
 
 Die erste akzeptierte Nachricht jeder Transport-Sitzung ist `fullState` mit
@@ -156,6 +184,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
+`fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.

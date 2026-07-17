@@ -73,7 +73,19 @@ Beim Navigieren werden Name und semantischer Typ ausgegeben. Verzeichnisse,
 symbolische Links, Sockets, Pipes und Gerätedateien sind damit nicht von Farbe
 oder Symbolschrift abhängig. Wenn die API es bereitstellt, werden außerdem
 Markierung sowie geöffneter oder geschlossener Baumzustand angesagt und als
-Braillemeldung ausgegeben.
+Braillemeldung ausgegeben. Änderungen ohne Cursorbewegung werden bei den
+unterstützten öffentlichen Pluginereignissen ebenfalls erkannt: markiert,
+Markierung aufgehoben, kopiert, ausgeschnitten, Dateimanager-Clipboard geleert
+sowie Baumknoten geöffnet oder geschlossen. Mehrere reine Renderereignisse
+werden zusammengefasst; der Zustand wird nicht regelmäßig abgefragt.
+Bestätigte Aktionen werden kompakt als erstellt, hinzugefügt, umbenannt,
+kopiert, verschoben, gelöscht, geändert oder wiederhergestellt ausgegeben.
+Mehrere unmittelbar zusammengehörige Aktionen ergeben eine Sammelmeldung.
+Dabei überträgt Access Link höchstens den Basename, nie den vollständigen
+Quell- oder Zielpfad. Oil kann zusätzlich einen Abschlussfehler oder einzelne
+Abbrüche melden. Bei den anderen Plugins bleiben Fehler- und Abbruchmeldungen
+des Plugins selbst maßgeblich, solange deren öffentliche API kein eigenes
+Ergebnisereignis bereitstellt; Access Link rät dann keinen Erfolg oder Fehler.
 Sehr lange Namen und Pfade werden für die Übertragung bytebegrenzt, jedoch nie
 mitten in einem Unicode-Zeichen abgeschnitten. Liefert ein fremder Adapter
 ungültigen UTF-8-Text, wird ein optionales Feld ignoriert; bei einem ungültigen

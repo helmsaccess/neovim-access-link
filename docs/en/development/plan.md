@@ -49,12 +49,23 @@ byte limits. Long names and paths are cut only at code-point boundaries, while
 invalid adapter values never reach transport. Boundary tests cover two-,
 three-, and four-byte characters plus invalid sequences without adding queries
 or polling.
+The thirteenth step adds a separate event-driven file-manager layer. Public
+Oil, nvim-tree, Neo-tree, and mini.files events trigger semantic reevaluation
+only for the active buffer or window. Equal states are discarded and rapid
+render bursts are coalesced within one scheduler cycle. Selection marks and
+plugin clipboard states remain distinct fixed values, and same-entry changes
+are explicit. No polling is used.
+The fourteenth step adds typed file-manager action results from public
+completion events. It carries only fixed values, count, optional basename and
+type; combines synchronous batches; and drops output after a focus/manager
+change. mini.files, nvim-tree, and Neo-tree prove successes, while Oil can
+also prove completion failures and detectable cancellations. Where a plugin
+has no public result, nothing is inferred from rendering or text.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.
-Event-driven same-entry file-manager changes, distinct mark and clipboard
-semantics, action results, pager variants, and the complete negative Windows
-Terminal matrix remain next.
+Real file-manager plugin/prompt/Braille tests, pager variants, and the complete
+negative Windows Terminal matrix remain next.
 
 ## Completed: explicit copy/paste
 

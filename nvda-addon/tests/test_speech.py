@@ -662,7 +662,7 @@ class SpeechPlannerTests(unittest.TestCase):
         planner = SpeechPlanner()
         directory = planner.plan({"type": "fileManagerEntryChanged", "payload": {
             "fileManager": {"name": "netrw", "root": "/tmp", "entry": {
-                "name": "src", "type": "directory", "marked": True,
+                "name": "src", "type": "directory", "selectionState": "marked",
             }},
         }})[0]
         link = planner.plan({"type": "fileManagerEntryChanged", "payload": {
@@ -670,10 +670,66 @@ class SpeechPlannerTests(unittest.TestCase):
                 "name": "current", "type": "symbolicLink", "expanded": False,
             }},
         }})[0]
+        copied = SpeechPlanner().plan({"type": "fileManagerEntryChanged", "payload": {
+            "fileManager": {"name": "neo-tree", "entry": {
+                "name": "notes.txt", "type": "file", "marked": True,
+                "clipboardState": "copied",
+            }},
+        }})[0]
         self.assertEqual("src, directory, marked", directory.text)
         self.assertTrue(directory.force_symbols)
         self.assertEqual(directory.text, directory.braille_message)
         self.assertEqual("current, symbolic link, collapsed", link.text)
+        self.assertEqual("notes.txt, file, copied", copied.text)
+
+    def test_file_manager_same_entry_state_changes_are_explicit(self) -> None:
+        planner = SpeechPlanner()
+        def manager(**entry: object) -> dict:
+            return {"type": "fileManagerEntryChanged", "payload": {
+                "fileManager": {"name": "tree", "entry": {
+                    "name": "src", "path": "/work/src", "type": "directory", **entry,
+                }},
+            }}
+
+        initial = planner.plan(manager(selectionState="unmarked", expanded=False))[0]
+        marked = planner.plan(manager(selectionState="marked", expanded=False))[0]
+        unmarked = planner.plan(manager(selectionState="unmarked", expanded=False))[0]
+        copied = planner.plan(manager(clipboardState="copied", expanded=False))[0]
+        cut = planner.plan(manager(clipboardState="cut", expanded=False))[0]
+        cleared = planner.plan(manager(clipboardState="none", expanded=False))[0]
+        expanded = planner.plan(manager(clipboardState="none", expanded=True))[0]
+
+        self.assertEqual("src, directory, collapsed", initial.text)
+        self.assertEqual("src, marked", marked.text)
+        self.assertEqual("src, unmarked", unmarked.text)
+        self.assertEqual("src, copied", copied.text)
+        self.assertEqual("src, cut", cut.text)
+        self.assertEqual("src, clipboard cleared", cleared.text)
+        self.assertEqual("src, expanded", expanded.text)
+
+    def test_file_manager_action_results_are_compact_and_typed(self) -> None:
+        planner = SpeechPlanner()
+        def result(**action: object) -> dict:
+            return {"type": "fileManagerActionResult", "payload": {
+                "fileManagerAction": {
+                    "manager": "tree", "action": "copy", "result": "success",
+                    **action,
+                },
+            }}
+
+        copied = planner.plan(result(name="notes.txt"))[0]
+        batch = planner.plan(result(action="multiple", count=4))[0]
+        cancelled = planner.plan(result(action="rename", result="cancelled", name="old.txt"))[0]
+        failed = planner.plan(result(action="delete", result="failed", name="locked.txt"))[0]
+
+        self.assertEqual("notes.txt, copied", copied.text)
+        self.assertEqual("4 file-manager actions completed", batch.text)
+        self.assertEqual("rename of old.txt cancelled", cancelled.text)
+        self.assertEqual(Priority.STATUS, cancelled.priority)
+        self.assertEqual("delete of locked.txt failed", failed.text)
+        self.assertEqual(Priority.CRITICAL, failed.priority)
+        self.assertTrue(failed.interrupt)
+        self.assertEqual(failed.text, failed.braille_message)
 
     def test_focus_context_announces_file_mode_and_special_buffers_compactly(self) -> None:
         planner = SpeechPlanner()

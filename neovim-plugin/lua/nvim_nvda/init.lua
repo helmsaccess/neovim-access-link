@@ -2,6 +2,7 @@ local state = require("nvim_nvda.state")
 local menu = require("nvim_nvda.menu")
 local completion_adapters = require("nvim_nvda.completion_adapters")
 local file_manager = require("nvim_nvda.file_manager")
+local file_manager_events = require("nvim_nvda.file_manager_events")
 local clipboard = require("nvim_nvda.clipboard")
 local M = {}
 
@@ -215,6 +216,7 @@ emit = function(event_type, reason, extra)
       payload[key] = value
     end
   end
+  file_manager_events.observe(payload.fileManager)
   local current_error = tostring(vim.v.errmsg or "")
   payload.currentErrorCode = current_error:match("E%d+") or ""
   payload.currentErrorKind = fixed_error_kind(current_error)
@@ -563,6 +565,11 @@ function M.setup()
   setup_notifications()
   setup_ui_functions()
   completion_adapters.stop()
+  file_manager_events.setup(function(reason)
+    emit("fileManagerEntryChanged", reason)
+  end, function(action)
+    emit("fileManagerActionResult", "fileManagerAction", { fileManagerAction = action })
+  end, group)
   vim.on_key(function(key, typed)
     local observer_ok, observer_error = pcall(function()
     local translated = vim.fn.keytrans(key)

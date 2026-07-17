@@ -18,6 +18,13 @@ Neovim 0.12.3 on Windows. Windows Terminal is the only approved front end.
 PuTTY or another terminal requires a dedicated
 identity, focus, output, suppression, and fail-open adapter.
 
+File-manager support uses the public APIs of the Oil, nvim-tree, Neo-tree, and
+mini.files main branches checked on July 12, 2026. The event layer was checked
+again on July 17 and uses `OilMutationComplete`, mini.files User autocmds,
+nvim-tree public `api.events`, and Neo-tree's public event module. If an event
+is absent or a public API changes incompatibly, cursor-driven adapter output
+continues fail-open; polling is not started as a replacement.
+
 No physical Braille display has been tested. Automated Braille tests cover only
 state and planning, so hardware bugs are very likely. Other Windows/NVDA/
 Neovim versions, SSH variants, languages, and many add-on features also lack

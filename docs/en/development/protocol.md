@@ -26,6 +26,33 @@ labels to 64 bytes. The plugin validates complete UTF-8 sequences and cuts
 only before a code point; an invalid adapter value is discarded instead of
 sending a malformed message.
 
+A file-manager entry may carry `selectionState` with only `marked` or
+`unmarked`, and `clipboardState` with only `copied`, `cut`, or `none`;
+`expanded` remains Boolean. The legacy `marked` field is retained only for
+compatibility and must not replace Copy-versus-Cut semantics.
+`fileManagerEntryChanged` can originate from structured navigation or from a
+public plugin event after the reread state actually changes. Inactive
+buffers/windows and equal state produce no event; render bursts are coalesced
+within one Neovim scheduler cycle rather than polled.
+
+`fileManagerActionResult.payload.fileManagerAction` contains only:
+
+```text
+manager     UTF-8-validated label, at most 64 bytes
+action      add | change | copy | create | delete | move | multiple | rename | restore
+result      success | cancelled | failed
+count       integer from 1 through 10000
+name        optional UTF-8-validated basename, at most 512 bytes
+entryType   optional known semantic type
+```
+
+The adapter discards complete source/destination paths before sending.
+Synchronous results in the same active buffer/window/tab are combined within
+one scheduler cycle; an identity or manager change before output drops them.
+The event confirms only what a public plugin API reports as completion.
+Missing failure/cancellation events are not reconstructed from message text or
+rendering.
+
 Capabilities are fixed by v2. Protocol v1, generic TCP listeners, application
 tokens, tunnel ports, and capability hello negotiation are intentionally not
 supported.

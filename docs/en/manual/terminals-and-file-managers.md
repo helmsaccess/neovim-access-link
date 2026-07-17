@@ -45,7 +45,16 @@ applications are not queried or modified.
 
 The plugin contains adapters for netrw and the public APIs of Oil, nvim-tree,
 Neo-tree, and mini.files. It can announce item type, name, state, and supported
-actions. Adapters load only for the active matching buffer. Unsupported custom
+actions. Supported public plugin events also report same-entry changes without
+cursor movement: marked, unmarked, copied, cut, file-manager clipboard
+cleared, expanded, or collapsed. Pure render bursts are coalesced; state is
+not queried periodically. Confirmed actions are compactly reported as created,
+added, renamed, copied, moved, deleted, changed, or restored. Immediate batches
+produce one summary, and Access Link transfers at most a basename, never the
+complete source or destination path. Oil can additionally report a completion
+failure or some cancellations. For other plugins, their own failure/cancel
+messages remain authoritative where the public API has no result event; Access
+Link does not guess. Adapters load only for the active matching buffer. Unsupported custom
 file-manager drawings do not fall back to terminal scraping.
 Very long names and paths are byte-bounded for transport but never cut inside
 a Unicode character. If a third-party adapter returns invalid UTF-8 text, an

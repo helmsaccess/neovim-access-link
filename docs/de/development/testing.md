@@ -114,11 +114,18 @@ Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
 Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
 seit Neovim 0.12 optionale Paket mit `packadd netrw`.
-Seine 27 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
+Seine 62 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
 und 2048 Byte für Pfade/Wurzeln an exakten sowie geteilten UTF-8-Grenzen.
 Zwei-/Dreibytezeichen und Vierbyte-Emoji müssen vollständig erhalten oder vollständig
 weggelassen werden; ungültige Bytefolgen dürfen keinen Eintrag und keine
-ungültige Transportzeichenkette erzeugen.
+ungültige Transportzeichenkette erzeugen. Öffentliche Ereignisattrappen für
+mini.files, nvim-tree und Neo-tree prüfen außerdem Neuauswertung am selben
+Eintrag, Deduplizierung, Zusammenfassung schneller Ereignisse und die
+Abweisung inaktiver Buffer/Fenster. Öffentliche Aktionsattrappen prüfen
+Erfolg, Oil-Fehler, synchrone Bündelung, Basename-Minimierung und das Verwerfen
+nach Managerwechsel. Speech-Tests unterscheiden Markierung, Entmarkierung,
+Copy, Cut, Clipboard-Leerung und Expansion sowie Erfolg, Abbruch und Fehler
+typisierter Aktionen.
 
 Der reproduzierbare Einstiegspunkt berücksichtigt beide Bedingungen:
 
