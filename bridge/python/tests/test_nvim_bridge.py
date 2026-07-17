@@ -406,7 +406,10 @@ class NvimBridgeTests(unittest.TestCase):
                     "vim.schedule(function() local b=vim.api.nvim_create_buf(false,true); "
                     "vim.api.nvim_buf_set_lines(b,0,-1,true,{'DELETE /private/example.txt','','[Y]es [N]o'}); "
                     "vim.bo[b].filetype='oil_preview'; vim.api.nvim_open_win(b,true,{relative='editor',"
-                    "width=40,height=3,row=2,col=2,style='minimal'}) end)",
+                    "width=40,height=3,row=2,col=2,style='minimal'}); "
+                    "local close=function() vim.api.nvim_win_close(0,true) end; "
+                    "vim.keymap.set('n','n',close,{buffer=b}); "
+                    "vim.keymap.set('n','y',close,{buffer=b}) end)",
                     [],
                 )
                 self._wait(
@@ -431,15 +434,12 @@ class NvimBridgeTests(unittest.TestCase):
                     and e["payload"].get("filetype") == "oil_preview"
                     for e in events[prior:]
                 ))
-                bridge.nvim.notify(
-                    "nvim_exec_lua",
-                    "vim.schedule(function() vim.api.nvim_win_close(0,true) end)",
-                    [],
-                )
+                process.send(b"n")
                 self._wait(
                     condition,
                     lambda: any(e["type"] == "promptClosed"
                                 and e["payload"].get("promptKind") == "confirm"
+                                and e["payload"].get("accepted") is False
                                 for e in events[prior:]),
                 )
                 bridge.nvim.notify(
@@ -463,12 +463,13 @@ class NvimBridgeTests(unittest.TestCase):
                                 for e in events[prior:]),
                 )
                 prior = len(events)
-                process.send(b"maG'a")
+                process.send(b"ma")
                 self._wait(
                     condition,
                     lambda: any(e["type"] == "markSet" and e["payload"].get("markName") == "a"
                                 for e in events[prior:]),
                 )
+                process.send(b"G'a")
                 self._wait(
                     condition,
                     lambda: any(e["type"] == "markMoved" and e["payload"].get("markName") == "a"
@@ -850,6 +851,33 @@ class NvimBridgeTests(unittest.TestCase):
                     and "status 0" in e["payload"].get("message", "")
                     for e in events[prior:]
                 ))
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() local b=vim.api.nvim_create_buf(false,true); "
+                    "vim.api.nvim_buf_set_lines(b,0,-1,true,{'  MOVE /private/old.txt -> /private/new.txt','','[Y]es [N]o'}); "
+                    "vim.bo[b].filetype='oil_preview'; vim.api.nvim_open_win(b,true,{relative='editor',"
+                    "width=56,height=3,row=2,col=2,style='minimal'}); "
+                    "local close=function() vim.api.nvim_win_close(0,true) end; "
+                    "vim.keymap.set('n','n',close,{buffer=b}); "
+                    "vim.keymap.set('n','y',close,{buffer=b}) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened"
+                                and e["payload"].get("prompt")
+                                == "Oil confirmation, rename or move 1 item. Y yes, N no"
+                                for e in events[prior:]),
+                )
+                process.send(b"y")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed"
+                                and e["payload"].get("promptKind") == "confirm"
+                                and e["payload"].get("accepted") is True
+                                for e in events[prior:]),
+                )
             finally:
                 bridge.stop()
                 if process.isalive():

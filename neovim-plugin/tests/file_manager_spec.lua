@@ -41,6 +41,26 @@ local mixed_oil_prompt = manager_prompt.oil_confirmation({
 })
 equal("Oil confirmation, 2 file actions. Y yes, N no", mixed_oil_prompt.prompt,
   "mixed Oil fallback remains compact")
+local rename_oil_prompt = manager_prompt.oil_confirmation({
+  "  MOVE /private/old.txt -> /private/new.txt",
+})
+equal("Oil confirmation, rename or move 1 item. Y yes, N no", rename_oil_prompt.prompt,
+  "indented Oil rename or move is accessible")
+local duplicate_oil_prompt = manager_prompt.oil_confirmation({
+  "  COPY /private/source.txt -> /private/copy.txt",
+})
+equal("Oil confirmation, copy or duplicate 1 item. Y yes, N no", duplicate_oil_prompt.prompt,
+  "indented Oil copy or duplicate is accessible")
+local trash_oil_prompt = manager_prompt.oil_confirmation({ " TRASH /private/item.txt" })
+equal("Oil confirmation, move to trash 1 item. Y yes, N no", trash_oil_prompt.prompt,
+  "Oil trash confirmation is accessible")
+equal("delete", trash_oil_prompt.promptClass, "Oil trash remains destructive")
+equal("Oil confirmation, permanently delete 1 item. Y yes, N no",
+  manager_prompt.oil_confirmation({ " PURGE /private/item.txt" }).prompt,
+  "Oil trash purge confirmation is accessible")
+equal("Oil confirmation, restore 1 item. Y yes, N no",
+  manager_prompt.oil_confirmation({ "RESTORE /private/item.txt" }).prompt,
+  "Oil trash restore confirmation is accessible")
 
 local lines
 local function refresh_lines()

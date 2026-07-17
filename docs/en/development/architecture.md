@@ -43,9 +43,11 @@ The only narrow exception to purely semantic plugin APIs is Oil's own
 confirmation float. Because Oil exposes no public pre-action event,
 `file_manager_prompt.lua` recognizes only a real float whose exact `filetype`
 is `oil_preview`. The event-driven parser examines at most 200 lines, accepts
-fixed action words only, and reports only action, count, and the Y/N choice.
-Names, paths, and raw lines never leave Neovim; unknown rendering fails open.
-There is no general popup parser. Risk, tests, and replacement are recorded in
+fixed action words after optional indentation, and reports only action, count,
+and the Y/N choice. Names, paths, and raw lines never leave Neovim; unknown
+rendering fails open. Direct Y/N is observed in the existing key-input event.
+Buffer closure is published one scheduler cycle later so the choice is present
+without a timer or polling. There is no general popup parser. Risk, tests, and replacement are recorded in
 `adr/0003-oil-confirmation-fallback.md`.
 
 State distinguishes selection marks, the plugin clipboard's Copy/Cut state,

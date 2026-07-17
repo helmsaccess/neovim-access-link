@@ -102,6 +102,12 @@ bereitstellt. Nur `oil_preview` in einem echten Float und feste Aktionsverben
 werden akzeptiert; ausgegeben werden Aktion/Anzahl und Y/N, während Rohzeilen,
 Namen und Pfade unterdrückt bleiben. Ein isolierter Test mit dem realen
 Oil-Hauptzweig belegt Öffnen, Abbruch und unveränderte Testdatei.
+Der einundzwanzigste Schritt erweitert diesen engen Oil-Pfad um die real
+eingerückten Aktionen für Umbenennen, Duplizieren, Papierkorb, endgültiges
+Löschen und Wiederherstellen. Direktes Y/N bleibt Eigentum Oils; Access Link
+beobachtet nur die Wahl und veröffentlicht Annahme beziehungsweise Abbruch.
+Isolierte reale Szenarien prüfen Umbenennen, Duplizieren und Löschen mit beiden
+Ergebnissen. Es wird kein Polling ergänzt.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei

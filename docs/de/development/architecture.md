@@ -75,9 +75,12 @@ Die einzige enge Ausnahme von rein semantischen Plugin-APIs ist Oils eigener
 Bestätigungs-Float: Weil Oil vor der Aktion kein öffentliches Ereignis liefert,
 erkennt `file_manager_prompt.lua` ausschließlich einen echten Float mit exakt
 `filetype=oil_preview`. Der ereignisgetriebene Parser untersucht höchstens 200
-Zeilen, akzeptiert nur feste Aktionswörter und gibt nur Aktion, Anzahl und die
-Y/N-Auswahl aus. Namen, Pfade und rohe Zeilen verlassen Neovim nicht;
-unbekannte Darstellung fällt offen zurück. Es gibt keinen allgemeinen
+Zeilen, akzeptiert nach optionaler Einrückung nur feste Aktionswörter und gibt
+nur Aktion, Anzahl und die Y/N-Auswahl aus. Namen, Pfade und rohe Zeilen
+verlassen Neovim nicht; unbekannte Darstellung fällt offen zurück. Direktes
+Y/N wird im vorhandenen Tasteneingabeereignis beobachtet. Das Bufferende wird
+einen Schedulerzyklus später veröffentlicht, damit die Wahl ohne Timer oder
+Polling im Schließereignis enthalten ist. Es gibt keinen allgemeinen
 Popup-Parser. Risiko, Tests und Ablösung stehen in
 `adr/0003-oil-confirmation-fallback.md`.
 

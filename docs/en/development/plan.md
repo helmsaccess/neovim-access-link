@@ -86,6 +86,11 @@ it. Only `oil_preview` in a real float and fixed action verbs are accepted;
 action/count plus Y/N are reported while raw rows, names, and paths stay
 suppressed. An isolated run with the real Oil main branch proves opening,
 cancellation, and an unchanged fixture.
+The twenty-first step extends this narrow Oil path to its real indented rename,
+duplicate, trash, purge, and restore actions. Direct Y/N remains owned by Oil;
+Access Link only observes the choice and publishes acceptance or cancellation.
+Isolated real scenarios cover rename, duplicate, and delete with both outcomes.
+No polling is added.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.

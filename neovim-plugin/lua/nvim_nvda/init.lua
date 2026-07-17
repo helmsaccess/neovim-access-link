@@ -40,6 +40,7 @@ local wrapped_confirm_active = false
 local recent_wrapped_confirm_prompt
 local recent_wrapped_confirm_time = 0
 local oil_confirmation_buffer
+local oil_confirmation_choice
 local command_line_active = false
 local command_line_text = ""
 local command_line_type = ""
@@ -269,6 +270,7 @@ local function emit_oil_confirmation()
   local buffer = vim.api.nvim_get_current_buf()
   if oil_confirmation_buffer ~= buffer then
     oil_confirmation_buffer = buffer
+    oil_confirmation_choice = nil
     emit("promptOpened", "oilConfirmationFallback", details)
   end
   return true
@@ -276,8 +278,19 @@ end
 
 local function close_oil_confirmation(buffer, reason)
   if oil_confirmation_buffer ~= buffer then return end
+  local choice = oil_confirmation_choice
   oil_confirmation_buffer = nil
-  emit("promptClosed", reason, { promptKind = "confirm" })
+  oil_confirmation_choice = nil
+  local accepted
+  if choice == "yes" then
+    accepted = true
+  elseif choice == "no" then
+    accepted = false
+  end
+  emit("promptClosed", reason, {
+    promptKind = "confirm",
+    accepted = accepted,
+  })
 end
 
 local function clear_ui_message_prompt()
@@ -678,6 +691,21 @@ function M.setup()
     local observer_ok, observer_error = pcall(function()
     local translated = vim.fn.keytrans(key)
     local typed_translated = vim.fn.keytrans(typed or "")
+    if oil_confirmation_buffer then
+      if typed_translated ~= "" then
+        local choice = typed_translated:lower()
+        if choice == "y" then
+          oil_confirmation_choice = "yes"
+        elseif choice == "n" then
+          oil_confirmation_choice = "no"
+        else
+          oil_confirmation_choice = nil
+        end
+      end
+      -- The key still continues to Oil's buffer-local mapping. It must not
+      -- also seed editor motion/operator state in this observer.
+      return
+    end
     if typed_translated:lower() == component_config.sessionClaim.neovimKey:lower() then
       key_observer_diagnostics.keyByteLength = #key
       key_observer_diagnostics.typedByteLength = #(typed or "")
@@ -1083,7 +1111,12 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "BufLeave", "BufWipeout" }, {
     group = group,
     callback = function(event)
-      close_oil_confirmation(event.buf, event.event)
+      -- Oil closes its confirmation float from the Y/N buffer mapping. Defer
+      -- the close event until vim.on_key has observed the directly typed key;
+      -- no timer or polling is involved.
+      local buffer = event.buf
+      local reason = event.event
+      vim.schedule(function() close_oil_confirmation(buffer, reason) end)
     end,
   })
   vim.schedule(function() completion_adapters.setup(M, group) end)

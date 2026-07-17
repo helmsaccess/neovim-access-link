@@ -42,7 +42,7 @@ setup and that mismatch disconnects without a reconnect loop.
 Isolated local and Tessa SIGKILL tests must leave discovery empty
 without touching existing user Neovim or tmux sessions.
 
-The Neovim file-manager specification now contains 99 assertions. Its adapter
+The Neovim file-manager specification now contains 105 assertions. Its adapter
 cases enforce the 512-byte name and 2048-byte path/root budgets at exact and
 split UTF-8 boundaries. Two-/three-byte characters and four-byte emoji must be
 kept or omitted as complete code points. Invalid byte sequences discard only
@@ -55,8 +55,9 @@ after a manager change. Speech tests distinguish mark, unmark, Copy, Cut,
 clipboard clear, and expansion plus typed action success, cancellation, and
 failure.
 The narrow Oil prompt parser accepts only a real `oil_preview` float and fixed
-action verbs; assertions require a path-free action/count prompt and fail-open
-for unknown rendering.
+action verbs; assertions cover Oil's real indentation for
+rename/copy/trash/purge/restore, destructive classification, a path-free
+action/count prompt, and fail-open for unknown rendering.
 Real disposable netrw directories additionally cover banners and thin, long,
 and tree lists with plain, repeated-space, tabbed, and Unicode names plus
 symlinks. A synthetic wide row proves virtual-cursor-column selection.
@@ -75,8 +76,11 @@ close without `msg_clear`, and concurrent or late 0.12 external UI plus the
 function wrapper must not duplicate the prompt. A real TUI float with
 `filetype=oil_preview` must produce exactly one path-free `promptOpened` state;
 generic context, text, and cursor events for the same raw row are forbidden
-while it is active. An additional isolated run with the real Oil main branch
-checks `dd`, `:w`, cancellation with `n`, and an unchanged fixture.
+while it is active. Real TUI input `n` must close the float with
+`accepted=false`. Additional isolated runs with the real Oil main branch cover
+the indented action rows for rename, duplicate, and delete, cancellation with
+`n`, confirmation with `y`, and the correspondingly unchanged or deleted
+fixture.
 The complete Lua suite runs with both Neovim 0.10.1 and 0.12.3. After the real
 Ex command, the navigation test also executes `CursorMoved` explicitly because
 Neovim 0.10 does not dispatch it for this headless `feedkeys` combination. It

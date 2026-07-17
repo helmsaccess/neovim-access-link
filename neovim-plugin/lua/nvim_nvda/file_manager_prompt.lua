@@ -5,11 +5,14 @@ local M = {}
 -- narrow: the plugin's dedicated float filetype, fixed action verbs, and a
 -- count only. Never carry the rendered paths or names into the prompt.
 local oil_actions = {
-  CHANGE = "change",
-  COPY = "copy",
-  CREATE = "create",
-  DELETE = "delete",
-  MOVE = "move",
+  CHANGE = { summary = "change" },
+  COPY = { summary = "copy or duplicate" },
+  CREATE = { summary = "create" },
+  DELETE = { summary = "delete", destructive = true },
+  MOVE = { summary = "rename or move" },
+  PURGE = { summary = "permanently delete", destructive = true },
+  RESTORE = { summary = "restore" },
+  TRASH = { summary = "move to trash", destructive = true },
 }
 
 function M.oil_confirmation(lines)
@@ -17,13 +20,19 @@ function M.oil_confirmation(lines)
   local count = 0
   local single_action
   local multiple_actions = false
+  local destructive = false
   for index = 1, math.min(#lines, 200) do
     local line = lines[index]
-    local action = type(line) == "string" and oil_actions[line:match("^([A-Z]+)%s")] or nil
+    -- Oil deliberately indents MOVE/COPY and trash actions in its private
+    -- preview. Only whitespace plus a fixed allowlisted verb is accepted; the
+    -- paths following it are counted but never returned.
+    local verb = type(line) == "string" and line:match("^[ \t]*([A-Z]+)[ \t]") or nil
+    local action = verb and oil_actions[verb] or nil
     if action then
       count = count + 1
-      if single_action and single_action ~= action then multiple_actions = true end
-      single_action = single_action or action
+      if single_action and single_action ~= action.summary then multiple_actions = true end
+      single_action = single_action or action.summary
+      destructive = destructive or action.destructive == true
     end
   end
   if count == 0 then return nil end
@@ -32,7 +41,7 @@ function M.oil_confirmation(lines)
     or (tostring(count) .. " file actions")
   return {
     promptKind = "confirm",
-    promptClass = single_action == "delete" and "delete" or "other",
+    promptClass = destructive and "delete" or "other",
     prompt = "Oil confirmation, " .. summary .. ". Y yes, N no",
     itemCount = 2,
   }

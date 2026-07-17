@@ -5,6 +5,24 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.5 (Featurebranch-Testbuild)
+
+- Der enge Oil-Promptparser erkennt die echten eingerückten `MOVE`-, `COPY`-,
+  `TRASH`- und `PURGE`-Zeilen sowie `RESTORE`. Er beschreibt Umbenennen und
+  Duplizieren eindeutig, kennzeichnet Lösch- und Papierkorbaktionen als
+  destruktiv und überträgt weiterhin keine Namen oder Pfade.
+- Direkt getipptes Y/N wird beobachtet, aber weder abgefangen noch ersetzt.
+  Das ereignisgesteuerte Schließen wartet einen Neovim-Schedulerzyklus, damit
+  `promptClosed` Annahme beziehungsweise Abbruch zuverlässig trägt; Oil bleibt
+  allein für Tastenauswertung und Dateioperation verantwortlich. Es gibt weder
+  Timer noch Polling.
+- Reale isolierte Oil-Prüfungen decken abgebrochenes Umbenennen, Duplizieren
+  und Löschen sowie bestätigtes Löschen ab. Der TUI-Regressionstest verlangt
+  ausdrücklich `accepted=false`; 105 Dateimanagerassertionen bestehen.
+- Das Handbuch empfiehlt `skip_confirm_for_simple_edits = false`, dokumentiert
+  die zentralen Promptoptionen von nvim-tree und Neo-tree sowie mini.files'
+  gemeinsame Ja-/Nein-/Abbruchabfrage.
+
 ## 0.93.0-dev.4 (Featurebranch-Testbuild)
 
 - Der netrw-Fallback wertet Header und die Listenstile schmal, lang, breit und

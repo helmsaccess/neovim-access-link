@@ -82,6 +82,9 @@ Oils `oil_preview`-Bestätigungs-Fallback verwendet denselben Promptvertrag,
 aber ausschließlich feste Aktionsverben, Anzahl und Y/N. Die gerenderte Zeile,
 Namen und Pfade werden im `promptOpened`-Zustand geleert; unbekannte Verben oder
 ein gleichnamiger Nicht-Float erzeugen kein semantisches Prompt-Ereignis.
+Wird direkt `y` oder `n` getippt, trägt das zugehörige `promptClosed`
+`accepted=true` beziehungsweise `accepted=false`. Andere Schließwege lassen
+`accepted` aus, statt eine Auswahl zu erraten.
 
 `fileManagerActionResult.payload.fileManagerAction` enthält ausschließlich:
 

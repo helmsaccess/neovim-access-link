@@ -82,9 +82,18 @@ For the most structured input and selection prompts, use
 Neo-tree. These public options use Neovim's central `vim.ui.select` and
 `vim.ui.input` APIs, whose acceptance and cancellation Access Link observes.
 Access Link never changes those plugin settings automatically. Lua
-`confirm()` prompts also report the selected choice. Oil's custom confirmation
-float has a deliberately narrow fallback: Access Link reports only the fixed
-action, count, and Y/N, never the rendered raw row or complete paths. It applies
-only to Oil's `oil_preview` in a real floating window; unknown or changed
-rendering remains fail-open to normal structured buffer/window output. Other
-plugin-specific popups still need separate verification.
+`confirm()` prompts also report the selected choice. mini.files uses such a
+Yes/No/Cancel confirmation for its combined rename, duplicate, and delete
+synchronization.
+
+For Oil, keep `skip_confirm_for_simple_edits = false`. Oil then asks before
+simple rename or duplicate operations as well; deletes and complex actions
+are confirmed regardless of that option. Its custom confirmation float has a
+deliberately narrow fallback: Access Link reports “rename or move”, “copy or
+duplicate”, delete or trash actions, count, and Y/N, never the rendered raw
+row or complete paths. A directly typed `n` is reported as cancellation;
+after `y`, Oil's public completion event remains authoritative for success or
+failure. Access Link never answers or repeats the action itself. The fallback
+applies only to Oil's `oil_preview` in a real floating window; unknown or
+changed rendering remains fail-open to normal structured buffer/window
+output. Other plugin-specific popups still need separate verification.

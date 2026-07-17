@@ -17,9 +17,12 @@ not identify the confirmation reliably.
 The Neovim plugin may recognize only a real float whose exact `filetype` is
 `oil_preview` as an Oil confirmation. On an existing event it reads at most
 200 rendered lines, accepts only the fixed actions `CHANGE`, `COPY`, `CREATE`,
-`DELETE`, and `MOVE`, and publishes only action, count, and “Y yes, N no” as
-`promptOpened`. It transports no file name, path, or raw line. Leaving or
-closing the float produces `promptClosed`.
+`DELETE`, `MOVE`, `PURGE`, `RESTORE`, and `TRASH` after optional indentation,
+and publishes only action, count, and “Y yes, N no” as `promptOpened`. It
+transports no file name, path, or raw line. The directly typed visible `y` or
+`n` choice is observed but never intercepted. Leaving or closing the float
+event-drivably produces `promptClosed` with `accepted=true` or
+`accepted=false`; unknown or legacy alternative keys do not invent a choice.
 
 Unknown rendering, another file type, a normal window, or a parser failure
 fails open to general behavior. There is no timer query, filesystem read, or
@@ -31,8 +34,8 @@ the action result.
 - Benefit: the confirmation is understandable and path-free before execution.
 - Risk: `oil_preview` and the rendered action format are private plugin details
   and may change.
-- Mitigation: before release, an isolated real-Oil test must prove opening,
-  cancellation, exactly one open/close pair, absence of raw competing events,
-  and an unchanged fixture.
+- Mitigation: before release, isolated real-Oil tests must prove rename,
+  duplicate, delete, Y/N, exactly one open/close pair, absence of raw competing
+  events, and the expected changed or unchanged fixtures.
 - Replacement: remove this fallback as soon as Oil offers a suitable public
   pre-action event.

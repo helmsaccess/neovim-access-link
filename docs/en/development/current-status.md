@@ -3,6 +3,22 @@
 Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
+Test build `0.93.0-dev.5` hardens Oil's real file-action dialog for
+rename/move, copy/duplicate, delete, trash, purge, and restore. The strictly
+bounded parser now accepts Oil's actual indentation, still transports neither
+names nor paths, and marks destructive actions with a fixed class. Directly
+typed Y/N is observed only; `promptClosed` distinguishes acceptance and
+cancellation while Oil alone handles the key and filesystem action. Isolated
+real-Oil runs prove cancelled rename, duplicate, and delete without filesystem
+changes plus confirmed deletion. The 105 file-manager assertions and real-TUI
+cancellation test pass. For complete confirmation coverage, Oil should keep
+`skip_confirm_for_simple_edits = false`. Central prompt paths for nvim-tree,
+Neo-tree, and mini.files remain documented; their complete real-plugin matrix
+is still open. All 270 add-on/core/package tests, 41 protocol tests, 31
+bridge/TUI tests on each of Neovim 0.10.1 and 0.12.3, and all Lua
+specifications pass; the add-on and six HTML documents build reproducibly for
+`dev.5`.
+
 Test build `0.93.0-dev.4` implements file-manager findings F6, F7, and F9 from the
 analysis. The netrw fallback distinguishes banners and thin, long, wide, and
 tree lists while preserving spaces, tabs, and Unicode; tree roots and symlink

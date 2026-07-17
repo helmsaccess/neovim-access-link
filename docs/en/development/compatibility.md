@@ -33,9 +33,9 @@ The public nvim-tree option `select_prompts = true` and Neo-tree option
 `vim.ui.select/input`; Access Link never changes them automatically. Oil keeps
 its custom confirmation float without a public prompt source. A narrow
 `oil_preview` real-float fallback is verified against the real Oil main branch
-on Neovim 0.12.3, including cancellation; it carries only fixed action and
-count, never rendered paths. mini.files and other Lua calls to `vim.fn.confirm`
-are captured semantically on both Neovim reference versions.
+on Neovim 0.12.3 for rename, duplicate, delete, and Y/N; it carries only fixed
+action and count, never rendered paths. mini.files and other Lua calls to
+`vim.fn.confirm` are captured semantically on both Neovim reference versions.
 
 No physical Braille display has been tested. Automated Braille tests cover only
 state and planning, so hardware bugs are very likely. Other Windows/NVDA/

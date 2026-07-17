@@ -84,8 +84,9 @@ Die öffentlichen Optionen `select_prompts = true` von nvim-tree und
 `vim.ui.select/input`; Access Link ändert sie nicht automatisch. Oil verwendet
 weiterhin einen eigenen Bestätigungs-Float ohne öffentliche Promptquelle. Ein
 enger Fallback für `oil_preview` in einem echten Float ist mit dem realen
-Oil-Hauptzweig auf Neovim 0.12.3 einschließlich Abbruch geprüft; er überträgt
-nur feste Aktion und Anzahl, nie gerenderte Pfade. mini.files- und andere
+Oil-Hauptzweig auf Neovim 0.12.3 für Umbenennen, Duplizieren, Löschen und Y/N
+geprüft; er überträgt nur feste Aktion und Anzahl, nie gerenderte Pfade.
+mini.files- und andere
 Lua-Aufrufe von `vim.fn.confirm` werden auf beiden Neovim-Referenzständen
 semantisch erfasst.
 

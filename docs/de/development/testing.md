@@ -51,8 +51,11 @@ blockierenden Promptmodi muss der Promptzustand auch ohne `msg_clear` enden;
 Funktionswrapper keine Doppelmeldung erzeugen. Ein echter TUI-Float mit
 `filetype=oil_preview` muss genau einen pfadfreien `promptOpened`-Zustand
 erzeugen; generische Kontext-, Text- und Cursorereignisse für dieselbe Rohzeile
-sind währenddessen verboten. Ein zusätzlicher isolierter Lauf mit dem realen
-Oil-Hauptzweig prüft `dd`, `:w`, Abbruch mit `n` und die unveränderte Testdatei.
+sind währenddessen verboten. Die echte TUI-Eingabe `n` muss den Float schließen
+und `accepted=false` liefern. Zusätzliche isolierte Läufe mit dem realen
+Oil-Hauptzweig prüfen die eingerückten Aktionszeilen für Umbenennen,
+Duplizieren und Löschen, Abbruch mit `n`, Bestätigung mit `y` sowie die jeweils
+unveränderte oder gelöschte Testdatei.
 
 Die Einstellungstests prüfen den registrierten `config.conf`-Abschnitt,
 Validierung und einmalige Migration der bisherigen JSON-Datei. Ein simulierter
@@ -128,7 +131,7 @@ Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
 Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
 seit Neovim 0.12 optionale Paket mit `packadd netrw`.
-Seine 99 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
+Seine 105 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
 und 2048 Byte für Pfade/Wurzeln an exakten sowie geteilten UTF-8-Grenzen.
 Zwei-/Dreibytezeichen und Vierbyte-Emoji müssen vollständig erhalten oder vollständig
 weggelassen werden; ungültige Bytefolgen dürfen keinen Eintrag und keine
@@ -141,7 +144,8 @@ nach Managerwechsel. Speech-Tests unterscheiden Markierung, Entmarkierung,
 Copy, Cut, Clipboard-Leerung und Expansion sowie Erfolg, Abbruch und Fehler
 typisierter Aktionen.
 Der enge Oil-Promptparser wird nur für einen echten `oil_preview`-Float und
-feste Aktionsverben akzeptiert. Assertions verlangen eine pfadfreie
+feste Aktionsverben akzeptiert. Assertions verlangen Oils echte Einrückung bei
+Rename/Copy/Trash/Purge/Restore, destruktive Klassifizierung, eine pfadfreie
 Aktions-/Anzahlmeldung und fail-open bei unbekannter Darstellung.
 Reale, ausschließlich temporäre netrw-Verzeichnisse prüfen außerdem Header,
 schmale, lange und Baumlisten mit einfachen, wiederholt durch Leerzeichen

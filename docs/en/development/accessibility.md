@@ -18,8 +18,9 @@ events, basename-only minimization, target revalidation, and synchronous batch
 coalescing. Automated netrw/API/event-stub coverage includes
 two-, three-, and four-byte boundary cases and invalid adapter bytes. Action
 results are covered with public stubs. Oil's real custom confirmation float is
-also cancellation-tested through the narrow path-free fallback. Further real
-plugin/prompt versions and physical Braille remain open.
+also path-free tested for cancelled rename, duplicate, and delete plus
+confirmed deletion. Further real plugin/prompt versions and physical Braille
+remain open.
 
 Speech and sounds are configurable where NVDA has no better native setting.
 Confirmed session-focus presentation and an event-driven in-place buffer

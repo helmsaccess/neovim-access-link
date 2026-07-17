@@ -49,7 +49,9 @@ transition may prove closure when Neovim's external UI emits no `msg_clear`.
 Oil's `oil_preview` confirmation fallback uses the same prompt contract but
 only fixed action verbs, count, and Y/N. The rendered row, names, and paths are
 cleared from `promptOpened` state; unknown verbs or a same-named non-float do
-not produce a semantic prompt event.
+not produce a semantic prompt event. When `y` or `n` is typed directly, the
+corresponding `promptClosed` carries `accepted=true` or `accepted=false`.
+Other close paths omit `accepted` instead of guessing a choice.
 
 `fileManagerActionResult.payload.fileManagerAction` contains only:
 

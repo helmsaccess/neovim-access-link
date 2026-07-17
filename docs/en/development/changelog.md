@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.93.0-dev.5 (feature-branch test build)
+
+- The narrow Oil prompt parser accepts the real indented `MOVE`, `COPY`,
+  `TRASH`, and `PURGE` rows plus `RESTORE`. It names rename and duplicate
+  clearly, classifies delete/trash operations as destructive, and still
+  transports no names or paths.
+- Directly typed Y/N is observed but neither intercepted nor replaced. The
+  event-driven close waits one Neovim scheduler cycle so `promptClosed`
+  reliably carries acceptance or cancellation; Oil alone handles the key and
+  filesystem operation. No timer or polling is added.
+- Isolated real-Oil checks cover cancelled rename, duplicate, and delete plus
+  confirmed deletion. The TUI regression explicitly requires
+  `accepted=false`; all 105 file-manager assertions pass.
+- The manual recommends `skip_confirm_for_simple_edits = false`, documents
+  the central prompt options for nvim-tree and Neo-tree, and records
+  mini.files' combined Yes/No/Cancel synchronization.
+
 ## 0.93.0-dev.4 (feature-branch test build)
 
 - The netrw fallback handles banner lines and thin, long, wide, and tree list

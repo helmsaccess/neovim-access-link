@@ -114,13 +114,22 @@ nvim-tree `select_prompts = true` und bei Neo-tree
 `vim.ui.select`- beziehungsweise `vim.ui.input`-API, die Access Link mit
 Annahme und Abbruch erfasst. Access Link ändert diese Pluginoptionen nicht
 selbst. Lua-basierte `confirm()`-Abfragen werden ebenfalls mit der gewählten
-Option ausgegeben. Oils eigener Bestätigungs-Float wird als bewusst enger
-Fallback erkannt: Access Link nennt nur feste Aktion, Anzahl sowie Y/N und
-spricht weder die gerenderte Rohzeile noch vollständige Pfade. Dieser Fallback
-greift ausschließlich für Oils `oil_preview` in einem echten Floating Window;
-unbekannte oder veränderte Darstellungen bleiben fail-open bei der normalen
-strukturierten Buffer-/Fensterausgabe. Weitere pluginspezifische Popups müssen
-separat geprüft werden.
+Option ausgegeben. mini.files verwendet für die gemeinsame Synchronisierung
+von Umbenennen, Duplizieren und Löschen eine solche Ja-/Nein-/Abbruchabfrage.
+
+Bei Oil sollte `skip_confirm_for_simple_edits = false` gesetzt bleiben. Dann
+fragt Oil auch vor einfachem Umbenennen oder Duplizieren; Löschungen und
+komplexe Aktionen fragt Oil unabhängig davon ab. Sein eigener
+Bestätigungs-Float wird als bewusst enger Fallback erkannt: Access Link nennt
+„rename or move“, „copy or duplicate“, Löschen beziehungsweise
+Papierkorbaktionen, Anzahl sowie Y/N und spricht weder die gerenderte Rohzeile
+noch vollständige Pfade. Direkt getipptes `n` wird als Abbruch ausgegeben;
+nach `y` bleibt Oils öffentliches Abschlussereignis für Erfolg oder Fehler
+maßgeblich. Access Link beantwortet oder wiederholt die Aktion niemals selbst.
+Dieser Fallback greift ausschließlich für Oils `oil_preview` in einem echten
+Floating Window; unbekannte oder veränderte Darstellungen bleiben fail-open
+bei der normalen strukturierten Buffer-/Fensterausgabe. Weitere
+pluginspezifische Popups müssen separat geprüft werden.
 
 ## Weitere Dateimanager
 

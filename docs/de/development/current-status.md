@@ -3,6 +3,23 @@
 Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Im Testbuild `0.93.0-dev.5` ist Oils realer Dateiaktionsdialog für
+Umbenennen/Verschieben, Kopieren/Duplizieren, Löschen, Papierkorb,
+unwiderrufliches Löschen und Wiederherstellen gehärtet. Der strikt begrenzte
+Parser erkennt nun auch Oils echte Einrückung, überträgt weiterhin weder Namen
+noch Pfade und kennzeichnet destruktive Aktionen fest. Direkt getipptes Y/N
+wird nur beobachtet; `promptClosed` unterscheidet Annahme und Abbruch, während
+Oil die Taste und die Dateiaktion allein ausführt. Reale isolierte Oil-Läufe
+belegen abgebrochenes Umbenennen, Duplizieren und Löschen ohne
+Dateisystemänderung sowie bestätigtes Löschen. 105 Dateimanagerassertionen und
+der echte TUI-Abbruchtest bestehen. Für vollständige Rückfragen sollte Oil mit
+`skip_confirm_for_simple_edits = false` laufen. Die zentralen Promptpfade von
+nvim-tree, Neo-tree und mini.files bleiben dokumentiert; ihre vollständige
+reale Pluginmatrix ist weiter offen. Alle 270 Add-on-/Core-/Pakettests, 41
+Protokolltests, je 31 Bridge-/TUI-Tests auf Neovim 0.10.1 und 0.12.3 sowie die
+Lua-Spezifikationen bestehen; Add-on und sechs HTML-Dokumente bauen für
+`dev.5` reproduzierbar.
+
 Im Testbuild `0.93.0-dev.4` sind die Dateimanagerpunkte F6, F7 und F9 aus dem
 Analysebericht umgesetzt. Der netrw-Fallback unterscheidet Header sowie
 schmale, lange, breite und Baumlisten und bewahrt Leerzeichen, Tabs und Unicode;
