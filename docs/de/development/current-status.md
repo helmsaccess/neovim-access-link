@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 2026-07-17, Beta-Version 0.92.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
 Im Testbuild `0.92.0-dev.11` auf `feature/terminal-file-manager-hardening` sind

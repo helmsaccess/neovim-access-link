@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.93.0 (beta)
+
+- The product version was advanced to `0.93.0` at the user's explicit
+  direction. The release channel remains `beta`; overall maturity remains
+  between alpha and beta and is not classified as stable.
+- Includes the practically confirmed terminal and buffer-switch hardening,
+  structured command-line and process messages, semantic window/tab context,
+  and corrected fresh F12 pairing from an ended local Neovim to an SSH
+  session.
+
 ## 0.92.0-dev.11 (feature-branch test build)
 
 - A disconnected but still remembered local connection no longer forces a new

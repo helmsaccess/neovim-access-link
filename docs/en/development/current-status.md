@@ -1,6 +1,6 @@
 # Current status
 
-Status: 2026-07-17, beta version 0.92.0; overall maturity remains between
+Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
 Test build `0.92.0-dev.11` on branch `feature/terminal-file-manager-hardening`

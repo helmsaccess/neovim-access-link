@@ -5,6 +5,16 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0 (Beta)
+
+- Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.93.0` angehoben.
+  Der Releasekanal bleibt unverändert `beta`; der Gesamtstand bleibt zwischen
+  Alpha und Beta und wird nicht als stabil eingestuft.
+- Enthält die praktisch bestätigten Terminal- und Bufferwechsel-Härtungen,
+  strukturierte Kommandozeilen- und Prozessmeldungen, semantische
+  Fenster-/Tab-Kontextausgabe sowie die korrigierte erneute F12-Zuordnung von
+  einer beendeten lokalen zu einer SSH-Neovim-Sitzung.
+
 ## 0.92.0-dev.11 (Featurebranch-Testbuild)
 
 - Eine getrennte, aber noch gemerkte lokale Verbindung zwingt eine neue

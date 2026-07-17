@@ -11,7 +11,7 @@ Enthalten sind:
 - interner NVDA-Identifier `nvimNvdaAccess`,
 - sichtbarer Produktname „Neovim Access Link“,
 - Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
-- vom Benutzer bestimmte Produktversion `0.92.0`,
+- vom Benutzer bestimmte Produktversion `0.93.0`,
 - eine pro Featurebranch verwaltete Entwicklungsbuildnummer,
 - Releasekanal `beta`,
 - minimale und zuletzt getestete NVDA-Version.
@@ -24,9 +24,9 @@ zweiter sichtbarer Produktname.
 ## Abgeleitete Werte
 
 `buildVars.store_version()` liefert ausschließlich die normale numerische
-Produktversion `0.92.0` für `manifest.ini` und den NVDA Add-on Store.
+Produktversion `0.93.0` für `manifest.ini` und den NVDA Add-on Store.
 `buildVars.development_version()` ergänzt für Entwicklungsstände eine
-branchlokale SemVer-Kennung wie `0.92.0-dev.1` und nach Möglichkeit
+branchlokale SemVer-Kennung wie `0.93.0-dev.1` und nach Möglichkeit
 Build-Metadaten aus Branch und Commit. `buildVars.artifact_version()` verwendet
 diese vollständige Kennung für Pakete und Laufzeitdiagnosen. Der Store sieht
 damit keine interne Buildnummer.
@@ -40,9 +40,9 @@ Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
 - einen eindeutigen Archivnamen wie
-  `nvimNvdaAccess-0.92.0-dev.1+feature.example.<commit>.nvda-addon`,
+  `nvimNvdaAccess-0.93.0-dev.1+feature.example.<commit>.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-0.92.0-dev.1+feature.example.<commit>-user.tar.gz`,
+  `neovim-access-link-0.93.0-dev.1+feature.example.<commit>-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
 - die Version des gebündelten Linux-Komponentenpakets.
 
