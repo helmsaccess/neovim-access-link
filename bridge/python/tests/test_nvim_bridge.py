@@ -55,6 +55,22 @@ class NvimBridgeTests(unittest.TestCase):
         self.assertIn("request_paste_text", notifications[1][1][0])
         self.assertIn("request_set_register", notifications[2][1][0])
 
+    def test_terminal_control_uses_only_its_fixed_plugin_entry_point(self) -> None:
+        notifications = []
+        bridge = Bridge.__new__(Bridge)
+        bridge.nvim = type("Nvim", (), {
+            "notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+        })()
+        state = {
+            "bufferId": 1, "windowId": 2, "tabpageId": 3,
+            "modeRaw": "t", "requestId": 5,
+        }
+        bridge._on_client_control("leaveTerminalInputRequest", state)
+        bridge._on_client_control("leaveTerminalInputRequest", {**state, "modeRaw": "n"})
+        self.assertEqual(1, len(notifications))
+        self.assertEqual("nvim_exec_lua", notifications[0][0])
+        self.assertIn("request_leave_terminal_input", notifications[0][1][0])
+
     def test_bridge_publishes_clipboard_text_once_but_never_caches_it(self) -> None:
         transport = RecordingTransport()
         bridge = Bridge.__new__(Bridge)
@@ -186,11 +202,20 @@ class NvimBridgeTests(unittest.TestCase):
             process = pexpect.spawn(
                 "nvim",
                 [
-                    "-n", "-u", "NONE", "-i", "NONE",
-                    "--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
+                    "-n", "-u", "NONE", "-i", "NONE", "--noplugin",
+                    "--cmd", "set packpath=", "--cmd",
+                    f"execute 'set runtimepath={root / 'neovim-plugin'},' . $VIMRUNTIME", "--cmd",
+                    "runtime plugin/nvim_nvda.lua",
                     "--listen", nvim_socket,
                 ],
-                env={**os.environ, "TERM": "xterm-256color"},
+                env={
+                    **os.environ,
+                    "TERM": "xterm-256color",
+                    "XDG_DATA_HOME": os.path.join(directory, "data"),
+                    "XDG_CONFIG_HOME": os.path.join(directory, "config"),
+                    "XDG_STATE_HOME": os.path.join(directory, "state"),
+                    "XDG_CACHE_HOME": os.path.join(directory, "cache"),
+                },
                 encoding=None,
                 timeout=3,
             )
@@ -390,6 +415,8 @@ class NvimBridgeTests(unittest.TestCase):
                     ),
                 )
                 process.send(b"\x1b")
+                bridge.nvim.notify("nvim_win_set_cursor", 0, [1, 0])
+                time.sleep(0.05)
                 process.send(b"/beta\r")
                 self._wait(
                     condition,
@@ -404,6 +431,10 @@ class NvimBridgeTests(unittest.TestCase):
                     first_match["payload"]["matchCount"],
                     first_match["payload"]["matchLine"],
                 ))
+                # Let the TUI finish the search-result redraw before sending
+                # the next physical key. The structured event may arrive a
+                # few milliseconds before the terminal has consumed redraw.
+                self._drain_tui_output(process)
                 process.send(b"n")
                 self._wait(
                     condition,
@@ -597,15 +628,125 @@ class NvimBridgeTests(unittest.TestCase):
                 if process.isalive():
                     process.terminate(force=True)
 
-    def test_real_tui_terminal_passthrough_boundary_is_direct_input_only(self) -> None:
+    def test_real_tui_terminal_control_and_process_exit_are_structured(self) -> None:
         root = pathlib.Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             nvim_socket = os.path.join(directory, "nvim.sock")
             process = pexpect.spawn(
                 "nvim",
-                ["-n", "-u", "NONE", "-i", "NONE", "--cmd",
-                 f"set runtimepath^={root / 'neovim-plugin'}", "--listen", nvim_socket],
-                env={**os.environ, "TERM": "xterm-256color"}, encoding=None, timeout=3,
+                ["-n", "-u", "NONE", "-i", "NONE", "--noplugin",
+                 "--cmd", "set packpath=", "--cmd",
+                 f"execute 'set runtimepath={root / 'neovim-plugin'},' . $VIMRUNTIME", "--cmd",
+                 "runtime plugin/nvim_nvda.lua", "--listen", nvim_socket],
+                env={
+                    **os.environ,
+                    "TERM": "xterm-256color",
+                    "XDG_DATA_HOME": os.path.join(directory, "data"),
+                    "XDG_CONFIG_HOME": os.path.join(directory, "config"),
+                    "XDG_STATE_HOME": os.path.join(directory, "state"),
+                    "XDG_CACHE_HOME": os.path.join(directory, "cache"),
+                },
+                encoding=None, timeout=3,
+            )
+            self._wait_socket(nvim_socket, process)
+            transport = RecordingTransport()
+            bridge = Bridge(nvim_socket, transport=transport)
+            bridge.start()
+            events, condition = transport.events, transport.condition
+            try:
+                self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
+                bridge.nvim.notify("nvim_exec_lua", "vim.o.shell='sh'", [])
+                prior = len(events)
+                process.send(b":terminal\r")
+                self._wait(condition, lambda: any(
+                    e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminalNormal"
+                    for e in events[prior:]
+                ))
+                time.sleep(0.1)
+                self.assertFalse(any(
+                    e["type"] == "characterMoved" for e in events[prior:]
+                ))
+                process.send(b"i")
+                self._wait(condition, lambda: any(
+                    e["payload"].get("buftype") == "terminal" and e["payload"].get("mode") == "terminal"
+                    for e in events[prior:]
+                ))
+                terminal_state = next(
+                    e["payload"] for e in reversed(events)
+                    if e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminal"
+                )
+                prior = len(events)
+                bridge._on_client_control("leaveTerminalInputRequest", {
+                    "requestId": 51,
+                    "bufferId": terminal_state["bufferId"],
+                    "windowId": terminal_state["windowId"],
+                    "tabpageId": terminal_state["tabpageId"],
+                    "modeRaw": terminal_state["modeRaw"],
+                })
+                self._wait(condition, lambda: any(
+                    e["type"] == "leaveTerminalInputResult"
+                    and e["payload"].get("requestId") == 51
+                    and e["payload"].get("ok") is True for e in events[prior:]
+                ))
+                self._wait(condition, lambda: any(
+                    e["type"] == "modeChanged" and e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminalNormal" for e in events[prior:]
+                ))
+                prior = len(events)
+                process.send(b":bp\r")
+                self._wait(condition, lambda: any(
+                    e["type"] == "messageReceived"
+                    and "no other listed buffer" in e["payload"].get("message", "")
+                    for e in events[prior:]
+                ))
+                self.assertTrue(any(
+                    e["type"] == "commandLineChanged"
+                    and e["payload"].get("commandLine") == "bp"
+                    and e["payload"].get("commandLineType") == ":"
+                    for e in events[prior:]
+                ))
+                prior = len(events)
+                process.send(b"i")
+                self._wait(condition, lambda: any(
+                    e["type"] == "modeChanged"
+                    and e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminal"
+                    for e in events[prior:]
+                ))
+                prior = len(events)
+                process.send(b"exit\r")
+                self._wait(condition, lambda: any(
+                    e["type"] == "messageReceived"
+                    and e["payload"].get("terminalExitStatus") == 0
+                    and "status 0" in e["payload"].get("message", "")
+                    for e in events[prior:]
+                ))
+            finally:
+                bridge.stop()
+                if process.isalive():
+                    process.terminate(force=True)
+
+    def test_real_tui_running_terminal_bd_reports_guard_before_hit_enter(self) -> None:
+        root = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            nvim_socket = os.path.join(directory, "nvim.sock")
+            process = pexpect.spawn(
+                "nvim",
+                ["-n", "-u", "NONE", "-i", "NONE", "--noplugin",
+                 "--cmd", "set packpath=", "--cmd",
+                 f"execute 'set runtimepath={root / 'neovim-plugin'},' . $VIMRUNTIME", "--cmd",
+                 "runtime plugin/nvim_nvda.lua", "--listen", nvim_socket],
+                env={
+                    **os.environ,
+                    "TERM": "xterm-256color",
+                    "XDG_DATA_HOME": os.path.join(directory, "data"),
+                    "XDG_CONFIG_HOME": os.path.join(directory, "config"),
+                    "XDG_STATE_HOME": os.path.join(directory, "state"),
+                    "XDG_CACHE_HOME": os.path.join(directory, "cache"),
+                },
+                encoding=None, timeout=3,
             )
             self._wait_socket(nvim_socket, process)
             transport = RecordingTransport()
@@ -616,24 +757,25 @@ class NvimBridgeTests(unittest.TestCase):
                 self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
                 bridge.nvim.notify(
                     "nvim_exec_lua",
-                    "vim.cmd('enew'); vim.fn.termopen({'sh'}); vim.cmd('startinsert')",
+                    "vim.cmd('enew'); vim.fn.termopen({'sh'}); vim.cmd('stopinsert')",
                     [],
                 )
                 self._wait(condition, lambda: any(
-                    e["payload"].get("buftype") == "terminal" and e["payload"].get("mode") == "terminal"
-                    for e in events
+                    e["payload"].get("buftype") == "terminal"
+                    and e["payload"].get("mode") == "terminalNormal" for e in events
                 ))
                 prior = len(events)
-                process.send(b"\x1c\x0e")
+                process.send(b":bd\r")
                 self._wait(condition, lambda: any(
-                    e["type"] == "modeChanged" and e["payload"].get("buftype") == "terminal"
-                    and e["payload"].get("mode") == "normal" for e in events[prior:]
+                    e["type"] == "errorReceived"
+                    and "E89" in e["payload"].get("message", "")
+                    and "bd!" in e["payload"].get("message", "")
+                    and "Press Enter" in e["payload"].get("message", "")
+                    for e in events[prior:]
                 ))
-                prior = len(events)
-                process.send(b"i")
-                self._wait(condition, lambda: any(
-                    e["type"] == "modeChanged" and e["payload"].get("buftype") == "terminal"
-                    and e["payload"].get("mode") == "terminal" for e in events[prior:]
+                self.assertTrue(any(
+                    e["payload"].get("buftype") == "terminal"
+                    for e in events[prior:]
                 ))
             finally:
                 bridge.stop()
@@ -755,14 +897,36 @@ class NvimBridgeTests(unittest.TestCase):
                     condition,
                     lambda: any(e["type"] == "textChanged" and e["payload"].get("lineText") == "d!?" for e in events),
                 )
-                bridge.nvim.notify("nvim_input", ":set nu")
+                prior = len(events)
+                bridge.nvim.notify("nvim_input", ":lua print('command completed')\r")
                 self._wait(
                     condition,
                     lambda: any(
-                        e["type"] == "commandLineChanged" and e["payload"].get("commandLine") == "set nu"
-                        for e in events
+                        e["type"] == "commandLineChanged"
+                        and e["payload"].get("commandLine") == "lua print('command completed')"
+                        for e in events[prior:]
                     ),
                 )
+                self._wait(condition, lambda: any(
+                    e["type"] == "modeChanged" and e["payload"].get("mode") == "commandLine"
+                    for e in events[prior:]
+                ))
+                self._wait(condition, lambda: any(
+                    e["type"] == "messageReceived"
+                    and e["payload"].get("message") == "command completed"
+                    for e in events[prior:]
+                ))
+                command_mode_index = next(
+                    index for index, event in enumerate(events[prior:])
+                    if event["type"] == "modeChanged"
+                    and event["payload"].get("mode") == "commandLine"
+                )
+                command_message_index = next(
+                    index for index, event in enumerate(events[prior:])
+                    if event["type"] == "messageReceived"
+                    and event["payload"].get("message") == "command completed"
+                )
+                self.assertLess(command_mode_index, command_message_index)
                 bridge.nvim.notify(
                     "nvim_exec_lua",
                     "local p=...; require('nvim_nvda').accessible_menu_open(p.items, p.options)",
@@ -845,6 +1009,14 @@ class NvimBridgeTests(unittest.TestCase):
             time.sleep(0.01)
         process.terminate(force=True)
         self.fail("Neovim RPC socket timeout")
+
+    @staticmethod
+    def _drain_tui_output(process) -> None:
+        try:
+            while process.read_nonblocking(65536, timeout=0.01):
+                pass
+        except (pexpect.TIMEOUT, pexpect.EOF):
+            pass
 
     def _wait(self, condition: threading.Condition, predicate, timeout: float = 3.0) -> None:
         deadline = time.monotonic() + timeout

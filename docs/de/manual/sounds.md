@@ -11,13 +11,15 @@ Das Add-on verwendet direkt aus dem installierten NVDA-Verzeichnis:
 
 | Ereignis | NVDA-Datei |
 | --- | --- |
-| Insert-Modus | `waves/focusMode.wav` |
-| Normalmodus nach Insert | `waves/browseMode.wav` |
+| Insert-Modus oder direkte Terminaleingabe | `waves/focusMode.wav` |
+| Normal- oder Terminal-Normalmodus nach Insert beziehungsweise direkter Terminaleingabe | `waves/browseMode.wav` |
+| Neovim-Kommandozeile | kurzer synthetischer Ton mit 600 Hz |
 | fehlendes Klammerpaar | `waves/error.wav` |
 | Vorschlagsmenü geöffnet/geschlossen | `waves/suggestionsOpened.wav`, `waves/suggestionsClosed.wav` |
 | Rechtschreib- oder Grammatikfehler | `waves/textError.wav` |
 
-Diese Dateien werden nicht in das Add-on kopiert. Dadurch bleiben die Klänge
+Der Kommandozeilenton benötigt keine Audiodatei. Die übrigen Dateien dieser
+Tabelle werden nicht in das Add-on kopiert. Dadurch bleiben die Klänge
 mit der jeweils installierten NVDA-Version konsistent.
 
 ## Mitgelieferte CC0-Earcons

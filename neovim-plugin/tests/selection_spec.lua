@@ -32,6 +32,7 @@ equal(4, exclusive.finish.byteColumn, "exclusive end")
 
 equal("normal", state.normalize_mode("n"), "normal mode")
 equal("normal", state.normalize_mode("niI"), "normal insert mode")
+equal("terminalNormal", state.normalize_mode("nt"), "terminal-normal mode")
 equal("operatorPending", state.normalize_mode("no"), "operator pending")
 equal("insert", state.normalize_mode("ic"), "insert completion")
 equal("replace", state.normalize_mode("Rv"), "virtual replace")

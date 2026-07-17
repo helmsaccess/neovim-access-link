@@ -10,26 +10,50 @@ Values use NVDA's normal configuration profiles. Manage those through
 `NVDA menu → Configuration profiles...`; the add-on neither selects nor
 activates a profile itself.
 
-## Session focus
+## Session focus and buffer changes
 
-“When focusing a Neovim session” controls the additional output after a bound
-Neovim control regains focus and its structured context is confirmed:
+“When focusing or changing buffers in a Neovim session” controls the
+additional output after a bound Neovim control regains focus and its structured
+context is confirmed. The same choice applies to a real buffer switch in the
+current window, for example after `:bp` or `:bn`:
 
 - No announcement;
 - Current line, using “blank” for an empty line;
-- Current context, mode and connection name as before. This remains the
-  default.
+- Current context, modified/read-only state, mode, and connection name. This
+  remains the default.
 
-The choice affects only the focus announcement and its transient Braille
-message. Structured Braille and secure focus confirmation remain active.
-Insert- and Normal-mode sounds also play for confirmed focus when Global action
-feedback and Insert and normal mode changes permit sounds.
+The choice affects only the focus/buffer-switch announcement and its transient
+Braille message. Tab and window destination position remains present; Context
+combines it with destination, state, mode, and connection in exactly one
+announcement. A short file name is explicit as `file T`. A terminal reports
+only `terminal mode` or `terminal-normal mode` for its state, never the
+duplicated `terminal, terminal mode`.
+Structured Braille and secure focus confirmation remain active.
+Insert-, direct-terminal-input, and Normal-mode sounds also play for confirmed focus when Global action
+feedback and Insert and normal mode changes permit sounds. Actual mode changes
+during a buffer, window, or tab switch continue to use those cues independently
+of this choice.
+For `:bp`/`:bn`, transient spoken return modes are folded into the selected
+destination presentation: No announcement stays silent, Current line is not
+prefixed by a mode fragment, and Context already includes the destination
+mode. Command-line entry remains announced.
+
+The choice also applies when `:terminal` creates a terminal buffer. Current
+line waits for the first actual terminal line instead of first reporting blank
+and then only its first character. Entering direct terminal input with `i`
+subsequently presents the complete line at the terminal cursor independently
+of that entry choice; the Insert/focus cue still follows feedback settings.
 
 ## Feedback
 
 Global action feedback and individual actions use Off, Speech, Sounds, or
 Speech and sounds. Individual settings cover mode changes, deletion, replace,
 line/file boundaries, crossing a line, and unmatched pairs.
+
+The mode setting also governs the focus cue for direct embedded-terminal input,
+the Normal cue for canonical Terminal-Normal, and the short command-line tone.
+Command-line mode remains spoken for safe orientation even when ordinary
+Insert/Normal speech is disabled.
 
 Existing NVDA settings remain authoritative:
 
@@ -52,6 +76,11 @@ buffers, and non-modifiable buffers are rejected. The register command changes
 no buffer. It replaces register 0 and points the unnamed register to it, so
 normal `p` and `"0p` subsequently use the transferred text. Local and SSH
 sessions use the same behavior.
+
+The separate freely assignable “Leave direct input in the active Neovim
+terminal” command can replace the layout-dependent Neovim sequence
+`Ctrl+\`, `Ctrl+N`. It has no default gesture and is sent only while the exact
+bound terminal buffer is in direct input.
 
 ## Connections
 

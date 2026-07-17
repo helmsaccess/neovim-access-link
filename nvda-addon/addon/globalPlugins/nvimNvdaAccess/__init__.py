@@ -87,6 +87,7 @@ from .core.clipboard import (
     MAX_CLIPBOARD_TEXT_BYTES, clipboard_result_state,
     valid_clipboard_text, valid_request_id,
 )
+from .core.terminal_control import terminal_control_result_state
 from .core.braille import plan_braille, source_offset_for_expanded
 from .core.diagnostics import DiagnosticBuffer
 from .core.connection_profiles import (
@@ -154,6 +155,7 @@ _SESSION_CLAIM_KEY_NAME = _LINUX_COMPONENT_CONFIG["sessionClaim"]["neovimKey"].s
 _LOCAL_CLAIM_WAIT_SECONDS = 1.5
 _LOCAL_CLAIM_POLL_SECONDS = 0.05
 _MAX_PENDING_CLIPBOARD_REQUESTS = 32
+_MAX_PENDING_TERMINAL_CONTROL_REQUESTS = 16
 
 
 def _frontendPolicy():
@@ -308,6 +310,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._pendingFocusContexts = {}
         self._clipboardRequestId = 0
         self._pendingClipboardRequests = {}
+        self._terminalControlRequestId = 0
+        self._pendingTerminalControlRequests = {}
         self._transportCapabilities = frozenset()
         self._pendingClaimTargets = {}
         self._claimGestureGeneration = 0
@@ -423,6 +427,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         )
 
     @scriptHandler.script(
+        description=_("Leave direct input in the active Neovim terminal"),
+        category=scriptCategory,
+    )
+    def script_leaveDirectTerminalInput(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_leaveDirectTerminalInput",
+        )
+
+    @scriptHandler.script(
         description=_("Choose a server and connect this terminal to a new Neovim session"),
         category=scriptCategory,
     )
@@ -474,6 +487,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._pendingInstanceFullStates.clear()
         self._pendingFocusContexts.clear()
         self._pendingClipboardRequests.clear()
+        self._pendingTerminalControlRequests.clear()
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
@@ -1031,6 +1045,67 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             bytes=len(text.encode("utf-8")),
         )
 
+    def action_leaveDirectTerminalInput(self, gesture):
+        identity = self._gate.focused
+        selected = self._instanceManager.selected_for(identity) if identity else None
+        if (
+            identity is None or selected is None or self._client is None
+            or selected.identifier != self._activeInstanceId
+            or not self._gate.manual_enabled or not self._gate.authenticated
+            or not self._gate.nvim_active or self._gate.bound_terminal != identity
+        ):
+            ui.message(_("No active Neovim session is bound to this terminal"))
+            return
+        if "terminalControl" not in self._transportCapabilities:
+            ui.message(_("The connected Neovim components do not support terminal control"))
+            return
+        state = self._currentState
+        if (
+            state.get("buftype") != "terminal" or state.get("mode") != "terminal"
+            or state.get("modeRaw") != "t" or state.get("modeBlocking") is True
+        ):
+            ui.message(_("Neovim is not in direct terminal input"))
+            return
+        expected = {
+            "bufferId": state.get("bufferId"),
+            "windowId": state.get("windowId"),
+            "tabpageId": state.get("tabpageId"),
+            "modeRaw": state.get("modeRaw"),
+        }
+        if any(
+            not isinstance(expected[name], int) or isinstance(expected[name], bool)
+            for name in ("bufferId", "windowId", "tabpageId")
+        ):
+            ui.message(_("The active Neovim state is incomplete; try again"))
+            return
+        self._terminalControlRequestId = (
+            self._terminalControlRequestId + 1
+        ) % 2_147_483_648
+        request_id = self._terminalControlRequestId
+        while (
+            len(self._pendingTerminalControlRequests)
+            >= _MAX_PENDING_TERMINAL_CONTROL_REQUESTS
+        ):
+            discarded_id = next(iter(self._pendingTerminalControlRequests))
+            self._pendingTerminalControlRequests.pop(discarded_id, None)
+            self._diagnostics.record(
+                "terminalControlRequestDiscarded", requestId=discarded_id,
+                reason="queueLimit",
+            )
+        self._pendingTerminalControlRequests[request_id] = (
+            selected.identifier, identity, "leaveTerminalInputRequest",
+        )
+        accepted = self._client.send_control(
+            "leaveTerminalInputRequest", {**expected, "requestId": request_id},
+        )
+        if not accepted:
+            self._pendingTerminalControlRequests.pop(request_id, None)
+            ui.message(_("Could not ask Neovim to leave direct terminal input"))
+        self._diagnostics.record(
+            "leaveTerminalInputRequested", requestId=request_id, accepted=accepted,
+            instanceId=selected.identifier,
+        )
+
     def _readWindowsClipboardText(self):
         try:
             text = api.getClipData()
@@ -1218,25 +1293,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         identity = expected_identity
         selected = self._instanceManager.selected_for(identity) if identity is not None else None
+        selected_authenticated = (
+            selected is not None and selected.identifier in self._authenticatedInstances
+        )
+        pairing_selected = selected if selected_authenticated else None
         self._diagnostics.record(
             "sessionClaimGestureReceived",
             terminal=self._identityFields(identity),
             inventoryReady=self._claimInventoryReady,
             selected=selected is not None,
+            selectedAuthenticated=selected_authenticated,
         )
         profile = (
-            self._connectionProfileById(selected.target_id)
-            if selected is not None and selected.transport_kind == "remoteSsh"
+            self._connectionProfileById(pairing_selected.target_id)
+            if pairing_selected is not None and pairing_selected.transport_kind == "remoteSsh"
             else None
         )
         pending_target = self._pendingClaimTargets.pop(identity, None) if identity is not None else None
-        if not pending_target and selected is not None and selected.transport_kind == LOCAL_WINDOWS_TCP:
+        if (
+            not pending_target and pairing_selected is not None
+            and pairing_selected.transport_kind == LOCAL_WINDOWS_TCP
+        ):
             pending_target = (LOCAL_WINDOWS_TCP, "")
         if identity is None or identity.frontend_kind != "windowsTerminal":
             if forward_gesture and gesture is not None:
                 gesture.send()
             return
-        if selected is None and not pending_target and not self._claimInventoryReady:
+        if pairing_selected is None and not pending_target and not self._claimInventoryReady:
             ui.message(_(
                 "Neovim connections are still being checked. Press {key} again after the ready message"
             ).format(key=_SESSION_CLAIM_KEY_NAME))
@@ -1270,7 +1353,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 True, True, True,
             )
             return
-        if selected is None:
+        if pairing_selected is None:
             if not self._gate.manual_enabled:
                 self._gate.manual_enabled = True
                 self._planner.reset()
@@ -2142,11 +2225,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             event = self._handleClipboardResult(instance_id, identity, event)
             if event is None:
                 return
+        elif event.get("type") == "leaveTerminalInputResult":
+            event = self._handleTerminalControlResult(instance_id, identity, event)
+            if event is None:
+                return
         payload = event.get("payload")
         if event.get("type") == "fullState":
             self._authenticatedInstances.add(instance_id)
         if isinstance(payload, dict):
-            if event.get("type") == "focusContext":
+            if event.get("type") in {"focusContext", "contextChanged"}:
                 payload = dict(payload)
                 payload["_connectionLabel"] = selected.context_label
                 event = {**event, "payload": payload}
@@ -2251,6 +2338,47 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if pending[0] == instance_id:
                 self._pendingClipboardRequests.pop(request_id, None)
 
+    def _handleTerminalControlResult(self, instance_id, identity, event):
+        payload = event.get("payload")
+        request_id = payload.get("requestId") if isinstance(payload, dict) else None
+        if not valid_request_id(request_id):
+            self._diagnostics.record(
+                "terminalControlResultIgnored", instanceId=instance_id,
+                reason="invalidRequestId",
+            )
+            return None
+        pending = self._pendingTerminalControlRequests.pop(request_id, None)
+        if pending != (instance_id, identity, "leaveTerminalInputRequest"):
+            self._diagnostics.record(
+                "terminalControlResultIgnored", instanceId=instance_id,
+                requestId=request_id, reason="staleOrUnbound",
+            )
+            return None
+        ok = payload.get("ok") is True
+        result_code = payload.get("resultCode")
+        if not isinstance(result_code, str) or len(result_code) > 64:
+            ok = False
+            result_code = "invalidResult"
+        if not ok:
+            if result_code == "staleState":
+                message = _("Neovim changed before terminal input could be left; try again")
+            else:
+                message = _("Neovim could not leave direct terminal input")
+            ui.message(message)
+        self._diagnostics.record(
+            "terminalControlResult", instanceId=instance_id,
+            requestId=request_id, ok=ok, resultCode=result_code,
+        )
+        return {**event, "payload": terminal_control_result_state(payload)}
+
+    def _discardTerminalControlRequests(self, *, instance_id=None):
+        if instance_id is None:
+            self._pendingTerminalControlRequests.clear()
+            return
+        for request_id, pending in tuple(self._pendingTerminalControlRequests.items()):
+            if pending[0] == instance_id:
+                self._pendingTerminalControlRequests.pop(request_id, None)
+
     def _onManagedState(self, instance_id, state):
         queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
 
@@ -2261,6 +2389,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._pendingInstanceFullStates.pop(instance_id, None)
             self._pendingFocusContexts.pop(instance_id, None)
             self._discardClipboardRequests(instance_id=instance_id)
+            self._discardTerminalControlRequests(instance_id=instance_id)
         identity = self._gate.focused
         selected = self._instanceManager.selected_for(identity) if identity else None
         if selected is not None and selected.identifier == instance_id:
@@ -2273,6 +2402,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if previous != identity:
             self._pendingFocusContexts.clear()
             self._pendingClipboardRequests.clear()
+            self._pendingTerminalControlRequests.clear()
             self._gate.disconnect()
             self._diagnostics.record(
                 "terminalFocusIdentityChanged",
@@ -2392,6 +2522,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._instanceTerminalPassthrough.pop(instance.identifier, None)
             self._pendingInstanceFullStates.pop(instance.identifier, None)
             self._rememberOfferInstances.discard(instance.identifier)
+            self._discardTerminalControlRequests(instance_id=instance.identifier)
             self._dropInstanceRuntime(instance.identifier)
             threading.Thread(
                 target=self._stopPrunedClient, args=(instance.identifier, client),
@@ -2425,6 +2556,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._gate.focused = None
         self._pendingFocusContexts.clear()
         self._pendingClipboardRequests.clear()
+        self._pendingTerminalControlRequests.clear()
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._resetTypedEcho()
@@ -2505,6 +2637,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _handleEvent(self, event):
         activated = False
         payload = event.get("payload")
+        previous_state = self._currentState
         keyObserverDiagnostics = (
             payload.get("keyObserverDiagnostics", {})
             if isinstance(payload, dict) else {}
@@ -2562,6 +2695,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         )
         mode = payload.get("mode") if isinstance(payload, dict) else None
         previous_mode = self._lastMode
+        previous_buffer_id = (
+            previous_state.get("bufferId") if isinstance(previous_state, dict) else None
+        )
+        buffer_id = payload.get("bufferId") if isinstance(payload, dict) else None
         if event.get("type") == "menuSelectionChanged" and isinstance(payload, dict):
             item = payload.get("item", {})
             documentation = item.get("documentation", "") if isinstance(item, dict) else ""
@@ -2569,14 +2706,56 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         elif event.get("type") == "menuClosed":
             self._menuDocumentation = ""
         event_type = event.get("type")
+        terminal_passthrough = (
+            isinstance(payload, dict)
+            and payload.get("buftype") == "terminal"
+            and payload.get("mode") == "terminal"
+        )
+        if terminal_passthrough != self._gate.terminal_passthrough:
+            # Direct terminal input must fail open before any optional sound or
+            # speech is produced for the mode transition.
+            self._gate.terminal_passthrough = terminal_passthrough
+            self._diagnostics.record(
+                "terminalPassthrough", enabled=terminal_passthrough,
+                bufferId=payload.get("bufferId") if isinstance(payload, dict) else None,
+            )
+        mode_sound = self._modeSoundKind(mode)
+        previous_mode_sound = self._modeSoundKind(previous_mode)
         if (
             event_type == "focusContext" and self._gate.manual_enabled
-            and mode in {"insert", "normal"}
+            and mode_sound is not None
         ):
             self._playModeSound(mode, focus_context=True)
-        elif event_type == "modeChanged" and mode == "insert" and self._lastMode != "insert":
+        elif (
+            event_type in {"commandLineChanged", "modeChanged"}
+            and mode_sound == "commandLine" and previous_mode != "commandLine"
+        ):
             self._playModeSound(mode)
-        elif event_type == "modeChanged" and mode == "normal" and self._lastMode == "insert":
+        elif (
+            event_type in {"modeChanged", "contextChanged"} and mode_sound == "insert"
+            and previous_mode_sound != "insert"
+        ):
+            self._playModeSound(mode)
+        elif (
+            event_type in {"modeChanged", "contextChanged"} and mode_sound == "normal"
+            and (
+                previous_mode_sound == "insert"
+                or (
+                    previous_mode == "commandLine"
+                    and isinstance(previous_state, dict)
+                    and previous_state.get("buftype") == "terminal"
+                )
+            )
+        ):
+            self._playModeSound(mode)
+        elif (
+            event_type in {"modeChanged", "contextChanged"}
+            and mode == "terminalNormal"
+            and (previous_mode != "terminalNormal" or previous_buffer_id != buffer_id)
+        ):
+            # :terminal enters raw mode "nt" before direct terminal input.
+            # Announce that distinct state once, while duplicate TermOpen /
+            # context events for the same buffer remain silent.
             self._playModeSound(mode)
         if event.get("type") == "fullState" or (
             event.get("type") == "modeChanged" and mode != self._lastMode
@@ -2592,17 +2771,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._gate.nvim_active = True
                 self._gate.bound_terminal = self._gate.focused
                 activated = True
-        terminal_passthrough = (
-            isinstance(payload, dict)
-            and payload.get("buftype") == "terminal"
-            and payload.get("mode") == "terminal"
-        )
-        if terminal_passthrough != self._gate.terminal_passthrough:
-            self._gate.terminal_passthrough = terminal_passthrough
-            self._diagnostics.record(
-                "terminalPassthrough", enabled=terminal_passthrough,
-                bufferId=payload.get("bufferId") if isinstance(payload, dict) else None,
-            )
         if not self._gate.manual_enabled:
             return
         for action in self._planner.plan(
@@ -2682,7 +2850,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                             label = "grammar error" if kind == "grammar" else "spelling error"
                             speech.speakText(("out of " if leaving else "") + label, priority=priority)
                 elif getattr(action, "typed", False) and speech_allowed:
-                    self._speakStructuredTyping(action.text, payload)
+                    self._speakStructuredTyping(
+                        action.text, payload, command_line=event_type == "commandLineChanged",
+                    )
                 elif getattr(action, "spelling", False) and speech_allowed:
                     speech.speakSpelling(action.text, priority=priority)
                 elif action.text and speech_allowed:
@@ -2719,17 +2889,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if report_mode in (1, 3) or quarterTones > 72:
             speech.speakText("no indent" if quarterTones == 0 else f"indentation level {level}")
 
-    def _speakStructuredTyping(self, text, state=None):
+    def _speakStructuredTyping(self, text, state=None, *, command_line=False):
         keyboard = config.conf["keyboard"]
         speak_characters = int(keyboard["speakTypedCharacters"]) != 0
         speak_words = int(keyboard["speakTypedWords"]) != 0
         cursor = state.get("cursor", {}) if isinstance(state, dict) else {}
         line = cursor.get("line") if isinstance(cursor, dict) else None
-        byte_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
+        byte_column = (
+            state.get("commandLinePosition")
+            if command_line and isinstance(state, dict)
+            else cursor.get("byteColumn") if isinstance(cursor, dict) else None
+        )
         buffer_id = state.get("bufferId") if isinstance(state, dict) else None
         byte_length = len(text.encode("utf-8")) if "\n" not in text else None
         start = byte_column - byte_length if isinstance(byte_column, int) and byte_length is not None else None
-        identity = (buffer_id, line)
+        identity = ("commandLine", buffer_id) if command_line else (buffer_id, line)
         if self._typedPosition is not None and isinstance(start, int) and isinstance(byte_column, int):
             previous_identity, previous_end = self._typedPosition
             if previous_identity == identity and start < previous_end <= byte_column:
@@ -2877,20 +3051,40 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return _FOCUS_ANNOUNCEMENT_VALUES[value]
         return _FOCUS_ANNOUNCEMENT_VALUES[_FOCUS_ANNOUNCEMENT_DEFAULT]
 
+    @staticmethod
+    def _modeSoundKind(mode):
+        if mode in {"insert", "terminal"}:
+            return "insert"
+        if mode in {"normal", "terminalNormal"}:
+            return "normal"
+        if mode == "commandLine":
+            return "commandLine"
+        return None
+
     def _playModeSound(self, mode, *, focus_context=False):
-        if mode == "insert":
+        sound_kind = self._modeSoundKind(mode)
+        if sound_kind == "insert":
             if self._feedbackMode("mode") & 2 and not self._editorSounds.play("insertMode"):
                 tones.beep(880, 45)
             self._diagnostics.record(
                 "insertModeSound", cue="focusMode.wav", focusContext=focus_context,
+                mode=mode,
             )
-        elif mode == "normal":
+        elif sound_kind == "normal":
             if not focus_context:
                 speech.cancelSpeech()
             if self._feedbackMode("mode") & 2 and not self._editorSounds.play("normalMode"):
                 tones.beep(330, 28)
             self._diagnostics.record(
                 "normalModeSound", cue="browseMode.wav", focusContext=focus_context,
+                mode=mode,
+            )
+        elif sound_kind == "commandLine":
+            if self._feedbackMode("mode") & 2:
+                tones.beep(600, 30)
+            self._diagnostics.record(
+                "commandLineModeSound", cue="tone-600hz-30ms",
+                focusContext=focus_context, mode=mode,
             )
 
     def _actionSpeechAllowed(self, event_type, feedback_key):
@@ -3073,6 +3267,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._claimInventoryErrors.clear()
         self._pendingFocusContexts.clear()
         self._pendingClipboardRequests.clear()
+        self._pendingTerminalControlRequests.clear()
         if hasattr(self, "_instanceManager") and self._instanceManager.list():
             try:
                 self._instanceManager.stop_all()
@@ -3313,7 +3508,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     general_helper.addItem(focus_sizer)
                     focus_group = guiHelper.BoxSizerHelper(general_page, sizer=focus_sizer)
                     self.focusAnnouncement = focus_group.addLabeledControl(
-                        _("When focusing a Neovim session:"), wx.Choice,
+                        _("When focusing or changing buffers in a Neovim session:"), wx.Choice,
                         choices=[
                             _("No announcement"),
                             _("Current line"),

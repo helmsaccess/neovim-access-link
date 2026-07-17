@@ -9,6 +9,7 @@ from .nvim_rpc import NvimRpcSource
 from .stdio import StdioTransport
 from nvim_nvda_protocol import (
     clipboard_result_state, valid_copy_text_request, valid_paste_text_request,
+    terminal_control_result_state, valid_leave_terminal_input_request,
     valid_set_register_request,
 )
 
@@ -16,6 +17,7 @@ from nvim_nvda_protocol import (
 _COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
 _PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
 _SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
+_LEAVE_TERMINAL_INPUT_LUA = "return require('nvim_nvda').request_leave_terminal_input(...)"
 
 
 class Bridge:
@@ -58,11 +60,12 @@ class Bridge:
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
         published = dict(payload)
         published["connection"] = {"neovim": "connected"}
-        state = (
-            clipboard_result_state(payload)
-            if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}
-            else dict(payload)
-        )
+        if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
+            state = clipboard_result_state(payload)
+        elif event_type == "leaveTerminalInputResult":
+            state = terminal_control_result_state(payload)
+        else:
+            state = dict(payload)
         with self._state_lock:
             self._state = state
             self._state["connection"] = {"neovim": "connected"}
@@ -86,6 +89,10 @@ class Bridge:
         if kind == "setRegisterRequest":
             if valid_set_register_request(payload):
                 self.nvim.notify("nvim_exec_lua", _SET_REGISTER_LUA, [dict(payload)])
+            return
+        if kind == "leaveTerminalInputRequest":
+            if valid_leave_terminal_input_request(payload):
+                self.nvim.notify("nvim_exec_lua", _LEAVE_TERMINAL_INPUT_LUA, [dict(payload)])
             return
         if kind != "routeCursor":
             return

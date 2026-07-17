@@ -35,6 +35,24 @@ equal("hjklwebn%[d sample", vim.api.nvim_get_current_line(), "inserted motion-li
 
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
 vim.wait(50)
+
+-- Text typed on the Ex command line must not be retained as a Normal-mode
+-- motion.  The final `l` in commands such as `:terminal` previously leaked
+-- into the first cursor event of the resulting buffer as characterMoved.
+events = {}
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "abc" })
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.api.nvim_feedkeys(":normal! l\r", "xt", false)
+vim.wait(500, function() return vim.api.nvim_win_get_cursor(0)[2] == 1 end)
+vim.wait(100)
+local cursor_event
+for _, event in ipairs(events) do
+  if event.type == "cursorMoved" or event.type == "characterMoved" then
+    cursor_event = event.type
+  end
+end
+equal("cursorMoved", cursor_event, "Ex text does not become semantic motion")
+
 vim.rpcnotify = original_rpcnotify
-print("navigation tests: 2 assertions passed")
+print("navigation tests: 3 assertions passed")
 vim.cmd("qa!")

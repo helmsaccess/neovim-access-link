@@ -45,6 +45,7 @@ _MODES = {
     "\x16": "visual block mode",
     "c": "command-line mode",
     "no": "operator-pending mode",
+    "nt": "terminal-normal mode",
     "t": "terminal mode",
 }
 
@@ -57,18 +58,44 @@ _CANONICAL_MODES = {
     "visualBlock": "visual block mode",
     "commandLine": "command-line mode",
     "operatorPending": "operator-pending mode",
+    "terminalNormal": "terminal-normal mode",
     "terminal": "terminal mode",
 }
+
+_BUFFER_NAVIGATION_COMMANDS = frozenset({
+    "bp", "bprevious", "bN", "bNext",
+    "bn", "bnext",
+})
 
 
 class SpeechPlanner:
     def __init__(self) -> None:
         self._previous: dict[str, Any] | None = None
+        self._previous_context: dict[str, Any] | None = None
+        self._pending_context_cursor: tuple[int, int, int] | None = None
         self._last_mode: str | None = None
+        self._command_line_text = ""
+        self._command_line_type = ""
+        self._buffer_navigation_transition = False
+        self._buffer_navigation_no_switch = False
+        self._terminal_command_transition = False
+        self._terminal_entry_context_pending = False
+        self._terminal_entry_waiting_line = False
+        self._terminal_entry_suppress_updates = False
 
     def reset(self) -> None:
         self._previous = None
+        self._previous_context = None
+        self._pending_context_cursor = None
         self._last_mode = None
+        self._command_line_text = ""
+        self._command_line_type = ""
+        self._buffer_navigation_transition = False
+        self._buffer_navigation_no_switch = False
+        self._terminal_command_transition = False
+        self._terminal_entry_context_pending = False
+        self._terminal_entry_waiting_line = False
+        self._terminal_entry_suppress_updates = False
 
     def plan(
         self, event: dict[str, Any], *, focus_announcement: str = "context",
@@ -80,6 +107,11 @@ class SpeechPlanner:
             text = state.get("message")
             if isinstance(text, str) and text:
                 actions.append(SpeechAction(text, Priority.CRITICAL, interrupt=True))
+            self._clear_buffer_navigation_transition()
+            self._clear_terminal_entry()
+            if self._last_mode == "commandLine":
+                self._command_line_text = ""
+                self._command_line_type = ""
         elif kind == "matchingPairNotFound":
             actions.append(SpeechAction(
                 "no matching pair", Priority.STATUS, interrupt=True, sound="matchingError",
@@ -92,10 +124,63 @@ class SpeechPlanner:
                     self.reset()
         elif kind == "modeChanged":
             canonical = state.get("mode")
+            previous_mode = self._last_mode
+            returning_from_command_line = (
+                previous_mode == "commandLine" and canonical != "commandLine"
+            )
+            if returning_from_command_line:
+                command_line_text = self._command_line_text.strip()
+                self._buffer_navigation_transition = (
+                    self._command_line_type == ":"
+                    and command_line_text in _BUFFER_NAVIGATION_COMMANDS
+                )
+                self._terminal_command_transition = (
+                    self._command_line_type == ":"
+                    and self._is_terminal_command(command_line_text)
+                )
+                self._command_line_text = ""
+                self._command_line_type = ""
+            suppress_buffer_return = (
+                self._buffer_navigation_transition and canonical != "commandLine"
+            )
+            suppress_terminal_return = (
+                (self._terminal_command_transition and canonical != "commandLine")
+                or (
+                    self._terminal_entry_suppress_updates
+                    and canonical == "terminalNormal"
+                    and state.get("buftype") == "terminal"
+                )
+            )
+            entering_direct_terminal = (
+                previous_mode == "terminalNormal"
+                and canonical == "terminal"
+                and state.get("buftype") == "terminal"
+            )
+            previous_context_identity = self._context_identity(self._previous_context or {})
+            current_identity = self._context_identity(state)
+            suppress_context_mode = (
+                focus_announcement == "context"
+                and previous_context_identity is not None
+                and current_identity is not None
+                and current_identity != previous_context_identity
+            )
+            if (
+                canonical == "terminalNormal" and state.get("buftype") == "terminal"
+                and self._terminal_command_transition
+                and current_identity is not None
+                and current_identity != previous_context_identity
+            ):
+                self._terminal_entry_context_pending = True
             # CTRL-X completion and similar Neovim submodes change modeRaw
             # while remaining semantically in Insert mode. Do not expose their
             # control-byte names as spurious "mode 9" announcements.
-            if canonical != self._last_mode:
+            if (
+                canonical != previous_mode
+                and not suppress_buffer_return
+                and not suppress_terminal_return
+                and not suppress_context_mode
+                and not entering_direct_terminal
+            ):
                 raw = state.get("modeRaw")
                 description = _CANONICAL_MODES.get(canonical, _MODES.get(raw, f"mode {raw}"))
                 actions.append(SpeechAction(description, Priority.CRITICAL, interrupt=True))
@@ -104,6 +189,21 @@ class SpeechPlanner:
                     if selection_action is not None:
                         actions.append(replace(selection_action, interrupt=False))
             self._last_mode = canonical
+            if entering_direct_terminal:
+                self._terminal_entry_waiting_line = False
+                self._terminal_entry_suppress_updates = False
+                self._pending_context_cursor = None
+                line_action = self._focus_line(state)
+                if line_action is not None:
+                    actions.append(line_action)
+            elif (
+                self._terminal_entry_suppress_updates
+                and canonical not in {"commandLine", "terminalNormal", "terminal"}
+            ):
+                self._terminal_entry_waiting_line = False
+                self._terminal_entry_suppress_updates = False
+            if suppress_buffer_return and self._buffer_navigation_no_switch:
+                self._clear_buffer_navigation_transition()
         elif kind == "focusContext":
             if focus_announcement == "none":
                 action = None
@@ -114,11 +214,22 @@ class SpeechPlanner:
             if action is not None:
                 actions.append(action)
             self._last_mode = state.get("mode")
+            self._terminal_entry_waiting_line = False
+            self._terminal_entry_suppress_updates = False
+        elif (
+            kind == "cursorMoved" and self._terminal_entry_suppress_updates
+            and state.get("buftype") == "terminal"
+        ):
+            pass
+        elif kind == "cursorMoved" and self._consume_context_cursor(state):
+            pass
         elif kind in {
             "cursorMoved", "characterMoved", "wordMoved", "lineChanged",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "matchingPairMoved", "fullState",
             "diagnosticMoved",
         }:
+            self._terminal_entry_waiting_line = False
+            self._terminal_entry_suppress_updates = False
             format_action = self._format_error_change(state, kind)
             if format_action is not None:
                 actions.append(format_action)
@@ -134,7 +245,16 @@ class SpeechPlanner:
                     )
                 actions.append(action)
         elif kind == "textChanged":
-            action = self._text_change(state)
+            if self._terminal_entry_suppress_updates and state.get("buftype") == "terminal":
+                line = state.get("lineText")
+                if self._terminal_entry_waiting_line and isinstance(line, str) and line:
+                    self._terminal_entry_waiting_line = False
+                    self._pending_context_cursor = self._context_identity(state)
+                    action = self._focus_line(state) if focus_announcement == "line" else None
+                else:
+                    action = None
+            else:
+                action = self._text_change(state)
             if action is not None:
                 actions.append(action)
         elif kind in {"textDeleted", "textReplaced"}:
@@ -153,6 +273,12 @@ class SpeechPlanner:
                             indentation_tones=self._indentation_quarter_tones(line),
                         ))
         elif kind == "commandLineChanged":
+            command_line = state.get("commandLine")
+            command_line_type = state.get("commandLineType")
+            if isinstance(command_line, str):
+                self._command_line_text = command_line
+            if isinstance(command_line_type, str):
+                self._command_line_type = command_line_type
             action = self._command_line_change(state)
             if action is not None:
                 actions.append(action)
@@ -247,6 +373,8 @@ class SpeechPlanner:
                     typed_format_error=True,
                 ))
         elif kind == "messageReceived":
+            if state.get("reason") == "terminalBufferNavigation":
+                self._buffer_navigation_no_switch = True
             message = state.get("message")
             if isinstance(message, str) and message:
                 title = state.get("messageTitle")
@@ -258,9 +386,62 @@ class SpeechPlanner:
                     interrupt=critical, braille_message=text,
                 ))
         elif kind == "contextChanged":
-            action = self._context_change(state)
+            previous = self._previous_context or {}
+            previous_identity = self._context_identity(previous)
+            current_identity = self._context_identity(state)
+            if current_identity is None:
+                self._pending_context_cursor = None
+            if (
+                previous_identity is not None and current_identity is not None
+                and current_identity != previous_identity
+            ):
+                self._pending_context_cursor = current_identity
+            buffer_switched_in_place = (
+                isinstance(previous.get("bufferId"), int)
+                and isinstance(state.get("bufferId"), int)
+                and state.get("bufferId") != previous.get("bufferId")
+                and state.get("windowId") == previous.get("windowId")
+                and state.get("tabpageId") == previous.get("tabpageId")
+            )
+            terminal_entry = (
+                (self._terminal_entry_context_pending or self._terminal_command_transition)
+                and state.get("buftype") == "terminal"
+                and current_identity is not None
+                and current_identity != previous_identity
+            )
+            if terminal_entry:
+                line = state.get("lineText")
+                line_ready = isinstance(line, str) and bool(line)
+                if focus_announcement == "none":
+                    action = None
+                elif focus_announcement == "line":
+                    action = self._focus_line(state) if line_ready else None
+                else:
+                    action = self._focus_context(state)
+                self._terminal_entry_waiting_line = not line_ready
+                self._terminal_entry_suppress_updates = True
+                if line_ready:
+                    self._pending_context_cursor = current_identity
+                self._terminal_entry_context_pending = False
+            elif not buffer_switched_in_place:
+                action = (
+                    self._context_focus_change(state, previous)
+                    if focus_announcement == "context"
+                    else self._context_change(state, previous)
+                )
+            elif focus_announcement == "none":
+                action = None
+            elif focus_announcement == "line":
+                action = self._focus_line(state)
+            else:
+                action = self._focus_context(state)
             if action is not None:
                 actions.append(action)
+            self._clear_buffer_navigation_transition()
+            self._terminal_command_transition = False
+            if state.get("buftype") != "terminal":
+                self._terminal_entry_waiting_line = False
+                self._terminal_entry_suppress_updates = False
         elif kind == "fileManagerEntryChanged":
             action = self._file_manager_entry(state)
             if action is not None:
@@ -277,9 +458,33 @@ class SpeechPlanner:
         actions = self._suppress_unchanged_indentation(actions)
         if state and kind != "connectionStateChanged":
             self._previous = state
+            if kind in {"fullState", "focusContext", "contextChanged"}:
+                self._previous_context = state
+                if kind != "contextChanged":
+                    self._pending_context_cursor = None
             if kind == "fullState":
                 self._last_mode = state.get("mode")
         return actions
+
+    def _clear_buffer_navigation_transition(self) -> None:
+        self._buffer_navigation_transition = False
+        self._buffer_navigation_no_switch = False
+
+    def _clear_terminal_entry(self) -> None:
+        self._terminal_command_transition = False
+        self._terminal_entry_context_pending = False
+        self._terminal_entry_waiting_line = False
+        self._terminal_entry_suppress_updates = False
+
+    @staticmethod
+    def _is_terminal_command(command_line: str) -> bool:
+        for segment in command_line.split("|"):
+            words = segment.strip().split(None, 1)
+            if words:
+                command = words[0]
+                if len(command) >= 2 and "terminal".startswith(command):
+                    return True
+        return False
 
     @staticmethod
     def _menu_selection(state: dict[str, Any]) -> SpeechAction | None:
@@ -516,7 +721,9 @@ class SpeechPlanner:
             return SpeechAction("", Priority.NAVIGATION, format_error=f"out:{previous_kind}")
         return None
 
-    def _context_change(self, state: dict[str, Any]) -> SpeechAction | None:
+    def _context_change(
+        self, state: dict[str, Any], previous: dict[str, Any] | None = None,
+    ) -> SpeechAction | None:
         manager = state.get("fileManager")
         if isinstance(manager, dict):
             entry_action = self._file_manager_entry(state)
@@ -529,7 +736,7 @@ class SpeechPlanner:
                 parts.append(root)
             text = ", ".join(parts)
             return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
-        previous = self._previous or {}
+        previous = previous if previous is not None else self._previous or {}
         window_type = state.get("windowType")
         line = state.get("lineText")
         if window_type in {"quickfix", "locationList"}:
@@ -564,6 +771,9 @@ class SpeechPlanner:
 
     def _focus_context(self, state: dict[str, Any]) -> SpeechAction | None:
         parts: list[str] = []
+        canonical = state.get("mode")
+        raw = state.get("modeRaw")
+        mode = _CANONICAL_MODES.get(canonical, _MODES.get(raw))
         manager = state.get("fileManager")
         if isinstance(manager, dict):
             name = manager.get("name")
@@ -581,22 +791,22 @@ class SpeechPlanner:
             filetype = state.get("filetype")
             if window_type in {"quickfix", "locationList"}:
                 parts.append("location list" if window_type == "locationList" else "quickfix")
-            elif buftype == "terminal":
+            elif buftype == "terminal" and mode not in {
+                "terminal mode", "terminal-normal mode",
+            }:
                 parts.append("terminal")
             elif buftype == "help" or filetype == "help":
                 parts.append("help")
             name = state.get("bufferName")
             if buftype != "terminal" and isinstance(name, str) and name:
-                parts.append(name.replace("\\", "/").rsplit("/", 1)[-1])
-            elif not parts:
+                filename = name.replace("\\", "/").rsplit("/", 1)[-1]
+                parts.append(filename if parts else f"file {filename}")
+            elif not parts and buftype != "terminal":
                 parts.append("unnamed buffer")
             if state.get("modified"):
                 parts.append("modified")
             if state.get("readonly"):
                 parts.append("read only")
-        canonical = state.get("mode")
-        raw = state.get("modeRaw")
-        mode = _CANONICAL_MODES.get(canonical, _MODES.get(raw))
         if mode:
             parts.append(mode)
         connection_label = state.get("_connectionLabel")
@@ -605,6 +815,30 @@ class SpeechPlanner:
         if not parts:
             return None
         text = ", ".join(parts)
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _context_focus_change(
+        self, state: dict[str, Any], previous: dict[str, Any],
+    ) -> SpeechAction | None:
+        current_identity = self._context_identity(state)
+        previous_identity = self._context_identity(previous)
+        if current_identity is None or previous_identity is None:
+            return self._context_change(state, previous)
+        if current_identity == previous_identity:
+            return None
+        location: list[str] = []
+        if state.get("tabpageId") != previous.get("tabpageId"):
+            location.append(f"tab {state.get('tabIndex', 1)} of {state.get('tabCount', 1)}")
+        elif state.get("windowId") != previous.get("windowId"):
+            location.append(
+                f"window {state.get('windowIndex', 1)} of {state.get('windowCount', 1)}"
+            )
+        context = self._focus_context(state)
+        if context is not None:
+            location.append(context.text)
+        if not location:
+            return None
+        text = ", ".join(location)
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
     def _focus_line(self, state: dict[str, Any]) -> SpeechAction | None:
@@ -788,7 +1022,15 @@ class SpeechPlanner:
 
     def _text_change(self, state: dict[str, Any]) -> SpeechAction | None:
         line = state.get("lineText")
-        previous_line = (self._previous or {}).get("lineText")
+        previous = self._previous or {}
+        previous_buffer = previous.get("bufferId")
+        current_buffer = state.get("bufferId")
+        if (
+            isinstance(previous_buffer, int) and isinstance(current_buffer, int)
+            and previous_buffer != current_buffer
+        ):
+            return None
+        previous_line = previous.get("lineText")
         if not isinstance(line, str) or not isinstance(previous_line, str):
             return None
         previous_cursor = (self._previous or {}).get("cursor", {})
@@ -824,6 +1066,23 @@ class SpeechPlanner:
         if deleted:
             return SpeechAction(f"deleted {deleted}", Priority.NAVIGATION, interrupt=False, sound="delete")
         return None
+
+    @staticmethod
+    def _context_identity(state: dict[str, Any]) -> tuple[int, int, int] | None:
+        values = (state.get("bufferId"), state.get("windowId"), state.get("tabpageId"))
+        if any(not isinstance(value, int) or isinstance(value, bool) for value in values):
+            return None
+        return values
+
+    def _consume_context_cursor(self, state: dict[str, Any]) -> bool:
+        current = self._context_identity(state)
+        pending = self._pending_context_cursor
+        if pending is not None:
+            self._pending_context_cursor = None
+            if current == pending:
+                return True
+        previous = self._context_identity(self._previous_context or {})
+        return current is not None and previous is not None and current != previous
 
     def _command_line_change(self, state: dict[str, Any]) -> SpeechAction | None:
         command_line = state.get("commandLine")

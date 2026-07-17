@@ -197,6 +197,11 @@ class AppModule(appModuleHandler.AppModule):
             gesture, "action_setNeovimRegisterFromWindowsClipboard",
         )
 
+    def script_leaveDirectTerminalInput(self, gesture):
+        self._delegateLegacyConfiguredScript(
+            gesture, "action_leaveDirectTerminalInput",
+        )
+
     def script_startConnectionInstance(self, gesture):
         self._delegateLegacyConfiguredScript(gesture, "action_startConnectionInstance")
 

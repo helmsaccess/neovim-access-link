@@ -1,7 +1,9 @@
 # Sounds and earcons
 
 Sounds can supplement or replace speech for configured editor actions. Current
-cues cover Insert and Normal mode, matching errors, deletion, replace,
+cues cover Insert/direct terminal input, a short mid-pitch command-line tone,
+and the transition to Normal or canonical Terminal-Normal,
+matching errors, deletion, replace,
 line/file boundaries, and crossing a line. Completion open/close and spelling
 cues follow the relevant NVDA settings.
 

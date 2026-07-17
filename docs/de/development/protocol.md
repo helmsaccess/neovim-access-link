@@ -86,7 +86,8 @@ den tatsächlich gestarteten v2-Transport:
     "cursorRouting",
     "accessibleMenus",
     "focusContext",
-    "clipboardTransfer"
+    "clipboardTransfer",
+    "terminalControl"
   ]
 }
 ```
@@ -147,7 +148,14 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
-`messageReceived`, `errorReceived` und `connectionStateChanged`.
+`commandLineChanged`, `messageReceived`, `errorReceived`,
+`leaveTerminalInputResult` und
+`connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
+rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
+`commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
+Kommandozeilentyp, insbesondere `:`, `/` oder `?`; `commandLine` enthält den
+Inhalt ohne dieses Präfix. Dadurch werden Ex-Befehle nicht aus Textmustern
+erraten und gleich geschriebene Suchmuster bleiben unabhängig.
 `focusContext` ist eine korrelierte Momentaufnahme aus demselben kanonischen
 Zustands-Cache. `_focusRequestId` ordnet sie genau der auslösenden Fokusanfrage
 zu; sie ist kein frei laufender Editorstream.
@@ -173,6 +181,9 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `setRegisterRequest` mit derselben erwarteten Identität und Textgrenze; das
   Ziel ist fest Register 0 als Speicher des unbenannten Registers; ein
   Registername wird nicht übertragen.
+- `leaveTerminalInputRequest` mit korrelierter `requestId`, Buffer-, Fenster-
+  und Tabidentität sowie exakt `modeRaw=t`. Die feste Zieloperation ist
+  ausschließlich `stopinsert`; Lua- oder Ex-Text wird nicht übertragen.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
@@ -197,6 +208,14 @@ Zeilenumbruchs Zeichen- oder Zeilentyp und ruft ausschließlich das feste
 `setreg('0', ..., type .. '"')` auf. Das ersetzt Register 0 und lässt das
 unbenannte Register darauf zeigen, ohne ein benanntes Benutzerregister zu
 verwenden.
+
+`leaveTerminalInputResult` trägt dieselbe Anfrage-ID, `ok` und einen festen
+Ergebniscode. Add-on und Plugin prüfen zusätzlich die authentifizierte,
+fokussierte Control-/Instanzbindung und den aktuellen Terminalbuffer. Ein
+`changedtick` gehört bewusst nicht zu diesem Befehl: Terminaljobs ändern ihn
+asynchron, während `stopinsert` weder Buffertext liest noch verändert. Der
+tatsächliche Moduswechsel folgt weiterhin ereignisgetrieben über
+`ModeChanged`/`TermLeave`; es gibt kein Polling.
 
 ## Sicherheitsgrenze
 

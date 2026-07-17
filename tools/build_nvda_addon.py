@@ -23,7 +23,7 @@ import buildVars
 
 PROTOCOL_MODULES = (
     "clipboard.py", "codec.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
-    "session.py", "stdio_client.py", "text.py",
+    "session.py", "stdio_client.py", "terminal_control.py", "text.py",
 )
 CORE_MODULES = (
     "__init__.py", "braille.py", "connection_instances.py", "connection_profiles.py",

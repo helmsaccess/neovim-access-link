@@ -11,6 +11,11 @@ the bounded semantic payload needed for the event. `fullState` establishes or
 repairs state. Sequence gaps, session changes, invalid sizes/types, or stale
 ticks trigger rejection and resync rather than speech.
 
+`commandLineChanged.payload.commandLineType` carries Neovim's structured
+command-line type, notably `:`, `/`, or `?`; `commandLine` carries its content
+without that prefix. Consumers can therefore distinguish Ex commands from
+identically named search patterns without inferring intent from text alone.
+
 Byte, character, virtual, and visual columns are distinct. UTF-8, tabs,
 combining characters, wide characters, and emoji must not be converted by
 assuming one byte or code point equals one display cell.
@@ -18,6 +23,15 @@ assuming one byte or code point equals one display cell.
 Capabilities are fixed by v2. Protocol v1, generic TCP listeners, application
 tokens, tunnel ports, and capability hello negotiation are intentionally not
 supported.
+
+`terminalControl` exposes one fixed control. `leaveTerminalInputRequest`
+carries a correlated request ID, exact buffer/window/tab identity, and only
+raw mode `t`; its sole operation is Neovim's `stopinsert`. No Lua or Ex text is
+accepted. `leaveTerminalInputResult` returns the request ID, success flag, and
+a fixed result code. Changed tick is intentionally absent because terminal
+jobs update it asynchronously while this mode-only operation neither reads nor
+changes text. The actual transition remains event-driven through
+`ModeChanged`/`TermLeave`, with no polling.
 
 `clipboardTransfer` exposes only three typed controls. `copyTextRequest` carries
 a correlated request ID, expected buffer/window/tab, changed tick and raw mode,

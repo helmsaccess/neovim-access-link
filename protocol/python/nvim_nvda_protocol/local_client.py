@@ -13,6 +13,9 @@ from .clipboard import (
 )
 from .messages import MessageFactory
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
+from .terminal_control import (
+    terminal_control_result_state, valid_leave_terminal_input_request,
+)
 
 
 _ROUTE_CURSOR_LUA = """
@@ -34,12 +37,13 @@ _ROUTE_CURSOR_LUA = """
 _COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
 _PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
 _SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
+_LEAVE_TERMINAL_INPUT_LUA = "return require('nvim_nvda').request_leave_terminal_input(...)"
 
 
 class LocalTcpClient:
     capabilities = (
         "resync", "semanticEvents", "cursorRouting", "accessibleMenus", "focusContext",
-        "clipboardTransfer",
+        "clipboardTransfer", "terminalControl",
     )
 
     def __init__(
@@ -109,6 +113,13 @@ class LocalTcpClient:
                 self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
                 return False
             return self._source.notify("nvim_exec_lua", _SET_REGISTER_LUA, [dict(payload)])
+        if kind == "leaveTerminalInputRequest":
+            if not valid_leave_terminal_input_request(payload):
+                self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+                return False
+            return self._source.notify(
+                "nvim_exec_lua", _LEAVE_TERMINAL_INPUT_LUA, [dict(payload)],
+            )
         if kind != "routeCursor" or not self._valid_cursor_payload(payload):
             self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
             return False
@@ -133,6 +144,8 @@ class LocalTcpClient:
             return
         if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
             state = clipboard_result_state(state)
+        elif event_type == "leaveTerminalInputResult":
+            state = terminal_control_result_state(state)
         with self._state_lock:
             self._state = state
         if event_type == "fullState" and not self._authenticated:
