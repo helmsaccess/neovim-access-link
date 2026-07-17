@@ -16,6 +16,12 @@ command-line type, notably `:`, `/`, or `?`; `commandLine` carries its content
 without that prefix. Consumers can therefore distinguish Ex commands from
 identically named search patterns without inferring intent from text alone.
 
+`messageReceived.payload.commandLineReturn=true` marks only the immediate
+structured output of the non-empty Ex command that just ended. The field is
+consumed by that output and absent from later asynchronous messages. The
+receiver uses it to associate the return cue and configured focus presentation
+without guessing from message text or timing.
+
 Byte, character, virtual, and visual columns are distinct. UTF-8, tabs,
 combining characters, wide characters, and emoji must not be converted by
 assuming one byte or code point equals one display cell.

@@ -91,10 +91,24 @@ duplicate, trash, purge, and restore actions. Direct Y/N remains owned by Oil;
 Access Link only observes the choice and publishes acceptance or cancellation.
 Isolated real scenarios cover rename, duplicate, and delete with both outcomes.
 No polling is added.
+The twenty-second step correlates the immediate result of a non-navigation Ex
+command with its command-line return exactly once. The return cue plays just
+before that message, whose suffix follows Off, Current line, or Context/mode/
+connection. Later asynchronous messages inherit neither the cue nor the focus
+suffix. Correlation uses existing command-line and UI events, not polling or
+text inference.
+The twenty-third step checks common programming and writing-project workflows
+across Oil, mini.files, nvim-tree, and Neo-tree. A separate specification
+covers create, rename, duplicate/copy, move, delete, restore, mixed batches,
+marking state, cancellation, failure, and opening a file under all three focus
+choices. Canonical file and directory types remain intact when managers use
+their public long forms. A practical local and SSH workflow matrix remains
+open.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.
-Further real file-manager plugin prompts, physical Braille, pager variants, and the complete
+The practical file-manager workflow matrix, further real plugin prompts,
+physical Braille, pager variants, and the complete
 negative Windows Terminal matrix remain next.
 
 ## Completed: explicit copy/paste

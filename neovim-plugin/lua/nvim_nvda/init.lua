@@ -47,6 +47,7 @@ local command_line_type = ""
 local command_changedtick = 0
 local command_line_generated_keys = false
 local last_command_line_echo = ""
+local command_output_pending = false
 local predicted_ui_error_code
 local last_message_text
 local last_message_time = 0
@@ -477,10 +478,11 @@ local function setup_ui_functions()
       recent_wrapped_confirm_prompt = prompt
       recent_wrapped_confirm_time = vim.uv.hrtime()
       local selected_index = tonumber(result)
+      local accepted = selected_index ~= nil and selected_index > 0
       emit("promptClosed", "vim.fn.confirm", {
-        promptKind = "confirm", answered = true,
+        promptKind = "confirm", answered = true, accepted = accepted,
         selectedIndex = selected_index,
-        selectedLabel = selected_index and labels[selected_index] or nil,
+        selectedLabel = accepted and labels[selected_index] or nil,
       })
       return result
     end
@@ -539,7 +541,11 @@ local function setup_ui_events()
         local command_echo = text == last_command_line_echo
           or (command_type ~= "" and text == command_type .. command_text)
         if text ~= "" and not command_echo then
-          emit("messageReceived", "uiMessage", { message = text })
+          local command_line_return = command_output_pending
+          command_output_pending = false
+          emit("messageReceived", "uiMessage", {
+            message = text, commandLineReturn = command_line_return,
+          })
         end
       end
       return
@@ -943,6 +949,7 @@ function M.setup()
     callback = function(event)
       if event.event == "CmdlineEnter" then
         command_line_active = true
+        command_output_pending = false
         command_line_generated_keys = false
         predicted_ui_error_code = nil
         command_line_text = ""
@@ -970,6 +977,7 @@ function M.setup()
       command_line_text = ""
       command_line_type = ""
       command_line_generated_keys = command_type == ":"
+      command_output_pending = command_type == ":" and trimmed_command(command) ~= ""
       vim.schedule(function() command_line_generated_keys = false end)
       if command_type == ":" then emit_command_preflight(command) end
       local guarded = vim.bo.modified and (command:match("^%s*q%s*$") or command:match("^%s*quit%s*$"))
@@ -997,8 +1005,13 @@ function M.setup()
           and vim.v.statusmsg ~= "" then
           local status = vim.v.statusmsg
           vim.v.statusmsg = ""
-          emit("messageReceived", "commandStatus", { message = status:sub(1, 2048) })
+          local command_line_return = command_output_pending
+          command_output_pending = false
+          emit("messageReceived", "commandStatus", {
+            message = status:sub(1, 2048), commandLineReturn = command_line_return,
+          })
         end
+        command_output_pending = false
       end, 20)
     end,
   })

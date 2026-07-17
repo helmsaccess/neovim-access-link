@@ -4173,6 +4173,48 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn('"category": "commandLineModeSound"', report)
         plugin.terminate()
 
+    def test_message_command_return_plays_mode_sound_and_uses_focus_choice(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+
+        for setting, expected in (
+            (0, "saved"),
+            (1, "saved; Draft opening"),
+            (2, "saved; file draft.md, normal mode, on Example"),
+        ):
+            with self.subTest(focusAnnouncement=setting):
+                plugin = GlobalPlugin()
+                plugin._gate.manual_enabled = True
+                plugin._settings["focusAnnouncement"] = setting
+                played: list[str] = []
+                plugin._editorSounds.play = lambda cue: played.append(cue) or True
+                base = {
+                    "bufferId": 1, "windowId": 10, "tabpageId": 20,
+                    "bufferName": "/work/draft.md", "buftype": "",
+                    "lineText": "Draft opening", "cursor": {"line": 1, "byteColumn": 0},
+                }
+                plugin._handleEvent({"type": "fullState", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n",
+                }})
+                self.spoken.clear()
+                plugin._handleEvent({"type": "commandLineChanged", "payload": {
+                    **base, "mode": "commandLine", "modeRaw": "c",
+                    "commandLine": "write", "commandLineType": ":",
+                }})
+                plugin._handleEvent({"type": "modeChanged", "payload": {
+                    **base, "mode": "commandLine", "modeRaw": "c",
+                }})
+                plugin._handleEvent({"type": "modeChanged", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n",
+                }})
+                plugin._handleEvent({"type": "messageReceived", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n", "message": "saved",
+                    "commandLineReturn": True, "_connectionLabel": "Example",
+                }})
+
+                self.assertEqual(["normalMode"], played)
+                self.assertEqual(expected, self.spoken[-1])
+                plugin.terminate()
+
     def test_terminal_command_creating_terminal_plays_one_normal_cue(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 

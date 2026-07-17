@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.93.0-dev.6 (feature-branch test build)
+
+- Message-producing Ex commands associate their immediate structured result
+  with the mode they returned to. The matching mode cue plays exactly once;
+  the message always remains, followed according to Session focus by nothing,
+  the current line, or context, mode, and connection. Later asynchronous
+  messages are not associated, and a command without output cannot suppress a
+  later mode change.
+- A new 118-assertion file-manager workflow specification covers create,
+  rename, copy/duplicate, move, delete, restore, batches, same-entry state,
+  failure/cancellation, path minimization, and writing-project names with
+  spaces and Unicode.
+- Real-TUI prompt coverage proves a selected No answer, while speech tests
+  cover Yes, No, and Cancel. Canonical types such
+  as `directory` survive nvim-tree action-result normalization. Opening a file
+  from a manager follows all three configured focus presentations.
+- Automated coverage is expanded; practical acceptance of this test build is
+  explicitly still open.
+
 ## 0.93.0-dev.5 (feature-branch test build)
 
 - The narrow Oil prompt parser accepts the real indented `MOVE`, `COPY`,

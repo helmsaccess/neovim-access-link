@@ -81,6 +81,17 @@ while it is active. Real TUI input `n` must close the float with
 the indented action rows for rename, duplicate, and delete, cancellation with
 `n`, confirmation with `y`, and the correspondingly unchanged or deleted
 fixture.
+A separate file-manager workflow specification adds 118 assertions for common
+programming and writing-project tasks. It covers every publicly proven
+Create/Add/Change/Copy/Rename/Move/Delete/Restore event from Oil, mini.files,
+nvim-tree, and Neo-tree; same-entry changes; mixed batches;
+failure/cancellation; canonical file/directory types; basename minimization;
+and names with spaces, Unicode, and punctuation. Speech tests transition from
+a manager into an opened file under all three focus choices. The real TUI
+proves a selected No answer; speech tests cover Yes, No, and Cancel. Ex-return tests
+require a one-shot `commandLineReturn` marker only on the immediate message;
+an asynchronous message may inherit neither return cue nor focus suffix. A
+command without output may not suppress a later Insert/Normal mode change.
 The complete Lua suite runs with both Neovim 0.10.1 and 0.12.3. After the real
 Ex command, the navigation test also executes `CursorMoved` explicitly because
 Neovim 0.10 does not dispatch it for this headless `feedkeys` combination. It
@@ -164,7 +175,10 @@ must follow and structured navigation must resume; `i` must reverse that
 transition. Then run `:echo 'test message'` and
 `:lua print('test message')`. Command-line mode must be announced before input,
 with a short mid-pitch tone, and the Normal cue must mark return; the result
-must follow Enter in speech and Braille. On a terminal buffer whose job is
+must follow Enter in speech and Braille. Test all three Session focus values:
+message only, message plus complete current line, and message plus context,
+return mode, and connection. A later `vim.notify` message must receive no such
+suffix. On a terminal buffer whose job is
 still running, execute `:bd`: expect structured `E89` guidance including the
 hit-enter instruction and no terminated job. Press Enter, then run `:bp` or
 `:bn` with no other listed buffer and expect “no other listed buffer”. With an
@@ -218,6 +232,40 @@ The isolated Neovim 0.12 TUI test also exercises command-line input, an
 ordinary UI message, and search through the attached UI-protocol path. The
 structured channel must continue delivering events afterwards; `E5560` and a
 blocking hit-enter prompt are failures.
+
+### Practical file-manager workflow matrix
+
+The still-open practical acceptance uses a disposable project with source,
+test, note, chapter, and media directories. Names include spaces, accented and
+non-Latin characters, and punctuation. Run the same flow with at least netrw,
+Oil, mini.files, nvim-tree, and Neo-tree both locally and over SSH; no manager
+may inherit another manager's configuration or state.
+
+1. Expand or enter directories, navigate siblings, and open files. The opened
+   file receives exactly the selected focus output; an automatic cursor event
+   must neither duplicate it nor shorten it to one character.
+2. Create a file and directory, rename a file, duplicate/copy it, and move it
+   to another directory. Type, name, marking, and manager clipboard must match
+   afterwards; success is reported only from a public completion event.
+3. Mark several entries and perform a mixed batch. Expect one combined,
+   path-free result. Names or contents from other entries must not be inferred
+   as the target.
+4. Answer a delete or overwrite first with No or Cancel and then with Yes.
+   No/Cancel leaves the project unchanged; Yes reports only proven success.
+   Test trash/restore when the manager exposes that operation publicly.
+5. Conflicts such as an existing destination, invalid name, read-only target,
+   or focus/buffer change during an action must fail open: a real error or no
+   extra result, never invented success.
+6. Switch among manager, opened file, embedded terminal, WT tab, pane, and
+   window. Speech, Braille, mode cue, focus choice, and connection must not
+   retain stale state from the previous context.
+
+Use nvim-tree `select_prompts = true` and Neo-tree
+`use_popups_for_input = false` so their public `vim.ui.select/input` paths are
+used. Test Oil with its own confirmations and without skipping simple
+confirmations. Access Link does not set these options. Until the matrix is
+recorded practically, this part of the feature state remains explicitly
+unconfirmed.
 
 Automated tests establish the intended gating behavior, but complete practical
 non-interference across Windows Terminal layouts remains an open acceptance

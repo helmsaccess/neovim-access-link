@@ -29,7 +29,12 @@ short mid-pitch tone. Returning from it in a terminal context uses the Normal
 cue. For `:bp`, `:bn`, and their full forms, transient spoken return modes are
 not added before the destination presentation selected under Session focus.
 The cue remains; No announcement stays silent. Typed input, errors, and ordinary messages displayed after command execution are
-reported structurally; messages are also shown briefly in Braille.
+reported structurally; messages are also shown briefly in Braille. If an Ex
+command only produces a message and returns to the same editor state, the
+matching return cue plays first. No announcement keeps the message alone,
+Current line appends the complete line, and the context choice appends
+file/special context, mode, and connection. A later asynchronous message is
+not falsely associated.
 Neovim's structured `TermClose` reports the terminal process exit status;
 shell output while it runs remains native terminal output.
 
@@ -56,6 +61,16 @@ failure or some cancellations. For other plugins, their own failure/cancel
 messages remain authoritative where the public API has no result event; Access
 Link does not guess. Adapters load only for the active matching buffer. Unsupported custom
 file-manager drawings do not fall back to terminal scraping.
+
+The basic workflows are the same for source-code and writing projects:
+navigate and enter directories; open, create, rename, duplicate/copy, move,
+mark and batch-process files; and delete, cancel, or restore where available.
+Names with spaces, Unicode, and punctuation remain complete. Opening a file
+uses the Session focus choice and the following automatic cursor event does
+not repeat one character. Access Link performs none of these filesystem
+operations and never confirms a prompt itself. If a plugin exposes no public
+completion event, its own result remains authoritative and Access Link does
+not invent success.
 Very long names and paths are byte-bounded for transport but never cut inside
 a Unicode character. If a third-party adapter returns invalid UTF-8 text, an
 optional field is ignored; an invalid required name suppresses only the

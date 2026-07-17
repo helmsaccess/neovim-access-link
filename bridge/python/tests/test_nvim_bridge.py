@@ -318,12 +318,14 @@ class NvimBridgeTests(unittest.TestCase):
                 # The semantic wrapper necessarily announces immediately
                 # before Neovim enters the blocking input() command line. On
                 # slower 0.10 runs, a fixed delay can still inject into Normal
-                # mode. Wait for Neovim's event instead of adding a larger
-                # timing guess.
+                # mode. Wait for Neovim's structured command-line state
+                # instead of requiring one particular event type or adding a
+                # larger timing guess.
                 self._wait(
                     condition,
                     lambda: any(
-                        e["type"] == "modeChanged" and e["payload"].get("modeRaw") == "c"
+                        e["type"] in {"commandLineChanged", "modeChanged"}
+                        and e["payload"].get("modeRaw") == "c"
                         for e in events[prior:]
                     ),
                 )
@@ -389,6 +391,7 @@ class NvimBridgeTests(unittest.TestCase):
                     condition,
                     lambda: any(e["type"] == "promptClosed"
                                 and e["payload"].get("promptKind") == "confirm"
+                                and e["payload"].get("accepted") is True
                                 and e["payload"].get("selectedLabel") == "No"
                                 for e in events[prior:]),
                 )
@@ -1069,6 +1072,7 @@ class NvimBridgeTests(unittest.TestCase):
                 self._wait(condition, lambda: any(
                     e["type"] == "messageReceived"
                     and e["payload"].get("message") == "command completed"
+                    and e["payload"].get("commandLineReturn") is True
                     for e in events[prior:]
                 ))
                 command_mode_index = next(

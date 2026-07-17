@@ -104,6 +104,12 @@ still, `Current line` erhält kein vorangestelltes Modusfragment und der
 Kontextwert enthält den Zielmodus bereits. Der Eintritt in die Kommandozeile
 bleibt hörbar.
 
+Bei einem Ex-Befehl, der unmittelbar nur eine Meldung ausgibt und in denselben
+Editorzustand zurückkehrt, steuert dieselbe Auswahl den Zusatz nach der
+Meldung: kein Zusatz, aktuelle Zeile oder Kontext mit Rückkehrmodus und
+Verbindung. Die Meldung selbst wird nie unterdrückt. Der Rückkehrklang bleibt
+von dieser Auswahl unabhängig und folgt weiterhin den Feedbackeinstellungen.
+
 Die Auswahl gilt auch beim Erzeugen eines Terminalbuffers mit `:terminal`.
 Bei `Current line` wartet das Add-on auf die erste tatsächliche Terminalzeile,
 statt zunächst „blank“ und danach nur deren erstes Zeichen auszugeben. Beim

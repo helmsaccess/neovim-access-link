@@ -7,8 +7,10 @@ local issue_limit = 3
 local cooldown_nanoseconds = 5 * 1000 * 1000 * 1000
 
 local type_names = {
-  file = "file", dir = "directory", link = "symbolicLink", socket = "socket",
-  fifo = "fifo", char = "characterDevice", block = "blockDevice",
+  file = "file", dir = "directory", directory = "directory",
+  link = "symbolicLink", symbolicLink = "symbolicLink", socket = "socket",
+  fifo = "fifo", char = "characterDevice", characterDevice = "characterDevice",
+  block = "blockDevice", blockDevice = "blockDevice",
 }
 local selection_states = { marked = true, unmarked = true }
 local clipboard_states = { copied = true, cut = true, none = true }

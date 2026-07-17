@@ -647,16 +647,87 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual([], initialization)
         self.assertEqual([], cursor)
 
-    def test_non_terminal_ex_command_still_announces_return_mode(self) -> None:
+    def test_message_command_return_uses_configured_focus_presentation(self) -> None:
+        base = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/story.md", "buftype": "",
+            "lineText": "A complete line", "cursor": {"line": 1, "byteColumn": 0},
+        }
+        for focus_announcement, expected in (
+            ("none", "hello"),
+            ("line", "hello; A complete line"),
+            ("context", "hello; file story.md, normal mode, on Example"),
+        ):
+            with self.subTest(focusAnnouncement=focus_announcement):
+                planner = SpeechPlanner()
+                planner.plan({"type": "fullState", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n",
+                }})
+                planner.plan({"type": "commandLineChanged", "payload": {
+                    **base, "mode": "commandLine", "modeRaw": "c",
+                    "commandLine": "echo 'hello'", "commandLineType": ":",
+                }})
+                planner.plan({"type": "modeChanged", "payload": {
+                    **base, "mode": "commandLine", "modeRaw": "c",
+                }})
+                returned = planner.plan({"type": "modeChanged", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n",
+                }}, focus_announcement=focus_announcement)
+                message = planner.plan({"type": "messageReceived", "payload": {
+                    **base, "mode": "normal", "modeRaw": "n", "reason": "uiMessage",
+                    "message": "hello", "commandLineReturn": True,
+                    "_connectionLabel": "Example",
+                }}, focus_announcement=focus_announcement)
+
+                self.assertEqual([], returned)
+                self.assertEqual([expected], [action.text for action in message])
+                self.assertEqual(expected, message[0].braille_message)
+
+    def test_async_message_after_command_return_does_not_gain_focus_presentation(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState", mode="normal", modeRaw="n"))
         planner.plan(event(
             "commandLineChanged", mode="commandLine", modeRaw="c",
-            commandLine="echo 1", commandLineType=":",
+            commandLine="call StartAsync()", commandLineType=":",
+        ))
+        planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
+        planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
+        message = planner.plan({"type": "messageReceived", "payload": {
+            "mode": "normal", "modeRaw": "n", "lineText": "source",
+            "message": "background finished", "commandLineReturn": False,
+        }}, focus_announcement="line")
+        self.assertEqual(["background finished"], [action.text for action in message])
+
+    def test_message_less_command_does_not_suppress_a_later_mode_change(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event("fullState", mode="normal", modeRaw="n"))
+        planner.plan(event(
+            "commandLineChanged", mode="commandLine", modeRaw="c",
+            commandLine="set number", commandLineType=":",
         ))
         planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
         returned = planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
-        self.assertEqual(["normal mode"], [action.text for action in returned])
+        inserted = planner.plan(event("modeChanged", mode="insert", modeRaw="i"))
+
+        self.assertEqual([], returned)
+        self.assertEqual(["insert mode"], [action.text for action in inserted])
+
+    def test_marked_command_result_survives_one_intervening_state_event(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event("fullState", mode="normal", modeRaw="n"))
+        planner.plan(event(
+            "commandLineChanged", mode="commandLine", modeRaw="c",
+            commandLine="pwd", commandLineType=":",
+        ))
+        planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
+        planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
+        planner.plan(event("contextChanged", mode="normal", modeRaw="n"))
+        message = planner.plan({"type": "messageReceived", "payload": {
+            "mode": "normal", "modeRaw": "n", "lineText": "source line",
+            "message": "/work/project", "commandLineReturn": True,
+        }}, focus_announcement="line")
+
+        self.assertEqual(["/work/project; source line"], [action.text for action in message])
 
     def test_file_manager_entries_announce_semantic_type_and_tree_state(self) -> None:
         planner = SpeechPlanner()
@@ -722,6 +793,15 @@ class SpeechPlannerTests(unittest.TestCase):
         cancelled = planner.plan(result(action="rename", result="cancelled", name="old.txt"))[0]
         failed = planner.plan(result(action="delete", result="failed", name="locked.txt"))[0]
 
+        for action, expected in (
+            ("add", "item, added"), ("change", "item, changed"),
+            ("create", "item, created"), ("delete", "item, deleted"),
+            ("move", "item, moved"), ("rename", "item, renamed"),
+            ("restore", "item, restored"),
+        ):
+            with self.subTest(action=action):
+                self.assertEqual(expected, planner.plan(result(action=action, name="item"))[0].text)
+
         self.assertEqual("notes.txt, copied", copied.text)
         self.assertEqual("4 file-manager actions completed", batch.text)
         self.assertEqual("rename of old.txt cancelled", cancelled.text)
@@ -730,6 +810,40 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual(Priority.CRITICAL, failed.priority)
         self.assertTrue(failed.interrupt)
         self.assertEqual(failed.text, failed.braille_message)
+
+    def test_opening_file_from_manager_uses_configured_focus_presentation(self) -> None:
+        manager_state = {
+            "bufferId": 4, "windowId": 10, "tabpageId": 20,
+            "mode": "normal", "modeRaw": "n", "lineText": "Chapter 1 – Einführung.md",
+            "cursor": {"line": 3, "byteColumn": 0},
+            "fileManager": {"name": "oil", "entry": {
+                "name": "Chapter 1 – Einführung.md", "type": "file",
+            }},
+        }
+        file_state = {
+            "bufferId": 5, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/Book/Chapter 1 – Einführung.md", "buftype": "",
+            "mode": "normal", "modeRaw": "n", "lineText": "Die erste vollständige Zeile.",
+            "cursor": {"line": 1, "byteColumn": 0}, "_connectionLabel": "Example",
+        }
+        for choice, expected in (
+            ("none", []),
+            ("line", ["Die erste vollständige Zeile."]),
+            ("context", ["file Chapter 1 – Einführung.md, normal mode, on Example"]),
+        ):
+            with self.subTest(focusAnnouncement=choice):
+                planner = SpeechPlanner()
+                planner.plan({"type": "fullState", "payload": manager_state})
+                opened = planner.plan(
+                    {"type": "contextChanged", "payload": file_state},
+                    focus_announcement=choice,
+                )
+                duplicate = planner.plan(
+                    {"type": "cursorMoved", "payload": file_state},
+                    focus_announcement=choice,
+                )
+                self.assertEqual(expected, [action.text for action in opened])
+                self.assertEqual([], duplicate)
 
     def test_focus_context_announces_file_mode_and_special_buffers_compactly(self) -> None:
         planner = SpeechPlanner()
@@ -1001,10 +1115,22 @@ class SpeechPlannerTests(unittest.TestCase):
         selected = planner.plan({"type": "promptClosed", "payload": {
             "promptKind": "select", "accepted": True, "selectedLabel": "main",
         }})[0]
+        yes = planner.plan({"type": "promptClosed", "payload": {
+            "promptKind": "confirm", "answered": True, "selectedLabel": "Yes",
+        }})[0]
+        no = planner.plan({"type": "promptClosed", "payload": {
+            "promptKind": "confirm", "answered": True, "selectedLabel": "No",
+        }})[0]
+        cancel = planner.plan({"type": "promptClosed", "payload": {
+            "promptKind": "confirm", "answered": True, "selectedLabel": "Cancel",
+        }})[0]
         self.assertEqual("Branch name", opened.text)
         self.assertEqual([], accepted)
         self.assertEqual("canceled", canceled.text)
         self.assertEqual("selected main", selected.text)
+        self.assertEqual("selected Yes", yes.text)
+        self.assertEqual("selected No", no.text)
+        self.assertEqual("selected Cancel", cancel.text)
 
     def test_folds_marks_registers_and_macros_are_structured(self) -> None:
         planner = SpeechPlanner()

@@ -2740,6 +2740,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ):
             self._playModeSound(mode, focus_context=True)
         elif (
+            event_type == "messageReceived"
+            and isinstance(payload, dict)
+            and payload.get("commandLineReturn") is True
+            and mode_sound is not None
+        ):
+            # A message-producing Ex command has already returned to its
+            # previous editor mode. Play that mode cue immediately before the
+            # structured command result and configured return presentation.
+            self._playModeSound(mode)
+        elif (
             event_type in {"commandLineChanged", "modeChanged"}
             and mode_sound == "commandLine" and previous_mode != "commandLine"
         ):

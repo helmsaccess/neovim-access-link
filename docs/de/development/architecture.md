@@ -57,13 +57,25 @@ Zustands entfernt. Offene Anfragen sind begrenzt. Der Pfad ist
 ereignisgetrieben; es gibt weder Polling noch
 automatische Zwischenablagesynchronisation oder automatische Wiederholung.
 
+## Rückkehr aus der Kommandozeile
+
+`CmdlineLeave` setzt für einen nichtleeren Ex-Befehl eine einmalige
+Ergebniskorrelation. Nur die unmittelbar folgende, über `msg_show` oder
+`v:statusmsg` belegte `messageReceived`-Ausgabe erhält
+`commandLineReturn=true`; danach wird die Korrelation verworfen. NVDA spielt
+damit den Klang des bereits erreichten Rückkehrmodus und kombiniert die
+Meldung mit der gewählten Fokuspräsentation. Es gibt weder eine zeitbasierte
+Zuordnung noch eine Verzögerung der Modusereignisse; spätere asynchrone
+Meldungen bleiben gewöhnliche Meldungen.
+
 ## Ereignisgetriebene Dateimanageradapter
 
 `file_manager.lua` gewinnt und normalisiert den aktuellen semantischen
 Eintrag. Die davon getrennte Schicht `file_manager_events.lua` abonniert nur
-öffentliche Ereignisse der unterstützten Plugins: `OilMutationComplete`,
-mini.files-Buffer-/Aktionsereignisse, nvim-trees `TreeRendered` sowie
-Neo-trees Render- und Clipboardereignisse. Ein Callback liest ausschließlich
+öffentliche Ereignisse der unterstützten Plugins: Oil-Mutations- und
+`OilActionsPost`-Ereignisse, mini.files-Buffer-/Aktionsereignisse, nvim-trees
+Render-/Datei-/Ordnerereignisse sowie Neo-trees Render-, Clipboard- und
+Dateiaktionsereignisse. Ein Callback liest ausschließlich
 den weiterhin aktiven Buffer beziehungsweise das aktive Fenster über den
 Adapter neu ein. Ein zentraler Vergleich verwirft gleiche Zustände; mehrere
 Callbacks im selben Neovim-Schedulerzyklus ergeben höchstens eine
@@ -111,6 +123,11 @@ Buffer, Fenster, Tab und Manager erneut geprüft. Nur Oil stellt in der aktuell
 geprüften API auch Abschlussfehler beziehungsweise einzelne erkennbare
 Abbrüche bereit; für andere Plugins wird ein fehlendes Fehlerereignis nicht
 erraten.
+Die Aktionsmatrix umfasst Erstellen, Hinzufügen, Ändern, Kopieren,
+Umbenennen, Verschieben, Löschen und Wiederherstellen, soweit das jeweilige
+Plugin dafür ein öffentliches Abschlussereignis besitzt. Öffnen einer Datei
+bleibt ein normaler `contextChanged`-Bufferwechsel und verwendet dadurch
+dieselbe profilabhängige Fokusausgabe wie andere Bufferwechsel.
 
 Die eingebauten Adapter werden vor dem Aufruf ausschließlich über den aktiven
 `filetype` gewählt. Externe Adapter bleiben optionale synchrone Erweiterungen.

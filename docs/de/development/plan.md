@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 2026-07-17
+Stand: 2026-07-18
 
 Kernarchitektur, Protokoll v2, SSH-stdio, lokale Windows-CLI, explizite
 F12-Claim-Handshake und -Zuordnung, parallele Sitzungen sowie rootlose Komponenteninstallation und
@@ -108,12 +108,28 @@ Löschen und Wiederherstellen. Direktes Y/N bleibt Eigentum Oils; Access Link
 beobachtet nur die Wahl und veröffentlicht Annahme beziehungsweise Abbruch.
 Isolierte reale Szenarien prüfen Umbenennen, Duplizieren und Löschen mit beiden
 Ergebnissen. Es wird kein Polling ergänzt.
+Der zweiundzwanzigste Schritt korreliert die unmittelbare Meldung eines
+nicht navigierenden Ex-Befehls einmalig mit dessen Kommandozeilenrückkehr.
+Der Rückkehrklang wird genau vor dieser Meldung ausgegeben; deren Zusatz folgt
+der Fokusauswahl Aus, aktuelle Zeile oder Kontext/Modus/Verbindung. Spätere
+asynchrone Meldungen übernehmen weder Klang noch Fokuszusatz. Die Zuordnung
+beruht auf den vorhandenen Kommandozeilen- und UI-Ereignissen, nicht auf
+Polling oder Textheuristik.
+Der dreiundzwanzigste Schritt gleicht typische Programmier- und
+Schreibprojektabläufe über Oil, mini.files, nvim-tree und Neo-tree ab. Eine
+getrennte Spezifikation prüft Erstellen, Umbenennen, Duplizieren/Kopieren,
+Verschieben, Löschen, Wiederherstellen, gemischte Massenaktionen,
+Markierungszustände, Abbruch, Fehler und das Öffnen einer Datei unter allen
+drei Fokusausgaben. Kanonische Datei- und Ordnertypen bleiben auch bei den
+öffentlichen Langformen der Manager erhalten. Eine praktische Matrix für
+lokale und SSH-Sitzungen bleibt offen.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
 `:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
 Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-weitere reale Dateimanager-Plugin-Prompts, Braillehardware, Pager-Sonderfälle sowie
+die praktische Dateimanager-Workflowmatrix, weitere reale Plugin-Prompts,
+Braillehardware, Pager-Sonderfälle sowie
 die vollständige negative Windows-Terminal-Matrix.
 
 ## Abgeschlossen: explizites Copy/Paste

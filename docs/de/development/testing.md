@@ -158,6 +158,18 @@ Zusätzliche Assertions unterscheiden Managerroot und fokussierte Ebene für
 netrw, Oil, nvim-tree, Neo-tree und mini.files. Ein Speech-Test belegt, dass
 leerer Fokuskontext nur den letzten Ebenennamen und keinen vollständigen Pfad
 ausgibt.
+Die getrennte Dateimanager-Workflow-Spezifikation ergänzt 118 Assertions für
+typische Programmier- und Schreibprojektabläufe. Sie prüft alle öffentlich
+belegten Create/Add/Change/Copy/Rename/Move/Delete/Restore-Ereignisse von Oil,
+mini.files, nvim-tree und Neo-tree, Zustandswechsel ohne Cursorbewegung,
+gemischte Batchaktionen, Fehler und Abbruch, kanonische Datei-/Ordnertypen,
+Basename-Minimierung sowie Namen mit Leerzeichen, Unicode und Satzzeichen.
+Speech-Tests führen vom Manager in eine geöffnete Datei und prüfen dabei alle
+drei Fokusausgaben. Der echte TUI-Test belegt eine ausgewählte Nein-Antwort;
+Speech-Tests prüfen Ja, Nein und Abbruch. Ex-Rückkehrtests verlangen eine einmalige
+`commandLineReturn`-Markierung nur auf der unmittelbaren Meldung; asynchrone
+Meldungen dürfen weder Rückkehrklang noch Fokuszusatz erben. Ein Befehl ohne
+Meldung darf keinen späteren Insert-/Normalmoduswechsel unterdrücken.
 Die vollständige Lua-Suite läuft sowohl mit Neovim 0.10.1 als auch 0.12.3.
 Der Navigationstest löst nach dem echten Ex-Befehl zusätzlich ausdrücklich
 `CursorMoved` aus, weil Neovim 0.10 dieses Ereignis in der headless-
@@ -394,7 +406,11 @@ Normalmodusklang folgen und strukturierte Navigation wieder aktiv sein; `i`
 muss den umgekehrten Übergang herstellen. Anschließend `:echo 'test message'`
 und `:lua print('test message')` ausführen. Erwartet werden „command-line mode“
 mit einem kurzen mittleren Ton vor der Eingabe und der Normalmodusklang beim
-Rückweg; die Meldung nach Enter erscheint in Sprache sowie Braille. Mit
+Rückweg; die Meldung nach Enter erscheint in Sprache sowie Braille. Dabei alle
+drei Werte unter „Session focus“ prüfen: nur Meldung, Meldung plus vollständige
+aktuelle Zeile beziehungsweise Meldung plus Kontext, Rückkehrmodus und
+Verbindung. Eine später ausgelöste `vim.notify`-Meldung darf keinen solchen
+Zusatz erhalten. Mit
 aktiviertem NVDA-Zeichenecho `:terminal` und mindestens einen Befehl mit
 Unicode eingeben; jedes Zeichen muss einmal und nicht nur das erste erscheinen.
 In einem Terminalbuffer, dessen Job noch läuft, `:bd` ausführen. Erwartet wird
@@ -458,6 +474,45 @@ Der isolierte Neovim-0.12-TUI-Test führt außerdem Befehlszeile, gewöhnliche
 UI-Meldung und Suche über den angeschlossenen UI-Protokollpfad aus. Danach muss
 der strukturierte Kanal weiter Ereignisse liefern; `E5560` und ein
 blockierender Enter-Hinweis sind Fehler.
+
+### Praktische Dateimanager-Workflowmatrix
+
+Die noch offene praktische Abnahme wird in einem wegwerfbaren Projekt mit
+Unterordnern für Quellcode, Tests, Notizen, Kapitel und Medien durchgeführt.
+Dateinamen enthalten Leerzeichen, Umlaute, nichtlateinische Zeichen und
+Satzzeichen. Derselbe Ablauf ist mindestens mit netrw, Oil, mini.files,
+nvim-tree und Neo-tree lokal sowie über SSH zu prüfen; ein Manager darf dabei
+keine Konfiguration oder Zustände eines anderen übernehmen.
+
+1. Verzeichnisse auf- und zuklappen beziehungsweise betreten, zwischen
+   Geschwistern navigieren und Dateien öffnen. Die Datei erhält genau die
+   gewählte Fokusausgabe; eine automatische Cursoransage darf sie nicht
+   doppeln oder auf ein Zeichen verkürzen.
+2. Datei und Ordner erstellen, Datei umbenennen, duplizieren/kopieren und in
+   einen anderen Ordner verschieben. Typ, Name, Markierung und Manager-
+   Clipboard müssen nach der Operation stimmen; Erfolg wird nur bei einem
+   öffentlichen Abschlussereignis gemeldet.
+3. Mehrere Einträge markieren und eine gemischte Massenaktion ausführen.
+   Erwartet wird eine zusammengefasste, pfadfreie Meldung. Namen oder Inhalte
+   anderer Einträge dürfen nicht als Ziel geraten werden.
+4. Löschen oder Überschreiben zunächst mit Nein beziehungsweise Abbruch und
+   danach mit Ja beantworten. Nein/Abbruch lässt das Projekt unverändert; Ja
+   meldet nur einen belegten Erfolg. Papierkorb/Wiederherstellung ist zu
+   prüfen, wenn der Manager diese Funktion öffentlich anbietet.
+5. Konflikte wie vorhandenes Ziel, ungültiger Name, schreibgeschütztes Ziel
+   und während der Aktion gewechselter Buffer müssen fail-open bleiben: echte
+   Fehlermeldung oder keine Zusatzmeldung, niemals erfundener Erfolg.
+6. Zwischen Manager, geöffneter Datei, eingebettetem Terminal, WT-Tab, Pane
+   und Fenster wechseln. Sprache, Braille, Modusklang, Fokusauswahl und
+   Verbindung dürfen keine veralteten Zustände aus dem vorherigen Kontext
+   übernehmen.
+
+Für nvim-tree wird `select_prompts = true`, für Neo-tree
+`use_popups_for_input = false` empfohlen, damit deren öffentliche
+`vim.ui.select/input`-Pfade genutzt werden. Oil wird mit seinen eigenen
+Bestätigungen und ohne Überspringen einfacher Bestätigungen geprüft. Diese
+Optionen setzt Access Link nicht selbst. Bis die Matrix praktisch protokolliert
+ist, gilt dieser Teil des Featurestands ausdrücklich als unbestätigt.
 
 Die beabsichtigte Wirkungslosigkeit in ungebundenen Windows-Terminal-
 Steuerelementen ist automatisiert abgedeckt, aber über die realen Windows-

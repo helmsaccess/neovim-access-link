@@ -22,6 +22,12 @@ also path-free tested for cancelled rename, duplicate, and delete plus
 confirmed deletion. Further real plugin/prompt versions and physical Braille
 remain open.
 
+Message-producing Ex commands carry a one-shot semantic return marker on their
+immediate structured result. The matching mode cue plays once before that
+result; the message always remains and Session focus appends either nothing,
+the current line, or context, mode, and connection. A later asynchronous
+message has no marker and cannot inherit this return presentation.
+
 Speech and sounds are configurable where NVDA has no better native setting.
 Confirmed session-focus presentation and an event-driven in-place buffer
 switch are profile-selectable as silent, current structured line, or existing

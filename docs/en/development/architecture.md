@@ -28,12 +28,23 @@ authenticated, and bound instance. One-shot copied text is removed before the
 client or bridge updates canonical state. The path is event driven and uses no
 polling, automatic clipboard synchronization, or automatic retry.
 
+## Returning from the command line
+
+`CmdlineLeave` creates a one-shot result association for a non-empty Ex
+command. Only the immediate `messageReceived` proven by `msg_show` or
+`v:statusmsg` receives `commandLineReturn=true`; the association is then
+discarded. NVDA uses it to play the already reached return mode's cue and
+combine the message with the selected focus presentation. No timing heuristic
+or delayed mode event is involved, and later asynchronous messages remain
+ordinary messages.
+
 ## Event-driven file-manager adapters
 
 `file_manager.lua` obtains and normalizes the current semantic entry. The
 separate `file_manager_events.lua` layer subscribes only to public supported
-plugin events: `OilMutationComplete`, mini.files buffer/action events,
-nvim-tree `TreeRendered`, and Neo-tree render/clipboard events. A callback
+plugin events: Oil mutation and `OilActionsPost` events, mini.files
+buffer/action events, nvim-tree render/file/folder events, and Neo-tree
+render/clipboard/file-action events. A callback
 rereads only the still-active buffer or window through the adapter. One
 central comparison drops equal state, while callbacks in one Neovim scheduler
 cycle cause at most one reread. Missing or incompatible plugin APIs fail open
@@ -74,6 +85,10 @@ one scheduler cycle. Buffer, window, tab, and manager are checked again before
 output. Of the currently checked APIs, only Oil also exposes completion errors
 and some detectable cancellations; a missing failure event in another plugin
 is not guessed.
+The action matrix includes create, add, change, copy, rename, move, delete, and
+restore wherever the plugin exposes a public completion event. Opening a file
+remains a normal `contextChanged` buffer transition and therefore uses the
+same profile-selected focus presentation as other buffer changes.
 
 Built-in adapters are selected solely from the active `filetype` before they
 are called. External adapters remain optional synchronous extensions. Their

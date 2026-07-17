@@ -5,6 +5,26 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.6 (Featurebranch-Testbuild)
+
+- Meldung erzeugende Ex-Befehle koppeln ihren unmittelbaren strukturierten
+  Rückgabestatus an den vorherigen Modus. Der passende Modusklang folgt genau
+  einmal; die Meldung bleibt immer erhalten und wird je nach „Session focus“
+  ohne Zusatz, mit aktueller Zeile oder mit Kontext, Modus und Verbindung
+  ausgegeben. Spätere asynchrone Meldungen werden nicht gekoppelt; ein Befehl
+  ohne Meldung kann keinen späteren Moduswechsel unterdrücken.
+- Eine neue Dateimanager-Workflow-Spezifikation mit 118 Assertions deckt
+  Erstellen, Umbenennen, Kopieren/Duplizieren, Verschieben, Löschen,
+  Wiederherstellen, Batchaktionen, Zustandswechsel, Fehler/Abbruch,
+  Pfadminimierung sowie Schreibprojektnamen mit Leerzeichen und Unicode ab.
+- Der echte TUI-Promptpfad belegt eine ausgewählte Nein-Antwort; Speech-Tests
+  prüfen Ja, Nein und Abbruch. Kanonische
+  Dateitypen wie `directory` bleiben auch in nvim-tree-Aktionsresultaten
+  erhalten. Öffnen aus einem Manager folgt in allen drei Varianten der
+  konfigurierten Fokusausgabe.
+- Die automatisierte Abdeckung ist erweitert; eine praktische Abnahme dieses
+  Testbuilds steht ausdrücklich noch aus.
+
 ## 0.93.0-dev.5 (Featurebranch-Testbuild)
 
 - Der enge Oil-Promptparser erkennt die echten eingerückten `MOVE`-, `COPY`-,

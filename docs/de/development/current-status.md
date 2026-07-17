@@ -1,7 +1,21 @@
 # Aktueller Status
 
-Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-18, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
+
+Im Testbuild `0.93.0-dev.6` ist die Rückkehr eines Meldung erzeugenden
+Ex-Befehls vollständig strukturiert. Der Rückkehrmodus wird nicht als
+zusätzliches Sprachfragment vorangestellt; beim unmittelbaren
+`messageReceived` spielt sein Modusklang und die Meldung erhält je nach
+„Session focus“ keinen Zusatz, die aktuelle Zeile oder Kontext, Modus und
+Verbindungsname. Spätere asynchrone Meldungen tragen diese Kopplung nicht.
+Eine neue Dateimanager-Workflow-Spezifikation mit 118 Assertions prüft die
+öffentlichen Aktionsmatrizen von Oil, mini.files, nvim-tree und Neo-tree sowie
+Zustandswechsel, Batchaktionen, Fehler/Abbruch, Pfadminimierung, Unicode und
+Leerzeichen. Der echte TUI-Promptpfad belegt eine ausgewählte Nein-Antwort;
+Speech-Tests decken Ja, Nein und Abbruch ab. Das Öffnen
+aus einem Manager folgt allen drei Fokusausgaben. Automatisierte Gesamttests
+bestehen; die praktische Abnahme von `dev.6` ist noch offen.
 
 Im Testbuild `0.93.0-dev.5` ist Oils realer Dateiaktionsdialog für
 Umbenennen/Verschieben, Kopieren/Duplizieren, Löschen, Papierkorb,

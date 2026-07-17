@@ -212,6 +212,12 @@ rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
 Kommandozeilentyp, insbesondere `:`, `/` oder `?`; `commandLine` enthält den
 Inhalt ohne dieses Präfix. Dadurch werden Ex-Befehle nicht aus Textmustern
 erraten und gleich geschriebene Suchmuster bleiben unabhängig.
+`messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
+die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren
+Ex-Befehls. Das Feld wird nach genau dieser Ausgabe verworfen; spätere
+asynchrone Meldungen erhalten es nicht. Der Empfänger koppelt damit den
+Rückkehrklang und die konfigurierte Fokuspräsentation, ohne Meldungstext oder
+Modus aus Zeitabständen zu erraten.
 `focusContext` ist eine korrelierte Momentaufnahme aus demselben kanonischen
 Zustands-Cache. `_focusRequestId` ordnet sie genau der auslösenden Fokusanfrage
 zu; sie ist kein frei laufender Editorstream.

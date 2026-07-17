@@ -48,7 +48,12 @@ Zielausgabe gestellt. Der Klang bleibt erhalten; „Keine Ansage“ bleibt still
 Eingabe,
 Fehler und die nach Ausführung angezeigten gewöhnlichen
 Neovim-Meldungen werden strukturiert übernommen; Meldungen erscheinen außerdem
-kurz auf Braille. Die native Ausgabe einer eingebetteten Shell wird davon nicht
+kurz auf Braille. Erzeugt ein Ex-Befehl nur eine Meldung und kehrt in denselben
+Editorzustand zurück, spielt davor der passende Rückkehrklang. „Keine Ansage“
+belässt es bei der Meldung, „Aktuelle Zeile“ hängt die vollständige Zeile an,
+und die Kontextwahl hängt Datei- oder Spezialkontext, Modus und Verbindung an.
+Eine spätere asynchrone Meldung wird nicht fälschlich diesem Befehl zugeordnet.
+Die native Ausgabe einer eingebetteten Shell wird davon nicht
 abgeleitet oder ausgewertet. Wenn der Terminalprozess endet, meldet das Add-on
 Neovims strukturiertes `TermClose` einschließlich Exit-Status. Shellausgabe
 während des Prozesses bleibt weiterhin ausschließlich native Terminalausgabe.
@@ -68,6 +73,18 @@ freigegeben.
 - nvim-tree: `api.tree.get_node_under_cursor()`
 - Neo-tree: öffentlicher Quellenzustand und aktueller Baumknoten
 - mini.files: `get_fs_entry()` und `get_explorer_state()`
+
+Die Grundabläufe sind für Quellcodeprojekte und Schreibprojekte gleich:
+Verzeichnisse navigieren und öffnen, Dateien öffnen, anlegen, umbenennen,
+duplizieren beziehungsweise kopieren, verschieben, markieren und als Batch
+bearbeiten sowie löschen, abbrechen oder – soweit angeboten – wiederherstellen.
+Dateien mit Leerzeichen, Unicode und Satzzeichen werden als vollständige Namen
+behandelt. Beim Öffnen einer Datei gilt die Einstellung „Session focus“; die
+folgende automatische Cursorbewegung wiederholt kein einzelnes Zeichen.
+Access Link führt keine dieser Dateioperationen selbst aus und bestätigt keine
+Rückfrage automatisch. Wo ein Plugin kein öffentliches Abschlussereignis
+liefert, bleibt dessen eigene Meldung maßgeblich und Access Link erfindet
+keinen Erfolg.
 
 Beim Navigieren werden Name und semantischer Typ ausgegeben. Verzeichnisse,
 symbolische Links, Sockets, Pipes und Gerätedateien sind damit nicht von Farbe

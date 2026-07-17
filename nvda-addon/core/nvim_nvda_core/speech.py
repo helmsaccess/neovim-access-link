@@ -76,6 +76,7 @@ class SpeechPlanner:
         self._last_mode: str | None = None
         self._command_line_text = ""
         self._command_line_type = ""
+        self._command_return_pending = False
         self._buffer_navigation_transition = False
         self._buffer_navigation_no_switch = False
         self._terminal_command_transition = False
@@ -90,6 +91,7 @@ class SpeechPlanner:
         self._last_mode = None
         self._command_line_text = ""
         self._command_line_type = ""
+        self._command_return_pending = False
         self._buffer_navigation_transition = False
         self._buffer_navigation_no_switch = False
         self._terminal_command_transition = False
@@ -103,6 +105,12 @@ class SpeechPlanner:
         kind = event["type"]
         state = event.get("payload", {})
         actions: list[SpeechAction] = []
+        if self._command_return_pending and kind != "messageReceived":
+            # The pending flag suppresses only the immediate spoken return
+            # mode. It must never leak into a later, unrelated mode change.
+            # A plugin marker remains authoritative if the result follows an
+            # intervening structured event.
+            self._command_return_pending = False
         if kind == "errorReceived":
             text = state.get("message")
             if isinstance(text, str) and text:
@@ -112,6 +120,7 @@ class SpeechPlanner:
             if self._last_mode == "commandLine":
                 self._command_line_text = ""
                 self._command_line_type = ""
+            self._command_return_pending = False
         elif kind == "matchingPairNotFound":
             actions.append(SpeechAction(
                 "no matching pair", Priority.STATUS, interrupt=True, sound="matchingError",
@@ -137,6 +146,12 @@ class SpeechPlanner:
                 self._terminal_command_transition = (
                     self._command_line_type == ":"
                     and self._is_terminal_command(command_line_text)
+                )
+                self._command_return_pending = (
+                    self._command_line_type == ":"
+                    and bool(command_line_text)
+                    and command_line_text not in _BUFFER_NAVIGATION_COMMANDS
+                    and not self._terminal_command_transition
                 )
                 self._command_line_text = ""
                 self._command_line_type = ""
@@ -180,6 +195,7 @@ class SpeechPlanner:
                 and not suppress_terminal_return
                 and not suppress_context_mode
                 and not entering_direct_terminal
+                and not self._command_return_pending
             ):
                 raw = state.get("modeRaw")
                 description = _CANONICAL_MODES.get(canonical, _MODES.get(raw, f"mode {raw}"))
@@ -279,6 +295,7 @@ class SpeechPlanner:
                 self._command_line_text = command_line
             if isinstance(command_line_type, str):
                 self._command_line_type = command_line_type
+            self._command_return_pending = False
             action = self._command_line_change(state)
             if action is not None:
                 actions.append(action)
@@ -381,10 +398,22 @@ class SpeechPlanner:
                 text = f"{title}: {message}" if isinstance(title, str) and title else message
                 level = state.get("messageLevel")
                 critical = isinstance(level, int) and level >= 4
-                actions.append(SpeechAction(
+                action = SpeechAction(
                     text, Priority.CRITICAL if critical else Priority.STATUS,
                     interrupt=critical, braille_message=text,
-                ))
+                )
+                if state.get("commandLineReturn") is True:
+                    if focus_announcement == "line":
+                        returned = self._focus_line(state)
+                    elif focus_announcement == "context":
+                        returned = self._focus_context(state)
+                    else:
+                        returned = None
+                    if returned is not None and returned.text:
+                        combined = f"{text}; {returned.text}"
+                        action = replace(action, text=combined, braille_message=combined)
+                self._command_return_pending = False
+                actions.append(action)
         elif kind == "contextChanged":
             previous = self._previous_context or {}
             previous_identity = self._context_identity(previous)

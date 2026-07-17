@@ -38,6 +38,12 @@ destination presentation: No announcement stays silent, Current line is not
 prefixed by a mode fragment, and Context already includes the destination
 mode. Command-line entry remains announced.
 
+For an Ex command that immediately produces only a message and returns to the
+same editor state, the same choice controls what follows the message: nothing,
+the current line, or context with return mode and connection. The message
+itself is never suppressed. The return cue remains independent of this choice
+and continues to follow the feedback settings.
+
 The choice also applies when `:terminal` creates a terminal buffer. Current
 line waits for the first actual terminal line instead of first reporting blank
 and then only its first character. Entering direct terminal input with `i`

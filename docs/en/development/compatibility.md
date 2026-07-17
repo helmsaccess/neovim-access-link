@@ -20,7 +20,7 @@ identity, focus, output, suppression, and fail-open adapter.
 
 File-manager support uses the public APIs of the Oil, nvim-tree, Neo-tree, and
 mini.files main branches checked on July 12, 2026. The event layer was checked
-again on July 17 and uses `OilMutationComplete`, mini.files User autocmds,
+again on July 18 and uses `OilMutationComplete`, mini.files User autocmds,
 nvim-tree public `api.events`, and Neo-tree's public event module. If an event
 is absent or a public API changes incompatibly, cursor-driven adapter output
 continues fail-open; polling is not started as a replacement.
@@ -36,6 +36,9 @@ its custom confirmation float without a public prompt source. A narrow
 on Neovim 0.12.3 for rename, duplicate, delete, and Y/N; it carries only fixed
 action and count, never rendered paths. mini.files and other Lua calls to
 `vim.fn.confirm` are captured semantically on both Neovim reference versions.
+Public action forms, including long type names such as `directory` and
+`symbolicLink`, are normalized; a complete practical operation matrix remains
+open.
 
 No physical Braille display has been tested. Automated Braille tests cover only
 state and planning, so hardware bugs are very likely. Other Windows/NVDA/

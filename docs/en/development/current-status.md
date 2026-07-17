@@ -1,7 +1,20 @@
 # Current status
 
-Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
+Status: 2026-07-18, beta version 0.93.0; overall maturity remains between
 alpha and beta.
+
+Test build `0.93.0-dev.6` makes return from a message-producing Ex command
+fully structured. The return mode is not inserted as an extra spoken fragment;
+its mode cue plays on the immediate `messageReceived`, whose presentation
+always keeps the message and, according to Session focus, appends nothing, the
+current line, or context, mode, and connection name. Later asynchronous
+messages do not carry that association. A new 118-assertion file-manager
+workflow specification covers the public Oil, mini.files, nvim-tree, and
+Neo-tree action matrices plus state changes, batches, failure/cancellation,
+path minimization, Unicode, and spaces. The real-TUI prompt proves a selected
+No answer; speech tests cover Yes, No, and
+Cancel, and opening from a manager follows all three focus presentations.
+Automated aggregate tests pass; practical acceptance of `dev.6` remains open.
 
 Test build `0.93.0-dev.5` hardens Oil's real file-action dialog for
 rename/move, copy/duplicate, delete, trash, purge, and restore. The strictly
