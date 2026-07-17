@@ -3,6 +3,16 @@
 Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Im Testbuild `0.93.0-dev.1` ist der erste nach dem Terminal-Abgleich offene
+Dateimanagerpunkt umgesetzt. Namen, Pfade, Wurzeln, Typen und externe
+Adapterbezeichnungen werden weiterhin nach Protokollbudget in Bytes begrenzt,
+aber nur noch an validierten UTF-8-Codepointgrenzen. Ungültiger Adapteroutput
+wird feldweise verworfen. Zwei-/Dreibytezeichen, Emoji, lange Pfade und
+ungültige Bytefolgen sind in nun 27 Dateimanagerassertionen abgedeckt; alle
+Lua-Spezifikationen bestehen. Öffentliche Pluginereignisse für Änderungen am
+selben Eintrag, getrennte Markierungs-/Copy-/Cut-Semantik, Aktionsresultate und
+reale Plugin-/Brailletests bleiben die nächsten Dateimanagerphasen.
+
 Im Testbuild `0.92.0-dev.11` auf `feature/terminal-file-manager-hardening` sind
 elf Terminal-Hardening-Schritte umgesetzt. Erfolgreiche `:bp`-/`:bn`-
 Bufferwechsel im selben Tab und Fenster verwenden jetzt dieselbe profilfähige

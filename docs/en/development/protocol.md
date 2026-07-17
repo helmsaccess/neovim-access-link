@@ -20,6 +20,12 @@ Byte, character, virtual, and visual columns are distinct. UTF-8, tabs,
 combining characters, wide characters, and emoji must not be converted by
 assuming one byte or code point equals one display cell.
 
+File-manager state carries only bounded semantic values. Entry names are
+limited to 512 UTF-8 bytes, paths and roots to 2048 bytes, and type or adapter
+labels to 64 bytes. The plugin validates complete UTF-8 sequences and cuts
+only before a code point; an invalid adapter value is discarded instead of
+sending a malformed message.
+
 Capabilities are fixed by v2. Protocol v1, generic TCP listeners, application
 tokens, tunnel ports, and capability hello negotiation are intentionally not
 supported.

@@ -47,3 +47,7 @@ The plugin contains adapters for netrw and the public APIs of Oil, nvim-tree,
 Neo-tree, and mini.files. It can announce item type, name, state, and supported
 actions. Adapters load only for the active matching buffer. Unsupported custom
 file-manager drawings do not fall back to terminal scraping.
+Very long names and paths are byte-bounded for transport but never cut inside
+a Unicode character. If a third-party adapter returns invalid UTF-8 text, an
+optional field is ignored; an invalid required name suppresses only the
+semantic entry. Normal Neovim navigation remains available in both cases.

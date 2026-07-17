@@ -55,13 +55,19 @@ Der elfte Schritt unterscheidet bei F12 eine bloß noch gemerkte von einer
 weiterhin authentifizierten Bindung. Nach dem Ende einer lokalen Sitzung kann
 dasselbe WT-Control dadurch ausdrücklich auf eine frische SSH-Sitzung
 umgebunden werden, ohne automatische Zuordnung oder Polling einzuführen.
+Der zwölfte Schritt beginnt das Dateimanager-Hardening mit einer gemeinsamen
+UTF-8-validierenden Bytebegrenzung. Lange Namen und Pfade werden nur an
+Codepointgrenzen gekürzt; ungültige Adapterwerte gelangen nicht in den
+Transport. Grenztests decken Zwei-, Drei- und Vierbytezeichen sowie ungültige Folgen
+ab, ohne neue Abfragen oder Polling einzuführen.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
 `:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
 Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-Dateimanager-Grenzfälle, Pager-Sonderfälle und die vollständige negative
-Windows-Terminal-Matrix.
+ereignisgetriebenen Dateimanager-Zustandsänderungen, getrennte Markierungs- und
+Clipboardsemantik, Aktionsresultate, Pager-Sonderfälle und die vollständige
+negative Windows-Terminal-Matrix.
 
 ## Abgeschlossen: explizites Copy/Paste
 

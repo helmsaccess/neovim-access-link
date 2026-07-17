@@ -9,6 +9,12 @@ completion and signature help; search, pairs, diagnostics and spelling; folds,
 marks, registers and macros; command line; embedded terminal transitions; and
 adapters for common file managers.
 
+File-manager adapter names, paths, roots, and types are byte-bounded only at
+validated UTF-8 code-point boundaries. Automated netrw/API-stub coverage now
+includes two-, three-, and four-byte boundary cases and invalid adapter bytes.
+Public same-entry plugin events, action results, real plugin versions, and
+physical Braille remain open.
+
 Speech and sounds are configurable where NVDA has no better native setting.
 Confirmed session-focus presentation and an event-driven in-place buffer
 switch are profile-selectable as silent, current structured line, or existing

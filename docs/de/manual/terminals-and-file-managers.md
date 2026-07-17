@@ -74,6 +74,11 @@ symbolische Links, Sockets, Pipes und Gerätedateien sind damit nicht von Farbe
 oder Symbolschrift abhängig. Wenn die API es bereitstellt, werden außerdem
 Markierung sowie geöffneter oder geschlossener Baumzustand angesagt und als
 Braillemeldung ausgegeben.
+Sehr lange Namen und Pfade werden für die Übertragung bytebegrenzt, jedoch nie
+mitten in einem Unicode-Zeichen abgeschnitten. Liefert ein fremder Adapter
+ungültigen UTF-8-Text, wird ein optionales Feld ignoriert; bei einem ungültigen
+erforderlichen Namen entfällt nur der semantische Eintrag. Die normale
+Neovim-Navigation bleibt in beiden Fällen verfügbar.
 
 ## Weitere Dateimanager
 

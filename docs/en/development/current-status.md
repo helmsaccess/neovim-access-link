@@ -3,6 +3,16 @@
 Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
+Test build `0.93.0-dev.1` implements the first file-manager item left open by
+the terminal-analysis comparison. Names, paths, roots, types, and external
+adapter labels remain bounded in bytes for the protocol budget, but only at
+validated UTF-8 code-point boundaries. Invalid adapter output is discarded per
+field. Two-/three-byte characters, emoji, long paths, and invalid byte
+sequences are covered by 27 file-manager assertions, and all Lua
+specifications pass. Public plugin events for same-entry changes, distinct
+mark/copy/cut semantics, action
+results, and real plugin/Braille tests remain the next file-manager phases.
+
 Test build `0.92.0-dev.11` on branch `feature/terminal-file-manager-hardening`
 implements eleven focused hardening steps. Successful `:bp`/`:bn` buffer
 switches within the same tab and window now use the profile-aware session-focus

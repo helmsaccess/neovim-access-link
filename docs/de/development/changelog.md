@@ -5,6 +5,17 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.1 (Featurebranch-Testbuild)
+
+- Eingebaute und externe Dateimanageradapter begrenzen Namen auf 512 Byte sowie
+  Pfade und Wurzeln auf 2048 Byte jetzt zentral und ausschließlich an gültigen
+  UTF-8-Codepointgrenzen. Lange Unicode-Namen können dadurch keine ungültige
+  Transportnachricht mehr erzeugen; ungültiger UTF-8-Adapteroutput wird als
+  einzelner Wert verworfen.
+- Lua-Regressionstests decken exakte und geteilte Zwei-, Drei- und
+  Vierbytegrenzen, lange Pfade und ungültige Bytefolgen ab. Die Begrenzung
+  bleibt bytebasiert und führt weder Polling noch Dateisystemabfragen ein.
+
 ## 0.93.0 (Beta)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.93.0` angehoben.

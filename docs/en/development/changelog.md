@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.93.0-dev.1 (feature-branch test build)
+
+- Built-in and external file-manager adapters now centrally bound names to 512
+  bytes and paths or roots to 2048 bytes only at valid UTF-8 code-point
+  boundaries. Long Unicode names can no longer produce an invalid transport
+  message; an invalid UTF-8 adapter value is discarded individually.
+- Lua regressions cover exact and split two-, three-, and four-byte boundaries,
+  long paths, and invalid byte sequences. Limits remain byte-based and add no
+  polling or filesystem queries.
+
 ## 0.93.0 (beta)
 
 - The product version was advanced to `0.93.0` at the user's explicit

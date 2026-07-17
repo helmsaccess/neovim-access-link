@@ -6,9 +6,61 @@ local type_names = {
   fifo = "fifo", char = "characterDevice", block = "blockDevice",
 }
 
+local function utf8_sequence_length(value, offset)
+  local first = value:byte(offset)
+  if not first then return nil end
+  if first <= 0x7f then return 1 end
+
+  local second = value:byte(offset + 1)
+  if first >= 0xc2 and first <= 0xdf then
+    return second and second >= 0x80 and second <= 0xbf and 2 or nil
+  end
+
+  local third = value:byte(offset + 2)
+  if first == 0xe0 then
+    return second and second >= 0xa0 and second <= 0xbf
+      and third and third >= 0x80 and third <= 0xbf and 3 or nil
+  end
+  if (first >= 0xe1 and first <= 0xec) or (first >= 0xee and first <= 0xef) then
+    return second and second >= 0x80 and second <= 0xbf
+      and third and third >= 0x80 and third <= 0xbf and 3 or nil
+  end
+  if first == 0xed then
+    return second and second >= 0x80 and second <= 0x9f
+      and third and third >= 0x80 and third <= 0xbf and 3 or nil
+  end
+
+  local fourth = value:byte(offset + 3)
+  if first == 0xf0 then
+    return second and second >= 0x90 and second <= 0xbf
+      and third and third >= 0x80 and third <= 0xbf
+      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
+  end
+  if first >= 0xf1 and first <= 0xf3 then
+    return second and second >= 0x80 and second <= 0xbf
+      and third and third >= 0x80 and third <= 0xbf
+      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
+  end
+  if first == 0xf4 then
+    return second and second >= 0x80 and second <= 0x8f
+      and third and third >= 0x80 and third <= 0xbf
+      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
+  end
+  return nil
+end
+
 local function bounded(value, maximum)
-  value = type(value) == "string" and value or ""
-  return #value <= maximum and value or value:sub(1, maximum)
+  if type(value) ~= "string" then return "" end
+  local offset, boundary = 1, 0
+  while offset <= #value do
+    local sequence_length = utf8_sequence_length(value, offset)
+    if not sequence_length then return "" end
+    local sequence_end = offset + sequence_length - 1
+    if sequence_end > maximum then break end
+    boundary = sequence_end
+    offset = sequence_end + 1
+  end
+  return boundary == #value and value or value:sub(1, boundary)
 end
 
 local function normalize_entry(entry)
@@ -22,6 +74,18 @@ local function normalize_entry(entry)
     marked = entry.marked == true,
     expanded = type(entry.expanded) == "boolean" and entry.expanded or nil,
     size = type(entry.size) == "number" and entry.size or nil,
+  }
+end
+
+local function normalize_manager(manager, fallback_name)
+  if type(manager) ~= "table" then return nil end
+  local name = bounded(manager.name, 64)
+  if name == "" then name = bounded(fallback_name, 64) end
+  if name == "" then return nil end
+  return {
+    name = name,
+    root = bounded(manager.root, 2048),
+    entry = normalize_entry(manager.entry),
   }
 end
 
@@ -149,20 +213,16 @@ end
 function M.current()
   for _, provider in ipairs({ netrw_entry, oil_entry, nvim_tree_entry, neo_tree_entry, mini_files_entry }) do
     local ok, built_in = pcall(provider)
-    if ok and built_in then return built_in end
+    if ok and built_in then return normalize_manager(built_in) end
   end
   for name, adapter in pairs(adapters) do
     local detected, active = pcall(adapter.detector)
     if detected and active then
       local ok, value = pcall(adapter.provider)
       if ok and type(value) == "table" then
-        return {
-          name = bounded(value.name or name, 64),
-          root = bounded(value.root, 2048),
-          entry = normalize_entry(value.entry),
-        }
+        return normalize_manager(value, name)
       end
-      return { name = bounded(name, 64), root = "" }
+      return normalize_manager({ name = name, root = "" })
     end
   end
   return nil

@@ -44,10 +44,16 @@ The eleventh step distinguishes a merely remembered binding from a still-
 authenticated one during F12 pairing. After a local session exits, the same WT
 control can therefore be explicitly rebound to a fresh SSH session without
 introducing automatic mapping or polling.
+The twelfth step starts file-manager hardening with shared UTF-8-validating
+byte limits. Long names and paths are cut only at code-point boundaries, while
+invalid adapter values never reach transport. Boundary tests cover two-,
+three-, and four-byte characters plus invalid sequences without adding queries
+or polling.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.
-File-manager edge cases, pager variants, and the complete negative Windows
+Event-driven same-entry file-manager changes, distinct mark and clipboard
+semantics, action results, pager variants, and the complete negative Windows
 Terminal matrix remain next.
 
 ## Completed: explicit copy/paste

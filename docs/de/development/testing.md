@@ -114,6 +114,11 @@ Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
 Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
 seit Neovim 0.12 optionale Paket mit `packadd netrw`.
+Seine 27 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
+und 2048 Byte für Pfade/Wurzeln an exakten sowie geteilten UTF-8-Grenzen.
+Zwei-/Dreibytezeichen und Vierbyte-Emoji müssen vollständig erhalten oder vollständig
+weggelassen werden; ungültige Bytefolgen dürfen keinen Eintrag und keine
+ungültige Transportzeichenkette erzeugen.
 
 Der reproduzierbare Einstiegspunkt berücksichtigt beide Bedingungen:
 

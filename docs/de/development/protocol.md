@@ -49,6 +49,13 @@ Eine andere Protokollversion, fehlende Pflichtfelder, ungültige Typen,
 beschädigtes MessagePack und übergroße Frames beenden die betreffende
 Transportinstanz. Unbekannte optionale Payloadfelder dürfen ignoriert werden.
 
+Dateimanagerzustand enthält nur begrenzte semantische Werte. Eintragsnamen sind
+auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte sowie Typ- und
+Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin validiert vollständige
+UTF-8-Sequenzen und schneidet ausschließlich vor einem Codepoint; ein
+ungültiger Adapterwert wird verworfen, statt eine beschädigte Nachricht zu
+senden.
+
 ## Sitzungsbeginn, Sequenzierung und Resync
 
 Die erste akzeptierte Nachricht jeder Transport-Sitzung ist `fullState` mit
