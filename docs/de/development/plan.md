@@ -75,12 +75,39 @@ verwirft die Meldung nach einem Fokus-/Managerwechsel. mini.files, nvim-tree
 und Neo-tree belegen Erfolge; Oil kann zusätzlich Abschlussfehler und dort
 erkennbare Abbrüche belegen. Wo ein Plugin kein öffentliches Ergebnis liefert,
 wird nichts aus Rendern oder Text geraten.
+Der fünfzehnte Schritt verbreitert den bewusst begrenzten netrw-Fallback.
+Header sowie schmale, lange, breite und Baumlisten besitzen getrennte
+Regressionen für Leerzeichen, Tabs, Unicode, Symlinks und Rootzeilen. Moderne
+Manager werden weiterhin ausschließlich über ihre APIs integriert.
+Der sechzehnte Schritt wählt eingebaute Adapter direkt nach `filetype` und
+begrenzt optionale Adapterlaufzeit. Wiederholte Fehler oder Aufrufe über 5 ms
+führen bufferlokal zu einer kurzen fail-open-Abkühlung; Checkhealth stellt nur
+feste Zähler bereit. Fristprüfung und Aufräumen sind ereignisgetrieben und
+führen kein Polling ein.
+Der siebzehnte Schritt trennt Manager-/Branchwurzel und fokussierte Ebene.
+nvim-tree folgt öffentlichen Elternknoten, mini.files verwendet Branchanfang
+und `depth_focus`; unzuverlässige Werte werden nicht aus Eintragspfaden
+abgeleitet. Leerer Fokuskontext spricht nur den letzten Verzeichnisnamen.
+Der achtzehnte Schritt ersetzt in Dateimanagerbuffern die dauerhafte rohe
+Braillezeile durch Name, Typ und Zustand. Nur ein eindeutig in der echten
+Zeile lokalisierter Namensbereich ist routbar; Statussegmente und mehrdeutige
+Namen bleiben ohne erfundene Cursorabbildung.
+Der neunzehnte Schritt härtet Standardprompts in echten TUI-Tests. Eingabe,
+Abbruch und Auswahl laufen über `vim.ui.input/select`. Lua-`confirm()` wird
+auf Neovim 0.10.1 und 0.12.3 semantisch angekündigt und nach Antwort sicher
+geschlossen, auch wenn die externe UI kein `msg_clear` liefert.
+Der zwanzigste Schritt deckt Oils eigenen Bestätigungs-Float als bewusst engen
+Screen-Fallback ab, weil das Plugin dafür kein öffentliches Prompt-Ereignis
+bereitstellt. Nur `oil_preview` in einem echten Float und feste Aktionsverben
+werden akzeptiert; ausgegeben werden Aktion/Anzahl und Y/N, während Rohzeilen,
+Namen und Pfade unterdrückt bleiben. Ein isolierter Test mit dem realen
+Oil-Hauptzweig belegt Öffnen, Abbruch und unveränderte Testdatei.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
 `:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
 Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-reale Dateimanager-Plugin-/Prompt-/Brailleprüfungen, Pager-Sonderfälle sowie
+weitere reale Dateimanager-Plugin-Prompts, Braillehardware, Pager-Sonderfälle sowie
 die vollständige negative Windows-Terminal-Matrix.
 
 ## Abgeschlossen: explizites Copy/Paste

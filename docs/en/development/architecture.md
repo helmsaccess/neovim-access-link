@@ -37,13 +37,32 @@ nvim-tree `TreeRendered`, and Neo-tree render/clipboard events. A callback
 rereads only the still-active buffer or window through the adapter. One
 central comparison drops equal state, while callbacks in one Neovim scheduler
 cycle cause at most one reread. Missing or incompatible plugin APIs fail open
-to existing navigation. There are no timer queries, filesystem polling, or
-screen scraping.
+to existing navigation. There are no timer queries or filesystem polling.
+
+The only narrow exception to purely semantic plugin APIs is Oil's own
+confirmation float. Because Oil exposes no public pre-action event,
+`file_manager_prompt.lua` recognizes only a real float whose exact `filetype`
+is `oil_preview`. The event-driven parser examines at most 200 lines, accepts
+fixed action words only, and reports only action, count, and the Y/N choice.
+Names, paths, and raw lines never leave Neovim; unknown rendering fails open.
+There is no general popup parser. Risk, tests, and replacement are recorded in
+`adr/0003-oil-confirmation-fallback.md`.
 
 State distinguishes selection marks, the plugin clipboard's Copy/Cut state,
 and expansion. The plugin sends only fixed values; NVDA plans same-entry
 deltas as one compact speech and Braille message. This layer changes neither
 terminal binding, gating, nor native output.
+`root` and `currentDirectory` remain separate UTF-8-validated values: the
+manager/branch root versus its focused level. If a public API reliably exposes
+only one of them, nothing is inferred from the entry path. Focus context
+without an entry locally reduces the level to its final name and does not
+speak a complete path.
+
+The persistent file-manager Braille plan uses the same typed name, type, and
+state. It creates a routing map only when the name occurs exactly once in the
+real `lineText`; synthetic type/status cells and ambiguous names have no route
+target. The unchanged control path still validates session, buffer, window,
+line, and `changedtick`.
 
 Public completion events are normalized separately as
 `fileManagerActionResult`. Source and destination paths are reduced to an
@@ -53,6 +72,14 @@ one scheduler cycle. Buffer, window, tab, and manager are checked again before
 output. Of the currently checked APIs, only Oil also exposes completion errors
 and some detectable cancellations; a missing failure event in another plugin
 is not guessed.
+
+Built-in adapters are selected solely from the active `filetype` before they
+are called. External adapters remain optional synchronous extensions. Their
+detector and provider calls are measured; three repeated errors or calls over
+5 ms activate a five-second cooldown for the affected buffer. The deadline is
+checked only on an event that already occurred and creates neither a timer nor
+polling. `BufWipeout` removes the state. Checkhealth output contains only the
+adapter name and fixed counters, never error text, paths, or file names.
 
 NVDA therefore lists configurable commands even when Input Gestures is opened
 from another application. On invocation, the global adapter reads focus once

@@ -61,10 +61,35 @@ type; combines synchronous batches; and drops output after a focus/manager
 change. mini.files, nvim-tree, and Neo-tree prove successes, while Oil can
 also prove completion failures and detectable cancellations. Where a plugin
 has no public result, nothing is inferred from rendering or text.
+The fifteenth step broadens the deliberately limited netrw fallback. Banners
+and thin, long, wide, and tree lists have separate regressions for spaces,
+tabs, Unicode, symlinks, and root rows. Modern managers remain API-only.
+The sixteenth step selects built-in adapters directly by `filetype` and bounds
+optional adapter runtime. Repeated errors or calls over 5 ms cause a short
+per-buffer fail-open cooldown; Checkhealth exposes fixed counters only.
+Deadline checks and cleanup are event driven and add no polling.
+The seventeenth step separates manager/branch root and focused level.
+nvim-tree follows public parent nodes, mini.files uses branch start and
+`depth_focus`, and unreliable values are not derived from entry paths. Empty
+focus context speaks only the final directory name.
+The eighteenth step replaces the persistent decorated Braille row in a
+file-manager buffer with semantic name, type, and state. Only a name located
+unambiguously in the real row is routable; status segments and ambiguous names
+have no invented cursor mapping.
+The nineteenth step hardens standard prompts in real TUI tests. Input,
+cancellation, and selection use `vim.ui.input/select`. Lua `confirm()` calls
+are announced and closed reliably on Neovim 0.10.1 and 0.12.3 even when the
+external UI emits no `msg_clear`.
+The twentieth step covers Oil's custom confirmation float as a deliberately
+narrow screen fallback because the plugin exposes no public prompt event for
+it. Only `oil_preview` in a real float and fixed action verbs are accepted;
+action/count plus Y/N are reported while raw rows, names, and paths stay
+suppressed. An isolated run with the real Oil main branch proves opening,
+cancellation, and an unchanged fixture.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.
-Real file-manager plugin/prompt/Braille tests, pager variants, and the complete
+Further real file-manager plugin prompts, physical Braille, pager variants, and the complete
 negative Windows Terminal matrix remain next.
 
 ## Completed: explicit copy/paste

@@ -68,14 +68,36 @@ den weiterhin aktiven Buffer beziehungsweise das aktive Fenster über den
 Adapter neu ein. Ein zentraler Vergleich verwirft gleiche Zustände; mehrere
 Callbacks im selben Neovim-Schedulerzyklus ergeben höchstens eine
 Neuauswertung. Fehlende oder inkompatible Plugin-APIs fallen auf die bereits
-vorhandene Navigation zurück. Es gibt keine Timerabfrage, kein
-Dateisystempolling und kein Screen Scraping.
+vorhandene Navigation zurück. Es gibt keine Timerabfrage und kein
+Dateisystempolling.
+
+Die einzige enge Ausnahme von rein semantischen Plugin-APIs ist Oils eigener
+Bestätigungs-Float: Weil Oil vor der Aktion kein öffentliches Ereignis liefert,
+erkennt `file_manager_prompt.lua` ausschließlich einen echten Float mit exakt
+`filetype=oil_preview`. Der ereignisgetriebene Parser untersucht höchstens 200
+Zeilen, akzeptiert nur feste Aktionswörter und gibt nur Aktion, Anzahl und die
+Y/N-Auswahl aus. Namen, Pfade und rohe Zeilen verlassen Neovim nicht;
+unbekannte Darstellung fällt offen zurück. Es gibt keinen allgemeinen
+Popup-Parser. Risiko, Tests und Ablösung stehen in
+`adr/0003-oil-confirmation-fallback.md`.
 
 Der Zustand unterscheidet Auswahlmarkierung, Plugin-Clipboard mit Copy/Cut und
 Expansion. Das Plugin sendet nur Festwerte; der NVDA-Sprachplaner bildet für
 denselben Eintrag Zustandsdifferenzen und verwendet dieselbe kompakte Meldung
 auch für Braille. Diese Ereignisschicht ändert weder Terminalzuordnung noch
 Gate oder native Ausgabe.
+`root` und `currentDirectory` bleiben getrennte, UTF-8-validierte Werte:
+Manager-/Branchwurzel gegenüber fokussierter Ebene. Wo eine öffentliche API
+nur einen der beiden Werte zuverlässig liefert, wird nichts aus dem
+Eintragspfad geraten. Ein Fokuskontext ohne Eintrag reduziert die Ebene lokal
+auf ihren letzten Namen und spricht keinen vollständigen Pfad.
+
+Der dauerhafte Brailleplan verwendet bei einem Dateimanagereintrag dieselben
+fest typisierten Namens-, Typ- und Zustandsdaten. Eine Routingabbildung entsteht
+nur, wenn der Name genau einmal in der echten `lineText`-Zeile vorkommt. Zellen
+des synthetischen Typ-/Statussegments sowie mehrdeutige Namen besitzen kein
+Routingziel und werden lokal verworfen; der Rückkanal bleibt unverändert an
+Sitzung, Buffer, Fenster, Zeile und `changedtick` gebunden.
 
 Öffentliche Abschlussereignisse werden getrennt als
 `fileManagerActionResult` normalisiert. Vor dem Transport werden Quell- und
@@ -86,6 +108,15 @@ Buffer, Fenster, Tab und Manager erneut geprüft. Nur Oil stellt in der aktuell
 geprüften API auch Abschlussfehler beziehungsweise einzelne erkennbare
 Abbrüche bereit; für andere Plugins wird ein fehlendes Fehlerereignis nicht
 erraten.
+
+Die eingebauten Adapter werden vor dem Aufruf ausschließlich über den aktiven
+`filetype` gewählt. Externe Adapter bleiben optionale synchrone Erweiterungen.
+Ihre Detector- und Provideraufrufe werden gemessen; drei wiederholte Fehler
+oder Überschreitungen von 5 ms aktivieren eine fünfsekündige Abkühlung für den
+betroffenen Buffer. Die Frist wird nur bei einem ohnehin eintreffenden Ereignis
+geprüft und erzeugt weder Timer noch Polling. `BufWipeout` entfernt den Zustand.
+Die Checkhealth-Ausgabe enthält nur Adaptername und feste Zähler, nie
+Fehlertext, Pfade oder Dateinamen.
 
 ## Verteilung der Linux-Komponenten
 

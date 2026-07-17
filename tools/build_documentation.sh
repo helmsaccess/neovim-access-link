@@ -39,6 +39,7 @@ developer_sources=(
   docs/de/development/architecture.md
   docs/de/development/adr/0001-neovim-integration-point.md
   docs/de/development/adr/0002-nvda-api-boundaries.md
+  docs/de/development/adr/0003-oil-confirmation-fallback.md
   docs/de/development/security.md
   docs/de/development/latency.md
   docs/de/development/protocol.md
@@ -79,6 +80,7 @@ developer_en_sources=(
   docs/en/development/architecture.md
   docs/en/development/adr/0001-neovim-integration-point.md
   docs/en/development/adr/0002-nvda-api-boundaries.md
+  docs/en/development/adr/0003-oil-confirmation-fallback.md
   docs/en/development/security.md
   docs/en/development/latency.md
   docs/en/development/protocol.md

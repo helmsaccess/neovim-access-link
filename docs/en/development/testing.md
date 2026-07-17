@@ -42,7 +42,7 @@ setup and that mismatch disconnects without a reconnect loop.
 Isolated local and Tessa SIGKILL tests must leave discovery empty
 without touching existing user Neovim or tmux sessions.
 
-The Neovim file-manager specification now contains 62 assertions. Its adapter
+The Neovim file-manager specification now contains 99 assertions. Its adapter
 cases enforce the 512-byte name and 2048-byte path/root budgets at exact and
 split UTF-8 boundaries. Two-/three-byte characters and four-byte emoji must be
 kept or omitted as complete code points. Invalid byte sequences discard only
@@ -54,6 +54,35 @@ failure, synchronous batching, basename minimization, and dropping output
 after a manager change. Speech tests distinguish mark, unmark, Copy, Cut,
 clipboard clear, and expansion plus typed action success, cancellation, and
 failure.
+The narrow Oil prompt parser accepts only a real `oil_preview` float and fixed
+action verbs; assertions require a path-free action/count prompt and fail-open
+for unknown rendering.
+Real disposable netrw directories additionally cover banners and thin, long,
+and tree lists with plain, repeated-space, tabbed, and Unicode names plus
+symlinks. A synthetic wide row proves virtual-cursor-column selection.
+Failing optional adapters enter a per-buffer cooldown after three errors, skip
+unrelated built-in `filetype` paths, and release runtime state at buffer end;
+diagnostics expose fixed counters only.
+Additional assertions distinguish manager root and focused level for netrw,
+Oil, nvim-tree, Neo-tree, and mini.files. A speech test proves that empty focus
+context outputs only the final level name and no complete path.
+Persistent file-manager Braille tests require semantic name, type, and state
+instead of the decorated row, UTF-8-exact name routes, and rejection of
+synthetic status cells or ambiguous names. The real TUI test runs
+`vim.ui.input` acceptance/cancellation, `vim.ui.select` choice, and a selected
+`vim.fn.confirm` option on Neovim 0.10.1 and 0.12.3. Blocking prompt state must
+close without `msg_clear`, and concurrent or late 0.12 external UI plus the
+function wrapper must not duplicate the prompt. A real TUI float with
+`filetype=oil_preview` must produce exactly one path-free `promptOpened` state;
+generic context, text, and cursor events for the same raw row are forbidden
+while it is active. An additional isolated run with the real Oil main branch
+checks `dd`, `:w`, cancellation with `n`, and an unchanged fixture.
+The complete Lua suite runs with both Neovim 0.10.1 and 0.12.3. After the real
+Ex command, the navigation test also executes `CursorMoved` explicitly because
+Neovim 0.10 does not dispatch it for this headless `feedkeys` combination. It
+therefore proves on both versions that internally executed `:normal` keys are
+recognized by their empty `typed` value and cannot impersonate directly typed
+semantic motion.
 
 ## Copy/paste feature-branch acceptance
 

@@ -65,6 +65,23 @@ Navigation als auch nach einem öffentlichen Pluginereignis, wenn sich der
 erneut gelesene Zustand tatsächlich geändert hat. Inaktive Buffer/Fenster und
 identische Zustände erzeugen kein Ereignis; Renderfolgen werden innerhalb
 eines Neovim-Schedulerzyklus zusammengefasst, nicht gepollt.
+`fileManager.root` bezeichnet die öffentliche Manager- oder Branchwurzel;
+`fileManager.currentDirectory` bezeichnet die fokussierte Ebene. Beide sind
+optional, UTF-8-validiert und auf 2048 Byte begrenzt. Fehlende Werte werden
+nicht aus `entry.path` geraten.
+
+`promptOpened` überträgt eine auf 2048 Byte begrenzte bewusste
+Bedienausgabe sowie einen festen Prompttyp. `promptClosed` unterscheidet bei
+`vim.ui.input/select` Annahme und Abbruch. Für `vim.fn.confirm` enthält es
+`answered=true`, den numerischen Auswahlindex und höchstens eine auf 512 Byte
+begrenzte sichtbare Auswahlbezeichnung; aus der Bezeichnung wird keine
+Dateiaktion abgeleitet. Die Promptantwort selbst wird nicht übertragen oder
+gespeichert. Ein blockierender Modusübergang kann das Schließen belegen, wenn
+Neovims externe UI kein `msg_clear` liefert.
+Oils `oil_preview`-Bestätigungs-Fallback verwendet denselben Promptvertrag,
+aber ausschließlich feste Aktionsverben, Anzahl und Y/N. Die gerenderte Zeile,
+Namen und Pfade werden im `promptOpened`-Zustand geleert; unbekannte Verben oder
+ein gleichnamiger Nicht-Float erzeugen kein semantisches Prompt-Ereignis.
 
 `fileManagerActionResult.payload.fileManagerAction` enthält ausschließlich:
 

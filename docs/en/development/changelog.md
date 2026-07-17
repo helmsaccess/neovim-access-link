@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.93.0-dev.4 (feature-branch test build)
+
+- The netrw fallback handles banner lines and thin, long, wide, and tree list
+  styles separately. Spaces, repeated spaces, tabs, Unicode, and symlink
+  decoration are preserved or split deliberately, while the tree root is no
+  longer appended to itself. Real isolated netrw views complement synthetic
+  boundary cases.
+- Built-in file-manager adapters are selected directly by `filetype`.
+  Optional adapters have a fixed runtime budget: three repeated errors or
+  calls over 5 ms trigger a five-second per-buffer cooldown. Buffer teardown
+  releases that state and normal navigation remains fail-open.
+- `:checkhealth nvim_nvda` exposes only fixed failure, slow-call, and cooldown
+  counters—never error text, paths, or entry names. External adapters must be
+  synchronous, bounded, and free of I/O and polling. Ninety-nine file-manager
+  assertions cover the expanded path.
+- `root` now identifies the public manager/branch root and `currentDirectory`
+  the focused level. nvim-tree walks public parent nodes to its root, while
+  mini.files separates branch start and focus. Without an entry, focus context
+  speaks only the last directory name rather than a complete local, remote, or
+  virtual path.
+- Neovim 0.10 can deliver keys internally executed by an Ex command such as
+  `:normal` to `vim.on_key` only after `CmdlineLeave`. Access Link now uses the
+  empty `typed` value to distinguish them from direct input, so command text
+  cannot impersonate semantic cursor motion on the reference version. The
+  complete Lua suites pass with Neovim 0.10.1 and 0.12.3.
+- File-manager buffers now keep a persistent semantic Braille row containing
+  name, type, and state. Routing maps only to a name found exactly once in the
+  real buffer row; status segments and ambiguous names are rejected safely.
+- Real TUI tests cover `vim.ui.input` acceptance/cancellation,
+  `vim.ui.select` choice, and a selected Lua `vim.fn.confirm` option on Neovim
+  0.10.1 and 0.12.3. Blocking prompts close on mode exit even without
+  `msg_clear`, while concurrent or late 0.12 external-UI and wrapper events are
+  deduplicated. Prompt text and visible selection labels are UTF-8 safely bounded.
+- Oil's custom confirmation float has no public prompt event. A narrow fallback
+  accepts only `oil_preview` in a real float and fixed action verbs. It reports
+  action/count plus Y/N, removes the raw row, name, and complete path from
+  semantic prompt state, and suppresses competing generic float events. An
+  isolated run with the real Oil main branch proves cancellation without a
+  filesystem change.
+
 ## 0.93.0-dev.3 (feature-branch test build)
 
 - The new `fileManagerActionResult` event carries only a fixed action, result,

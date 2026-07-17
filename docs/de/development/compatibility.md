@@ -75,6 +75,19 @@ Die am 17. Juli 2026 erneut geprüfte Ereignisschicht verwendet
 ändert ein Plugin seine öffentliche API inkompatibel, bleibt die normale
 cursorbasierte Adapterausgabe fail-open erhalten; es wird kein Polling als
 Ersatz gestartet.
+Der netrw-Fallback wird automatisiert mit Version 184 aus Neovim 0.12.3 und
+Version 173 aus der Referenzversion Neovim 0.10.1 in schmaler, langer, breiter
+und Baumdarstellung geprüft. Die vollständige Matrix ist noch nicht praktisch
+unter Windows/NVDA bestätigt.
+Die öffentlichen Optionen `select_prompts = true` von nvim-tree und
+`use_popups_for_input = false` von Neo-tree führen deren Dialoge über
+`vim.ui.select/input`; Access Link ändert sie nicht automatisch. Oil verwendet
+weiterhin einen eigenen Bestätigungs-Float ohne öffentliche Promptquelle. Ein
+enger Fallback für `oil_preview` in einem echten Float ist mit dem realen
+Oil-Hauptzweig auf Neovim 0.12.3 einschließlich Abbruch geprüft; er überträgt
+nur feste Aktion und Anzahl, nie gerenderte Pfade. mini.files- und andere
+Lua-Aufrufe von `vim.fn.confirm` werden auf beiden Neovim-Referenzständen
+semantisch erfasst.
 
 Details der Quellprüfung: `nvda-2026.1-api-notes.md`.
 

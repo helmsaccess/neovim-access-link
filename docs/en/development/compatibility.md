@@ -24,6 +24,18 @@ again on July 17 and uses `OilMutationComplete`, mini.files User autocmds,
 nvim-tree public `api.events`, and Neo-tree's public event module. If an event
 is absent or a public API changes incompatibly, cursor-driven adapter output
 continues fail-open; polling is not started as a replacement.
+The netrw fallback is automated against version 184 from Neovim 0.12.3 and
+version 173 from the Neovim 0.10.1 reference version in thin, long, wide, and
+tree presentation. The complete matrix has not yet been practically confirmed
+under Windows/NVDA.
+The public nvim-tree option `select_prompts = true` and Neo-tree option
+`use_popups_for_input = false` route their dialogs through
+`vim.ui.select/input`; Access Link never changes them automatically. Oil keeps
+its custom confirmation float without a public prompt source. A narrow
+`oil_preview` real-float fallback is verified against the real Oil main branch
+on Neovim 0.12.3, including cancellation; it carries only fixed action and
+count, never rendered paths. mini.files and other Lua calls to `vim.fn.confirm`
+are captured semantically on both Neovim reference versions.
 
 No physical Braille display has been tested. Automated Braille tests cover only
 state and planning, so hardware bugs are very likely. Other Windows/NVDA/

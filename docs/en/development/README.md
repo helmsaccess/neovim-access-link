@@ -17,8 +17,9 @@ history are kept separate from the current product description.
 1. [Architecture](architecture.md)
 2. [ADR-0001: hybrid Neovim integration point](adr/0001-neovim-integration-point.md)
 3. [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
-4. [Security and privacy](security.md)
-5. [Latency](latency.md)
+4. [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
+5. [Security and privacy](security.md)
+6. [Latency](latency.md)
 
 ## Reference and evidence
 

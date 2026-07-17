@@ -3,6 +3,7 @@ local menu = require("nvim_nvda.menu")
 local completion_adapters = require("nvim_nvda.completion_adapters")
 local file_manager = require("nvim_nvda.file_manager")
 local file_manager_events = require("nvim_nvda.file_manager_events")
+local file_manager_prompt = require("nvim_nvda.file_manager_prompt")
 local clipboard = require("nvim_nvda.clipboard")
 local M = {}
 
@@ -34,16 +35,37 @@ local notify_wrapped = false
 local ui_wrapped = false
 local ui_namespace = vim.api.nvim_create_namespace("nvim_nvda_ui")
 local ui_message_prompt_kind
+local confirm_wrapped = false
+local wrapped_confirm_active = false
+local recent_wrapped_confirm_prompt
+local recent_wrapped_confirm_time = 0
+local oil_confirmation_buffer
 local command_line_active = false
 local command_line_text = ""
 local command_line_type = ""
 local command_changedtick = 0
+local command_line_generated_keys = false
 local last_command_line_echo = ""
 local predicted_ui_error_code
 local last_message_text
 local last_message_time = 0
 local emit
 local key_observer_diagnostics = { observerErrorCount = 0 }
+
+-- Keep protocol fields byte-bounded without producing an invalid UTF-8 tail.
+-- Values handled here originate in Neovim's Lua/UI APIs; walking backwards
+-- over continuation bytes is therefore sufficient and version-independent.
+local function bounded_utf8(value, maximum)
+  if type(value) ~= "string" then return "" end
+  if #value <= maximum then return value end
+  local boundary = maximum
+  while boundary > 0 do
+    local following = value:byte(boundary + 1)
+    if not following or following < 0x80 or following >= 0xc0 then break end
+    boundary = boundary - 1
+  end
+  return value:sub(1, boundary)
+end
 
 local function fixed_error_kind(value)
   local text = tostring(value or "")
@@ -216,6 +238,13 @@ emit = function(event_type, reason, extra)
       payload[key] = value
     end
   end
+  if reason == "oilConfirmationFallback" then
+    -- Oil renders full paths in its private confirmation float. The semantic
+    -- fallback deliberately publishes only fixed verbs and a count.
+    payload.lineText = ""
+    payload.character = ""
+    payload.word = ""
+  end
   file_manager_events.observe(payload.fileManager)
   local current_error = tostring(vim.v.errmsg or "")
   payload.currentErrorCode = current_error:match("E%d+") or ""
@@ -234,6 +263,45 @@ emit = function(event_type, reason, extra)
   end
 end
 
+local function emit_oil_confirmation()
+  local details = file_manager_prompt.current_oil_confirmation()
+  if not details then return false end
+  local buffer = vim.api.nvim_get_current_buf()
+  if oil_confirmation_buffer ~= buffer then
+    oil_confirmation_buffer = buffer
+    emit("promptOpened", "oilConfirmationFallback", details)
+  end
+  return true
+end
+
+local function close_oil_confirmation(buffer, reason)
+  if oil_confirmation_buffer ~= buffer then return end
+  oil_confirmation_buffer = nil
+  emit("promptClosed", reason, { promptKind = "confirm" })
+end
+
+local function clear_ui_message_prompt()
+  ui_message_prompt_kind = nil
+  key_observer_diagnostics.promptActive = false
+  key_observer_diagnostics.promptKind = nil
+  key_observer_diagnostics.promptClass = nil
+  key_observer_diagnostics.promptLength = nil
+end
+
+local function close_ui_message_prompt(reason)
+  if not ui_message_prompt_kind then return end
+  local prompt_kind = ui_message_prompt_kind
+  clear_ui_message_prompt()
+  emit("promptClosed", reason, {
+    promptKind = prompt_kind,
+    answered = true,
+  })
+end
+
+local function is_blocking_prompt_mode(mode)
+  return mode == "r" or mode == "rm" or mode == "r?"
+end
+
 local function schedule_navigation(reason)
   if pending_navigation then
     return
@@ -247,6 +315,7 @@ local function schedule_navigation(reason)
   pending_search_direction = nil
   vim.schedule(function()
     pending_navigation = false
+    if oil_confirmation_buffer == vim.api.nvim_get_current_buf() then return end
     local raw = vim.api.nvim_get_mode().mode
     if raw:sub(1, 1) == "i" and not motion then
       return
@@ -326,7 +395,7 @@ local function setup_ui_functions()
     options = options or {}
     emit("promptOpened", "vim.ui.input", {
       promptKind = "input",
-      prompt = tostring(options.prompt or "Input"),
+      prompt = bounded_utf8(tostring(options.prompt or "Input"), 2048),
       defaultValuePresent = options.default ~= nil and tostring(options.default) ~= "",
     })
     return original_input(options, function(value)
@@ -343,10 +412,14 @@ local function setup_ui_functions()
     local normalized = {}
     for index, item in ipairs(items) do
       local ok, label = pcall(formatter, item)
-      normalized[index] = { word = ok and tostring(label) or tostring(item) }
+      normalized[index] = {
+        word = bounded_utf8(ok and tostring(label) or tostring(item), 512),
+      }
     end
     emit("promptOpened", "vim.ui.select", {
-      promptKind = "select", prompt = tostring(options.prompt or "Select"), itemCount = #normalized,
+      promptKind = "select",
+      prompt = bounded_utf8(tostring(options.prompt or "Select"), 2048),
+      itemCount = #normalized,
     })
     emit_menu_events(ui_select_menu:update({
       mode = "select", pum_visible = #normalized > 0, selected = #normalized > 0 and 0 or -1,
@@ -370,6 +443,36 @@ local function setup_ui_functions()
     end)
   end
   ui_wrapped = true
+
+  if not confirm_wrapped then
+    local original_confirm = vim.fn.confirm
+    vim.fn.confirm = function(message, choices, default_choice, dialog_type)
+      local prompt = bounded_utf8(tostring(message or "Confirm"), 2048)
+      local labels = {}
+      for label in tostring(choices or ""):gmatch("[^\n]+") do
+        labels[#labels + 1] = bounded_utf8(
+          label:gsub("&", ""):gsub("\t.*$", ""), 512
+        )
+      end
+      emit("promptOpened", "vim.fn.confirm", {
+        promptKind = "confirm", prompt = prompt, itemCount = #labels,
+      })
+      wrapped_confirm_active = true
+      local ok, result = pcall(original_confirm, message, choices, default_choice, dialog_type)
+      wrapped_confirm_active = false
+      if not ok then error(result) end
+      recent_wrapped_confirm_prompt = prompt
+      recent_wrapped_confirm_time = vim.uv.hrtime()
+      local selected_index = tonumber(result)
+      emit("promptClosed", "vim.fn.confirm", {
+        promptKind = "confirm", answered = true,
+        selectedIndex = selected_index,
+        selectedLabel = selected_index and labels[selected_index] or nil,
+      })
+      return result
+    end
+    confirm_wrapped = true
+  end
 end
 
 local function setup_ui_events()
@@ -378,7 +481,8 @@ local function setup_ui_events()
     for _, chunk in ipairs(type(content) == "table" and content or {}) do
       chunks[#chunks + 1] = type(chunk) == "table" and tostring(chunk[2] or "") or ""
     end
-    return table.concat(chunks):gsub("^%s+", ""):gsub("%s+$", ""):sub(1, 2048)
+    local text = table.concat(chunks):gsub("^%s+", ""):gsub("%s+$", "")
+    return bounded_utf8(text, 2048)
   end
   local function handle_ui_event(event, command_line_was_active, command_text, command_type, ...)
     if event == "msg_show" then
@@ -391,6 +495,12 @@ local function setup_ui_events()
         or kind == "return_prompt" and "more"
       if prompt_kind then
         local text = message_text(content)
+        if prompt_kind == "confirm" then
+          local recent_duplicate = type(recent_wrapped_confirm_prompt) == "string"
+            and vim.uv.hrtime() - recent_wrapped_confirm_time < 1000000000
+            and text:find(recent_wrapped_confirm_prompt, 1, true) == 1
+          if wrapped_confirm_active or recent_duplicate then return end
+        end
         ui_message_prompt_kind = prompt_kind
         key_observer_diagnostics.promptActive = true
         key_observer_diagnostics.promptKind = prompt_kind
@@ -421,13 +531,7 @@ local function setup_ui_events()
       end
       return
     elseif event == "msg_clear" then
-      if ui_message_prompt_kind then
-        key_observer_diagnostics.promptActive = false
-        emit("promptClosed", "uiMessage", {
-          promptKind = ui_message_prompt_kind, accepted = true,
-        })
-        ui_message_prompt_kind = nil
-      end
+      close_ui_message_prompt("uiMessage")
       return
     end
     if not command_line_was_active then return end
@@ -597,9 +701,20 @@ function M.setup()
       end)
       return
     end
+    if command_line_generated_keys and (typed == nil or typed == "") then
+      -- Ex commands such as :normal may execute Normal-mode keys after
+      -- CmdlineLeave. They are command output, not a directly typed motion.
+      pending_motion = nil
+      return
+    end
     local raw_mode = vim.api.nvim_get_mode().mode
-    local operator_context = raw_mode:sub(1, 1) == "n"
-    local visual_context = raw_mode == "v" or raw_mode == "V" or raw_mode == "\22"
+    -- Neovim 0.10 can still report raw Normal mode from vim.on_key while its
+    -- command line is active. The explicit CmdlineEnter state is authoritative
+    -- so command text such as the final `l` in `:normal! l` cannot become a
+    -- pending editor motion.
+    local operator_context = raw_mode:sub(1, 1) == "n" and not command_line_active
+    local visual_context = not command_line_active
+      and (raw_mode == "v" or raw_mode == "V" or raw_mode == "\22")
     if operator_context and pending_register_prefix then
       pending_register_prefix = false
       if #translated == 1 then
@@ -772,6 +887,7 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "TextChangedP" }, {
     group = group,
     callback = function(event)
+      if emit_oil_confirmation() then return end
       if suppress_next_text_change then
         suppress_next_text_change = false
         return
@@ -799,6 +915,7 @@ function M.setup()
     callback = function(event)
       if event.event == "CmdlineEnter" then
         command_line_active = true
+        command_line_generated_keys = false
         predicted_ui_error_code = nil
         command_line_text = ""
         command_line_type = vim.fn.getcmdtype()
@@ -824,6 +941,8 @@ function M.setup()
       local before_tick = command_changedtick
       command_line_text = ""
       command_line_type = ""
+      command_line_generated_keys = command_type == ":"
+      vim.schedule(function() command_line_generated_keys = false end)
       if command_type == ":" then emit_command_preflight(command) end
       local guarded = vim.bo.modified and (command:match("^%s*q%s*$") or command:match("^%s*quit%s*$"))
       if guarded then
@@ -877,6 +996,24 @@ function M.setup()
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     callback = function(event)
+      local change = vim.v.event or {}
+      local old_mode = tostring(change.old_mode or "")
+      local new_mode = tostring(change.new_mode or "")
+      if is_blocking_prompt_mode(old_mode) and not is_blocking_prompt_mode(new_mode) then
+        -- confirm()/hit-enter transitions may not produce msg_clear or
+        -- CmdlineLeave. The semantic mode transition is the authoritative
+        -- close event; clear the synthetic command-line state as well.
+        command_line_active = false
+        command_line_text = ""
+        command_line_type = ""
+        if wrapped_confirm_active then
+          -- The public confirm() wrapper publishes the answer after the
+          -- blocking call returns. Avoid a second, less informative close.
+          clear_ui_message_prompt()
+        else
+          close_ui_message_prompt(event.event)
+        end
+      end
       emit("modeChanged", event.event)
     end,
   })
@@ -938,7 +1075,15 @@ function M.setup()
     group = group,
     callback = function(event)
       local reason = event.event
-      vim.schedule(function() emit("contextChanged", reason) end)
+      vim.schedule(function()
+        if not emit_oil_confirmation() then emit("contextChanged", reason) end
+      end)
+    end,
+  })
+  vim.api.nvim_create_autocmd({ "BufLeave", "BufWipeout" }, {
+    group = group,
+    callback = function(event)
+      close_oil_confirmation(event.buf, event.event)
     end,
   })
   vim.schedule(function() completion_adapters.setup(M, group) end)
@@ -980,8 +1125,10 @@ function M.accessible_menu_close()
   emit_menu_events(adapter_menu:close("pluginClosed"), "pluginMenu")
 end
 
--- Public adapter for file managers which do not use netrw. The detector must
--- return true while its view is active; the provider returns root and entry.
+-- Public adapter for file managers which do not use netrw. Detector and
+-- provider must be synchronous, bounded, and free of I/O and polling. The
+-- detector returns true while its view is active; the provider returns root
+-- and entry. Repeated errors or calls over the runtime budget fail open.
 function M.register_file_manager_adapter(name, detector, provider)
   file_manager.register(name, detector, provider)
 end

@@ -34,6 +34,22 @@ compatibility and must not replace Copy-versus-Cut semantics.
 public plugin event after the reread state actually changes. Inactive
 buffers/windows and equal state produce no event; render bursts are coalesced
 within one Neovim scheduler cycle rather than polled.
+`fileManager.root` identifies the public manager or branch root;
+`fileManager.currentDirectory` identifies the focused level. Both are optional,
+UTF-8-validated, and limited to 2048 bytes. A missing value is not inferred
+from `entry.path`.
+
+`promptOpened` carries an intentional user-facing prompt bounded to 2048 bytes
+and a fixed prompt kind. `promptClosed` distinguishes acceptance and
+cancellation for `vim.ui.input/select`. For `vim.fn.confirm`, it carries
+`answered=true`, a numeric selection index, and at most one visible selection
+label bounded to 512 bytes; no file action is inferred from that label. Prompt
+input itself is neither transferred nor retained. A blocking semantic mode
+transition may prove closure when Neovim's external UI emits no `msg_clear`.
+Oil's `oil_preview` confirmation fallback uses the same prompt contract but
+only fixed action verbs, count, and Y/N. The rendered row, names, and paths are
+cleared from `promptOpened` state; unknown verbs or a same-named non-float do
+not produce a semantic prompt event.
 
 `fileManagerActionResult.payload.fileManagerAction` contains only:
 

@@ -40,6 +40,20 @@ Sitzungswahl, SSH- und lokale Plugininstallation, Passwort-Askpass,
 Diagnoseredaktion und das
 extrahierte Add-on-Paket ab.
 
+Der dauerhafte Dateimanager-Brailleplan wird getrennt von kurzlebigen
+Braillemeldungen geprüft. Tests verlangen Name, Typ und Zustand statt der
+dekorierten Zeile, UTF-8-genaue Namensrouten sowie die Ablehnung synthetischer
+Statuszellen und mehrdeutiger Namen. Der echte TUI-Test führt auf Neovim
+0.10.1 und 0.12.3 `vim.ui.input` mit Annahme und Abbruch, `vim.ui.select` mit
+Auswahl sowie `vim.fn.confirm` mit einer gewählten Option aus. Bei
+blockierenden Promptmodi muss der Promptzustand auch ohne `msg_clear` enden;
+0.12 darf durch gleichzeitiges oder verspätetes externes UI und
+Funktionswrapper keine Doppelmeldung erzeugen. Ein echter TUI-Float mit
+`filetype=oil_preview` muss genau einen pfadfreien `promptOpened`-Zustand
+erzeugen; generische Kontext-, Text- und Cursorereignisse für dieselbe Rohzeile
+sind währenddessen verboten. Ein zusätzlicher isolierter Lauf mit dem realen
+Oil-Hauptzweig prüft `dd`, `:w`, Abbruch mit `n` und die unveränderte Testdatei.
+
 Die Einstellungstests prüfen den registrierten `config.conf`-Abschnitt,
 Validierung und einmalige Migration der bisherigen JSON-Datei. Ein simulierter
 `post_configProfileSwitch` muss Rückmeldungen und künftige Verbindungswerte neu
@@ -114,7 +128,7 @@ Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
 Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
 seit Neovim 0.12 optionale Paket mit `packadd netrw`.
-Seine 62 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
+Seine 99 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
 und 2048 Byte für Pfade/Wurzeln an exakten sowie geteilten UTF-8-Grenzen.
 Zwei-/Dreibytezeichen und Vierbyte-Emoji müssen vollständig erhalten oder vollständig
 weggelassen werden; ungültige Bytefolgen dürfen keinen Eintrag und keine
@@ -126,6 +140,26 @@ Erfolg, Oil-Fehler, synchrone Bündelung, Basename-Minimierung und das Verwerfen
 nach Managerwechsel. Speech-Tests unterscheiden Markierung, Entmarkierung,
 Copy, Cut, Clipboard-Leerung und Expansion sowie Erfolg, Abbruch und Fehler
 typisierter Aktionen.
+Der enge Oil-Promptparser wird nur für einen echten `oil_preview`-Float und
+feste Aktionsverben akzeptiert. Assertions verlangen eine pfadfreie
+Aktions-/Anzahlmeldung und fail-open bei unbekannter Darstellung.
+Reale, ausschließlich temporäre netrw-Verzeichnisse prüfen außerdem Header,
+schmale, lange und Baumlisten mit einfachen, wiederholt durch Leerzeichen
+getrennten, tabhaltigen und Unicode-Namen sowie Symlinks. Eine synthetische
+breite Zeile belegt die Auswahl anhand der virtuellen Cursorspalte. Fehlerhafte
+optionale Adapter werden nach drei Fehlern bufferlokal abgekühlt, überspringen
+fremde `filetype`-Pfade und verlieren ihren Laufzeitzustand beim Bufferende;
+Diagnosen enthalten nur feste Zähler.
+Zusätzliche Assertions unterscheiden Managerroot und fokussierte Ebene für
+netrw, Oil, nvim-tree, Neo-tree und mini.files. Ein Speech-Test belegt, dass
+leerer Fokuskontext nur den letzten Ebenennamen und keinen vollständigen Pfad
+ausgibt.
+Die vollständige Lua-Suite läuft sowohl mit Neovim 0.10.1 als auch 0.12.3.
+Der Navigationstest löst nach dem echten Ex-Befehl zusätzlich ausdrücklich
+`CursorMoved` aus, weil Neovim 0.10 dieses Ereignis in der headless-
+`feedkeys`-Kombination nicht selbst dispatcht. Damit prüft er auf beiden
+Versionen, dass intern ausgeführte `:normal`-Tasten am leeren `typed`-Wert
+erkannt werden und keine direkt getippte semantische Bewegung vortäuschen.
 
 Der reproduzierbare Einstiegspunkt berücksichtigt beide Bedingungen:
 

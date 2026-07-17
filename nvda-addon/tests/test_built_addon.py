@@ -4231,6 +4231,36 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual((4, 6), (region.selectionStart, region.selectionEnd))
         self.assertIsNone(region.cursorPos)
 
+    def test_file_manager_braille_region_is_semantic_and_routes_only_the_name(self) -> None:
+        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        controls: list[tuple[str, dict]] = []
+        plugin._client = types.SimpleNamespace(
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+            stop=lambda: None,
+        )
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        identity = plugin._identity(self.focus)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._currentState = {
+            "bufferId": 1, "windowId": 1000, "changedtick": 9,
+            "lineText": "   café/", "cursor": {"line": 3, "byteColumn": 8},
+            "fileManager": {"name": "tree", "entry": {
+                "name": "café", "type": "directory", "expanded": True,
+            }},
+            "_transport": {"capabilities": ["cursorRouting"]},
+        }
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("café, directory, expanded", region.rawText)
+        region.routeTo(3)
+        region.routeTo(len("café"))
+        self.assertEqual(9, controls[0][1]["byteColumn"])
+        self.assertEqual(1, len(controls))
+        self.assertIn('"reason": "semanticStatus"', plugin._diagnostics.report())
+        plugin.terminate()
+
     def test_visual_line_delta_uses_interruptible_nvda_speech(self) -> None:
         from globalPlugins.nvimNvdaAccess import GlobalPlugin
 

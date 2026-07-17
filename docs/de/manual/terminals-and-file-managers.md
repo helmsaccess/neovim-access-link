@@ -91,6 +91,36 @@ mitten in einem Unicode-Zeichen abgeschnitten. Liefert ein fremder Adapter
 ungültigen UTF-8-Text, wird ein optionales Feld ignoriert; bei einem ungültigen
 erforderlichen Namen entfällt nur der semantische Eintrag. Die normale
 Neovim-Navigation bleibt in beiden Fällen verfügbar.
+netrw unterstützt seine schmale, lange, breite und Baumdarstellung. Header
+werden als Dateimanagerkontext ohne erfundenen Eintrag behandelt; Leerzeichen,
+Tabs und Unicode im Namen bleiben erhalten. Wenn ein optionaler Adapter
+wiederholt fehlschlägt oder Neovim merklich aufhält, wird er für den
+betroffenen Buffer kurz ausgesetzt und die normale Navigation bleibt aktiv.
+`:checkhealth nvim_nvda` zeigt dazu Zähler, aber keine Pfade, Dateinamen oder
+internen Fehlertexte.
+Ist vorübergehend kein Eintrag ausgewählt, nennt die Kontextansage höchstens
+den letzten Namen der fokussierten Verzeichnisebene. Vollständige lokale,
+entfernte oder virtuelle Pfade werden dabei nicht vorgelesen.
+
+Die dauerhafte Braillezeile zeigt bei einem Dateimanagereintrag Name, Typ und
+Zustand statt Icons, Einrückungsdekoration und Zusatzspalten der sichtbaren
+Pluginzeile. Routing ist nur innerhalb des Namens möglich, wenn dieser genau
+einmal in der echten Bufferzeile vorkommt. Typ- und Statusangaben sind
+synthetische Orientierung und besitzen absichtlich keine Routingfunktion.
+
+Für möglichst gut strukturierte Eingabe- und Auswahlprompts empfiehlt sich bei
+nvim-tree `select_prompts = true` und bei Neo-tree
+`use_popups_for_input = false`. Damit verwenden diese Plugins Neovims zentrale
+`vim.ui.select`- beziehungsweise `vim.ui.input`-API, die Access Link mit
+Annahme und Abbruch erfasst. Access Link ändert diese Pluginoptionen nicht
+selbst. Lua-basierte `confirm()`-Abfragen werden ebenfalls mit der gewählten
+Option ausgegeben. Oils eigener Bestätigungs-Float wird als bewusst enger
+Fallback erkannt: Access Link nennt nur feste Aktion, Anzahl sowie Y/N und
+spricht weder die gerenderte Rohzeile noch vollständige Pfade. Dieser Fallback
+greift ausschließlich für Oils `oil_preview` in einem echten Floating Window;
+unbekannte oder veränderte Darstellungen bleiben fail-open bei der normalen
+strukturierten Buffer-/Fensterausgabe. Weitere pluginspezifische Popups müssen
+separat geprüft werden.
 
 ## Weitere Dateimanager
 
@@ -99,3 +129,5 @@ Floating Window oder mit ähnlichen Symbolen erscheinen. Sie benötigen einen
 Adapter, der den aktuellen Eintrag über eine stabile Plugin-API bereitstellt.
 Fehlt ein solcher Adapter, bleibt die normale Neovim-Navigation erhalten, aber
 semantischer Typ, Markierung und Baumzustand können unvollständig sein.
+Ein externer Adapter muss synchron und klein arbeiten und darf weder Datei-
+oder Netzwerk-I/O noch Polling ausführen.

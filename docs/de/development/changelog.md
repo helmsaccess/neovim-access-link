@@ -5,6 +5,48 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.4 (Featurebranch-Testbuild)
+
+- Der netrw-Fallback wertet Header und die Listenstile schmal, lang, breit und
+  Baum getrennt aus. Leerzeichen, wiederholte Leerzeichen, Tabs, Unicode und
+  Symlinkdekoration bleiben erhalten beziehungsweise werden gezielt getrennt;
+  der Baumroot wird nicht mehr an sich selbst angehängt. Reale isolierte
+  netrw-Ansichten ergänzen die synthetischen Grenztests.
+- Eingebaute Dateimanageradapter werden direkt nach `filetype` ausgewählt.
+  Optionale Adapter besitzen ein festes Laufzeitbudget: Drei wiederholte Fehler
+  oder Aufrufe über 5 ms lösen pro Buffer eine fünfsekündige Abkühlung aus.
+  Bufferende räumt den Zustand auf; normale Navigation bleibt fail-open.
+- `:checkhealth nvim_nvda` zeigt ausschließlich feste Fehler-, Langsamkeits-
+  und Abkühlzähler, niemals Fehlertext, Pfade oder Eintragsnamen. Externe
+  Adapter müssen synchron, begrenzt und frei von I/O und Polling sein. 99
+  Dateimanagerassertionen prüfen den erweiterten Pfad.
+- `root` bezeichnet nun die öffentliche Manager-/Branchwurzel und
+  `currentDirectory` die fokussierte Ebene. nvim-tree läuft über öffentliche
+  Elternknoten zum Root; mini.files trennt Branchanfang und Fokus. Ohne Eintrag
+  spricht Fokuskontext nur den letzten Verzeichnisnamen statt eines
+  vollständigen lokalen, entfernten oder virtuellen Pfads.
+- Neovim 0.10 kann von einem Ex-Befehl wie `:normal` intern ausgeführte Tasten
+  erst nach `CmdlineLeave` an `vim.on_key` liefern. Access Link unterscheidet
+  sie nun am leeren `typed`-Wert von direkter Eingabe; Befehlstext kann dadurch
+  auch auf der Referenzversion keine semantische Cursorbewegung vortäuschen.
+  Die vollständigen Lua-Suiten bestehen mit Neovim 0.10.1 und 0.12.3.
+- Dateimanagerbuffer behalten nun eine dauerhaft semantische Braillezeile mit
+  Name, Typ und Zustand. Routing wird ausschließlich auf einen genau einmal in
+  der echten Bufferzeile gefundenen Namen abgebildet; Statussegmente und
+  mehrdeutige Namen werden sicher abgewiesen.
+- Echte TUI-Tests decken Annahme und Abbruch von `vim.ui.input`, Auswahl über
+  `vim.ui.select` sowie Lua-`vim.fn.confirm` mit gewählter Option auf Neovim
+  0.10.1 und 0.12.3 ab. Blockierende Prompts werden beim Modusende auch ohne
+  `msg_clear` geschlossen; externe UI- und Wrapperereignisse auf 0.12 werden
+  auch bei verspäteter Zustellung dedupliziert. Prompt und sichtbare
+  Auswahlbezeichnungen sind UTF-8-sicher begrenzt.
+- Oils eigener Bestätigungs-Float besitzt kein öffentliches Prompt-Ereignis.
+  Ein enger Fallback akzeptiert ausschließlich `oil_preview` in einem echten
+  Float und feste Aktionsverben. Er meldet Aktion/Anzahl sowie Y/N, entfernt
+  Rohzeile, Name und vollständigen Pfad aus dem semantischen Promptzustand und
+  unterdrückt konkurrierende generische Float-Ereignisse. Ein isolierter Test
+  mit dem realen Oil-Hauptzweig belegt Abbruch ohne Dateisystemänderung.
+
 ## 0.93.0-dev.3 (Featurebranch-Testbuild)
 
 - Das neue Ereignis `fileManagerActionResult` überträgt ausschließlich

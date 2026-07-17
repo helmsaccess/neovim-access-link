@@ -300,7 +300,8 @@ class NvimBridgeTests(unittest.TestCase):
                 prior = len(events)
                 bridge.nvim.notify(
                     "nvim_exec_lua",
-                    "vim.schedule(function() vim.ui.input({prompt='Branch name'}, function() end) end)",
+                    "vim.schedule(function() vim.ui.input({prompt=string.rep('a',2047)..'界'}, "
+                    "function() end) end)",
                     [],
                 )
                 self._wait(
@@ -308,12 +309,138 @@ class NvimBridgeTests(unittest.TestCase):
                     lambda: any(e["type"] == "promptOpened" and e["payload"].get("promptKind") == "input"
                                 for e in events[prior:]),
                 )
-                time.sleep(0.05)
+                bounded_prompt = next(
+                    e for e in reversed(events[prior:])
+                    if e["type"] == "promptOpened" and e["payload"].get("promptKind") == "input"
+                )["payload"]["prompt"]
+                self.assertEqual("a" * 2047, bounded_prompt)
+                self.assertLessEqual(len(bounded_prompt.encode("utf-8")), 2048)
+                # The semantic wrapper necessarily announces immediately
+                # before Neovim enters the blocking input() command line. On
+                # slower 0.10 runs, a fixed delay can still inject into Normal
+                # mode. Wait for Neovim's event instead of adding a larger
+                # timing guess.
+                self._wait(
+                    condition,
+                    lambda: any(
+                        e["type"] == "modeChanged" and e["payload"].get("modeRaw") == "c"
+                        for e in events[prior:]
+                    ),
+                )
                 process.send(b"feature\r")
                 self._wait(
                     condition,
                     lambda: any(e["type"] == "promptClosed" and e["payload"].get("promptKind") == "input"
                                 and e["payload"].get("accepted") is True for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.ui.input({prompt='Rename item'}, function() end) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened" and e["payload"].get("promptKind") == "input"
+                                for e in events[prior:]),
+                )
+                process.send(b"\x1b")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed" and e["payload"].get("promptKind") == "input"
+                                and e["payload"].get("accepted") is False for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.ui.select({'keep','replace'}, "
+                    "{prompt='Resolve conflict',kind='nvimtree_overwrite_rename'}, function() end) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "menuSelectionChanged"
+                                and e["payload"].get("menuKind") == "select" for e in events[prior:]),
+                )
+                process.send(b"2\r")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed"
+                                and e["payload"].get("promptKind") == "select"
+                                and e["payload"].get("accepted") is True
+                                and e["payload"].get("selectedLabel") == "replace"
+                                for e in events[prior:]),
+                )
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.fn.confirm('Delete item?', '&Yes\\n&No', 2) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened"
+                                and e["payload"].get("promptKind") == "confirm"
+                                and "Delete item?" in e["payload"].get("prompt", "")
+                                for e in events[prior:]),
+                )
+                process.send(b"n\r")
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed"
+                                and e["payload"].get("promptKind") == "confirm"
+                                and e["payload"].get("selectedLabel") == "No"
+                                for e in events[prior:]),
+                )
+                confirm_events = [
+                    e for e in events[prior:]
+                    if e["type"] in {"promptOpened", "promptClosed"}
+                    and e["payload"].get("promptKind") == "confirm"
+                ]
+                self.assertEqual(["promptOpened", "promptClosed"], [
+                    e["type"] for e in confirm_events
+                ], confirm_events)
+                prior = len(events)
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() local b=vim.api.nvim_create_buf(false,true); "
+                    "vim.api.nvim_buf_set_lines(b,0,-1,true,{'DELETE /private/example.txt','','[Y]es [N]o'}); "
+                    "vim.bo[b].filetype='oil_preview'; vim.api.nvim_open_win(b,true,{relative='editor',"
+                    "width=40,height=3,row=2,col=2,style='minimal'}) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptOpened"
+                                and e["payload"].get("reason") == "oilConfirmationFallback"
+                                for e in events[prior:]),
+                )
+                time.sleep(0.1)
+                oil_opened = next(
+                    e for e in events[prior:]
+                    if e["type"] == "promptOpened"
+                    and e["payload"].get("reason") == "oilConfirmationFallback"
+                )
+                self.assertEqual(
+                    "Oil confirmation, delete 1 item. Y yes, N no",
+                    oil_opened["payload"].get("prompt"),
+                )
+                self.assertEqual("", oil_opened["payload"].get("lineText"))
+                self.assertFalse(any(
+                    e["type"] in {"contextChanged", "textChanged", "cursorMoved"}
+                    and e["payload"].get("filetype") == "oil_preview"
+                    for e in events[prior:]
+                ))
+                bridge.nvim.notify(
+                    "nvim_exec_lua",
+                    "vim.schedule(function() vim.api.nvim_win_close(0,true) end)",
+                    [],
+                )
+                self._wait(
+                    condition,
+                    lambda: any(e["type"] == "promptClosed"
+                                and e["payload"].get("promptKind") == "confirm"
+                                for e in events[prior:]),
                 )
                 bridge.nvim.notify(
                     "nvim_exec_lua",

@@ -18,7 +18,9 @@ Die Braillezeile enthält:
 - die Cursorposition,
 - den auf der aktuellen Zeile liegenden Teil einer Visual-Auswahl,
 - führende und innere Einrückung,
-- kurze Meldungen zu Menüs, Diagnosen und Dateimanager-Einträgen.
+- kurze Meldungen zu Menüs und Diagnosen,
+- in Dateimanagern dauerhaft den semantischen Namen, Typ und Zustand des
+  aktuellen Eintrags statt der dekorierten Pluginzeile.
 
 Editorstatuszeile, tmux-Statuszeile und andere sichtbare Terminalbestandteile
 werden nicht in die strukturierte Braillezeile übernommen.
@@ -53,6 +55,12 @@ Bei Tabs verweist jede durch die Expansion entstandene Brailleposition auf die
 zugehörige Stelle im ursprünglichen Text. Breite Unicode-Zeichen, kombinierende
 Zeichen und Emoji werden nicht als einfache Byteposition behandelt.
 
+In einem Dateimanager ist nur der semantische Name routbar, und auch dieser
+nur, wenn er genau einmal in der echten Bufferzeile gefunden wird. Ergänzte
+Angaben wie „Verzeichnis“, „markiert“ oder „geöffnet“ besitzen keine erfundene
+Bufferposition. Eine Routingtaste auf solchen Statuszellen oder auf einem
+mehrdeutigen Namen wird verworfen.
+
 ## Eingebettetes Terminal
 
 Im direkten Eingabemodus eines mit `:terminal` geöffneten Buffers verwendet
@@ -68,7 +76,9 @@ implementiert. Noch nicht breit praktisch geprüft sind:
 - kontrahierte Brailleschriften und weitere Übersetzungstabellen,
 - Brailleeingabe über unterschiedliche Braillekeyboards,
 - lange horizontal gescrollte Zeilen,
-- Visual-Block-Auswahl mit Tabs, breiten Zeichen und Emoji auf realer Hardware.
+- Visual-Block-Auswahl mit Tabs, breiten Zeichen und Emoji auf realer Hardware,
+- semantische Dateimanagerzeilen, Statussegmente und Namensrouting auf realer
+  Hardware.
 
 Vor produktiver Nutzung sollte die eigene Braillekonfiguration deshalb in
 einem Testpuffer geprüft werden.

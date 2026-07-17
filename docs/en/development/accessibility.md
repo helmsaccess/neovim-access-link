@@ -17,8 +17,9 @@ coalesced without polling. Typed action results use proven public completion
 events, basename-only minimization, target revalidation, and synchronous batch
 coalescing. Automated netrw/API/event-stub coverage includes
 two-, three-, and four-byte boundary cases and invalid adapter bytes. Action
-results are covered with public stubs; real plugin/prompt versions and physical
-Braille remain open.
+results are covered with public stubs. Oil's real custom confirmation float is
+also cancellation-tested through the narrow path-free fallback. Further real
+plugin/prompt versions and physical Braille remain open.
 
 Speech and sounds are configurable where NVDA has no better native setting.
 Confirmed session-focus presentation and an event-driven in-place buffer
@@ -55,6 +56,20 @@ independently bound windows, tabs, and panes have automated negative coverage. U
 fail open. Local/SSH tabs and horizontal/vertical split panes are practically
 confirmed; separate windows and the complete unbound-shell-pane negative matrix
 remain pending.
+
+File-manager output uses semantic name, type, and state instead of decoration.
+When no entry exists, focus context outputs at most the final name from
+`currentDirectory` or `root`; complete local, remote, or virtual paths are not
+spoken.
+The persistent Braille region uses the same semantic entry instead of the raw
+decorated manager row. Routing is available only within an entry name found
+exactly once in that real row; status segments and ambiguous names are
+deliberately not routable.
+
+Real-TUI tests cover accepting and cancelling `vim.ui.input`, choosing from
+`vim.ui.select`, and the selected choice from Lua `vim.fn.confirm()` calls on
+Neovim 0.10.1 and 0.12.3. Custom plugin floats and pager variants remain
+separate practical work.
 
 Braille state, indentation, selection dots 7/8, and routing are implemented in
 the model and automated tests, but no physical display has been tested. Bugs

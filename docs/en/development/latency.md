@@ -18,6 +18,15 @@ Synchronous action results for the same active target use that same scheduler
 cycle for batching. This is not a wait window: exactly one typed summary is
 planned immediately after the cycle.
 
+Built-in file-manager adapters are selected directly by `filetype`. An
+external detector or provider has a 5-ms budget. Three repeated overruns or
+errors cause a five-second per-buffer fail-open cooldown. The deadline is
+checked only on existing events and uses no timer or background query.
+
+The Oil confirmation fallback likewise runs only on an existing buffer or
+window event. It reads at most 200 buffer lines and abandons recognition on an
+unknown format; it creates neither a timer nor a periodic check.
+
 Latency measurements must record platform, versions, transport, workload,
 sample count, percentiles, and failures. Synthetic measurements do not replace
 practical NVDA testing.

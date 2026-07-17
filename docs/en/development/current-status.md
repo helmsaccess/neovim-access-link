@@ -3,6 +3,38 @@
 Status: 2026-07-17, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
+Test build `0.93.0-dev.4` implements file-manager findings F6, F7, and F9 from the
+analysis. The netrw fallback distinguishes banners and thin, long, wide, and
+tree lists while preserving spaces, tabs, and Unicode; tree roots and symlink
+targets are handled explicitly. Built-in adapters are selected directly by
+the active `filetype`. Optional adapters have 5 ms per synchronous call;
+three repeated errors or overruns activate a five-second cooldown only for the
+affected buffer. The deadline is checked on normal events and is neither a
+timer nor polling. Buffer teardown releases runtime state, and
+`:checkhealth nvim_nvda` exposes fixed counters without error text, paths, or
+names. `root` and `currentDirectory` are distinct; nvim-tree walks its public
+parent nodes to the tree root, while mini.files distinguishes branch start and
+focused level. Empty-manager context speaks only the last directory name, not
+the complete path. Ninety-nine file-manager assertions pass. An ordering of
+`CmdlineLeave` and internally executed `:normal` keys found by the full Neovim
+0.10.1 run is now distinguished from direct navigation through the empty
+`typed` value. File-manager buffers now keep a persistent semantic Braille
+plan containing name, type, and state instead of the decorated raw row.
+Routing is allowed only inside a name found unambiguously in the real buffer
+line; synthetic status segments and ambiguous names cannot move the cursor.
+Real-TUI coverage accepts and cancels `vim.ui.input` and selects an item from
+`vim.ui.select`. Lua calls to `vim.fn.confirm` report the prompt and selected
+choice on Neovim 0.10.1 as well; the semantic mode transition closes stale
+prompt state when no `msg_clear` arrives, while concurrent and late Neovim
+0.12.3 UI output is deduplicated. Oil's custom confirmation float has no public
+prompt source. A narrow fallback therefore recognizes only its dedicated
+`oil_preview` float and fixed action verbs, reports count plus Y/N, and
+suppresses rendered names and complete paths. Cancellation and path
+suppression are verified in an isolated run of the real Oil main branch.
+Further real-plugin prompt matrices and physical Braille hardware remain open.
+All 270 add-on/core/package tests, 41 protocol tests, 31 bridge/TUI tests, and all Lua specifications pass; the add-on
+and six HTML documents build reproducibly for `dev.4`.
+
 Test build `0.93.0-dev.3` implements the first four file-manager items left
 open by the terminal-analysis comparison. Names, paths, roots, types, and external
 adapter labels remain bounded in bytes for the protocol budget, but only at

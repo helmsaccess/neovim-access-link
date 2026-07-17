@@ -242,9 +242,22 @@ class StructuredLineRegion(nvdaBraille.Region):
             plugin._diagnostics.record("brailleRouteRejected", reason="outOfRange", braillePos=braillePos)
             return
         expanded_offset = self.brailleToRawPos[braillePos]
-        source_offset = source_offset_for_expanded(self._plan, expanded_offset)
-        line = plugin._currentState.get("lineText", "")
-        byte_column = len(line[:source_offset].encode("utf-8"))
+        if self._plan.routing_byte_columns is not None:
+            if not 0 <= expanded_offset < len(self._plan.routing_byte_columns):
+                plugin._diagnostics.record(
+                    "brailleRouteRejected", reason="semanticOutOfRange", braillePos=braillePos,
+                )
+                return
+            byte_column = self._plan.routing_byte_columns[expanded_offset]
+            if byte_column is None:
+                plugin._diagnostics.record(
+                    "brailleRouteRejected", reason="semanticStatus", braillePos=braillePos,
+                )
+                return
+        else:
+            source_offset = source_offset_for_expanded(self._plan, expanded_offset)
+            line = plugin._currentState.get("lineText", "")
+            byte_column = len(line[:source_offset].encode("utf-8"))
         plugin._routeBrailleCursor(byte_column)
 
 

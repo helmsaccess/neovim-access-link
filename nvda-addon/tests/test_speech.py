@@ -748,11 +748,19 @@ class SpeechPlannerTests(unittest.TestCase):
                 },
             },
         ))[0]
+        empty_manager_action = planner.plan(event(
+            "focusContext", mode="normal", fileManager={
+                "name": "netrw", "root": "/private/root",
+                "currentDirectory": "/private/root/current",
+            },
+        ))[0]
         self.assertEqual("file example.lua, modified, insert mode, on Example", file_action.text)
         self.assertEqual("terminal mode", terminal_action.text)
         self.assertNotIn("sensitive", terminal_action.text)
         self.assertEqual("netrw, src, directory, expanded, normal mode", manager_action.text)
         self.assertEqual(manager_action.text, manager_action.braille_message)
+        self.assertEqual("netrw, current, normal mode", empty_manager_action.text)
+        self.assertNotIn("private", empty_manager_action.text)
 
     def test_focus_context_presentation_can_be_silent_or_announce_current_line(self) -> None:
         state = event(
@@ -1128,6 +1136,39 @@ class BraillePlannerTests(unittest.TestCase):
         plan = plan_braille({"lineText": "\tX", "tabstop": 4, "cursor": {"byteColumn": 0}})
         self.assertEqual(0, source_offset_for_expanded(plan, 3))
         self.assertEqual(1, source_offset_for_expanded(plan, 4))
+
+    def test_file_manager_braille_is_semantic_and_persistent(self) -> None:
+        plan = plan_braille({
+            "lineText": "   café/ [decorated]",
+            "cursor": {"byteColumn": 8},
+            "fileManager": {"name": "tree", "entry": {
+                "name": "café", "type": "directory",
+                "selectionState": "marked", "expanded": False,
+            }},
+        })
+        self.assertEqual("café, directory, marked, collapsed", plan.text)
+        self.assertEqual(2, plan.cursor)
+        self.assertEqual((6, 7, 8, 9), plan.routing_byte_columns[:4])
+        self.assertIsNone(plan.routing_byte_columns[len("café")])
+
+    def test_file_manager_braille_routes_only_an_unambiguous_name(self) -> None:
+        duplicate = plan_braille({
+            "lineText": "item -> item", "cursor": {"byteColumn": 0},
+            "fileManager": {"name": "oil", "entry": {"name": "item", "type": "file"}},
+        })
+        self.assertTrue(all(value is None for value in duplicate.routing_byte_columns))
+        context = plan_braille({
+            "lineText": '" header', "cursor": {"byteColumn": 0},
+            "fileManager": {"name": "netrw", "currentDirectory": "/private/work"},
+        })
+        self.assertEqual("netrw, work", context.text)
+        self.assertTrue(all(value is None for value in context.routing_byte_columns))
+        invalid_entry = plan_braille({
+            "lineText": "decorated manager header", "cursor": {"byteColumn": 4},
+            "fileManager": {"name": "oil", "entry": {"type": "directory"}},
+        })
+        self.assertEqual("oil", invalid_entry.text)
+        self.assertTrue(all(value is None for value in invalid_entry.routing_byte_columns))
 
 
 class DiagnosticTests(unittest.TestCase):

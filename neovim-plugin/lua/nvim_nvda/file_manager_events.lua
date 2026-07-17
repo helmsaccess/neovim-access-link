@@ -256,6 +256,10 @@ function M.setup(state_callback, action_callback, group)
   assert(type(action_callback) == "function", "file-manager action publisher required")
   publish = state_callback
   publish_action = action_callback
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
+    callback = function(event) file_manager.forget_buffer(event.buf) end,
+  })
   vim.api.nvim_create_autocmd("User", {
     group = group,
     pattern = {

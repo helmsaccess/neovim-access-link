@@ -16,8 +16,9 @@ Abschnitt trennt Planung und Verlauf vom aktuellen Produktstand.
 1. [Architektur](architecture.md)
 2. [ADR-0001: hybrider Neovim-Andockpunkt](adr/0001-neovim-integration-point.md)
 3. [ADR-0002: NVDA-API-Grenzen](adr/0002-nvda-api-boundaries.md)
-4. [Sicherheit und Datenschutz](security.md)
-5. [Latenz](latency.md)
+4. [ADR-0003: enger Oil-Bestätigungsfallback](adr/0003-oil-confirmation-fallback.md)
+5. [Sicherheit und Datenschutz](security.md)
+6. [Latenz](latency.md)
 
 ## Referenz und Nachweise
 

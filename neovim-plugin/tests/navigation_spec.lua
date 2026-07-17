@@ -44,6 +44,10 @@ vim.api.nvim_buf_set_lines(0, 0, -1, true, { "abc" })
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 vim.api.nvim_feedkeys(":normal! l\r", "xt", false)
 vim.wait(500, function() return vim.api.nvim_win_get_cursor(0)[2] == 1 end)
+-- Neovim 0.10 headless does not dispatch CursorMoved for this feedkeys/Ex
+-- combination even though the cursor moved. Exercise the plugin callback
+-- explicitly so the semantic assertion is identical on supported versions.
+vim.api.nvim_exec_autocmds("CursorMoved", { modeline = false })
 vim.wait(100)
 local cursor_event
 for _, event in ipairs(events) do

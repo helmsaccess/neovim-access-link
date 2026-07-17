@@ -1,6 +1,7 @@
 local root = vim.fn.getcwd()
 package.path = root .. "/neovim-plugin/lua/?.lua;" .. root .. "/neovim-plugin/lua/?/init.lua;" .. package.path
 local manager = require("nvim_nvda.file_manager")
+local manager_prompt = require("nvim_nvda.file_manager_prompt")
 
 local assertions = 0
 local function equal(expected, actual, label)
@@ -14,23 +15,61 @@ local directory = "/tmp/nvim-nvda-file-manager-spec"
 vim.fn.delete(directory, "rf")
 vim.fn.mkdir(directory .. "/folder", "p")
 vim.fn.writefile({ "content" }, directory .. "/item.txt")
+vim.fn.writefile({ "space" }, directory .. "/name with spaces.txt")
+vim.fn.writefile({ "double" }, directory .. "/two  spaces.txt")
+vim.fn.writefile({ "tab" }, directory .. "/tab\tname.txt")
+vim.fn.writefile({ "unicode" }, directory .. "/Grüße.txt")
+vim.fn.writefile({ "wide" }, directory .. "/second with spaces.txt")
 vim.fn.system({ "ln", "-s", "item.txt", directory .. "/link" })
+vim.fn.system({ "ln", "-s", "item.txt", directory .. "/link with spaces" })
 vim.cmd("Explore " .. vim.fn.fnameescape(directory))
 
-local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-local function move_to(pattern)
+local oil_prompt = manager_prompt.oil_confirmation({
+  "DELETE /private/project/secret.txt",
+  "DELETE /private/project/other.txt",
+  "",
+})
+equal("confirm", oil_prompt.promptKind, "Oil fallback prompt kind")
+equal("delete", oil_prompt.promptClass, "Oil fallback fixed class")
+equal("Oil confirmation, delete 2 items. Y yes, N no", oil_prompt.prompt,
+  "Oil fallback omits names and paths")
+equal(2, oil_prompt.itemCount, "Oil fallback exposes fixed choices")
+equal(nil, manager_prompt.oil_confirmation({ "unrecognized private rendering" }),
+  "unknown Oil rendering fails open")
+local mixed_oil_prompt = manager_prompt.oil_confirmation({
+  "MOVE /private/a /private/b", "CREATE /private/c",
+})
+equal("Oil confirmation, 2 file actions. Y yes, N no", mixed_oil_prompt.prompt,
+  "mixed Oil fallback remains compact")
+
+local lines
+local function refresh_lines()
+  lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+end
+local function move_to(pattern, at_match)
   for index, line in ipairs(lines) do
-    if line:find(pattern, 1, true) then
-      vim.api.nvim_win_set_cursor(0, { index, 0 })
+    local column = line:find(pattern, 1, true)
+    if column then
+      vim.api.nvim_win_set_cursor(0, { index, at_match and column - 1 or 0 })
       return
     end
   end
   error("missing netrw line " .. pattern)
 end
+local function reopen_netrw(style)
+  vim.cmd("bwipeout!")
+  vim.g.netrw_liststyle = style
+  vim.w.netrw_liststyle = style
+  vim.cmd("Explore " .. vim.fn.fnameescape(directory))
+  refresh_lines()
+end
+refresh_lines()
 
 move_to("folder/")
 local folder = manager.current()
 equal("netrw", folder.name, "netrw detected")
+equal(directory, folder.root, "netrw displayed root")
+equal(directory, folder.currentDirectory, "netrw current directory")
 equal("folder", folder.entry.name, "directory name normalized")
 equal("directory", folder.entry.type, "directory metadata")
 
@@ -45,6 +84,42 @@ equal("marked", manager.current().entry.selectionState, "netrw mark semantics")
 move_to("link@")
 equal("symbolicLink", manager.current().entry.type, "link metadata")
 
+move_to("name with spaces.txt")
+equal("name with spaces.txt", manager.current().entry.name, "thin-list spaces preserved")
+move_to("tab\tname.txt")
+equal("tab\tname.txt", manager.current().entry.name, "thin-list tab preserved")
+move_to("Grüße.txt")
+equal("Grüße.txt", manager.current().entry.name, "thin-list Unicode preserved")
+move_to("link with spaces@")
+equal("link with spaces", manager.current().entry.name, "symlink target decoration removed")
+equal("symbolicLink", manager.current().entry.type, "spaced symlink metadata")
+
+reopen_netrw(1)
+move_to("two  spaces.txt")
+equal("two  spaces.txt", manager.current().entry.name, "long-list repeated spaces preserved")
+move_to("name with spaces.txt")
+equal("name with spaces.txt", manager.current().entry.name, "long-list metadata removed")
+
+vim.bo.modifiable = true
+vim.bo.readonly = false
+vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+  "alpha.txt" .. string.rep(" ", 15) .. "second with spaces.txt",
+})
+vim.w.netrw_liststyle = 2
+vim.w.netrw_bannercnt = 1
+vim.b.netrw_cpf = 24
+refresh_lines()
+move_to("second with spaces.txt", true)
+equal("second with spaces.txt", manager.current().entry.name, "wide-list cursor column selected")
+
+reopen_netrw(3)
+move_to("| name with spaces.txt")
+equal("name with spaces.txt", manager.current().entry.name, "tree depth removed")
+move_to(vim.fn.fnamemodify(directory, ":t") .. "/")
+equal(directory, manager.current().entry.path, "tree root path is not duplicated")
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+equal(nil, manager.current().entry, "netrw banner has no semantic entry")
+
 vim.cmd("enew")
 manager.register("test-manager", function() return true end, function()
   return { root = "/virtual", entry = { name = "node", type = "dir", expanded = true } }
@@ -55,19 +130,59 @@ equal("directory", adapted.entry.type, "adapter type normalized")
 equal(true, adapted.entry.expanded, "adapter expansion state")
 manager.unregister("test-manager")
 
+local valid_name, invalid_name_error = pcall(
+  manager.register, "bad" .. string.char(0xff), function() return true end, function() return {} end
+)
+equal(false, valid_name, "invalid UTF-8 adapter name rejected")
+equal("string", type(invalid_name_error), "invalid adapter name has a bounded error")
+
+local provider_calls = 0
+manager.register("failing-manager", function() return true end, function()
+  provider_calls = provider_calls + 1
+  error("private provider failure")
+end)
+for _ = 1, 4 do
+  equal("failing-manager", manager.current().name, "failing adapter remains fail-open")
+end
+equal(3, provider_calls, "repeated provider failures enter cooldown")
+local failing_diagnostics
+for _, value in ipairs(manager.diagnostics()) do
+  if value.name == "failing-manager" then failing_diagnostics = value end
+end
+equal(3, failing_diagnostics.failureCount, "provider failures counted without error text")
+equal(1, failing_diagnostics.cooldownCount, "provider cooldown counted")
+equal(1, failing_diagnostics.disabledBuffers, "provider cooldown is buffer-local")
+equal("providerError", failing_diagnostics.lastIssue, "provider diagnostic is fixed")
+manager.forget_buffer(vim.api.nvim_get_current_buf())
+for _, value in ipairs(manager.diagnostics()) do
+  if value.name == "failing-manager" then failing_diagnostics = value end
+end
+equal(0, failing_diagnostics.disabledBuffers, "wiped buffer runtime is released")
+manager.unregister("failing-manager")
+
 vim.bo.filetype = "oil"
 package.loaded.oil = {
   get_current_dir = function() return "/oil-root" end,
   get_cursor_entry = function() return { name = "archive.zip", type = "file" } end,
 }
 equal("file", manager.current().entry.type, "oil public API")
+equal("/oil-root", manager.current().currentDirectory, "oil current directory")
+local detector_calls = 0
+manager.register("unrelated-manager", function()
+  detector_calls = detector_calls + 1
+  return true
+end, function() return { entry = { name = "wrong" } } end)
+equal("oil", manager.current().name, "built-in selected directly by filetype")
+equal(0, detector_calls, "external detectors skipped for built-in filetype")
+manager.unregister("unrelated-manager")
 package.loaded.oil = nil
 
 vim.bo.filetype = "NvimTree"
 local built_in_long_root = "/" .. string.rep("r", 2046) .. "ä" .. "x"
+local nvim_tree_root = { absolute_path = built_in_long_root, type = "directory" }
 local marked_node = {
   name = "source", absolute_path = built_in_long_root .. "/source",
-  type = "directory", open = true,
+  type = "directory", open = true, parent = nvim_tree_root,
 }
 package.loaded["nvim-tree.api"] = {
   tree = { get_node_under_cursor = function() return marked_node end },
@@ -94,14 +209,21 @@ equal("symbolicLink", neo_tree.entry.type, "neo-tree public state")
 equal(true, neo_tree.entry.marked, "neo-tree clipboard metadata")
 equal("copied", neo_tree.entry.clipboardState, "neo-tree copy semantics")
 equal("/" .. string.rep("r", 2046), neo_tree.root, "neo-tree root normalized centrally")
+equal("/" .. string.rep("r", 2046), neo_tree.currentDirectory,
+  "neo-tree current directory normalized centrally")
 package.loaded["neo-tree.sources.manager"] = nil
 
 vim.bo.filetype = "minifiles"
 _G.MiniFiles = {
   get_fs_entry = function() return { name = "docs", path = "/mini/docs", fs_type = "directory" } end,
-  get_explorer_state = function() return { branch = { "/mini" }, depth_focus = 1 } end,
+  get_explorer_state = function() return {
+    branch = { "/mini-root", "/mini" }, depth_focus = 2,
+  } end,
 }
-equal("directory", manager.current().entry.type, "mini.files public API")
+local mini_files = manager.current()
+equal("directory", mini_files.entry.type, "mini.files public API")
+equal("/mini-root", mini_files.root, "mini.files branch root")
+equal("/mini", mini_files.currentDirectory, "mini.files focused directory")
 _G.MiniFiles = nil
 
 vim.bo.filetype = ""

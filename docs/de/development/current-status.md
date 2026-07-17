@@ -3,6 +3,41 @@
 Stand: 2026-07-17, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Im Testbuild `0.93.0-dev.4` sind die Dateimanagerpunkte F6, F7 und F9 aus dem
+Analysebericht umgesetzt. Der netrw-Fallback unterscheidet Header sowie
+schmale, lange, breite und Baumlisten und bewahrt Leerzeichen, Tabs und Unicode;
+Baumroots und Symlinkziele werden gezielt behandelt. Eingebaute Adapter werden
+direkt über den aktiven `filetype` gewählt. Für optionale Adapter gelten 5 ms
+pro synchronem Aufruf; drei wiederholte Fehler oder Überschreitungen aktivieren
+eine fünfsekündige Abkühlung nur für den betroffenen Buffer. Das ist eine
+ereignisabhängig geprüfte Frist, kein Timer und kein Polling. Bufferende räumt
+den Laufzeitzustand auf, und `:checkhealth nvim_nvda` zeigt nur feste Zähler,
+keine Fehlertexte, Pfade oder Namen. `root` und `currentDirectory` sind getrennt;
+nvim-tree verwendet den öffentlichen Elternknoten bis zum Baumroot und
+mini.files unterscheidet Branchanfang und fokussierte Ebene. Bei leerem
+Managerkontext wird nur der letzte Verzeichnisname gesprochen, nicht der ganze
+Pfad. 99 Dateimanagerassertionen bestehen.
+Eine beim vollständigen Neovim-0.10.1-Lauf gefundene Reihenfolge von
+`CmdlineLeave` und internem `:normal`-Tastencode wird jetzt über den leeren
+`typed`-Wert von direkter Navigation getrennt.
+Der dauerhafte Brailleplan zeigt in Dateimanagerbuffern nun den semantischen
+Namen, Typ und Zustand statt der dekorierten Rohzeile. Routing ist nur auf den
+eindeutig in der echten Bufferzeile gefundenen Namensbereich möglich;
+synthetische Statussegmente und mehrdeutige Namen lösen keine Cursorsteuerung
+aus. `vim.ui.input` wird im echten TUI mit Annahme und Abbruch geprüft,
+`vim.ui.select` mit Auswahl. Lua-Aufrufe von `vim.fn.confirm` liefern auch auf
+Neovim 0.10.1 Prompt und gewählte Option; der Modusübergang beendet den
+Promptzustand zusätzlich, falls kein `msg_clear` entsteht. Neovim 0.12.3
+dedupliziert gleichzeitige und verspätete externe UI-Ereignisse. Oils eigener
+Bestätigungs-Float besitzt keine öffentliche Promptquelle. Ein enger Fallback
+erkennt deshalb nur dessen eindeutigen `oil_preview`-Float und feste
+Aktionsverben, gibt Anzahl sowie Y/N aus und unterdrückt gerenderte Namen und
+vollständige Pfade. Abbruch und Pfadsperre sind mit dem realen Oil-Hauptzweig
+isoliert belegt. Offen bleiben weitere reale Plugin-Promptmatrizen und
+Braillehardware.
+Alle 270 Add-on-/Core-/Pakettests, 41 Protokolltests, 31 Bridge-/TUI-Tests und sämtliche Lua-Spezifikationen bestehen;
+Add-on und sechs HTML-Dokumente werden für `dev.4` reproduzierbar gebaut.
+
 Im Testbuild `0.93.0-dev.3` sind die ersten vier nach dem Terminal-Abgleich
 offenen Dateimanagerpunkte umgesetzt. Namen, Pfade, Wurzeln, Typen und externe
 Adapterbezeichnungen werden weiterhin nach Protokollbudget in Bytes begrenzt,

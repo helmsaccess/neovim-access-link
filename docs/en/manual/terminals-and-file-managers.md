@@ -60,3 +60,31 @@ Very long names and paths are byte-bounded for transport but never cut inside
 a Unicode character. If a third-party adapter returns invalid UTF-8 text, an
 optional field is ignored; an invalid required name suppresses only the
 semantic entry. Normal Neovim navigation remains available in both cases.
+netrw supports its thin, long, wide, and tree presentations. Banner lines are
+manager context without an invented entry; spaces, tabs, and Unicode in names
+are preserved. If an optional adapter repeatedly fails or stalls Neovim, it is
+briefly suspended for the affected buffer while normal navigation remains
+active. `:checkhealth nvim_nvda` reports counters without paths, file names,
+or internal error text. External adapters must be synchronous and small and
+must perform neither file/network I/O nor polling.
+When no entry is temporarily selected, context output uses at most the final
+name of the focused directory level. It does not speak a complete local,
+remote, or virtual path.
+
+The persistent Braille line presents a file-manager entry's name, type, and
+state instead of the visible plugin row's icons, indentation decoration, and
+extra columns. Routing is available only inside the name when that name occurs
+exactly once in the real buffer row. Type and status text is synthetic
+orientation and deliberately has no routing action.
+
+For the most structured input and selection prompts, use
+`select_prompts = true` with nvim-tree and `use_popups_for_input = false` with
+Neo-tree. These public options use Neovim's central `vim.ui.select` and
+`vim.ui.input` APIs, whose acceptance and cancellation Access Link observes.
+Access Link never changes those plugin settings automatically. Lua
+`confirm()` prompts also report the selected choice. Oil's custom confirmation
+float has a deliberately narrow fallback: Access Link reports only the fixed
+action, count, and Y/N, never the rendered raw row or complete paths. It applies
+only to Oil's `oil_preview` in a real floating window; unknown or changed
+rendering remains fail-open to normal structured buffer/window output. Other
+plugin-specific popups still need separate verification.

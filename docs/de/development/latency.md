@@ -33,6 +33,15 @@ keine periodische Adapter- oder Dateisystemabfrage.
 Synchrone Aktionsresultate desselben aktiven Ziels verwenden denselben
 Schedulerzyklus zur Bündelung. Das ist kein Wartefenster: Nach Ablauf dieses
 Zyklus wird sofort genau eine typisierte Sammelmeldung geplant.
+Eingebaute Dateimanageradapter werden direkt nach `filetype` gewählt. Ein
+externer Detector oder Provider besitzt ein Budget von 5 ms. Drei wiederholte
+Überschreitungen oder Fehler führen bufferlokal für fünf Sekunden zur
+fail-open-Abkühlung. Diese Frist wird nur bei bestehenden Ereignissen geprüft;
+es gibt dafür keinen Timer und keine Hintergrundabfrage.
+Der Oil-Bestätigungsfallback läuft ebenfalls nur auf bereits eintreffenden
+Buffer-/Fensterereignissen. Er liest höchstens 200 Bufferzeilen und beendet
+die Erkennung beim ersten unbekannten Format; daraus entsteht weder ein Timer
+noch eine periodische Prüfung.
 
 ## Serialisierung
 

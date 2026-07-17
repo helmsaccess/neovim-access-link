@@ -18,6 +18,106 @@ class BraillePlan:
     selection_start: int | None
     selection_end: int | None
     source_offsets: tuple[int, ...]
+    routing_byte_columns: tuple[int | None, ...] | None = None
+
+
+_FILE_MANAGER_KIND_NAMES = {
+    "file": "file",
+    "directory": "directory",
+    "symbolicLink": "symbolic link",
+    "socket": "socket",
+    "fifo": "named pipe",
+    "characterDevice": "character device",
+    "blockDevice": "block device",
+}
+
+
+def _file_manager_location(manager: dict[str, Any]) -> str | None:
+    value = manager.get("currentDirectory")
+    if not isinstance(value, str) or not value:
+        value = manager.get("root")
+    if not isinstance(value, str) or not value:
+        return None
+    normalized = value.replace("\\", "/").rstrip("/")
+    location = normalized.rsplit("/", 1)[-1]
+    return location or None
+
+
+def _unique_name_start(line: str, name: str) -> int | None:
+    start = line.find(name)
+    if start < 0 or line.find(name, start + 1) >= 0:
+        return None
+    return start
+
+
+def _file_manager_context_plan(manager: dict[str, Any]) -> BraillePlan:
+    name = manager.get("name")
+    parts = [name] if isinstance(name, str) and name else ["file manager"]
+    location = _file_manager_location(manager)
+    if location:
+        parts.append(location)
+    text = ", ".join(parts)
+    return BraillePlan(
+        text, 0, None, None, tuple(range(len(text) + 1)),
+        tuple(None for _ in text),
+    )
+
+
+def _file_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
+    manager = state.get("fileManager")
+    if not isinstance(manager, dict):
+        return None
+    entry = manager.get("entry")
+    if not isinstance(entry, dict):
+        return _file_manager_context_plan(manager)
+
+    name = entry.get("name")
+    if not isinstance(name, str) or not name:
+        return _file_manager_context_plan(manager)
+    parts = [name]
+    entry_type = entry.get("type")
+    if isinstance(entry_type, str) and entry_type:
+        parts.append(_FILE_MANAGER_KIND_NAMES.get(entry_type, entry_type))
+    selection_state = entry.get("selectionState")
+    clipboard_state = entry.get("clipboardState")
+    if selection_state == "marked" or (
+        selection_state not in {"marked", "unmarked"}
+        and entry.get("marked") is True
+        and clipboard_state not in {"copied", "cut", "none"}
+    ):
+        parts.append("marked")
+    if clipboard_state == "copied":
+        parts.append("copied")
+    elif clipboard_state == "cut":
+        parts.append("cut")
+    if entry.get("expanded") is True:
+        parts.append("expanded")
+    elif entry.get("expanded") is False:
+        parts.append("collapsed")
+    text = ", ".join(parts)
+
+    line = state.get("lineText")
+    line = line if isinstance(line, str) else ""
+    name_start = _unique_name_start(line, name)
+    routing: list[int | None] = [None] * len(text)
+    cursor = 0
+    if name_start is not None:
+        byte_start = len(line[:name_start].encode("utf-8"))
+        byte_offsets = [byte_start]
+        for character in name:
+            byte_offsets.append(byte_offsets[-1] + len(character.encode("utf-8")))
+        for index in range(len(name)):
+            routing[index] = byte_offsets[index]
+        cursor_data = state.get("cursor")
+        byte_column = cursor_data.get("byteColumn") if isinstance(cursor_data, dict) else None
+        if isinstance(byte_column, int) and byte_start <= byte_column <= byte_offsets[-1]:
+            cursor = max(
+                index for index, offset in enumerate(byte_offsets) if offset <= byte_column
+            )
+            cursor = min(cursor, max(0, len(name) - 1))
+    return BraillePlan(
+        text, cursor, None, None, tuple(range(len(text) + 1)), tuple(routing),
+    )
 
 
 def _expand_tabs(text: str, tabstop: int) -> tuple[str, list[int]]:
@@ -37,6 +137,9 @@ def _expand_tabs(text: str, tabstop: int) -> tuple[str, list[int]]:
 
 
 def plan_braille(state: dict[str, Any]) -> BraillePlan:
+    file_manager_plan = _file_manager_plan(state)
+    if file_manager_plan is not None:
+        return file_manager_plan
     line = state.get("lineText", "")
     if not isinstance(line, str):
         line = ""

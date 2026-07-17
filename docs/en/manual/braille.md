@@ -10,6 +10,12 @@ selection, mode-relevant state, and supported messages through NVDA's Braille
 APIs. NVDA and Liblouis remain responsible for translation and display-driver
 communication.
 
+In a supported file manager, the persistent region presents the semantic
+entry name, type, and state instead of icons, indentation decoration, and
+extra columns from the raw plugin row. Only a name found exactly once in that
+real row has routing targets. Synthetic type/status cells and ambiguous names
+are deliberately rejected rather than mapped to invented buffer positions.
+
 Selection uses dots 7 and 8 without replacing text. Routing keys request a
 validated cursor move in the bound Neovim session. Byte, character, virtual,
 and display columns remain distinct so tabs, combining characters, wide

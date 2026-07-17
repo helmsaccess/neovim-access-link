@@ -734,10 +734,10 @@ class SpeechPlanner:
             if entry_action is not None:
                 return entry_action
             name = manager.get("name")
-            root = manager.get("root")
             parts = [str(name)] if isinstance(name, str) and name else ["file manager"]
-            if isinstance(root, str) and root:
-                parts.append(root)
+            location = self._file_manager_location(manager)
+            if location:
+                parts.append(location)
             text = ", ".join(parts)
             return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
         previous = previous if previous is not None else self._previous or {}
@@ -786,9 +786,9 @@ class SpeechPlanner:
             if entry is not None:
                 parts.append(entry.text)
             else:
-                root = manager.get("root")
-                if isinstance(root, str) and root:
-                    parts.append(root)
+                location = self._file_manager_location(manager)
+                if location:
+                    parts.append(location)
         else:
             window_type = state.get("windowType")
             buftype = state.get("buftype")
@@ -855,6 +855,17 @@ class SpeechPlanner:
             indentation_tones=self._indentation_quarter_tones(line),
             braille_message=text,
         )
+
+    @staticmethod
+    def _file_manager_location(manager: dict[str, Any]) -> str | None:
+        value = manager.get("currentDirectory")
+        if not isinstance(value, str) or not value:
+            value = manager.get("root")
+        if not isinstance(value, str) or not value:
+            return None
+        normalized = value.replace("\\", "/").rstrip("/")
+        name = normalized.rsplit("/", 1)[-1]
+        return name or None
 
     @staticmethod
     def _file_manager_entry(state: dict[str, Any]) -> SpeechAction | None:
