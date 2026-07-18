@@ -4,13 +4,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import IntEnum
-from typing import Any
+from typing import Any, Callable
 import unicodedata
 
 try:
     from .text import InvalidByteColumn, cursor_text
 except ImportError:  # Development layout before add-on packaging.
     from nvim_nvda_protocol import InvalidByteColumn, cursor_text
+
+
+def translatable(message: str) -> str:
+    """Mark an English message for extraction without depending on gettext."""
+    return message
+
+
+def _identity(message: str) -> str:
+    return message
 
 
 class Priority(IntEnum):
@@ -37,29 +46,29 @@ class SpeechAction:
 
 
 _MODES = {
-    "n": "normal mode",
-    "i": "insert mode",
-    "R": "replace mode",
-    "v": "visual character mode",
-    "V": "visual line mode",
-    "\x16": "visual block mode",
-    "c": "command-line mode",
-    "no": "operator-pending mode",
-    "nt": "terminal-normal mode",
-    "t": "terminal mode",
+    "n": translatable("normal mode"),
+    "i": translatable("insert mode"),
+    "R": translatable("replace mode"),
+    "v": translatable("visual character mode"),
+    "V": translatable("visual line mode"),
+    "\x16": translatable("visual block mode"),
+    "c": translatable("command-line mode"),
+    "no": translatable("operator-pending mode"),
+    "nt": translatable("terminal-normal mode"),
+    "t": translatable("terminal mode"),
 }
 
 _CANONICAL_MODES = {
-    "normal": "normal mode",
-    "insert": "insert mode",
-    "replace": "replace mode",
-    "visualCharacter": "visual character mode",
-    "visualLine": "visual line mode",
-    "visualBlock": "visual block mode",
-    "commandLine": "command-line mode",
-    "operatorPending": "operator-pending mode",
-    "terminalNormal": "terminal-normal mode",
-    "terminal": "terminal mode",
+    "normal": translatable("normal mode"),
+    "insert": translatable("insert mode"),
+    "replace": translatable("replace mode"),
+    "visualCharacter": translatable("visual character mode"),
+    "visualLine": translatable("visual line mode"),
+    "visualBlock": translatable("visual block mode"),
+    "commandLine": translatable("command-line mode"),
+    "operatorPending": translatable("operator-pending mode"),
+    "terminalNormal": translatable("terminal-normal mode"),
+    "terminal": translatable("terminal mode"),
 }
 
 _BUFFER_NAVIGATION_COMMANDS = frozenset({
@@ -69,7 +78,8 @@ _BUFFER_NAVIGATION_COMMANDS = frozenset({
 
 
 class SpeechPlanner:
-    def __init__(self) -> None:
+    def __init__(self, translate: Callable[[str], str] | None = None) -> None:
+        self._translate = translate or _identity
         self._previous: dict[str, Any] | None = None
         self._previous_context: dict[str, Any] | None = None
         self._pending_context_cursor: tuple[int, int, int] | None = None
@@ -123,12 +133,20 @@ class SpeechPlanner:
             self._command_return_pending = False
         elif kind == "matchingPairNotFound":
             actions.append(SpeechAction(
-                "no matching pair", Priority.STATUS, interrupt=True, sound="matchingError",
+                self._translate("no matching pair"),
+                Priority.STATUS, interrupt=True, sound="matchingError",
             ))
         elif kind == "connectionStateChanged":
             connection = state.get("connection", {}).get("neovim")
             if connection in {"connected", "disconnected"}:
-                actions.append(SpeechAction(f"Neovim {connection}", Priority.CRITICAL, interrupt=True))
+                translated_connection = {
+                    "connected": translatable("connected"),
+                    "disconnected": translatable("disconnected"),
+                }[connection]
+                status = self._translate("Neovim {connection}").format(
+                    connection=self._translate(translated_connection),
+                )
+                actions.append(SpeechAction(status, Priority.CRITICAL, interrupt=True))
                 if connection == "disconnected":
                     self.reset()
         elif kind == "modeChanged":
@@ -198,7 +216,11 @@ class SpeechPlanner:
                 and not self._command_return_pending
             ):
                 raw = state.get("modeRaw")
-                description = _CANONICAL_MODES.get(canonical, _MODES.get(raw, f"mode {raw}"))
+                description = _CANONICAL_MODES.get(canonical, _MODES.get(raw))
+                if description is None:
+                    description = self._translate("mode {mode}").format(mode=raw)
+                else:
+                    description = self._translate(description)
                 actions.append(SpeechAction(description, Priority.CRITICAL, interrupt=True))
                 if canonical in {"visualCharacter", "visualLine", "visualBlock"}:
                     selection_action = self._selection_action(state, None)
@@ -276,15 +298,22 @@ class SpeechPlanner:
         elif kind in {"textDeleted", "textReplaced"}:
             before = state.get("beforeText")
             if isinstance(before, str) and before:
-                verb = "deleted" if kind == "textDeleted" else "replaced"
                 sound = "delete" if kind == "textDeleted" else "replace"
                 deleted = before if state.get("linewise") else self._removed_segment(before, state.get("lineText"))
-                actions.append(SpeechAction(f"{verb} {deleted}", Priority.NAVIGATION, sound=sound))
+                template = (
+                    translatable("deleted {text}")
+                    if kind == "textDeleted"
+                    else translatable("replaced {text}")
+                )
+                actions.append(SpeechAction(
+                    self._translate(template).format(text=deleted),
+                    Priority.NAVIGATION, sound=sound,
+                ))
                 if kind == "textDeleted" and state.get("linewise"):
                     line = state.get("lineText")
                     if isinstance(line, str):
                         actions.append(SpeechAction(
-                            line if line else "blank",
+                            line if line else self._translate("blank"),
                             Priority.NAVIGATION,
                             indentation_tones=self._indentation_quarter_tones(line),
                         ))
@@ -305,7 +334,8 @@ class SpeechPlanner:
                 actions.append(action)
         elif kind == "menuOpened":
             actions.append(SpeechAction(
-                "", Priority.STATUS, sound="suggestionsOpen", braille_message="Suggestions",
+                "", Priority.STATUS, sound="suggestionsOpen",
+                braille_message=self._translate("Suggestions"),
             ))
         elif kind == "menuClosed":
             actions.append(SpeechAction("", Priority.STATUS, sound="suggestionsClose"))
@@ -322,53 +352,78 @@ class SpeechPlanner:
         elif kind == "promptClosed":
             selected = state.get("selectedLabel")
             if isinstance(selected, str) and selected:
-                text = f"selected {selected}"
+                text = self._translate("selected {item}").format(item=selected)
                 actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
             elif state.get("accepted") is False:
-                actions.append(SpeechAction("canceled", Priority.STATUS, braille_message="canceled"))
+                text = self._translate("canceled")
+                actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "foldChanged":
             action = state.get("foldAction")
             labels = {
-                "close": "fold closed", "open": "fold opened", "toggle": "fold toggled",
-                "closeRecursive": "folds closed", "openRecursive": "folds opened",
-                "closeAll": "all folds closed", "openAll": "all folds opened",
+                "close": translatable("fold closed"),
+                "open": translatable("fold opened"),
+                "toggle": translatable("fold toggled"),
+                "closeRecursive": translatable("folds closed"),
+                "openRecursive": translatable("folds opened"),
+                "closeAll": translatable("all folds closed"),
+                "openAll": translatable("all folds opened"),
             }
-            text = labels.get(action, "fold changed")
+            text = self._translate(labels.get(action, translatable("fold changed")))
             start, end = state.get("startLine"), state.get("endLine")
             if isinstance(start, int) and isinstance(end, int) and end >= start:
-                text = f"{text}, lines {start} to {end}"
+                text = self._translate("{action}, lines {start} to {end}").format(
+                    action=text, start=start, end=end,
+                )
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "foldMoved":
-            action = "next fold" if state.get("foldAction") == "next" else "previous fold"
+            action = (
+                translatable("next fold")
+                if state.get("foldAction") == "next"
+                else translatable("previous fold")
+            )
+            action = self._translate(action)
             line = state.get("cursor", {}).get("line")
-            text = f"{action}, line {line}" if isinstance(line, int) else action
+            text = (
+                self._translate("{action}, line {line}").format(action=action, line=line)
+                if isinstance(line, int) else action
+            )
             actions.append(SpeechAction(text, Priority.NAVIGATION, braille_message=text))
         elif kind == "markSet":
-            text = f"mark {state.get('markName', '')} set, line {state.get('markLine', '')}"
+            text = self._translate("mark {name} set, line {line}").format(
+                name=state.get("markName", ""), line=state.get("markLine", ""),
+            )
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "markMoved":
-            text = f"mark {state.get('markName', '')}, {state.get('lineText', '')}"
+            text = self._translate("mark {name}, {text}").format(
+                name=state.get("markName", ""), text=state.get("lineText", ""),
+            )
             actions.append(SpeechAction(text, Priority.NAVIGATION, braille_message=text))
         elif kind == "registerChanged":
             name = state.get("registerName", '"')
-            text = f"yanked to register {name}"
+            text = self._translate("yanked to register {name}").format(name=name)
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "registerSelected":
             name = state.get("registerName", '"')
             contents = state.get("registerText")
             preview = " ".join(contents.splitlines()) if isinstance(contents, str) else ""
-            text = f"register {name}"
+            text = self._translate("register {name}").format(name=name)
             if preview:
                 text = f"{text}, {preview}"
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "macroRecordingStarted":
-            text = f"recording macro {state.get('registerName', '')}"
+            text = self._translate("recording macro {name}").format(
+                name=state.get("registerName", ""),
+            )
             actions.append(SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text))
         elif kind == "macroRecordingStopped":
-            text = f"macro {state.get('registerName', '')} recorded"
+            text = self._translate("macro {name} recorded").format(
+                name=state.get("registerName", ""),
+            )
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "macroPlayed":
-            text = f"macro {state.get('registerName', '')} played"
+            text = self._translate("macro {name} played").format(
+                name=state.get("registerName", ""),
+            )
             actions.append(SpeechAction(text, Priority.STATUS, braille_message=text))
         elif kind == "signatureChanged":
             action = self._signature(state)
@@ -380,7 +435,10 @@ class SpeechPlanner:
                 actions.append(action)
         elif kind == "replacementPerformed":
             message = state.get("replacementMessage")
-            text = message if isinstance(message, str) and message else "text replaced"
+            text = (
+                message if isinstance(message, str) and message
+                else self._translate("text replaced")
+            )
             actions.append(SpeechAction(text, Priority.STATUS, interrupt=True, sound="replace"))
         elif kind == "spellingErrorTyped":
             error = state.get("spellingError")
@@ -519,8 +577,7 @@ class SpeechPlanner:
                     return True
         return False
 
-    @staticmethod
-    def _menu_selection(state: dict[str, Any]) -> SpeechAction | None:
+    def _menu_selection(self, state: dict[str, Any]) -> SpeechAction | None:
         item = state.get("item")
         if not isinstance(item, dict):
             return None
@@ -531,21 +588,20 @@ class SpeechPlanner:
         index = state.get("itemIndex")
         count = state.get("itemCount")
         if isinstance(index, int) and isinstance(count, int) and count > 1 and 1 <= index <= count:
-            parts.append(f"{index} von {count}")
+            parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         kind = item.get("kind")
         if isinstance(kind, str) and kind:
             parts.append(kind)
         parameters = item.get("parameters")
         if isinstance(parameters, str) and parameters:
-            parts.append(f"Parameter {parameters}")
+            parts.append(self._translate("parameter {parameter}").format(parameter=parameters))
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
             braille_message=text,
         )
 
-    @staticmethod
-    def _signature(state: dict[str, Any]) -> SpeechAction | None:
+    def _signature(self, state: dict[str, Any]) -> SpeechAction | None:
         signature = state.get("signature")
         if not isinstance(signature, str) or not signature:
             return None
@@ -553,38 +609,41 @@ class SpeechPlanner:
         parameter = state.get("parameter")
         active = state.get("activeParameter")
         if isinstance(parameter, str) and parameter:
-            parts.append(f"Parameter {parameter}")
+            parts.append(self._translate("parameter {parameter}").format(parameter=parameter))
         elif isinstance(active, int) and active > 0:
-            parts.append(f"Parameter {active}")
+            parts.append(self._translate("parameter {parameter}").format(parameter=active))
         index = state.get("signatureIndex")
         count = state.get("signatureCount")
         if isinstance(index, int) and isinstance(count, int) and count > 1:
-            parts.append(f"{index} von {count}")
+            parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         text = ", ".join(parts)
         return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
 
-    @staticmethod
-    def _search_match(state: dict[str, Any]) -> SpeechAction | None:
+    def _search_match(self, state: dict[str, Any]) -> SpeechAction | None:
         line = state.get("lineText")
         if not isinstance(line, str):
             return None
         index = state.get("matchIndex")
         count = state.get("matchCount")
         line_number = state.get("matchLine")
-        parts = [line if line else "blank"]
+        parts = [line if line else self._translate("blank")]
         if isinstance(index, int) and isinstance(count, int) and count > 0:
-            parts.append(f"match {index} of {count}")
+            parts.append(self._translate("match {index} of {count}").format(
+                index=index, count=count,
+            ))
         if isinstance(line_number, int) and line_number > 0:
-            parts.append(f"line {line_number}")
+            parts.append(self._translate("line {line}").format(line=line_number))
         text = ", ".join(parts)
         return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
 
-    @staticmethod
-    def _invisible_selection_text(text: str) -> str:
+    def _invisible_selection_text(self, text: str) -> str:
         names = {
-            " ": "space", "\t": "tab", "\n": "line break", "\r": "carriage return",
-            "\u00a0": "nonbreaking space", "\u200b": "zero width space",
-            "\u2028": "line separator", "\u2029": "paragraph separator",
+            " ": translatable("space"), "\t": translatable("tab"),
+            "\n": translatable("line break"), "\r": translatable("carriage return"),
+            "\u00a0": translatable("nonbreaking space"),
+            "\u200b": translatable("zero width space"),
+            "\u2028": translatable("line separator"),
+            "\u2029": translatable("paragraph separator"),
         }
 
         def invisible(character: str) -> bool:
@@ -602,16 +661,19 @@ class SpeechPlanner:
                 name = names.get(character)
                 if name is None:
                     name = unicodedata.name(character, "invisible character").lower()
+                else:
+                    name = self._translate(name)
                 if count > 1:
-                    plural = name if name.endswith("s") else f"{name}s"
-                    descriptions.append(f"{count} {plural}")
+                    descriptions.append(self._translate("{count} {name}s").format(
+                        count=count, name=name,
+                    ))
                 else:
                     descriptions.append(name)
                 index = finish
             return " ".join(descriptions)
 
         if not text:
-            return "blank"
+            return self._translate("blank")
         if all(invisible(character) for character in text):
             return describe(text)
         start = 0
@@ -643,9 +705,8 @@ class SpeechPlanner:
             parts.append(describe(text[finish:]))
         return " ".join(parts)
 
-    @staticmethod
     def _selection_action(
-        state: dict[str, Any], previous: dict[str, Any] | None,
+        self, state: dict[str, Any], previous: dict[str, Any] | None,
     ) -> SpeechAction | None:
         selection = state.get("selection")
         if not isinstance(selection, dict):
@@ -659,12 +720,14 @@ class SpeechPlanner:
             selected_lines = selection.get("selectedLines")
             if isinstance(selected_lines, list):
                 rendered = "\n".join(
-                    SpeechPlanner._invisible_selection_text(item.get("text", ""))
+                    self._invisible_selection_text(item.get("text", ""))
                     for item in selected_lines if isinstance(item, dict)
                 )
             else:
-                rendered = SpeechPlanner._invisible_selection_text(text)
-            spoken = f"{rendered or 'blank'} block selected"
+                rendered = self._invisible_selection_text(text)
+            spoken = self._translate("{text} block selected").format(
+                text=rendered or self._translate("blank"),
+            )
             return SpeechAction(
                 spoken, Priority.NAVIGATION, interrupt=True,
                 force_symbols=True, braille_message=spoken,
@@ -687,11 +750,15 @@ class SpeechPlanner:
             removed = [old[number] for number in sorted(old) if number not in current]
             if added:
                 spoken = "\n".join(
-                    f"{SpeechPlanner._invisible_selection_text(line)} selected" for line in added
+                    self._translate("{text} selected").format(
+                        text=self._invisible_selection_text(line),
+                    ) for line in added
                 )
             elif removed:
                 spoken = "\n".join(
-                    f"{SpeechPlanner._invisible_selection_text(line)} unselected" for line in removed
+                    self._translate("{text} unselected").format(
+                        text=self._invisible_selection_text(line),
+                    ) for line in removed
                 )
             else:
                 return None
@@ -718,9 +785,12 @@ class SpeechPlanner:
             selected = False
         else:
             changed = text
-        spoken = (
-            f"{SpeechPlanner._invisible_selection_text(changed)} "
-            f"{'selected' if selected else 'unselected'}"
+        template = (
+            translatable("{text} selected")
+            if selected else translatable("{text} unselected")
+        )
+        spoken = self._translate(template).format(
+            text=self._invisible_selection_text(changed),
         )
         return SpeechAction(
             spoken, Priority.NAVIGATION, interrupt=True,
@@ -763,7 +833,10 @@ class SpeechPlanner:
             if entry_action is not None:
                 return entry_action
             name = manager.get("name")
-            parts = [str(name)] if isinstance(name, str) and name else ["file manager"]
+            parts = (
+                [str(name)] if isinstance(name, str) and name
+                else [self._translate("file manager")]
+            )
             location = self._file_manager_location(manager)
             if location:
                 parts.append(location)
@@ -773,32 +846,42 @@ class SpeechPlanner:
         window_type = state.get("windowType")
         line = state.get("lineText")
         if window_type in {"quickfix", "locationList"}:
-            label = "location list" if window_type == "locationList" else "quickfix"
-            text = f"{label}, {line if isinstance(line, str) and line else 'empty'}"
+            label = (
+                translatable("location list")
+                if window_type == "locationList"
+                else translatable("quickfix")
+            )
+            label = self._translate(label)
+            content = line if isinstance(line, str) and line else self._translate("empty")
+            text = f"{label}, {content}"
             return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
         parts = []
         if state.get("tabpageId") != previous.get("tabpageId"):
-            parts.append(f"tab {state.get('tabIndex', 1)} of {state.get('tabCount', 1)}")
+            parts.append(self._translate("tab {index} of {count}").format(
+                index=state.get("tabIndex", 1), count=state.get("tabCount", 1),
+            ))
         elif state.get("windowId") != previous.get("windowId"):
-            parts.append(f"window {state.get('windowIndex', 1)} of {state.get('windowCount', 1)}")
+            parts.append(self._translate("window {index} of {count}").format(
+                index=state.get("windowIndex", 1), count=state.get("windowCount", 1),
+            ))
         elif state.get("bufferId") == previous.get("bufferId"):
             return None
         buftype = state.get("buftype")
         filetype = state.get("filetype")
         if buftype == "help" or filetype == "help":
-            parts.append("help")
+            parts.append(self._translate("help"))
         elif buftype == "terminal":
-            parts.append("terminal")
+            parts.append(self._translate("terminal"))
         name = state.get("bufferName")
         if isinstance(name, str) and name:
             parts.append(name.replace("\\", "/").rsplit("/", 1)[-1])
         else:
-            parts.append("unnamed buffer")
+            parts.append(self._translate("unnamed buffer"))
         if state.get("modified"):
-            parts.append("modified")
+            parts.append(self._translate("modified"))
         if state.get("readonly"):
-            parts.append("read only")
+            parts.append(self._translate("read only"))
         text = ", ".join(parts)
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
@@ -810,7 +893,9 @@ class SpeechPlanner:
         manager = state.get("fileManager")
         if isinstance(manager, dict):
             name = manager.get("name")
-            parts.append(name if isinstance(name, str) and name else "file manager")
+            parts.append(
+                name if isinstance(name, str) and name else self._translate("file manager")
+            )
             entry = self._file_manager_entry(state)
             if entry is not None:
                 parts.append(entry.text)
@@ -823,28 +908,34 @@ class SpeechPlanner:
             buftype = state.get("buftype")
             filetype = state.get("filetype")
             if window_type in {"quickfix", "locationList"}:
-                parts.append("location list" if window_type == "locationList" else "quickfix")
-            elif buftype == "terminal" and mode not in {
-                "terminal mode", "terminal-normal mode",
-            }:
-                parts.append("terminal")
+                label = (
+                    translatable("location list")
+                    if window_type == "locationList"
+                    else translatable("quickfix")
+                )
+                parts.append(self._translate(label))
+            elif buftype == "terminal" and canonical not in {"terminal", "terminalNormal"}:
+                parts.append(self._translate("terminal"))
             elif buftype == "help" or filetype == "help":
-                parts.append("help")
+                parts.append(self._translate("help"))
             name = state.get("bufferName")
             if buftype != "terminal" and isinstance(name, str) and name:
                 filename = name.replace("\\", "/").rsplit("/", 1)[-1]
-                parts.append(filename if parts else f"file {filename}")
+                parts.append(
+                    filename if parts
+                    else self._translate("file {filename}").format(filename=filename)
+                )
             elif not parts and buftype != "terminal":
-                parts.append("unnamed buffer")
+                parts.append(self._translate("unnamed buffer"))
             if state.get("modified"):
-                parts.append("modified")
+                parts.append(self._translate("modified"))
             if state.get("readonly"):
-                parts.append("read only")
+                parts.append(self._translate("read only"))
         if mode:
-            parts.append(mode)
+            parts.append(self._translate(mode))
         connection_label = state.get("_connectionLabel")
         if isinstance(connection_label, str) and connection_label:
-            parts.append(f"on {connection_label}")
+            parts.append(self._translate("on {connection}").format(connection=connection_label))
         if not parts:
             return None
         text = ", ".join(parts)
@@ -861,10 +952,14 @@ class SpeechPlanner:
             return None
         location: list[str] = []
         if state.get("tabpageId") != previous.get("tabpageId"):
-            location.append(f"tab {state.get('tabIndex', 1)} of {state.get('tabCount', 1)}")
+            location.append(self._translate("tab {index} of {count}").format(
+                index=state.get("tabIndex", 1), count=state.get("tabCount", 1),
+            ))
         elif state.get("windowId") != previous.get("windowId"):
             location.append(
-                f"window {state.get('windowIndex', 1)} of {state.get('windowCount', 1)}"
+                self._translate("window {index} of {count}").format(
+                    index=state.get("windowIndex", 1), count=state.get("windowCount", 1),
+                )
             )
         context = self._focus_context(state)
         if context is not None:
@@ -878,7 +973,7 @@ class SpeechPlanner:
         line = state.get("lineText")
         if not isinstance(line, str):
             return None
-        text = line if line else "blank"
+        text = line if line else self._translate("blank")
         return SpeechAction(
             text, Priority.STATUS, interrupt=True,
             indentation_tones=self._indentation_quarter_tones(line),
@@ -896,8 +991,7 @@ class SpeechPlanner:
         name = normalized.rsplit("/", 1)[-1]
         return name or None
 
-    @staticmethod
-    def _file_manager_entry(state: dict[str, Any]) -> SpeechAction | None:
+    def _file_manager_entry(self, state: dict[str, Any]) -> SpeechAction | None:
         manager = state.get("fileManager")
         entry = manager.get("entry") if isinstance(manager, dict) else None
         if not isinstance(entry, dict):
@@ -906,29 +1000,32 @@ class SpeechPlanner:
         if not isinstance(name, str) or not name:
             return None
         kind_names = {
-            "file": "file", "directory": "directory", "symbolicLink": "symbolic link",
-            "socket": "socket", "fifo": "named pipe", "characterDevice": "character device",
-            "blockDevice": "block device",
+            "file": translatable("file"), "directory": translatable("directory"),
+            "symbolicLink": translatable("symbolic link"),
+            "socket": translatable("socket"), "fifo": translatable("named pipe"),
+            "characterDevice": translatable("character device"),
+            "blockDevice": translatable("block device"),
         }
         parts = [name]
         entry_type = entry.get("type")
         if isinstance(entry_type, str) and entry_type:
-            parts.append(kind_names.get(entry_type, entry_type))
+            kind_name = kind_names.get(entry_type)
+            parts.append(self._translate(kind_name) if kind_name else entry_type)
         selection_state = entry.get("selectionState")
         clipboard_state = entry.get("clipboardState")
         if selection_state == "marked" or (
             selection_state not in {"marked", "unmarked"} and entry.get("marked") is True
             and clipboard_state not in {"copied", "cut", "none"}
         ):
-            parts.append("marked")
+            parts.append(self._translate("marked"))
         if clipboard_state == "copied":
-            parts.append("copied")
+            parts.append(self._translate("copied"))
         elif clipboard_state == "cut":
-            parts.append("cut")
+            parts.append(self._translate("cut"))
         if entry.get("expanded") is True:
-            parts.append("expanded")
+            parts.append(self._translate("expanded"))
         elif entry.get("expanded") is False:
-            parts.append("collapsed")
+            parts.append(self._translate("collapsed"))
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
@@ -975,20 +1072,22 @@ class SpeechPlanner:
         selection_state = entry.get("selectionState")
         if selection_state != previous_entry.get("selectionState"):
             if selection_state == "marked":
-                changes.append("marked")
+                changes.append(self._translate("marked"))
             elif selection_state == "unmarked":
-                changes.append("unmarked")
+                changes.append(self._translate("unmarked"))
         clipboard_state = entry.get("clipboardState")
         if clipboard_state != previous_entry.get("clipboardState"):
             if clipboard_state == "copied":
-                changes.append("copied")
+                changes.append(self._translate("copied"))
             elif clipboard_state == "cut":
-                changes.append("cut")
+                changes.append(self._translate("cut"))
             elif clipboard_state == "none":
-                changes.append("clipboard cleared")
+                changes.append(self._translate("clipboard cleared"))
         expanded = entry.get("expanded")
         if expanded != previous_entry.get("expanded") and isinstance(expanded, bool):
-            changes.append("expanded" if expanded else "collapsed")
+            changes.append(self._translate(
+                translatable("expanded") if expanded else translatable("collapsed")
+            ))
         if not changes:
             action = self._file_manager_entry(state)
             return replace(action, sound=sound) if action is not None and sound else action
@@ -1030,17 +1129,23 @@ class SpeechPlanner:
                 return "lineEnd"
         return None
 
-    @staticmethod
-    def _file_manager_action(state: dict[str, Any]) -> SpeechAction | None:
+    def _file_manager_action(self, state: dict[str, Any]) -> SpeechAction | None:
         value = state.get("fileManagerAction")
         if not isinstance(value, dict):
             return None
         action = value.get("action")
         result = value.get("result")
         verbs = {
-            "add": "added", "change": "changed", "copy": "copied",
-            "create": "created", "delete": "deleted", "move": "moved",
-            "rename": "renamed", "restore": "restored",
+            "add": translatable("added"), "change": translatable("changed"),
+            "copy": translatable("copied"), "create": translatable("created"),
+            "delete": translatable("deleted"), "move": translatable("moved"),
+            "rename": translatable("renamed"), "restore": translatable("restored"),
+        }
+        action_names = {
+            "add": translatable("add"), "change": translatable("change"),
+            "copy": translatable("copy"), "create": translatable("create"),
+            "delete": translatable("delete"), "move": translatable("move"),
+            "rename": translatable("rename"), "restore": translatable("restore"),
         }
         if action != "multiple" and action not in verbs:
             return None
@@ -1052,17 +1157,39 @@ class SpeechPlanner:
         name = name if isinstance(name, str) and name else None
         if result == "success":
             if action == "multiple":
-                text = f"{count} file-manager actions completed"
+                text = self._translate("{count} file-manager actions completed").format(
+                    count=count,
+                )
             elif count > 1:
-                text = f"{count} items {verbs[action]}"
+                text = self._translate("{count} items {action}").format(
+                    count=count, action=self._translate(verbs[action]),
+                )
             else:
-                text = f"{name}, {verbs[action]}" if name else verbs[action]
+                translated_verb = self._translate(verbs[action])
+                text = (
+                    self._translate("{name}, {action}").format(
+                        name=name, action=translated_verb,
+                    )
+                    if name else translated_verb
+                )
             priority = Priority.STATUS
             interrupt = False
         else:
-            action_name = "file-manager action" if action == "multiple" else action
-            subject = f"{action_name} of {name}" if name else action_name
-            text = f"{subject} {'cancelled' if result == 'cancelled' else 'failed'}"
+            action_name = (
+                self._translate("file-manager action")
+                if action == "multiple"
+                else self._translate(action_names[action])
+            )
+            subject = (
+                self._translate("{action} of {name}").format(action=action_name, name=name)
+                if name else action_name
+            )
+            outcome = self._translate(
+                translatable("cancelled") if result == "cancelled" else translatable("failed")
+            )
+            text = self._translate("{subject} {outcome}").format(
+                subject=subject, outcome=outcome,
+            )
             priority = Priority.STATUS if result == "cancelled" else Priority.CRITICAL
             interrupt = result == "failed"
         return SpeechAction(
@@ -1079,7 +1206,8 @@ class SpeechPlanner:
         line_changed = previous_cursor.get("line") != cursor.get("line")
         if announce_full or line_changed:
             return SpeechAction(
-                line if line else "blank", Priority.NAVIGATION, interrupt=True,
+                line if line else self._translate("blank"),
+                Priority.NAVIGATION, interrupt=True,
                 indentation_tones=self._indentation_quarter_tones(line),
             )
         byte_column = cursor.get("byteColumn")
@@ -1088,7 +1216,10 @@ class SpeechPlanner:
         try:
             character = cursor_text(line, byte_column).character
         except InvalidByteColumn:
-            return SpeechAction("invalid cursor position", Priority.CRITICAL, interrupt=True)
+            return SpeechAction(
+                self._translate("invalid cursor position"),
+                Priority.CRITICAL, interrupt=True,
+            )
         if character:
             return SpeechAction(character, Priority.NAVIGATION, interrupt=True, spelling=True)
         return None
@@ -1134,15 +1265,22 @@ class SpeechPlanner:
         if kind == "lineEnd":
             return SpeechAction("", Priority.NAVIGATION, interrupt=False, sound="lineEnd")
         if kind in {"fileStart", "fileEnd"}:
-            boundary = "beginning of file" if kind == "fileStart" else "end of file"
+            boundary = (
+                translatable("beginning of file")
+                if kind == "fileStart"
+                else translatable("end of file")
+            )
             sound = "fileStart" if kind == "fileStart" else "fileEnd"
             return SpeechAction(
-                f"{boundary}, {line if line else 'blank'}",
+                self._translate("{boundary}, {line}").format(
+                    boundary=self._translate(boundary),
+                    line=line if line else self._translate("blank"),
+                ),
                 Priority.NAVIGATION, True, sound,
                 character_suffix=spoken_character or None,
             )
         if kind == "lineChanged":
-            text = line if line else "blank"
+            text = line if line else self._translate("blank")
             previous_cursor = (self._previous or {}).get("cursor", {})
             previous_column = previous_cursor.get("byteColumn") if isinstance(previous_cursor, dict) else None
             current_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
@@ -1158,9 +1296,12 @@ class SpeechPlanner:
             )
         if kind == "matchingPairMoved":
             line_number = cursor.get("line") if isinstance(cursor, dict) else None
-            parts = [f"matching {spoken_character}" if spoken_character else "matching pair"]
+            parts = [
+                self._translate("matching {character}").format(character=spoken_character)
+                if spoken_character else self._translate("matching pair")
+            ]
             if isinstance(line_number, int):
-                parts.append(f"line {line_number}")
+                parts.append(self._translate("line {line}").format(line=line_number))
             crossed = self._line_changed(state)
             return SpeechAction(
                 ", ".join(parts), Priority.NAVIGATION, interrupt=True,
@@ -1171,7 +1312,9 @@ class SpeechPlanner:
         if kind == "diagnosticMoved":
             diagnostic = state.get("diagnostic")
             if not isinstance(diagnostic, dict):
-                return SpeechAction("no diagnostic", Priority.STATUS, interrupt=True)
+                return SpeechAction(
+                    self._translate("no diagnostic"), Priority.STATUS, interrupt=True,
+                )
             parts = []
             source = diagnostic.get("source")
             severity = diagnostic.get("severity")
@@ -1187,11 +1330,13 @@ class SpeechPlanner:
                 parts.append(message)
             index, count = diagnostic.get("index"), diagnostic.get("count")
             if isinstance(index, int) and isinstance(count, int) and count > 1:
-                parts.append(f"{index} of {count}")
+                parts.append(self._translate("{index} of {count}").format(
+                    index=index, count=count,
+                ))
             line_number = diagnostic.get("line")
             if isinstance(line_number, int):
-                parts.append(f"line {line_number}")
-            text = ", ".join(parts) if parts else "diagnostic"
+                parts.append(self._translate("line {line}").format(line=line_number))
+            text = ", ".join(parts) if parts else self._translate("diagnostic")
             return SpeechAction(
                 text, Priority.NAVIGATION, interrupt=True,
                 sound="lineCrossed" if self._line_changed(state) else None,
@@ -1252,7 +1397,10 @@ class SpeechPlanner:
             sound = "replace" if deleted else None
             return SpeechAction(inserted, Priority.NAVIGATION, interrupt=False, sound=sound, typed=True)
         if deleted:
-            return SpeechAction(f"deleted {deleted}", Priority.NAVIGATION, interrupt=False, sound="delete")
+            return SpeechAction(
+                self._translate("deleted {text}").format(text=deleted),
+                Priority.NAVIGATION, interrupt=False, sound="delete",
+            )
         return None
 
     @staticmethod
@@ -1295,7 +1443,10 @@ class SpeechPlanner:
         previous_end = len(previous_line) - suffix if suffix else len(previous_line)
         deleted = previous_line[prefix:previous_end]
         if deleted:
-            return SpeechAction(f"deleted {deleted}", Priority.NAVIGATION, interrupt=False, sound="delete")
+            return SpeechAction(
+                self._translate("deleted {text}").format(text=deleted),
+                Priority.NAVIGATION, interrupt=False, sound="delete",
+            )
         return None
 
     @staticmethod

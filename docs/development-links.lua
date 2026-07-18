@@ -6,6 +6,7 @@ local targets = {
   ["compatibility.md"] = "#docs__de__development__compatibilitymd__kompatibilität",
   ["repository-layout.md"] = "#docs__de__development__repository-layoutmd__repository-struktur",
   ["architecture.md"] = "#docs__de__development__architecturemd__architektur",
+  ["localization.md"] = "#docs__de__development__localizationmd__lokalisierung-mit-gettext",
   ["adr/0001-neovim-integration-point.md"] = "#docs__de__development__adr__0001-neovim-integration-pointmd__adr-0001-hybrider-neovim-andockpunkt",
   ["adr/0002-nvda-api-boundaries.md"] = "#docs__de__development__adr__0002-nvda-api-boundariesmd__adr-0002-nvda-api-grenzen-für-den-ersten-beta-stand",
   ["adr/0003-oil-confirmation-fallback.md"] = "#docs__de__development__adr__0003-oil-confirmation-fallbackmd__adr-0003-eng-begrenzter-fallback-für-oil-bestätigungen",

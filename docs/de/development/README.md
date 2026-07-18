@@ -30,7 +30,8 @@ Abschnitt trennt Planung und Verlauf vom aktuellen Produktstand.
 6. [Release-, Versions- und Buildprozess](release-and-build.md)
 7. [NVDA-2026.1-API-Prüfung](nvda-2026.1-api-notes.md)
 8. [Lizenzierung und Beiträge](licensing-and-contributions.md)
-9. [Gebündelte Abhängigkeiten](../../../nvda-addon/DEPENDENCIES.md)
+9. [Lokalisierung mit gettext](localization.md)
+10. [Gebündelte Abhängigkeiten](../../../nvda-addon/DEPENDENCIES.md)
 
 ## Planung und Verlauf
 

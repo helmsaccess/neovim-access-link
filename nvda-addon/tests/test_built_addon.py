@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import gettext
 import io
 import json
 import pathlib
@@ -48,6 +49,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.menuLabels: list[str] = []
         self.preferencesMenuLabels: list[str] = []
         self.toolsMenuLabels: list[str] = []
+        self.toolsMenuHandlers: list[object] = []
         self.focus = types.SimpleNamespace(
             processID=100, windowHandle=200, role=3, parent=None,
             appModule=types.SimpleNamespace(appName="windowsterminal"),
@@ -418,7 +420,8 @@ class BuiltAddonTests(unittest.TestCase):
             def __init__(inner_self):
                 inner_self.preferencesMenu = Menu(self.preferencesMenuLabels)
                 inner_self.toolsMenu = Menu(self.toolsMenuLabels)
-            def Bind(inner_self, *_args, **_kwargs): pass
+            def Bind(inner_self, _event, handler, _item):
+                self.toolsMenuHandlers.append(handler)
             def Unbind(inner_self, *_args, **_kwargs): return True
 
         gui = types.ModuleType("gui")
@@ -616,6 +619,21 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertIn("globalPlugins/NeovimAccessLink/resources/sounds/LICENSE.txt", archive.namelist())
             self.assertIn("LICENSE", archive.namelist())
             self.assertIn("globalPlugins/NeovimAccessLink/resources/ssh-askpass.cmd", archive.namelist())
+
+    def test_built_addon_contains_compiled_german_gettext_catalog_only(self) -> None:
+        locale = self.extract_path / "locale" / "de"
+        mo_path = locale / "LC_MESSAGES" / "nvda.mo"
+        self.assertTrue(mo_path.is_file())
+        self.assertTrue((locale / "manifest.ini").is_file())
+        self.assertFalse(any(self.extract_path.rglob("*.po")))
+        self.assertFalse(any(self.extract_path.rglob("*.pot")))
+        with mo_path.open("rb") as stream:
+            translations = gettext.GNUTranslations(stream)
+        self.assertEqual("Verbindungen", translations.gettext("Connections"))
+        self.assertEqual(
+            "Lokale Neovim-Sitzungen konnten nicht aufgelistet werden",
+            translations.gettext("Could not list local Neovim sessions"),
+        )
 
     def test_addon_contains_complete_linux_package_and_shared_configuration(self) -> None:
         with zipfile.ZipFile(build()) as archive:
@@ -3276,6 +3294,44 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("NeovimAccessLink", __import__("config").conf.spec)
         self.assertFalse((self.config_path / "NeovimAccessLink.json").exists())
         plugin.terminate()
+
+    def test_german_tools_menu_is_distinct_and_both_handlers_open_their_forms(self) -> None:
+        mo_path = self.extract_path / "locale" / "de" / "LC_MESSAGES" / "nvda.mo"
+        with mo_path.open("rb") as stream:
+            translations = gettext.GNUTranslations(stream)
+        builtins._ = translations.gettext
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        product = buildVars.addon_info["summary"]
+        self.assertEqual([
+            product + ": Komponenten installieren oder aktualisieren...",
+            product + ": Komponenten entfernen...",
+        ], self.toolsMenuLabels)
+        self.assertEqual(2, len(self.toolsMenuHandlers))
+        for handler in self.toolsMenuHandlers:
+            handler(None)
+        self.assertEqual([
+            "Neovim-Komponenten installieren oder aktualisieren",
+            "Neovim-Komponenten entfernen",
+        ], [dialog.title for dialog in self.dialogs])
+        self.assertEqual([
+            "Wählen Sie ein oder mehrere Ziele aus. Administratorrechte sind nicht erforderlich.",
+            "Zu aktualisierende Verbindungen:",
+            "Schließen Sie Neovim auf den ausgewählten Zielen und wählen Sie dann aus, wo die "
+            "Komponenten entfernt werden sollen. Andere Neovim-Plugins und Konfigurationen "
+            "bleiben erhalten.",
+            "Verbindungen, von denen Komponenten entfernt werden:",
+        ], self.staticTexts)
+        self.assertEqual(
+            ["Alle Verbindungen auswählen", "Alle Verbindungen auswählen"],
+            [control.label for control in self.checkBoxControls],
+        )
+        self.assertEqual(
+            ["Zu aktualisierende Verbindungen", "Verbindungen, von denen Komponenten entfernt werden"],
+            [control.name for control in self.checkListBoxes],
+        )
+        plugin.terminate()
         self.assertEqual([], self.settingsCategoryClasses)
 
     def test_nvda_profile_switch_reloads_native_addon_settings(self) -> None:
@@ -4500,7 +4556,7 @@ class BuiltAddonTests(unittest.TestCase):
             }})
             plugin.action_readCompletionDocumentation(None)
             plugin._handleEvent({"type": "menuClosed", "payload": {"mode": "insert"}})
-        expected = "printf, 1 von 5, function, Parameter format, ..."
+        expected = "printf, 1 of 5, function, parameter format, ..."
         self.assertIn(expected, self.spoken)
         self.assertIn("Print formatted output", self.spoken)
         self.assertEqual(expected, self.brailleMessages[-1])

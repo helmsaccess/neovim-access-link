@@ -3,6 +3,17 @@
 Stand: 2026-07-18, Beta-Version 0.94.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Der Featurebranch `feature/gettext-translation` beginnt die native
+Lokalisierung des Add-ons. Ein rein in Python laufender, deterministischer
+Werkzeugpfad extrahiert POT/PO, prüft benannte Formatplatzhalter und kompiliert
+NVDAs Domain `nvda` in das gebaute Archiv. Das deutsche Manifest und ein
+vollständiger deutscher Laufzeitkatalog sind enthalten. Der NVDA-unabhängige
+Speech-Planner erhält die Übersetzung als Callback und bleibt ohne NVDA- oder
+gettext-Import separat testbar. Der Katalog übersetzt alle 310 aktuell
+extrahierten Texte; ein Vollständigkeitstest verhindert unbemerkte englische
+Resttexte. Automatisierte Katalog-, Speech- und Pakettests bestehen; die
+praktische deutsche NVDA-Abnahme steht noch aus.
+
 Version `0.94.0` übernimmt den praktisch bestätigten Cleanup-Branch und
 verwendet durchgehend die neue interne
 NVDA-ID `NeovimAccessLink`. Er ist ein bewusster Neuinstallationsschnitt ohne

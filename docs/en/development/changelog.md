@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.94.0-dev.3+feature.gettext-translation (feature-branch test build)
+
+- Native NVDA gettext catalogs use the public `nvda` domain; a German manifest
+  and compiled German runtime catalog are shipped in the add-on.
+- A standard-library tool reproducibly extracts POT/PO, preserves translations,
+  validates catalog coverage and named format placeholders, and compiles
+  deterministic MO files without an external gettext dependency.
+- Speech planning remains NVDA-independent and receives the active translation
+  as a callback. Mode, focus, navigation, selection, fold, register, and file
+  manager text is localized through fixed templates. The German catalog covers
+  all 310 currently extracted messages.
+- Catalog, speech, and archive regressions pass. Practical acceptance with
+  German NVDA remains open.
+- Untranslated PO entries are omitted from the MO like `msgfmt` does, so
+  gettext returns the English source rather than an empty string. Both Tools
+  menu commands and their forms remain distinct and operable.
+
 ## 0.94.0 (beta)
 
 - The product version was advanced to `0.94.0` at the user's explicit

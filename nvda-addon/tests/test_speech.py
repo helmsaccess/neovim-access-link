@@ -14,6 +14,19 @@ def event(kind: str, line: str = "a界🙂", row: int = 1, byte_column: int = 0,
 
 
 class SpeechPlannerTests(unittest.TestCase):
+    def test_translation_callback_localizes_semantic_templates(self) -> None:
+        translations = {
+            "insert mode": "Einfügemodus",
+            "deleted {text}": "{text} gelöscht",
+        }
+        planner = SpeechPlanner(translate=lambda message: translations.get(message, message))
+        mode = planner.plan(event("modeChanged", mode="insert", modeRaw="i"))[0]
+        self.assertEqual("Einfügemodus", mode.text)
+        deleted = planner.plan(event(
+            "textDeleted", beforeText="abc", lineText="", linewise=False,
+        ))[0]
+        self.assertEqual("abc gelöscht", deleted.text)
+
     def test_full_state_and_line_movement_speak_line(self) -> None:
         planner = SpeechPlanner()
         self.assertEqual("first", planner.plan(event("fullState", line="first"))[0].text)
@@ -1136,7 +1149,7 @@ class SpeechPlannerTests(unittest.TestCase):
         }})[0]
         closed = planner.plan({"type": "menuClosed", "payload": {}})[0]
         self.assertEqual("suggestionsOpen", opened.sound)
-        self.assertEqual("printf, 1 von 5, function, Parameter format, ...", selected.text)
+        self.assertEqual("printf, 1 of 5, function, parameter format, ...", selected.text)
         self.assertEqual(selected.text, selected.braille_message)
         self.assertEqual("suggestionsClose", closed.sound)
 
@@ -1209,7 +1222,7 @@ class SpeechPlannerTests(unittest.TestCase):
             "signature": "printf(format, ...)", "parameter": "format",
             "activeParameter": 1, "signatureIndex": 1, "signatureCount": 2,
         }})[0]
-        self.assertEqual("printf(format, ...), Parameter format, 1 von 2", action.text)
+        self.assertEqual("printf(format, ...), parameter format, 1 of 2", action.text)
         self.assertEqual(action.text, action.braille_message)
 
     def test_new_unindented_line_ticks_without_boundary_speech(self) -> None:

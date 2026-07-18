@@ -284,7 +284,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         global _activePlugin
         super().__init__()
         self._gate = SessionGate(_FRONTEND_POLICY.enabled_kinds)
-        self._planner = SpeechPlanner()
+        self._planner = SpeechPlanner(translate=_)
         self._diagnostics = DiagnosticBuffer()
         self._suggestionSounds = SuggestionSoundCache(
             os.path.join(globalVars.appDir, "waves"),
@@ -2054,7 +2054,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @staticmethod
     def _newInstanceRuntime():
         return {
-            "planner": SpeechPlanner(),
+            "planner": SpeechPlanner(translate=_),
             "currentState": {},
             "lastMode": None,
             "typedWord": [],

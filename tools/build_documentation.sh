@@ -37,6 +37,7 @@ developer_sources=(
   docs/de/development/compatibility.md
   docs/de/development/repository-layout.md
   docs/de/development/architecture.md
+  docs/de/development/localization.md
   docs/de/development/adr/0001-neovim-integration-point.md
   docs/de/development/adr/0002-nvda-api-boundaries.md
   docs/de/development/adr/0003-oil-confirmation-fallback.md
@@ -78,6 +79,7 @@ developer_en_sources=(
   docs/en/development/compatibility.md
   docs/en/development/repository-layout.md
   docs/en/development/architecture.md
+  docs/en/development/localization.md
   docs/en/development/adr/0001-neovim-integration-point.md
   docs/en/development/adr/0002-nvda-api-boundaries.md
   docs/en/development/adr/0003-oil-confirmation-fallback.md

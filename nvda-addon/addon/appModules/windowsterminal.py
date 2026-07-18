@@ -6,12 +6,15 @@ applications.
 """
 
 import api
+import addonHandler
 import appModuleHandler
 import inputCore
 import queueHandler
 import scriptHandler
 
 from globalPlugins import NeovimAccessLink
+
+addonHandler.initTranslation()
 
 
 class AppModule(appModuleHandler.AppModule):

@@ -194,6 +194,7 @@ tools/test_neovim_plugin.sh
 
 ```bash
 python3 tools/build_nvda_addon.py
+python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
@@ -211,7 +212,12 @@ Der Add-on-Test entpackt das tatsächlich erzeugte `.nvda-addon`, öffnet das
 darin enthaltene `server-user.tar.gz`, vergleicht die Konfiguration beider
 Paketseiten und installiert die Linux-Komponenten in ein temporäres Präfix.
 Damit wird ausgeschlossen, dass ein Build nur auf nicht mitgelieferte
-Repositorydateien verweist. Der
+Repositorydateien verweist. Der Lokalisierungstest gleicht extrahierte
+Quellnachrichten, POT und PO exakt ab, weist abweichende Formatplatzhalter
+zurück, kompiliert MO zweimal bytegleich und lädt das Ergebnis mit
+`gettext.GNUTranslations`. Der Pakettest verlangt
+`locale/de/LC_MESSAGES/nvda.mo` und das deutsche Manifest und schließt PO/POT
+im Archiv aus. Der
 Dokumentationsbuild prüft, dass jede Anwender-Markdown-Datei ausdrücklich dem
 Quick Guide oder Handbuch zugeordnet ist, jede Quelle mit H1 beginnt, genau
 eine H1 je HTML-Datei entsteht und keine `.md`-Links zurückbleiben.

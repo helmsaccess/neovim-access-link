@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import buildVars
+from tools.gettext_catalog import compile_catalogs
 
 PROTOCOL_MODULES = (
     "clipboard.py", "codec.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
@@ -92,6 +93,12 @@ def build() -> pathlib.Path:
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
         shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
+        compile_catalogs(stage / "locale")
+        for translated_manifest in sorted((ROOT / "nvda-addon" / "locale").glob("*/manifest.ini")):
+            language = translated_manifest.parent.name
+            destination = stage / "locale" / language / "manifest.ini"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(translated_manifest, destination)
         plugin = stage / "globalPlugins" / metadata["name"]
         (plugin / "build_info.py").write_text(
             f"ARTIFACT_VERSION = {artifact_version!r}\n",
