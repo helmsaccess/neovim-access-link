@@ -20,6 +20,7 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 - Preserve unrelated user changes.
 - Use a dedicated feature branch for substantial work.
 - Never merge into `main` without explicit approval.
+- Write commit messages in English.
 
 ## Versioning
 
@@ -36,5 +37,10 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 ## Documentation
 
 - Update documentation together with implementation.
+- Keep documentation accurate, understandable and ordered logically.
+- Avoid ambiguous or misleading generalizations; state scope and limitations precisely.
 - Add regression tests for bug fixes.
 - A task is complete only when implementation, tests and documentation agree.
+- Write project, collaboration and publication text in English, including issue,
+  pull-request and release titles and descriptions. Documentation and localized
+  user-facing text remain in their respective target language.
