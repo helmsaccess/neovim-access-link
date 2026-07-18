@@ -1,11 +1,11 @@
 # Current status
 
-Status: 2026-07-18, beta version 0.93.0; overall maturity remains between
+Status: 2026-07-18, beta version 0.94.0; overall maturity remains between
 alpha and beta.
 
-The 0.94 cleanup branch uses the new internal NVDA ID `NeovimAccessLink`
-throughout test build
-`0.93.0-dev.1+feature.cleanup-0.94.0-prerelease`. This is an intentional clean
+Version `0.94.0` carries forward the practically confirmed cleanup branch and
+uses the new internal NVDA ID
+`NeovimAccessLink` throughout. This is an intentional clean
 installation boundary with no import of former settings, profiles, or gesture
 assignments. Obsolete configuration migration, AppModule script aliases, and
 Python transition APIs for bridge, RPC, and connection instances are removed.

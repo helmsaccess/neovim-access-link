@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.94.0 (beta)
+
+- The product version was advanced to `0.94.0` at the user's explicit
+  direction. The beta channel and between-alpha-and-beta maturity
+  classification remain unchanged.
+
 ## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (feature-branch test build)
 
 - The internal NVDA add-on ID, Global Plugin package, native configuration

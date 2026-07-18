@@ -1,10 +1,10 @@
 # Aktueller Status
 
-Stand: 2026-07-18, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-18, Beta-Version 0.94.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
-Der Cleanup-Branch für 0.94 verwendet im Testbuild
-`0.93.0-dev.1+feature.cleanup-0.94.0-prerelease` durchgehend die neue interne
+Version `0.94.0` übernimmt den praktisch bestätigten Cleanup-Branch und
+verwendet durchgehend die neue interne
 NVDA-ID `NeovimAccessLink`. Er ist ein bewusster Neuinstallationsschnitt ohne
 Übernahme alter Einstellungen, Profile oder Gestenzuweisungen. Nicht mehr
 benötigte Konfigurationsmigrationen, AppModule-Skriptaliase sowie Python-

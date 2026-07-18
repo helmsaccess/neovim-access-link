@@ -5,6 +5,12 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.0 (Beta)
+
+- Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.94.0` angehoben.
+  Der Beta-Kanal und die Einordnung zwischen Alpha und Beta bleiben
+  unverändert.
+
 ## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (Featurebranch-Testbuild)
 
 - Die interne NVDA-Add-on-ID, das GlobalPlugin-Paket, der native
