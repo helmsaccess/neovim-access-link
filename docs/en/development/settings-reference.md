@@ -2,7 +2,7 @@
 
 The “Neovim Access Link” category is registered in NVDA's normal Settings
 dialog and stores validated values in `config.conf` section
-`nvimNvdaAccess`. NVDA configuration profiles provide inheritance and active-
+`NeovimAccessLink`. NVDA configuration profiles provide inheritance and active-
 profile writes. `post_configProfileSwitch` reloads effective values without
 stopping an authenticated runtime connection.
 
@@ -24,11 +24,13 @@ cannot be supplied as free-form commands, and no automatic synchronization is
 provided. The register command replaces fixed register 0 and points the
 unnamed register to it; named user registers are not touched.
 
-SSH profile schema 2 stores ID, display name, host/alias, optional Linux user,
-port, optional key, and authentication method. Inputs are validated against
-option injection and duplicate IDs. Password values are runtime-only. Local
-Windows Neovim is the typed `localWindowsTcp` target and has no saved profile
-or configurable port.
+An SSH profile stores ID, display name, host/alias, optional Linux user, port,
+optional key, and authentication method. Host and user are separate fields;
+combined values from older add-on IDs are not migrated. Inputs are validated
+against option injection and duplicate IDs. Password values are runtime-only.
+Local Windows Neovim is the typed `localWindowsTcp` target and has no saved
+profile or configurable port. There is no separate JSON settings store or
+import from former add-on IDs.
 
 F12 is the default claim gesture shared by packaged configuration. Activation
 inventories eligible targets; F12 selects only a newly incremented claim.

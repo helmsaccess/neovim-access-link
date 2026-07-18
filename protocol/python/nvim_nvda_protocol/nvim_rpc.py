@@ -41,15 +41,14 @@ class SessionIdentityError(RuntimeError):
 class NvimRpcSource:
     def __init__(
         self,
-        endpoint: NvimRpcEndpoint | str,
+        endpoint: NvimRpcEndpoint,
         on_event: Callable[[str, dict[str, Any]], None],
         on_connection_state: Callable[[str], None],
         expected_session_nonce: str | None = None,
     ) -> None:
-        # A string remains the compatibility shorthand used by the Linux bridge.
-        self.endpoint = NvimRpcEndpoint.unix(endpoint) if isinstance(endpoint, str) else endpoint
-        if not isinstance(self.endpoint, NvimRpcEndpoint):
+        if not isinstance(endpoint, NvimRpcEndpoint):
             raise ValueError("typed Neovim RPC endpoint is required")
+        self.endpoint = endpoint
         self.on_event = on_event
         self.on_connection_state = on_connection_state
         if expected_session_nonce is not None and (

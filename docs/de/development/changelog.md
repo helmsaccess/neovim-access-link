@@ -5,6 +5,24 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (Featurebranch-Testbuild)
+
+- Die interne NVDA-Add-on-ID, das GlobalPlugin-Paket, der native
+  Konfigurationsabschnitt und der Artefaktpräfix heißen einheitlich
+  `NeovimAccessLink`. Der frühere Stand muss vor dem Test deinstalliert werden;
+  alte Einstellungen und Gestenzuweisungen werden bewusst nicht übernommen.
+- JSON-Einstellungsmigration, native `schemaVersion`, alte AppModule-Skript-IDs
+  und die unbenutzte Beispielkonfiguration sind entfernt. Ein alter
+  `nvimNvdaAccess`-Abschnitt oder eine gleichnamige JSON-Datei bleibt
+  unverändert und wird nicht gelesen.
+- Bridge und Verbindungsverwaltung verwenden nur noch typisierte Neovim-RPC-
+  Endpunkte und Verbindungsziele. Die alten Python-Reexports, Socket- und
+  Remoteprofil-Kurzformen sind entfernt; Protokoll-, Registry- und
+  Fail-open-Sicherheitsprüfungen bleiben bestehen.
+- 277 Add-on-/Core-/Pakettests, 42 Protokolltests, 31 Bridge-Tests und die
+  Lua-Suiten mit Neovim 0.10.1 und 0.12.3 bestehen. Das Add-on enthält nur den
+  neuen GlobalPlugin-Pfad; Archivprüfung und alle sechs HTML-Builds sind grün.
+
 ## 0.93.0-dev.7 (Featurebranch-Testbuild)
 
 - Oils öffentliche `parsed_name`-Angabe ist während einer noch nicht mit

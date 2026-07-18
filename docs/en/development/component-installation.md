@@ -4,6 +4,8 @@ The add-on build creates a relocatable Linux user archive containing the
 Python bridge zipapp, protocol package, bundled MessagePack, Lua plugin,
 configuration, and installer. The exact archive is embedded in the add-on;
 installation performs no external download.
+The embedded resource is
+`globalPlugins/NeovimAccessLink/resources/server-user.tar.gz`.
 
 `NVDA menu → Tools → Neovim Access Link: Install or update components...`
 offers “This computer” and saved Linux connections as initially clear

@@ -57,8 +57,9 @@ Oil-Hauptzweig prüfen die eingerückten Aktionszeilen für Umbenennen,
 Duplizieren und Löschen, Abbruch mit `n`, Bestätigung mit `y` sowie die jeweils
 unveränderte oder gelöschte Testdatei.
 
-Die Einstellungstests prüfen den registrierten `config.conf`-Abschnitt,
-Validierung und einmalige Migration der bisherigen JSON-Datei. Ein simulierter
+Die Einstellungstests prüfen ausschließlich den registrierten Abschnitt
+`config.conf["NeovimAccessLink"]`, seine Validierung und die Nichtbeachtung
+alter Add-on-Abschnitte und JSON-Dateien. Ein simulierter
 `post_configProfileSwitch` muss Rückmeldungen und künftige Verbindungswerte neu
 laden, darf aber eine bereits laufende Verbindung nicht stoppen. Quell- und
 UI-Tests schließen eine eigene Profilwahl sowie Aufrufe von
@@ -369,7 +370,8 @@ Dieser Pfad ist vor dem Merge praktisch zu prüfen:
     ungebundenen Control prüfen: Er muss überall global ausschalten und native
     Ausgabe wiederherstellen.
 11. Ein Diagnosebericht darf beim Start keinen `configError` für
-    `nvdaConfig` und keine erneute `legacyConfigMigrated`-Meldung enthalten.
+    `nvdaConfig` enthalten. Ein alter Abschnitt `nvimNvdaAccess` und eine alte
+    Datei `nvimNvdaAccess.json` müssen unverändert und unbeachtet bleiben.
 
 Eigene `NVIM_APPNAME`-Datenverzeichnisse, portable Layouts und GUI-Neovim sind
 in dieser ersten Fassung ausdrücklich außerhalb des Testumfangs.

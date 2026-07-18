@@ -5,10 +5,10 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from .nvim_rpc import NvimRpcSource
 from .stdio import StdioTransport
 from nvim_nvda_protocol import (
-    clipboard_result_state, valid_copy_text_request, valid_paste_text_request,
+    NvimRpcEndpoint, NvimRpcSource, clipboard_result_state,
+    valid_copy_text_request, valid_paste_text_request,
     terminal_control_result_state, valid_leave_terminal_input_request,
     valid_set_register_request,
 )
@@ -41,7 +41,8 @@ class Bridge:
         else:
             raise ValueError("SSH stdio streams are required")
         self.nvim = NvimRpcSource(
-            nvim_socket, self._on_nvim_event, self._on_nvim_connection,
+            NvimRpcEndpoint.unix(nvim_socket),
+            self._on_nvim_event, self._on_nvim_connection,
             session_nonce,
         )
 

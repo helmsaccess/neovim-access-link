@@ -3,6 +3,17 @@
 Status: 2026-07-18, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
+The 0.94 cleanup branch uses the new internal NVDA ID `NeovimAccessLink`
+throughout test build
+`0.93.0-dev.1+feature.cleanup-0.94.0-prerelease`. This is an intentional clean
+installation boundary with no import of former settings, profiles, or gesture
+assignments. Obsolete configuration migration, AppModule script aliases, and
+Python transition APIs for bridge, RPC, and connection instances are removed.
+Product version, channel, and maturity classification are unchanged.
+All 277 add-on/core/package tests, 42 protocol tests, 31 bridge tests, both
+Neovim Lua suites, the final add-on archive, and six HTML builds pass. Practical
+NVDA acceptance of the clean-install boundary remains open.
+
 Test build `0.93.0-dev.7` sends Oil's public `parsed_name` to speech and
 Braille while a file-manager row is edited but not yet written. The confirmed
 old name remains the sole basis for path and public completion action until

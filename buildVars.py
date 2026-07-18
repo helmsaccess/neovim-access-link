@@ -8,11 +8,11 @@ import subprocess
 
 product_version = "0.93.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 7
+development_build: int | None = 1
 release_channel = "beta"
 
 addon_info = {
-    "name": "nvimNvdaAccess",
+    "name": "NeovimAccessLink",
     "summary": "Neovim Access Link",
     "description": (
         "Structured, low-latency Neovim navigation for local Windows and "
@@ -61,11 +61,6 @@ def development_version(*, include_metadata: bool = True) -> str:
 def artifact_version() -> str:
     """Return the unique traceable version for packages and diagnostics."""
     return store_version() if development_build is None else development_version()
-
-
-def version() -> str:
-    """Backward-compatible alias for the externally visible artifact version."""
-    return artifact_version()
 
 
 def product_slug() -> str:

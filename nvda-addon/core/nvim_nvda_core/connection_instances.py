@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .connection_targets import ConnectionTarget, REMOTE_SSH, remote_ssh_target
+from .connection_targets import ConnectionTarget, REMOTE_SSH
 
 
 @dataclass(frozen=True)
@@ -17,12 +17,6 @@ class ConnectionInstance:
     transport_kind: str = REMOTE_SSH
     context_label: str = ""
 
-    @property
-    def profile_id(self) -> str:
-        """Compatibility view for remote-only call sites during target migration."""
-        return self.target_id if self.transport_kind == REMOTE_SSH else ""
-
-
 class ConnectionInstanceManager:
     """Own clients independently; never infer a terminal-to-session mapping."""
 
@@ -30,15 +24,6 @@ class ConnectionInstanceManager:
         self._next = 1
         self._instances: dict[str, tuple[ConnectionInstance, Any]] = {}
         self._terminal_bindings: dict[Any, str] = {}
-
-    def add(self, profile_id: str, session_id: str, label: str, client: Any,
-            transport_kind: str = REMOTE_SSH, context_label: str = "") -> ConnectionInstance:
-        if transport_kind != REMOTE_SSH:
-            raise ValueError("non-SSH instances require add_target")
-        return self.add_target(
-            remote_ssh_target(profile_id, label), session_id, label, client,
-            context_label=context_label,
-        )
 
     def add_target(self, target: ConnectionTarget, session_id: str, label: str,
                    client: Any, context_label: str = "") -> ConnectionInstance:

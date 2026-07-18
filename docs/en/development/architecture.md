@@ -13,6 +13,12 @@ the default-bound diagnostic command. The global plugin owns lifecycle,
 settings, installation, connection services, and unbound script metadata for
 freely configurable commands.
 
+The add-on registers only the validated `NeovimAccessLink` section in NVDA's
+`config.conf`. NVDA's aggregation layer handles profile inheritance and writes;
+profile switches reload effective values without stopping an authenticated
+connection. Former add-on IDs, separate JSON settings files, and configuration
+schema versions are intentionally neither read nor converted.
+
 ## Explicit clipboard path
 
 NVDA owns the Windows clipboard. Four freely assignable, globally discoverable

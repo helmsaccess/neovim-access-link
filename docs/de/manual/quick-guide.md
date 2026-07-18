@@ -37,7 +37,12 @@ Für ein Linux-Ziel werden zusätzlich benötigt:
 
 ## 2. Add-on installieren
 
-1. Die Datei `nvimNvdaAccess-<Version>.nvda-addon` unter Windows öffnen.
+Bei einem Wechsel von einem Build mit der früheren internen ID
+`nvimNvdaAccess` zuerst dieses alte Add-on deinstallieren und NVDA neu starten.
+Andernfalls können beide Global Plugins gleichzeitig geladen werden. Alte
+Einstellungen und Tastenzuweisungen werden nicht übernommen.
+
+1. Die Datei `NeovimAccessLink-<Version>.nvda-addon` unter Windows öffnen.
 2. Die Installation in NVDA bestätigen.
 3. NVDA neu starten.
 

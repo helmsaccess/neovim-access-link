@@ -3,6 +3,17 @@
 Stand: 2026-07-18, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Der Cleanup-Branch für 0.94 verwendet im Testbuild
+`0.93.0-dev.1+feature.cleanup-0.94.0-prerelease` durchgehend die neue interne
+NVDA-ID `NeovimAccessLink`. Er ist ein bewusster Neuinstallationsschnitt ohne
+Übernahme alter Einstellungen, Profile oder Gestenzuweisungen. Nicht mehr
+benötigte Konfigurationsmigrationen, AppModule-Skriptaliase sowie Python-
+Übergangs-APIs für Bridge, RPC und Verbindungsinstanzen sind entfernt. Die
+Produktversion, der Releasekanal und die Einordnung bleiben davon unberührt.
+Alle 277 Add-on-/Core-/Pakettests, 42 Protokolltests, 31 Bridge-Tests, beide
+Neovim-Lua-Suiten, das endgültige Add-on-Archiv und sechs HTML-Builds bestehen.
+Die praktische NVDA-Abnahme des Neuinstallationsschnitts steht noch aus.
+
 Im Testbuild `0.93.0-dev.7` meldet Oil während einer bearbeiteten, noch nicht
 gespeicherten Dateimanagerzeile den öffentlichen `parsed_name` an Sprache und
 Braille. Der bestätigte alte Name bleibt bis `:w` alleinige Grundlage des

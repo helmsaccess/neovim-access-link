@@ -19,7 +19,11 @@ can be used.
 
 ## Install the add-on and assign activation
 
-1. Open `nvimNvdaAccess-<version>.nvda-addon`, confirm installation, and
+If upgrading from a build with the former internal ID `nvimNvdaAccess`, first
+uninstall that old add-on and restart NVDA. Otherwise both Global Plugins may
+load. Old settings and gesture assignments are not imported.
+
+1. Open `NeovimAccessLink-<version>.nvda-addon`, confirm installation, and
    restart NVDA.
 2. Open `NVDA menu → Preferences → Input gestures...`.
 3. Under “Neovim Access Link”, assign a convenient gesture to “Turn Neovim

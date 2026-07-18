@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from nvim_nvda_bridge.session_registry import (
-    REGISTRY_MAX_ENTRIES, discover_socket, list_sessions, registry_directory,
+    REGISTRY_MAX_ENTRIES, discover_session, list_sessions, registry_directory,
 )
 
 
@@ -77,11 +77,11 @@ class SessionRegistryTests(unittest.TestCase):
             self.assertEqual([1222, 1111], [session.claimed_monotonic for session in sessions])
             self.assertEqual([222, 111], [session.claim_sequence for session in sessions])
             with mock.patch("nvim_nvda_bridge.session_registry.list_sessions", return_value=sessions):
-                self.assertEqual(str(directory / "one.sock"), discover_socket(directory, "111"))
+                self.assertEqual(str(directory / "one.sock"), discover_session(directory, "111").socket)
                 with self.assertRaisesRegex(RuntimeError, "ambiguous"):
-                    discover_socket(directory, "project")
+                    discover_session(directory, "project")
                 with self.assertRaisesRegex(RuntimeError, "not found"):
-                    discover_socket(directory, "missing")
+                    discover_session(directory, "missing")
 
     def test_rejects_previous_registry_schema(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name, mock.patch("os.kill"):

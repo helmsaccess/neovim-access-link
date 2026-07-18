@@ -16,10 +16,12 @@ case the artifact version also equals the normal product version. Coding agents
 must not make that switch as an independent stability or release decision.
 
 The visible product is “Neovim Access Link”, author Emanuel Helms
-`<emanuel@helmsaccess.de>`. The stable
-internal ID `nvimNvdaAccess` preserves installation and NVDA profile
-compatibility. The current beta version is 0.93.0; overall product maturity
-remains between alpha and beta.
+`<emanuel@helmsaccess.de>`. The internal ID is `NeovimAccessLink`. Its change
+from the former `nvimNvdaAccess` ID is an intentional clean break: uninstall
+the old add-on and restart NVDA before testing a new build. Settings, profiles,
+and gesture assignments stored under the old ID are not imported. The current
+beta version is 0.93.0; overall product maturity remains between alpha and
+beta.
 
 The user controls product version and release channel. The coding agent
 increments the development build number only within the current branch when

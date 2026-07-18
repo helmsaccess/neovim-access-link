@@ -202,8 +202,3 @@ def discover_session(
     # detached tmux window contains another Neovim. Prefer the newest current
     # registry entry when the caller did not provide an explicit session.
     return sessions[0]
-
-
-def discover_socket(directory: pathlib.Path | None = None, selector: str = "") -> str:
-    """Compatibility helper for callers that do not establish the bridge channel."""
-    return discover_session(directory, selector).socket

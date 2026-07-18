@@ -548,7 +548,7 @@ Buffer- oder Moduswechsel wird eine verspätete Antwort verworfen.
 
 ## Speicherung und Datenschutz
 
-Die Add-on-Einstellungen werden im nativen Abschnitt `nvimNvdaAccess` der
+Die Add-on-Einstellungen werden im nativen Abschnitt `NeovimAccessLink` der
 NVDA-Benutzerkonfiguration gespeichert und unterstützen dadurch Vererbung,
 manuelle Profile und Profil-Auslöser. Enthalten sind unter anderem:
 

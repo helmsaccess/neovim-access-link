@@ -3,7 +3,18 @@
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
-## Active: terminal and file-manager hardening
+## Active: cleanup for 0.94
+
+Branch `feature/cleanup-0.94.0-prerelease` makes `NeovimAccessLink` the single
+internal NVDA identity. There is intentionally no migration from the former
+add-on ID: remove the old installation, restart NVDA, install the new build,
+and configure gestures and connections again. Only proven transition layers
+are removed alongside it: old JSON/schema configuration code, old AppModule
+script IDs, bridge-only re-exports, untyped RPC socket shorthand, and
+remote-only connection aliases. Technical `nvim_nvda` names, session-registry
+security, version fallbacks, and fail-open paths remain.
+
+## Completed: terminal and file-manager hardening
 
 Branch `feature/terminal-file-manager-hardening` is hardening transitions among
 structured editor state, direct embedded-terminal input, Terminal-Normal,
