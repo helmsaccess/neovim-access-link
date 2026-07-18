@@ -17,6 +17,12 @@ paths have been tested in practice, but not every documented editor feature has
 been exercised extensively in every mode and configuration. Bugs and missing
 feedback should be expected.
 
+Development aims to test important workflows, security boundaries, and known
+defects carefully. This is not a claim that every combination of editor
+feature, plugin, terminal layout, and environment has been covered. Reported
+defects are investigated and corrected as promptly as circumstances allow;
+no fixed response or resolution time is promised.
+
 Braille has not been tested with a physical Braille display and very likely
 contains bugs. Braille is important, not optional to the project; practical
 hardware testing and corrections are priority follow-up work. The current
@@ -31,7 +37,8 @@ documentation must not be read as a claim of reliable Braille support.
   SSH stdin/stdout. Local Windows Neovim connects directly over `127.0.0.1`.
 - A saved **connection** describes a Linux SSH account, not a running editor.
 - A **session** is one running Neovim instance.
-- A **terminal binding** links exactly one Windows Terminal tab to one session.
+- A **terminal binding** links exactly one Windows Terminal control—depending
+  on the layout, a tab or pane—to one session.
 
 ## Normal operating model
 

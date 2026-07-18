@@ -37,8 +37,13 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 ## Documentation
 
 - Update documentation together with implementation.
-- Keep documentation accurate, understandable and ordered logically.
+- Keep documentation accurate, understandable, internally consistent and ordered logically.
 - Avoid ambiguous or misleading generalizations; state scope and limitations precisely.
+- Present testing and support as risk-based best effort; never imply exhaustive coverage or promise response times.
+- In manuals, name UI elements exactly as they appear in the localized interface; use the
+  translation catalogs as the preferred source so instructions match what users encounter.
+- Prefer inspecting locally available source code of target applications over web retrieval;
+  sources for applications and add-ons are often available under `/tmp`.
 - Add regression tests for bug fixes.
 - A task is complete only when implementation, tests and documentation agree.
 - Write project, collaboration and publication text in English, including issue,

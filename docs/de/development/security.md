@@ -82,15 +82,22 @@ unter `%LOCALAPPDATA%\nvim-data\site\pack`; sie ändert keine `init.lua` und
 benötigt keine Administratorrechte. Symbolische Links in der eingebetteten
 Quelle werden abgewiesen.
 
-## Protokoll, Cursorrouting und Zwischenablage
+## Protokoll und erlaubte Rückkanäle
 
 Frames sind auf 1 MiB begrenzt. Sitzungskennung, Sequenz und `fullState`-
 Resynchronisation verhindern die Ausgabe alter oder ungeordneter Ereignisse.
 
-Der einzige zustandsändernde Rückkanal ist `routeCursor`. Vor dem Aufruf der
-Neovim-Cursor-API prüft die Bridge Buffer, Fenster, `changedtick`, Zeile,
-UTF-8-Bytespalte und Zeichenrand. Ein veralteter Braille-Routingbefehl wird
-verworfen.
+Die Rückrichtung ist eine feste Allowlist und keine allgemeine Neovim-RPC-
+Weiterleitung. `requestFullState` und `requestFocusContext` fordern nur Zustand
+an. Zustandsändernd sind ausschließlich validiertes `routeCursor`, die unten
+beschriebenen Zwischenablagebefehle und `leaveTerminalInputRequest` mit der
+festen Operation `stopinsert`.
+
+Vor dem Aufruf der Neovim-Cursor-API prüft `routeCursor` Buffer, Fenster,
+`changedtick`, Zeile, UTF-8-Bytespalte und Zeichenrand. Ein veralteter
+Braille-Routingbefehl wird verworfen. `leaveTerminalInputRequest` prüft
+Anfrage-ID, aktive Control-/Instanzbindung, Buffer, Fenster, Tab und den rohen
+Terminalmodus `t`; frei wählbarer Lua- oder Ex-Text wird nicht übertragen.
 
 Zusätzlich existiert ein eng begrenzter, ausdrücklich durch frei belegbare
 NVDA-Befehle ausgelöster Zwischenablagepfad. Er akzeptiert keine frei wählbaren
@@ -139,12 +146,13 @@ Unterdrückung. Globale Ereignishandler existieren nicht.
 Beim Verlassen von Windows Terminal räumt `event_appModule_loseFocus` den
 fokussierten Terminal- und Unterdrückungszustand auf.
 
-Das optionale Merken eines Windows-Terminal-Tabs verwendet nur Prozess-ID,
-Fensterhandle, UIA-Klasse und die undurchsichtige UIA-Runtime-ID. Titel,
+Das optionale Merken eines Windows-Terminal-Controls verwendet nur Prozess-ID,
+Fensterhandle, UIA-Klasse und die undurchsichtige UIA-Runtime-ID. Das Control
+entspricht je nach Layout einem Tabinhalt oder einem Pane. Titel,
 Terminaltext, Prompt, Hostname und Benutzername werden nicht zur Erkennung
 ausgelesen. Die Zuordnung wird nicht in der Konfiguration gespeichert und nach
 NVDA-Ende, Verbindungsende oder ungültiger Identität verworfen. Ohne vorherige
-Zustimmung erfolgt keine automatische Wiederbindung zwischen Tabs.
+Zustimmung erfolgt keine automatische Wiederbindung zwischen Controls.
 
 Der physische F12-Druck autorisiert bei eingeschaltetem Dienst genau einen
 Sitzungsdatei-Claim-Versuch für die fokussierte `TerminalIdentity`. Ein

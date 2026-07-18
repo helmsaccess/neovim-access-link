@@ -16,14 +16,16 @@ der Befehl „Direkte Eingabe im aktiven Neovim-Terminal verlassen“ frei beleg
 werden. Er hat absichtlich keine Standardgeste und wirkt ausschließlich auf
 die authentifizierte, an das fokussierte Windows-Terminal-Control gebundene
 Neovim-Terminalinstanz. Dort
-übernimmt wieder die strukturierte Neovim-Ausgabe, damit Navigation,
-Visual-Auswahl und Kopierbefehle zugänglich sind. Mit `i` beginnt erneut die
-direkte Terminalsteuerung und damit der native Passthrough.
+übernimmt wieder die strukturierte Neovim-Ausgabe, damit Neovims eigene
+Navigation und Visual-Auswahl zugänglich sind. Die Zwischenablagebefehle von
+Neovim Access Link sind für normale, veränderbare Editorbuffer vorgesehen und
+fügen nicht in einen Terminalbuffer ein. Mit `i` beginnt erneut die direkte
+Terminalsteuerung und damit der native Passthrough.
 
 Der Beginn der direkten Terminalsteuerung verwendet denselben Fokusklang wie
 der Insert-Modus. Der Wechsel von Terminal- in Terminal-Normalmodus verwendet
-den Normalmodusklang. Beide Klänge folgen der Einstellung „Insert and normal
-mode changes“. Die Freigabe beziehungsweise erneute Aktivierung der nativen
+den Normalmodusklang. Beide Klänge folgen der Einstellung „Wechsel zwischen
+Einfüge- und Normalmodus“. Die Freigabe beziehungsweise erneute Aktivierung der nativen
 Terminalausgabe erfolgt vor dieser optionalen Rückmeldung.
 
 Der frei belegbare Ausstiegsbefehl beendet nur die direkte Terminaleingabe. Er
@@ -39,11 +41,11 @@ Buffer.
 
 ## Neovim-Kommandozeile und Meldungen
 
-Beim Öffnen der Neovim-Kommandozeile mit `:` wird „command-line mode“
+Beim Öffnen der Neovim-Kommandozeile mit `:` wird „Befehlszeilenmodus“
 gesprochen und ein kurzer mittlerer Ton abgespielt. Der Rückweg aus der
 Kommandozeile im Terminalkontext verwendet den Normalmodusklang. Bei `:bp`,
 `:bn` und ihren ausgeschriebenen Varianten werden kurzlebige gesprochene
-Rückkehrmodi nicht zusätzlich vor die unter „Session focus“ gewählte
+Rückkehrmodi nicht zusätzlich vor die unter „Sitzungsfokus“ gewählte
 Zielausgabe gestellt. Der Klang bleibt erhalten; „Keine Ansage“ bleibt still.
 Eingabe,
 Fehler und die nach Ausführung angezeigten gewöhnlichen
@@ -59,7 +61,7 @@ Neovims strukturiertes `TermClose` einschließlich Exit-Status. Shellausgabe
 während des Prozesses bleibt weiterhin ausschließlich native Terminalausgabe.
 
 `:terminal` erzeugt einen neuen Terminalbuffer und verwendet dafür die unter
-„Session focus“ gewählte Einstiegsansage. Bei Zeilenausgabe wartet das Add-on
+„Sitzungsfokus“ gewählte Einstiegsansage. Bei Zeilenausgabe wartet das Add-on
 ereignisgetrieben auf die erste echte Terminalzeile. Das folgende automatische
 Cursorereignis wird nicht als einzelnes Anfangszeichen wiederholt. Mit `i`
 beginnt die direkte Terminaleingabe; dabei wird die vollständige aktuelle
@@ -85,7 +87,7 @@ Verzeichnisse navigieren und öffnen, Dateien öffnen, anlegen, umbenennen,
 duplizieren beziehungsweise kopieren, verschieben, markieren und als Batch
 bearbeiten sowie löschen, abbrechen oder – soweit angeboten – wiederherstellen.
 Dateien mit Leerzeichen, Unicode und Satzzeichen werden als vollständige Namen
-behandelt. Beim Öffnen einer Datei gilt die Einstellung „Session focus“; die
+behandelt. Beim Öffnen einer Datei gilt die Einstellung „Sitzungsfokus“; die
 folgende automatische Cursorbewegung wiederholt kein einzelnes Zeichen.
 Access Link führt keine dieser Dateioperationen selbst aus und bestätigt keine
 Rückfrage automatisch. Wo ein Plugin kein öffentliches Abschlussereignis

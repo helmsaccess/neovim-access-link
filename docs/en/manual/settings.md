@@ -52,8 +52,8 @@ of that entry choice; the Insert/focus cue still follows feedback settings.
 
 ## Feedback
 
-Global action feedback and individual actions use Off, Speech, Sounds, or
-Speech and sounds. Individual settings cover mode changes, deletion, replace,
+Global action feedback and individual actions use Off, Speech, Tones, or
+Both Speech and Tones. Individual settings cover mode changes, deletion, replace,
 line/file boundaries, crossing a line, and unmatched pairs.
 
 The mode setting also governs the focus cue for direct embedded-terminal input,
@@ -158,8 +158,10 @@ is one action correlated with the current terminal-control binding and current
 Neovim state; a late response after a focus, tab, pane, buffer, or mode change
 is discarded.
 
-Temporary tab bindings use a stable Windows Terminal UI Automation runtime ID,
-remain only in memory, and never inspect terminal text or titles.
+Temporary control bindings use a Windows Terminal UI Automation runtime ID that
+is stable for the lifetime of that control. They remain only in memory and
+never inspect terminal text or titles. Depending on the layout, one control
+represents the content of a tab or an individual pane.
 
 While the service is enabled, every physical F12 press authorizes one pairing
 attempt for exactly the focused terminal control. Without a fresh Neovim claim,

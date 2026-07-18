@@ -1,11 +1,55 @@
 # Test strategy
 
-Python protocol, bridge, and NVDA-independent core tests run separately. Lua
-specifications use real `nvim --headless`; TUI tests use disposable Neovim and
-pseudoterminals and never attach to a user's tmux or editor session. Packaging
-tests extract and import the actual built add-on and embedded Linux package.
+This chapter describes durable verification. See `changelog.md` for results
+from past builds and `current-status.md` for currently confirmed scope. Test
+counts are not duplicated here because they become stale after every change.
+
+The lists below define important evidence and repeatable checks. They do not
+mean every conceivable combination has been tested or every item in the
+practical matrix is repeated for each build. Only cases explicitly listed as
+practically confirmed in `current-status.md` have that status; gaps and new
+defects remain possible.
+
+## Test goals
+
+Tests must prove more than the successful path. In particular:
+
+- one session never inherits state or output from another;
+- unbound terminal controls retain NVDA's native support completely;
+- errors, uncertain focus, and disconnects fail open;
+- untrusted protocol data cannot execute code or consume unbounded resources;
+- byte, Unicode, virtual, and visual columns remain distinct;
+- network, SSH, reconnect, parsing, and installation never block NVDA's main
+  thread;
+- packages work from the files actually shipped;
+- automated evidence remains distinct from practical confirmation.
+
+A mock-based automated test is not practical approval of a real plugin,
+terminal frontend, or Braille driver.
+
+## Test layers
+
+| Layer | Purpose | Typical location |
+|---|---|---|
+| Protocol | Framing, schema, limits, sequences, resync, and control payloads | `protocol/python/tests/` |
+| Bridge | Session discovery, Neovim RPC, SSH stdio, and allowlist | `bridge/python/tests/` |
+| Core | Canonical state, speech, Braille, and fail-open gate without NVDA | `nvda-addon/tests/` |
+| Add-on integration | Global Plugin, AppModule, focus, gestures, installation, and package layout with NVDA stubs | `nvda-addon/tests/` |
+| Lua specifications | Real Neovim APIs, state events, and adapters | `neovim-plugin/tests/*_spec.lua` |
+| TUI/RPC integration | Disposable real Neovim, pseudoterminal, and persistent RPC channel | bridge and plugin tests |
+| Build | Actual add-on, embedded Linux package, gettext, and HTML | build and package tests |
+| Practical | NVDA, Windows Terminal, local Neovim, SSH, tmux, and later Braille hardware | recorded manual matrix |
+
+TUI, socket, and SSH tests must never attach to a user's existing Neovim or
+tmux session. They use separate temporary directories, sockets, processes, and
+test accounts.
+
+## Standard checkout verification
+
+Run from the repository root:
 
 ```bash
+export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
 python3 -m unittest discover -s protocol/python/tests -v
 python3 -m unittest discover -s bridge/python/tests -v
@@ -17,325 +61,254 @@ tools/build_documentation.sh
 git diff --check
 ```
 
-Regression coverage includes framing, resync, Unicode, empty buffers, modes,
-editing, completion, menus, settings profiles, installation, multiple local
-and SSH sessions, focus/runtime IDs, F12 claims, delayed callbacks, redaction,
-and fail-open suppression.
+`tools/test_neovim_plugin.sh` uses an available supported Neovim. Changes to
+version boundaries should additionally run Lua and TUI suites with Neovim
+0.10.1 and 0.12.3. An installed plugin must not shadow the checkout, so test
+scripts isolate `packpath`.
 
-Localization coverage exactly reconciles extracted source messages, POT, and
-PO, rejects changed format placeholders, compiles byte-identical MO files
-twice, and loads the result with `gettext.GNUTranslations`. The package test
-requires `locale/de/LC_MESSAGES/nvda.mo` and the German manifest while
-excluding PO/POT sources from the actual archive.
+## What automated suites prove
 
-The F12 path distinguishes four stages: physical session marking, the
-transient session-file claim, unique claim resolution, and terminal-to-connection
-binding. While support is enabled, NVDA treats each physical F12 as one
-authorization for the exact focused control and does not synthesize or consume
-the key. Neovim matches the
-unchanged `typed` value and schedules the session-file write outside `vim.on_key`.
-Manual target selection prepares the same physical F12 proof before using the
-typed connection path.
+### Protocol and transport
 
-Lifecycle regressions cover graceful exit, SIGKILL, PID/endpoint nonce reuse,
-legacy schemas, passive bounded inventory, permission uncertainty,
-bounded entry counts, UTF-8-safe names, uncertain process checks,
-nonce-owned versus inherited socket handling, one closed WT
-window beside a live window, individual tabs sharing one HWND, the periodic
-idle-tab sweep, off-main-thread client shutdown, and fail-open suppression.
-Socket tests prove that cleanup removes only an exact nonce-owned plugin path.
-Real RPC tests prove that the permanent channel verifies the nonce before
-setup and that mismatch disconnects without a reconnect loop.
-Isolated local and Tessa SIGKILL tests must leave discovery empty
-without touching existing user Neovim or tmux sessions.
+Required cases include:
 
-The Neovim file-manager specification now contains 108 assertions. Its adapter
-cases enforce the 512-byte name and 2048-byte path/root budgets at exact and
-split UTF-8 boundaries. Two-/three-byte characters and four-byte emoji must be
-kept or omitted as complete code points. Invalid byte sequences discard only
-the affected optional field where possible and must never produce invalid
-transport text. Public mini.files, nvim-tree, and Neo-tree event stubs also
-cover same-entry reevaluation, deduplication, rapid-event coalescing, and
-inactive buffer/window rejection. Public action stubs cover success, an Oil
-failure, synchronous batching, basename minimization, and dropping output
-after a manager change. Speech tests distinguish mark, unmark, Copy, Cut,
-clipboard clear, and expansion plus typed action success, cancellation, and
-failure. A separate two-assertion integration runs on Neovim 0.10.1 and 0.12.3
-and proves that direct file-manager navigation is transported as a semantic
-entry change while retaining its fixed motion for edge cues. Oil adapter tests
-separate edited `parsed_name` from the confirmed path. An isolated run with
-the real Oil main branch edits one disposable row and proves the same draft
-name while the old file still exists and the new file does not yet exist.
-The narrow Oil prompt parser accepts only a real `oil_preview` float and fixed
-action verbs; assertions cover Oil's real indentation for
-rename/copy/trash/purge/restore, destructive classification, a path-free
-action/count prompt, and fail-open for unknown rendering.
-Real disposable netrw directories additionally cover banners and thin, long,
-and tree lists with plain, repeated-space, tabbed, and Unicode names plus
-symlinks. A synthetic wide row proves virtual-cursor-column selection.
-Failing optional adapters enter a per-buffer cooldown after three errors, skip
-unrelated built-in `filetype` paths, and release runtime state at buffer end;
-diagnostics expose fixed counters only.
-Additional assertions distinguish manager root and focused level for netrw,
-Oil, nvim-tree, Neo-tree, and mini.files. A speech test proves that empty focus
-context outputs only the final level name and no complete path.
-Persistent file-manager Braille tests require semantic name, type, and state
-instead of the decorated row, UTF-8-exact name routes, and rejection of
-synthetic status cells or ambiguous names. The real TUI test runs
-`vim.ui.input` acceptance/cancellation, `vim.ui.select` choice, and a selected
-`vim.fn.confirm` option on Neovim 0.10.1 and 0.12.3. Blocking prompt state must
-close without `msg_clear`, and concurrent or late 0.12 external UI plus the
-function wrapper must not duplicate the prompt. A real TUI float with
-`filetype=oil_preview` must produce exactly one path-free `promptOpened` state;
-generic context, text, and cursor events for the same raw row are forbidden
-while it is active. Real TUI input `n` must close the float with
-`accepted=false`. Additional isolated runs with the real Oil main branch cover
-the indented action rows for rename, duplicate, and delete, cancellation with
-`n`, confirmation with `y`, and the correspondingly unchanged or deleted
-fixture.
-A separate file-manager workflow specification adds 118 assertions for common
-programming and writing-project tasks. It covers every publicly proven
-Create/Add/Change/Copy/Rename/Move/Delete/Restore event from Oil, mini.files,
-nvim-tree, and Neo-tree; same-entry changes; mixed batches;
-failure/cancellation; canonical file/directory types; basename minimization;
-and names with spaces, Unicode, and punctuation. Speech tests transition from
-a manager into an opened file under all three focus choices. The real TUI
-proves a selected No answer; speech tests cover Yes, No, and Cancel. Ex-return tests
-require a one-shot `commandLineReturn` marker only on the immediate message;
-an asynchronous message may inherit neither return cue nor focus suffix. A
-command without output may not suppress a later Insert/Normal mode change.
-The complete Lua suite runs with both Neovim 0.10.1 and 0.12.3. After the real
-Ex command, the navigation test also executes `CursorMoved` explicitly because
-Neovim 0.10 does not dispatch it for this headless `feedkeys` combination. It
-therefore proves on both versions that internally executed `:normal` keys are
-recognized by their empty `typed` value and cannot impersonate directly typed
-semantic motion.
+- protocol v2, SSH marker, and size-bounded MessagePack framing;
+- rejection of v1, oversized frames, invalid types, and malformed UTF-8;
+- session ID, monotonic sequence, heartbeat, gap, resync, and `fullState`;
+- local client only for the registered port on exactly `127.0.0.1`;
+- nonce validation on the persistent RPC channel before `setup()`;
+- fixed control allowlist with field, size, and state validation;
+- no retry of an already dispatched state-changing action.
 
-## Copy/paste feature-branch acceptance
+### Session registry, claim, and binding
 
-Prerequisites: the current feature build, updated local and remote components,
-one explicitly bound local and one SSH session, and freely assigned NVDA
-gestures for all four clipboard commands.
+Tests distinguish:
 
-Before testing a session, open NVDA's Input Gestures dialog from an unrelated
-application. “Neovim Access Link” and its freely assignable commands must be
-visible. An assigned test gesture must reach the focused non-WT application
-unchanged and must produce no add-on output, activation, or binding change.
+1. physical F12 mark in the focused control;
+2. monotonic claim in the private session record;
+3. unique resolution relative to the activation baseline;
+4. binding the complete `TerminalIdentity` to a `ConnectionInstance`;
+5. authentication through the first valid `fullState`.
 
-1. Copy characterwise, linewise, and blockwise selections containing ASCII,
-   non-ASCII text, emoji, tabs, and multiple lines; verify in a neutral Windows
-   application.
-2. Use `yy` and another yank to populate register 0, then copy it with the
-   second command. Delete registers must not be selected accidentally.
-3. Paste single- and multiline Windows text with Unicode and CRLF in Normal
-   and Insert mode; verify cursor position, one undo with `u`, and `.` behavior.
-4. Store Windows text with and without a trailing newline in Neovim's unnamed
-   paste register. Normal `p` and `"0p` must use characterwise or linewise type
-   as appropriate; named user registers must remain unchanged.
-5. Change focus, tab, pane, buffer, or mode during a request. A late response
-   to copy must not change the clipboard. A paste already dispatched may reach
-   the previously and explicitly addressed buffer at most once, but must never
-   affect the new session, repeat, or announce success there.
-6. Check a shell pane, Neovim terminal buffer, file manager, read-only buffer,
-   and `nomodifiable` buffer. The command must reject clearly and leave native
-   terminal output unchanged.
-7. Repeat locally and over SSH, then inspect the redacted diagnostic report.
-   Transferred text must not be present.
+Cases include old or absent claims, concurrent candidates, focus changes during
+pending resolution, two controls with the same process and window handle but
+different runtime IDs, and concurrent local and SSH instances. Without a fresh
+unique claim, no binding, suppression, choice, or connection announcement may
+occur.
 
-Expected: identical local/remote behavior, exactly one mutation per command,
-no automatic synchronization or retry, and success feedback governed by “Copy
-and paste”.
+Graceful exit, SIGKILL, PID/endpoint/nonce reuse, dead or uncertain records,
+owned and foreign sockets, and closed Windows Terminal controls must be
+non-destructive. Cleanup must terminate neither Neovim nor tmux.
 
-Practical test on 16 July 2026: the installed `0.91.0-dev.4` feature build and
-the existing bound Neovim sessions were used. NVDA's Input Gestures dialog was
-opened from an unrelated application; a freely assigned gesture was invoked
-outside WT and then in the bound Neovim control. The exact key was not
-recorded. Expected were a visible product category, unchanged pass-through
-outside WT, and a Neovim action only in the bound control. These points and
-all four clipboard commands worked without problems. Result: passed.
+### Editor, presentation, and focus
 
-## Required Windows Terminal isolation tests
+Core and add-on tests cover modes, navigation, editing, selection, completion,
+signature help, search, diagnostics, spelling, indentation, messages,
+terminal, file managers, speech, sounds, and Braille.
 
-For focus-context output, alternate focus between a bound Neovim control, an
-unbound shell-only tab, and, where possible, two split panes. Test all three
-choices: no announcement, current line, and existing file/special context with
-mode and connection name. In the bound control, Insert or Normal focus must
-offer the permitted mode sound independently of that choice; speech-only mode
-feedback remains silent. Rapid switching must never announce stale context.
-After disconnect, native WT output must remain immediately available. Record
-the request ID, choice, sound, result, and actual output in the redacted test
-report.
+Important cases are:
 
-Practical acceptance on 2026-07-16:
+- UTF-8 with combining marks, wide characters, emoji, and tabs;
+- overlapping `TextChanged` diffs without duplicate typing echo;
+- correlated focus responses and rejection of late responses;
+- all three focus presentations without a character fragment or duplicate
+  mode;
+- native output in shells, wrong UIA classes, empty runtime IDs, disabled
+  support, and disconnects;
+- global unbound gesture metadata, but execution only in an exactly validated
+  bound Windows Terminal control;
+- exactly one pass-through of the original gesture elsewhere.
 
-- Prerequisites: installed `0.91.0-dev.1` feature build plus one bound local
-  and one bound SSH Neovim session in Windows Terminal.
-- Procedure: select and save each `General → Session focus` value in turn, then
-  move focus from another application back to each Neovim session.
-- Expected: respectively no announcement, current line, or existing context;
-  all three retain the Insert/Normal sound permitted by existing settings and
-  produce no stale or foreign output.
-- Actual result: no problems locally or over SSH; passed.
+### Terminal and command line
 
-### Terminal mode, command line, and following messages
+Automated TUI and add-on tests distinguish:
 
-Use a bound local or SSH Neovim session with an embedded `:terminal`. Direct
-terminal input must play the Insert/focus cue and allow native output. After
-both `Ctrl+\`, `Ctrl+N` and the assigned “Leave direct input in the active
-Neovim terminal” gesture, “terminal-normal mode” and exactly one Normal cue
-must follow and structured navigation must resume; `i` must reverse that
-transition. Then run `:echo 'test message'` and
-`:lua print('test message')`. Command-line mode must be announced before input,
-with a short mid-pitch tone, and the Normal cue must mark return; the result
-must follow Enter in speech and Braille. Test all three Session focus values:
-message only, message plus complete current line, and message plus context,
-return mode, and connection. A later `vim.notify` message must receive no such
-suffix. On a terminal buffer whose job is
-still running, execute `:bd`: expect structured `E89` guidance including the
-hit-enter instruction and no terminated job. Press Enter, then run `:bp` or
-`:bn` with no other listed buffer and expect “no other listed buffer”. With an
-actual second buffer created by `:new | terminal`, `:bp` must instead switch
-to it; test both `:bp` and `:bn` with each General → Session focus choice.
-Expect no announcement, the destination's current line, or its context with
-mode and saved connection name, respectively. Tab/window announcements remain
-unchanged, and the mode cue remains independent. Transient return modes must
-not also be spoken: No announcement stays silent after the command, Current
-line has no leading mode fragment, and Context has no duplicate mode. A `/bn`
-search must not trigger this coalescing.
-The complete destination line must remain identical for different source-buffer
-cursor columns; a following automatic cursor event must not shorten it or
-replace it with one destination character.
-With Context selected, also switch between a modified, short-named file buffer
-and a terminal buffer in separate Neovim windows and tabs. Each switch must
-produce exactly one combined announcement, for example `window 1 of 2, file T,
-modified, normal mode, on Example` and `window 2 of 2, terminal-normal mode, on
-Example`. A bare `T`, `terminal, terminal mode`, or a second prefixed spoken
-mode is a failure. No announcement and Current line must retain their already
-verified behavior; the configured mode cue remains independent in all three
-choices.
-End a local Neovim session in a bound WT control and wait for its transport to
-report `disconnected`. In that same control, focus an already inventoried SSH
-Neovim session and press F12. Diagnostics must show `selected=true` together
-with `selectedAuthenticated=false`, then start automatic resolution across
-local and SSH targets; ending in local `localClaimWaitCompleted` without an SSH
-scan is a failure. Without the physical F12 gesture, disconnect must still only
-fail open and must never rebind a session automatically.
+- file-buffer Normal, `terminalNormal`, direct terminal input, and command-line
+  mode;
+- Insert/Normal cues, command-line tone, and passthrough ordering;
+- `stopinsert` as the terminal-exit command's only operation;
+- complete command-line echo using its UTF-8 byte position;
+- the immediate Ex return message from a later asynchronous message;
+- `:bp`, `:bn`, `:terminal`, window, and tab changes under all focus choices;
+- `E89` for `:bd` on a live terminal job and `TermClose` with exit status;
+- Neovim 0.12 UI handling outside fast-event context.
 
-Practical acceptance on 2026-07-17: the implemented terminal, buffer,
-window/tab, and fresh pairing paths from an ended local Neovim to the SSH
-session in the same WT control worked without further issues; passed.
+### File managers and prompts
 
-Disabling mode speech must not hide command-line mode; disabling sounds must silence all transition
-cues. With NVDA character echo enabled, type `:terminal` and a command
-containing Unicode; every character must be heard once, not just the first.
-Run `exit` in the shell and expect one structured terminal-exit message with
-status. Running shell output remains native. Disconnect and an unbound shell
-tab must always retain native output.
+Suites cover netrw, Oil, mini.files, nvim-tree, and Neo-tree only to the extent
+proven by their public APIs. Cases include:
 
-Also run `:terminal` from a normal file buffer with all three focus choices.
-Expect no entry output, the first complete terminal line, or Terminal-Normal
-context with connection name. This must also hold when terminal context and
-the final mode event arrive in the opposite order. The automatic cursor event
-must never speak only the line's first character. Then press `i`: the complete
-cursor line and one
-permitted Insert cue must follow without competing spoken mode output.
+- UTF-8-safe byte limits for names, paths, and roots;
+- kind, mark, Copy/Cut, expansion, and same-entry state changes;
+- deduplication, render-event coalescing, and inactive-target rejection;
+- create, rename, copy, move, delete, restore, batching, failure, and cancel
+  where public evidence exists;
+- `vim.ui.input`, `vim.ui.select`, and `vim.fn.confirm` acceptance/cancel;
+- Oil's narrow `oil_preview` fallback without path or name transport;
+- draft name before `:w` versus confirmed path identity;
+- semantic Braille and routing only through an unambiguous name range.
 
-The isolated Neovim 0.12 TUI test also exercises command-line input, an
-ordinary UI message, and search through the attached UI-protocol path. The
-structured channel must continue delivering events afterwards; `E5560` and a
-blocking hit-enter prompt are failures.
+A real external plugin may be tested only in a disposable, version-pinned work
+tree. Such an isolated run does not replace Windows/NVDA acceptance.
 
-### Practical file-manager workflow matrix
+## Build and documentation verification
 
-The still-open practical acceptance of the remaining managers uses a
-disposable project with source,
-test, note, chapter, and media directories. Names include spaces, accented and
-non-Latin characters, and punctuation. Run the complete flow with netrw,
-mini.files, nvim-tree, and Neo-tree both locally and over SSH, and extend Oil
-coverage to further configurations; no manager may inherit another manager's
-configuration or state.
-Status on July 18, 2026: Oil is practically confirmed with Neovim 0.12 under
-Windows/NVDA and provides a solid foundation. The practical Windows matrix is
-entirely open for netrw, mini.files, nvim-tree, and Neo-tree and will be worked
-through incrementally. Automated and isolated checks for those managers do not
-constitute practical Windows acceptance.
+Package tests must extract the actual `.nvda-addon`, open its embedded
+`server-user.tar.gz`, and install Linux components into a temporary prefix.
+Testing repository sources alone is insufficient.
 
-1. Expand or enter directories, navigate siblings, and open files. The opened
-   file receives exactly the selected focus output; an automatic cursor event
-   must neither duplicate it nor shorten it to one character.
-   In Oil, additionally test `0`, `$`, `gg`, and `G` on a file name: semantic
-   output contains no decoration, but the respective edge cues play.
-2. Create a file and directory, rename a file, duplicate/copy it, and move it
-   to another directory. Type, name, marking, and manager clipboard must match
-   afterwards; success is reported only from a public completion event.
-   In Oil, edit a name with `0`, `c$`, a new name, and Escape. Before `:w`,
-   speech and Braille already show the draft name but report no success; only
-   `:w` plus confirmation may complete the filesystem action.
-3. Mark several entries and perform a mixed batch. Expect one combined,
-   path-free result. Names or contents from other entries must not be inferred
-   as the target.
-4. Answer a delete or overwrite first with No or Cancel and then with Yes.
-   No/Cancel leaves the project unchanged; Yes reports only proven success.
-   Test trash/restore when the manager exposes that operation publicly.
-5. Conflicts such as an existing destination, invalid name, read-only target,
-   or focus/buffer change during an action must fail open: a real error or no
-   extra result, never invented success.
-6. Switch among manager, opened file, embedded terminal, WT tab, pane, and
-   window. Speech, Braille, mode cue, focus choice, and connection must not
-   retain stale state from the previous context.
+Verify at least:
 
-Use nvim-tree `select_prompts = true` and Neo-tree
-`use_popups_for_input = false` so their public `vim.ui.select/input` paths are
-used. Test Oil with its own confirmations and without skipping simple
-confirmations. Access Link does not set these options. Until the matrix is
-recorded practically, each manager not yet individually accepted remains
-explicitly unconfirmed; this currently means every manager except Oil.
+- matching component and F12 configuration on both package sides;
+- only intended add-on, plugin, bridge, and protocol files;
+- German manifest and `locale/de/LC_MESSAGES/nvda.mo`, with no PO/POT sources
+  in the archive;
+- byte-identical repeated MO compilation and matching named placeholders;
+- German and English quick guide, user manual, and developer documentation;
+- exactly one H1 per HTML file, valid internal targets, and no remaining `.md`
+  links;
+- explicit assignment of every published Markdown source to an HTML build.
 
-Automated tests establish the intended gating behavior, but complete practical
-non-interference across Windows Terminal layouts remains an open acceptance
-area. Practical tests must cover all of these negative cases:
+## Rules for practical tests
 
-- unbound PowerShell, Command Prompt, and WSL panes retain native focus, text,
-  input, speech, LiveText, and Braille behavior while add-on support is active;
-- F12 in an unbound shell may perform one bounded claim check as an explicit
-  user action, but without a fresh claim it does not announce, bind, suppress,
-  or open a dialog;
-- events from another connected Neovim never offer or perform a rebind in an
-  unrelated shell pane;
-- a remembered identity cannot suppress native output before fresh structured
-  state, including when a shell replaces Neovim in the pane while its RPC
-  channel remains alive;
-- separate Windows Terminal processes, windows, tabs, and split panes neither
-  cross-bind nor register duplicate gesture observers; and
-- the add-on overlay does not change unbound Braille or LiveText fallback.
+A practical record includes:
 
-Tests must record the focused UIA class and runtime identity so pane-level and
-tab-level behavior are not conflated. Any uncertain result is a fail-open
-defect and remains documented until practically reproduced and corrected.
+- date and OS, NVDA, Windows Terminal, Neovim, and OpenSSH versions;
+- local or remote transport and relevant add-on settings;
+- initial state, exact commands, and keys;
+- expected and actual speech, sounds, and Braille;
+- outcome and a redacted diagnostic excerpt on failure.
 
-Practical regression test on 16 July 2026 with NVDA 2026.1.1 and
-`0.90.0-dev.3`: local `nvim test.txt` was started in the first WT tab, support
-was enabled, F12 was pressed, and the control binding was remembered. A second
-tab opened `ssh user@example.invalid` and remote `nvim test.txt`; F12 connected
-it without another activation command. Deactivation was then invoked from the
-second tab. Expected and actual results matched: independent second-tab pairing
-worked and the global off command worked from that tab. Result: passed. Split
-panes were then tested in both horizontal and vertical orientations while
-local and SSH connections remained active in other tabs. Both orientations
-worked without errors or crossed connections. Result: passed. Separate WT
-windows, tmux, and the complete unbound-shell-pane negative matrix remain
-practically unverified.
+Never record real hostnames, accounts, domains, key paths, passwords, or
+confidential editor content. Do not use existing Neovim or tmux sessions for
+destructive tests.
 
-Manual tests must record prerequisites, exact actions, expected and actual
-results, and avoid confidential text. Confirmed tests used Windows 11 25H2,
-NVDA 2026.1.1, Windows Terminal 1.24.x, OpenSSH 9.5p2/LibreSSL 3.8.2, Rocky
-Linux 10.2, Python 3.12.13, and Neovim 0.10.1.
+## Practical end-to-end matrix
 
-Automated coverage is not a stable-release claim. Many add-on features still
-need deeper practical tests. No physical Braille display has been tested;
-Braille hardware testing, routing, selection dots, translation tables, and
-bug fixing are priority TODO work.
+This matrix is a risk-based checklist for changes and release candidates, not
+a claim that one exhaustive acceptance run has already covered it all. Select
+the affected and adjacent paths for each change, prioritizing security,
+isolation, and data-changing behavior.
 
-The documentation build must produce six independent HTML files: German and
-English Quick Guide, manual, and developer documentation. Every published
-source is assigned explicitly; private ignored material is excluded.
+### Installation and basic connection
+
+1. Install the add-on, restart NVDA, and update local components plus one
+   disposable saved SSH target through the Tools dialog.
+2. Confirm that the dialog remains operable, reports targets separately, and
+   one failing target does not block the others.
+3. Start local `nvim.exe` and remote Neovim. Enable support, wait for inventory,
+   and bind each session with a physical F12 press.
+4. Check Normal, Insert, Visual, navigation, editing, and one message.
+5. Disable support and end a transport. Native terminal output must return
+   immediately and globally.
+
+### Windows Terminal isolation
+
+Use at least:
+
+- one bound local Neovim control;
+- one bound SSH Neovim control;
+- one unbound PowerShell, Command Prompt, or WSL tab;
+- horizontal and vertical split panes;
+- two Windows Terminal windows where possible.
+
+Move among all controls slowly and rapidly. Expected behavior:
+
+- structured output only from the exactly focused bound instance;
+- no output, binding, or suppression from another active instance;
+- F12 in a shell without a fresh Neovim claim has no effect;
+- a remembered binding opens the gate only after a matching correlated focus
+  response;
+- closed tabs or windows stop only their NVDA client;
+- disconnect does not bind another session automatically;
+- a new session in the same control requires another physical claim;
+- unbound controls retain NVDA focus, text, LiveText, and Braille behavior.
+
+Record the UIA class and complete runtime ID in redacted form so tabs, panes,
+and windows are not confused.
+
+### Focus presentation, buffers, and terminal
+
+Check every Session focus value:
+
+1. no announcement;
+2. current line;
+3. current context, mode, and connection name.
+
+Mode sounds remain a separate setting. Focus return, `:bp`, `:bn`,
+`:terminal`, Neovim windows, and tabs must not speak a single name character
+or duplicate mode. Different source-buffer cursor positions must not change
+the destination line.
+
+In an embedded terminal, also check:
+
+- `i` into direct input: complete cursor line, Insert cue, and native shell
+  output;
+- `Ctrl+\`, `Ctrl+N`, and the assigned exit gesture: exactly one Normal cue
+  and structured Terminal-Normal navigation;
+- `:echo`, `:lua print`, a later `vim.notify`, and Unicode command-line echo;
+- `:bd` on a live job, no-op `:bp`/`:bn`, a real buffer switch, `exit`, and
+  exit status.
+
+### Clipboard
+
+The product category must be visible in NVDA's Input Gestures dialog even when
+opened from another application. A gesture assigned there must pass through
+unchanged outside a valid Neovim control.
+
+Locally and over SSH, check:
+
+- characterwise, linewise, and blockwise Visual selections with ASCII,
+  Unicode, emoji, tabs, and multiple lines;
+- register 0 after `yy` and other yanks;
+- single- and multiline Windows text with CRLF through `nvim_paste`;
+- register 0 with and without a trailing line break followed by `p`;
+- focus, buffer, tab, pane, or mode change during a request;
+- rejection in shells, terminal buffers, file managers, readonly, and
+  `nomodifiable` buffers;
+- redacted diagnostics without transferred text.
+
+Each action may take effect at most once. There is no automatic
+synchronization or retry.
+
+### File managers
+
+For each manager being accepted practically, use a disposable project with
+source, tests, notes, chapters, and media. Names include spaces, accented and
+non-Latin characters, and punctuation.
+
+1. Enter or expand directories, navigate siblings, and open files.
+2. Create, rename, duplicate, move, and delete a file and directory.
+3. Mark multiple entries and perform a batch action.
+4. Answer overwrite or delete with No/Cancel, then Yes.
+5. Check a conflict, invalid name, read-only target, and focus change during
+   the action.
+6. Move among manager, file, terminal, WT tab, pane, and window.
+
+For Oil, additionally check draft names before `:w`, boundary cues with `0`,
+`$`, `gg`, and `G`, and its custom confirmation float. For nvim-tree,
+`select_prompts = true`, and for Neo-tree, `use_popups_for_input = false`, can
+make their public `vim.ui` paths available; the add-on does not set these
+options.
+
+Success must come only from a proven completion event. No or Cancel must leave
+the project unchanged. Complete paths and names of unrelated entries must not
+appear in compact action messages or diagnostics.
+
+### Localization and Braille
+
+With English and German NVDA, compare at least settings, Tools dialogs,
+activation, errors, focus presentation, modes, clipboard, and file managers.
+Document content and third-party Neovim messages are not translated by the
+add-on.
+
+When hardware is available, check current line, selection, Unicode, tabs,
+messages, file-manager segments, and routing on multiple Braille displays.
+Until then, every hardware claim remains explicitly unconfirmed.
+
+## Classifying a failure
+
+Output from the wrong session, a blocked main thread, unredacted confidential
+text, repeated mutation, or suppression in an unbound control is a security or
+isolation defect. Under uncertain focus or liveness, loss of an optional
+feature is preferable to closing NVDA's native path.

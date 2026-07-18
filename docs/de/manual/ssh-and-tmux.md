@@ -21,8 +21,11 @@ privaten Unix-RPC-Socket und registriert die Sitzung automatisch.
 
 ## Kommunikation
 
-Das NVDA-Add-on startet bei Aktivierung einen unsichtbaren, nichtinteraktiven
-Windows-OpenSSH-Prozess:
+Bei der Aktivierung verwendet das Add-on zunächst kurze, begrenzte
+OpenSSH-Aufrufe, um erreichbare Sitzungen zu inventarisieren. Erst nachdem F12
+oder der manuelle Ablauf eine konkrete Neovim-Sitzung bestätigt hat, startet
+das Add-on für diese Sitzung einen dauerhaften, unsichtbaren und
+nichtinteraktiven Windows-OpenSSH-Prozess:
 
 ```text
 ssh.exe -T -o BatchMode=yes editor.example.invalid \
@@ -45,9 +48,9 @@ Add-ons wählen; das Passwort bleibt nur während der Aktivierung im Speicher.
 
 ## Installation und Aktualisierung
 
-Unter „NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link → Connections“ wird die
+Unter „NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link → Verbindungen“ wird die
 Linux-Verbindung in einem gemeinsamen Formular gespeichert. Anschließend wählt
-„NVDA-Menü → Werkzeuge → Neovim Access Link: Install or update components...“ ein oder mehrere Konten über beschriftete
+„NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...“ ein oder mehrere Konten über beschriftete
 Checkboxen aus und installiert das rootlose Benutzerpaket jeweils nach:
 
 ```text

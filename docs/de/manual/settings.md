@@ -11,13 +11,13 @@ Einstellungs-Menüpunkt hinzu.
 
 Die Kategorie enthält drei Registerkarten:
 
-- `General` für die globale Rückmeldungsart und die Ausgabe beim erneuten
+- `Allgemein` für die globale Rückmeldungsart und die Ausgabe beim erneuten
   Sitzungsfokus;
-- `Feedback` für Rückmeldungen einzelner Editoraktionen;
-- `Connections` für Linux-Rechner und Linux-Benutzerkonten.
+- `Rückmeldung` für Rückmeldungen einzelner Editoraktionen;
+- `Verbindungen` für Linux-Rechner und Linux-Benutzerkonten.
 
 Mit `OK` werden die Einstellungen gespeichert und der Dialog geschlossen. Mit
-`Apply` werden sie gespeichert, während der Dialog geöffnet bleibt. `Cancel`
+`Übernehmen` werden sie gespeichert, während der Dialog geöffnet bleibt. `Abbrechen`
 verwirft Änderungen, die seit dem letzten Speichern im Einstellungsdialog
 vorgenommen wurden.
 
@@ -26,7 +26,7 @@ Speichern ein NVDA-Konfigurationsprofil aktiv, speichert NVDA geänderte
 Add-on-Werte in diesem Profil. Nicht geänderte Werte werden wie bei anderen
 NVDA-Kategorien geerbt. Das Add-on wählt oder aktiviert selbst kein Profil.
 
-## Registerkarte General
+## Registerkarte Allgemein
 
 NVDA-Konfigurationsprofile werden über `NVDA-Menü → Konfigurationsprofile verwalten…`
 erstellt, aktiviert und mit Auslösern verbunden. Um eigene Neovim-Werte zu
@@ -40,31 +40,31 @@ Braille und Sprache anpassen. Beim Wechsel des NVDA-Profils lädt das Add-on die
 wirksamen Werte automatisch neu. Es ruft weder `manualActivateProfile` noch
 eine eigene Rückkehr zur Basiskonfiguration auf.
 
-### Gruppe Global action feedback
+### Gruppe Globale Aktionsrückmeldung
 
-#### Global action feedback
+#### Globale Aktionsrückmeldung
 
 Diese Einstellung ist der Hauptschalter für Rückmeldungen, die das Add-on
 selbst für Editoraktionen erzeugt. Verfügbar sind:
 
 | Auswahl | Wirkung |
 | --- | --- |
-| `Off` | Weder Sprache noch Aktionsklang des Add-ons. |
-| `Speech` | Nur die zugehörige Sprachausgabe. |
-| `Tones` | Nur der zugehörige Klang oder Ersatzton. |
-| `Both Speech and Tones` | Sprache und Klang. |
+| `Aus` | Weder Sprache noch Aktionsklang des Add-ons. |
+| `Sprache` | Nur die zugehörige Sprachausgabe. |
+| `Töne` | Nur der zugehörige Klang oder Ersatzton. |
+| `Sprache und Töne` | Sprache und Klang. |
 
-Der globale Wert wird mit jedem Einzelwert auf der Registerkarte `Feedback`
+Der globale Wert wird mit jedem Einzelwert auf der Registerkarte `Rückmeldung`
 kombiniert. Er ist damit eine Obergrenze und überschreibt nicht einfach den
 Einzelwert.
 
 Beispiele:
 
-- Global `Speech`, Löschen `Both Speech and Tones`: Beim Löschen bleibt nur die
+- Global `Sprache`, Löschen `Sprache und Töne`: Beim Löschen bleibt nur die
   Sprache übrig.
-- Global `Tones`, Löschen `Speech`: Für das Löschen erfolgt weder Sprache noch
+- Global `Töne`, Löschen `Sprache`: Für das Löschen erfolgt weder Sprache noch
   Klang, weil beide Einstellungen keine gemeinsame Ausgabeart erlauben.
-- Global `Both Speech and Tones`, Löschen `Tones`: Nur der Löschklang wird
+- Global `Sprache und Töne`, Löschen `Töne`: Nur der Löschklang wird
   ausgegeben.
 
 Gültigkeitsbereich: Dieser Hauptschalter betrifft nur die in diesem Dialog
@@ -72,9 +72,9 @@ aufgeführten, vom Add-on kontrollierten Aktionsrückmeldungen. Er schaltet wede
 NVDA insgesamt stumm noch verändert er Zeichen-/Wortecho, Einrückung,
 Rechtschreibung, Braille oder Vorschlagsmeldungen.
 
-### Gruppe Session focus
+### Gruppe Sitzungsfokus
 
-#### When focusing or changing buffers in a Neovim session
+#### Beim Fokussieren oder Wechseln von Puffern in einer Neovim-Sitzung
 
 Steuert die zusätzliche Ausgabe, nachdem ein gebundenes Neovim-Control erneut
 Fokus erhalten hat und die Sitzung strukturiert bestätigt wurde. Dieselbe
@@ -83,24 +83,24 @@ beispielsweise nach `:bp` oder `:bn`:
 
 | Auswahl | Wirkung |
 | --- | --- |
-| `No announcement` | Keine zusätzliche Fokus- oder Bufferwechselansage. |
-| `Current line` | Die aktuelle strukturierte Zeile oder „blank“. |
-| `Current context, mode and connection name` | Datei beziehungsweise Spezialkontext, Änderungs-/Schreibschutzstatus, Modus und gespeicherter Verbindungsname. |
+| `Keine Ansage` | Keine zusätzliche Fokus- oder Bufferwechselansage. |
+| `Aktuelle Zeile` | Die aktuelle strukturierte Zeile oder „leer“. |
+| `Aktueller Kontext, Modus und Verbindungsname` | Datei beziehungsweise Spezialkontext, Änderungs-/Schreibschutzstatus, Modus und gespeicherter Verbindungsname. |
 
 Der letzte Wert ist Standard. Die Auswahl ändert nur diese Fokus- und
 Bufferwechselansage sowie deren vorübergehende Braillemeldung. Bei Tab- und
 Fensterwechseln bleibt die Zielposition erhalten; der Kontextwert fasst sie
 mit Ziel, Status, Modus und Verbindung in genau einer Ansage zusammen. Ein
-kurzer Dateiname wird eindeutig als `file T` ausgegeben. Ein Terminal nennt
-je nach Zustand nur `terminal mode` oder `terminal-normal mode`, nicht doppelt
-`terminal, terminal mode`. Die strukturierte Braillezeile und die
+kurzer Dateiname wird eindeutig als `Datei T` ausgegeben. Ein Terminal nennt
+je nach Zustand nur `Terminalmodus` oder `Terminal-Normalmodus`, nicht doppelt
+`Terminal, Terminalmodus`. Die strukturierte Braillezeile und die
 sichere Sitzungsbestätigung bleiben immer aktiv. Beim bestätigten Fokus werden
 für Insert-, direkte Terminaleingabe und Normalmodus außerdem die Modusklänge ausgegeben, sofern
-`Global action feedback` und `Insert and normal mode changes` Klänge erlauben.
+`Globale Aktionsrückmeldung` und `Wechsel zwischen Einfüge- und Normalmodus` Klänge erlauben.
 Auch Moduswechsel beim Buffer-, Fenster- oder Tabwechsel verwenden weiterhin
 unabhängig davon die vorhandenen Modusklänge. Bei `:bp`/`:bn` werden kurzlebige gesprochene
-Rückkehrmodi in die gewählte Zielausgabe einbezogen: `No announcement` bleibt
-still, `Current line` erhält kein vorangestelltes Modusfragment und der
+Rückkehrmodi in die gewählte Zielausgabe einbezogen: `Keine Ansage` bleibt
+still, `Aktuelle Zeile` erhält kein vorangestelltes Modusfragment und der
 Kontextwert enthält den Zielmodus bereits. Der Eintritt in die Kommandozeile
 bleibt hörbar.
 
@@ -111,22 +111,22 @@ Verbindung. Die Meldung selbst wird nie unterdrückt. Der Rückkehrklang bleibt
 von dieser Auswahl unabhängig und folgt weiterhin den Feedbackeinstellungen.
 
 Die Auswahl gilt auch beim Erzeugen eines Terminalbuffers mit `:terminal`.
-Bei `Current line` wartet das Add-on auf die erste tatsächliche Terminalzeile,
-statt zunächst „blank“ und danach nur deren erstes Zeichen auszugeben. Beim
+Bei `Aktuelle Zeile` wartet das Add-on auf die erste tatsächliche Terminalzeile,
+statt zunächst „leer“ und danach nur deren erstes Zeichen auszugeben. Beim
 anschließenden Eintritt in direkte Terminaleingabe mit `i` wird unabhängig von
 dieser Einstiegswahl die vollständige Zeile am Terminalcursor gesprochen; der
 Insert-/Fokusklang folgt weiterhin den Feedbackeinstellungen.
 
-## Registerkarte Feedback
+## Registerkarte Rückmeldung
 
-Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Off`,
-`Speech`, `Tones` und `Both Speech and Tones`. Ihre tatsächliche Ausgabe wird
-zusätzlich durch `Global action feedback` begrenzt.
+Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Aus`,
+`Sprache`, `Töne` und `Sprache und Töne`. Ihre tatsächliche Ausgabe wird
+zusätzlich durch `Globale Aktionsrückmeldung` begrenzt.
 
-### Insert and normal mode changes
+### Wechsel zwischen Einfüge- und Normalmodus
 
-Steuert die Add-on-Rückmeldung beim Wechsel zwischen Insert Mode, direkter
-Terminaleingabe, Terminal-Normal, Command-line und Normal Mode. Sprache nennt den neuen Modus; die Klangkomponente verwendet kurze,
+Steuert die Add-on-Rückmeldung beim Wechsel zwischen Einfügemodus, direkter
+Terminaleingabe, Terminal-Normalmodus, Befehlszeilenmodus und Normalmodus. Sprache nennt den neuen Modus; die Klangkomponente verwendet kurze,
 bereits beim Add-on-Start in den Arbeitsspeicher geladene Modusklänge.
 Dieselben Klänge bestätigen auch den aktuellen Insert-, Terminal- oder Normalmodus beim
 erneuten Fokus einer gebundenen Sitzung.
@@ -136,11 +136,11 @@ Navigationsausgabe, damit die Modusrückmeldung nicht hinter veraltetem Text
 wartet.
 
 Gültigkeitsbereich: Diese Einstellung gilt für die häufigen Wechsel zwischen
-Insert beziehungsweise direkter Terminaleingabe, Command-line und Normal/Terminal-Normal. Andere wichtige
+Einfügemodus beziehungsweise direkter Terminaleingabe, Befehlszeilenmodus und Normal-/Terminal-Normalmodus. Andere wichtige
 Modi wie Visual oder Replace bleiben aus Gründen der sicheren Orientierung sprachlich zugänglich
 und werden nicht vollständig durch diesen Schalter verborgen.
 
-### Deleting text
+### Text löschen
 
 Steuert Sprache und Klang für semantisch erkannte Löschaktionen. Dazu gehören
 unter anderem Backspace, Zeichenlöschung und Operatoren wie `d` oder `dd`,
@@ -151,15 +151,15 @@ der Cursor anschließend steht. Der Löschklang ist eine Rückmeldung über die
 Aktion und kein Ersatz für den gesprochenen Ergebnistext.
 
 Gültigkeitsbereich: Die Rückmeldung wird nur für echte Löschänderungen erzeugt.
-Ein im Insert Mode eingegebener Buchstabe `d` ist keine Löschaktion.
+Ein im Einfügemodus eingegebener Buchstabe `d` ist keine Löschaktion.
 
-### Replacing text
+### Text ersetzen
 
 Steuert Sprache und Klang für Ersetzen beziehungsweise Ändern von Text, etwa
 bei Änderungsoperatoren wie `cw` oder bei zuverlässig erkannten
 Ersetzungsereignissen.
 
-### Copy and paste
+### Kopieren und Einfügen
 
 Steuert die Erfolgsrückmeldung der vier frei belegbaren NVDA-Befehle zum
 Kopieren der aktuellen Visual-Auswahl, zum Kopieren von Neovims letztem Yank
@@ -187,18 +187,18 @@ Der Ersetzungsklang unterscheidet sich vom Löschklang. Nachfolgende Navigation
 oder Texteingabe wird nicht fälschlich als Teil des vorherigen Operators
 behandelt.
 
-### Line boundaries
+### Zeilengrenzen
 
 Steuert die Rückmeldung beim bewussten Erreichen von Zeilenanfang oder
 Zeilenende. Die Klangkomponente verwendet unterschiedliche kurze Signale für
 Anfang und Ende.
 
-Gültigkeitsbereich: Zeilengrenzklänge werden bei Navigation im Normal Mode
+Gültigkeitsbereich: Zeilengrenzklänge werden bei Navigation im Normalmodus
 erzeugt. Normales Schreiben am Ende einer Zeile soll dadurch nicht ständig
 einen Grenzklang auslösen. Die Einstellung ist nicht die Einrückungsansage und
 meldet nicht jeden vertikalen Zeilenwechsel.
 
-### File boundaries
+### Dateigrenzen
 
 Steuert die Rückmeldung beim Erreichen von Dateianfang oder Dateiende. Anfang
 und Ende besitzen unterschiedliche Klänge. Sprache kann die entsprechende
@@ -207,7 +207,7 @@ Grenze zusätzlich nennen.
 Gültigkeitsbereich: Gemeint sind Grenzen des aktiven Neovim-Buffers, nicht der
 Anfang oder das Ende der sichtbaren Terminalseite.
 
-### Crossing into another line
+### Wechsel in eine andere Zeile
 
 Steuert einen kurzen Hinweis, wenn eine Bewegung, die normalerweise Zeichen,
 Wörter oder ein anderes nicht zeilenweises Ziel liest, dabei in eine andere
@@ -220,7 +220,7 @@ Hinweis macht den Zeilenwechsel hörbar.
 Gültigkeitsbereich: Der Hinweis ergänzt nicht zeilenweise Navigation. Bei
 normaler Zeilennavigation wird stattdessen direkt die neue Zeile ausgegeben.
 
-### Missing matching bracket
+### Fehlende zusammengehörige Klammer
 
 Steuert die Rückmeldung, wenn für eine Matching-Pair-Bewegung, beispielsweise
 mit `%`, kein passendes Klammerzeichen gefunden wird.
@@ -249,7 +249,7 @@ eigenes NVDA-Konfigurationsprofil. Dieses wird mit NVDAs regulärem
 Profilmechanismus aktiviert; anschließend werden die gewünschten Werte im
 Add-on-Dialog gespeichert.
 
-## Registerkarte Connections
+## Registerkarte Verbindungen
 
 Lokale Windows-Neovim-Instanzen benötigen keinen Verbindungseintrag und werden
 im aktuellen Benutzerkonto automatisch erfasst. Die Liste enthält ausschließlich
@@ -260,7 +260,7 @@ Verbindungen sind Vorlagen, keine laufenden SSH-Prozesse. Mehrere Einträge
 dürfen denselben Host oder sogar dasselbe Konto beschreiben, beispielsweise für
 unterschiedliche Schlüssel, Ports oder Arbeitsumgebungen.
 
-### Saved connections
+### Gespeicherte Verbindungen
 
 Die Liste dient ausschließlich zum Verwalten der gespeicherten SSH-Ziele; es
 gibt keine Standardverbindung. Beim Aktivieren erfasst das Add-on lokal sowie
@@ -282,29 +282,29 @@ Registry wird nicht verwendet. Eigene
 `NVIM_APPNAME`-Datenverzeichnisse und portable Neovim-Layouts werden in dieser
 ersten Fassung noch nicht automatisch installiert.
 
-### Add connection
+### Verbindung hinzufügen...
 
 Öffnet ein einziges Formular für alle Angaben. Erst nach Bestätigung wird die
 neue Verbindung in die Liste des noch geöffneten NVDA-Einstellungsdialogs
-übernommen. Dauerhaft gespeichert wird sie mit `Apply` oder `OK` des
+übernommen. Dauerhaft gespeichert wird sie mit `Übernehmen` oder `OK` des
 übergeordneten Einstellungsdialogs.
 
-### Edit connection
+### Verbindung bearbeiten...
 
 Öffnet dasselbe Formular mit den vorhandenen Werten. Die interne stabile
 Kennung bleibt dabei erhalten. Ein Abbruch verwirft die Formularänderungen.
 
-### Remove connection
+### Verbindung entfernen
 
 Entfernt den ausgewählten Eintrag aus der Liste. Die eigentliche Speicherung
-erfolgt erst mit `Apply` oder `OK`.
+erfolgt erst mit `Übernehmen` oder `OK`.
 
 Das Entfernen deinstalliert keine Dateien auf Linux, löscht keine SSH-Schlüssel
 und verändert keine Windows-SSH-Konfiguration.
 
-## Formular Add Linux connection beziehungsweise Edit Linux connection
+## Formular Linux-Verbindung hinzufügen beziehungsweise Linux-Verbindung bearbeiten
 
-### Connection name
+### Verbindungsname
 
 Ein frei wählbarer, verständlicher Anzeigename, beispielsweise `Dokumentationsserver`,
 `Testserver` oder `Projektkonto auf example.org`.
@@ -312,7 +312,7 @@ Ein frei wählbarer, verständlicher Anzeigename, beispielsweise `Dokumentations
 Der Name dient nur der Auswahl in NVDA. Er wird nicht als Hostname oder
 Linux-Benutzername verwendet. Er darf deshalb Leerzeichen enthalten.
 
-### Server name, address or SSH alias
+### Servername, Adresse oder SSH-Alias
 
 Der Linux-Rechner als DNS-Name, IPv4-/IPv6-Adresse oder bereits in der
 Windows-OpenSSH-Konfiguration definierter Alias, beispielsweise:
@@ -328,7 +328,7 @@ Kein `ssh`-Befehl und keine zusätzlichen Optionen eintragen. Werte, die wie
 Kommandozeilenoptionen beginnen oder Steuer-/Leerzeichen enthalten, werden aus
 Sicherheitsgründen abgewiesen.
 
-### Linux username
+### Linux-Benutzername
 
 Der Benutzername des Linux-Kontos, unter dem Neovim läuft und in dessen
 Home-Verzeichnis die Komponenten installiert werden sollen.
@@ -337,24 +337,24 @@ Das Feld darf leer bleiben, wenn der Benutzer bereits durch einen OpenSSH-Alias
 in der Windows-Datei `~/.ssh/config` festgelegt ist. Das Add-on nimmt niemals
 automatisch an, dass Windows- und Linux-Benutzername gleich sind.
 
-### SSH port
+### SSH-Port
 
 Der SSH-Port des Servers. Standard ist `22`. Zulässig sind Werte von 1 bis
 65535. Ein abweichender Wert wird sowohl bei der Laufzeitverbindung als auch bei
 der Installation verwendet.
 
-### Private key file
+### Datei mit privatem Schlüssel
 
 Optionaler vollständiger Pfad zu einer privaten Schlüsseldatei auf Windows.
 Das Feld kann leer bleiben, wenn OpenSSH den Schlüssel über `~/.ssh/config`,
 den Standardpfad oder ssh-agent findet.
 
-Das Feld ist nur bei `Use OpenSSH setup` aktiv. Bei Passwortanmeldung wird kein
+Das Feld ist nur bei `OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)` aktiv. Bei Passwortanmeldung wird kein
 Schlüsselpfad gespeichert oder verwendet.
 
-### Sign-in method
+### Anmeldemethode
 
-#### Use OpenSSH setup
+#### OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)
 
 Empfohlene Auswahl. Das Add-on startet den normalen Windows-OpenSSH-Client und
 verwendet:
@@ -375,7 +375,7 @@ Das Add-on speichert weder private Schlüssel noch deren Passphrasen. Ein
 Schlüssel mit nicht bereits durch ssh-agent verfügbarer Passphrase kann in
 einem unsichtbaren Hintergrundprozess nicht interaktiv entsperrt werden.
 
-#### Ask for the SSH password when connecting
+#### Beim Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht gespeichert)
 
 Diese Auswahl ist für ein Linux-Konto gedacht, dessen SSH-Server
 Passwortanmeldung erlaubt.
@@ -399,16 +399,16 @@ Das Speichern einer Verbindung kopiert noch keine Dateien auf den Linux-
 Rechner. Dafür dient der Menüpunkt unter `NVDA-Menü → Werkzeuge`:
 
 ```text
-Neovim Access Link: Install or update components...
+Neovim Access Link: Komponenten installieren oder aktualisieren...
 ```
 
 Der Ablauf ist:
 
-1. Der Auswahldialog listet „This computer“ und alle gespeicherten Linux-
+1. Der Auswahldialog listet „Dieser Computer“ und alle gespeicherten Linux-
    Verbindungen als beschriftete Checkboxen. Linux-Einträge nennen Anzeigename,
    Konto, Host, Port und Anmeldeart. Anfangs ist
    keine Verbindung ausgewählt.
-2. Die initial fokussierte Checkbox „Select all connections“ wählt alle Ziele
+2. Die initial fokussierte Checkbox „Alle Verbindungen auswählen“ wählt alle Ziele
    aus oder ab. Alternativ kreuzt der Anwender eine oder mehrere Verbindungen
    einzeln an. Sobald alle einzeln markiert sind, wird auch die Sammelcheckbox
    aktiviert; beim Demarkieren eines Eintrags wird sie wieder deaktiviert.
@@ -417,7 +417,7 @@ Der Ablauf ist:
    Passwortdialog. Wird eine einzelne Passwortabfrage abgebrochen, laufen die
    übrigen gewählten Aktualisierungen weiter und das ausgelassene Ziel erscheint
    als fehlgeschlagen in der Ergebnisübersicht.
-4. Für „This computer“ kopiert das Add-on außerhalb des NVDA-Hauptthreads nur
+4. Für „Dieser Computer“ kopiert das Add-on außerhalb des NVDA-Hauptthreads nur
    das eingebettete Plugin atomar nach
    `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`. Für Linux
    überträgt es das enthaltene Benutzerpaket nacheinander und installiert:
@@ -444,17 +444,17 @@ NVDA-seitigen Code erfordert keine erneute Linux-Installation.
 Der Menüpunkt unter `NVDA-Menü → Werkzeuge` lautet:
 
 ```text
-Neovim Access Link: Remove components...
+Neovim Access Link: Komponenten entfernen...
 ```
 
 Neovim muss auf den gewählten Zielen vorher beendet werden. Das Add-on beendet
 oder verändert keine laufende Neovim- oder tmux-Sitzung. Der Dialog verwendet
 dieselben zugänglich beschrifteten Einzelcheckboxen und die initial fokussierte
-Checkbox „Select all connections“ wie die Installation. Anfangs ist kein Ziel
+Checkbox „Alle Verbindungen auswählen“ wie die Installation. Anfangs ist kein Ziel
 ausgewählt. Passwortabfragen, Hintergrundverarbeitung, Fortschrittsmeldungen
 und die abschließende Ergebnisübersicht funktionieren ebenfalls entsprechend.
 
-Auf „This computer“ wird ausschließlich das installierte Plugin entfernt:
+Auf „Dieser Computer“ wird ausschließlich das installierte Plugin entfernt:
 
 ```text
 %LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda
@@ -576,11 +576,11 @@ Für einen ersten Test empfiehlt sich:
    abweichen sollen.
 2. Dieses Profil über NVDAs regulären Profilmechanismus aktivieren und erst
    danach den Add-on-Einstellungsdialog öffnen.
-3. `Global action feedback` zunächst auf `Both Speech and Tones` stellen.
-4. Einzelne zu häufige Rückmeldungen danach gezielt auf `Speech`, `Tones` oder
-   `Off` reduzieren.
-5. Für lokales Neovim „This computer“ wählen. Für Linux eine Verbindung mit
-   `Use OpenSSH setup` anlegen, wenn Windows-SSH bereits ohne Passwort
+3. `Globale Aktionsrückmeldung` zunächst auf `Sprache und Töne` stellen.
+4. Einzelne zu häufige Rückmeldungen danach gezielt auf `Sprache`, `Töne` oder
+   `Aus` reduzieren.
+5. Für lokales Neovim „Dieser Computer“ wählen. Für Linux eine Verbindung mit
+   `OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)` anlegen, wenn Windows-SSH bereits ohne Passwort
    funktioniert; sonst bewusst die Passwortoption wählen.
 6. Die Komponenten über den separaten Installationsmenüpunkt auf genau diesem
    Ziel installieren.
@@ -589,14 +589,8 @@ Für einen ersten Test empfiehlt sich:
 
 ### Die Verbindungsliste ist leer
 
-Mit `Add connection...` zunächst mindestens eine Linux-Verbindung anlegen und
-den übergeordneten Einstellungsdialog mit `Apply` oder `OK` speichern.
-
-### Installation meldet, dass zuerst eine Verbindung angelegt werden muss
-
-Das Installationsmenü verwendet ausschließlich gespeicherte Verbindungen.
-Wurde eine Verbindung gerade im noch geöffneten Einstellungsdialog angelegt,
-muss sie zuerst mit `Apply` oder `OK` gespeichert werden.
+Mit `Verbindung hinzufügen...` zunächst mindestens eine Linux-Verbindung anlegen und
+den übergeordneten Einstellungsdialog mit `Übernehmen` oder `OK` speichern.
 
 ### OpenSSH-Anmeldung schlägt fehl
 

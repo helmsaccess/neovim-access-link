@@ -42,6 +42,17 @@ Test the same account visibly with Windows OpenSSH. Resolve host-key prompts,
 key permissions, agent/passphrase handling, or server-side password policy
 there first. Then update the Linux components and restart Neovim.
 
+## The wrong session is bound
+
+Focus the affected Windows Terminal control, disconnect it or forget its
+temporary binding, then focus the intended Neovim session and press F12 once.
+If several sessions use the same working directory, an optional session name
+can make the selection clearer, for example:
+
+```text
+NVIM_NVDA_SESSION_NAME=Documentation nvim
+```
+
 ## Terminal fragments or output from another tab
 
 Deactivate immediately. Normal terminal output must return. Record focused
@@ -49,6 +60,14 @@ window/tab, local or SSH transport, mode, preceding tab switch, and whether
 F12 or manual selection was used. Copy a redacted report before restarting NVDA
 when possible.
 
-Because this is alpha-to-beta software, also verify untested features in a
-disposable buffer. Braille issues are especially expected until physical
-hardware testing has been completed.
+Because this is alpha-to-beta software, first try unfamiliar or unconfirmed
+features in a disposable buffer. Braille behavior has not yet been practically
+confirmed on physical hardware.
+
+## NVDA appears stuck after a dialog
+
+Component work and SSH password handling run outside NVDA's main thread, but a
+result or password dialog may still be open. Use Alt+Tab to locate it and close
+or cancel it. Restart NVDA if necessary, then preserve a diagnostic report and
+the preceding NVDA log. Review both for credentials, local paths, SSH targets,
+or confidential text before sharing them.

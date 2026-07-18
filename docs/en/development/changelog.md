@@ -2,8 +2,9 @@
 
 ## 0.94.1
 
-- The fully tested gettext feature-branch state is adopted as version
-  `0.94.1`. Product channel and maturity classification remain unchanged.
+- The automatically and practically checked gettext feature-branch state is
+  adopted as version `0.94.1`. Product channel and maturity classification
+  remain unchanged.
 - The German catalog covers all 310 extracted messages; MO, package, and
   completeness tests prevent empty or unnoticed English UI text.
 
@@ -24,10 +25,10 @@
   gettext returns the English source rather than an empty string. Both Tools
   menu commands and their forms remain distinct and operable.
 
-## 0.94.0 (beta)
+## 0.94.0 (prerelease)
 
 - The product version was advanced to `0.94.0` at the user's explicit
-  direction. The beta channel and between-alpha-and-beta maturity
+  direction. The prerelease channel and between-alpha-and-beta maturity
   classification remain unchanged.
 
 ## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (feature-branch test build)
@@ -183,7 +184,7 @@
   long paths, and invalid byte sequences. Limits remain byte-based and add no
   polling or filesystem queries.
 
-## 0.93.0 (beta)
+## 0.93.0 (prerelease)
 
 - The product version was advanced to `0.93.0` at the user's explicit
   direction. The release channel remains `beta`; overall maturity remains
@@ -431,7 +432,7 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
 ## 0.89.0-dev.3 unreleased feature-branch test build
 
 - Focus announcements additionally name the user-configured connection, for
-  example “on Tessa”. Local Windows sessions use “on local”; technical host
+  example “on Example”. Local Windows sessions use “on local”; technical host
   names are not exposed separately.
 
 ## 0.89.0-dev.2 unreleased feature-branch test build
@@ -454,7 +455,7 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
 ## 0.89.35 beta release
 
 - Registry lifecycle hardening and Windows Terminal binding maintenance are
-  published as a prerelease after practical local Windows and Tessa SSH
+  published as a prerelease after practical local Windows and an SSH test target
   verification. Overall product maturity remains between alpha and beta.
 - Complete non-interference with unbound Windows Terminal panes remains a
   documented follow-up; uncertain suppression state continues to fail open.
@@ -469,7 +470,7 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
 - F12 observed in hit-enter, pager, or confirmation mode does not write a
   session claim. The user must answer the native prompt first and then press
   F12 from an editor mode; the add-on never chooses a destructive swap action.
-- Practical testing confirmed the complete path locally and over Tessa SSH:
+- Practical testing confirmed the complete path locally and over an SSH test target:
   F12 during the swap confirmation produced no candidate, the next F12 after
   resolving it connected in Normal mode, the first `i` entered Insert mode,
   and structured text input continued normally. Closing the first editor
@@ -668,7 +669,7 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
 - A five-minute safety sweep makes closed WT tabs and whole windows detach fail-open;
   their NVDA clients stop off the main
   thread. Neovim and tmux processes are never terminated.
-- Multi-tab/window regressions and isolated SIGKILL tests cover local and Tessa
+- Multi-tab/window regressions and isolated SIGKILL tests cover local and remote
   paths. Inactive open tabs remain valid through their directly checked UIA
   element; uncertain UIA errors are non-destructive.
 
@@ -710,7 +711,7 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
   unchanged inside the key callback and advances only in the scheduled
   callback.
 - Final practical testing confirmed repeated automatic F12 binding with both
-  local Neovim 0.12.3 and Neovim 0.10.1 on Tessa. With support disabled, the
+  local Neovim 0.12.3 and Neovim 0.10.1 on an SSH test target. With support disabled, the
   observer remained inert and opened no binding dialog.
 
 ## 0.89.15 failed beta test build
@@ -719,12 +720,12 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
   `typed` value supplied to its existing `vim.on_key` observer. It no longer
   depends on Neovim 0.10.1 resolving its internal terminal code as an `<F12>`
   mapping.
-- An isolated Tessa test proved the distinction: Neovim twice reported
+- An isolated test on that SSH target proved the distinction: Neovim twice reported
   `typed=<F12>` but an internal `key=<t_…>`; the `<F12>` mapping never ran and
   the test timed out.
 - The NVDA observer is completely inert while support is disabled. F12 then
   remains an ordinary key and cannot open an add-on dialog.
-- Practical testing confirmed automatic Tessa connection and an inert observer
+- Practical testing confirmed automatic connection to the SSH test target and an inert observer
   while support was disabled. Local Neovim 0.12.3 was also found and briefly
   connected automatically, but immediately entered the `r?`/hit-enter state
   and then lost its RPC server. Build 0.89.16 moves the registry write out of
@@ -740,8 +741,8 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
 - With no bound script, NVDA ends F12 resolution with
   `NoInputGestureAction`, so the keyboard hook passes the original physical
   key directly to the operating system. A control test confirmed three real
-  claims in the same Tessa session.
-- Practical testing confirmed automatic local pairing, but Tessa still
+  claims in the same remote session.
+- Practical testing confirmed automatic local pairing, but the SSH test target still
   produced no claim. The successful connection in the report came from manual
   profile and session selection. The isolated follow-up located the remaining
   defect in Neovim's terminal-code-to-mapping resolution.
@@ -753,8 +754,8 @@ Registry. The product uses no `HKCU` or `HKLM` keys.
   function key outside the still-running NVDA script while bounded claim
   discovery continues to start afterwards.
 - A practical 0.89.12 run confirmed local claims and one SSH connection to
-  Tessa. On the subsequent failure, both registries belonging to the actual
-  running Tessa Neovim processes remained at `claimSequence=0`; activation and
+  the SSH test target. On the subsequent failure, both registries belonging to the actual
+  running remote Neovim processes remained at `claimSequence=0`; activation and
   deactivation had correctly stopped and rediscovered their clients.
 - Delayed synthetic forwarding still failed in practical testing. Manual
   selection connected the same session, while a physical key allowed through

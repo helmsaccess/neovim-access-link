@@ -33,10 +33,11 @@ Hook zwischen Terminal-Diff und nativer LiveText-Ausgabe existiert nicht.
 
 ## Ausnahme 2: UIA-Runtime-ID über `NVDAObject.UIAElement`
 
-Windows Terminal stellt keine vom Add-on kontrollierte dauerhafte Tab-ID bereit.
-Für die ausschließlich laufzeitbezogene, niemals gespeicherte Tabzuordnung liest
-das Add-on `cachedClassName` und `getRuntimeId()` vom zugrunde liegenden
-`UIAElement`. Zum Erkennen geschlossener Tabs wird dasselbe Element zunächst
+Windows Terminal stellt keine vom Add-on kontrollierte dauerhafte Control-ID
+für Tabinhalte und Panes bereit. Für die ausschließlich laufzeitbezogene,
+niemals gespeicherte Control-Zuordnung liest das Add-on `cachedClassName` und
+`getRuntimeId()` vom zugrunde liegenden `UIAElement`. Zum Erkennen geschlossener
+Controls wird dasselbe Element zunächst
 direkt geprüft und anschließend nach NVDAs eigenem UIA-Muster über eine
 `RuntimeId`-Property-Condition im Teilbaum des weiterhin validierten
 Fensterhandles gesucht. Die Werte werden nur nach Prüfung des Windows-Terminal-
@@ -46,7 +47,7 @@ AppModules, des Prozesses und der freigegebenen UIA-Klasse verwendet.
 - Begrenzung: Fehlende oder ungültige Werte deaktivieren Zuordnung und
   Unterdrückung; COM-/UIA-Fehler gelten als unklar und lösen keine Bereinigung
   aus. Fenstertitel oder Terminaltext dienen nie als Ersatzheuristik.
-- Ablöseplan: Einen späteren öffentlichen, stabilen Terminal-/Tab-Identifier
+- Ablöseplan: Einen späteren öffentlichen, stabilen Terminal-Control-Identifier
   bevorzugen und die Runtime-ID-Abhängigkeit entfernen.
 
 ## Ausnahme 3: Einbindung in NVDA-Einstellungs- und Werkzeugdialoge
@@ -72,3 +73,10 @@ UIA-IDs, private Netzwerkschnittstellen und blockierende Arbeit im NVDA-
 Hauptthread bleiben ausgeschlossen. F12 wird vom nur für Windows Terminal
 geladenen AppModule beobachtet, aber weder als NVDA-Skript gebunden noch
 synthetisch weitergereicht.
+
+Das Global Plugin darf unbelegte Scriptmetadaten registrieren, damit frei
+konfigurierbare Befehle in NVDAs Tastenbefehldialog unabhängig von der gerade
+fokussierten Anwendung sichtbar bleiben. Diese Adapter lesen den Fokus einmal,
+delegieren nur an ein vollständig validiertes Windows-Terminal-Control und
+reichen die Originalgeste andernorts unverändert weiter. Globale Ereignis- und
+Overlay-Hooks bleiben ausgeschlossen.

@@ -10,6 +10,11 @@ can be used.
 > Braille is important to the project and hardware testing and fixes are a
 > priority, but reliable Braille support is not claimed yet.
 
+The documented reference workflows are checked on a best-effort basis; this
+does not mean every possible configuration has already been covered. Report
+defects with a reviewed, redacted diagnostic report so they can be investigated
+as promptly as circumstances allow.
+
 ## Requirements
 
 - Windows 11, NVDA 2026.1.x, Windows Terminal, and Neovim 0.10.1 or newer.

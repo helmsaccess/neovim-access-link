@@ -1,164 +1,229 @@
 # Protocol v2
 
-Linux uses a fixed ASCII start marker followed by length-prefixed MessagePack
-frames on SSH stdout; control frames use stdin. Output before the marker is
-discarded as shell startup noise. Local Windows uses Neovim MessagePack RPC
-directly and shares the same validated semantic event model.
+Protocol v2 is the only supported semantic interface between Neovim and the
+NVDA add-on. It is a bounded application protocol, not a transparent Neovim
+RPC tunnel. Read `architecture.md` first for the process and lifecycle model.
 
-Every event carries protocol/schema identity, session ID, monotonic sequence,
-type, mode, buffer/window identity, changed tick, cursor positions, and only
-the bounded semantic payload needed for the event. `fullState` establishes or
-repairs state. Sequence gaps, session changes, invalid sizes/types, or stale
-ticks trigger rejection and resync rather than speech.
+## Transports
 
-`commandLineChanged.payload.commandLineType` carries Neovim's structured
-command-line type, notably `:`, `/`, or `?`; `commandLine` carries its content
-without that prefix. Consumers can therefore distinguish Ex commands from
-identically named search patterns without inferring intent from text alone.
+### SSH stdio
 
-`messageReceived.payload.commandLineReturn=true` marks only the immediate
-structured output of the non-empty Ex command that just ended. The field is
-consumed by that output and absent from later asynchronous messages. The
-receiver uses it to associate the return cue and configured focus presentation
-without guessing from message text or timing.
-
-Byte, character, virtual, and visual columns are distinct. UTF-8, tabs,
-combining characters, wide characters, and emoji must not be converted by
-assuming one byte or code point equals one display cell.
-
-File-manager state carries only bounded semantic values. Entry names are
-limited to 512 UTF-8 bytes, paths and roots to 2048 bytes, and type or adapter
-labels to 64 bytes. The plugin validates complete UTF-8 sequences and cuts
-only before a code point; an invalid adapter value is discarded instead of
-sending a malformed message.
-
-A file-manager entry may carry `selectionState` with only `marked` or
-`unmarked`, and `clipboardState` with only `copied`, `cut`, or `none`;
-`expanded` remains Boolean. The legacy `marked` field is retained only for
-compatibility and must not replace Copy-versus-Cut semantics.
-`fileManagerEntryChanged` can originate from structured navigation or from a
-public plugin event after the reread state actually changes. Inactive
-buffers/windows and equal state produce no event; render bursts are coalesced
-within one Neovim scheduler cycle rather than polled.
-For structured navigation, `fileManagerMotion` may contain only a fixed
-internal motion such as `lineStart`, `lineEnd`, `fileStart`, `fileEnd`, or
-`lineChanged`. It preserves cues and motion intent without making the
-decorated manager row a speech source. For Oil, `entry.name` is the public
-`parsed_name` while that value is non-empty; `entry.path` remains based on the
-confirmed `name` until completion.
-`fileManager.root` identifies the public manager or branch root;
-`fileManager.currentDirectory` identifies the focused level. Both are optional,
-UTF-8-validated, and limited to 2048 bytes. A missing value is not inferred
-from `entry.path`.
-
-`promptOpened` carries an intentional user-facing prompt bounded to 2048 bytes
-and a fixed prompt kind. `promptClosed` distinguishes acceptance and
-cancellation for `vim.ui.input/select`. For `vim.fn.confirm`, it carries
-`answered=true`, a numeric selection index, and at most one visible selection
-label bounded to 512 bytes; no file action is inferred from that label. Prompt
-input itself is neither transferred nor retained. A blocking semantic mode
-transition may prove closure when Neovim's external UI emits no `msg_clear`.
-Oil's `oil_preview` confirmation fallback uses the same prompt contract but
-only fixed action verbs, count, and Y/N. The rendered row, names, and paths are
-cleared from `promptOpened` state; unknown verbs or a same-named non-float do
-not produce a semantic prompt event. When `y` or `n` is typed directly, the
-corresponding `promptClosed` carries `accepted=true` or `accepted=false`.
-Other close paths omit `accepted` instead of guessing a choice.
-
-`fileManagerActionResult.payload.fileManagerAction` contains only:
+For Linux, the add-on starts one Windows OpenSSH process per connection. Its
+remote command starts `~/.local/bin/nvim-nvda-bridge`; application frames use
+SSH stdin and stdout only. Before the first frame the bridge writes exactly:
 
 ```text
-manager     UTF-8-validated label, at most 64 bytes
-action      add | change | copy | create | delete | move | multiple | rename | restore
-result      success | cancelled | failed
-count       integer from 1 through 10000
-name        optional UTF-8-validated basename, at most 512 bytes
-entryType   optional known semantic type
+NVIM-NVDA-STDIO/2
 ```
 
-The adapter discards complete source/destination paths before sending.
-Synchronous results in the same active buffer/window/tab are combined within
-one scheduler cycle; an identity or manager change before output drops them.
-The event confirms only what a public plugin API reports as completion.
-Missing failure/cancellation events are not reconstructed from message text or
-rendering.
+The client discards at most 64 KiB of shell startup output before this marker.
+After it, stdout is reserved for protocol frames and diagnostics use stderr.
+There is no TCP listener, port forwarding, application token, or `hello`
+negotiation.
 
-Capabilities are fixed by v2. Protocol v1, generic TCP listeners, application
-tokens, tunnel ports, and capability hello negotiation are intentionally not
-supported.
+### Local Windows RPC
 
-`terminalControl` exposes one fixed control. `leaveTerminalInputRequest`
-carries a correlated request ID, exact buffer/window/tab identity, and only
-raw mode `t`; its sole operation is Neovim's `stopinsert`. No Lua or Ex text is
-accepted. `leaveTerminalInputResult` returns the request ID, success flag, and
-a fixed result code. Changed tick is intentionally absent because terminal
-jobs update it asynchronously while this mode-only operation neither reads nor
-changes text. The actual transition remains event-driven through
-`ModeChanged`/`TermLeave`, with no polling.
+For local Windows Neovim, `LocalTcpClient` connects directly to Neovim's
+dynamic MessagePack-RPC port on exactly `127.0.0.1`. The SSH marker and stdio
+length framing do not exist on this segment. Notifications are still converted
+to the same protocol-v2 envelope and validated with the same event types and
+1 MiB limit before NVDA receives them. Users cannot configure a host or port.
 
-`clipboardTransfer` exposes only three typed controls. `copyTextRequest` carries
-a correlated request ID, expected buffer/window/tab, changed tick and raw mode,
-plus exactly one source: `visualSelection` or `yankRegister` (register 0).
-`pasteTextRequest` carries the same expected identity and at most 256 KiB of
-valid, NUL-free UTF-8 text. No Lua, Ex command, or arbitrary register name is
-accepted. `setRegisterRequest` carries the same expected identity and text
-limit; its target is fixed to register 0 as the unnamed register's backing
-store, and no register name crosses the protocol.
+## Framing and envelope
 
-`copyTextResult`, `pasteTextResult`, and `setRegisterResult` return the same
-request ID and a fixed result code. Only a copy result may carry one-shot
-`clipboardText`. A response
-that no longer matches focus, control, instance, or request is discarded. The
-text is removed before the local client or bridge updates canonical state, so
-it cannot appear in later `fullState` or `focusContext`. Paste invokes only
-`nvim_paste(..., true, -1)` and stale or failed actions are never retried
-automatically.
-Register storage normalizes CRLF, chooses characterwise or linewise type from
-the trailing newline, and invokes only fixed `setreg('0', ..., type .. '"')`.
-This replaces register 0 and points the unnamed register to it without using a
-named user register.
+An SSH message is a four-byte unsigned big-endian length followed by one
+MessagePack object. A frame is at most 1 MiB.
 
-## File-based session-registry claim and explicit binding
+Every framed protocol message has:
 
-These “registry” entries are short-lived JSON files owned by the Neovim
-plugin, not Windows Registry data. The implementation reads or writes neither
-`HKCU` nor `HKLM`. Windows normally uses
+```text
+protocolVersion      exactly 2
+sessionId            non-empty transport-session identifier
+sequence             monotonic integer starting at 0
+timestampMonotonic   non-negative monotonic timestamp
+type                  non-empty event or control type
+payload               map
+```
+
+Wrong versions, missing fields, invalid types, malformed MessagePack, and
+oversized frames terminate the affected transport instance. Unknown optional
+payload fields may be ignored. State fields such as mode, buffer, cursor, and
+changed tick belong to semantic event payloads; they are not present on every
+transport message such as a heartbeat.
+
+## Session start, ordering, and resync
+
+The first accepted message in each transport session is `fullState` with
+sequence 0. Earlier or foreign session identities are not adopted.
+
+- Duplicate or decreasing sequences are discarded.
+- A sequence gap enters “resync required”.
+- The client sends `requestFullState`.
+- Only a new valid `fullState` leaves that state.
+- An SSH reconnect creates a new `sessionId` and restarts at sequence 0.
+
+The bridge normally sends one `heartbeat` per second. OpenSSH also uses
+`ServerAliveInterval=5` and `ServerAliveCountMax=2`; the client reconnects with
+bounded exponential backoff. The local client has no separate heartbeat: a
+closed RPC socket produces `disconnected`, followed by bounded reconnect.
+
+For both transports, the first valid `fullState` is the add-on's accessibility
+authentication point.
+
+## Fixed capabilities
+
+There is no capability-negotiation handshake. `fullState.payload._transport`
+describes the v2 transport that actually started. SSH stdio supports:
+
+```text
+heartbeat, resync, semanticEvents, cursorRouting, accessibleMenus,
+focusContext, clipboardTransfer, terminalControl
+```
+
+Local `windows-loopback-tcp` supports the same list without `heartbeat`.
+Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
+are not supported.
+
+## File-based session registry and explicit assignment
+
+The “registry” consists of short-lived JSON files owned by the Neovim plugin,
+not Windows Registry data. The implementation reads or writes neither `HKCU`
+nor `HKLM`. Windows normally uses
 `%LOCALAPPDATA%\nvim-nvda\sessions`; Linux uses
 `$XDG_RUNTIME_DIR/nvim-nvda/sessions` or a private per-user `/tmp` fallback.
 
-Schema 3 binds an entry to the actual Neovim RPC endpoint through a random
-`sessionNonce`. On Linux, `processStartTicks` must also match `/proc/<pid>/stat`;
-`ownsSocket` authorizes cleanup only for the exact plugin endpoint containing
-the same PID and nonce; inherited or user-defined sockets are never unlinked.
-A live PID or existing path alone is not an identity proof.
-The private filename contains PID plus nonce; discovery may remove only that
-uniquely owned record after proving it stale.
-A scan processes at most 256 JSON session files and each file is limited to 65,536
-bytes. Discovery and claim polling are passive and open no RPC channel. Once a
-record is selected, its nonce is queried on the same permanent RPC channel
-that will carry events, before plugin setup and channel registration. A
-mismatch disconnects fail-open without reconnecting the rejected endpoint.
+Schema 3 binds a record to the actual Neovim RPC endpoint with a random
+`sessionNonce`. On Linux, `processStartTicks` must also match
+`/proc/<pid>/stat`. `ownsSocket` authorizes cleanup only for the exact plugin
+endpoint containing the same PID and nonce; inherited or user-defined sockets
+are never unlinked. A live PID or an existing path alone is not identity
+proof.
 
-Local and remote session files contain a monotonically increasing
-`claimSequence` and the corresponding `claimedMonotonic` timestamp. Neovim
-recognizes the configured session-marking key from `vim.on_key`'s unchanged
-`typed` value and schedules the session-file write outside the key callback. These
-fields are only a transient claim: they are not protocol event sequencing,
-authentication, a terminal binding, a connection, or Neovim editor marks, and
-they do not survive a plugin restart.
+A scan considers at most 256 JSON files, each at most 65,536 bytes. Discovery
+and claim reads are passive and open no RPC channel. After unique selection,
+the nonce is queried on the same persistent RPC channel that will carry
+events, before plugin setup and channel registration. Mismatch disconnects
+fail-open and does not reconnect to the rejected endpoint.
 
-Activation inventories eligible local and SSH sessions and records their
-claim sequences as a baseline. After the physical F12 press, exactly one fresh
-sequence increase may bind the focused terminal identity and start its typed
-TCP or SSH connection. No match produces no guessed connection; multiple
-matches require explicit selection. Manual target selection narrows the target
-but still requires a fresh physical F12 claim before starting the same typed
-connection path.
+Each record contains a monotonic `claimSequence` and its
+`claimedMonotonic` timestamp. Neovim recognizes the configured marking key
+from `vim.on_key`'s unchanged `typed` value and schedules the file update
+outside the key callback. These fields are only a transient claim; they are not
+event sequencing, authentication, terminal binding, a connection, or Neovim
+editor marks.
 
-An authenticated remembered binding may send `requestFocusContext` with an
-integer `requestId` from 0 through 2147483647. Local and SSH transports answer
-once with `focusContext`, copying the latest canonical event state and adding
-the matching `_focusRequestId`. The add-on discards a reply if request ID,
-instance, exact terminal binding, authentication, or current focus no longer
-matches. This focus-event-driven exchange performs no polling and no terminal
-screen scraping.
+Activation inventories eligible local and SSH sessions and stores their claim
+sequences as a baseline. After physical F12, exactly one fresh increase may
+bind the focused terminal identity and start its typed local or SSH connection.
+No match produces no guessed connection; multiple matches require explicit
+selection. Manual target selection narrows the target but still requires a
+fresh physical F12 claim.
+
+## Event direction
+
+Neovim pushes semantic events. The bridge keeps only the latest confirmed
+canonical state and does not queue events for later replay while no stdio
+client exists.
+
+Important types include `fullState`, `modeChanged`, `characterMoved`,
+`wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
+`textReplaced`, `searchMatchChanged`, `menuOpened`,
+`menuSelectionChanged`, `menuClosed`, `signatureChanged`,
+`diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
+`errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
+`leaveTerminalInputResult`, and `connectionStateChanged`.
+
+Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
+distinct from Normal mode in a file buffer.
+`commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
+`?`, while `commandLine` excludes that prefix. Ex commands are therefore not
+guessed from text. `messageReceived.payload.commandLineReturn=true` marks only
+the immediate proven output of the non-empty Ex command that just ended; a
+later asynchronous message does not inherit it.
+
+`focusContext` is a correlated snapshot of the canonical state.
+`_focusRequestId` links it to the triggering focus request; it is not a
+free-running editor stream.
+
+Buffer text is not transferred wholesale. See `accessibility.md` for the
+semantic feature matrix.
+
+### File-manager payloads
+
+File-manager state carries bounded semantic values. Entry names are at most
+512 UTF-8 bytes, paths and roots at most 2048 bytes, and type or adapter labels
+at most 64 bytes. Truncation occurs only before a complete code point; invalid
+optional adapter text is discarded.
+
+An entry may carry `selectionState` as `marked` or `unmarked`,
+`clipboardState` as `copied`, `cut`, or `none`, and Boolean `expanded`.
+`fileManagerMotion` is restricted to fixed motions such as `lineStart`,
+`lineEnd`, `fileStart`, `fileEnd`, or `lineChanged`. It preserves navigation
+cues without making a decorated manager row the speech source.
+
+`fileManagerActionResult.payload.fileManagerAction` is restricted to:
+
+```text
+manager     UTF-8 label, at most 64 bytes
+action      add | change | copy | create | delete | move | multiple | rename | restore
+result      success | cancelled | failed
+count       integer from 1 through 10000
+name        optional basename, at most 512 UTF-8 bytes
+entryType   optional known semantic type
+```
+
+Complete source and destination paths are removed before sending. Synchronous
+results in the same active buffer/window/tab may be combined within one
+scheduler cycle. A changed identity or manager drops the output. Missing
+failure or cancellation events are not reconstructed from rendering or text.
+
+`promptOpened` carries a deliberate user-facing prompt at most 2048 bytes and
+a fixed prompt kind. `promptClosed` distinguishes acceptance and cancellation
+where Neovim proves it. Oil's narrow `oil_preview` fallback uses only fixed
+action verbs, count, and Y/N; rendered names and paths are cleared.
+
+## Control direction
+
+Only these add-on-to-Neovim controls are permitted:
+
+- `requestFullState` with no content payload;
+- `requestFocusContext` with an integer `requestId` from 0 through
+  2,147,483,647;
+- `routeCursor` with buffer, window, line, UTF-8 byte column, and changed tick;
+- `copyTextRequest` with correlated request ID, expected buffer/window/tab,
+  changed tick and raw mode, plus exactly `visualSelection` or `yankRegister`;
+- `pasteTextRequest` with the same expected identity and at most 256 KiB of
+  valid NUL-free UTF-8 text;
+- `setRegisterRequest` with the same identity and text limit, fixed to register
+  0 as backing storage for the unnamed register;
+- `leaveTerminalInputRequest` with correlated request ID, exact
+  buffer/window/tab identity, and raw mode `t`, fixed to `stopinsert`.
+
+`requestFocusContext` is sent only to an authenticated instance bound exactly
+to the focused terminal control. A mismatched request ID, instance, binding, or
+focus discards its response.
+
+`routeCursor` validates current buffer, window, changed tick, line, UTF-8 byte
+column, and character boundary before calling Neovim's cursor API.
+
+Clipboard results return the same request ID and a fixed result code. Only
+`copyTextResult` may contain one-shot `clipboardText`; it is removed before
+updating canonical state. Paste invokes only `nvim_paste(..., true, -1)`.
+Register storage normalizes CRLF, derives characterwise or linewise type from
+the trailing newline, and invokes only fixed register 0. Stale or failed
+actions are not retried.
+
+`leaveTerminalInputResult` returns the request ID, success flag, and fixed
+code. Changed tick is intentionally absent because a terminal job changes it
+asynchronously while `stopinsert` neither reads nor changes text. The actual
+mode transition remains event-driven through `ModeChanged` or `TermLeave`.
+
+No received text is ever executed as Lua or Ex code.
+
+## Security boundary
+
+For Linux, SSH provides host/account authentication, confidentiality, and
+integrity. The bridge prevents Neovim's powerful general MessagePack-RPC API
+from reaching Windows. Locally, that API remains restricted to IPv4 loopback
+inside the signed-in Windows user context and is not exposed as a configurable
+remote endpoint. See `security.md` for the complete trust model.

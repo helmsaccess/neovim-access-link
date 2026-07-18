@@ -1,9 +1,10 @@
 # Using SSH, tmux, and Neovim
 
 The add-on does not drive the visible shell. Open Windows Terminal, log in with
-SSH normally, enter the desired tmux window or pane, and start `nvim`. The
-separate bridge connection is created only after activation and F12 or manual
-selection.
+SSH normally, enter the desired tmux window or pane, and start `nvim`.
+Activation first uses short, bounded OpenSSH calls to inventory reachable
+sessions. A persistent hidden bridge connection is created only after F12 or
+the manual workflow confirms one specific Neovim session.
 
 Create profiles under `NVDA menu → Preferences → Settings... → Neovim Access
 Link → Connections`, then install components with `NVDA menu → Tools → Neovim

@@ -31,8 +31,8 @@ yet received practical Windows acceptance and will follow incrementally. Their
 evidence below is automated or isolated unless explicitly stated otherwise.
 The netrw fallback is automated against version 184 from Neovim 0.12.3 and
 version 173 from the Neovim 0.10.1 reference version in thin, long, wide, and
-tree presentation. The complete matrix has not yet been practically confirmed
-under Windows/NVDA.
+tree presentation. A broader practical matrix has not yet been confirmed under
+Windows/NVDA.
 The public nvim-tree option `select_prompts = true` and Neo-tree option
 `use_popups_for_input = false` route their dialogs through
 `vim.ui.select/input`; Access Link never changes them automatically. Oil keeps
@@ -46,9 +46,10 @@ Public action forms, including long type names such as `directory` and
 open.
 
 No physical Braille display has been tested. Automated Braille tests cover only
-state and planning, so hardware bugs are very likely. Other Windows/NVDA/
-Neovim versions, SSH variants, languages, and many add-on features also lack
-exhaustive practical coverage. The supported state is alpha to beta.
+state and planning, so hardware-specific defects may remain undiscovered.
+Other Windows/NVDA/Neovim versions, SSH variants, languages, and many add-on
+features also lack exhaustive practical coverage. The supported state is alpha
+to beta.
 
 An older Neovim on Rocky Linux 9 did not connect with the current build; no
 compatibility promise is made for it. GUI front ends, portable Windows layouts,

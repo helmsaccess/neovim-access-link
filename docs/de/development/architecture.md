@@ -1,480 +1,358 @@
 # Architektur
 
-## Gewählte Integration
+Dieses Kapitel erklärt zuerst das Gesamtbild und folgt danach einer Verbindung
+von ihrem Start bis zur Ausgabe. Spezialfälle stehen bewusst am Ende. Wer das
+Projekt zum ersten Mal liest, sollte dieses Kapitel vor dem Protokoll und den
+einzelnen ADRs lesen.
 
-Neovim Access Link verwendet eine hybride Architektur:
+## Ziel und Grundprinzipien
+
+Neovim Access Link macht nicht die sichtbare Terminaloberfläche zugänglich.
+Stattdessen beschreibt das Neovim-Plugin den Editorzustand mit semantischen
+Ereignissen: Modus, Cursor, aktuelle Zeile, Menüauswahl, Meldung oder
+Dateimanagereintrag. Das NVDA-Add-on wandelt diese Daten in Sprache, Klänge und
+Braille um.
+
+Aus diesem Ansatz folgen fünf Regeln:
+
+1. Neovim ist die Quelle für Editorsemantik; Screen-Scraping ist nur ein enger
+   Fallback, wenn keine zuverlässige API oder Ereignisquelle existiert.
+2. Transport, Protokollprüfung, kanonischer Zustand, Präsentation und Fokus
+   bleiben getrennte Schichten.
+3. Netzwerk-, SSH-, Reconnect-, Parsing- und Installationsarbeit blockiert nie
+   NVDAs Hauptthread.
+4. Eine Ausgabe oder Unterdrückung gilt nur für die konkret zugeordnete
+   Neovim-Sitzung und das konkret gebundene Windows-Terminal-Control.
+5. Fehler öffnen den normalen NVDA-Terminalpfad wieder: Das System fällt offen
+   aus, nicht still.
+
+Die Entscheidung für diese Integration ist in
+`adr/0001-neovim-integration-point.md` begründet.
+
+## Laufzeitmodell: drei Prozesse
+
+Zur Laufzeit sind höchstens drei Prozesse beteiligt:
+
+| Prozess | Läuft wo? | Verantwortung |
+|---|---|---|
+| Neovim mit Lua-Plugin | lokal unter Windows oder entfernt unter Linux | Erzeugt semantische Zustände und registriert die Sitzung. |
+| Python-Bridge | nur bei einer entfernten SSH-Verbindung auf Linux | Verbindet den privaten Neovim-RPC-Socket mit einem begrenzten Protokoll über SSH-stdin/stdout. |
+| NVDA mit Add-on | Windows | Verwaltet Verbindungen und Fokus, prüft Ereignisse und plant Sprache, Klänge und Braille. |
+
+`protocol/python/` und `nvda-addon/core/` sind keine weiteren Prozesse. Es sind
+Bibliotheken, die in Bridge beziehungsweise Add-on eingebunden werden. Die
+genauen Quellverzeichnisse und Einstiegspunkte stehen in
+`repository-layout.md`.
+
+## Zwei Datenwege
+
+### Lokales Neovim unter Windows
 
 ```text
-Neovim Lua-Plugin
-  → semantische nvim_nvda_event-RPC-Notifications
-Linux-Bridge über privaten Unix-RPC-Socket
-  → MessagePack-Protokoll v2 über SSH-stdin/stdout
-Windows-NVDA-Add-on
-  → Speech, Braille und sitzungsbezogene Terminalunterdrückung
-
-Native Windows-CLI in Windows Terminal
-  → dasselbe Lua-Plugin und semantische RPC-Notifications
-  → dynamischer Neovim-RPC-Port ausschließlich auf 127.0.0.1
-  → direkter lokaler Client im NVDA-Add-on
+Neovim + Lua-Plugin
+  │ semantische nvim_nvda_event-RPC-Notifications
+  │ dynamischer Listener ausschließlich auf 127.0.0.1
+  ▼
+lokaler Protokollclient im NVDA-Add-on
+  │ geprüfte Protokoll-v2-Nachrichten
+  ▼
+kanonischer Zustand → Sprach-/Klang-/Brailleplanung
 ```
 
-Das Lua-Plugin besitzt den besten Zugriff auf Modi, Auswahl, Completion,
-Meldungen und Aktionen. Die externe Bridge isoliert Neovim von SSH-Lebenszyklus,
-Framing und Abbrüchen. Das NVDA-Add-on bleibt für Fokus, Ausgabe und
-Fail-open-Verhalten zuständig. Die ursprüngliche Variantenbewertung und
-Messungen stehen in `adr/0001-neovim-integration-point.md`.
+Das Plugin startet den Listener mit der festen Adresse `127.0.0.1:0`.
+Neovim wählt den freien Port. Der Client bildet daraus denselben begrenzten
+Nachrichtenvertrag wie bei SSH; es gibt aber keinen Bridgeprozess und kein
+stdio-Framing.
 
-## Unterstützte Transportgrenzen
+### Entferntes Neovim unter Linux
 
-Für entfernte Linux-Sitzungen werden nur SSH-stdio und Protokoll v2
-unterstützt. Das Add-on startet Windows-OpenSSH, und die Bridge verwendet
-dessen stdin/stdout. Für die lokale Windows-CLI verbindet sich ein eigener
-Client direkt mit dem vom Plugin angelegten Neovim-RPC-Port. Dieser muss exakt
-`127.0.0.1` verwenden und wird niemals aus einer frei eingegebenen Adresse
-gebildet. Es gibt keinen allgemeinen TCP-Listener, Tunnel-Port,
-Anwendungstoken, `hello`-Handshake oder Kompatibilitätsmodus.
+```text
+Neovim + Lua-Plugin
+  │ privater Unix-RPC-Socket
+  ▼
+Python-Bridge
+  │ Protokoll v2, gerahmt über SSH-stdin/stdout
+  ▼
+SSH-Client im NVDA-Add-on
+  │ geprüfte Nachrichten
+  ▼
+kanonischer Zustand → Sprach-/Klang-/Brailleplanung
+```
 
-SSH authentifiziert Host und Linux-Konto. `ClearAllForwardings=yes` verhindert,
-dass Benutzerkonfiguration unbeabsichtigt Forwardings in den Bridgeprozess
-übernimmt. ServerAlive und begrenzter Backoff behandeln Abbrüche.
+Das Add-on startet Windows-OpenSSH mit `-T`. Die Bridge verbindet sich mit dem
+privaten Unix-Socket der gewählten Neovim-Sitzung. Sie exponiert nicht Neovims
+allgemeine RPC-Schnittstelle, sondern nur die in `protocol.md` dokumentierten
+Ereignisse und Steuerbefehle. Es gibt keinen Tunnel-Port, allgemeinen
+TCP-Listener oder Laufzeitdownload.
 
-## Expliziter Zwischenablagepfad
+## Zentrale Begriffe
 
-Die Windows-Zwischenablage bleibt Eigentum von NVDA. Vier frei belegbare,
-global auffindbare NVDA-Skripte lesen oder schreiben sie über NVDAs
-`api.copyToClip` und `api.getClipData`; Bridge und Neovim erhalten keinen
-allgemeinen Zugriff auf Windows. Neovim stellt nur zwei feste Copy-Quellen
-bereit – aktive Visual-Auswahl und Register 0 – sowie einen festen
-`nvim_paste`-Einstiegspunkt und Register 0 als festen Speicher für das
-unbenannte Paste-Register. Das Schreiben verändert weder einen Buffer noch ein
-benanntes Benutzerregister.
+Die Begriffe beschreiben verschiedene Stufen und dürfen nicht
+gleichgesetzt werden:
 
-Jede Aktion trägt eine Anfrage-ID und die erwartete Buffer-, Fenster-, Tab-,
-`changedtick`- und Modusidentität. NVDA akzeptiert das Ergebnis nur für die
-weiterhin fokussierte, authentifizierte und gebundene Instanz. Der einmalig
-übertragene Copy-Text wird vor Aktualisierung des kanonischen Client-/Bridge-
-Zustands entfernt. Offene Anfragen sind begrenzt. Der Pfad ist
-ereignisgetrieben; es gibt weder Polling noch
-automatische Zwischenablagesynchronisation oder automatische Wiederholung.
+| Begriff | Bedeutung |
+|---|---|
+| Sitzung | Eine laufende Neovim-Instanz mit geladenem Plugin und eigenem Registryeintrag. |
+| Session-Registry | Privates Verzeichnis mit JSON-Sitzungsdateien. Es ist ausdrücklich nicht die Windows-Registry. |
+| Verbindungsprofil | Gespeicherte Angaben für ein SSH-Ziel; die lokale Windows-Verbindung ist ein eigener fester Zieltyp. |
+| Sitzungsmarkierung | Ausdrücklicher physischer Tastendruck im fokussierten Neovim, standardmäßig F12. |
+| Claim | Monotoner Zähler und Zeitwert im Sitzungsdatensatz, der diese Markierung maschinenlesbar belegt. |
+| Zuordnung oder Binding | Bindung einer konkreten Windows-Terminal-Identität an eine Verbindungsinstanz im Arbeitsspeicher des Add-ons. |
+| Verbindung | Dauerhafter lokaler RPC- oder SSH-stdio-Transport zu genau einer Neovim-Sitzung. |
 
-## Rückkehr aus der Kommandozeile
+Die dateibasierte Session-Registry registriert Neovim-Sitzungen, nicht
+Windows-Terminal-Fenster, Tabs oder Panes. Unter Windows liegt sie normalerweise
+unter `%LOCALAPPDATA%\nvim-nvda\sessions`, unter Linux unter
+`$XDG_RUNTIME_DIR/nvim-nvda/sessions` oder einem privaten, benutzerbezogenen
+Fallback unter `/tmp`. Sie verwendet keine Schlüssel unter `HKCU` oder `HKLM`.
 
-`CmdlineLeave` setzt für einen nichtleeren Ex-Befehl eine einmalige
-Ergebniskorrelation. Nur die unmittelbar folgende, über `msg_show` oder
-`v:statusmsg` belegte `messageReceived`-Ausgabe erhält
-`commandLineReturn=true`; danach wird die Korrelation verworfen. NVDA spielt
-damit den Klang des bereits erreichten Rückkehrmodus und kombiniert die
-Meldung mit der gewählten Fokuspräsentation. Es gibt weder eine zeitbasierte
-Zuordnung noch eine Verzögerung der Modusereignisse; spätere asynchrone
-Meldungen bleiben gewöhnliche Meldungen.
+Eine `TerminalIdentity` bezeichnet das konkrete per UI Automation erkannte
+Terminal-Control. In Windows Terminal kann das der Inhalt eines Tabs oder
+eines einzelnen Panes sein. Ein Fensterhandle allein wäre dafür nicht präzise
+genug.
 
-## Ereignisgetriebene Dateimanageradapter
+## Lebenszyklus einer Verbindung
 
-`file_manager.lua` gewinnt und normalisiert den aktuellen semantischen
-Eintrag. Die davon getrennte Schicht `file_manager_events.lua` abonniert nur
-öffentliche Ereignisse der unterstützten Plugins: Oil-Mutations- und
-`OilActionsPost`-Ereignisse, mini.files-Buffer-/Aktionsereignisse, nvim-trees
-Render-/Datei-/Ordnerereignisse sowie Neo-trees Render-, Clipboard- und
-Dateiaktionsereignisse. Ein Callback liest ausschließlich
-den weiterhin aktiven Buffer beziehungsweise das aktive Fenster über den
-Adapter neu ein. Ein zentraler Vergleich verwirft gleiche Zustände; mehrere
-Callbacks im selben Neovim-Schedulerzyklus ergeben höchstens eine
-Neuauswertung. Fehlende oder inkompatible Plugin-APIs fallen auf die bereits
-vorhandene Navigation zurück. Es gibt keine Timerabfrage und kein
-Dateisystempolling.
+### 1. Das Plugin registriert die Neovim-Sitzung
 
-Die einzige enge Ausnahme von rein semantischen Plugin-APIs ist Oils eigener
-Bestätigungs-Float: Weil Oil vor der Aktion kein öffentliches Ereignis liefert,
-erkennt `file_manager_prompt.lua` ausschließlich einen echten Float mit exakt
-`filetype=oil_preview`. Der ereignisgetriebene Parser untersucht höchstens 200
-Zeilen, akzeptiert nach optionaler Einrückung nur feste Aktionswörter und gibt
-nur Aktion, Anzahl und die Y/N-Auswahl aus. Namen, Pfade und rohe Zeilen
-verlassen Neovim nicht; unbekannte Darstellung fällt offen zurück. Direktes
-Y/N wird im vorhandenen Tasteneingabeereignis beobachtet. Das Bufferende wird
-einen Schedulerzyklus später veröffentlicht, damit die Wahl ohne Timer oder
-Polling im Schließereignis enthalten ist. Es gibt keinen allgemeinen
-Popup-Parser. Risiko, Tests und Ablösung stehen in
-`adr/0003-oil-confirmation-fallback.md`.
+Beim Start lädt `plugin/nvim_nvda.lua` das Lua-Modul. `session.lua` legt einen
+Schema-3-JSON-Datensatz atomar an. Er enthält unter anderem Sitzungskennung,
+Nonce, Prozessdaten, RPC-Endpunkt und Claim-Zähler. Unter Linux gehören Socket
+und Datensatz dem aktuellen Benutzer; unter Windows ist der RPC-Endpunkt fest
+an IPv4-Loopback gebunden.
 
-Der Zustand unterscheidet Auswahlmarkierung, Plugin-Clipboard mit Copy/Cut und
-Expansion. Das Plugin sendet nur Festwerte; der NVDA-Sprachplaner bildet für
-denselben Eintrag Zustandsdifferenzen und verwendet dieselbe kompakte Meldung
-auch für Braille. Diese Ereignisschicht ändert weder Terminalzuordnung noch
-Gate oder native Ausgabe.
-`root` und `currentDirectory` bleiben getrennte, UTF-8-validierte Werte:
-Manager-/Branchwurzel gegenüber fokussierter Ebene. Wo eine öffentliche API
-nur einen der beiden Werte zuverlässig liefert, wird nichts aus dem
-Eintragspfad geraten. Ein Fokuskontext ohne Eintrag reduziert die Ebene lokal
-auf ihren letzten Namen und spricht keinen vollständigen Pfad.
-Oil trennt zusätzlich bearbeiteten Anzeigenamen und bestätigte
-Dateisystemidentität: `parsed_name` steuert den semantischen Namen unmittelbar,
-`name` weiterhin den Pfad bis `:w` und öffentlichem Aktionsabschluss.
-Generische Cursorereignisse werden im Managerkontext zwar weiter als
-`fileManagerEntryChanged` ausgegeben, behalten aber ihre fest erlaubte
-Bewegungsart für Randklänge. So verdrängt die semantische Zeile weder
-Bearbeitungszustand noch Navigationsklang.
+Die Datei ist Discovery-Metadaten, noch keine Vertrauensentscheidung. Ein alter
+oder fremder Datensatz darf deshalb allein weder Ausgabe aktivieren noch ein
+Terminal binden.
 
-Der dauerhafte Brailleplan verwendet bei einem Dateimanagereintrag dieselben
-fest typisierten Namens-, Typ- und Zustandsdaten. Eine Routingabbildung entsteht
-nur, wenn der Name genau einmal in der echten `lineText`-Zeile vorkommt. Zellen
-des synthetischen Typ-/Statussegments sowie mehrdeutige Namen besitzen kein
-Routingziel und werden lokal verworfen; der Rückkanal bleibt unverändert an
-Sitzung, Buffer, Fenster, Zeile und `changedtick` gebunden.
+### 2. Aktivierung erstellt nur eine Inventur
 
-Öffentliche Abschlussereignisse werden getrennt als
-`fileManagerActionResult` normalisiert. Vor dem Transport werden Quell- und
-Zielpfade auf einen optionalen Basename reduziert; Aktion, Ergebnis und Typ
-stammen aus kleinen erlaubten Wertemengen. Synchrone Massenaktionen im selben
-Ziel werden in einem Schedulerzyklus zusammengefasst. Vor der Ausgabe werden
-Buffer, Fenster, Tab und Manager erneut geprüft. Nur Oil stellt in der aktuell
-geprüften API auch Abschlussfehler beziehungsweise einzelne erkennbare
-Abbrüche bereit; für andere Plugins wird ein fehlendes Fehlerereignis nicht
-erraten.
-Die Aktionsmatrix umfasst Erstellen, Hinzufügen, Ändern, Kopieren,
-Umbenennen, Verschieben, Löschen und Wiederherstellen, soweit das jeweilige
-Plugin dafür ein öffentliches Abschlussereignis besitzt. Öffnen einer Datei
-bleibt ein normaler `contextChanged`-Bufferwechsel und verwendet dadurch
-dieselbe profilabhängige Fokusausgabe wie andere Bufferwechsel.
+Beim manuellen Aktivieren liest das Add-on lokale Sitzungsdateien und fragt
+konfigurierte SSH-Ziele im Hintergrund ab. Es merkt die vorhandenen
+Claim-Zähler als Baseline. Diese Inventur stellt keine dauerhafte Verbindung
+her und ordnet auch kein Terminal automatisch zu.
 
-Die eingebauten Adapter werden vor dem Aufruf ausschließlich über den aktiven
-`filetype` gewählt. Externe Adapter bleiben optionale synchrone Erweiterungen.
-Ihre Detector- und Provideraufrufe werden gemessen; drei wiederholte Fehler
-oder Überschreitungen von 5 ms aktivieren eine fünfsekündige Abkühlung für den
-betroffenen Buffer. Die Frist wird nur bei einem ohnehin eintreffenden Ereignis
-geprüft und erzeugt weder Timer noch Polling. `BufWipeout` entfernt den Zustand.
-Die Checkhealth-Ausgabe enthält nur Adaptername und feste Zähler, nie
-Fehlertext, Pfade oder Dateinamen.
+Passwortprofile, die nicht automatisiert geprüft werden können, bleiben über
+die manuelle Zielauswahl erreichbar. Auch dann ist die physische
+Sitzungsmarkierung erforderlich.
 
-## Lokalisierungsgrenze
+### 3. F12 weist das fokussierte Terminal einer Sitzung zu
 
-Nur die NVDA-Seite wählt die menschliche Ausgabesprache. Das GlobalPlugin
-initialisiert NVDAs öffentliche gettext-Domain `nvda` und übergibt deren
-Übersetzungsfunktion an den ansonsten NVDA-unabhängigen `SpeechPlanner`.
-Bridge, Protokoll und Neovim-Plugin übertragen weiterhin typisierte Zustände,
-Dokumentinhalt und fremde Meldungen unverändert; sie kennen keine aktive
-NVDA-Sprache und laden keine Kataloge. Damit bleibt die Sprachwahl am letzten
-vertrauenswürdigen Präsentationspunkt und beeinflusst weder Transport noch
-Sitzungszustand.
+Die F12-Mechanik verbindet zwei voneinander unabhängige Beobachtungen:
 
-PO/POT sind versionierte Entwicklerquellen außerhalb des Add-on-Stagingbaums.
-Der deterministische Builder prüft und kompiliert sie in
-`locale/<Sprache>/LC_MESSAGES/nvda.mo`; nur MO und optionale übersetzte
-Manifestfelder werden ausgeliefert. Fehlende Einträge verwenden gettexts
-englischen Fallback und dürfen Aktivierung, Verbindung oder Fail-open niemals
-verhindern.
+1. Die Windows-Terminal-AppModule sieht über NVDAs öffentliche
+   `decide_executeGesture`-Grenze, in welchem konkreten Terminal-Control der
+   physische Tastendruck stattfand. Sie lässt die Taste unverändert an die
+   Anwendung weiterlaufen.
+2. Das Neovim-Plugin erkennt dieselbe unveränderte Taste mit `vim.on_key`.
+   Außerhalb des Eingabe-Callbacks erhöht es atomar `claimSequence` und
+   aktualisiert den monotonen Zeitwert seiner Sitzungsdatei.
+3. Das Add-on liest die Kandidaten erneut. Nur ein gegenüber der Baseline
+   frischer, eindeutiger Claim darf die Zuordnung auslösen. Kein Treffer bleibt
+   wirkungslos; mehrere Treffer erfordern eine Auswahl.
 
-## Verteilung der Linux-Komponenten
+Der Claim selbst öffnet keinen Transport und authentifiziert keine Sitzung. Er
+belegt nur, welche Neovim-Instanz den Tastendruck gesehen hat. Die eigentliche
+Zuordnung bleibt ausschließlich im Speicher des Add-ons und kann für mehrere
+Tabs, Panes und Fenster getrennt bestehen.
 
-Der Add-on-Build erzeugt aus den versionierten Bridge-, Protokoll-, Plugin- und
-Installerquellen ein rootloses Benutzerarchiv und bettet es als
-`resources/server-user.tar.gz` in die `.nvda-addon` ein. Die Installation auf
-ein gespeichertes SSH-Ziel überträgt ausschließlich diese eingebetteten Bytes;
-es existiert kein Laufzeitdownload und keine zweite, möglicherweise
-abweichende Paketquelle.
+### 4. Der dauerhafte Transport wird authentifiziert
 
-Eine validierte JSON-Komponenten-Konfiguration wird sowohl neben dem Archiv im
-Add-on als auch im Linux-Paket ausgeliefert. Sie bindet die Neovim-Taste zur
-expliziten Sitzungsmarkierung an die korrespondierende NVDA-Geste. Der Build
-verhindert widersprüchliche Werte, damit beide Enden nach einer gemeinsamen
-Installation denselben Handshake verwenden.
+Nach der Zuordnung startet genau eine `ConnectionInstance` den lokalen RPC-
+oder SSH-stdio-Transport. Auf dem dauerhaften Neovim-RPC-Kanal wird die Nonce
+des Sitzungsdatensatzes geprüft, bevor das Plugin diesen Kanal registriert und
+semantische Ereignisse sendet. Discovery öffnet keine kurzlebigen
+Editor-RPC-Verbindungen.
 
-Das unveränderte Neovim-Plugin liegt zusätzlich als
-`resources/neovim-plugin` im Add-on. Der Komponenten-Dialog installiert dieses
-lokal atomar in
-`%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`; die lokale
-Installation benötigt weder SSH noch Administratorrechte.
+Der erste gültige `fullState` ist der Authentifizierungspunkt auf der
+Add-on-Seite. Erst danach darf die Instanz strukturierte Ausgabe übernehmen.
+Bei SSH kommen zusätzlich Host- und Benutzer-Authentifizierung durch OpenSSH,
+ein festes Protokoll-v2-Markerformat, Sequenzprüfung und Heartbeats hinzu.
 
-## Begriffe: Markierung, Claim, Zuordnung und Verbindung
+### 5. Ereignisse werden zu Ausgabe
 
-Eine **Sitzungsmarkierung** ist die ausdrückliche Benutzeraktion im
-fokussierten Neovim, standardmäßig ein physischer Druck auf F12. Sie ist nicht
-mit Neovims Editor-**Marks** wie `ma` oder `'a` zu verwechseln.
+Das Plugin veröffentlicht kleine, typisierte Ereignisse. Protokollclient und
+Bridge begrenzen und validieren sie, bevor ein kanonischer Zustands-Cache
+aktualisiert wird. Der `SpeechPlanner` und der dauerhafte Brailleplan erhalten
+diesen Zustand; sie führen keine Netzwerk- oder Neovim-Aufrufe aus.
 
-Ein **Claim** ist ausschließlich der flüchtige, maschinenlesbare Nachweis
-dieser Sitzungsmarkierung im privaten Registryeintrag der Neovim-Instanz:
-`claimSequence` wird monoton erhöht und `claimedMonotonic` aktualisiert. Ein
-Claim öffnet noch keinen Transport, authentifiziert keine Gegenstelle, wählt
-keinen Terminal-Tab dauerhaft aus und wird nach einem Pluginneustart nicht
-beibehalten.
+Empfangsthreads rufen NVDA nicht direkt auf. Sie stellen fertige Ergebnisse
+mit `queueHandler` in NVDAs Ereigniswarteschlange. Nur dort werden Sprache,
+Klänge, Braille und UI aktualisiert.
 
-Die **Claim-Auswertung** vergleicht die nach dem Tastendruck gelesenen Werte
-mit der bei der Aktivierung erfassten Baseline. Nur genau ein frischer Treffer
-darf zur **Zuordnung** führen. Diese Zuordnung bindet die stabile
-`TerminalIdentity` des fokussierten Windows-Terminal-Controls an eine neu gestartete
-`ConnectionInstance`. Erst deren erfolgreicher TCP- oder SSH-Handshake ergibt
-eine **Verbindung** und erlaubt strukturierte Ausgabe beziehungsweise native
-Terminalunterdrückung. Die manuelle Zielauswahl schränkt die Suche auf das
-gewählte Profil ein, verlangt danach aber dieselbe physische Markierung und
-frische Claim-Auswertung, bevor sie den typisierten Verbindungs- und
-Zuordnungspfad startet.
+### 6. Fokuswechsel fordert einen bestätigten Kontext an
 
-## Dateibasierte Neovim-Sitzungsregistrierung
+Beim Wechsel zwischen Windows-Terminal-Controls prüft der
+`ConnectionInstanceManager` die exakte `TerminalIdentity`. Eine gemerkte
+Zuordnung reicht nicht sofort zur Unterdrückung: Das Gate wird zunächst
+geschlossen und die zugeordnete, bereits authentifizierte Instanz erhält eine
+`requestFocusContext`-Anfrage.
 
-„Registry“ ist hier ein historischer Kurzname für ein privates Verzeichnis mit
-JSON-Sitzungsdateien und ausdrücklich **nicht** die Windows-Registry. Der Code
-verwendet keine Schlüssel unter `HKCU` oder `HKLM`. Unter Windows liegen die
-Dateien normalerweise in `%LOCALAPPDATA%\nvim-nvda\sessions`, unter Linux in
-`$XDG_RUNTIME_DIR/nvim-nvda/sessions` beziehungsweise im benutzerbezogenen
-Fallback-Verzeichnis unter `/tmp`. Die Dateien registrieren Neovim-Sitzungen,
-nicht Windows-Terminal-Fenster, -Tabs oder -Panes. Deren konkrete Bindung an
-eine Verbindung existiert ausschließlich im Arbeitsspeicher des NVDA-Add-ons.
+Nur eine Antwort mit passender Anfrage-ID, Instanz, Bindung und weiterhin
+identischem Fokus öffnet das Gate wieder. So kann ein anderer Tab, ein anderes
+Pane oder ein Shell-Control im selben Fenster nicht versehentlich den Zustand
+einer früheren Neovim-Sitzung übernehmen.
 
-Unter Linux startet oder übernimmt jede Neovim-Instanz einen privaten
-Unix-RPC-Socket. Unter Windows startet sie zusätzlich einen dynamischen
-`127.0.0.1`-RPC-Port. Beide schreiben eine JSON-Sitzungsdatei mit Schema 3,
-Transporttyp, PID, Endpoint, Startzeit, Name und Arbeitsverzeichnis. Die
-Sitzungsregistrierung liegt im privaten Laufzeitverzeichnis des Linux-Benutzers
-beziehungsweise unter `%LOCALAPPDATA%\nvim-nvda\sessions`.
+### 7. Trennung und Deaktivierung fallen offen aus
 
-Aktuelle Einträge enthalten zusätzlich eine zufällige `sessionNonce`, den
-Besitzstatus des Endpoints und unter Linux die Prozessstartkennung aus `/proc`.
-Schema-3-Dateinamen enthalten PID und Nonce, sodass die Bereinigung eines alten
-Eintrags niemals die Datei eines Prozesses mit wiederverwendeter PID trifft.
-Discovery prüft PID, Prozessstart und Registrystruktur passiv. Erst nach der
-Auswahl prüft der anschließend dauerhaft verwendete RPC-Kanal seine Nonce vor
-Plugin-Setup und Registrierung. Ein Unterschied trennt fail-open ohne
-Wiederverbindung. Eindeutig tote Einträge und exakt nonce-eindeutige eigene Pluginsockets
-werden entfernt; übernommene oder benutzerdefinierte Socketpfade nie.
-Timeouts und Zugriffsfehler bleiben nicht-destruktiv. Ältere Registry-Schemata
-werden wegen fehlender Prozess-/Endpointidentität nicht mehr zur Auswahl
-angeboten; laufende ältere Neovim-Instanzen müssen nach dem Komponentenupdate
-neu gestartet werden. Die Bridge kann eine
-Sitzung über die interne PID auswählen. Das
-Add-on listet Sitzungen mit Anzeigename und Arbeitsverzeichnis; IDs bleiben
-interne Transportdaten.
+Bei Protokollfehlern, Sequenzlücken, ungültigem Zustand, Transportende,
+Fokusverlust oder manueller Deaktivierung verliert die betroffene Instanz ihre
+Authentifizierung. Das Gate gibt die native Terminalausgabe wieder frei.
+Reconnects laufen mit begrenztem Backoff im Hintergrund; sie dürfen die
+Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 
-Die bevorzugte Zuordnung erfolgt über die konfigurierte Markierungstaste. Beim
-Aktivieren erfasst ein begrenzter Hintergrundscan die lokalen Sitzungsdateien und alle
-ohne Passwortdialog erreichbaren gespeicherten SSH-Ziele. Das Windows-Terminal-
-App-Modul beobachtet F12 am öffentlichen Erweiterungspunkt
-`decide_executeGesture`, ohne ein Skript zu binden. NVDAs normale Auflösung
-endet daher mit `NoInputGestureAction`, und der Keyboard-Hook lässt den
-ursprünglichen physischen Tastendruck direkt zu Windows Terminal und Neovim
-durch. Der Beobachter stellt nur die begrenzte Claim-Auswertung getrennt in
-NVDAs Ereigniswarteschlange und bleibt bei deaktivierter Unterstützung inaktiv.
-Neovim erkennt die konfigurierte Claim-Taste am unveränderten `typed`-Wert von
-`vim.on_key` statt über eine terminalcodeabhängige Zuordnung. Den Registry-
-Schreibzugriff stellt es mit `vim.schedule()` in den normalen Ereigniszyklus,
-sodass der Tastencallback keine Dateisystem- oder regulären Vim-Funktionszugriffe
-ausführt. Anschließend vergleicht das Add-on die
-monotone Claim-Sequenz jeder erfassten Sitzung mit ihrer Baseline. Genau eine
-veränderte Sitzung wird gebunden. Für lokale Sitzungen gilt zusätzlich der
-für den beobachteten Tastendruck erfasste monotone Zeitanker; dadurch wird
-genau der zu diesem F12-Druck gehörende Registry-Claim erkannt. Mehrere echte Treffer werden zugänglich zur
-Auswahl angeboten und kein Treffer führt zu keiner geratenen Verbindung. Eine
-Standardverbindung existiert nicht. Alternativ wählen NVDA-Dialoge Ziel und
-gegebenenfalls Sitzung mit verständlichen Namen. Fenstertitel werden nicht
-ausgewertet.
+## Zuständigkeiten der Schichten
 
-## Verbindungsprofile und Laufzeitinstanzen
+| Schicht | Besitzt | Besitzt ausdrücklich nicht |
+|---|---|---|
+| Neovim-Plugin | Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten, Menüs, Meldungen, Dateimanagerzustand | Windows-Fokus, Sprache, SSH-Lebenszyklus |
+| Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
+| Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
+| `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
+| `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
+| Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
+| Global Plugin | Einstellungen, Lebenszyklus, Verbindungsdienste, global auffindbare Befehle | ungeprüfte Übernahme fremder Terminal-Controls |
+| Windows-Terminal-AppModule | UIA-Ereignisse, konkrete Terminalidentität, Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 
-Ein `ConnectionProfile` beschreibt ein Linux-Zielkonto: Name, Host/Alias,
-Benutzer, Port, optionale Schlüsseldatei und Anmeldeart. Es ist keine laufende
-Verbindung und trägt keine Priorität oder Standardrolle. Das lokale Windows-
-Ziel ist implizit verfügbar und benötigt kein gespeichertes Profil.
+Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
+nicht; auch Instanz, Fokus und Gate müssen passen.
 
-Ein typisiertes `ConnectionTarget` trennt `remoteSsh` und `localWindowsTcp`;
-das lokale Ziel ist kein vorgetäuschtes SSH-Profil. Jede
-`ConnectionInstance` besitzt eine eigene Instanz-ID, Ziel-ID, Transporttyp,
-interne Sitzungs-ID und einen eigenen `SshStdioClient` oder `LocalTcpClient`. Der
-`ConnectionInstanceManager` bindet Terminalidentitäten ausdrücklich an
-Instanzen. Ohne Bindung werden Ereignisse nicht geraten oder anhand von
-Fenstertiteln zugeordnet.
+## Das Fail-open-Gate
 
-Nur Ereignisse der für das fokussierte Terminal ausgewählten Instanz erreichen
-Speech, Braille und das Session-Gate. Beim Umschalten werden Ausgabeplaner und
-Cursorzustand geleert und `fullState` angefordert. Das Beenden einer Instanz
-beendet nur deren SSH-Prozess beziehungsweise lokalen RPC-Client.
+`SessionGate.suppression_active` ist nur wahr, wenn gleichzeitig:
 
-## Flüchtige Frontend-Zuordnung
+- die Funktion manuell aktiviert ist;
+- die Instanz authentifiziert ist;
+- Neovim aktiv ist;
+- kein Terminal-Passthrough für direkte Terminaleingabe gilt;
+- ein unterstütztes Terminal-Control fokussiert ist;
+- und dessen vollständige Identität exakt der gebundenen Identität entspricht.
 
-`frontend-policy.json` beschreibt bekannte Frontendadapter und deren Status.
-Eine Konfiguration darf nur Adapter aktivieren, die der Code tatsächlich
-implementiert. Derzeit ist ausschließlich `windowsTerminal` aktiviert; PuTTY
-ist nur als geplant eingetragen und besitzt noch keinen Detektor.
+Fehlt eine Bedingung, verarbeitet NVDA das Terminal wieder auf normalem Weg.
+Das Add-on wird deshalb nicht pauschal für ein ganzes Windows-Terminal-Fenster
+oder für alle Tabs aktiv.
 
-NVDA lädt `appModules/windowsterminal.py` ausschließlich für Windows Terminal;
-damit ist die Anwendungsgrenze bereits durch das vorgesehene AppModule-Modell
-festgelegt. Innerhalb dieses AppModules entsteht ein `TerminalIdentity` nur bei
-einer freigegebenen UIA-Klasse `TermControl` beziehungsweise `WPFTermControl`
-und einer nichtleeren UIA-Runtime-ID. Die
-flüchtige Identität enthält Prozess-ID, Fensterhandle und die undurchsichtig
-behandelte Runtime-ID. Dadurch bleiben Tabs oder Panes mit gleichem Prozess und
-Fenster unterscheidbar. Generische Fensteridentitäten werden nicht mehr als
-Terminalfrontend akzeptiert.
+## Zustand, Reihenfolge und Spalten
 
-Frei belegbare Befehle ohne Standardgeste liegen als globale Skriptmetadaten
-vor, damit NVDA sie unabhängig von der vor dem Eingabedialog fokussierten
-Anwendung immer auflistet. Bei ihrer Ausführung liest die globale Dienstklasse
-einmal das aktuelle Fokusobjekt. Nur eine vollständig freigegebene
-Windows-Terminal-`TermControl`-Identität wird an die Aktion delegiert und als
-aktueller Fokus übernommen. Außerhalb davon wird die Benutzer-Geste unverändert
-mit `gesture.send()` weitergegeben; Gate, Bindungen und Unterdrückung bleiben
-unverändert. F12, Fokusereignisse, Overlays und der standardbelegte
-Diagnosebefehl bleiben ausschließlich im Windows-Terminal-AppModule.
-Undokumentierte AppModule-Aliase erhalten bereits vor dieser Umstellung
-gespeicherte Gestenzuweisungen, bilden aber keine zweite Konfigurationsfläche.
+Jedes Ereignis gehört zu einer Sitzung und trägt eine monotone Sequenznummer.
+Lücken lösen Resync aus; `fullState` stellt einen vollständigen, validierten
+Ausgangspunkt wieder her. Zustände verschiedener Verbindungsinstanzen werden
+nicht vermischt.
 
-Nach einer expliziten Verbindung kann der Anwender das Merken bestätigen. Die
-Zuordnung `TerminalIdentity → ConnectionInstance` lebt ausschließlich im RAM.
-Bei unbekannter, abgelehnter, verschwundener oder nicht mehr gebundener ID wird
-nichts geraten und keine Verbindung automatisch erzeugt. Der Transporttyp
-hält lokales Windows-Neovim dabei strikt von `remoteSsh` getrennt.
+Cursorpositionen unterscheiden:
 
-Solange Verbindungen bestehen, prüft ausschließlich ein fünfminütiger
-Wartungslauf HWND, Prozess-ID und UIA-Runtime-ID. Diese Prüfung läuft nie aus
-Editorereignissen, Verbindungsstatus, Fokusbehandlung oder Aktionen heraus.
-Die fokussierte Identität ist ein positiver Lebensnachweis; ein inaktiver Tab
-wird erst nach zwei aufeinanderfolgenden negativen Wartungsprüfungen getrennt.
-Damit kann eine einzelne vorübergehende UIA-Lücke keine aktive oder inaktive
-Zuordnung zerstören. Das Stoppen des zugehörigen Clients geschieht außerhalb
-des NVDA-Hauptthreads und beendet weder Neovim noch tmux.
+- Zeile;
+- UTF-8-Bytespalte für Neovim-APIs und Protokoll;
+- Unicode-Zeichenposition für menschliche Ausgabe;
+- virtuelle Spalte für Tabs und Anzeigeausrichtung;
+- visuelle Spalte beziehungsweise Auswahlgrenzen, wo der Modus sie benötigt.
 
-## Threading und Lebenszyklus
+Eine Zahl darf nicht ohne ihren Spaltentyp zwischen diesen Ebenen übernommen
+werden. Details und Feldgrenzen stehen in `protocol.md`.
 
-- Neovim-Callbacks erzeugen kleine Zustands-Snapshots und RPC-Notifications.
-- Die Linux-Bridge liest Neovim-RPC und schreibt den SSH-stdio-Transport in
-  Hintergrundthreads.
-- Jeder Windows-SSH-Client besitzt einen kontrollierten Hintergrundthread.
-- Jeder lokale RPC-Client besitzt ebenfalls einen kontrollierten
-  Hintergrundthread; Socket-I/O läuft nie im NVDA-Hauptthread.
-- SSH-Aufbau, DNS, Lesen, Reconnect und Installation laufen nie im
-  NVDA-Hauptthread.
-- Die Zielerfassung nutzt höchstens vier Hintergrundarbeiter. Passwortprofile
-  werden nur erfasst, wenn ihr Passwort bereits flüchtig für die aktuelle
-  NVDA-Laufzeit vorliegt; der Scan öffnet niemals selbst einen Passwortdialog.
-- Ereignisse und Verbindungszustände gelangen über `queueHandler` zurück in den
-  NVDA-Hauptthread.
-- Verzögerte wx-Hauptthread-Aufrufe bleiben bis zu ihrer Ausführung im Besitz
-  des Add-ons und werden bei dessen Beendigung gestoppt; insbesondere darf der
-  kurze Abstand zwischen F12-Weiterleitung und Registry-Nachsuche nicht durch
-  Speicherbereinigung aufgehoben werden.
-- Abschalten setzt Stop-Ereignisse, beendet Prozesse/Sockets und verwendet
-  begrenzte Thread-Joins.
+## Rückrichtung: kleiner erlaubter Steuerkanal
 
-Ein verspätetes Sitzungslisting trägt eine Generationsnummer. Nach
-Deaktivierung oder neuer Auswahl wird sein Ergebnis verworfen.
+Der Rückkanal ist eine feste Allowlist und keine allgemeine Remote-Steuerung:
 
-## Zustands- und Ausgabeschichten
+- `requestFullState` und `requestFocusContext` fordern Zustand an;
+- `routeCursor` setzt einen validierten Cursor aus einer Braille-Routingaktion;
+- `copyTextRequest`, `pasteTextRequest` und `setRegisterRequest` vermitteln
+  explizite Zwischenablageaktionen;
+- `leaveTerminalInputRequest` führt ausschließlich das feste Neovim-
+  `stopinsert` aus.
 
-Neovim ist die kanonische Quelle. Das Lua-Zustandsmodell unterscheidet UTF-8-
-Bytespalten, Zeichenpositionen und virtuelle Spalten. Es überträgt begrenzte
-semantische Zustände statt des gesamten Buffers.
+Zustandsändernde Anfragen tragen die erwartete Sitzungs-, Buffer-, Fenster-,
+Tab-, Modus- und, wo nötig, `changedtick`-Identität. Text wird nie als Lua- oder
+Ex-Code ausgeführt. Die vollständigen Payloads und Sonderregeln stehen in
+`protocol.md`, die Sicherheitsannahmen in `security.md`.
 
-Der NVDA-unabhängige `SpeechPlanner` wandelt Ereignisse in priorisierte
-Aktionen um. Das Windows-Terminal-AppModule nimmt anwendungsspezifische NVDA-
-Ereignisse, F12 und die Standardgeste für den Diagnosebericht entgegen; der
-gemeinsame Dienst führt Speech-, Sound- und Braille-APIs aus. Das Global Plugin
-besitzt keine Ereignishandler oder Overlays. Seine unbelegten Skriptadapter
-machen konfigurierbare Befehle global auffindbar und delegieren erst nach
-strikter WT-Fokusprüfung. Braille verwendet einen eigenen Planer und überlässt
-Liblouis-Übersetzung, Cursorform und Auswahlpunkte 7/8 NVDA.
+## Ereignisse, Polling und Fallbacks
 
-Das Add-on registriert einen validierten Abschnitt `NeovimAccessLink` in NVDAs
-`config.conf`. Dadurch übernimmt NVDAs Aggregationsschicht Vererbung und das
-Schreiben in das jeweils aktive Konfigurationsprofil. Das Add-on beobachtet
-`post_configProfileSwitch`, lädt die wirksamen Werte neu und aktiviert selbst
-keine Profile. Rückmeldungen ändern sich unmittelbar; laufende authentifizierte
-Editorverbindungen werden durch einen Profilwechsel nicht beendet.
-Alte Add-on-IDs, separate JSON-Einstellungsdateien und Konfigurationsschemata
-werden bewusst weder gelesen noch konvertiert.
+Der normale Editor-, Fokus-, Transport- und Dateimanagerpfad ist
+ereignisgetrieben. Polling ist nur als begrenzte Notlösung zulässig, wenn keine
+zuverlässige Ereignisstruktur existiert. Der aktuelle Code besitzt zwei solche
+Ausnahmen:
 
-Das `SessionGate` unterdrückt native Terminalausgabe nur, wenn manuelle
-Aktivierung, authentifizierter vollständiger Zustand, Neovim-Kontext und
-Terminalbindung gleichzeitig gültig sind. Disconnect, Fehler, Terminalmodus
-mit direkter Eingabe und Deaktivierung stellen normale NVDA-Ausgabe wieder her.
+1. Nach einer ausdrücklichen lokalen F12-Markierung liest ein Worker die
+   Sitzungsdateien alle 50 ms für höchstens 1,5 Sekunden, weil der atomare
+   Dateiwechsel kein zuverlässiges Ereignis in NVDA auslöst. Die Schleife ist
+   benutzergesteuert, zeitlich begrenzt und öffnet keine RPC-Verbindungen.
+2. Die Adapter für `nvim-cmp` und `blink.cmp` fragen im Abstand von 35 ms deren
+   öffentliche Auswahl-API ab, aber nur solange das jeweilige Plugin sein Menü
+   als geöffnet gemeldet hat. Die Plugins bieten derzeit kein verlässliches
+   Ereignis für jede Auswahländerung. Schließen des Menüs beendet den Timer.
 
-## Fokus-Kontext registrierter Terminal-Controls
+Der fünfminütige Terminal-Lifecycle-Sweep ist davon zu unterscheiden. Er ist
+eine langsame Wartungsprüfung für geschlossene Windows-Terminal-Controls, nicht
+die Quelle für Editorzustand oder Fokusaktionen. Zwei negative
+Lebensnachweise sind erforderlich, bevor eine Bindung entfernt wird; Fehler
+öffnen das Gate.
 
-Erhält ein bereits authentifiziertes und gemerktes Windows-Terminal-Control
-erneut Fokus, fordert das Add-on einmalig den aktuellen strukturierten Kontext
-an. Lokaler Client oder SSH-Bridge antworten aus ihrem durch Neovim-Ereignisse
-gepflegten Zustands-Cache. Eine Request-ID bindet die Antwort an genau dieses
-Fokusereignis. Vor jeder Ausgabe werden aktuelle Fokusidentität, Instanz,
-Bindung und Authentifizierung erneut geprüft. Fokusverlust verwirft offene
-Anfragen. Ungebundene Controls senden keine Anfrage und empfangen keine
-Add-on-Ausgabe. Dieses Verfahren ist ereignisgetrieben; Polling und
-Terminal-Screen-Scraping sind dafür ausdrücklich ausgeschlossen.
-Die Präsentation der bestätigten Antwort ist profilabhängig wahlweise still,
-die aktuelle strukturierte Zeile oder der bisherige Datei-/Spezialkontext mit
-Modus und benutzerdefiniertem Verbindungsnamen. Diese Auswahl verändert weder
-die Anfrage noch ihre Gate-Wirkung. Insert- und Normalmodusklänge werden erst
-nach derselben erfolgreichen Korrelation und unabhängig von der gewählten
-Ansage geplant; die vorhandenen Klangschalter bleiben maßgeblich. Technische
-SSH-Zieladressen gelangen nicht in den semantischen Editorzustand.
+Dateimanager verwenden Pluginereignisse. Nur Oils Bestätigungs-Float benötigt
+den in `adr/0003-oil-confirmation-fallback.md` beschriebenen, eng begrenzten
+Parser. Er wird durch Buffer-/Fensterereignisse ausgelöst und pollt weder
+Bildschirm noch Dateisystem.
 
-## Control-spezifische Zuordnung in Windows Terminal
+## Spezialisierte Teilsysteme
 
-Das strenge Session-Gate begrenzt die Unterdrückung nativer Ausgabe. Windows Terminal unterscheidet
-Fenster, Tabs und Panes. Die aktuelle `TerminalIdentity` bezeichnet ein
-UI-Automation-`TermControl` über Prozess, Fensterhandle und Runtime-ID. Bis dies
-für alle unterstützten Windows-Terminal-Layouts praktisch belegt ist, muss die
-Entwicklerdokumentation von Terminal-Steuerelement oder Pane sprechen und darf
-nicht pauschal einen Tab annehmen.
+### Kommandozeile, Terminal und Meldungen
 
-Die erste Abschottungsstufe setzt folgende Grenzen:
+Neovim liefert den Kommandozeilentyp und -inhalt strukturiert. Eine
+`CmdlineLeave`-Korrelation verbindet nur die unmittelbar belegte Meldung eines
+Ex-Befehls mit dem bereits erreichten Rückkehrmodus. Zeitabstände werden nicht
+als Semantik interpretiert. Terminal-Insert, `terminalNormal` und normaler
+Dateibuffer-Modus bleiben unterschiedliche Zustände; Passthrough öffnet das
+Gate während direkter Terminaleingabe.
 
-- Der Aktivierungsbefehl ist in jedem Control ausschließlich der globale
-  Ein-/Ausschalter. Bei eingeschaltetem Dienst autorisiert der physische
-  F12-Druck selbst genau einen Zuordnungsversuch für das fokussierte
-  `TermControl`; die verzögerte Hauptthread-Prüfung verwirft ihn bei jedem
-  zwischenzeitlichen Identitätswechsel.
-- Eine zentrale, von den WT-AppModule-Instanzen gemeinsam besessene
-  Beobachterregistrierung verhindert mehrfache Add-on-Aktionen.
-- In einem ungebundenen Control darf F12 als ausdrückliche Benutzeraktion eine
-  einmalige, bounded Registry-/Zielprüfung starten. Ohne frischen Neovim-Claim
-  entstehen keine Meldung, Auswahl, Bindung oder Unterdrückung.
-- Ereignisse anderer verbundener Instanzen werden verworfen und dürfen keine
-  aktivitätsbasierte Umbindung oder Add-on-Oberfläche auslösen.
-- Fokusverlust suspendiert das Gate fail-open. Beim Wechsel zu einer gemerkten
-  Bindung wird die vorhandene authentifizierte Verbindung nur ausgewählt. Erst
-  die zu Control, Instanz und Request-ID passende frische `focusContext`-Antwort
-  reaktiviert Unterdrückung. Verspätete Antworten und zwischenzeitliche
-  Editorereignisse bleiben wirkungslos.
-- Mehrere gebundene Tabs, Split-Panes und Fenster behalten getrennte
-  Instanz- und Laufzeitzustände und können weiterhin gewechselt werden.
+### Zwischenablage
 
-Folgende Pfade bleiben weiter zu untersuchen:
+Die Windows-Zwischenablage bleibt Eigentum von NVDA. Frei belegbare NVDA-
+Befehle übertragen nur auf ausdrückliche Aktion eine Visual-Auswahl oder
+Register 0 nach Windows, Windows-Text über `nvim_paste` nach Neovim oder in das
+feste Register 0. Anfrage-ID und erwarteter Editor-/Fokuszustand verhindern,
+dass eine verspätete Antwort auf eine andere Sitzung angewendet wird. Es gibt
+keine automatische Synchronisation oder Wiederholung.
 
-- `focusContext` beweist eine frische Antwort der richtigen Neovim-Instanz,
-  aber noch nicht unabhängig, dass innerhalb desselben `TermControl` nicht
-  inzwischen eine Shell oder ein anderes tmux-Fenster sichtbar ist. Eine
-  zusätzliche ereignisgetriebene Korrelation mit Neovim `FocusGained` und
-  `FocusLost` ist zu prototypisieren.
-- Die Braille-Overlayklasse wird für jedes geeignete
-  Windows-Terminal-Steuerelement erwogen und ist ohne gebundenen strukturierten
-  Zustand auf korrektes Fallback angewiesen.
+### Dateimanager
 
-Die verbleibenden Pfade bedeuten, dass vollständige Wirkungslosigkeit in allen
-Layouts erst nach praktischem Negativtest als belegt gelten kann. Terminaltext oder
-Titel dürfen diese Evidenzlücke nicht durch Screen Scraping schließen;
-Unsicherheit muss fail-open bleiben.
+`file_manager.lua` normalisiert den aktiven Eintrag; getrennte Adapter
+abonnieren öffentliche Ereignisse von Oil, netrw, mini.files, nvim-tree und
+Neo-tree, soweit verfügbar. Sie übertragen typisierte Namen, Arten, Zustände
+und Aktionsresultate statt dekorierter Bildschirmzeilen. Fehlende Plugin-APIs
+fallen auf vorhandene Navigation zurück. Die Funktionsmatrix und der praktische
+Teststand stehen in `accessibility.md` und `current-status.md`.
 
-## Sicherheitsgrenzen
+### Lokalisierung und Paketierung
 
-- Das Anwendungsprotokoll erlaubt keinen allgemeinen Neovim-RPC-Zugriff.
-- Der einzige zustandsändernde Rückkanal ist validiertes Cursorrouting.
-- Profile validieren Host, Benutzer, Port, Schlüsselpfad und Anmeldeart vor dem
-  Prozessstart.
-- Passwörter werden nur im Speicher und in der Umgebung des kurzlebigen
-  OpenSSH-Prozesses gehalten.
-- Diagnosefelder mit Editorinhalt oder Geheimnissen werden redigiert und
-  begrenzt.
+Nur die NVDA-Seite lokalisiert Benutzertexte. Bridge, Protokoll und Plugin
+übertragen typisierte Werte und Dokumentinhalt ohne Kenntnis der aktiven
+Sprache. Der Build kompiliert PO-Dateien in NVDAs gettext-Domain und bettet
+außerdem Bridge, Protokoll, Plugin und Installer als rootloses Linux-
+Benutzerpaket in das Add-on ein. Die Remoteinstallation verwendet dieses
+eingebettete Paket und lädt zur Laufzeit nichts nach.
 
-## Implementierte lokale Erweiterung und weitere Frontends
+## Regeln für Erweiterungen
 
-Lokales Neovim unter Windows besitzt eine eigene typisierte Ziel- und
-Transportklasse. Die CLI-Stufe verwendet einen dynamischen TCP-Endpunkt,
-der ausschließlich an `127.0.0.1` gebunden ist; sie ist weder als
-vorgetäuschtes SSH-Profil noch als allgemeiner Netzwerktransport modelliert.
-Semantische Ereignisse, Protokollzustand, Speech, Braille, Settings und die
-explizite Windows-Terminal-Bindung bleiben transportneutral. Verbindungstyp,
-F12-Ablauf und Restrisiko sind hier sowie in Sicherheits- und
-Protokollreferenz festgehalten; der anwenderbezogene Gesamtweg steht im
-[Kommunikationshandbuch](../manual/communication.md).
+Neue Funktionen sollten in dieser Reihenfolge entworfen werden:
 
-Ein weiteres Windows-Terminalfrontend benötigt einen eigenen Detektor für
-stabile Fenster-/Tabidentität und Fokus, dokumentierte native NVDA-Ausgabe,
-ein explizit zugeordnetes NVDA-AppModule, Unterdrückungs- und Passthrough-Tests
-sowie erst danach einen Statuswechsel in der Frontendrichtlinie. Ein bloßer
-Konfigurationseintrag genügt bewusst nicht.
+1. zuverlässige öffentliche Neovim- oder Plugin-Ereignisse suchen;
+2. einen kleinen typisierten Zustand im Plugin erzeugen;
+3. Grenzen und Korrelation im Protokoll definieren und testen;
+4. Transport unverändert weiterleiten lassen;
+5. Ausgabe im NVDA-unabhängigen Planer modellieren;
+6. Fokus- und Fail-open-Bedingungen im Add-on prüfen;
+7. nur bei belegter Ereignislücke einen engen Fallback oder begrenztes Polling
+   mit dokumentierter Ablösung ergänzen.
+
+Private APIs benötigen vor einer Veröffentlichung ein ADR. Rohtextheuristiken,
+allgemeine RPC-Durchleitung und automatische Zuordnung aus Fenstertiteln sind
+keine zulässigen Abkürzungen.
+
+## Weiterführende Kapitel
+
+- `protocol.md`: Nachrichten, Felder, Grenzen, Sequenzen und Steuerbefehle
+- `security.md`: Vertrauensgrenzen und Bedrohungsmodell
+- `latency.md`: Threading, Budgets und Messung
+- `accessibility.md`: Funktionsmatrix und Fallbacks
+- `testing.md`: automatisierte und praktische Nachweise
+- `adr/`: begründete Architekturentscheidungen

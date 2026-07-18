@@ -9,6 +9,10 @@ abstraction exists. These narrowly scoped hooks are confined to the Windows
 Terminal AppModule, version-tested, fail open, and must be re-reviewed for each
 supported NVDA release.
 
-The global service must not define global event handlers, overlay selection,
-input scripts, or generic focus inspection. Replace private touchpoints when an
-official extension point becomes available.
+The Global Plugin must not define global event handlers or overlay selection.
+It may expose unbound script metadata so configurable commands remain visible
+in NVDA's Input Gestures dialog. Those scripts read focus once, delegate only
+to a fully validated Windows Terminal control, and pass the original gesture
+through unchanged elsewhere; Windows-Terminal-specific focus events, F12,
+overlays, and default gestures remain in the AppModule. Replace private
+touchpoints when an official extension point becomes available.

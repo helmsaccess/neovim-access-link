@@ -1,217 +1,87 @@
 # Aktiver Plan
 
-Stand: 2026-07-18
+Stand: 18. Juli 2026.
 
-Kernarchitektur, Protokoll v2, SSH-stdio, lokale Windows-CLI, explizite
-F12-Claim-Handshake und -Zuordnung, parallele Sitzungen sowie rootlose Komponenteninstallation und
--entfernung sind
-implementiert. Der verifizierte Funktionsstand steht in
-[Aktueller Status](current-status.md); abgeschlossene Änderungen stehen im
-[Changelog](changelog.md).
+Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
+Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
+frühere Featurebranches stehen im `changelog.md`. Ein Punkt in diesem Plan ist
+keine Zusage, dass die Funktion bereits verfügbar oder praktisch bestätigt
+ist.
 
-## Aktuell: gettext-Lokalisierung
+Die Reihenfolge und Prüftiefe richten sich nach Risiko, verfügbaren
+Testumgebungen und tatsächlich gemeldeten Fehlern. Der Plan verspricht weder
+die Prüfung jeder denkbaren Kombination noch feste Reaktions- oder
+Behebungszeiten. Reproduzierbare Fehler werden nach Möglichkeit zeitnah
+untersucht; Sicherheits-, Isolations- und Datenverlustrisiken haben Vorrang.
 
-Der Branch `feature/gettext-translation` führt NVDAs öffentliche gettext-Domain
-`nvda` ein. Der erste Schritt umfasst reproduzierbare POT/PO-Extraktion,
-Platzhalter- und Synchronitätsprüfung, deterministische MO-Kompilierung,
-deutsches Manifest, Paketprüfung sowie eine injizierte Übersetzungsgrenze für
-den NVDA-unabhängigen Speech-Planner. Der deutsche Katalog deckt alle 310
-aktuell extrahierten Texte ab und wird durch einen Vollständigkeitstest
-geschützt. Offen ist der praktische Vergleich mit englischem und deutschem
-NVDA.
+## 1. Dokumentation verständlich und überprüfbar machen
 
-## Abgeschlossen: Cleanup für 0.94
+Laufend:
 
-Der Branch `feature/cleanup-0.94.0-prerelease` vereinheitlicht die interne
-NVDA-Identität auf `NeovimAccessLink`. Es gibt bewusst keine Migration der
-früheren Add-on-ID: Altinstallation entfernen, NVDA neu starten, neuen Build
-installieren und Gesten sowie Verbindungen neu konfigurieren. Parallel werden
-nur belegte Übergangsschichten entfernt: alter JSON-/Schema-Konfigurationscode,
-alte AppModule-Skript-IDs, reine Bridge-Reexports, untypisierte RPC-Socket-
-Kurzformen und Remote-only-Verbindungsaliase. Technische `nvim_nvda`-Namen,
-Sitzungsregistry-Sicherheit, Versionsfallbacks und Fail-open-Pfade bleiben.
+- Entwicklerdokumentation mit Architektur und Begriffen beginnen lassen,
+  bevor Protokolldetails und Spezialfälle folgen;
+- dauerhafte Referenz, aktuellen Status, aktiven Plan und historische
+  Entwicklung klar trennen;
+- deutsche und englische Kernkapitel strukturell parallel halten;
+- Aussagen zu Prozessen, Session-Registry, Zuordnung, Gate, Rückkanälen,
+  Polling und Fallbacks gegen den aktuellen Code prüfen;
+- HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen.
 
-## Abgeschlossen: Terminal- und Dateimanager-Hardening
+## 2. Praktische Abschottung verbreitern
 
-Der Branch `feature/terminal-file-manager-hardening` prüft und härtet die
-Übergänge zwischen strukturiertem Editorzustand, direkter eingebetteter
-Terminaleingabe, Terminal-Normalmodus, Neovim-Kommandozeile und semantischen
-Dateimanager-Adaptern. Der erste Umsetzungsschritt ergänzt Terminal-
-Modusklänge mit fail-open Gate-Reihenfolge und übernimmt nach Ex-Befehlen auch
-gewöhnliche UI-Meldungen ohne bekannte `msg_show`-Klassifikation. Command-line-
-Modus, Meldungsreihenfolge und Terminalübergänge erhalten Regressionstests.
-Der zweite Schritt trennt `terminalNormal` kanonisch von Dateibuffer-Normal,
-korrigiert das UTF-8-Command-line-Echo, ergänzt einen frei belegbaren,
-korrelierten `stopinsert`-Befehl und meldet `TermClose` mit Exit-Status.
-Der dritte Schritt ergänzt den Kommandozeilenton, eine eindeutige Rückkehr in
-den Terminal-Normalmodus sowie strukturierte Hinweise für `:bd` bei laufendem
-Job und wirkungslose Buffer-Navigation.
-Der vierte Schritt verschiebt die Auswertung von UI-Protokollereignissen aus
-Neovims Fast-Event-Kontext und verhindert damit `E5560`-Enter-Zustände unter
-Neovim 0.12, ohne Polling einzuführen.
-Der fünfte Schritt wendet die vorhandene profilfähige Fokusauswahl auch auf
-ereignisgetriebene Bufferwechsel im selben Tab und Fenster an. `:bp` und `:bn`
-geben damit wahlweise nichts, die Zielzeile oder Zielkontext, Modus und
-Verbindungsname aus; Tab-/Fensteransagen und Modusklänge bleiben unabhängig.
-Der sechste Schritt trennt automatische Cursor-/Änderungsereignisse des
-Zielbuffers vom Ausgangszustand, damit weder ein einzelnes Zielzeichen die
-Zeilenansage überschreibt noch Text bufferübergreifend als Änderung gilt.
-Der siebte Schritt fasst bei erkannten Ex-Bufferbefehlen die kurzlebige
-gesprochene Modusrückkehr mit der konfigurierten Zielausgabe zusammen. Der
-Modusklang bleibt unabhängig; Ex-Befehle und gleich lautende Suchmuster werden
-über den strukturierten Kommandozeilentyp unterschieden.
-Der achte Schritt behandelt `:terminal` als strukturierten Buffereinstieg,
-wartet bei Zeilenausgabe ohne Polling auf die erste echte Terminalzeile und
-unterdrückt deren automatisches Folgezeichen. Der Wechsel mit `i` in direkte
-Terminaleingabe gibt stattdessen die vollständige Cursorzeile aus; der
-Modusklang und fail-open Passthrough bleiben getrennt.
-Der neunte Schritt macht diese Zusammenfassung unabhängig von der Reihenfolge
-zwischen Terminalkontext und abschließendem Modusereignis und verhindert, dass
-Kommandozeilentext als Normalmodusbewegung in den neuen Terminalbuffer gelangt.
-Der zehnte Schritt fasst bei Neovim-Fenster- und -Tabwechseln die gewählte
-Kontextausgabe mit Zielposition, eindeutigem Datei-/Spezialkontext, Status,
-Modus und Verbindung zusammen. Modussprache wird dabei nicht vorangestellt;
-der unabhängige Modusklang und die beiden anderen Fokusvarianten bleiben
-unverändert.
-Der elfte Schritt unterscheidet bei F12 eine bloß noch gemerkte von einer
-weiterhin authentifizierten Bindung. Nach dem Ende einer lokalen Sitzung kann
-dasselbe WT-Control dadurch ausdrücklich auf eine frische SSH-Sitzung
-umgebunden werden, ohne automatische Zuordnung oder Polling einzuführen.
-Der zwölfte Schritt beginnt das Dateimanager-Hardening mit einer gemeinsamen
-UTF-8-validierenden Bytebegrenzung. Lange Namen und Pfade werden nur an
-Codepointgrenzen gekürzt; ungültige Adapterwerte gelangen nicht in den
-Transport. Grenztests decken Zwei-, Drei- und Vierbytezeichen sowie ungültige Folgen
-ab, ohne neue Abfragen oder Polling einzuführen.
-Der dreizehnte Schritt ergänzt eine getrennte ereignisgetriebene
-Dateimanager-Schicht. Öffentliche Oil-, nvim-tree-, Neo-tree- und
-mini.files-Ereignisse lösen eine semantische Neuauswertung ausschließlich für
-den aktiven Buffer beziehungsweise das aktive Fenster aus. Gleiche Zustände
-werden verworfen, schnelle Renderfolgen innerhalb eines Schedulerzyklus
-zusammengefasst. Markierung und Plugin-Clipboard bleiben getrennte Festwerte;
-Änderungen am selben Eintrag werden ausdrücklich ausgegeben. Polling wird
-nicht verwendet.
-Der vierzehnte Schritt ergänzt typisierte Dateimanager-Aktionsresultate aus
-öffentlichen Abschlussereignissen. Er überträgt nur Festwerte, Anzahl,
-optionalen Basename und Typ, fasst synchrone Massenaktionen zusammen und
-verwirft die Meldung nach einem Fokus-/Managerwechsel. mini.files, nvim-tree
-und Neo-tree belegen Erfolge; Oil kann zusätzlich Abschlussfehler und dort
-erkennbare Abbrüche belegen. Wo ein Plugin kein öffentliches Ergebnis liefert,
-wird nichts aus Rendern oder Text geraten.
-Der fünfzehnte Schritt verbreitert den bewusst begrenzten netrw-Fallback.
-Header sowie schmale, lange, breite und Baumlisten besitzen getrennte
-Regressionen für Leerzeichen, Tabs, Unicode, Symlinks und Rootzeilen. Moderne
-Manager werden weiterhin ausschließlich über ihre APIs integriert.
-Der sechzehnte Schritt wählt eingebaute Adapter direkt nach `filetype` und
-begrenzt optionale Adapterlaufzeit. Wiederholte Fehler oder Aufrufe über 5 ms
-führen bufferlokal zu einer kurzen fail-open-Abkühlung; Checkhealth stellt nur
-feste Zähler bereit. Fristprüfung und Aufräumen sind ereignisgetrieben und
-führen kein Polling ein.
-Der siebzehnte Schritt trennt Manager-/Branchwurzel und fokussierte Ebene.
-nvim-tree folgt öffentlichen Elternknoten, mini.files verwendet Branchanfang
-und `depth_focus`; unzuverlässige Werte werden nicht aus Eintragspfaden
-abgeleitet. Leerer Fokuskontext spricht nur den letzten Verzeichnisnamen.
-Der achtzehnte Schritt ersetzt in Dateimanagerbuffern die dauerhafte rohe
-Braillezeile durch Name, Typ und Zustand. Nur ein eindeutig in der echten
-Zeile lokalisierter Namensbereich ist routbar; Statussegmente und mehrdeutige
-Namen bleiben ohne erfundene Cursorabbildung.
-Der neunzehnte Schritt härtet Standardprompts in echten TUI-Tests. Eingabe,
-Abbruch und Auswahl laufen über `vim.ui.input/select`. Lua-`confirm()` wird
-auf Neovim 0.10.1 und 0.12.3 semantisch angekündigt und nach Antwort sicher
-geschlossen, auch wenn die externe UI kein `msg_clear` liefert.
-Der zwanzigste Schritt deckt Oils eigenen Bestätigungs-Float als bewusst engen
-Screen-Fallback ab, weil das Plugin dafür kein öffentliches Prompt-Ereignis
-bereitstellt. Nur `oil_preview` in einem echten Float und feste Aktionsverben
-werden akzeptiert; ausgegeben werden Aktion/Anzahl und Y/N, während Rohzeilen,
-Namen und Pfade unterdrückt bleiben. Ein isolierter Test mit dem realen
-Oil-Hauptzweig belegt Öffnen, Abbruch und unveränderte Testdatei.
-Der einundzwanzigste Schritt erweitert diesen engen Oil-Pfad um die real
-eingerückten Aktionen für Umbenennen, Duplizieren, Papierkorb, endgültiges
-Löschen und Wiederherstellen. Direktes Y/N bleibt Eigentum Oils; Access Link
-beobachtet nur die Wahl und veröffentlicht Annahme beziehungsweise Abbruch.
-Isolierte reale Szenarien prüfen Umbenennen, Duplizieren und Löschen mit beiden
-Ergebnissen. Es wird kein Polling ergänzt.
-Der zweiundzwanzigste Schritt korreliert die unmittelbare Meldung eines
-nicht navigierenden Ex-Befehls einmalig mit dessen Kommandozeilenrückkehr.
-Der Rückkehrklang wird genau vor dieser Meldung ausgegeben; deren Zusatz folgt
-der Fokusauswahl Aus, aktuelle Zeile oder Kontext/Modus/Verbindung. Spätere
-asynchrone Meldungen übernehmen weder Klang noch Fokuszusatz. Die Zuordnung
-beruht auf den vorhandenen Kommandozeilen- und UI-Ereignissen, nicht auf
-Polling oder Textheuristik.
-Der dreiundzwanzigste Schritt gleicht typische Programmier- und
-Schreibprojektabläufe über Oil, mini.files, nvim-tree und Neo-tree ab. Eine
-getrennte Spezifikation prüft Erstellen, Umbenennen, Duplizieren/Kopieren,
-Verschieben, Löschen, Wiederherstellen, gemischte Massenaktionen,
-Markierungszustände, Abbruch, Fehler und das Öffnen einer Datei unter allen
-drei Fokusausgaben. Kanonische Datei- und Ordnertypen bleiben auch bei den
-öffentlichen Langformen der Manager erhalten. Eine praktische Matrix für
-lokale und SSH-Sitzungen bleibt offen.
-Der vierundzwanzigste Schritt trennt bei Oil den öffentlichen bearbeiteten
-`parsed_name` von der bis `:w` bestätigten `name`-Pfadidentität. Gleichzeitig
-bleibt bei der semantischen Dateimanager-Normalisierung die fest typisierte
-Bewegungsart erhalten, damit Randklänge nicht zusammen mit den dekorierten
-Rohzeilen verworfen werden. Beides ist ereignisgesteuert und ohne Polling
-automatisiert geprüft. Oil wurde anschließend mit Neovim 0.12 unter
-Windows/NVDA praktisch bestätigt und bildet eine solide Grundlage. Die
-praktische Abnahme von netrw, mini.files, nvim-tree und Neo-tree folgt
-schrittweise.
+- Die wichtigsten negativen Windows-Terminal-Fälle für ungebundene Shell-Tabs
+  und -Panes, getrennte Fenster, schnelle Fokuswechsel, geschlossene Controls
+  und weiterlebende RPC-Verbindungen schrittweise praktisch protokollieren.
+  Reale Fehlerfälle werden in die Matrix aufgenommen.
+- Für geprüfte und neu entdeckte unsichere Zustände sicherstellen, dass die
+  native Terminalausgabe erhalten bleibt und weder eine Bindung noch eine
+  Fokusansage entsteht.
+- Den offenen Fall untersuchen, in dem innerhalb eines bereits gebundenen
+  `TermControl` eine Shell oder tmux Neovim sichtbar ersetzt, während dessen
+  RPC-Kanal noch lebt. Screen-Scraping ist keine zulässige Abkürzung.
 
-Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
-Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
-`:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
-Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-die praktische Dateimanager-Workflowmatrix der übrigen Manager, weitere reale Plugin-Prompts,
-Braillehardware, Pager-Sonderfälle sowie
-die vollständige negative Windows-Terminal-Matrix.
+## 3. Dateimanager praktisch abnehmen
 
-## Abgeschlossen: explizites Copy/Paste
+Oil ist unter Windows/NVDA praktisch bestätigt. Als Nächstes werden netrw,
+mini.files, nvim-tree und Neo-tree schrittweise lokal und über SSH geprüft:
 
-Der Branch `feature/copy-paste` ergänzt vier in NVDAs Eingabedialog frei
-belegbare Befehle ohne Standardgesten: Visual-Auswahl kopieren, Register 0
-kopieren, Windows-Zwischenablagentext einfügen oder in Neovims unbenanntem
-Register für normales `p` speichern. NVDAs öffentliche
-Zwischenablage-API bleibt der einzige Windows-Zugriff; lokal und über SSH
-werden nur feste, typisierte Neovim-Steuerungen übertragen.
+- Navigation und Öffnen;
+- Erstellen, Umbenennen, Kopieren, Verschieben und Löschen;
+- Ja/Nein/Abbruch, Konflikte und schreibgeschützte Ziele;
+- Mehrfachauswahl und Manager-Clipboard;
+- Unicode, Leerzeichen und lange Namen;
+- Fokuswechsel zu Datei, Terminal, Tab, Pane und Fenster;
+- Sprache, Klänge und Braille ohne veralteten Managerzustand.
 
-Umgesetzt sind korrelierte Anfrage-/Ergebnisereignisse, eine 256-KiB-Grenze,
-UTF-8-/NUL-Prüfung, unmittelbare Zustandsprüfung in Neovim, `nvim_paste` ohne
-automatische Wiederholung, Ausschluss von Spezial-, Terminal-, Datei-Manager-,
-Readonly- und nicht veränderbaren Buffern sowie Entfernung einmaliger
-Copy-Texte aus allen Zustands-Caches und Diagnosen. Eine profilfähige
-Copy/Paste-Erfolgsrückmeldung verwendet das bestehende
-Aus/Sprache/Töne/Beides-Modell; Fehler bleiben hörbar. Offene Anfragen sind
-begrenzt.
+Fehlende öffentliche Pluginereignisse werden nicht durch unbeschränktes
+Polling oder allgemeines Popup-Scraping ersetzt.
 
-Nach dem Praxishinweis, dass die Produktkategorie außerhalb von Windows
-Terminal im Tastenbefehldialog fehlte, werden die frei belegbaren Befehle als
-globale unbelegte Skriptmetadaten angeboten. Die Ausführung bleibt durch eine
-erneute exakte WT-`TermControl`-Prüfung abgeschottet; außerhalb davon wird die
-Originalgeste unverändert weitergegeben. Automatisierte Regressionen sind
-umgesetzt; der praktische `dev.4`-Test bestätigte Sichtbarkeit, Durchleitung
-außerhalb WT und Ausführung im gebundenen Neovim-Control ohne Probleme.
+## 4. Braille an echter Hardware prüfen
 
-Alle vier Befehle einschließlich Windows-Text → unbenanntes Paste-Register
-wurden im bereitgestellten `dev.4`-Build praktisch ohne Probleme bestätigt.
-Die Featureabnahme ist damit abgeschlossen; ein Merge bleibt eine getrennte
-Benutzerentscheidung.
+- Sobald Hardware verfügbar ist, mehr als eine repräsentative Braillezeile
+  beziehungsweise Treiberkombination praktisch prüfen.
+- Cursor, Auswahl, Unicode, Tabs, Dateimanagersegmente und Routing prüfen.
+- Mehrdeutige oder synthetische Zellen müssen ohne erfundenes Routingziel
+  bleiben.
+- Gefundene Hardwareunterschiede erst nach reproduzierbarem Nachweis in den
+  Planer übernehmen.
 
-## Beta-Abschluss
+## 5. Robustheit und Kompatibilitätsbreite erhöhen
 
-Die konfigurierbare Fokus-Kontextausgabe ist lokal und über SSH praktisch
-bestätigt. Die weitergehende Negativmatrix mehrerer ungebundener WT-Tabs und
--Panes sowie schneller Fokuswechsel bleibt Teil des Beta-Abschlusses.
+- Langzeitbetrieb, wiederholte SSH-Abbrüche und Reconnects testen.
+- Große Ereignislast, große Dateien und viele parallele Sitzungen messen.
+- Weitere repräsentative Windows-, NVDA-, Neovim-, Sprach- und
+  SSH-Konfigurationen risikobasiert in die praktische Matrix aufnehmen.
+- Die ungeklärte ältere Rocky-Linux-/Neovim-Kombination nur untersuchen, wenn
+  dafür ein konkretes Unterstützungsziel festgelegt wird.
+- Portable Layouts, `NVIM_APPNAME`, andere Terminalfrontends und Neovim-GUIs
+  erst mit eigener Identitäts-, Fokus-, Sicherheits- und Fail-open-Architektur
+  planen.
 
-1. Deutsche Anwender- und Entwicklungsdokumentation auf Korrektheit,
-   Verständlichkeit und einheitliche Begriffe prüfen.
-2. Vollständige Python-, Lua-, Paket- und Dokumentationsprüfungen ausführen.
-3. Manuelle Abnahme von lokaler und entfernter Verbindung, mehreren Tabs und
-   Fenstern, tmux, Deaktivierung und Fail-open dokumentieren.
-4. Bekannte Grenzen und Kompatibilitätsangaben mit den Ergebnissen abgleichen.
+## Reihenfolge für neue Funktionen
 
-## Danach
-
-1. Reale Braillezeilen verschiedener Hersteller prüfen.
-2. Langzeitbetrieb, große Dateien und wiederholte SSH-Abbrüche testen.
-3. Deutsche und englische Anwender- und Entwicklungsdokumentation gemeinsam
-   pflegen und prüfen.
-4. Weitere Frontends oder Neovim-Oberflächen nur über getrennte, getestete
-   Adapter ergänzen.
+Vor neuer Funktionsbreite haben Isolationsfehler, Datenverlust, unklare
+Rückkanäle, Hauptthread-Blockaden und falsche Ausgabe aus einer anderen Sitzung
+Vorrang. Neue Integrationen verwenden bevorzugt öffentliche semantische
+Ereignisse. Polling ist nur eine dokumentierte, begrenzte Notlösung, wenn keine
+zuverlässige Ereignislösung existiert.

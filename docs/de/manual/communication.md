@@ -50,7 +50,7 @@ Protokoll v2 über SSH-stdin/stdout und öffnet keinen Netzwerkport.
 
 Der Komponentenbefehl unter `NVDA-Menü → Werkzeuge` kopiert das Plugin lokal
 und/oder Plugin, Bridge und Konfiguration auf ausgewählte Linux-Konten. Er
-stellt Dateien bereit, verbindet aber noch keinen Terminal-Tab mit Neovim.
+stellt Dateien bereit, verbindet aber noch kein Terminal-Control mit Neovim.
 Nach einem Update muss Neovim einmal neu gestartet werden. Danach genügt ein
 normaler Start:
 
@@ -140,8 +140,9 @@ Unterdrückung aus.
 7. Nur eine gegenüber dem Ausgangswert erhöhte `claimSequence` gilt als
    ausdrückliche Auswahl dieses Tastendrucks.
 8. Bei genau einem Treffer baut das Add-on die passende Verbindung auf und
-   bindet sie an den fokussierten Tab. Bei mehreren Treffern erscheint eine
-   zugängliche Auswahl. Ohne Treffer wird nicht geraten.
+   bindet sie an das fokussierte `TermControl`, also je nach Layout an einen
+   Tabinhalt oder ein Pane. Bei mehreren Treffern erscheint eine zugängliche
+   Auswahl. Ohne Treffer wird nicht geraten.
 
 Die Freigabe gilt nur für diesen einen Tastendruck und genau dieses Control.
 Der anschließend entstehende dateibasierte Sitzungs-Claim wird nur in seinem kurzen
@@ -243,7 +244,7 @@ aktuelle Zeile, Buffer- und Fensterkennung sowie Transportfähigkeiten.
 
 Danach sendet Neovim kleine semantische Ereignisse, beispielsweise:
 
-- `modeChanged` für Insert, Normal, Visual, Command-line und weitere Modi;
+- `modeChanged` für Einfüge-, Normal-, visuelle, Befehlszeilen- und weitere Modi;
 - `characterMoved`, `wordMoved` und `lineChanged` für Navigation;
 - `textChanged`, `textDeleted` und `textReplaced` für Bearbeitung;
 - `selectionChanged` für visuelle Auswahl;
@@ -252,9 +253,12 @@ Danach sendet Neovim kleine semantische Ereignisse, beispielsweise:
 
 Das Add-on prüft Sitzungskennung und Sequenz. Bei einer Lücke fordert es einen
 neuen `fullState` an. Veraltete, doppelte oder fremde Ereignisse werden nicht
-gesprochen. In Gegenrichtung sind nur `requestFullState` und validiertes
-Braille-Cursorrouting vorgesehen. Empfangener Text wird nie als beliebiger
-Lua- oder Ex-Befehl ausgeführt.
+gesprochen. In Gegenrichtung ist nur eine feste Liste typisierter Aktionen
+erlaubt: Zustand oder Fokuskontext anfordern, einen validierten Braillecursor
+routen, ausdrücklich angeforderten Zwischenablagentext übertragen und die
+direkte Eingabe eines gebundenen Neovim-Terminals verlassen. Jede Aktion wird
+zusätzlich gegen Sitzung, Fokus und passenden Editorzustand geprüft.
+Empfangener Text wird nie als beliebiger Lua- oder Ex-Befehl ausgeführt.
 
 ## Fenster, Tabs, Panes und tmux
 
@@ -288,20 +292,20 @@ Verbindungsstatus angeboten.
 
 Der Dialog ist besonders nützlich bei Passwortprofilen, mehreren ähnlichen
 Sitzungen, einer verpassten F12-Markierung oder beim ausdrücklichen Ersetzen
-einer Tabzuordnung. Auch dieser Weg liest vor der Aktion den aktuellen Fokus
-neu ein. Interne IDs und Ports müssen nicht eingegeben werden.
+einer Control-Zuordnung. Auch dieser Weg liest vor der Aktion den aktuellen
+Fokus neu ein. Interne IDs und Ports müssen nicht eingegeben werden.
 
 ## Deaktivierung und sicheres Zurückfallen
 
 Beim Ausschalten beendet das Add-on seine lokalen Clients und unsichtbaren
 SSH-Prozesse. Sichtbare SSH- und tmux-Sitzungen bleiben bestehen.
 
-Native Terminalausgabe wird nur unterdrückt, wenn Unterstützung aktiviert, der
-fokussierte Tab ausdrücklich gebunden und die Sitzung durch einen gültigen
-`fullState` authentifiziert ist. Bei Deaktivierung, falschem Tab, Neovim-Ende,
-Transportfehler oder direkter Eingabe in einem Terminalbuffer fällt NVDA auf
-normale Windows-Terminal-Ausgabe zurück. Ein Fehler darf kein dauerhaft
-stummes Terminal hinterlassen.
+Native Terminalausgabe wird nur unterdrückt, wenn Unterstützung aktiviert, das
+fokussierte Control ausdrücklich gebunden und die Sitzung durch einen gültigen
+`fullState` authentifiziert ist. Bei Deaktivierung, einem anderen Control,
+Neovim-Ende, Transportfehler oder direkter Eingabe in einem Terminalbuffer
+fällt NVDA auf normale Windows-Terminal-Ausgabe zurück. Ein Fehler darf kein
+dauerhaft stummes Terminal hinterlassen.
 
 ## Datenschutz und Sicherheitsgrenzen
 
@@ -313,23 +317,26 @@ stummes Terminal hinterlassen.
 - SSH-Passwörter werden nicht gespeichert.
 - Diagnoseberichte redigieren Editorinhalt und vertrauliche Felder.
 
-## Praktisch bestätigter Stand und bekannte Grenze
+## Praktisch bestätigter Stand und bekannte Grenzen
 
-Mit dem Stand vor Beta-Build 0.89.1 wurden unter Windows 11 25H2 und NVDA 2026.1.1 lokales
-Windows-Neovim, Neovim über SSH auf Rocky Linux 10.2, parallele lokale und
-entfernte Instanzen, mehrere Tabs, mehrere Windows-Terminal-Fenster, tmux,
-F12, manuelle Auswahl und Sitzungswechsel praktisch bestätigt.
+Die Referenzpfade umfassen lokales Windows-Neovim, Neovim über SSH auf Rocky
+Linux 10.2, parallele lokale und entfernte Instanzen, mehrere Tabs, Panes und
+Windows-Terminal-Fenster, tmux, F12, manuelle Auswahl und Sitzungswechsel.
+Diese Prüfungen sind Stichproben in dokumentierten Umgebungen und keine
+erschöpfende Abnahme aller Kombinationen. Der aktuelle Nachweis und bekannte
+Grenzen werden zentral in der Entwicklerdokumentation unter `current-status.md`
+und `compatibility.md` gepflegt.
 
 Bestätigte Linux-Basis ist Rocky Linux 10.2 mit Neovim 0.10.1. Eine ältere, auf
-Rocky Linux 9 vorhandene Neovim-Version funktionierte mit dem aktuellen Stand
-nicht, obwohl ein sehr früher Entwicklungsstand dort einmal lief. Ursache und
-genaue Versionsgrenze sind noch nicht untersucht und haben derzeit keine
-Priorität. Neovim 0.10.1 bleibt daher die vorläufige Mindestversion.
+Rocky Linux 9 vorhandene Neovim-Version funktionierte mit einem aktuellen
+Stand nicht. Ursache und genaue Versionsgrenze sind noch nicht untersucht;
+Neovim 0.10.1 bleibt daher die vorläufige Mindestversion.
 
 ## Wenn die Zuordnung nicht gelingt
 
 1. Komponenten aktualisieren und Neovim neu starten.
-2. Den gewünschten Windows-Terminal-Tab fokussieren.
+2. Den gewünschten Tab oder bei geteiltem Layout das gewünschte Pane
+   fokussieren.
 3. Add-on aktivieren und die Bereitschaftsmeldung abwarten.
 4. F12 erneut drücken; Neovim selbst soll nichts sichtbar melden.
 5. Alternativ den manuellen Verbindungsbefehl verwenden.

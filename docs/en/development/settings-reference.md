@@ -7,7 +7,7 @@ profile writes. `post_configProfileSwitch` reloads effective values without
 stopping an authenticated runtime connection.
 
 Tabs are “General”, “Feedback”, and “Connections”. Feedback values are numeric
-Off, Speech, Sounds, or Speech and sounds. Existing NVDA Keyboard, Document
+Off, Speech, Tones, or Both Speech and Tones. Existing NVDA Keyboard, Document
 Formatting, and Object Presentation settings remain authoritative for typing
 echo, indentation/spelling, and automatic suggestions.
 
@@ -17,7 +17,7 @@ connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
 
 Feedback also contains a profile-aware copy/paste success setting using the
-same Off, Speech, Sounds, or Speech and sounds values. Failures remain audible.
+same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
 The four clipboard commands have no default gestures and are assigned through
 NVDA's Input Gestures dialog. Transfer direction, register, and target buffer
 cannot be supplied as free-form commands, and no automatic synchronization is

@@ -21,10 +21,14 @@ per Featuretest abgesichert werden.
 
 Ziel ist NVDA 2026.1.x; die offizielle Downloadablage führt 2026.1.1 als
 stabilen Stand vom 20. Mai 2026. Der offizielle Quelltag bestätigt 64-Bit-Python
-3.13.12. Vorgesehen sind ein anwendungsspezifisches
-`appModuleHandler.AppModule`, ein skript- und ereignisfreier globaler Dienst,
-dekorierte AppModule-Scripts, `queueHandler.queueFunction`/`eventQueue` und
-öffentliche Speech-Funktionen.
+3.13.12. Verwendet werden ein anwendungsspezifisches
+`appModuleHandler.AppModule`, ein Global Plugin ohne globale Ereignis- oder
+Overlay-Hooks, dekorierte Scripts, `queueHandler.queueFunction`/`eventQueue`
+und öffentliche Speech-Funktionen. Das Global Plugin registriert unbelegte
+Scriptmetadaten, damit frei konfigurierbare Befehle überall im
+Tastenbefehldialog sichtbar sind; jeder Aufruf prüft den konkreten
+Windows-Terminal-Fokus erneut und reicht die Geste andernorts unverändert
+weiter.
 Manifestwerte sind `minimumNVDAVersion = 2026.1` und
 `lastTestedNVDAVersion = 2026.1.1`. Installation, Add-on-Start,
 Serverinstallation, SSH-stdio-Verbindung, Sprach- und Soundausgabe sowie die
@@ -39,8 +43,8 @@ die anschließende RPC-Verbindung wurden außerdem praktisch mit Neovim 0.12.3
 unter Windows bestätigt. Der lokale Grundpfad sowie parallele lokale und
 SSH-Tabs wurden unter Windows praktisch bestätigt. Die zielübergreifende
 Discovery und zwei parallele
-lokale Tabs, mehrere Windows-Terminal-Fenster, tmux sowie die dev.42-spezifische
-Aktivierungs- und Fokuskorrektur wurden ebenfalls praktisch bestätigt.
+lokale Tabs, mehrere Windows-Terminal-Fenster und tmux wurden ebenfalls
+praktisch bestätigt.
 Unterstützt wird vorerst nur Neovims
 normales `%LOCALAPPDATA%\nvim-data`-Layout, nicht `NVIM_APPNAME`, portable
 Installationen oder GUI-Frontends.
@@ -55,15 +59,17 @@ bleibt die vorläufige Mindest- und Referenzversion.
 Die Prüfung war nicht erschöpfend. Andere Windows-Versionen, NVDA-Versionen,
 Sprachprofile und reale Braillezeilen sind noch nicht breit in einer
 Kompatibilitätsmatrix getestet. Andere Terminalprogramme sind derzeit nicht
-freigegeben: Das Add-on bleibt dort vollständig inaktiv. PuTTY und weitere
-Frontends benötigen jeweils einen eigenen Identitäts-, Fokus-, Ausgabe- und
-Fail-open-Adapter mit praktischer Prüfung.
+freigegeben: Es baut dort keine Neovim-Bindung auf und aktiviert keine
+Terminalunterdrückung; frei belegte Befehle reichen ihre Geste ohne
+Neovim-Aktion weiter. PuTTY und weitere Frontends benötigen jeweils einen
+eigenen Identitäts-, Fokus-, Ausgabe- und Fail-open-Adapter mit praktischer
+Prüfung.
 
 Es wurde bislang keine echte Braillezeile getestet. Die automatisierten
-Brailletests bestätigen nur Zustandsmodell und Ausgabeplanung; praktische
-Hardwarefehler sind sehr wahrscheinlich. Insgesamt ist der Stand Alpha bis
-Beta, weil auch weitere Add-on-Funktionen noch keine erschöpfende praktische
-Abnahme besitzen.
+Brailletests bestätigen nur Zustandsmodell und Ausgabeplanung;
+hardwarespezifische Probleme können deshalb noch unentdeckt sein. Insgesamt ist
+der Stand Alpha bis Beta, weil auch weitere Add-on-Funktionen noch keine
+erschöpfende praktische Abnahme besitzen.
 
 Dateimanager-Unterstützung verwendet die öffentlichen APIs der zum 12. Juli
 2026 geprüften Hauptzweige von Oil, nvim-tree, Neo-tree und mini.files. Adapter
@@ -83,8 +89,8 @@ cursorbasierte Adapterausgabe fail-open erhalten; es wird kein Polling als
 Ersatz gestartet.
 Der netrw-Fallback wird automatisiert mit Version 184 aus Neovim 0.12.3 und
 Version 173 aus der Referenzversion Neovim 0.10.1 in schmaler, langer, breiter
-und Baumdarstellung geprüft. Die vollständige Matrix ist noch nicht praktisch
-unter Windows/NVDA bestätigt.
+und Baumdarstellung geprüft. Eine breitere praktische Matrix ist unter
+Windows/NVDA noch nicht bestätigt.
 Die öffentlichen Optionen `select_prompts = true` von nvim-tree und
 `use_popups_for_input = false` von Neo-tree führen deren Dialoge über
 `vim.ui.select/input`; Access Link ändert sie nicht automatisch. Oil verwendet

@@ -52,22 +52,31 @@ Command-line echo uses its own UTF-8 byte position, and command-line mode plus
 non-empty ordinary messages following a command are covered by built-add-on
 and real-TUI tests. Structured command-line type distinguishes Ex commands
 from search; recognized buffer-command return speech is coalesced into the
-configured destination presentation while its cue remains independent. Pager variants and
-practical Windows/NVDA acceptance remain open.
+configured destination presentation while its cue remains independent. Core
+terminal and buffer transitions are practically confirmed under Windows/NVDA;
+pager variants remain open.
 Explicit copy/paste uses four freely assignable NVDA commands and correlated
 Neovim controls for the Visual selection, register 0, `nvim_paste`, and fixed
 register 0 as the unnamed paste register's backing store.
-Protocol, Lua, bridge, and built-add-on coverage exists; practical local/SSH
-acceptance of the extended register command remains pending.
+Protocol, Lua, bridge, and built-add-on coverage exists; all four commands are
+practically confirmed locally and over SSH.
 Multiple bound sessions are isolated by process, window handle, complete UIA
 runtime identity, session, sequence, and structured focus validation. Exact
 one-shot, control-specific physical F12 proofs and switching between
 independently bound windows, tabs, and panes have automated negative coverage. Unknown controls and failures remain
-fail open. Local/SSH tabs and horizontal/vertical split panes are practically
-confirmed; separate windows and the complete unbound-shell-pane negative matrix
-remain pending.
+fail open. Local/SSH tabs, horizontal/vertical split panes, and multiple
+windows are practically confirmed; the complete unbound-shell-pane negative
+matrix remains pending.
 
 File-manager output uses semantic name, type, and state instead of decoration.
+
+The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
+Public plugin events start and stop the accessible-menu lifetime, but neither
+plugin currently provides a reliable event for every selection change. A
+35 ms timer therefore queries the public selection API only while that plugin
+menu is open and stops on close or invisibility. Built-in Neovim completion
+remains fully event-driven. This fallback should be removed when a reliable
+public selection event becomes available.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.

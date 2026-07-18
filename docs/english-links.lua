@@ -30,6 +30,8 @@ local targets = {
   ["dependencies.md"] = "#docs__en__development__dependenciesmd__bundled-dependencies",
   ["plan.md"] = "#docs__en__development__planmd__active-plan",
   ["changelog.md"] = "#docs__en__development__changelogmd__changelog",
+
+  ["../manual/README.md"] = "neovim-access-link-handbook-en.html",
 }
 
 function Link(link)

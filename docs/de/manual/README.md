@@ -27,6 +27,12 @@ nicht jede beschriebene Editorfunktion wurde ausführlich in allen Modi und
 Konfigurationen getestet. Fehler und unvollständige Rückmeldungen sind daher
 zu erwarten.
 
+Die Entwicklung versucht, wichtige Arbeitsabläufe, Sicherheitsgrenzen und
+bekannte Fehler sorgfältig zu prüfen. Daraus folgt keine Zusage, dass jede
+Kombination aus Editorfunktion, Plugin, Terminalaufteilung und Umgebung
+abgedeckt ist. Gemeldete Fehler werden nach Möglichkeit zeitnah untersucht und
+behoben; feste Reaktions- oder Behebungszeiten werden nicht zugesagt.
+
 Die Braillefunktionen wurden bislang nicht mit einer echten Braillezeile
 getestet und enthalten sehr wahrscheinlich Fehler. Braille ist für das Projekt
 selbstverständlich wichtig und als priorisierte weitere Test- und
@@ -39,8 +45,8 @@ Wer das Add-on erstmals einrichtet, beginnt mit dem separaten
 nötigen Schritte von der Installation bis zur ersten lokalen oder entfernten
 Verbindung.
 
-Dieses Handbuch erklärt anschließend Einstellungen, Kommunikationswege und
-Bedienkonzepte vollständig. Technische Implementierungsdetails, Testnachweise
+Dieses Handbuch erklärt anschließend die derzeit unterstützten Einstellungen,
+Kommunikationswege und Bedienkonzepte im Zusammenhang. Technische Implementierungsdetails, Testnachweise
 und Architekturentscheidungen gehören nicht zum Anwenderhandbuch und bleiben
 in der Entwicklungsdokumentation des Quellprojekts.
 
@@ -81,8 +87,8 @@ Arbeitsverzeichnis.
 
 ### Terminalzuordnung
 
-Die Zuordnung verbindet genau einen Windows-Terminal-Tab mit genau einer
-laufenden Neovim-Sitzung. Sie wird nicht aus Fenstertiteln oder Terminaltext
+Die Zuordnung verbindet genau ein Windows-Terminal-Control – je nach Aufbau
+ein Tab oder Pane – mit genau einer laufenden Neovim-Sitzung. Sie wird nicht aus Fenstertiteln oder Terminaltext
 erraten. Standardmäßig bestätigt der Benutzer die fokussierte Sitzung mit F12.
 
 ## Das wichtigste Bedienmodell
@@ -93,8 +99,9 @@ Der normale Ablauf besteht aus vier getrennten Schritten:
 2. Der Aktivierungsbefehl erfasst erreichbare lokale und gespeicherte entfernte
    Ziele im Hintergrund. Dabei entsteht noch keine dauerhafte Editorverbindung.
 3. F12 markiert die gerade fokussierte Neovim-Instanz kurzzeitig und still.
-4. Das Add-on findet genau diesen neuen Claim und bindet die Sitzung an den
-   aktuellen Windows-Terminal-Tab.
+4. Das Add-on findet genau diesen neuen Claim und bindet die Sitzung an das
+   fokussierte Windows-Terminal-Control, also je nach Layout an den Inhalt
+   eines Tabs oder an ein Pane.
 
 F12 ist daher weder ein Ein-/Ausschalter noch ein SSH-Verbindungsprofil. Die
 Taste wird von NVDAs ausschließlich für Windows Terminal geladenem AppModule
@@ -114,10 +121,10 @@ gebunden. Entfernte Verbindungen verwenden SSH-stdin/stdout und öffnen keine
 zusätzlichen Netzwerkports. Passwörter werden weder im Profil noch im
 Diagnosebericht gespeichert.
 
-Normale Terminalausgabe wird nur unterdrückt, wenn der fokussierte Tab einer
-authentifizierten und aktiven Neovim-Sitzung zugeordnet ist. Bei Deaktivierung,
-Verbindungsabbruch, ungültigen Ereignissen oder unbekanntem Fenster fällt NVDA
-auf die normale Terminalausgabe zurück.
+Normale Terminalausgabe wird nur unterdrückt, wenn das fokussierte
+Windows-Terminal-Control einer authentifizierten und aktiven Neovim-Sitzung
+zugeordnet ist. Bei Deaktivierung, Verbindungsabbruch, ungültigen Ereignissen
+oder unbekanntem Control fällt NVDA auf die normale Terminalausgabe zurück.
 
 ## Handbuchkapitel
 
@@ -149,7 +156,8 @@ und Ereignisse einer früheren Sitzung dürfen nicht gesprochen werden.
 ## Versions- und Testhinweis
 
 Der aktuelle Stand wurde mit Windows 11 25H2, NVDA 2026.1.1, Rocky Linux 10.2
-und Neovim 0.10.1 praktisch erprobt. Die Unterstützung ist für produktive
-Erprobung gedacht, aber noch als Beta gekennzeichnet. Vor wichtiger Arbeit
+und Neovim 0.10.1 praktisch erprobt. Der Reifegrad bleibt zwischen Alpha und
+Beta; aus diesem praktischen Referenztest folgt keine allgemeine
+Stabilitätszusage. Vor wichtiger Arbeit
 sind normale Backups und ein schrittweiser Test mit der eigenen SSH-, tmux-,
 Braille- und Neovim-Konfiguration sinnvoll.

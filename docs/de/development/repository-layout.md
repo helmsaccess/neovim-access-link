@@ -1,36 +1,62 @@
 # Repository-Struktur
 
-Die Verzeichnisse folgen den Laufzeitgrenzen des Produkts:
+Die Verzeichnisse folgen Laufzeit- und Vertrauensgrenzen. Sie sind nicht alle
+eigene Programme: Zur Laufzeit existieren ein Neovim-Prozess, bei SSH zusätzlich
+ein Bridge-Prozess und unter Windows der NVDA-Prozess. `protocol/python/` und
+`nvda-addon/core/` sind gemeinsam verwendete Bibliotheksschichten.
 
-| Pfad | Inhalt |
-| --- | --- |
-| `neovim-plugin/` | Lua-Plugin, semantische Ereignisse, JSON-Sitzungsdateien und Adapter |
-| `bridge/python/` | Verbindung einer Linux-Neovim-Sitzung mit SSH-stdio |
-| `protocol/python/` | Framing, Validierung, Sequenzierung und Unicode-Hilfen |
-| `nvda-addon/core/` | NVDA-unabhängige Verbindungs-, Zustands-, Sprach- und Braillelogik |
-| `nvda-addon/addon/` | NVDA-Oberfläche, Windows-Terminal-AppModule und Paketressourcen |
-| `packaging/` | rootloser Installer für Linux-Benutzerkomponenten |
-| `tools/` | reproduzierbare Builds, Tests und Prüfwerkzeuge |
-| `docs/de/manual/` | deutsche Anwenderdokumentation |
-| `docs/de/development/` | Erklärung, Architektur, Referenz und Nachweise |
-| `docs/en/` | englische Quick-Guide-, Handbuch- und Entwicklerquellen |
+## Quellbereiche und Einstiegspunkte
 
-`buildVars.py` ist die einzige gepflegte Quelle für Produktname, numerische
-Store-Version, branchlokale Entwicklungsbuildnummer,
-Autor und NVDA-Kompatibilitätsangaben.
+| Pfad | Verantwortung | Wichtige Einstiegspunkte |
+| --- | --- | --- |
+| `neovim-plugin/` | Neovim-Zustand, semantische Ereignisse, Sitzungsdateien und Pluginadapter | `plugin/nvim_nvda.lua`, `lua/nvim_nvda/init.lua`, `lua/nvim_nvda/session.lua`, `lua/nvim_nvda/state.lua` |
+| `bridge/python/` | Verbindung genau einer entfernten Linux-Neovim-Sitzung mit SSH-stdin/stdout | `nvim_nvda_bridge/__main__.py`, `bridge.py`, `session_registry.py`, `stdio.py` |
+| `protocol/python/` | MessagePack-Framing, Nachrichtenvalidierung, Sequenzierung sowie lokale und SSH-Clients | `codec.py`, `messages.py`, `session.py`, `nvim_rpc.py`, `local_client.py`, `stdio_client.py` |
+| `nvda-addon/core/` | NVDA-unabhängige Verbindungsmodelle, Gate, Discovery sowie Sprach- und Brailleplanung | `gate.py`, `connection_instances.py`, `speech.py`, `braille.py`, `local_sessions.py`, `ssh_sessions.py` |
+| `nvda-addon/addon/` | NVDA-Global-Plugin, Windows-Terminal-AppModule, Dialoge, Ressourcen und Übersetzungskataloge | `globalPlugins/NeovimAccessLink/__init__.py`, `appModules/windowsterminal.py` |
+| `packaging/` | rootlose Installation der Linux-Benutzerkomponenten | `install_user.py` |
+| `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog- und Testwerkzeuge | `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `docs/de/manual/` | deutsche Anwenderdokumentation | `README.md`, `quick-guide.md` |
+| `docs/de/development/` | deutsche Entwicklererklärung, Referenz und Nachweise | diese Datei und die Übersicht `README.md` |
+| `docs/en/` | englische Anwender- und Entwicklerdokumentation | `README.md` |
 
-## Quellen und Ergebnisse
+Die ausführliche Beziehung dieser Bereiche erklärt die
+[Architektur](architecture.md). Insbesondere darf NVDA-spezifischer Code nicht
+in den Sprachplaner oder das Transportprotokoll wandern.
 
-Gepflegte Quellen und Markdown-Dokumente gehören in Git. Erzeugte oder private
-Dateien haben feste Orte:
+## Quellen, Paketlayout und erzeugte Ergebnisse
+
+`buildVars.py` ist die einzige gepflegte Quelle für Produkt-ID, numerische
+Store-Version, branchlokale Entwicklungsbuildnummer, Autor und unterstützte
+NVDA-Versionen.
+
+Der Add-on-Build kopiert die gepflegten Python-Module aus `protocol/python/`
+und `nvda-addon/core/` unter das Global Plugin. Das Layout in einer gebauten
+`.nvda-addon` ist deshalb bewusst anders als das Entwicklungs-Repository. Das
+Linux-Benutzerpaket wird ebenfalls während des Builds aus Bridge, Protokoll,
+Plugin und Installer erzeugt und anschließend als Ressource in das Add-on
+eingebettet. Änderungen gehören immer in die oben genannten Quellverzeichnisse,
+nicht in einen entpackten Build.
+
+Erzeugte oder private Dateien haben feste Orte:
 
 - `dist/`: installierbare, eindeutig versionierte Pakete;
-- `build/`: erzeugte Dokumentation und andere reproduzierbare Ergebnisse;
-- `tmp/`: lokale, private und kurzlebige Testunterlagen.
+- `build/`: erzeugte HTML-Dokumentation und andere reproduzierbare Ergebnisse;
+- `tmp/`: lokale, private und kurzlebige Untersuchungen.
 
 Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 
-## Dateinamen und GitHub
+## Wo Tests liegen
+
+- `neovim-plugin/tests/` prüft Lua-Zustand und echte Headless-Neovim-Abläufe.
+- `protocol/python/tests/` prüft Nachrichten, Framing, Sequenzen und Clients.
+- `bridge/python/tests/` prüft Discovery, RPC-Bridge und stdio-Transport.
+- `nvda-addon/tests/` prüft Core, Speech/Braille, Paketinhalt und NVDA-nahe
+  Adapter mit Testdoubles.
+
+Die Auswahl und Ausführung der Suiten steht in [testing.md](testing.md).
+
+## Namen und Dokumentationsorte
 
 Öffentliche Community-Dateien verwenden die von GitHub erkannten Namen
 `README.md`, `LICENSE`, `CONTRIBUTING.md` und `SECURITY.md`. Vorlagen liegen
@@ -38,8 +64,8 @@ unter `.github/`. Neue Python- und Lua-Dateien verwenden grundsätzlich
 `snake_case`, Dokumente `lowercase-kebab-case`. `buildVars.py` behält den Namen
 der offiziellen NVDA-Add-on-Vorlage und ist die begründete Ausnahme.
 
-## Architekturregel
-
-Neue Transport- oder Frontendpfade erhalten eigene typisierte Adapter.
-Dauerhafte Entscheidungen gehören in `docs/adr/`, der verifizierte Ist-Stand
-in `current-status.md` und reproduzierbare Nachweise in `testing.md`.
+Dauerhafte Entscheidungen gehören in die sprachlich passende ADR-Struktur
+unter `docs/de/development/adr/` beziehungsweise
+`docs/en/development/adr/`. Der verifizierte Ist-Stand gehört in
+`current-status.md`, reproduzierbare Nachweise in `testing.md` und historische
+Änderungen in `changelog.md`.

@@ -8,8 +8,12 @@ editing, completion, and menus are reported through speech, with experimental
 Braille support also included.
 
 This is alpha-to-beta software. Not every feature has extensive practical
-coverage. Braille has not been tested with a physical display and very likely
-contains bugs; hardware testing and fixes are important priority work.
+coverage. Braille has not been tested with a physical display, so
+hardware-specific defects may remain undiscovered.
+
+[Latest GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.94.1) —
+release notes for 0.94.1: [English](docs/en/development/changelog.md#0941) or
+[German](docs/de/development/changelog.md#0941).
 
 ## Documentation
 

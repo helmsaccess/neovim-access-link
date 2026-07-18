@@ -102,18 +102,18 @@ stdout ausschließlich dem Protokoll vorbehalten; Diagnosen gehen nach stderr.
 ## Installation aus NVDA
 
 Nach Installation des Add-ons werden Verbindungen unter „NVDA-Menü → Optionen
-→ Einstellungen… → Neovim Access Link → Connections“ verwaltet. „Add
-connection“ öffnet ein
+→ Einstellungen… → Neovim Access Link → Verbindungen“ verwaltet. „Verbindung
+hinzufügen...“ öffnet ein
 gemeinsames Formular für Name, Host oder OpenSSH-Alias, Linux-Benutzer, Port,
 optionale Schlüsseldatei und verständlich erklärte Anmeldeart.
 
-Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Install or update components...`
-listet alle gespeicherten
-Verbindungen mit Konto, Ziel, Port und Anmeldeart als zunächst leere
-Checkboxliste. Einzelne oder über die initial fokussierte „Select all
-connections“-Checkbox alle Ziele werden ausdrücklich ausgewählt. Danach
-überträgt das Add-on sein Benutzerpaket im Hintergrund auf alle gewählten
-Linux-Konten und zeigt Erfolge und Fehlschläge gesammelt an.
+Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...`
+listet „Dieser Computer“ und alle gespeicherten Linux-Verbindungen mit Konto,
+Ziel, Port und Anmeldeart als zunächst leere Checkboxliste. Einzelne oder über
+die initial fokussierte Checkbox „Alle Verbindungen auswählen“ alle Ziele
+werden ausdrücklich ausgewählt. Danach installiert das Add-on das lokale
+Plugin beziehungsweise überträgt sein Benutzerpaket im Hintergrund auf die
+gewählten Linux-Konten und zeigt Erfolge und Fehlschläge gesammelt an.
 
 Die Installation läuft im Hintergrund und blockiert NVDA nicht. Die empfohlene
 OpenSSH-Auswahl verwendet Schlüssel, Agent oder Windows-SSH-Konfiguration. Die
@@ -124,7 +124,7 @@ automatisch.
 
 ## Entfernung aus NVDA
 
-`NVDA-Menü → Werkzeuge → Neovim Access Link: Remove components...` verwendet
+`NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen...` verwendet
 dieselbe zunächst leere, zugänglich beschriftete Mehrfachauswahl wie die
 Installation. Neovim muss auf den gewählten Zielen vorher beendet werden; das
 Add-on beendet keine laufenden Neovim- oder tmux-Sitzungen. Die Arbeit läuft

@@ -7,9 +7,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 
 ## 0.94.1
 
-- Der vollständig getestete Gettext-Stand aus dem Featurebranch wird als
-  Version `0.94.1` übernommen. Produktkanal und Reifegradeinordnung bleiben
-  unverändert.
+- Der automatisiert und praktisch geprüfte Gettext-Stand aus dem Featurebranch
+  wird als Version `0.94.1` übernommen. Produktkanal und Reifegradeinordnung
+  bleiben unverändert.
 - Der deutsche Katalog deckt alle 310 extrahierten Texte ab; MO-, Paket- und
   Vollständigkeitstests verhindern leere oder unbemerkte englische Anzeigen.
 
@@ -32,10 +32,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   leeren Zeichenkette; beide Werkzeuge-Menüeinträge und ihre Formulare bleiben
   unterscheidbar und bedienbar.
 
-## 0.94.0 (Beta)
+## 0.94.0 (Vorabversion)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.94.0` angehoben.
-  Der Beta-Kanal und die Einordnung zwischen Alpha und Beta bleiben
+  Der Vorabkanal und die Einordnung zwischen Alpha und Beta bleiben
   unverändert.
 
 ## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (Featurebranch-Testbuild)
@@ -203,7 +203,7 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Vierbytegrenzen, lange Pfade und ungültige Bytefolgen ab. Die Begrenzung
   bleibt bytebasiert und führt weder Polling noch Dateisystemabfragen ein.
 
-## 0.93.0 (Beta)
+## 0.93.0 (Vorabversion)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.93.0` angehoben.
   Der Releasekanal bleibt unverändert `beta`; der Gesamtstand bleibt zwischen
@@ -474,7 +474,7 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## 0.89.0-dev.3 (unveröffentlichter Featurebranch-Testbuild)
 
 - Fokusansagen nennen zusätzlich den in den Einstellungen vergebenen
-  Verbindungsnamen, beispielsweise „on Tessa“. Lokale Windows-Sitzungen werden
+  Verbindungsnamen, beispielsweise „on Example“. Lokale Windows-Sitzungen werden
   als „on local“ bezeichnet; technische Hostnamen werden nicht zusätzlich
   offengelegt.
 
@@ -503,7 +503,7 @@ deren vollständigen Verlauf.
 
 - Die Härtung des Registry-Lebenszyklus und die Pflege der
   Windows-Terminal-Bindungen werden nach praktischer Prüfung mit lokalem
-  Windows-Neovim und Tessa-SSH als Vorabversion veröffentlicht. Der
+  Windows-Neovim und einem SSH-Testziel als Vorabversion veröffentlicht. Der
   Gesamtstand bleibt zwischen Alpha und Beta.
 - Vollständige Wirkungslosigkeit in ungebundenen Windows-Terminal-Panes bleibt
   dokumentierte Folgearbeit; unsicherer Unterdrückungszustand bleibt fail-open.
@@ -521,7 +521,7 @@ deren vollständigen Verlauf.
   Session-Claim. Zuerst muss die native Abfrage beantwortet und danach F12 in
   einem Editormodus gedrückt werden; das Add-on wählt nie selbst eine
   möglicherweise destruktive Swap-Aktion.
-- Der Praxistest bestätigte den vollständigen Pfad lokal und über Tessa-SSH:
+- Der Praxistest bestätigte den vollständigen Pfad lokal und über ein SSH-Testziel:
   F12 während der Swap-Rückfrage lieferte keinen Kandidaten, der nächste
   F12-Druck nach ihrer Auflösung verband im Normalmodus, das erste `i` öffnete
   den Insert-Modus und die strukturierte Texteingabe lief normal weiter. Nach
@@ -737,8 +737,8 @@ deren vollständigen Verlauf.
   stoppt nach spätestens der fünfminütigen Sicherheitsprüfung außerhalb des Hauptthreads;
   Neovim- und tmux-Prozesse werden nie
   beendet.
-- Mehrtab-/Mehrfenster-Regressionen sowie isolierte SIGKILL-Tests decken lokal
-  und Tessa ab. Inaktive, aber offene Tabs bleiben über ihr direkt geprüftes
+- Mehrtab-/Mehrfenster-Regressionen sowie isolierte SIGKILL-Tests decken lokale
+  und entfernte Pfade ab. Inaktive, aber offene Tabs bleiben über ihr direkt geprüftes
   UIA-Element gültig; unklare UIA-Fehler sind nicht-destruktiv.
 
 ## 0.89.22 (Beta-Testbuild, durch 0.89.23 ersetzt)
@@ -782,7 +782,7 @@ deren vollständigen Verlauf.
   erhöht wird.
 - Der abschließende Praxistest bestätigte wiederholte automatische
   F12-Zuordnungen sowohl mit lokalem Neovim 0.12.3 als auch mit Neovim 0.10.1
-  auf Tessa. Bei deaktivierter Unterstützung blieb die Beobachtung inaktiv und
+  auf einem SSH-Testziel. Bei deaktivierter Unterstützung blieb die Beobachtung inaktiv und
   öffnete keinen Zuordnungsdialog.
 
 ## 0.89.15 (nicht bestandener Beta-Testbuild)
@@ -791,12 +791,12 @@ deren vollständigen Verlauf.
   `typed`-Wert seines bestehenden `vim.on_key`-Beobachters. Es verlässt sich
   nicht mehr darauf, dass Neovim 0.10.1 den internen Terminalcode als
   `<F12>`-Mapping auflöst.
-- Ein isolierter Tessa-Test bewies den Unterschied: Neovim meldete zweimal
+- Ein isolierter Test auf diesem SSH-Ziel bewies den Unterschied: Neovim meldete zweimal
   `typed=<F12>`, intern aber `key=<t_…>`; die `<F12>`-Zuordnung lief keinmal
   und der Test endete im Timeout.
 - Der NVDA-Beobachter ist bei deaktivierter Unterstützung vollständig inaktiv.
   F12 bleibt dann ein normaler Tastendruck und öffnet keinen Add-on-Dialog.
-- Der praktische Test bestätigte die automatische Tessa-Verbindung und den
+- Der praktische Test bestätigte die automatische Verbindung zum SSH-Testziel und den
   inaktiven Beobachter bei deaktivierter Unterstützung. Lokales Neovim 0.12.3
   wurde ebenfalls automatisch gefunden und kurz verbunden, wechselte aber
   unmittelbar in den `r?`-/Hit-Enter-Zustand und verlor danach seinen RPC-
@@ -812,8 +812,8 @@ deren vollständigen Verlauf.
 - Ohne gebundenes Skript endet NVDAs Auflösung für F12 mit
   `NoInputGestureAction`; der Keyboard-Hook lässt deshalb den ursprünglichen
   physischen Tastendruck direkt zum Betriebssystem durch. Ein Kontrolltest
-  bestätigte drei echte Claims in derselben Tessa-Sitzung.
-- Der praktische Test bestätigte die automatische lokale Zuordnung, Tessa
+  bestätigte drei echte Claims in derselben entfernten Sitzung.
+- Der praktische Test bestätigte die automatische lokale Zuordnung; das SSH-Testziel
   blieb jedoch ohne Claim. Die erfolgreiche Verbindung im Bericht stammte von
   der manuellen Profil- und Sitzungsauswahl. Der isolierte Folgetest
   lokalisierte den verbleibenden Fehler in Neovims Terminalcode-zu-Mapping-
@@ -826,8 +826,8 @@ deren vollständigen Verlauf.
   das Terminal die Funktionstaste außerhalb des noch laufenden NVDA-Skripts;
   die begrenzte Claim-Suche beginnt weiterhin erst danach.
 - Ein praktischer 0.89.12-Lauf bestätigte lokale Claims und einmalig auch eine
-  SSH-Verbindung zu Tessa. Beim folgenden Fehlversuch blieben jedoch beide
-  Register der tatsächlich laufenden Tessa-Neovims unverändert auf
+  SSH-Verbindung zum Testziel. Beim folgenden Fehlversuch blieben jedoch beide
+  Register der tatsächlich laufenden entfernten Neovim-Prozesse unverändert auf
   `claimSequence=0`; Aktivierung und Deaktivierung hatten ihre Clients dagegen
   ordnungsgemäß beendet und neu erfasst.
 - Die verzögerte synthetische Weitergabe blieb im praktischen Test erfolglos.

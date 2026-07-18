@@ -9,12 +9,12 @@ Modell wie „Zeileneinrückung ansagen“ unter „Dokument-Formatierungen“:
 - Töne
 - Sprache und Töne
 
-Die Seite verwendet drei zugängliche Registerkarten: „General“ mit globaler
-Rückmeldung, „Feedback“ mit den Einzelaktionen und „Connections“ mit
+Die Seite verwendet drei zugängliche Registerkarten: „Allgemein“ mit globaler
+Rückmeldung, „Rückmeldung“ mit den Einzelaktionen und „Verbindungen“ mit
 lokalem Windows-Neovim sowie Linux-Verbindungen. Innerhalb der Registerkarten sorgen
 beschriftete Gruppen für eine nachvollziehbare Tab-Reihenfolge.
 
-„General“ enthält außerdem die profilfähige Auswahl für bestätigten
+„Allgemein“ enthält außerdem die profilfähige Auswahl für bestätigten
 Sitzungsfokus: keine Ansage, aktuelle strukturierte Zeile oder den bisherigen
 Datei-/Spezialkontext mit Modus und Verbindungsname. Der bisherige Kontext ist
 Standard. Die Auswahl steuert weder Fokuskorrelation noch strukturierte
@@ -51,7 +51,7 @@ Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
 Diagnosebericht gemeldet.
 
 Die vier Zwischenablagebefehle besitzen keine Standardgesten. Anwender weisen ihnen
-in NVDAs Dialog „Eingaben“ eigene Tastenkombinationen zu. Konfiguriert wird nur
+in NVDAs Dialog „Tastenzuordnungen“ eigene Tastenkombinationen zu. Konfiguriert wird nur
 die Erfolgsrückmeldung; Übertragungsrichtung, Register und Zielbuffer werden
 nicht durch frei eingegebene Befehle oder automatische Synchronisation
 gesteuert. Der Registerbefehl ersetzt fest Register 0 und lässt das unbenannte
@@ -95,7 +95,7 @@ abweichender Port wird mit `ssh -p`, eine Schlüsseldatei als separates
 `-i`-Argument übergeben; Pfade mit Leerzeichen bleiben dadurch ein einzelnes
 Argument.
 
-In der Gruppe „Saved SSH connections“ können Linux-Verbindungen hinzugefügt, bearbeitet
+In der Gruppe „Gespeicherte SSH-Verbindungen“ können Linux-Verbindungen hinzugefügt, bearbeitet
 und entfernt werden. Hinzufügen und Bearbeiten öffnet jeweils genau ein
 beschriftetes Formular für Anzeigename, Host/Alias, Linux-Benutzer, Port,
 optionale Schlüsseldatei und Anmeldeart. Ein Abbruch lässt die Settings
@@ -106,8 +106,9 @@ Datenträger. Änderungen an der Liste starten bei aktivierter Barrierefreiheit
 eine neue Hintergrunderfassung, ohne bereits laufende Editorverbindungen zu
 beenden.
 
-Im Formular heißen die Anmeldearten „Use OpenSSH setup“ und „Ask for the SSH
-password“. Die erste, empfohlene Auswahl verwendet die normale Windows-
+Im Formular heißen die Anmeldearten „OpenSSH-Einrichtung verwenden (empfohlen:
+Schlüssel, ssh-agent oder SSH-Konfiguration)“ und „Beim Verbinden nach dem
+SSH-Passwort fragen (Passwort wird nicht gespeichert)“. Die erste Auswahl verwendet die normale Windows-
 OpenSSH-Konfiguration, Schlüsseldateien oder ssh-agent und eignet sich, wenn
 `ssh` unter Windows bereits ohne Passwortdialog funktioniert. Die zweite
 Auswahl erklärt, dass der Linux-SSH-Server Passwortanmeldung erlauben muss.
@@ -115,12 +116,12 @@ NVDA fragt beim ersten Verbindungsaufbau der Aktivierung zugänglich nach dem
 Passwort. Es wird nur im Arbeitsspeicher gehalten, für Reconnects derselben
 Aktivierung wiederverwendet und beim Deaktivieren oder Beenden verworfen.
 
-Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Install or update components...`
-öffnet vor jeder Installation eine Checkboxliste aus „This computer“ und allen gespeicherten
+Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...`
+öffnet vor jeder Installation eine Checkboxliste aus „Dieser Computer“ und allen gespeicherten
 Linux-Verbindungen. Jeder Eintrag
 nennt Anzeigename, Linux-Konto, Host, Port und verständliche Anmeldeart. Keine
-Verbindung ist vorausgewählt. Die initial fokussierte Checkbox „Select all
-connections“ markiert beziehungsweise demarkiert alle Ziele; alternativ lassen
+Verbindung ist vorausgewählt. Die initial fokussierte Checkbox „Alle
+Verbindungen auswählen“ markiert beziehungsweise demarkiert alle Ziele; alternativ lassen
 sich einzelne Verbindungen ankreuzen. Sind dadurch alle Einzelziele markiert,
 aktiviert sich die Sammelcheckbox ebenfalls; beim Demarkieren eines Ziels wird
 sie wieder deaktiviert. „OK“ akzeptiert nur eine nichtleere Auswahl. Das
@@ -147,8 +148,8 @@ Mehrere unterschiedliche Hosts können parallel verbunden und explizit an
 verschiedene Terminals gebunden werden. SSH-Port, Schlüssel und
 Authentifizierung gelten je Profil und werden nicht global geteilt.
 
-`F12` ist standardmäßig mit „Fokussierte Neovim-Sitzung markieren und
-verbinden“ belegt. Bei eingeschaltetem Dienst autorisiert jeder physische
+`F12` ist die fest konfigurierte Zuordnungstaste des installierten Plugins und
+kein frei belegbarer NVDA-Befehl. Bei eingeschaltetem Dienst autorisiert jeder physische
 F12-Druck genau einen Zuordnungsversuch für die vollständige UIA-Identität des
 fokussierten Windows-Terminal-Controls. NVDA reicht die Geste unverändert an
 Windows Terminal und Neovim weiter und vergleicht danach die Claim-Sequenzen

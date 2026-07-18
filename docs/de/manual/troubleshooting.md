@@ -40,7 +40,7 @@ Im lokalen Neovim prüfen:
 Die erwartete Ausgabe ist `2`. Bei einem anderen Wert:
 
 1. alle lokalen Neovim-Instanzen schließen,
-2. im Komponentenmenü ausschließlich „This computer“ aktualisieren,
+2. im Komponentenmenü ausschließlich „Dieser Computer“ aktualisieren,
 3. das Ergebnis prüfen,
 4. Neovim neu starten.
 
@@ -86,9 +86,9 @@ normalen Windows-OpenSSH-Client behoben werden.
 
 ## Die falsche Sitzung ist verbunden
 
-1. Den betroffenen Tab fokussieren.
-2. Die Verbindung für diesen Tab trennen oder die temporäre Terminalbindung
-   vergessen.
+1. Den betroffenen Tab oder das betroffene Pane fokussieren.
+2. Die Verbindung für dieses Control trennen oder die temporäre
+   Terminalbindung vergessen.
 3. Das gewünschte Neovim fokussieren und erneut F12 drücken.
 4. Bei identischen Arbeitsverzeichnissen freiwillige Sitzungsnamen verwenden.
 

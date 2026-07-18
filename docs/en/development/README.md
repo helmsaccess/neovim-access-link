@@ -1,40 +1,72 @@
 # Developer documentation
 
-The documents are grouped by purpose. Explanations introduce requirements and
-current behavior; architecture records boundaries and decisions; reference
-documents define verifiable formats, settings, builds, and tests. Planning and
-history are kept separate from the current product description.
+This documentation explains how Neovim Access Link is built, how to develop a
+change safely, and which claims are actually supported by code or tests. See
+the [user manual](../manual/README.md) for operation of the installed add-on.
 
-## Explanation and onboarding
+## Recommended starting path
 
-1. [Development requirements and first checks](getting-started.md)
-2. [Current status](current-status.md)
-3. [Compatibility and tested environment](compatibility.md)
-4. [Repository layout](repository-layout.md)
+New contributors should read these pages in order:
 
-## Architecture and decisions
+1. [Architecture](architecture.md) — mental model, terminology, components,
+   and the complete path of one event from Neovim to NVDA.
+2. [Repository layout](repository-layout.md) — where the corresponding sources
+   and tests live.
+3. [Development and test onboarding](getting-started.md) — prerequisites,
+   first commands, and checks for common kinds of changes.
+4. [Current status](current-status.md) — confirmed platforms, maturity, and
+   known limitations of the current revision.
 
-1. [Architecture](architecture.md)
-2. [ADR-0001: hybrid Neovim integration point](adr/0001-neovim-integration-point.md)
-3. [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
-4. [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
-5. [Security and privacy](security.md)
-6. [Latency](latency.md)
+The first three documents explain durable relationships. Current status is a
+snapshot and must not be used as an architecture specification.
 
-## Reference and evidence
+## Continue by task
 
-1. [Protocol v2](protocol.md)
-2. [Settings reference](settings-reference.md)
-3. [Component installation and SSH stdio](component-installation.md)
-4. [Test strategy](testing.md)
-5. [Feature and accessibility matrix](accessibility.md)
-6. [Release, version, and build process](release-and-build.md)
-7. [NVDA 2026.1 API review](nvda-2026.1-api-notes.md)
-8. [Licensing and contributions](licensing-and-contributions.md)
-9. [Localization with gettext](localization.md)
-10. [Bundled dependencies](dependencies.md)
+### Behavior or accessibility changes
 
-## Planning and history
+- [Feature and accessibility matrix](accessibility.md)
+- [Test strategy](testing.md)
+- [Compatibility](compatibility.md)
+- [NVDA 2026.1 API review](nvda-2026.1-api-notes.md)
 
+### Connection, installation, or security changes
+
+- [Protocol v2](protocol.md)
+- [Component installation and SSH stdio](component-installation.md)
+- [Security and privacy](security.md)
+- [Latency](latency.md)
+
+### Settings, localization, or release changes
+
+- [Settings reference](settings-reference.md)
+- [Localization with gettext](localization.md)
+- [Release, version, and build process](release-and-build.md)
+- [Bundled dependencies](dependencies.md)
+- [Licensing and contributions](licensing-and-contributions.md)
+
+## Decisions, planning, and history
+
+Architecture decision records explain why a durable boundary was chosen. They
+are neither user instructions nor substitutes for the current code.
+
+- [ADR-0001: hybrid Neovim integration point](adr/0001-neovim-integration-point.md)
+- [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
+- [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
+
+## Which page is authoritative for what?
+
+- `architecture.md` describes current components, responsibilities, and
+  dependency boundaries.
+- `protocol.md` is the reference for messages, validation, and controls.
+- `security.md` defines trust boundaries and fail-open requirements.
+- `testing.md` contains reproducible evidence and manual acceptance steps.
+- `current-status.md` records confirmed platforms and remaining coverage gaps.
+- `plan.md` describes intended work; a plan is not an implemented feature.
+- `changelog.md` preserves chronology; an older entry does not automatically
+  describe current behavior.
+
+Every claim should state its scope. For example, “Windows Terminal” must not be
+generalized to “tab”: the code binds one concrete UI Automation `TermControl`,
+which may represent a tab's content or a pane depending on the layout.

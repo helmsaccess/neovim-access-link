@@ -32,11 +32,11 @@ handbook_sources=(
 
 developer_sources=(
   docs/de/development/README.md
+  docs/de/development/architecture.md
+  docs/de/development/repository-layout.md
   docs/de/development/getting-started.md
   docs/de/development/current-status.md
   docs/de/development/compatibility.md
-  docs/de/development/repository-layout.md
-  docs/de/development/architecture.md
   docs/de/development/localization.md
   docs/de/development/adr/0001-neovim-integration-point.md
   docs/de/development/adr/0002-nvda-api-boundaries.md
@@ -74,11 +74,11 @@ handbook_en_sources=(
 
 developer_en_sources=(
   docs/en/development/README.md
+  docs/en/development/architecture.md
+  docs/en/development/repository-layout.md
   docs/en/development/getting-started.md
   docs/en/development/current-status.md
   docs/en/development/compatibility.md
-  docs/en/development/repository-layout.md
-  docs/en/development/architecture.md
   docs/en/development/localization.md
   docs/en/development/adr/0001-neovim-integration-point.md
   docs/en/development/adr/0002-nvda-api-boundaries.md

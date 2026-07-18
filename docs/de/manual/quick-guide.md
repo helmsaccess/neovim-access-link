@@ -18,6 +18,11 @@ wurde noch nicht mit einer echten Braillezeile geprüft und enthält sehr
 wahrscheinlich Fehler. Braille ist ein wichtiges, ausdrücklich eingeplantes
 Arbeitsgebiet, aber noch keine belastbare Funktionszusage.
 
+Die beschriebenen Referenzabläufe werden nach bestem Wissen geprüft; sie sind
+keine Zusage, dass jede mögliche Konfiguration bereits abgedeckt ist. Fehler
+sollten mit einem redigierten Diagnosebericht gemeldet werden und werden nach
+Möglichkeit zeitnah untersucht.
+
 ## 1. Voraussetzungen
 
 Für alle Verbindungen werden benötigt:
@@ -90,11 +95,11 @@ Vor der Aktualisierung alle laufenden Neovim-Instanzen auf den ausgewählten
 Rechnern schließen. Dadurch ist ausgeschlossen, dass eine bereits geladene
 alte Pluginfassung bis zum nächsten Neovim-Neustart weiterläuft.
 
-1. „NVDA-Menü → Werkzeuge → Neovim Access Link: Install or update components...“
+1. „NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...“
    öffnen.
-2. Für lokales Windows-Neovim „This computer“ markieren.
+2. Für lokales Windows-Neovim „Dieser Computer“ markieren.
 3. Gewünschte Linux-Verbindungen markieren. Anfangs ist absichtlich kein Ziel
-   ausgewählt; „Select all connections“ markiert alle Ziele.
+   ausgewählt; „Alle Verbindungen auswählen“ markiert alle Ziele.
 4. Mit „OK“ starten.
 5. Die Ergebnisübersicht prüfen. Jedes Ziel wird als erfolgreich oder
    fehlgeschlagen aufgeführt.
@@ -106,7 +111,7 @@ die Installation ohne root-Rechte in das Home-Verzeichnis des jeweiligen
 Benutzers.
 
 Zum vollständigen Entfernen zuerst Neovim auf den gewünschten Zielen beenden
-und „NVDA-Menü → Werkzeuge → Neovim Access Link: Remove components...“ öffnen.
+und „NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen...“ öffnen.
 Ziele wie bei der Installation ausdrücklich markieren und die Ergebnisübersicht
 prüfen. Verbindungsprofile, Neovim- und SSH-Konfiguration sowie andere Plugins
 bleiben erhalten.
@@ -116,12 +121,14 @@ bleiben erhalten.
 Dieser Schritt entfällt für lokales Windows-Neovim.
 
 1. „NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link“ öffnen.
-2. Auf der Seite „Connections“ „Add connection“ wählen.
+2. Auf der Seite „Verbindungen“ „Verbindung hinzufügen...“ wählen.
 3. Einen verständlichen Namen, Server oder SSH-Alias, Linux-Benutzernamen und
    SSH-Port eintragen.
-4. Als Anmeldeart möglichst „Use OpenSSH setup“ wählen. Dann gelten die normale
+4. Als Anmeldeart möglichst „OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel,
+   ssh-agent oder SSH-Konfiguration)“ wählen. Dann gelten die normale
    SSH-Konfiguration, Schlüssel und `ssh-agent`.
-5. Alternativ „Ask for the SSH password“ wählen. Das Passwort wird nur für die
+5. Alternativ „Beim Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht
+   gespeichert)“ wählen. Das Passwort wird nur für die
    aktuelle NVDA-Laufzeit verwendet und nicht gespeichert.
 6. Die Einstellungen speichern und danach die Komponenten für diese Verbindung
    wie in Abschnitt 4 installieren.
