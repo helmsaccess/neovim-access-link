@@ -42,7 +42,7 @@ distributionsunabhängige Installationsweg.
 Beim Bau der `.nvda-addon` erzeugt `tools/build_user_package.py` dieses Archiv
 direkt aus den versionierten Verzeichnissen `bridge/`, `protocol/`,
 `neovim-plugin/` und `packaging/install_user.py`. Anschließend wird es als
-`globalPlugins/nvimNvdaAccess/resources/server-user.tar.gz` in das Add-on
+`globalPlugins/NeovimAccessLink/resources/server-user.tar.gz` in das Add-on
 eingebettet. Der Menüinstaller liest genau diese Ressource und überträgt ihre
 Bytes über SSH-stdin; die Zielmaschine greift weder auf das Repository noch auf
 einen Downloadserver zu.

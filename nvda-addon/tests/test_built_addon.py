@@ -20,6 +20,14 @@ from tools import build_user_package
 import buildVars
 
 
+def add_remote_instance(manager, target_id, session_id, label, client):
+    from globalPlugins.NeovimAccessLink.core.connection_targets import remote_ssh_target
+
+    return manager.add_target(
+        remote_ssh_target(target_id, label), session_id, label, client,
+    )
+
+
 class BuiltAddonTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -115,9 +123,8 @@ class BuiltAddonTests(unittest.TestCase):
                 super().__init__(*args, **kwargs)
                 inner_self.spec = {}
             def __getitem__(inner_self, key):
-                if key == "nvimNvdaAccess" and key not in inner_self:
+                if key == "NeovimAccessLink" and key not in inner_self:
                     inner_self[key] = {
-                        "schemaVersion": 0,
                         "connections": "[]",
                         "feedback": {
                             "global": 3, "mode": 3, "delete": 3, "replace": 3,
@@ -470,18 +477,27 @@ class BuiltAddonTests(unittest.TestCase):
     def test_manifest_uses_scalar_strings_accepted_by_nvda_parser(self) -> None:
         manifest = validate_manifest(self.extract_path / "manifest.ini")
         self.assertEqual(buildVars.manifest(), dict(manifest))
+        self.assertEqual("NeovimAccessLink", manifest["name"])
         self.assertEqual(buildVars.store_version(), manifest["version"])
         self.assertNotIn("dev", manifest["version"])
 
+    def test_archive_contains_only_the_new_addon_identity(self) -> None:
+        with zipfile.ZipFile(build()) as archive:
+            names = archive.namelist()
+        self.assertIn("globalPlugins/NeovimAccessLink/__init__.py", names)
+        self.assertFalse(any(
+            name.startswith("globalPlugins/nvimNvdaAccess/") for name in names
+        ))
+
     def test_built_addon_local_discovery_does_not_open_probe_channels(self) -> None:
-        core = self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "core"
+        core = self.extract_path / "globalPlugins" / "NeovimAccessLink" / "core"
         self.assertFalse((core / "registry_probe.py").exists())
         source = (core / "local_sessions.py").read_text(encoding="utf-8")
         self.assertNotIn("query_registry_nonce", source)
 
     def test_bundled_neovim_plugin_supports_old_and_new_utfindex_signatures(self) -> None:
         lua = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "neovim-plugin" / "lua" / "nvim_nvda" / "state.lua"
         ).read_text(encoding="utf-8")
         self.assertIn('vim.fn.has("nvim-0.11")', lua)
@@ -490,7 +506,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_bundled_snapshot_failure_closes_rpc_channel_fail_open(self) -> None:
         lua = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
         ).read_text(encoding="utf-8")
         self.assertIn("pcall(state.snapshot, reason)", lua)
@@ -498,7 +514,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_bundled_key_observer_contains_errors_and_records_only_f12_metadata(self) -> None:
         lua = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
         ).read_text(encoding="utf-8")
         self.assertIn("local observer_ok, observer_error = pcall(function()", lua)
@@ -524,7 +540,7 @@ class BuiltAddonTests(unittest.TestCase):
             return real_import(name, *args, **kwargs)
 
         with mock.patch.object(builtins, "__import__", side_effect=isolated_import):
-            from globalPlugins.nvimNvdaAccess import GlobalPlugin
+            from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self.assertIsNotNone(plugin)
@@ -559,7 +575,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_built_addon_keeps_store_and_diagnostic_versions_separate(self) -> None:
         build_info = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "build_info.py"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "build_info.py"
         ).read_text(encoding="utf-8")
         self.assertIn(repr(buildVars.artifact_version()), build_info)
         with mock.patch.object(buildVars, "development_build", 1):
@@ -579,16 +595,16 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_shared_component_config_changes_the_claim_function_key(self) -> None:
         config_path = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "linux-components.json"
         )
         config_path.write_text(
             '{"format":1,"sessionClaim":{"neovimKey":"<F9>","nvdaGesture":"kb:f9"}}',
             encoding="utf-8",
         )
-        from globalPlugins import nvimNvdaAccess
+        from globalPlugins import NeovimAccessLink
 
-        self.assertEqual("kb:f9", nvimNvdaAccess._SESSION_CLAIM_GESTURE)
+        self.assertEqual("kb:f9", NeovimAccessLink._SESSION_CLAIM_GESTURE)
 
     def test_addon_reuses_nvda_sounds_and_bundles_only_cc0_editor_earcons(self) -> None:
         with zipfile.ZipFile(build()) as archive:
@@ -597,13 +613,13 @@ class BuiltAddonTests(unittest.TestCase):
                 "delete.wav", "fileEnd.wav", "fileStart.wav", "lineCrossed.wav",
                 "lineEnd.wav", "lineStart.wav", "replace.wav",
             ], waves)
-            self.assertIn("globalPlugins/nvimNvdaAccess/resources/sounds/LICENSE.txt", archive.namelist())
+            self.assertIn("globalPlugins/NeovimAccessLink/resources/sounds/LICENSE.txt", archive.namelist())
             self.assertIn("LICENSE", archive.namelist())
-            self.assertIn("globalPlugins/nvimNvdaAccess/resources/ssh-askpass.cmd", archive.namelist())
+            self.assertIn("globalPlugins/NeovimAccessLink/resources/ssh-askpass.cmd", archive.namelist())
 
     def test_addon_contains_complete_linux_package_and_shared_configuration(self) -> None:
         with zipfile.ZipFile(build()) as archive:
-            resource = "globalPlugins/nvimNvdaAccess/resources/"
+            resource = "globalPlugins/NeovimAccessLink/resources/"
             config_bytes = archive.read(resource + "linux-components.json")
             package_bytes = archive.read(resource + "server-user.tar.gz")
             addon_names = archive.namelist()
@@ -642,7 +658,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_addon_frontend_policy_enables_only_windows_terminal(self) -> None:
         policy_path = (
-            self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources"
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "frontend-policy.json"
         )
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
@@ -658,12 +674,12 @@ class BuiltAddonTests(unittest.TestCase):
         )
 
     def test_editor_earcons_remain_playable_after_source_files_are_removed(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         for sound in (self.config_path / "waves").glob("*.wav"):
             sound.unlink()
-        bundled = self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "resources" / "sounds"
+        bundled = self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources" / "sounds"
         for sound in bundled.glob("*.wav"):
             sound.unlink()
 
@@ -678,7 +694,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, _PRODUCT_NAME
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, _PRODUCT_NAME
 
         configurable_scripts = (
             "script_toggleNeovimMode",
@@ -697,10 +713,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertNotIn("gesture", metadata, name)
             self.assertEqual(_PRODUCT_NAME, metadata["category"], name)
             self.assertTrue(metadata["description"], name)
-            self.assertTrue(hasattr(AppModule, name), name)
-            self.assertFalse(
-                hasattr(getattr(AppModule, name), "_test_script_kwargs"), name,
-            )
+            self.assertFalse(hasattr(AppModule, name), name)
         self.assertFalse(hasattr(GlobalPlugin, "script_selectConnection"))
         self.assertFalse(hasattr(GlobalPlugin, "script_nextConnection"))
         self.assertIn(
@@ -715,7 +728,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
 
     def test_configured_global_gesture_passes_through_outside_windows_terminal(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -742,7 +755,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_f12_observer_keeps_original_gesture_unbound_and_starts_claim_resolution(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         self.focus = types.SimpleNamespace(
             processID=1001, windowHandle=2001, role=3, parent=None,
@@ -798,7 +811,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_f12_observer_is_inert_while_support_is_disabled(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -818,7 +831,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_f12_observer_authorizes_the_focused_control_while_support_is_enabled(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -842,7 +855,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_f12_authorization_is_exact_one_shot_and_observer_registration_is_shared(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -880,7 +893,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_without_a_fresh_claim_is_silent_and_fails_open(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -898,7 +911,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_queued_f12_is_rejected_after_switching_terminal_controls(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -924,7 +937,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import wx
 
         class PendingCall:
@@ -952,7 +965,7 @@ class BuiltAddonTests(unittest.TestCase):
             wx.CallLater = original_call_later
 
     def test_observed_f12_is_not_synthetically_reinjected(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -969,7 +982,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_before_inventory_ready_is_inert_until_pairing_is_ready(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -988,8 +1001,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_explicit_local_discovery_can_fall_back_to_a_selected_ssh_profile(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1010,10 +1023,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_inventory_baselines_local_and_every_reachable_ssh_profile(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1044,10 +1057,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_resolves_changed_claim_across_all_targets_not_a_default(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1088,10 +1101,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_local_f12_claim_does_not_wait_for_ssh_scans(self) -> None:
-        from globalPlugins import nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins import NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1127,9 +1140,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_automatic_local_claim_retries_an_initial_pre_claim_snapshot(self) -> None:
-        from globalPlugins import nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins import NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1166,8 +1179,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_automatic_local_claim_accepts_f12_timestamp_when_baseline_sequence_is_equal(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1198,9 +1211,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_explicit_local_claim_retries_until_registry_write_arrives(self) -> None:
-        from globalPlugins import nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins import NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1236,10 +1249,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_multiple_changed_claims_require_explicit_accessible_choice(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1270,7 +1283,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_activation_inventories_local_and_all_saved_connections_before_f12(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         self.focus = types.SimpleNamespace(
             processID=1001, windowHandle=2001, role=3, parent=None,
@@ -1297,7 +1310,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_terminal_actions_refresh_focus_without_a_new_gain_focus_event(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
 
         plugin = GlobalPlugin()
         stale = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 53))
@@ -1317,7 +1330,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_activation_in_unbound_second_control_still_disables_globally(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, TerminalIdentity
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
 
         class Client:
             def __init__(inner_self): inner_self.stops = 0
@@ -1328,7 +1341,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         first_identity = plugin._gate.focused
         client = Client()
-        instance = plugin._instanceManager.add("work", "one", "Work", client)
+        instance = add_remote_instance(plugin._instanceManager, "work", "one", "Work", client)
         plugin._instanceManager.bind(first_identity, instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._claimInventoryReady = True
@@ -1346,7 +1359,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_activation_in_bound_tab_still_turns_accessibility_off(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(inner_self): inner_self.stops = 0
@@ -1356,7 +1369,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         client = Client()
-        instance = plugin._instanceManager.add("work", "one", "Work", client)
+        instance = add_remote_instance(plugin._instanceManager, "work", "one", "Work", client)
         plugin._instanceManager.bind(plugin._gate.focused, instance.identifier)
         plugin._gate.manual_enabled = True
 
@@ -1372,13 +1385,13 @@ class BuiltAddonTests(unittest.TestCase):
         with zipfile.ZipFile(build()) as archive:
             names = set(archive.namelist())
             global_source = archive.read(
-                "globalPlugins/nvimNvdaAccess/__init__.py"
+                "globalPlugins/NeovimAccessLink/__init__.py"
             ).decode("utf-8")
         self.assertIn("appModules/windowsterminal.py", names)
         self.assertIn("_dispatchConfiguredTerminalScript", global_source)
         self.assertIn("getFocusObject", global_source)
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         self.assertTrue(hasattr(AppModule, "event_gainFocus"))
         self.assertTrue(hasattr(AppModule, "chooseNVDAObjectOverlayClasses"))
@@ -1387,10 +1400,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(GlobalPlugin, "event_gainFocus"))
         self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
         self.assertTrue(hasattr(GlobalPlugin, "script_toggleNeovimMode"))
-        self.assertTrue(hasattr(AppModule, "script_toggleNeovimMode"))
-        self.assertFalse(
-            hasattr(AppModule.script_toggleNeovimMode, "_test_script_kwargs"),
-        )
+        self.assertFalse(hasattr(AppModule, "script_toggleNeovimMode"))
         self.assertEqual(
             ["script_copyDiagnosticReport"],
             sorted(
@@ -1402,7 +1412,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_windows_terminal_events_fail_open_exactly_once(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         adapter = AppModule()
@@ -1429,7 +1439,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_windows_terminal_does_not_repeat_native_handler_after_late_failure(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         adapter = AppModule()
@@ -1448,7 +1458,7 @@ class BuiltAddonTests(unittest.TestCase):
     def test_global_service_does_not_inspect_focus_and_app_module_clears_scope(self) -> None:
         import api
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         focus_queries = []
         api.getFocusObject = lambda: focus_queries.append(True) or self.focus
@@ -1472,7 +1482,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_stale_lose_focus_from_first_wt_cannot_clear_second_wt(self) -> None:
         from appModules.windowsterminal import AppModule
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         second_focus = types.SimpleNamespace(
             processID=9000, windowHandle=9001, role=3, parent=None,
@@ -1497,7 +1507,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_all_open_ssh_connections_are_automatic_without_a_default(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1516,8 +1526,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_parallel_identical_instances_speak_only_when_explicitly_bound(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         clients = []
         class FakeStdioClient:
@@ -1561,10 +1571,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([1, 1], [client.stops for client in clients])
 
     def test_remote_session_ids_stay_internal_and_single_session_is_selected_automatically(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         started = []
         plugin = GlobalPlugin()
@@ -1586,9 +1596,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_multiple_remote_sessions_use_friendly_choice_and_stale_results_are_ignored(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1614,9 +1624,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_pairing_selects_only_the_newest_fresh_claim(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1642,9 +1652,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_pairing_rejects_unclaimed_and_old_sessions(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1665,9 +1675,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_repeated_f12_reuses_the_existing_claimed_session_transport(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         class Client:
             def __init__(self): self.controls = []
@@ -1685,7 +1695,7 @@ class BuiltAddonTests(unittest.TestCase):
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
         client = Client()
-        instance = plugin._instanceManager.add("work", "22", "Work, project", client)
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work, project", client)
         identity = plugin._identity(self.focus)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
@@ -1702,9 +1712,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_same_directory_sessions_have_names_time_ordinals_and_status(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         class Client:
             def start(self): pass
@@ -1731,14 +1741,14 @@ class BuiltAddonTests(unittest.TestCase):
             "Documentation, working directory /same",
             "Programming, working directory /same",
         ], plugin._remoteSessionLabels(profile, named))
-        instance = plugin._instanceManager.add("work", "11", "Documentation", Client())
+        instance = add_remote_instance(plugin._instanceManager, "work", "11", "Documentation", Client())
         self.assertIn("already connected", plugin._remoteSessionLabels(profile, named)[0])
         plugin._instanceManager.remove(instance.identifier)
         plugin.terminate()
 
     def test_closed_terminal_prunes_binding_and_stops_client_off_main_thread(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         stopped = threading.Event()
         stop_threads = []
@@ -1752,7 +1762,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         identity = plugin._identity(self.focus)
-        instance = plugin._instanceManager.add("work", "22", "Work", Client())
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.manual_enabled = True
@@ -1770,9 +1780,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_closed_terminal_pruning_preserves_other_window_and_client(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
         class Client:
             def __init__(self): self.stops = 0
@@ -1783,8 +1793,8 @@ class BuiltAddonTests(unittest.TestCase):
         dead = TerminalIdentity(100, 200, "windowsTerminal", (1,))
         live = TerminalIdentity(100, 200, "windowsTerminal", (2,))
         dead_client, live_client = Client(), Client()
-        dead_instance = plugin._instanceManager.add("one", "1", "One", dead_client)
-        live_instance = plugin._instanceManager.add("two", "2", "Two", live_client)
+        dead_instance = add_remote_instance(plugin._instanceManager, "one", "1", "One", dead_client)
+        live_instance = add_remote_instance(plugin._instanceManager, "two", "2", "Two", live_client)
         plugin._instanceManager.bind(dead, dead_instance.identifier)
         plugin._instanceManager.bind(live, live_instance.identifier)
         with mock.patch.object(
@@ -1799,9 +1809,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_whole_closed_window_prunes_all_its_tabs_but_not_other_window(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
         class Client:
             def start(self): pass
@@ -1811,11 +1821,11 @@ class BuiltAddonTests(unittest.TestCase):
         closed_instances = []
         for index in range(6):
             identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, index))
-            instance = plugin._instanceManager.add("target", str(index), f"Closed {index}", Client())
+            instance = add_remote_instance(plugin._instanceManager, "target", str(index), f"Closed {index}", Client())
             plugin._instanceManager.bind(identity, instance.identifier)
             closed_instances.append(instance.identifier)
         survivor_identity = TerminalIdentity(101, 201, "windowsTerminal", (42, 201, 4, 1))
-        survivor = plugin._instanceManager.add("other", "live", "Live", Client())
+        survivor = add_remote_instance(plugin._instanceManager, "other", "live", "Live", Client())
         plugin._instanceManager.bind(survivor_identity, survivor.identifier)
         with mock.patch.object(
             addon_module, "_terminalIdentityExists",
@@ -1828,8 +1838,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_lifecycle_sweep_repeats_and_prunes_idle_closed_tab(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -1838,7 +1848,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         identity = plugin._identity(self.focus)
-        instance = plugin._instanceManager.add("local", "1", "Idle local", Client())
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "Idle local", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
         scheduled = []
 
@@ -1862,8 +1872,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_lifecycle_never_prunes_focused_tab_on_negative_uia_result(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -1872,7 +1882,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         identity = plugin._gate.focused
-        instance = plugin._instanceManager.add("local", "1", "Focused local", Client())
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "Focused local", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
         with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False) as exists:
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
@@ -1882,7 +1892,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_editor_and_action_paths_do_not_run_terminal_lifecycle_pruning(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1896,7 +1906,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_lifecycle_failure_drops_suppression_and_does_not_repeat(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -1905,7 +1915,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         identity = plugin._gate.focused
-        instance = plugin._instanceManager.add("local", "1", "Local", Client())
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "Local", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.authenticated = True
@@ -1927,7 +1937,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_connect_command_explicitly_selects_profile_without_exposing_ids(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1962,8 +1972,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_connect_command_can_select_local_target_without_persisted_ids(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -1977,9 +1987,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_local_f12_pairs_only_fresh_claim(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -2013,9 +2023,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_f12_ignores_a_local_claim_from_before_the_current_keypress(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -2039,10 +2049,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_local_instance_uses_typed_transport_and_coexists_with_ssh(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         class Client:
             created = []
@@ -2066,7 +2076,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        remote = plugin._instanceManager.add("work", "ssh-session", "Work", SshClient())
+        remote = add_remote_instance(plugin._instanceManager, "work", "ssh-session", "Work", SshClient())
         local_identity = plugin._gate.focused
         local = LocalWindowsSession(
             "77", "Local docs", "C:/docs", "127.0.0.1", 45678, 77, claim_age_ms=10,
@@ -2079,7 +2089,7 @@ class BuiltAddonTests(unittest.TestCase):
         local_instance = plugin._instanceManager.selected_for(local_identity)
         self.assertEqual(LOCAL_WINDOWS_TCP, local_instance.transport_kind)
         plugin._authenticatedInstances.add(local_instance.identifier)
-        self.assertEqual("", local_instance.profile_id)
+        self.assertFalse(hasattr(local_instance, "profile_id"))
         self.assertEqual(("127.0.0.1", 45678, 1), (
             Client.created[0].host, Client.created[0].port, Client.created[0].starts,
         ))
@@ -2097,8 +2107,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_disconnected_local_binding_does_not_block_fresh_remote_claim_resolution(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import local_windows_target
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import local_windows_target
 
         class Client:
             def start(self): pass
@@ -2135,10 +2145,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_two_local_sessions_bind_independently_and_coexist_with_ssh(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
-        from globalPlugins.nvimNvdaAccess.core.local_sessions import LocalWindowsSession
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
 
         class Client:
             created = []
@@ -2161,7 +2171,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._instanceManager.add("work", "ssh-session", "Work", SshClient())
+        add_remote_instance(plugin._instanceManager, "work", "ssh-session", "Work", SshClient())
         first_identity = plugin._gate.focused
         second_identity = TerminalIdentity(
             first_identity.process_id, first_identity.window_handle,
@@ -2188,9 +2198,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_explicit_connection_survives_modal_focus_gap_for_second_wt_window(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -2217,7 +2227,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_windows_terminal_runtime_id_is_stable_and_distinguishes_tabs(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         def terminal(runtime_id):
             element = types.SimpleNamespace(
@@ -2236,8 +2246,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("windowsTerminal", first.frontend_kind)
 
     def test_terminal_identity_checks_exact_runtime_id_with_conservative_errors(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
         live = (42, 2001, 4, 6)
         closed = (42, 2001, 4, 53)
@@ -2280,7 +2290,7 @@ class BuiltAddonTests(unittest.TestCase):
             ), "uncertain UIA failure must retain the binding")
 
     def test_frontend_identity_relies_only_on_appmodule_internal_tab_constraints(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         def terminal(class_name="TermControl", runtime_id=(42, 2001, 4, 6)):
             return types.SimpleNamespace(
@@ -2295,7 +2305,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(GlobalPlugin._identity(terminal(runtime_id=())))
 
     def test_activation_is_fail_open_outside_windows_terminal(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         self.focus = types.SimpleNamespace(
             processID=900, windowHandle=901, role=3, parent=None,
@@ -2309,7 +2319,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_successful_explicit_connection_can_be_remembered_for_tab(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2326,7 +2336,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("work", "42", "editor@example-host", client)
+        instance = add_remote_instance(plugin._instanceManager, "work", "42", "editor@example-host", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = plugin._gate.nvim_active = True
@@ -2343,7 +2353,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_first_full_state_waits_for_terminal_focus_after_session_dialog(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -2362,7 +2372,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         identity = plugin._identity(terminal)
-        instance = plugin._instanceManager.add("work", "42", "editor@example-host", Client())
+        instance = add_remote_instance(plugin._instanceManager, "work", "42", "editor@example-host", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._rememberOfferInstances.add(instance.identifier)
 
@@ -2388,7 +2398,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_activity_from_another_session_never_rebinds_an_unbound_control(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2411,7 +2421,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin, active_obj)
         plugin._gate.manual_enabled = True
         client = Client()
-        instance = plugin._instanceManager.add("legacy", "session", "editor@example-host", client)
+        instance = add_remote_instance(plugin._instanceManager, "legacy", "session", "editor@example-host", client)
         wrong_id, active_id = plugin._identity(wrong_obj), plugin._identity(active_obj)
         plugin._instanceManager.bind(wrong_id, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
@@ -2435,7 +2445,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_focus_switch_reactivates_only_opted_in_terminal_tabs(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2458,8 +2468,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
         first_client, second_client = Client(), Client()
-        first = plugin._instanceManager.add("one", "1", "First", first_client)
-        second = plugin._instanceManager.add("two", "2", "Second", second_client)
+        first = add_remote_instance(plugin._instanceManager, "one", "1", "First", first_client)
+        second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
         plugin._rememberedTerminalBindings.update((first_id, second_id))
@@ -2510,7 +2520,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_return_from_another_application_requests_context_for_same_wt_control(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2521,7 +2531,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("one", "1", "First", client)
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._rememberedTerminalBindings.add(identity)
         plugin._authenticatedInstances.add(instance.identifier)
@@ -2547,7 +2557,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_focus_announcement_choices_keep_mode_sounds_independent(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -2593,7 +2603,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_in_place_buffer_switch_uses_focus_setting_and_connection_label(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -2603,7 +2613,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("one", "1", "Example", client)
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -2685,7 +2695,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_context_choice_coalesces_window_switch_mode_and_target(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -2728,7 +2738,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_buffer_command_keeps_one_sound_and_suppresses_return_mode_speech(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def start(self): pass
@@ -2738,7 +2748,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("one", "1", "Example", client)
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -2800,7 +2810,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_entry_obeys_focus_choice_then_reads_line_on_direct_input(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -2873,7 +2883,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_context_setting_suppresses_late_initial_character(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -2926,7 +2936,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_events_remain_silent_while_remembered_control_awaits_focus_context(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2937,7 +2947,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("one", "1", "First", client)
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._rememberedTerminalBindings.add(identity)
         plugin._authenticatedInstances.add(instance.identifier)
@@ -2956,7 +2966,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_focus_switch_between_separate_wt_windows_restores_each_binding(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -2978,8 +2988,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
         first_client, second_client = Client(), Client()
-        first = plugin._instanceManager.add("one", "1", "First", first_client)
-        second = plugin._instanceManager.add("two", "2", "Second", second_client)
+        first = add_remote_instance(plugin._instanceManager, "one", "1", "First", first_client)
+        second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
         plugin._rememberedTerminalBindings.update((first_id, second_id))
@@ -3007,7 +3017,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_parallel_tabs_restore_independent_speech_and_typing_runtime(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(self): self.controls = []
@@ -3030,8 +3040,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin, first_obj)
         plugin._gate.manual_enabled = True
         first_client, second_client = Client(), Client()
-        first = plugin._instanceManager.add("same", "one", "First", first_client)
-        second = plugin._instanceManager.add("same", "two", "Second", second_client)
+        first = add_remote_instance(plugin._instanceManager, "same", "one", "First", first_client)
+        second = add_remote_instance(plugin._instanceManager, "same", "two", "Second", second_client)
         first_id, second_id = plugin._identity(first_obj), plugin._identity(second_obj)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
@@ -3086,8 +3096,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_declined_or_stale_tab_binding_never_auto_reconnects(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
         class Client:
             def start(self): pass
@@ -3107,7 +3117,7 @@ class BuiltAddonTests(unittest.TestCase):
         second_obj = terminal((42, 2001, 4, 53))
         plugin = GlobalPlugin()
         first_id = plugin._identity(first_obj)
-        instance = plugin._instanceManager.add("one", "1", "First", Client())
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", Client())
         plugin._instanceManager.bind(first_id, instance.identifier)
         self.messageBoxAnswers.append(0)
         plugin._offerTemporaryTerminalBinding(first_id, instance.identifier)
@@ -3128,10 +3138,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_explicit_session_replacement_starts_new_before_stopping_old_client(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
-        from globalPlugins.nvimNvdaAccess.core.ssh_sessions import RemoteSession
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
 
         order = []
         class Client:
@@ -3151,7 +3161,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(self.focus)
         old = Client()
         old.instance = "old"
-        old_instance = plugin._instanceManager.add("work", "1", "old", old)
+        old_instance = add_remote_instance(plugin._instanceManager, "work", "1", "old", old)
         plugin._instanceManager.bind(identity, old_instance.identifier)
         plugin._client = old
         plugin._sessionDiscoveryGeneration = 9
@@ -3165,8 +3175,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_remote_session_discovery_reports_empty_and_failure_without_starting(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profile
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -3184,8 +3194,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_parallel_ipv4_and_ipv6_hosts_keep_terminal_events_separate(self) -> None:
-        import globalPlugins.nvimNvdaAccess as addon_module
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         clients = []
         class FakeStdioClient:
@@ -3236,7 +3246,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([1, 1], [client.stops for client in clients])
 
     def test_tools_menu_exposes_component_install_and_removal_and_settings_remain_native(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self.assertFalse(any("Neovim" in label for label in self.preferencesMenuLabels))
@@ -3260,21 +3270,20 @@ class BuiltAddonTests(unittest.TestCase):
         panel.feedbackControls["delete"].SetSelection(2)
         panel.onSave()
         self.assertEqual(1, plugin._settings["focusAnnouncement"])
-        self.assertEqual(1, __import__("config").conf["nvimNvdaAccess"]["focusAnnouncement"])
+        self.assertEqual(1, __import__("config").conf["NeovimAccessLink"]["focusAnnouncement"])
         self.assertEqual(2, plugin._settings["feedback"]["delete"])
-        self.assertEqual(2, __import__("config").conf["nvimNvdaAccess"]["feedback"]["delete"])
-        self.assertIn("nvimNvdaAccess", __import__("config").conf.spec)
-        self.assertFalse((self.config_path / "nvimNvdaAccess.json").exists())
+        self.assertEqual(2, __import__("config").conf["NeovimAccessLink"]["feedback"]["delete"])
+        self.assertIn("NeovimAccessLink", __import__("config").conf.spec)
+        self.assertFalse((self.config_path / "NeovimAccessLink.json").exists())
         plugin.terminate()
         self.assertEqual([], self.settingsCategoryClasses)
 
     def test_nvda_profile_switch_reloads_native_addon_settings(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
 
         plugin = GlobalPlugin()
-        config.conf["nvimNvdaAccess"] = {
-            "schemaVersion": 5,
+        config.conf["NeovimAccessLink"] = {
             "focusAnnouncement": 0,
             "connections": json.dumps([{
                 "id": "quiet", "name": "Quiet server", "host": "host", "user": "user",
@@ -3295,7 +3304,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(0, len(config.post_configProfileSwitch.handlers))
 
     def test_clipboard_actions_are_correlated_to_the_bound_foreground_session(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
             def __init__(inner_self): inner_self.controls = []
@@ -3308,7 +3317,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
         client = Client()
-        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "This computer", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -3372,7 +3381,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         controls = []
         client = types.SimpleNamespace(
@@ -3381,7 +3390,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
-        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "This computer", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -3409,7 +3418,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_leave_terminal_input_is_scoped_correlated_and_needs_no_changedtick(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         controls = []
         client = types.SimpleNamespace(
@@ -3418,7 +3427,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
-        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "This computer", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -3453,7 +3462,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_pending_clipboard_requests_are_bounded(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         for request_id in range(40):
@@ -3466,7 +3475,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_paste_result_after_focus_loss_has_no_feedback_in_new_context(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         controls = []
         client = types.SimpleNamespace(
@@ -3475,7 +3484,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
-        instance = plugin._instanceManager.add("local", "1", "This computer", client)
+        instance = add_remote_instance(plugin._instanceManager, "local", "1", "This computer", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -3506,7 +3515,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_nvda_profile_switch_does_not_interrupt_an_active_connection(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
 
         class Client:
@@ -3518,7 +3527,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._client = client
         plugin._connected = True
         plugin._gate.manual_enabled = True
-        config.conf["nvimNvdaAccess"]["feedback"]["global"] = 0
+        config.conf["NeovimAccessLink"]["feedback"]["global"] = 0
 
         config.post_configProfileSwitch.notify()
 
@@ -3530,7 +3539,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, client.stops)
 
     def test_connection_profile_buttons_add_duplicate_targets_edit_and_remove(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         panel = self.settingsCategoryClasses[0]()
@@ -3568,7 +3577,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_connection_profile_form_is_single_transaction_and_uses_plain_authentication_labels(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         shown = []
@@ -3603,8 +3612,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_local_discovery_is_implicit_and_not_a_default_setting(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -3617,7 +3626,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_selects_multiple_saved_profiles_with_accessible_labels(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings.update({
@@ -3662,7 +3671,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_select_all_checkbox_checks_every_connection(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings["connections"] = [
@@ -3684,7 +3693,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_manual_checks_synchronize_select_all(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings["connections"] = [
@@ -3721,7 +3730,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_requires_an_explicit_selection(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings["connections"] = [{
@@ -3736,9 +3745,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_reports_each_success_failure_and_cancelled_password(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
-        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
 
         plugin = GlobalPlugin()
         profiles = parse_profiles([
@@ -3768,9 +3777,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linux_installation_runs_all_selected_jobs_and_records_each_result(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
-        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
 
         plugin = GlobalPlugin()
         profiles = parse_profiles([
@@ -3791,7 +3800,7 @@ class BuiltAddonTests(unittest.TestCase):
         installer.install.side_effect = install
         finished = []
         plugin._finishServerInstalls = finished.extend
-        with mock.patch("globalPlugins.nvimNvdaAccess.SshUserInstaller", return_value=installer), \
+        with mock.patch("globalPlugins.NeovimAccessLink.SshUserInstaller", return_value=installer), \
                 mock.patch.object(plugin._diagnostics, "record") as record:
             plugin._runServerInstalls(
                 [(profiles[0], ""), (profiles[1], "temporary password")], "/tmp/package.tar.gz",
@@ -3807,7 +3816,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_component_removal_uses_matching_accessible_multi_target_dialog(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings["connections"] = [
@@ -3832,10 +3841,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_component_removal_runs_local_and_remote_jobs_in_background(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
-        from globalPlugins.nvimNvdaAccess.core.connection_targets import local_windows_target
-        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.connection_targets import local_windows_target
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
 
         plugin = GlobalPlugin()
         remote = parse_profiles([{
@@ -3865,8 +3874,8 @@ class BuiltAddonTests(unittest.TestCase):
         finished = []
         plugin._runComponentRemovals = run_removals
         plugin._finishComponentRemovals = finished.extend
-        with mock.patch("globalPlugins.nvimNvdaAccess.LocalPluginInstaller", return_value=local_installer), \
-                mock.patch("globalPlugins.nvimNvdaAccess.SshUserInstaller", return_value=ssh_installer), \
+        with mock.patch("globalPlugins.NeovimAccessLink.LocalPluginInstaller", return_value=local_installer), \
+                mock.patch("globalPlugins.NeovimAccessLink.SshUserInstaller", return_value=ssh_installer), \
                 mock.patch.object(plugin._diagnostics, "record") as record:
             plugin._runComponentRemovals([(local, ""), (remote, "temporary password")])
         local_installer.uninstall.assert_called_once_with()
@@ -3878,9 +3887,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_component_removal_summary_reports_every_target_without_changing_settings(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.core.connection_profiles import parse_profiles
-        from globalPlugins.nvimNvdaAccess.core.ssh_install import InstallResult
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
 
         plugin = GlobalPlugin()
         profiles = parse_profiles([
@@ -3908,7 +3917,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_password_is_prompted_once_per_activation_and_never_persisted(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._settings.update({
@@ -3928,7 +3937,7 @@ class BuiltAddonTests(unittest.TestCase):
             item.identifier for item in plugin._automaticClaimProfiles()
         ])
         plugin._saveSettings()
-        saved = __import__("config").conf["nvimNvdaAccess"]["connections"]
+        saved = __import__("config").conf["NeovimAccessLink"]["connections"]
         self.assertNotIn("not-saved secret", saved)
         plugin._clearSessionPasswords()
         self.assertEqual({}, plugin._sessionPasswords)
@@ -3937,7 +3946,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_toggle_never_activates_or_deactivates_an_nvda_profile(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -3947,7 +3956,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(plugin, "_nvdaProfileActive"))
         self.assertFalse(hasattr(plugin, "_activateNvdaProfile"))
         self.assertFalse(hasattr(plugin, "_deactivateNvdaProfile"))
-        source = (self.extract_path / "globalPlugins" / "nvimNvdaAccess" / "__init__.py").read_text(
+        source = (self.extract_path / "globalPlugins" / "NeovimAccessLink" / "__init__.py").read_text(
             encoding="utf-8",
         )
         self.assertNotIn("manualActivateProfile", source)
@@ -3955,7 +3964,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_built_plugin_loads_toggles_and_fails_open(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -3969,7 +3978,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_inactive_braille_overlay_raises_at_call_time_for_nvda_fallback(self) -> None:
-        from globalPlugins.nvimNvdaAccess import StructuredTerminalBrailleOverlay
+        from globalPlugins.NeovimAccessLink import StructuredTerminalBrailleOverlay
 
         overlay = StructuredTerminalBrailleOverlay()
         overlay.processID = 100
@@ -3978,7 +3987,7 @@ class BuiltAddonTests(unittest.TestCase):
             overlay.getBrailleRegions()
 
     def test_authenticated_full_state_binds_only_focused_terminal(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
@@ -4020,7 +4029,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_event_diagnostics_expose_safe_key_observer_and_blocking_state(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._handleEvent({
@@ -4058,7 +4067,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_buffer_temporarily_restores_native_terminal_output(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
@@ -4106,7 +4115,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_command_line_mode_and_following_message_remain_spoken(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4143,7 +4152,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_command_line_has_distinct_enter_and_return_sounds(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4174,7 +4183,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_message_command_return_plays_mode_sound_and_uses_focus_choice(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         for setting, expected in (
             (0, "saved"),
@@ -4216,7 +4225,7 @@ class BuiltAddonTests(unittest.TestCase):
                 plugin.terminate()
 
     def test_terminal_command_creating_terminal_plays_one_normal_cue(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4244,7 +4253,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_command_line_echo_uses_utf8_command_position_not_editor_cursor(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4258,7 +4267,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_structured_braille_region_preserves_indent_cursor_and_selection(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         plugin._currentState = {
@@ -4274,7 +4283,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(region.cursorPos)
 
     def test_file_manager_braille_region_is_semantic_and_routes_only_the_name(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
@@ -4304,7 +4313,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_visual_line_delta_uses_interruptible_nvda_speech(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4321,7 +4330,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_visual_symbols_ignore_nvda_punctuation_level_and_spaces_are_named(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4337,7 +4346,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_missing_matching_pair_uses_nvda_speech_and_error_tone(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4351,7 +4360,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_spelling_uses_nvda_config_cached_sound_and_braille_markers(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4379,7 +4388,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_spelling_off_and_sound_only_follow_nvda_formatting_mode(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         config.conf["documentFormatting"]["reportSpellingErrors2"] = 0
         plugin = GlobalPlugin()
@@ -4404,7 +4413,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_insert_mode_sound_and_copyable_redacted_diagnostics(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4431,13 +4440,13 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], self.beeps)
         plugin.action_copyDiagnosticReport(None)
         self.assertTrue(self.clipboard.startswith(buildVars.addon_info["summary"] + " diagnostic report"))
-        self.assertIn('"addonVersion": "' + buildVars.version() + '"', self.clipboard)
+        self.assertIn('"addonVersion": "' + buildVars.artifact_version() + '"', self.clipboard)
         self.assertNotIn("private source", self.clipboard)
         self.assertIn("session-a", self.clipboard)
         plugin.terminate()
 
     def test_structured_typing_uses_nvda_typing_echo_api(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4453,7 +4462,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_line_cursor_character_uses_spelling_not_abbreviation_speech(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4471,12 +4480,12 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_completion_menu_uses_cached_nvda_sounds_speech_and_braille(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         with mock.patch(
-            "globalPlugins.nvimNvdaAccess.suggestion_sounds.wave.open",
+            "globalPlugins.NeovimAccessLink.suggestion_sounds.wave.open",
             side_effect=AssertionError("menu playback must not reopen WAV files"),
         ):
             plugin._handleEvent({"type": "menuOpened", "payload": {
@@ -4500,8 +4509,8 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_completion_sounds_follow_nvda_setting_and_missing_files_fail_open(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        from globalPlugins.nvimNvdaAccess.suggestion_sounds import SuggestionSoundCache
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.suggestion_sounds import SuggestionSoundCache
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4522,7 +4531,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_linewise_delete_speaks_result_line_with_nvda_indent_tone(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4536,7 +4545,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_indentation_follows_nvda_document_formatting_mode(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         config.conf["documentFormatting"]["reportLineIndentation"] = 1
@@ -4557,7 +4566,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_structured_typing_honors_echo_switches_but_forces_punctuation_names(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4583,7 +4592,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_typed_word_buffer_resets_when_cursor_state_contains_unreported_gap(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4612,7 +4621,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_coalesced_typing_diff_does_not_repeat_processed_prefix(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4636,7 +4645,7 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_typed_word_buffer_survives_insert_submode_but_not_reconnect(self) -> None:
         import config
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4670,7 +4679,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_action_feedback_modes_gate_only_addon_owned_speech_and_sounds(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
@@ -4708,7 +4717,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_feedback_mode_uses_complete_nvda_style_bitmask_matrix(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         for global_mode in range(4):
@@ -4718,7 +4727,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_every_feedback_setting_controls_its_real_speech_and_sound_path(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         cases = {
             "mode": (
@@ -4808,80 +4817,40 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("visual character mode", self.spoken)
         plugin.terminate()
 
-    def test_legacy_json_is_migrated_once_into_native_nvda_configuration(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+    def test_old_addon_identity_configuration_is_ignored(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
 
         path = self.config_path / "nvimNvdaAccess.json"
         path.write_text(json.dumps({
-            "activateNvdaProfile": True,
-            "nvdaProfile": "Coding",
-            "schemaVersion": 3,
-            "activeConnection": "example-host",
             "connections": [{
-                "id": "example-host", "name": "Example host", "host": "example-host", "user": "linux-editor",
+                "id": "obsolete", "name": "Obsolete", "host": "obsolete.example.invalid", "user": "editor",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
-            }],
-            "authToken": "ignored obsolete value",
-            "transport": "tcp",
-            "feedback": {"global": 1, "delete": 2, "mode": 99},
-        }), encoding="utf-8")
-        plugin = GlobalPlugin()
-        self.assertNotIn("activateNvdaProfile", plugin._settings)
-        self.assertNotIn("nvdaProfile", plugin._settings)
-        self.assertEqual((1, 2, 3), (
-            plugin._settings["feedback"]["global"],
-            plugin._settings["feedback"]["delete"],
-            plugin._settings["feedback"]["mode"],
-        ))
-        self.assertEqual((7, "linux-editor", "example-host"), (
-            plugin._settings["schemaVersion"],
-            plugin._settings["connections"][0]["user"], plugin._settings["connections"][0]["host"],
-        ))
-        # Retain the legacy file as a safety backup; native schemas prevent re-import.
-        self.assertTrue(path.exists())
-        self.assertEqual(1, self.configSaves)
-        saved = config.conf["nvimNvdaAccess"]
-        self.assertEqual(7, saved["schemaVersion"])
-        self.assertNotIn("activeConnection", saved)
-        self.assertNotIn("authToken", saved["connections"])
-        self.assertNotIn("transport", saved["connections"])
-        plugin.terminate()
-
-    def test_native_schema_upgrade_does_not_reimport_legacy_json_backup(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
-        import config
-
-        (self.config_path / "nvimNvdaAccess.json").write_text(json.dumps({
-            "schemaVersion": 3,
-            "connections": [{
-                "id": "obsolete", "name": "Obsolete", "host": "obsolete.example.invalid",
-                "user": "editor", "port": 22, "identityFile": "",
-                "authentication": "openSsh",
             }],
             "feedback": {"global": 0},
         }), encoding="utf-8")
-        config.conf["nvimNvdaAccess"] = {
-            "schemaVersion": 5,
+        old_section = {
             "connections": "[]",
             "feedback": {
-                "global": 3, "mode": 3, "delete": 3, "replace": 3,
+                "global": 0, "mode": 0, "delete": 0, "replace": 0,
                 "lineBoundary": 2, "fileBoundary": 3,
                 "lineCrossed": 2, "matchingError": 3,
             },
         }
+        config.conf["nvimNvdaAccess"] = old_section
 
         plugin = GlobalPlugin()
 
         self.assertEqual([], plugin._settings["connections"])
         self.assertEqual(3, plugin._settings["feedback"]["global"])
         self.assertEqual(2, plugin._settings["focusAnnouncement"])
-        self.assertEqual(7, plugin._settings["schemaVersion"])
         self.assertEqual(0, self.configSaves)
+        self.assertTrue(path.exists())
+        self.assertIs(old_section, config.conf["nvimNvdaAccess"])
         plugin.terminate()
 
     def test_settings_write_uses_only_aggregated_section_supported_operations(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
 
         class AggregatedSectionLike:
@@ -4895,16 +4864,16 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         section = AggregatedSectionLike()
-        config.conf["nvimNvdaAccess"] = section
+        config.conf["NeovimAccessLink"] = section
         plugin._writeSettingsToNvda(plugin._settings)
-        self.assertEqual(7, section.values["schemaVersion"])
+        self.assertNotIn("schemaVersion", section.values)
         self.assertEqual(2, section.values["focusAnnouncement"])
         self.assertIsInstance(section.values["connections"], str)
         self.assertEqual(set(plugin._settings["feedback"]), set(section.values["feedback"]))
         plugin.terminate()
 
     def test_invalid_focus_announcement_falls_back_to_existing_context(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
         normalized = plugin._normalizeSettings({
@@ -4916,7 +4885,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_settings_read_uses_aggregated_section_items(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
 
         class AggregatedSectionLike:
@@ -4930,8 +4899,7 @@ class BuiltAddonTests(unittest.TestCase):
             "lineBoundary": 2, "fileBoundary": 3,
             "lineCrossed": 2, "matchingError": 3,
         })
-        config.conf["nvimNvdaAccess"] = AggregatedSectionLike({
-            "schemaVersion": 5,
+        config.conf["NeovimAccessLink"] = AggregatedSectionLike({
             "connections": "[]",
             "focusAnnouncement": 1,
             "feedback": feedback,
@@ -4946,7 +4914,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_braille_routing_sends_only_validated_cursor_control(self) -> None:
-        from globalPlugins.nvimNvdaAccess import GlobalPlugin, StructuredLineRegion
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []

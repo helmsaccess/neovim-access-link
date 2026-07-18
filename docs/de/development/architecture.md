@@ -352,12 +352,14 @@ machen konfigurierbare Befehle global auffindbar und delegieren erst nach
 strikter WT-Fokusprüfung. Braille verwendet einen eigenen Planer und überlässt
 Liblouis-Übersetzung, Cursorform und Auswahlpunkte 7/8 NVDA.
 
-Das Add-on registriert einen validierten Abschnitt `nvimNvdaAccess` in NVDAs
+Das Add-on registriert einen validierten Abschnitt `NeovimAccessLink` in NVDAs
 `config.conf`. Dadurch übernimmt NVDAs Aggregationsschicht Vererbung und das
 Schreiben in das jeweils aktive Konfigurationsprofil. Das Add-on beobachtet
 `post_configProfileSwitch`, lädt die wirksamen Werte neu und aktiviert selbst
 keine Profile. Rückmeldungen ändern sich unmittelbar; laufende authentifizierte
 Editorverbindungen werden durch einen Profilwechsel nicht beendet.
+Alte Add-on-IDs, separate JSON-Einstellungsdateien und Konfigurationsschemata
+werden bewusst weder gelesen noch konvertiert.
 
 Das `SessionGate` unterdrückt native Terminalausgabe nur, wenn manuelle
 Aktivierung, authentifizierter vollständiger Zustand, Neovim-Kontext und

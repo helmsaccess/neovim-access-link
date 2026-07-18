@@ -94,7 +94,9 @@ from .core.connection_profiles import (
     parse_profile, parse_profiles, remove_profile, save_profile, unique_profile_id,
 )
 from .core.connection_instances import ConnectionInstanceManager
-from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_windows_target
+from .core.connection_targets import (
+    ConnectionTarget, LOCAL_WINDOWS_TCP, local_windows_target, remote_ssh_target,
+)
 from .core.frontend_policy import FrontendPolicy
 from .core.gate import SessionGate, TerminalIdentity
 from .core.speech import Priority, SpeechPlanner
@@ -191,11 +193,8 @@ _FEEDBACK_FOR_SOUND = {
 }
 _FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
 _FOCUS_ANNOUNCEMENT_DEFAULT = 2
-_NVDA_CONFIG_SECTION = "nvimNvdaAccess"
-_NATIVE_CONFIG_SCHEMA_VERSION = 5
-_NVDA_CONFIG_SCHEMA_VERSION = 7
+_NVDA_CONFIG_SECTION = "NeovimAccessLink"
 _NVDA_CONFIG_SPEC = {
-    "schemaVersion": "integer(default=0, min=0)",
     "connections": 'string(default="[]")',
     "focusAnnouncement": f"integer(default={_FOCUS_ANNOUNCEMENT_DEFAULT}, min=0, max=2)",
     "feedback": {
@@ -582,7 +581,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._gate.disable()
             self._stopClient()
             self._diagnostics.record("toggleError", errorType=type(error).__name__, error=str(error))
-            log.exception("nvimNvdaAccess activation failed")
+            log.exception("NeovimAccessLink activation failed")
             ui.message(_("Neovim accessibility failed; normal terminal output restored"))
 
     def _toggleNeovimMode(self):
@@ -598,7 +597,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("Neovim accessibility off"))
             self._queueBrailleRefresh(rebuild=True)
             self._diagnostics.record("manualMode", enabled=False)
-            log.info("nvimNvdaAccess manual mode disabled")
+            log.info("NeovimAccessLink manual mode disabled")
             return
         if identity is None:
             ui.message(_("Neovim accessibility unavailable in this window"))
@@ -607,7 +606,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._planner.reset()
         self._resetTypedEcho()
         self._diagnostics.record("manualMode", enabled=True, terminal=self._identityFields(identity))
-        log.info("nvimNvdaAccess manual mode requested")
+        log.info("NeovimAccessLink manual mode requested")
         self._gate.focused = identity
         self._beginClaimInventory()
         if self._connected:
@@ -1685,7 +1684,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         positions = {}
         connected = {
             instance.session_id for instance in self._instanceManager.list()
-            if instance.profile_id == profile.identifier
+            if instance.target_id == profile.identifier
         }
         labels = []
         for session, base in zip(sessions, bases):
@@ -1806,7 +1805,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         """Move or refresh an existing transport instead of duplicating it."""
         matches = [
             instance for instance in self._instanceManager.list()
-            if instance.profile_id == profile.identifier
+            if instance.target_id == profile.identifier
             and instance.session_id == session.identifier
         ]
         if not matches:
@@ -1945,8 +1944,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             session_id=session_id, password=password or "", askpass_path=self._askpassPath(),
         )
         try:
-            instance = self._instanceManager.add(
-                profile.identifier, session_id,
+            instance = self._instanceManager.add_target(
+                remote_ssh_target(profile.identifier, profile.name), session_id,
                 f"{profile.name}, {session_label}" if session_label else profile.name,
                 client, context_label=profile.name,
             )
@@ -2632,7 +2631,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     def _recordNetworkDiagnostic(self, category, fields):
         self._diagnostics.record(category, **fields)
-        log.debug("nvimNvdaAccess %s %r", category, fields)
+        log.debug("NeovimAccessLink %s %r", category, fields)
 
     def _handleConnectionState(self, state):
         previous = self._lastConnectionState
@@ -2889,7 +2888,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     nvdaBraille.handler.message(action.braille_message)
             except Exception as error:
                 self._diagnostics.record("speechError", errorType=type(error).__name__, error=str(error))
-                log.exception("nvimNvdaAccess speech failure")
+                log.exception("NeovimAccessLink speech failure")
         if self._gate.suppression_active:
             self._refreshBraille(rebuild=activated)
 
@@ -2969,7 +2968,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 nvdaBraille.handler.handleUpdate(focus)
         except Exception as error:
             self._diagnostics.record("brailleError", errorType=type(error).__name__, error=str(error))
-            log.exception("nvimNvdaAccess braille failure")
+            log.exception("NeovimAccessLink braille failure")
 
     def _queueBrailleRefresh(self, rebuild):
         queueHandler.queueFunction(queueHandler.eventQueue, self._refreshBraille, rebuild)
@@ -3129,7 +3128,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if not hasattr(feedback_section, "items"):
                 raise ValueError("feedback must be an object")
             settings = {
-                "schemaVersion": section.get("schemaVersion", 0),
                 "connections": json.loads(connections_value),
                 "focusAnnouncement": section.get(
                     "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
@@ -3145,45 +3143,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 source="nvdaConfig",
             )
             settings = {}
-        try:
-            schema_version = int(settings.get("schemaVersion", 0) or 0)
-        except (TypeError, ValueError):
-            schema_version = 0
-            self._diagnostics.record("configError", error="invalid schemaVersion")
-        if schema_version < _NATIVE_CONFIG_SCHEMA_VERSION:
-            legacy = self._loadLegacySettings()
-            if legacy is not None:
-                normalized = self._normalizeSettings(legacy)
-                try:
-                    self._writeSettingsToNvda(normalized)
-                    config.conf.save()
-                    self._diagnostics.record(
-                        "legacyConfigMigrated", schemaVersion=_NVDA_CONFIG_SCHEMA_VERSION,
-                    )
-                except Exception as error:
-                    self._diagnostics.record(
-                        "legacyConfigMigrationError",
-                        errorType=type(error).__name__, error=str(error),
-                    )
-                return normalized
         return self._normalizeSettings(settings)
-
-    def _loadLegacySettings(self):
-        path = self._legacySettingsPath()
-        try:
-            # utf-8-sig accepts both normal UTF-8 and files written with the BOM
-            # used by Windows PowerShell 5.1.
-            with open(path, encoding="utf-8-sig") as settings_file:
-                settings = json.load(settings_file)
-        except FileNotFoundError:
-            return None
-        except (OSError, ValueError) as error:
-            self._diagnostics.record("configError", errorType=type(error).__name__, error=str(error), path=path)
-            return None
-        if not isinstance(settings, dict):
-            self._diagnostics.record("configError", error="top level must be an object", path=path)
-            return None
-        return settings
 
     def _normalizeSettings(self, settings):
         raw_feedback = settings.get("feedback", {})
@@ -3217,7 +3177,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         return {
             "feedback": feedback,
             "focusAnnouncement": focus_announcement,
-            "schemaVersion": _NVDA_CONFIG_SCHEMA_VERSION,
             "connections": [profile.as_dict() for profile in connections],
         }
 
@@ -3314,18 +3273,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             client.stop()
         except Exception as error:
             self._diagnostics.record("clientStopError", errorType=type(error).__name__, error=str(error))
-            log.exception("nvimNvdaAccess client shutdown failed")
+            log.exception("NeovimAccessLink client shutdown failed")
         self._connected = False
         self._diagnostics.record("clientStopped")
 
     @staticmethod
-    def _legacySettingsPath():
-        return os.path.join(globalVars.appArgs.configPath, "nvimNvdaAccess.json")
-
-    @staticmethod
     def _writeSettingsToNvda(settings):
         section = config.conf[_NVDA_CONFIG_SECTION]
-        section["schemaVersion"] = _NVDA_CONFIG_SCHEMA_VERSION
         section["focusAnnouncement"] = int(settings.get(
             "focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT,
         ))
@@ -3490,7 +3444,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 ("clipboard", _("Copy and &paste:")),
             )
 
-            class NeovimNvdaSettingsPanel(SettingsPanel):
+            class NeovimAccessLinkSettingsPanel(SettingsPanel):
                 title = _PRODUCT_NAME
 
                 def makeSettings(self, sizer):
@@ -3647,8 +3601,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         plugin._beginClaimInventory()
                         ui.message(_("Saved connections changed; checking Neovim connections again"))
 
-            NVDASettingsDialog.categoryClasses.append(NeovimNvdaSettingsPanel)
-            self._settingsPanelClass = NeovimNvdaSettingsPanel
+            NVDASettingsDialog.categoryClasses.append(NeovimAccessLinkSettingsPanel)
+            self._settingsPanelClass = NeovimAccessLinkSettingsPanel
         except Exception as error:
             self._diagnostics.record("settingsPanelUnavailable", errorType=type(error).__name__, error=str(error))
 

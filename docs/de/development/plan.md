@@ -9,7 +9,18 @@ implementiert. Der verifizierte Funktionsstand steht in
 [Aktueller Status](current-status.md); abgeschlossene Änderungen stehen im
 [Changelog](changelog.md).
 
-## Aktuell: Terminal- und Dateimanager-Hardening
+## Aktuell: Cleanup für 0.94
+
+Der Branch `feature/cleanup-0.94.0-prerelease` vereinheitlicht die interne
+NVDA-Identität auf `NeovimAccessLink`. Es gibt bewusst keine Migration der
+früheren Add-on-ID: Altinstallation entfernen, NVDA neu starten, neuen Build
+installieren und Gesten sowie Verbindungen neu konfigurieren. Parallel werden
+nur belegte Übergangsschichten entfernt: alter JSON-/Schema-Konfigurationscode,
+alte AppModule-Skript-IDs, reine Bridge-Reexports, untypisierte RPC-Socket-
+Kurzformen und Remote-only-Verbindungsaliase. Technische `nvim_nvda`-Namen,
+Sitzungsregistry-Sicherheit, Versionsfallbacks und Fail-open-Pfade bleiben.
+
+## Abgeschlossen: Terminal- und Dateimanager-Hardening
 
 Der Branch `feature/terminal-file-manager-hardening` prüft und härtet die
 Übergänge zwischen strukturiertem Editorzustand, direkter eingebetteter

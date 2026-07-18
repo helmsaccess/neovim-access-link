@@ -11,11 +11,11 @@ import inputCore
 import queueHandler
 import scriptHandler
 
-from globalPlugins import nvimNvdaAccess
+from globalPlugins import NeovimAccessLink
 
 
 class AppModule(appModuleHandler.AppModule):
-    scriptCategory = nvimNvdaAccess._PRODUCT_NAME
+    scriptCategory = NeovimAccessLink._PRODUCT_NAME
     _observerAdapters = []
     _observerCallback = None
 
@@ -41,14 +41,14 @@ class AppModule(appModuleHandler.AppModule):
 
     @classmethod
     def _dispatchClaimGesture(cls, gesture):
-        plugin = nvimNvdaAccess.getActivePlugin()
+        plugin = NeovimAccessLink.getActivePlugin()
         adapter = getattr(plugin, "_focusedAppModule", None) if plugin is not None else None
         if adapter not in cls._observerAdapters:
             adapter = cls._observerAdapters[-1] if len(cls._observerAdapters) == 1 else None
         return adapter._decideExecuteGesture(gesture) if adapter is not None else True
 
     def _plugin(self):
-        return nvimNvdaAccess.getActivePlugin()
+        return NeovimAccessLink.getActivePlugin()
 
     def _prepareTerminalAction(self, plugin):
         plugin._refreshFocusedTerminalForAction(api.getFocusObject(), self)
@@ -165,62 +165,12 @@ class AppModule(appModuleHandler.AppModule):
         if plugin is not None:
             plugin.action_copyDiagnosticReport(gesture)
 
-    def _delegateLegacyConfiguredScript(self, gesture, action_name):
-        """Keep user gestures saved against pre-dev.4 AppModule script IDs."""
-        plugin = self._plugin()
-        if plugin is not None:
-            self._prepareTerminalAction(plugin)
-            getattr(plugin, action_name)(gesture)
-
-    # Deliberately undocumented: NVDA keeps resolving existing user gesture
-    # assignments by these old AppModule script IDs, while the documented
-    # global scripts provide the one always-visible configuration surface.
-    def script_toggleNeovimMode(self, gesture):
-        self._delegateLegacyConfiguredScript(gesture, "action_toggleNeovimMode")
-
-    def script_readCompletionDocumentation(self, gesture):
-        self._delegateLegacyConfiguredScript(
-            gesture, "action_readCompletionDocumentation",
-        )
-
-    def script_copyNeovimSelection(self, gesture):
-        self._delegateLegacyConfiguredScript(gesture, "action_copyNeovimSelection")
-
-    def script_copyLastNeovimYank(self, gesture):
-        self._delegateLegacyConfiguredScript(gesture, "action_copyLastNeovimYank")
-
-    def script_pasteWindowsClipboard(self, gesture):
-        self._delegateLegacyConfiguredScript(gesture, "action_pasteWindowsClipboard")
-
-    def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
-        self._delegateLegacyConfiguredScript(
-            gesture, "action_setNeovimRegisterFromWindowsClipboard",
-        )
-
-    def script_leaveDirectTerminalInput(self, gesture):
-        self._delegateLegacyConfiguredScript(
-            gesture, "action_leaveDirectTerminalInput",
-        )
-
-    def script_startConnectionInstance(self, gesture):
-        self._delegateLegacyConfiguredScript(gesture, "action_startConnectionInstance")
-
-    def script_disconnectConnectionInstance(self, gesture):
-        self._delegateLegacyConfiguredScript(
-            gesture, "action_disconnectConnectionInstance",
-        )
-
-    def script_forgetTemporaryTerminalBinding(self, gesture):
-        self._delegateLegacyConfiguredScript(
-            gesture, "action_forgetTemporaryTerminalBinding",
-        )
-
     def _decideExecuteGesture(self, gesture):
         identifiers = tuple(
             identifier.lower()
             for identifier in getattr(gesture, "normalizedIdentifiers", ())
         )
-        if nvimNvdaAccess._SESSION_CLAIM_GESTURE.lower() not in identifiers:
+        if NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() not in identifiers:
             return True
         plugin = self._plugin()
         if (

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.93.0-dev.1+feature.cleanup-0.94.0-prerelease (feature-branch test build)
+
+- The internal NVDA add-on ID, Global Plugin package, native configuration
+  section, and artifact prefix are consistently `NeovimAccessLink`. The former
+  add-on must be uninstalled before testing; old settings and gesture
+  assignments are intentionally not imported.
+- JSON settings migration, native `schemaVersion`, old AppModule script IDs,
+  and the unused example configuration are removed. A former
+  `nvimNvdaAccess` section or JSON file remains unchanged and is never read.
+- Bridge and connection management now accept only typed Neovim RPC endpoints
+  and connection targets. Old Python re-exports and socket/remote-profile
+  shorthand APIs are gone, while protocol, registry, and fail-open security
+  checks remain.
+- All 277 add-on/core/package tests, 42 protocol tests, 31 bridge tests, and
+  Lua suites on Neovim 0.10.1 and 0.12.3 pass. The add-on contains only the new
+  Global Plugin path; archive validation and all six HTML builds pass.
+
 ## 0.93.0-dev.7 (feature-branch test build)
 
 - Oil's public `parsed_name` is now the semantic speech and Braille name while

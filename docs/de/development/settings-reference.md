@@ -45,7 +45,7 @@ Folgende Funktionen werden bewusst nicht dupliziert:
 | Vorschlagsmenüs | Optionen → Einstellungen… → Objekt-Darstellung → Automatische Vorschläge mit Klang melden |
 | Zeichen- und Wortecho | Tastatur, eingegebene Zeichen/Wörter ansagen |
 
-Die Rückmeldungswerte werden im Abschnitt `nvimNvdaAccess` von NVDAs regulärer
+Die Rückmeldungswerte werden im Abschnitt `NeovimAccessLink` von NVDAs regulärer
 Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
 0 bis 2. Unbekannte oder ungültige Werte werden verworfen und im redigierten
 Diagnosebericht gemeldet.
@@ -71,21 +71,19 @@ Manuelle und automatisch ausgelöste NVDA-Profilwechsel laden die wirksamen
 Add-on-Werte unmittelbar neu. Rückmeldungsoptionen gelten sofort;
 Verbindungswerte gelten für den nächsten Verbindungsaufbau. Eine bereits
 authentifizierte laufende Editorverbindung wird durch einen bloßen
-NVDA-Profilwechsel nicht unterbrochen. Das bisherige `nvimNvdaAccess.json` wird
-bei einem Upgrade einmalig in die NVDA-Konfiguration übernommen und danach nur
-noch als Sicherheitskopie behalten.
+NVDA-Profilwechsel nicht unterbrochen. Es gibt keinen separaten JSON-
+Einstellungsspeicher und keinen Import aus älteren Add-on-IDs.
 
 ## SSH-Verbindungsprofile
 
-Das versionierte Schema 2 trennt Anzeigename, Host beziehungsweise OpenSSH-
+Ein SSH-Verbindungsprofil trennt Anzeigename, Host beziehungsweise OpenSSH-
 Alias, Port, Linux-Benutzer und optionale Schlüsseldatei. Der lokale Windows-
 Benutzername wird an keiner Stelle als Linux-Benutzername eingesetzt. Ein
 leeres Benutzerfeld bedeutet ausschließlich, dass OpenSSH den Benutzer aus
 seiner Konfiguration bestimmen soll.
 
-Bestehende Werte wie `linux-user@example-host` werden verlustfrei in ein Profil mit
-explizitem Linux-Benutzer migriert. Ein alter reiner Alias wie `example-host` bleibt
-ein Alias ohne abgeleiteten Benutzer. Profilkennungen, Hosts, Ports,
+Host und Benutzer müssen in getrennten Feldern stehen; kombinierte Altwerte
+wie `linux-user@example-host` werden nicht migriert. Profilkennungen, Hosts, Ports,
 Benutzernamen, Schlüsselpfade und Authentifizierungsart werden vor Benutzung
 validiert; doppelte Kennungen und Optionsinjektion werden abgewiesen.
 

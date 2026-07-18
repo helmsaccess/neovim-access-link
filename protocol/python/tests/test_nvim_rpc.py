@@ -59,6 +59,14 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
             with self.subTest(nonce=nonce), self.assertRaisesRegex(ValueError, "nonce"):
                 self.make_source(nonce)
 
+    def test_raw_socket_path_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "typed Neovim RPC endpoint"):
+            NvimRpcSource(
+                "/run/user/1000/nvim.sock",
+                lambda _event, _payload: None,
+                lambda _state: None,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

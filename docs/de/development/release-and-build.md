@@ -8,7 +8,7 @@ offiziellen NVDA-Add-on-Vorlage.
 
 Enthalten sind:
 
-- interner NVDA-Identifier `nvimNvdaAccess`,
+- interner NVDA-Identifier `NeovimAccessLink`,
 - sichtbarer Produktname „Neovim Access Link“,
 - Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
 - vom Benutzer bestimmte Produktversion `0.93.0`,
@@ -16,10 +16,12 @@ Enthalten sind:
 - Releasekanal `beta`,
 - minimale und zuletzt getestete NVDA-Version.
 
-Der interne Identifier bleibt trotz des neuen sichtbaren Produktnamens stabil.
-Dadurch erkennt NVDA einen Beta-Build als Aktualisierung der bisherigen
-Testinstallation und behält profilbezogene Add-on-Einstellungen. Er ist kein
-zweiter sichtbarer Produktname.
+Seit dem Cleanup für 0.94 lautet der interne Identifier `NeovimAccessLink`.
+Dieser Wechsel ist ein bewusster Schnitt: NVDA behandelt einen älteren Stand
+mit der ID `nvimNvdaAccess` als anderes Add-on. Vor einem Praxistest muss der
+alte Stand deshalb deinstalliert und NVDA neu gestartet werden. Einstellungen,
+Profile und Gestenzuweisungen der alten ID werden nicht übernommen. Der
+Identifier ist kein zweiter sichtbarer Produktname.
 
 ## Abgeleitete Werte
 
@@ -40,7 +42,7 @@ Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
 - einen eindeutigen Archivnamen wie
-  `nvimNvdaAccess-0.93.0-dev.1+feature.example.<commit>.nvda-addon`,
+  `NeovimAccessLink-0.93.0-dev.1+feature.example.<commit>.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
   `neovim-access-link-0.93.0-dev.1+feature.example.<commit>-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
