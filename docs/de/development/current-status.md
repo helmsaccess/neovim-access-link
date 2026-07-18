@@ -1,10 +1,11 @@
 # Aktueller Status
 
-Stand: 18. Juli 2026, Version 0.94.1.
+Stand: 18. Juli 2026. Produktversion im Quellstand: 0.94.2.
 
-Version 0.94.1 ist derzeit als GitHub-Pre-Release veröffentlicht. Die vom
-Projekt festgelegte Reife bleibt zwischen Alpha und Beta. Diese Dokumentation
-leitet aus Testumfang, Versionsnummer oder Funktionsmenge keine höhere
+Der Quellstand ist für Version 0.94.2 vorbereitet. Der zugehörige
+GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
+festgelegte Reife bleibt zwischen Alpha und Beta. Diese Dokumentation leitet
+aus Testumfang, Versionsnummer oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
 
 Der Prüfansatz ist risikoorientiert und nach bestem Wissen, nicht vollständig.

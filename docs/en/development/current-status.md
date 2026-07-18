@@ -1,11 +1,11 @@
 # Current status
 
-Status date: July 18, 2026. Version: 0.94.1.
+Status date: July 18, 2026. Product version in the source tree: 0.94.2.
 
-Version 0.94.1 is currently published as a GitHub prerelease. Project-defined
-maturity remains between alpha and beta. This documentation does not infer a
-higher stability classification from test coverage, version number, or feature
-count.
+The source tree is prepared for version 0.94.2. Its corresponding GitHub
+release link is kept prominently in `README.md`. Project-defined maturity
+remains between alpha and beta. This documentation does not infer a higher
+stability classification from test coverage, version number, or feature count.
 
 Verification is risk-based and best-effort, not exhaustive. Automated suites
 and practical reference workflows cannot anticipate every combination of NVDA,

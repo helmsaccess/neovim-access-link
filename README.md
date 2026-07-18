@@ -11,9 +11,9 @@ This is alpha-to-beta software. Not every feature has extensive practical
 coverage. Braille has not been tested with a physical display, so
 hardware-specific defects may remain undiscovered.
 
-[Latest GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.94.1) —
-release notes for 0.94.1: [English](docs/en/development/changelog.md#0941) or
-[German](docs/de/development/changelog.md#0941).
+[Current GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.94.2) —
+release notes for 0.94.2: [English](docs/en/development/changelog.md#0942) or
+[German](docs/de/development/changelog.md#0942).
 
 ## Documentation
 

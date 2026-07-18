@@ -5,6 +5,17 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2
+
+- Anwender- und Entwicklerdokumentation führen nun von den Grundbegriffen zur
+  Architektur und trennen aktuellen Status, offenen Plan und historischen
+  Verlauf klar voneinander.
+- Bedienbezeichnungen wurden mit Gettext-Katalog und NVDA-Quellcode
+  abgeglichen. Sitzungs-Registry, Windows-Terminal-`TermControl`, F12,
+  SSH-Lebenszyklus, Rückkanäle und Completion-Befehle sind präziser erklärt.
+- Prüfung und Support werden als risikobasierter Best-Effort-Prozess ohne
+  Zusage erschöpfender Abdeckung oder fester Reaktionszeiten beschrieben.
+
 ## 0.94.1
 
 - Der automatisiert und praktisch geprüfte Gettext-Stand aus dem Featurebranch

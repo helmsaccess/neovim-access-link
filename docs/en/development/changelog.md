@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.94.2
+
+- User and developer documentation now introduces concepts before architecture
+  detail and clearly separates current status, active plans, and history.
+- Interface labels were checked against the gettext catalog and NVDA source.
+  The session registry, Windows Terminal `TermControl`, F12, SSH lifecycle,
+  reverse controls, and completion commands are described more precisely.
+- Testing and support are presented as a risk-based best-effort process without
+  promises of exhaustive coverage or fixed response times.
+
 ## 0.94.1
 
 - The automatically and practically checked gettext feature-branch state is

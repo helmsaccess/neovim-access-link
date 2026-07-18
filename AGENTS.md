@@ -26,6 +26,7 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 
 - The user exclusively owns the product version (`MAJOR.MINOR.PATCH`).
 - Never classify or change build/release stability or channel without explicit user instruction.
+- When setting a release version, update versioned README and changelog links in the same change.
 - Use Semantic Versioning.
 - Development builds use pre-release identifiers, e.g. `0.89.0-dev.12`.
 - Optional build metadata may include branch/commit, e.g. `0.89.0-dev.12+feature.nvim-api.a3f6c2d`.
