@@ -70,6 +70,12 @@ manager/branch root versus its focused level. If a public API reliably exposes
 only one of them, nothing is inferred from the entry path. Focus context
 without an entry locally reduces the level to its final name and does not
 speak a complete path.
+Oil additionally separates the edited display name from confirmed filesystem
+identity: `parsed_name` immediately drives the semantic name, while `name`
+continues to drive the path until `:w` and public action completion. Generic
+cursor events remain normalized as `fileManagerEntryChanged`, but retain their
+allowlisted motion kind for edge cues. The semantic row therefore displaces
+neither edit state nor navigation cues.
 
 The persistent file-manager Braille plan uses the same typed name, type, and
 state. It creates a routing map only when the name occurs exactly once in the

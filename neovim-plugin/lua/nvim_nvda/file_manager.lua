@@ -285,10 +285,20 @@ local function oil_entry()
   end
   local entry = type(oil.get_cursor_entry) == "function" and oil.get_cursor_entry() or nil
   local root = type(oil.get_current_dir) == "function" and oil.get_current_dir() or ""
+  local confirmed_name = entry and entry.name or nil
+  local displayed_name = entry and entry.parsed_name or nil
+  if type(displayed_name) ~= "string" or displayed_name == "" then
+    displayed_name = confirmed_name
+  end
   return {
     name = "oil", root = bounded(root, 2048), currentDirectory = bounded(root, 2048),
     entry = normalize_entry(entry and {
-      name = entry.name, path = root and (root:gsub("[/\\]$", "") .. "/" .. entry.name) or "",
+      -- Oil's public parsed_name is the name currently visible in its editable
+      -- buffer.  entry.name remains the last confirmed filesystem identity
+      -- until :write applies the action, so keep it for path construction.
+      name = displayed_name,
+      path = type(confirmed_name) == "string" and confirmed_name ~= ""
+        and (root:gsub("[/\\]$", "") .. "/" .. confirmed_name) or "",
       type = entry.type,
     } or nil),
   }

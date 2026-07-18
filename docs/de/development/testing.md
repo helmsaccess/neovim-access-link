@@ -131,7 +131,7 @@ Eine bereits installierte Pluginversion darf den Checkout nicht überdecken.
 Deshalb wird bei den Spezifikationen `--cmd "set packpath="` verwendet; der
 Dateimanager-Test ergänzt `$VIMRUNTIME` zum isolierten `packpath` und lädt das
 seit Neovim 0.12 optionale Paket mit `packadd netrw`.
-Seine 105 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
+Seine 108 Assertions prüfen zusätzlich die Bytebudgets von 512 Byte für Namen
 und 2048 Byte für Pfade/Wurzeln an exakten sowie geteilten UTF-8-Grenzen.
 Zwei-/Dreibytezeichen und Vierbyte-Emoji müssen vollständig erhalten oder vollständig
 weggelassen werden; ungültige Bytefolgen dürfen keinen Eintrag und keine
@@ -142,7 +142,13 @@ Abweisung inaktiver Buffer/Fenster. Öffentliche Aktionsattrappen prüfen
 Erfolg, Oil-Fehler, synchrone Bündelung, Basename-Minimierung und das Verwerfen
 nach Managerwechsel. Speech-Tests unterscheiden Markierung, Entmarkierung,
 Copy, Cut, Clipboard-Leerung und Expansion sowie Erfolg, Abbruch und Fehler
-typisierter Aktionen.
+typisierter Aktionen. Eine getrennte Zwei-Assertions-Integration prüft auf
+Neovim 0.10.1 und 0.12.3, dass direkte Dateimanagerbewegung als semantischer
+Eintragswechsel transportiert wird und zugleich ihre feste Bewegungsart für
+Randklänge behält. Oil-Adaptertests trennen bearbeiteten `parsed_name` und
+bestätigten Pfad. Ein isolierter Lauf mit dem realen Oil-Hauptzweig bearbeitet
+eine wegwerfbare Zeile und belegt denselben Entwurfsnamen bei weiterhin
+vorhandener alter Datei und noch fehlender neuer Datei.
 Der enge Oil-Promptparser wird nur für einen echten `oil_preview`-Float und
 feste Aktionsverben akzeptiert. Assertions verlangen Oils echte Einrückung bei
 Rename/Copy/Trash/Purge/Restore, destruktive Klassifizierung, eine pfadfreie
@@ -477,21 +483,35 @@ blockierender Enter-Hinweis sind Fehler.
 
 ### Praktische Dateimanager-Workflowmatrix
 
-Die noch offene praktische Abnahme wird in einem wegwerfbaren Projekt mit
+Die noch offene praktische Abnahme der übrigen Manager wird in einem
+wegwerfbaren Projekt mit
 Unterordnern für Quellcode, Tests, Notizen, Kapitel und Medien durchgeführt.
 Dateinamen enthalten Leerzeichen, Umlaute, nichtlateinische Zeichen und
-Satzzeichen. Derselbe Ablauf ist mindestens mit netrw, Oil, mini.files,
-nvim-tree und Neo-tree lokal sowie über SSH zu prüfen; ein Manager darf dabei
-keine Konfiguration oder Zustände eines anderen übernehmen.
+Satzzeichen. Derselbe Ablauf ist vollständig mit netrw, mini.files, nvim-tree
+und Neo-tree lokal sowie über SSH zu prüfen und für Oil auf weitere
+Konfigurationen auszuweiten; ein Manager darf dabei keine Konfiguration oder
+Zustände eines anderen übernehmen.
+Stand 18. Juli 2026: Oil ist mit Neovim 0.12 unter Windows/NVDA praktisch
+bestätigt und bietet eine solide Grundlage. Für netrw, mini.files, nvim-tree
+und Neo-tree steht diese praktische Windows-Matrix vollständig aus; sie wird
+schrittweise abgearbeitet. Automatisierte und isolierte Tests dieser Manager
+sind keine praktische Windows-Abnahme.
 
 1. Verzeichnisse auf- und zuklappen beziehungsweise betreten, zwischen
    Geschwistern navigieren und Dateien öffnen. Die Datei erhält genau die
    gewählte Fokusausgabe; eine automatische Cursoransage darf sie nicht
    doppeln oder auf ein Zeichen verkürzen.
+   In Oil zusätzlich auf einem Dateinamen `0`, `$`, `gg` und `G` prüfen: Die
+   semantische Ansage darf keine Dekoration enthalten, die jeweiligen
+   Randklänge müssen aber spielen.
 2. Datei und Ordner erstellen, Datei umbenennen, duplizieren/kopieren und in
    einen anderen Ordner verschieben. Typ, Name, Markierung und Manager-
    Clipboard müssen nach der Operation stimmen; Erfolg wird nur bei einem
    öffentlichen Abschlussereignis gemeldet.
+   Für Oil einen Namen mit `0`, `c$`, neuem Namen und Escape bearbeiten. Vor
+   `:w` müssen Sprache und Braille bereits den Entwurfsnamen, aber noch keinen
+   Erfolg melden; erst `:w` samt Bestätigung darf die Dateisystemaktion
+   abschließen.
 3. Mehrere Einträge markieren und eine gemischte Massenaktion ausführen.
    Erwartet wird eine zusammengefasste, pfadfreie Meldung. Namen oder Inhalte
    anderer Einträge dürfen nicht als Ziel geraten werden.
@@ -512,7 +532,8 @@ Für nvim-tree wird `select_prompts = true`, für Neo-tree
 `vim.ui.select/input`-Pfade genutzt werden. Oil wird mit seinen eigenen
 Bestätigungen und ohne Überspringen einfacher Bestätigungen geprüft. Diese
 Optionen setzt Access Link nicht selbst. Bis die Matrix praktisch protokolliert
-ist, gilt dieser Teil des Featurestands ausdrücklich als unbestätigt.
+ist, gelten die noch nicht einzeln abgenommenen Manager ausdrücklich als
+unbestätigt; dies betrifft derzeit alle außer Oil.
 
 Die beabsichtigte Wirkungslosigkeit in ungebundenen Windows-Terminal-
 Steuerelementen ist automatisiert abgedeckt, aber über die realen Windows-

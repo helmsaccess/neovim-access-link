@@ -3,6 +3,20 @@
 Stand: 2026-07-18, Beta-Version 0.93.0; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
+Im Testbuild `0.93.0-dev.7` meldet Oil während einer bearbeiteten, noch nicht
+gespeicherten Dateimanagerzeile den öffentlichen `parsed_name` an Sprache und
+Braille. Der bestätigte alte Name bleibt bis `:w` alleinige Grundlage des
+Pfads und der öffentlichen Abschlussaktion. Die bisherige
+`fileManagerEntryChanged`-Normalisierung behält nun zusätzlich die feste
+Bewegungsart; dadurch gehen Zeilen-/Dateigrenzklänge bei `0`, `$`, `gg`, `G`
+und Randpositionen nach Zeilenwechseln nicht mehr verloren. Automatisierte
+Regressionen bestehen. Oil wurde mit diesem Stand unter Windows/NVDA in
+Windows Terminal und Neovim 0.12 praktisch bestätigt; Entwurfsname und Klänge
+funktionieren. Von den Dateimanagern ist bislang ausschließlich Oil praktisch
+unter Windows geprüft. netrw, mini.files, nvim-tree und Neo-tree besitzen
+automatisierte beziehungsweise isolierte Abdeckung und werden schrittweise
+praktisch abgenommen. Oil bildet dafür eine solide Grundlage.
+
 Im Testbuild `0.93.0-dev.6` ist die Rückkehr eines Meldung erzeugenden
 Ex-Befehls vollständig strukturiert. Der Rückkehrmodus wird nicht als
 zusätzliches Sprachfragment vorangestellt; beim unmittelbaren

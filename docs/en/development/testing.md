@@ -42,7 +42,7 @@ setup and that mismatch disconnects without a reconnect loop.
 Isolated local and Tessa SIGKILL tests must leave discovery empty
 without touching existing user Neovim or tmux sessions.
 
-The Neovim file-manager specification now contains 105 assertions. Its adapter
+The Neovim file-manager specification now contains 108 assertions. Its adapter
 cases enforce the 512-byte name and 2048-byte path/root budgets at exact and
 split UTF-8 boundaries. Two-/three-byte characters and four-byte emoji must be
 kept or omitted as complete code points. Invalid byte sequences discard only
@@ -53,7 +53,12 @@ inactive buffer/window rejection. Public action stubs cover success, an Oil
 failure, synchronous batching, basename minimization, and dropping output
 after a manager change. Speech tests distinguish mark, unmark, Copy, Cut,
 clipboard clear, and expansion plus typed action success, cancellation, and
-failure.
+failure. A separate two-assertion integration runs on Neovim 0.10.1 and 0.12.3
+and proves that direct file-manager navigation is transported as a semantic
+entry change while retaining its fixed motion for edge cues. Oil adapter tests
+separate edited `parsed_name` from the confirmed path. An isolated run with
+the real Oil main branch edits one disposable row and proves the same draft
+name while the old file still exists and the new file does not yet exist.
 The narrow Oil prompt parser accepts only a real `oil_preview` float and fixed
 action verbs; assertions cover Oil's real indentation for
 rename/copy/trash/purge/restore, destructive classification, a path-free
@@ -235,18 +240,30 @@ blocking hit-enter prompt are failures.
 
 ### Practical file-manager workflow matrix
 
-The still-open practical acceptance uses a disposable project with source,
+The still-open practical acceptance of the remaining managers uses a
+disposable project with source,
 test, note, chapter, and media directories. Names include spaces, accented and
-non-Latin characters, and punctuation. Run the same flow with at least netrw,
-Oil, mini.files, nvim-tree, and Neo-tree both locally and over SSH; no manager
-may inherit another manager's configuration or state.
+non-Latin characters, and punctuation. Run the complete flow with netrw,
+mini.files, nvim-tree, and Neo-tree both locally and over SSH, and extend Oil
+coverage to further configurations; no manager may inherit another manager's
+configuration or state.
+Status on July 18, 2026: Oil is practically confirmed with Neovim 0.12 under
+Windows/NVDA and provides a solid foundation. The practical Windows matrix is
+entirely open for netrw, mini.files, nvim-tree, and Neo-tree and will be worked
+through incrementally. Automated and isolated checks for those managers do not
+constitute practical Windows acceptance.
 
 1. Expand or enter directories, navigate siblings, and open files. The opened
    file receives exactly the selected focus output; an automatic cursor event
    must neither duplicate it nor shorten it to one character.
+   In Oil, additionally test `0`, `$`, `gg`, and `G` on a file name: semantic
+   output contains no decoration, but the respective edge cues play.
 2. Create a file and directory, rename a file, duplicate/copy it, and move it
    to another directory. Type, name, marking, and manager clipboard must match
    afterwards; success is reported only from a public completion event.
+   In Oil, edit a name with `0`, `c$`, a new name, and Escape. Before `:w`,
+   speech and Braille already show the draft name but report no success; only
+   `:w` plus confirmation may complete the filesystem action.
 3. Mark several entries and perform a mixed batch. Expect one combined,
    path-free result. Names or contents from other entries must not be inferred
    as the target.
@@ -264,8 +281,8 @@ Use nvim-tree `select_prompts = true` and Neo-tree
 `use_popups_for_input = false` so their public `vim.ui.select/input` paths are
 used. Test Oil with its own confirmations and without skipping simple
 confirmations. Access Link does not set these options. Until the matrix is
-recorded practically, this part of the feature state remains explicitly
-unconfirmed.
+recorded practically, each manager not yet individually accepted remains
+explicitly unconfirmed; this currently means every manager except Oil.
 
 Automated tests establish the intended gating behavior, but complete practical
 non-interference across Windows Terminal layouts remains an open acceptance

@@ -65,6 +65,12 @@ Navigation als auch nach einem öffentlichen Pluginereignis, wenn sich der
 erneut gelesene Zustand tatsächlich geändert hat. Inaktive Buffer/Fenster und
 identische Zustände erzeugen kein Ereignis; Renderfolgen werden innerhalb
 eines Neovim-Schedulerzyklus zusammengefasst, nicht gepollt.
+Bei strukturierter Navigation kann `fileManagerMotion` ausschließlich eine
+feste interne Bewegungsart wie `lineStart`, `lineEnd`, `fileStart`, `fileEnd`
+oder `lineChanged` enthalten. Sie bewahrt Klänge und Bewegungsabsicht, ohne die
+dekorierte Managerzeile zur Sprachquelle zu machen. Bei Oil bezeichnet
+`entry.name` den öffentlichen `parsed_name`, sobald dieser nichtleer ist;
+`entry.path` bleibt bis zum Abschluss aus dem bestätigten `name` gebildet.
 `fileManager.root` bezeichnet die öffentliche Manager- oder Branchwurzel;
 `fileManager.currentDirectory` bezeichnet die fokussierte Ebene. Beide sind
 optional, UTF-8-validiert und auf 2048 Byte begrenzt. Fehlende Werte werden

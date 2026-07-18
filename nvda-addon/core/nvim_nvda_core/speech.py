@@ -957,8 +957,19 @@ class SpeechPlanner:
                 or path == previous_path
             )
         )
+        motion = state.get("fileManagerMotion")
+        if motion not in {
+            "cursorMoved", "characterMoved", "wordMoved", "lineChanged",
+            "lineStart", "lineEnd", "fileStart", "fileEnd",
+            "matchingPairMoved", "selectionChanged", "searchMatchChanged",
+        }:
+            motion = None
+        sound = self._file_manager_motion_sound(motion, state)
+        if same_entry and motion in {"lineStart", "lineEnd"}:
+            return SpeechAction("", Priority.NAVIGATION, interrupt=False, sound=sound)
         if not same_entry:
-            return self._file_manager_entry(state)
+            action = self._file_manager_entry(state)
+            return replace(action, sound=sound) if action is not None and sound else action
 
         changes: list[str] = []
         selection_state = entry.get("selectionState")
@@ -979,12 +990,45 @@ class SpeechPlanner:
         if expanded != previous_entry.get("expanded") and isinstance(expanded, bool):
             changes.append("expanded" if expanded else "collapsed")
         if not changes:
-            return self._file_manager_entry(state)
+            action = self._file_manager_entry(state)
+            return replace(action, sound=sound) if action is not None and sound else action
         text = ", ".join([name, *changes])
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
-            force_symbols=True, braille_message=text,
+            sound=sound, force_symbols=True, braille_message=text,
         )
+
+    def _file_manager_motion_sound(
+        self, motion: str | None, state: dict[str, Any],
+    ) -> str | None:
+        if motion == "lineStart":
+            cursor = state.get("cursor")
+            return "lineStart" if isinstance(cursor, dict) and cursor.get("byteColumn") == 0 else None
+        if motion == "lineEnd":
+            return "lineEnd"
+        if motion == "fileStart":
+            return "fileStart"
+        if motion == "fileEnd":
+            return "fileEnd"
+        if motion in {"cursorMoved", "characterMoved", "wordMoved", "matchingPairMoved"}:
+            return "lineCrossed" if self._line_changed(state) else None
+        if motion == "lineChanged":
+            cursor = state.get("cursor")
+            previous_cursor = (self._previous or {}).get("cursor")
+            if not isinstance(cursor, dict) or not isinstance(previous_cursor, dict):
+                return None
+            current_column = cursor.get("byteColumn")
+            previous_column = previous_cursor.get("byteColumn")
+            if current_column == 0 and previous_column not in {None, 0}:
+                return "lineStart"
+            line = state.get("lineText")
+            if (
+                isinstance(line, str) and isinstance(current_column, int)
+                and current_column == len(line.encode("utf-8"))
+                and previous_column != current_column
+            ):
+                return "lineEnd"
+        return None
 
     @staticmethod
     def _file_manager_action(state: dict[str, Any]) -> SpeechAction | None:

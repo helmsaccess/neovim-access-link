@@ -123,12 +123,21 @@ Markierungszustände, Abbruch, Fehler und das Öffnen einer Datei unter allen
 drei Fokusausgaben. Kanonische Datei- und Ordnertypen bleiben auch bei den
 öffentlichen Langformen der Manager erhalten. Eine praktische Matrix für
 lokale und SSH-Sitzungen bleibt offen.
+Der vierundzwanzigste Schritt trennt bei Oil den öffentlichen bearbeiteten
+`parsed_name` von der bis `:w` bestätigten `name`-Pfadidentität. Gleichzeitig
+bleibt bei der semantischen Dateimanager-Normalisierung die fest typisierte
+Bewegungsart erhalten, damit Randklänge nicht zusammen mit den dekorierten
+Rohzeilen verworfen werden. Beides ist ereignisgesteuert und ohne Polling
+automatisiert geprüft. Oil wurde anschließend mit Neovim 0.12 unter
+Windows/NVDA praktisch bestätigt und bildet eine solide Grundlage. Die
+praktische Abnahme von netrw, mini.files, nvim-tree und Neo-tree folgt
+schrittweise.
 
 Die praktische Windows-/NVDA-Abnahme bestätigte Command-line-Echo,
 Terminal-Normal, Ausstiegsbefehl, Prozessende, die drei Ausgabevarianten bei
 `:bp`/`:bn`, Fenster-/Tabwechsel und die erneute SSH-Zuordnung ohne weitere
 Probleme. Als nächste Schritte bleiben die im Analysebericht priorisierten
-die praktische Dateimanager-Workflowmatrix, weitere reale Plugin-Prompts,
+die praktische Dateimanager-Workflowmatrix der übrigen Manager, weitere reale Plugin-Prompts,
 Braillehardware, Pager-Sonderfälle sowie
 die vollständige negative Windows-Terminal-Matrix.
 

@@ -339,13 +339,19 @@ local function schedule_navigation(reason)
     end
     local event_type = (raw == "v" or raw == "V" or raw == "\22") and "selectionChanged"
       or motion or "cursorMoved"
-    if file_manager.current() then event_type = "fileManagerEntryChanged" end
     if motion == "matchingPairMoved" then pending_matching = nil end
     local extra
     if event_type == "searchMatchChanged" then
       extra = search_details(nil, search_direction)
     elseif motion_details then
       extra = motion_details
+    end
+    if file_manager.current() then
+      extra = extra or {}
+      -- Preserve the fixed semantic motion while keeping the file-manager
+      -- event authoritative for decorated and virtual manager rows.
+      extra.fileManagerMotion = event_type
+      event_type = "fileManagerEntryChanged"
     end
     emit(event_type, reason, extra)
   end)

@@ -74,6 +74,12 @@ freigegeben.
 - Neo-tree: öffentlicher Quellenzustand und aktueller Baumknoten
 - mini.files: `get_fs_entry()` und `get_explorer_state()`
 
+Oil ist bislang der einzige dieser Dateimanager, der unter Windows/NVDA mit
+Neovim 0.12 praktisch getestet wurde. Er funktioniert dort als solide
+Grundlage. Die übrigen Adapter sind automatisiert beziehungsweise isoliert
+geprüft, aber noch nicht praktisch unter Windows abgenommen; diese Tests folgen
+schrittweise.
+
 Die Grundabläufe sind für Quellcodeprojekte und Schreibprojekte gleich:
 Verzeichnisse navigieren und öffnen, Dateien öffnen, anlegen, umbenennen,
 duplizieren beziehungsweise kopieren, verschieben, markieren und als Batch
@@ -95,6 +101,12 @@ unterstützten öffentlichen Pluginereignissen ebenfalls erkannt: markiert,
 Markierung aufgehoben, kopiert, ausgeschnitten, Dateimanager-Clipboard geleert
 sowie Baumknoten geöffnet oder geschlossen. Mehrere reine Renderereignisse
 werden zusammengefasst; der Zustand wird nicht regelmäßig abgefragt.
+In Oil folgt der semantische Name schon beim Bearbeiten dem sichtbaren
+Entwurfsnamen. Nach `0`, `c$`, neuem Namen und Escape müssen Sprache und
+Braille daher den neuen Namen zeigen, obwohl die Datei erst mit `:w`
+umbenannt wird. `0`, `$`, `gg` und `G` behalten zugleich ihre Zeilen- und
+Dateigrenzklänge. Vor `:w` meldet Access Link ausdrücklich keinen
+Umbenennungserfolg.
 Bestätigte Aktionen werden kompakt als erstellt, hinzugefügt, umbenannt,
 kopiert, verschoben, gelöscht, geändert oder wiederhergestellt ausgegeben.
 Mehrere unmittelbar zusammengehörige Aktionen ergeben eine Sammelmeldung.

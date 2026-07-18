@@ -106,6 +106,13 @@ Manager-/Branchwurzel gegenüber fokussierter Ebene. Wo eine öffentliche API
 nur einen der beiden Werte zuverlässig liefert, wird nichts aus dem
 Eintragspfad geraten. Ein Fokuskontext ohne Eintrag reduziert die Ebene lokal
 auf ihren letzten Namen und spricht keinen vollständigen Pfad.
+Oil trennt zusätzlich bearbeiteten Anzeigenamen und bestätigte
+Dateisystemidentität: `parsed_name` steuert den semantischen Namen unmittelbar,
+`name` weiterhin den Pfad bis `:w` und öffentlichem Aktionsabschluss.
+Generische Cursorereignisse werden im Managerkontext zwar weiter als
+`fileManagerEntryChanged` ausgegeben, behalten aber ihre fest erlaubte
+Bewegungsart für Randklänge. So verdrängt die semantische Zeile weder
+Bearbeitungszustand noch Navigationsklang.
 
 Der dauerhafte Brailleplan verwendet bei einem Dateimanagereintrag dieselben
 fest typisierten Namens-, Typ- und Zustandsdaten. Eine Routingabbildung entsteht

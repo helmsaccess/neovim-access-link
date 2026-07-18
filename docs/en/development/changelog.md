@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.93.0-dev.7 (feature-branch test build)
+
+- Oil's public `parsed_name` is now the semantic speech and Braille name while
+  an edit has not yet been applied with `:w`. The path remains tied to
+  `entry.name` until proven completion, so a draft name is not reported as an
+  already completed rename.
+- File-manager navigation retains its fixed motion kind alongside the
+  decoration-free semantic entry. In particular, `0`, `$`, `gg`, and `G` once
+  again play line/file boundary cues; line changes may retain their edge cues.
+- Regression tests cover draft name versus confirmed path, plugin event wiring
+  on Neovim 0.10/0.12, and speech planning without falling back to icons or
+  extra columns. An isolated real-Oil run proves the draft name without a
+  filesystem change.
+- Practical Windows/NVDA acceptance with Neovim 0.12 confirms Oil including
+  draft names and cues. Oil is currently the only file manager practically
+  tested on Windows and provides a solid foundation; netrw, mini.files,
+  nvim-tree, and Neo-tree will follow incrementally.
+
 ## 0.93.0-dev.6 (feature-branch test build)
 
 - Message-producing Ex commands associate their immediate structured result

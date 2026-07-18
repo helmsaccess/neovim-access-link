@@ -19,8 +19,11 @@ coalescing. Automated netrw/API/event-stub coverage includes
 two-, three-, and four-byte boundary cases and invalid adapter bytes. Action
 results are covered with public stubs. Oil's real custom confirmation float is
 also path-free tested for cancelled rename, duplicate, and delete plus
-confirmed deletion. Further real plugin/prompt versions and physical Braille
-remain open.
+confirmed deletion. Oil is the only file manager practically tested under
+Windows/NVDA so far, using Neovim 0.12; it provides a solid foundation. netrw,
+mini.files, nvim-tree, and Neo-tree currently have automated or isolated
+coverage and will be accepted practically over time. Further real
+plugin/prompt versions and physical Braille remain open.
 
 Message-producing Ex commands carry a one-shot semantic return marker on their
 immediate structured result. The matching mode cue plays once before that
@@ -68,6 +71,12 @@ File-manager output uses semantic name, type, and state instead of decoration.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.
+An editable Oil entry uses its current public `parsed_name`; line and file
+boundary motions retain their cues without speaking icons or extra columns.
+The confirmed path changes only with Oil's own written action. This Oil path
+is practically confirmed under Windows/NVDA with Neovim 0.12; netrw,
+mini.files, nvim-tree, and Neo-tree do not yet have practical Windows
+acceptance.
 The persistent Braille region uses the same semantic entry instead of the raw
 decorated manager row. Routing is available only within an entry name found
 exactly once in that real row; status segments and ambiguous names are

@@ -183,10 +183,19 @@ manager.unregister("failing-manager")
 vim.bo.filetype = "oil"
 package.loaded.oil = {
   get_current_dir = function() return "/oil-root" end,
-  get_cursor_entry = function() return { name = "archive.zip", type = "file" } end,
+  get_cursor_entry = function()
+    return { name = "archive.zip", parsed_name = "renamed.zip", type = "file" }
+  end,
 }
 equal("file", manager.current().entry.type, "oil public API")
 equal("/oil-root", manager.current().currentDirectory, "oil current directory")
+equal("renamed.zip", manager.current().entry.name, "oil editable name uses public parsed name")
+equal("/oil-root/archive.zip", manager.current().entry.path,
+  "oil pending rename retains confirmed filesystem identity")
+package.loaded.oil.get_cursor_entry = function()
+  return { name = "archive.zip", parsed_name = "", type = "file" }
+end
+equal("archive.zip", manager.current().entry.name, "oil empty draft falls back to confirmed name")
 local detector_calls = 0
 manager.register("unrelated-manager", function()
   detector_calls = detector_calls + 1

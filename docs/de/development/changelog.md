@@ -5,6 +5,26 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.93.0-dev.7 (Featurebranch-Testbuild)
+
+- Oils öffentliche `parsed_name`-Angabe ist während einer noch nicht mit
+  `:w` angewendeten Bearbeitung nun der semantische Name für Sprache und
+  Braille. Der Pfad bleibt bis zum belegten Abschluss an `entry.name` gebunden;
+  ein Entwurfsname wird daher nicht als bereits ausgeführte Umbenennung
+  ausgegeben.
+- Dateimanager-Navigation bewahrt neben dem dekorationsfreien semantischen
+  Eintrag die feste Bewegungsart. Damit spielen insbesondere `0`, `$`, `gg`
+  und `G` wieder ihre Zeilen- und Dateigrenzklänge; Zeilenwechsel können ihre
+  Randklänge ebenfalls ausgeben.
+- Regressionstests prüfen Entwurfsname gegenüber bestätigtem Pfad, die
+  Plugin-Ereignisverkabelung auf Neovim 0.10/0.12 sowie Sprachplanung ohne
+  Rückfall auf Icons oder Zusatzspalten. Ein isolierter realer Oil-Lauf belegt
+  den Entwurfsnamen ohne Dateisystemänderung.
+- Die praktische Windows-/NVDA-Abnahme mit Neovim 0.12 bestätigt Oil samt
+  Entwurfsnamen und Klängen. Oil ist bislang der einzige unter Windows
+  praktisch geprüfte Dateimanager und bildet eine solide Grundlage; netrw,
+  mini.files, nvim-tree und Neo-tree folgen schrittweise.
+
 ## 0.93.0-dev.6 (Featurebranch-Testbuild)
 
 - Meldung erzeugende Ex-Befehle koppeln ihren unmittelbaren strukturierten

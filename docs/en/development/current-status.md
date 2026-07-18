@@ -3,6 +3,18 @@
 Status: 2026-07-18, beta version 0.93.0; overall maturity remains between
 alpha and beta.
 
+Test build `0.93.0-dev.7` sends Oil's public `parsed_name` to speech and
+Braille while a file-manager row is edited but not yet written. The confirmed
+old name remains the sole basis for path and public completion action until
+`:w`. Existing `fileManagerEntryChanged` normalization now also retains the
+fixed motion kind, so line/file boundary cues no longer disappear for `0`,
+`$`, `gg`, `G`, or edge positions after line changes. Automated regressions
+pass. This Oil path was practically confirmed with Windows/NVDA, Windows
+Terminal, and Neovim 0.12; draft name and cues work. Oil is currently the only
+file manager practically tested on Windows. netrw, mini.files, nvim-tree, and
+Neo-tree have automated or isolated coverage and will be accepted practically
+over time. Oil provides a solid foundation for that work.
+
 Test build `0.93.0-dev.6` makes return from a message-producing Ex command
 fully structured. The return mode is not inserted as an extra spoken fragment;
 its mode cue plays on the immediate `messageReceived`, whose presentation

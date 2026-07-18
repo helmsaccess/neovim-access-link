@@ -104,10 +104,17 @@ marking state, cancellation, failure, and opening a file under all three focus
 choices. Canonical file and directory types remain intact when managers use
 their public long forms. A practical local and SSH workflow matrix remains
 open.
+The twenty-fourth step separates Oil's public edited `parsed_name` from the
+confirmed `name` path identity retained until `:w`. File-manager normalization
+also preserves the fixed typed motion so edge cues are not discarded together
+with decorated raw rows. Both paths remain event-driven and are covered
+automatically without polling. Oil was then practically confirmed with Neovim
+0.12 under Windows/NVDA and provides a solid foundation. Practical acceptance
+of netrw, mini.files, nvim-tree, and Neo-tree will follow incrementally.
 Practical Windows/NVDA acceptance confirmed command-line echo, Terminal-Normal,
 the exit command, process exit, all three `:bp`/`:bn` presentations,
 window/tab switching, and fresh SSH pairing without further issues.
-The practical file-manager workflow matrix, further real plugin prompts,
+The practical workflow matrix for the remaining file managers, further real plugin prompts,
 physical Braille, pager variants, and the complete
 negative Windows Terminal matrix remain next.
 

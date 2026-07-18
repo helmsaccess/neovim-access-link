@@ -40,6 +40,12 @@ compatibility and must not replace Copy-versus-Cut semantics.
 public plugin event after the reread state actually changes. Inactive
 buffers/windows and equal state produce no event; render bursts are coalesced
 within one Neovim scheduler cycle rather than polled.
+For structured navigation, `fileManagerMotion` may contain only a fixed
+internal motion such as `lineStart`, `lineEnd`, `fileStart`, `fileEnd`, or
+`lineChanged`. It preserves cues and motion intent without making the
+decorated manager row a speech source. For Oil, `entry.name` is the public
+`parsed_name` while that value is non-empty; `entry.path` remains based on the
+confirmed `name` until completion.
 `fileManager.root` identifies the public manager or branch root;
 `fileManager.currentDirectory` identifies the focused level. Both are optional,
 UTF-8-validated, and limited to 2048 bytes. A missing value is not inferred

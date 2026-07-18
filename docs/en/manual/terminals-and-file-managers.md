@@ -61,6 +61,15 @@ failure or some cancellations. For other plugins, their own failure/cancel
 messages remain authoritative where the public API has no result event; Access
 Link does not guess. Adapters load only for the active matching buffer. Unsupported custom
 file-manager drawings do not fall back to terminal scraping.
+Oil is currently the only one of these file managers practically tested under
+Windows/NVDA with Neovim 0.12, where it provides a solid foundation. The other
+adapters have automated or isolated coverage but no practical Windows
+acceptance yet; they will be tested incrementally.
+In Oil, the semantic name follows the visible draft during editing. After
+`0`, `c$`, a new name, and Escape, speech and Braille should therefore show
+the new name even though the file is renamed only by `:w`. `0`, `$`, `gg`,
+and `G` retain their line/file boundary cues. Access Link deliberately reports
+no rename success before `:w`.
 
 The basic workflows are the same for source-code and writing projects:
 navigate and enter directories; open, create, rename, duplicate/copy, move,

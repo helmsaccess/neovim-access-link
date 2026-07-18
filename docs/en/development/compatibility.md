@@ -24,6 +24,11 @@ again on July 18 and uses `OilMutationComplete`, mini.files User autocmds,
 nvim-tree public `api.events`, and Neo-tree's public event module. If an event
 is absent or a public API changes incompatibly, cursor-driven adapter output
 continues fail-open; polling is not started as a replacement.
+Only Oil with Neovim 0.12 has so far been practically tested under
+Windows/NVDA. Its navigation, edited name, cues, and confirmation work and
+provide a solid foundation. netrw, mini.files, nvim-tree, and Neo-tree have not
+yet received practical Windows acceptance and will follow incrementally. Their
+evidence below is automated or isolated unless explicitly stated otherwise.
 The netrw fallback is automated against version 184 from Neovim 0.12.3 and
 version 173 from the Neovim 0.10.1 reference version in thin, long, wide, and
 tree presentation. The complete matrix has not yet been practically confirmed

@@ -778,6 +778,53 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("src, clipboard cleared", cleared.text)
         self.assertEqual("src, expanded", expanded.text)
 
+    def test_file_manager_navigation_preserves_boundary_sounds(self) -> None:
+        planner = SpeechPlanner()
+
+        def manager(motion: str, *, name: str = "draft.txt", line: int = 3,
+                    byte_column: int = 0, line_text: str = "draft.txt") -> dict:
+            return {"type": "fileManagerEntryChanged", "payload": {
+                "lineText": line_text,
+                "cursor": {"line": line, "byteColumn": byte_column},
+                "fileManagerMotion": motion,
+                "fileManager": {"name": "oil", "entry": {
+                    "name": name, "path": "/work/original.txt", "type": "file",
+                }},
+            }}
+
+        planner.plan(manager("cursorMoved", byte_column=4))
+        line_start = planner.plan(manager("lineStart"))[0]
+        line_end = planner.plan(manager(
+            "lineEnd", byte_column=len("draft.txt"), line_text="draft.txt",
+        ))[0]
+        file_end = planner.plan(manager(
+            "fileEnd", name="last.txt", line=8, byte_column=2, line_text="last.txt",
+        ))[0]
+
+        self.assertEqual(("", "lineStart", False), (
+            line_start.text, line_start.sound, line_start.interrupt,
+        ))
+        self.assertEqual(("", "lineEnd"), (line_end.text, line_end.sound))
+        self.assertEqual(("last.txt, file", "fileEnd"), (file_end.text, file_end.sound))
+
+    def test_file_manager_line_change_keeps_semantic_entry_and_boundary_sound(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan({"type": "fileManagerEntryChanged", "payload": {
+            "lineText": "first.txt", "cursor": {"line": 2, "byteColumn": 4},
+            "fileManager": {"name": "oil", "entry": {
+                "name": "first.txt", "path": "/work/first.txt", "type": "file",
+            }},
+        }})
+        changed = planner.plan({"type": "fileManagerEntryChanged", "payload": {
+            "lineText": "second.txt", "cursor": {"line": 3, "byteColumn": 0},
+            "fileManagerMotion": "lineChanged",
+            "fileManager": {"name": "oil", "entry": {
+                "name": "second.txt", "path": "/work/second.txt", "type": "file",
+            }},
+        }})[0]
+
+        self.assertEqual(("second.txt, file", "lineStart"), (changed.text, changed.sound))
+
     def test_file_manager_action_results_are_compact_and_typed(self) -> None:
         planner = SpeechPlanner()
         def result(**action: object) -> dict:
