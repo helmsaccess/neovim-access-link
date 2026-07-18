@@ -31,7 +31,8 @@ history are kept separate from the current product description.
 6. [Release, version, and build process](release-and-build.md)
 7. [NVDA 2026.1 API review](nvda-2026.1-api-notes.md)
 8. [Licensing and contributions](licensing-and-contributions.md)
-9. [Bundled dependencies](dependencies.md)
+9. [Localization with gettext](localization.md)
+10. [Bundled dependencies](dependencies.md)
 
 ## Planning and history
 

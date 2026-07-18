@@ -12,6 +12,7 @@ python3 -m unittest discover -s bridge/python/tests -v
 python3 -m unittest discover -s nvda-addon/tests -v
 tools/test_neovim_plugin.sh
 python3 tools/build_nvda_addon.py
+python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
@@ -20,6 +21,12 @@ Regression coverage includes framing, resync, Unicode, empty buffers, modes,
 editing, completion, menus, settings profiles, installation, multiple local
 and SSH sessions, focus/runtime IDs, F12 claims, delayed callbacks, redaction,
 and fail-open suppression.
+
+Localization coverage exactly reconciles extracted source messages, POT, and
+PO, rejects changed format placeholders, compiles byte-identical MO files
+twice, and loads the result with `gettext.GNUTranslations`. The package test
+requires `locale/de/LC_MESSAGES/nvda.mo` and the German manifest while
+excluding PO/POT sources from the actual archive.
 
 The F12 path distinguishes four stages: physical session marking, the
 transient session-file claim, unique claim resolution, and terminal-to-connection

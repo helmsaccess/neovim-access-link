@@ -145,6 +145,24 @@ geprüft und erzeugt weder Timer noch Polling. `BufWipeout` entfernt den Zustand
 Die Checkhealth-Ausgabe enthält nur Adaptername und feste Zähler, nie
 Fehlertext, Pfade oder Dateinamen.
 
+## Lokalisierungsgrenze
+
+Nur die NVDA-Seite wählt die menschliche Ausgabesprache. Das GlobalPlugin
+initialisiert NVDAs öffentliche gettext-Domain `nvda` und übergibt deren
+Übersetzungsfunktion an den ansonsten NVDA-unabhängigen `SpeechPlanner`.
+Bridge, Protokoll und Neovim-Plugin übertragen weiterhin typisierte Zustände,
+Dokumentinhalt und fremde Meldungen unverändert; sie kennen keine aktive
+NVDA-Sprache und laden keine Kataloge. Damit bleibt die Sprachwahl am letzten
+vertrauenswürdigen Präsentationspunkt und beeinflusst weder Transport noch
+Sitzungszustand.
+
+PO/POT sind versionierte Entwicklerquellen außerhalb des Add-on-Stagingbaums.
+Der deterministische Builder prüft und kompiliert sie in
+`locale/<Sprache>/LC_MESSAGES/nvda.mo`; nur MO und optionale übersetzte
+Manifestfelder werden ausgeliefert. Fehlende Einträge verwenden gettexts
+englischen Fallback und dürfen Aktivierung, Verbindung oder Fail-open niemals
+verhindern.
+
 ## Verteilung der Linux-Komponenten
 
 Der Add-on-Build erzeugt aus den versionierten Bridge-, Protokoll-, Plugin- und

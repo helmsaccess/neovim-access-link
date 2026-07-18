@@ -120,6 +120,22 @@ Windows Terminal AppModule. Undocumented AppModule aliases preserve gesture
 assignments saved before this move without creating a second configuration
 surface.
 
+## Localization boundary
+
+Only the NVDA side selects the human output language. The Global Plugin
+initializes NVDA's public gettext domain `nvda` and passes its translation
+callable to the otherwise NVDA-independent `SpeechPlanner`. The bridge,
+protocol, and Neovim plugin continue to transport typed state, document
+content, and third-party messages unchanged; they know neither the active NVDA
+language nor any catalog. Language selection therefore remains at the final
+trusted presentation boundary and cannot affect transport or session state.
+
+PO/POT files are versioned development sources outside the add-on staging
+tree. The deterministic builder validates and compiles them into
+`locale/<language>/LC_MESSAGES/nvda.mo`; only MO files and optional translated
+manifest fields are shipped. Missing entries use gettext's English fallback
+and must never block activation, connection, or fail-open behavior.
+
 ## Terms: marking, claim, binding, and connection
 
 “Registry” below means a file-based Neovim session registry, never the Windows

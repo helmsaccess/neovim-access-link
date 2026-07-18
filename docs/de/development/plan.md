@@ -9,7 +9,18 @@ implementiert. Der verifizierte Funktionsstand steht in
 [Aktueller Status](current-status.md); abgeschlossene Änderungen stehen im
 [Changelog](changelog.md).
 
-## Aktuell: Cleanup für 0.94
+## Aktuell: gettext-Lokalisierung
+
+Der Branch `feature/gettext-translation` führt NVDAs öffentliche gettext-Domain
+`nvda` ein. Der erste Schritt umfasst reproduzierbare POT/PO-Extraktion,
+Platzhalter- und Synchronitätsprüfung, deterministische MO-Kompilierung,
+deutsches Manifest, Paketprüfung sowie eine injizierte Übersetzungsgrenze für
+den NVDA-unabhängigen Speech-Planner. Der deutsche Katalog deckt alle 310
+aktuell extrahierten Texte ab und wird durch einen Vollständigkeitstest
+geschützt. Offen ist der praktische Vergleich mit englischem und deutschem
+NVDA.
+
+## Abgeschlossen: Cleanup für 0.94
 
 Der Branch `feature/cleanup-0.94.0-prerelease` vereinheitlicht die interne
 NVDA-Identität auf `NeovimAccessLink`. Es gibt bewusst keine Migration der

@@ -3,7 +3,17 @@
 Core architecture, protocol v2, SSH stdio, local Windows CLI, F12 claim handshake,
 parallel sessions, and rootless installation and removal are implemented.
 
-## Active: cleanup for 0.94
+## Active: gettext localization
+
+Branch `feature/gettext-translation` introduces NVDA's public gettext domain
+`nvda`. The first step covers reproducible POT/PO extraction, placeholder and
+synchronization validation, deterministic MO compilation, a German manifest,
+package verification, and an injected translation boundary for the
+NVDA-independent speech planner. The German catalog covers all 310 currently
+extracted messages and is protected by a completeness test. Practical
+comparison under English and German NVDA remains open.
+
+## Completed: cleanup for 0.94
 
 Branch `feature/cleanup-0.94.0-prerelease` makes `NeovimAccessLink` the single
 internal NVDA identity. There is intentionally no migration from the former

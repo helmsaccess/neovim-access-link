@@ -3,6 +3,16 @@
 Status: 2026-07-18, beta version 0.94.0; overall maturity remains between
 alpha and beta.
 
+Feature branch `feature/gettext-translation` starts native add-on localization.
+A deterministic, pure-Python tool path extracts POT/PO, validates named format
+placeholders, and compiles NVDA's `nvda` domain into the built archive. The
+German manifest and a complete German runtime catalog are included. The
+NVDA-independent speech planner receives translation as a callback and remains
+separately testable without an NVDA or gettext import. The catalog translates
+all 310 currently extracted messages; a completeness test prevents unnoticed
+English remnants. Automated catalog, speech, and package tests pass; practical
+German NVDA acceptance remains open.
+
 Version `0.94.0` carries forward the practically confirmed cleanup branch and
 uses the new internal NVDA ID
 `NeovimAccessLink` throughout. This is an intentional clean

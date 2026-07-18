@@ -5,6 +5,25 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.0-dev.3+feature.gettext-translation (Featurebranch-Testbuild)
+
+- Native NVDA-gettext-Kataloge verwenden die öffentliche Domain `nvda`; ein
+  deutsches Manifest und der kompilierte deutsche Laufzeitkatalog werden im
+  Add-on ausgeliefert.
+- Ein Standardbibliothek-Werkzeug extrahiert POT/PO reproduzierbar, erhält
+  Übersetzungen, prüft Katalogabdeckung und benannte Formatplatzhalter und
+  kompiliert deterministische MO-Dateien ohne externe gettext-Abhängigkeit.
+- Die Speech-Planung bleibt NVDA-unabhängig und erhält die aktive Übersetzung
+  als Callback. Modus-, Fokus-, Navigations-, Auswahl-, Fold-, Register- und
+  Dateimanagertexte werden über feste Templates lokalisiert. Der deutsche
+  Katalog deckt alle 310 aktuell extrahierten Texte ab.
+- Katalog-, Speech- und Archivregressionen bestehen. Eine praktische Abnahme
+  unter deutschem NVDA steht noch aus.
+- Unübersetzte PO-Einträge werden wie bei `msgfmt` nicht in die MO-Datei
+  geschrieben. Dadurch liefert gettext den englischen Quelltext statt einer
+  leeren Zeichenkette; beide Werkzeuge-Menüeinträge und ihre Formulare bleiben
+  unterscheidbar und bedienbar.
+
 ## 0.94.0 (Beta)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.94.0` angehoben.
