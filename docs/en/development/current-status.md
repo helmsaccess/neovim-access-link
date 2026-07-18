@@ -1,9 +1,9 @@
 # Current status
 
-Status: 2026-07-18, beta version 0.94.0; overall maturity remains between
+Status: 2026-07-18, beta version 0.94.1; overall maturity remains between
 alpha and beta.
 
-Feature branch `feature/gettext-translation` starts native add-on localization.
+Version `0.94.1` introduces native add-on localization.
 A deterministic, pure-Python tool path extracts POT/PO, validates named format
 placeholders, and compiles NVDA's `nvda` domain into the built archive. The
 German manifest and a complete German runtime catalog are included. The

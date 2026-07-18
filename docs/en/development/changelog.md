@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.94.1
+
+- The fully tested gettext feature-branch state is adopted as version
+  `0.94.1`. Product channel and maturity classification remain unchanged.
+- The German catalog covers all 310 extracted messages; MO, package, and
+  completeness tests prevent empty or unnoticed English UI text.
+
 ## 0.94.0-dev.3+feature.gettext-translation (feature-branch test build)
 
 - Native NVDA gettext catalogs use the public `nvda` domain; a German manifest

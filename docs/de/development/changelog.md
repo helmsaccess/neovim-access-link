@@ -5,6 +5,14 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.1
+
+- Der vollständig getestete Gettext-Stand aus dem Featurebranch wird als
+  Version `0.94.1` übernommen. Produktkanal und Reifegradeinordnung bleiben
+  unverändert.
+- Der deutsche Katalog deckt alle 310 extrahierten Texte ab; MO-, Paket- und
+  Vollständigkeitstests verhindern leere oder unbemerkte englische Anzeigen.
+
 ## 0.94.0-dev.3+feature.gettext-translation (Featurebranch-Testbuild)
 
 - Native NVDA-gettext-Kataloge verwenden die öffentliche Domain `nvda`; ein

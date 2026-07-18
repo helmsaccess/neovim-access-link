@@ -1,10 +1,10 @@
 # Aktueller Status
 
-Stand: 2026-07-18, Beta-Version 0.94.0; der Gesamtstand bleibt zwischen
+Stand: 2026-07-18, Beta-Version 0.94.1; der Gesamtstand bleibt zwischen
 Alpha und Beta.
 
-Der Featurebranch `feature/gettext-translation` beginnt die native
-Lokalisierung des Add-ons. Ein rein in Python laufender, deterministischer
+Version `0.94.1` führt die native Lokalisierung des Add-ons ein. Ein rein in
+Python laufender, deterministischer
 Werkzeugpfad extrahiert POT/PO, prüft benannte Formatplatzhalter und kompiliert
 NVDAs Domain `nvda` in das gebaute Archiv. Das deutsche Manifest und ein
 vollständiger deutscher Laufzeitkatalog sind enthalten. Der NVDA-unabhängige
