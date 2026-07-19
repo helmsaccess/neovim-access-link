@@ -55,6 +55,8 @@ Vom Repository-Wurzelverzeichnis:
 ```bash
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
+ruff check .
+ruff format --check .
 python3 -m unittest discover -s protocol/python/tests -v
 python3 -m unittest discover -s bridge/python/tests -v
 python3 -m unittest discover -s nvda-addon/tests -v
@@ -64,6 +66,11 @@ python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
+
+Für die beiden Ruff-Befehle wird wie in NVDA 2026.1 Ruff 0.14.5 verwendet.
+Die Konfiguration in `pyproject.toml` begrenzt die Prüfung auf die direkt von
+NVDA geladenen Python-Module unter `nvda-addon/addon/`; andere Komponenten
+behalten ihren eigenen konsistenten Stil.
 
 `tools/test_neovim_plugin.sh` verwendet die verfügbare unterstützte
 Neovim-Version. Für Änderungen an Versionsgrenzen sollten die Lua- und

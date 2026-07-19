@@ -121,6 +121,15 @@ es wurde kein Fehler gefunden. Nach jeder Stufe müssen gebautes Add-on,
 Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und
 Fenstern geprüft werden.
 
+Phase 7 ist mechanisch umgesetzt. Die direkt von NVDA geladenen Python-Module
+unter `nvda-addon/addon/` folgen nun NVDAs Ruff-Format mit Tabs, LF und 110
+Zeichen Zeilenlänge. Core, Bridge, Protokoll und Tests behalten ihren jeweils
+bereits konsistenten Stil. Ruff 0.14.5 prüft nur diese klar begrenzte NVDA-
+Stilzone lokal und in GitHub Actions; der dynamisch erforderliche Importpfad
+des Global Plugins ist eng dokumentiert ausgenommen. Die Umformatierung
+enthält keine beabsichtigte Funktionsänderung und wird durch die vollständigen
+Tests sowie das gebaute Add-on geprüft.
+
 ## 3. Praktische Abschottung verbreitern
 
 - Die wichtigsten negativen Windows-Terminal-Fälle für ungebundene Shell-Tabs

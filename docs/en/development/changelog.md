@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.94.2-dev.12+feature.global-plugin-slimming (feature-branch test build)
+
+- Phase 7 formats only the Python modules loaded directly by NVDA according
+  to NVDA conventions: tabs, LF, and a 110-character line length. Core,
+  bridge, protocol, and tests retain their established consistent styles.
+- Ruff 0.14.5 configuration restricted to `nvda-addon/addon/`, together with
+  a path-filtered GitHub Actions check, prevents renewed style mixing. The
+  Global Plugin's dynamically required import path has one narrow documented
+  exception; two genuinely unused imports are removed.
+- No runtime behavior is intentionally changed. Complete suites and the built
+  add-on verify the mechanically reformatted state.
+
 ## 0.94.2-dev.11+feature.global-plugin-slimming (feature-branch test build)
 
 - Phase 6 moves all ten freely assignable terminal commands from the Global

@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.12+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Phase 7 formatiert ausschließlich die direkt von NVDA geladenen Python-
+  Module nach NVDAs Konventionen: Tabs, LF und 110 Zeichen Zeilenlänge. Core,
+  Bridge, Protokoll und Tests behalten ihren vorhandenen konsistenten Stil.
+- Eine auf `nvda-addon/addon/` begrenzte Ruff-0.14.5-Konfiguration sowie eine
+  entsprechend gefilterte GitHub-Actions-Prüfung verhindern erneute
+  Stilvermischung. Der dynamisch erforderliche Importpfad des Global Plugins
+  ist eng dokumentiert ausgenommen; zwei tatsächlich unbenutzte Imports sind
+  entfernt.
+- Die Änderung beabsichtigt kein Laufzeitverhalten zu ändern. Vollständige
+  Suiten und gebautes Add-on prüfen den mechanisch umformatierten Stand.
+
 ## 0.94.2-dev.11+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Phase 6 verlagert alle zehn frei belegbaren Terminalbefehle vom Global

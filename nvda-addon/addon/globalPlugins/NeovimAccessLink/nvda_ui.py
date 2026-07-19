@@ -8,7 +8,11 @@ import queueHandler
 import ui
 
 from .core.connection_profiles import (
-	parse_profile, parse_profiles, remove_profile, save_profile, unique_profile_id,
+	parse_profile,
+	parse_profiles,
+	remove_profile,
+	save_profile,
+	unique_profile_id,
 )
 from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_windows_target
 from .core.local_install import LocalPluginInstaller
@@ -21,7 +25,12 @@ class NvdaUiManager:
 	"""Own add-on UI registration and user-triggered component maintenance."""
 
 	def __init__(
-		self, plugin, *, product_name, package_dir, feedback_defaults,
+		self,
+		plugin,
+		*,
+		product_name,
+		package_dir,
+		feedback_defaults,
 		focus_announcement_default,
 	):
 		self._plugin = plugin
@@ -63,7 +72,8 @@ class NvdaUiManager:
 				ui.message(_("SSH port must be a number between 1 and 65535"))
 				continue
 			identifier = values.get("id", "") or unique_profile_id(
-				result["name"], {profile.get("id", "") for profile in profiles},
+				result["name"],
+				{profile.get("id", "") for profile in profiles},
 			)
 			candidate = {
 				"id": identifier,
@@ -80,9 +90,7 @@ class NvdaUiManager:
 				return parse_profile(candidate).as_dict()
 			except ValueError as error:
 				self._diagnostics.record("connectionProfileValidationError", error=str(error))
-				ui.message(_(
-					"The connection settings are invalid: {error}"
-				).format(error=str(error)))
+				ui.message(_("The connection settings are invalid: {error}").format(error=str(error)))
 
 	@staticmethod
 	def _authenticationChoices():
@@ -106,11 +114,10 @@ class NvdaUiManager:
 	def _showConnectionProfileDialog(self, values):
 		import gui
 		import wx
+
 		dialog = wx.Dialog(
 			gui.mainFrame,
-			title=_("Add Linux connection") if not values.get("id") else _(
-				"Edit Linux connection"
-			),
+			title=_("Add Linux connection") if not values.get("id") else _("Edit Linux connection"),
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
 		try:
@@ -135,15 +142,19 @@ class NvdaUiManager:
 
 			name = add_text(_("Connection name:"), values.get("name", ""), "connectionName")
 			host = add_text(
-				_("Server name, address or SSH alias:"), values.get("host", ""), "connectionHost",
+				_("Server name, address or SSH alias:"),
+				values.get("host", ""),
+				"connectionHost",
 			)
 			user = add_text(
 				_("Linux username (optional when defined by SSH config):"),
-				values.get("user", ""), "connectionUser",
+				values.get("user", ""),
+				"connectionUser",
 			)
 			port = add_text(_("SSH port:"), str(values.get("port", 22)), "connectionPort")
 			identity = add_text(
-				_("Private key file (optional):"), values.get("identityFile", ""),
+				_("Private key file (optional):"),
+				values.get("identityFile", ""),
 				"connectionIdentity",
 			)
 			grid.Add(wx.StaticText(dialog, label=_("Sign-in method:")), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -179,9 +190,7 @@ class NvdaUiManager:
 				"user": user.GetValue(),
 				"port": port.GetValue(),
 				"identityFile": identity.GetValue(),
-				"authentication": (
-					"password" if authentication.GetSelection() == 1 else "openSsh"
-				),
+				"authentication": ("password" if authentication.GetSelection() == 1 else "openSsh"),
 			}
 		finally:
 			dialog.Destroy()
@@ -202,6 +211,7 @@ class NvdaUiManager:
 			import wx
 			from gui import guiHelper
 			from gui.settingsDialogs import NVDASettingsDialog, SettingsPanel
+
 			plugin = self._plugin
 			ui_manager = self
 			product_name = self._productName
@@ -242,15 +252,18 @@ class NvdaUiManager:
 					general_helper = guiHelper.BoxSizerHelper(general_page, sizer=general_sizer)
 					feedback_helper = guiHelper.BoxSizerHelper(feedback_page, sizer=feedback_sizer)
 					connections_helper = guiHelper.BoxSizerHelper(
-						connections_page, sizer=connections_sizer,
+						connections_page,
+						sizer=connections_sizer,
 					)
 
 					global_sizer = wx.StaticBoxSizer(
-						wx.VERTICAL, general_page, label=_("Global action feedback"),
+						wx.VERTICAL,
+						general_page,
+						label=_("Global action feedback"),
 					)
 					general_helper.addItem(global_sizer)
 					global_group = guiHelper.BoxSizerHelper(general_page, sizer=global_sizer)
-					choices = [_('Off'), _('Speech'), _('Tones'), _('Both Speech and Tones')]
+					choices = [_("Off"), _("Speech"), _("Tones"), _("Both Speech and Tones")]
 					self.feedbackControls = {}
 					feedback = plugin._settings.get("feedback", feedback_defaults)
 					key, label = labels[0]
@@ -259,24 +272,34 @@ class NvdaUiManager:
 					self.feedbackControls[key] = control
 
 					focus_sizer = wx.StaticBoxSizer(
-						wx.VERTICAL, general_page, label=_("Session focus"),
+						wx.VERTICAL,
+						general_page,
+						label=_("Session focus"),
 					)
 					general_helper.addItem(focus_sizer)
 					focus_group = guiHelper.BoxSizerHelper(general_page, sizer=focus_sizer)
 					self.focusAnnouncement = focus_group.addLabeledControl(
-						_("When focusing or changing buffers in a Neovim session:"), wx.Choice,
+						_("When focusing or changing buffers in a Neovim session:"),
+						wx.Choice,
 						choices=[
 							_("No announcement"),
 							_("Current line"),
 							_("Current context, mode and connection name"),
 						],
 					)
-					self.focusAnnouncement.SetSelection(int(plugin._settings.get(
-						"focusAnnouncement", focus_announcement_default,
-					)))
+					self.focusAnnouncement.SetSelection(
+						int(
+							plugin._settings.get(
+								"focusAnnouncement",
+								focus_announcement_default,
+							)
+						)
+					)
 
 					actions_sizer = wx.StaticBoxSizer(
-						wx.VERTICAL, feedback_page, label=_("Individual actions"),
+						wx.VERTICAL,
+						feedback_page,
+						label=_("Individual actions"),
 					)
 					feedback_helper.addItem(actions_sizer)
 					actions_group = guiHelper.BoxSizerHelper(feedback_page, sizer=actions_sizer)
@@ -293,15 +316,19 @@ class NvdaUiManager:
 					actions_group.addItem(note)
 
 					connection_sizer = wx.StaticBoxSizer(
-						wx.VERTICAL, connections_page, label=_("Saved SSH connections"),
+						wx.VERTICAL,
+						connections_page,
+						label=_("Saved SSH connections"),
 					)
 					connections_helper.addItem(connection_sizer)
 					connection_group = guiHelper.BoxSizerHelper(
-						connections_page, sizer=connection_sizer,
+						connections_page,
+						sizer=connection_sizer,
 					)
 					self.connectionProfiles = list(plugin._settings.get("connections", []))
 					self.connectionChoice = connection_group.addLabeledControl(
-						_("Saved &connections:"), wx.Choice,
+						_("Saved &connections:"),
+						wx.Choice,
 						choices=[
 							ui_manager._profileChoiceLabel(profile) for profile in self.connectionProfiles
 						],
@@ -310,25 +337,30 @@ class NvdaUiManager:
 					self.connectionChoice.Bind(wx.EVT_CHOICE, self._onConnectionSelection)
 					connection_buttons = guiHelper.ButtonHelper(wx.HORIZONTAL)
 					self.addConnectionButton = connection_buttons.addButton(
-						connections_page, label=_("&Add connection..."),
+						connections_page,
+						label=_("&Add connection..."),
 					)
 					self.editConnectionButton = connection_buttons.addButton(
-						connections_page, label=_("&Edit connection..."),
+						connections_page,
+						label=_("&Edit connection..."),
 					)
 					self.removeConnectionButton = connection_buttons.addButton(
-						connections_page, label=_("&Remove connection"),
+						connections_page,
+						label=_("&Remove connection"),
 					)
 					self.addConnectionButton.Bind(wx.EVT_BUTTON, self._onAddConnection)
 					self.editConnectionButton.Bind(wx.EVT_BUTTON, self._onEditConnection)
 					self.removeConnectionButton.Bind(wx.EVT_BUTTON, self._onRemoveConnection)
 					connection_group.addItem(connection_buttons)
-					connection_group.addItem(wx.StaticText(
-						connections_page,
-						label=_(
-							"To install or update components, use the add-on command "
-							"in NVDA's Tools menu and select this computer or saved Linux connections."
-						),
-					))
+					connection_group.addItem(
+						wx.StaticText(
+							connections_page,
+							label=_(
+								"To install or update components, use the add-on command "
+								"in NVDA's Tools menu and select this computer or saved Linux connections."
+							),
+						)
+					)
 					self._updateConnectionButtons()
 
 				def _onConnectionSelection(self, _event):
@@ -340,13 +372,17 @@ class NvdaUiManager:
 					self.removeConnectionButton.Enable(selected)
 
 				def _refreshConnections(self, selected_id=""):
-					self.connectionChoice.SetItems([
-						ui_manager._profileChoiceLabel(profile) for profile in self.connectionProfiles
-					])
-					index = next((
-						position for position, profile in enumerate(self.connectionProfiles)
-						if profile.get("id") == selected_id
-					), 0 if self.connectionProfiles else -1)
+					self.connectionChoice.SetItems(
+						[ui_manager._profileChoiceLabel(profile) for profile in self.connectionProfiles]
+					)
+					index = next(
+						(
+							position
+							for position, profile in enumerate(self.connectionProfiles)
+							if profile.get("id") == selected_id
+						),
+						0 if self.connectionProfiles else -1,
+					)
 					self.connectionChoice.SetSelection(index)
 					self._updateConnectionButtons()
 
@@ -390,15 +426,15 @@ class NvdaUiManager:
 					connection_changed = previous_connections != plugin._settings["connections"]
 					if connection_changed and plugin._gate.manual_enabled:
 						plugin._beginClaimInventory()
-						ui.message(_(
-							"Saved connections changed; checking Neovim connections again"
-						))
+						ui.message(_("Saved connections changed; checking Neovim connections again"))
 
 			NVDASettingsDialog.categoryClasses.append(NeovimAccessLinkSettingsPanel)
 			self._settingsPanelClass = NeovimAccessLinkSettingsPanel
 		except Exception as error:
 			self._diagnostics.record(
-				"settingsPanelUnavailable", errorType=type(error).__name__, error=str(error),
+				"settingsPanelUnavailable",
+				errorType=type(error).__name__,
+				error=str(error),
 			)
 
 	def _unregisterSettingsPanel(self):
@@ -408,34 +444,42 @@ class NvdaUiManager:
 			return
 		try:
 			from gui.settingsDialogs import NVDASettingsDialog
+
 			if panel in NVDASettingsDialog.categoryClasses:
 				NVDASettingsDialog.categoryClasses.remove(panel)
 		except Exception as error:
 			self._diagnostics.record(
-				"settingsPanelRemoveError", errorType=type(error).__name__, error=str(error),
+				"settingsPanelRemoveError",
+				errorType=type(error).__name__,
+				error=str(error),
 			)
 
 	def _installMenus(self):
 		try:
 			import gui
 			import wx
+
 			tray = gui.mainFrame.sysTrayIcon
 			menu = tray.toolsMenu
 			install_handler = self._onInstallServer
 			install_item = menu.Append(
-				wx.ID_ANY, self._productName + _(': Install or update components...'),
+				wx.ID_ANY,
+				self._productName + _(": Install or update components..."),
 			)
 			tray.Bind(wx.EVT_MENU, install_handler, install_item)
 			self._menuItems.append((tray, menu, install_item, install_handler, wx))
 			remove_handler = self._onRemoveComponents
 			remove_item = menu.Append(
-				wx.ID_ANY, self._productName + _(': Remove components...'),
+				wx.ID_ANY,
+				self._productName + _(": Remove components..."),
 			)
 			tray.Bind(wx.EVT_MENU, remove_handler, remove_item)
 			self._menuItems.append((tray, menu, remove_item, remove_handler, wx))
 		except Exception as error:
 			self._diagnostics.record(
-				"menuUnavailable", errorType=type(error).__name__, error=str(error),
+				"menuUnavailable",
+				errorType=type(error).__name__,
+				error=str(error),
 			)
 
 	def _removeMenus(self):
@@ -452,11 +496,16 @@ class NvdaUiManager:
 
 	@staticmethod
 	def _installProfileLabel(profile):
-		method = _("OpenSSH keys or configuration") if profile.authentication == "openSsh" else _(
-			"password prompt"
+		method = (
+			_("OpenSSH keys or configuration")
+			if profile.authentication == "openSsh"
+			else _("password prompt")
 		)
 		return _("{name}: {target}, port {port}, {method}").format(
-			name=profile.name, target=profile.ssh_target, port=profile.port, method=method,
+			name=profile.name,
+			target=profile.ssh_target,
+			port=profile.port,
+			method=method,
 		)
 
 	@staticmethod
@@ -475,6 +524,7 @@ class NvdaUiManager:
 		import gui
 		import wx
 		from gui.nvdaControls import CustomCheckListBox
+
 		try:
 			profiles = parse_profiles(self._settings.get("connections", []))
 		except ValueError as error:
@@ -484,9 +534,7 @@ class NvdaUiManager:
 		targets = [local_windows_target(_("This computer - local Neovim")), *profiles]
 		dialog = wx.Dialog(
 			gui.mainFrame,
-			title=_("Remove Neovim components") if remove else _(
-				"Install or update Neovim components"
-			),
+			title=_("Remove Neovim components") if remove else _("Install or update Neovim components"),
 		)
 		outer_sizer = wx.BoxSizer(wx.VERTICAL)
 		instructions = wx.StaticText(
@@ -494,9 +542,9 @@ class NvdaUiManager:
 			label=_(
 				"Close Neovim on the selected targets, then choose where to remove the components. "
 				"Other Neovim plugins and configuration are preserved."
-			) if remove else _(
-				"Select one or more targets. Administrator rights are not required."
-			),
+			)
+			if remove
+			else _("Select one or more targets. Administrator rights are not required."),
 		)
 		instructions.Wrap(620)
 		outer_sizer.Add(instructions, 0, wx.ALL | wx.EXPAND, 12)
@@ -504,13 +552,12 @@ class NvdaUiManager:
 		outer_sizer.Add(select_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
 		list_label = wx.StaticText(
 			dialog,
-			label=_("Connections to remove components from:") if remove else _(
-				"Connections to update:"
-			),
+			label=_("Connections to remove components from:") if remove else _("Connections to update:"),
 		)
 		outer_sizer.Add(list_label, 0, wx.LEFT | wx.RIGHT, 12)
 		connection_list = CustomCheckListBox(
-			dialog, choices=[self._installTargetLabel(target) for target in targets],
+			dialog,
+			choices=[self._installTargetLabel(target) for target in targets],
 		)
 		connection_list.SetName(
 			_("Connections to remove components from") if remove else _("Connections to update")
@@ -524,14 +571,15 @@ class NvdaUiManager:
 
 		def on_connection_checked(event):
 			event.Skip()
-			select_all.SetValue(all(
-				connection_list.IsChecked(index) for index in range(len(targets))
-			))
+			select_all.SetValue(all(connection_list.IsChecked(index) for index in range(len(targets))))
 
 		select_all.Bind(wx.EVT_CHECKBOX, on_select_all)
 		connection_list.Bind(wx.EVT_CHECKLISTBOX, on_connection_checked)
 		outer_sizer.Add(
-			dialog.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALL | wx.ALIGN_RIGHT, 12,
+			dialog.CreateButtonSizer(wx.OK | wx.CANCEL),
+			0,
+			wx.ALL | wx.ALIGN_RIGHT,
+			12,
 		)
 		dialog.SetSizerAndFit(outer_sizer)
 		dialog.SetMinSize((680, 360))
@@ -542,10 +590,12 @@ class NvdaUiManager:
 				if selected:
 					return selected
 				wx.MessageBox(
-					_("Select at least one target to remove components from.") if remove else _(
-						"Select at least one target to update."
-					),
-					_("No target selected"), wx.OK | wx.ICON_WARNING, dialog,
+					_("Select at least one target to remove components from.")
+					if remove
+					else _("Select at least one target to update."),
+					_("No target selected"),
+					wx.OK | wx.ICON_WARNING,
+					dialog,
 				)
 				select_all.SetFocus()
 			return None
@@ -570,9 +620,12 @@ class NvdaUiManager:
 				continue
 			password = self._plugin._passwordForProfile(profile)
 			if profile.authentication == "password" and password is None:
-				immediate_results.append((
-					profile, InstallResult(False, _("SSH password entry cancelled")),
-				))
+				immediate_results.append(
+					(
+						profile,
+						InstallResult(False, _("SSH password entry cancelled")),
+					)
+				)
 				continue
 			jobs.append((profile, password or ""))
 		if not jobs:
@@ -600,70 +653,99 @@ class NvdaUiManager:
 					result = local_installer.install(__import__("pathlib").Path(local_plugin))
 				else:
 					result = installer.install(
-						profile.ssh_target, package_path, profile.port, profile.identity_file,
-						password, self._plugin._askpassPath(),
+						profile.ssh_target,
+						package_path,
+						profile.port,
+						profile.identity_file,
+						password,
+						self._plugin._askpassPath(),
 					)
 			except Exception as error:
 				result = InstallResult(
-					False, _("Unexpected installation error"),
+					False,
+					_("Unexpected installation error"),
 					"{kind}: {message}".format(kind=type(error).__name__, message=error),
 				)
 			results.append((profile, result))
 			self._diagnostics.record(
-				"componentInstall", targetId=profile.identifier,
-				targetKind=(
-					profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"
-				),
-				success=result.success, message=result.message, diagnostics=result.diagnostics,
+				"componentInstall",
+				targetId=profile.identifier,
+				targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),
+				success=result.success,
+				message=result.message,
+				diagnostics=result.diagnostics,
 			)
 			completed += 1
 			queueHandler.queueFunction(
-				queueHandler.eventQueue, self._reportServerInstallProgress,
-				profile, result, completed, total,
+				queueHandler.eventQueue,
+				self._reportServerInstallProgress,
+				profile,
+				result,
+				completed,
+				total,
 			)
 		queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
 
 	def _reportServerInstallProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]
 		if result.success:
-			ui.message(_("{name} updated, {completed} of {total}").format(
-				name=name, completed=completed, total=total,
-			))
+			ui.message(
+				_("{name} updated, {completed} of {total}").format(
+					name=name,
+					completed=completed,
+					total=total,
+				)
+			)
 		else:
-			ui.message(_("{name} failed, {completed} of {total}").format(
-				name=name, completed=completed, total=total,
-			))
+			ui.message(
+				_("{name} failed, {completed} of {total}").format(
+					name=name,
+					completed=completed,
+					total=total,
+				)
+			)
 
 	@staticmethod
 	def _installResultSummary(results):
 		successful = [(profile, result) for profile, result in results if result.success]
 		failed = [(profile, result) for profile, result in results if not result.success]
-		lines = [_('Neovim component update completed.')]
+		lines = [_("Neovim component update completed.")]
 		lines.extend(("", _("Successful: {count}").format(count=len(successful))))
-		lines.extend(_("- {name} ({target})").format(
-			name=NvdaUiManager._installTargetSummary(profile)[0],
-			target=NvdaUiManager._installTargetSummary(profile)[1],
-		) for profile, _result in successful)
+		lines.extend(
+			_("- {name} ({target})").format(
+				name=NvdaUiManager._installTargetSummary(profile)[0],
+				target=NvdaUiManager._installTargetSummary(profile)[1],
+			)
+			for profile, _result in successful
+		)
 		lines.extend(("", _("Failed: {count}").format(count=len(failed))))
-		lines.extend(_("- {name} ({target}): {reason}").format(
-			name=NvdaUiManager._installTargetSummary(profile)[0],
-			target=NvdaUiManager._installTargetSummary(profile)[1], reason=result.message,
-		) for profile, result in failed)
+		lines.extend(
+			_("- {name} ({target}): {reason}").format(
+				name=NvdaUiManager._installTargetSummary(profile)[0],
+				target=NvdaUiManager._installTargetSummary(profile)[1],
+				reason=result.message,
+			)
+			for profile, result in failed
+		)
 		if successful:
 			lines.extend(("", _("Restart Neovim once on successfully updated targets.")))
 		return "\n".join(lines)
 
 	def _finishServerInstalls(self, results):
 		import gui
+
 		successful = len([result for _profile, result in results if result.success])
 		failed = len(results) - successful
 		if successful:
 			self._plugin._saveSettings()
-		ui.message(_(
-			"Neovim component update completed: {successful} successful, {failed} failed"
-		).format(successful=successful, failed=failed))
+		ui.message(
+			_("Neovim component update completed: {successful} successful, {failed} failed").format(
+				successful=successful, failed=failed
+			)
+		)
 		dialog = gui.MessageDialog(
-			gui.mainFrame, self._installResultSummary(results),
+			gui.mainFrame,
+			self._installResultSummary(results),
 			_("Neovim component update results"),
 		)
 		dialog.Show()
@@ -680,9 +762,12 @@ class NvdaUiManager:
 				continue
 			password = self._plugin._passwordForProfile(profile)
 			if profile.authentication == "password" and password is None:
-				immediate_results.append((
-					profile, InstallResult(False, _("SSH password entry cancelled")),
-				))
+				immediate_results.append(
+					(
+						profile,
+						InstallResult(False, _("SSH password entry cancelled")),
+					)
+				)
 				continue
 			jobs.append((profile, password or ""))
 		if not jobs:
@@ -690,7 +775,9 @@ class NvdaUiManager:
 			return
 		ui.message(_("Removing Neovim components from {count} targets").format(count=len(jobs)))
 		threading.Thread(
-			target=self._runComponentRemovals, args=(jobs, immediate_results), daemon=True,
+			target=self._runComponentRemovals,
+			args=(jobs, immediate_results),
+			daemon=True,
 		).start()
 
 	def _runComponentRemovals(self, jobs, initial_results=None):
@@ -705,67 +792,95 @@ class NvdaUiManager:
 					result = local_installer.uninstall()
 				else:
 					result = installer.uninstall(
-						profile.ssh_target, profile.port, profile.identity_file,
-						password, self._plugin._askpassPath(),
+						profile.ssh_target,
+						profile.port,
+						profile.identity_file,
+						password,
+						self._plugin._askpassPath(),
 					)
 			except Exception as error:
 				result = InstallResult(
-					False, _("Unexpected removal error"),
+					False,
+					_("Unexpected removal error"),
 					"{kind}: {message}".format(kind=type(error).__name__, message=error),
 				)
 			results.append((profile, result))
 			self._diagnostics.record(
-				"componentRemoval", targetId=profile.identifier,
-				targetKind=(
-					profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"
-				),
-				success=result.success, message=result.message, diagnostics=result.diagnostics,
+				"componentRemoval",
+				targetId=profile.identifier,
+				targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),
+				success=result.success,
+				message=result.message,
+				diagnostics=result.diagnostics,
 			)
 			completed += 1
 			queueHandler.queueFunction(
-				queueHandler.eventQueue, self._reportComponentRemovalProgress,
-				profile, result, completed, total,
+				queueHandler.eventQueue,
+				self._reportComponentRemovalProgress,
+				profile,
+				result,
+				completed,
+				total,
 			)
 		queueHandler.queueFunction(queueHandler.eventQueue, self._finishComponentRemovals, results)
 
 	def _reportComponentRemovalProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]
 		if result.success:
-			ui.message(_("{name} removed, {completed} of {total}").format(
-				name=name, completed=completed, total=total,
-			))
+			ui.message(
+				_("{name} removed, {completed} of {total}").format(
+					name=name,
+					completed=completed,
+					total=total,
+				)
+			)
 		else:
-			ui.message(_("{name} failed, {completed} of {total}").format(
-				name=name, completed=completed, total=total,
-			))
+			ui.message(
+				_("{name} failed, {completed} of {total}").format(
+					name=name,
+					completed=completed,
+					total=total,
+				)
+			)
 
 	@staticmethod
 	def _componentRemovalResultSummary(results):
 		successful = [(profile, result) for profile, result in results if result.success]
 		failed = [(profile, result) for profile, result in results if not result.success]
-		lines = [_('Neovim component removal completed.')]
+		lines = [_("Neovim component removal completed.")]
 		lines.extend(("", _("Successful: {count}").format(count=len(successful))))
-		lines.extend(_("- {name} ({target})").format(
-			name=NvdaUiManager._installTargetSummary(profile)[0],
-			target=NvdaUiManager._installTargetSummary(profile)[1],
-		) for profile, _result in successful)
+		lines.extend(
+			_("- {name} ({target})").format(
+				name=NvdaUiManager._installTargetSummary(profile)[0],
+				target=NvdaUiManager._installTargetSummary(profile)[1],
+			)
+			for profile, _result in successful
+		)
 		lines.extend(("", _("Failed: {count}").format(count=len(failed))))
-		lines.extend(_("- {name} ({target}): {reason}").format(
-			name=NvdaUiManager._installTargetSummary(profile)[0],
-			target=NvdaUiManager._installTargetSummary(profile)[1], reason=result.message,
-		) for profile, result in failed)
+		lines.extend(
+			_("- {name} ({target}): {reason}").format(
+				name=NvdaUiManager._installTargetSummary(profile)[0],
+				target=NvdaUiManager._installTargetSummary(profile)[1],
+				reason=result.message,
+			)
+			for profile, result in failed
+		)
 		lines.extend(("", _("Saved connection settings were preserved.")))
 		return "\n".join(lines)
 
 	def _finishComponentRemovals(self, results):
 		import gui
+
 		successful = len([result for _profile, result in results if result.success])
 		failed = len(results) - successful
-		ui.message(_(
-			"Neovim component removal completed: {successful} successful, {failed} failed"
-		).format(successful=successful, failed=failed))
+		ui.message(
+			_("Neovim component removal completed: {successful} successful, {failed} failed").format(
+				successful=successful, failed=failed
+			)
+		)
 		dialog = gui.MessageDialog(
-			gui.mainFrame, self._componentRemovalResultSummary(results),
+			gui.mainFrame,
+			self._componentRemovalResultSummary(results),
 			_("Neovim component removal results"),
 		)
 		dialog.Show()

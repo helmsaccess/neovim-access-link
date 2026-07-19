@@ -51,6 +51,8 @@ Run from the repository root:
 ```bash
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
+ruff check .
+ruff format --check .
 python3 -m unittest discover -s protocol/python/tests -v
 python3 -m unittest discover -s bridge/python/tests -v
 python3 -m unittest discover -s nvda-addon/tests -v
@@ -60,6 +62,10 @@ python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
+
+The two Ruff commands use Ruff 0.14.5, matching NVDA 2026.1. Configuration in
+`pyproject.toml` limits them to Python modules loaded directly by NVDA under
+`nvda-addon/addon/`; other components retain their own consistent styles.
 
 `tools/test_neovim_plugin.sh` uses an available supported Neovim. Changes to
 version boundaries should additionally run Lua and TUI suites with Neovim

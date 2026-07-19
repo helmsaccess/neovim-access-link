@@ -111,6 +111,15 @@ windows, tabs, and panes are practically confirmed; no fault was found. After
 each stage, verify the built add-on, fail-open behavior, and local and SSH
 sessions across multiple tabs, panes, and windows.
 
+Phase 7 is mechanically implemented. Python modules loaded directly by NVDA
+under `nvda-addon/addon/` now follow NVDA's Ruff format with tabs, LF, and a
+110-character line length. Core, bridge, protocol, and test code retain their
+already consistent component styles. Ruff 0.14.5 checks only this explicit
+NVDA style zone locally and in GitHub Actions; the Global Plugin's dynamically
+required import ordering has one narrowly documented exception. The
+reformatting has no intended functional change and is verified through the
+complete suites and built add-on.
+
 ## 3. Broaden practical isolation coverage
 
 - Record the most important negative Windows Terminal cases incrementally for

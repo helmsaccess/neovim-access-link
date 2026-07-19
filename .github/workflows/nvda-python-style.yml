@@ -1,0 +1,31 @@
+name: NVDA Python style
+
+on:
+  push:
+    paths:
+      - ".editorconfig"
+      - "pyproject.toml"
+      - "nvda-addon/addon/**/*.py"
+      - ".github/workflows/nvda-python-style.yml"
+  pull_request:
+    paths:
+      - ".editorconfig"
+      - "pyproject.toml"
+      - "nvda-addon/addon/**/*.py"
+      - ".github/workflows/nvda-python-style.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install Ruff used by NVDA 2026.1
+        run: python -m pip install ruff==0.14.5
+      - name: Lint NVDA-facing Python
+        run: ruff check .
+      - name: Check NVDA Python formatting
+        run: ruff format --check .
