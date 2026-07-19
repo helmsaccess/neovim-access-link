@@ -3,11 +3,29 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from .connection_instances import ConnectionInstanceManager
-from .gate import SessionGate
+from .gate import SessionGate, TerminalIdentity
 from .speech import SpeechPlanner
+
+
+@dataclass(frozen=True)
+class PendingControlRequest:
+    """Expected identity and control kind for one correlated response."""
+
+    instance_id: str
+    terminal: TerminalIdentity
+    control: str
+
+    def __post_init__(self) -> None:
+        if (
+            not self.instance_id
+            or not isinstance(self.terminal, TerminalIdentity)
+            or not self.control
+        ):
+            raise ValueError("complete pending control request is required")
 
 
 class ConnectionCoordinator:
@@ -15,6 +33,7 @@ class ConnectionCoordinator:
 
     _REQUEST_ID_LIMIT = 2_147_483_648
     _REQUEST_CHANNELS = frozenset({"focusContext", "clipboard", "terminalControl"})
+    _PENDING_CHANNELS = frozenset({"clipboard", "terminalControl"})
 
     def __init__(
         self,
@@ -41,8 +60,8 @@ class ConnectionCoordinator:
         self.runtime_states: dict[str, dict[str, Any]] = {}
         self.pending_full_states: dict[str, dict[str, Any]] = {}
         self.pending_focus_contexts: dict[str, Any] = {}
-        self.pending_clipboard_requests: dict[int, Any] = {}
-        self.pending_terminal_control_requests: dict[int, Any] = {}
+        self.pending_clipboard_requests: dict[int, PendingControlRequest] = {}
+        self.pending_terminal_control_requests: dict[int, PendingControlRequest] = {}
         self.transport_capabilities: frozenset[str] = frozenset()
         self._request_ids = {channel: 0 for channel in self._REQUEST_CHANNELS}
 
@@ -53,6 +72,58 @@ class ConnectionCoordinator:
         request_id = (self._request_ids[channel] + 1) % self._REQUEST_ID_LIMIT
         self._request_ids[channel] = request_id
         return request_id
+
+    def remember_pending_request(
+        self,
+        channel: str,
+        request_id: int,
+        request: PendingControlRequest,
+        max_pending: int,
+    ) -> tuple[int, ...]:
+        """Remember one request and return IDs discarded from the bounded queue."""
+        pending = self._pending_requests(channel)
+        if (
+            not isinstance(request_id, int)
+            or isinstance(request_id, bool)
+            or not 0 <= request_id < self._REQUEST_ID_LIMIT
+            or not isinstance(request, PendingControlRequest)
+            or not isinstance(max_pending, int)
+            or isinstance(max_pending, bool)
+            or max_pending < 1
+        ):
+            raise ValueError("invalid pending request")
+        discarded = []
+        while len(pending) >= max_pending:
+            discarded_id = next(iter(pending))
+            pending.pop(discarded_id)
+            discarded.append(discarded_id)
+        pending[request_id] = request
+        return tuple(discarded)
+
+    def take_pending_request(
+        self,
+        channel: str,
+        request_id: int,
+    ) -> PendingControlRequest | None:
+        return self._pending_requests(channel).pop(request_id, None)
+
+    def discard_pending_requests(self, channel: str, instance_id: str | None = None) -> None:
+        pending = self._pending_requests(channel)
+        if instance_id is None:
+            pending.clear()
+            return
+        for request_id, request in tuple(pending.items()):
+            if request.instance_id == instance_id:
+                pending.pop(request_id, None)
+
+    def _pending_requests(self, channel: str) -> dict[int, PendingControlRequest]:
+        if channel not in self._PENDING_CHANNELS:
+            raise ValueError("unknown pending request channel")
+        return (
+            self.pending_clipboard_requests
+            if channel == "clipboard"
+            else self.pending_terminal_control_requests
+        )
 
     def clear_runtime_tracking(self) -> None:
         """Forget tracked runtime state after callers have stopped owned clients."""

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.94.2-dev.6+feature.global-plugin-slimming (feature-branch test build)
+
+- An NVDA-independent `ConnectionCoordinator` owns shared connection and
+  instance state; an identity-checked registrar protects add-on reloads from
+  late termination of an older service instance.
+- Bounded correlation and instance-specific disposal of pending clipboard and
+  terminal-control requests now also belong to the coordinator. Event
+  ownership, F12 association, and fail-open behavior remain unchanged.
+- The state passes the complete add-on, bridge, gettext, and Neovim-plugin
+  checks and was subsequently confirmed in practical testing.
+
 ## 0.94.2
 
 - User and developer documentation now introduces concepts before architecture

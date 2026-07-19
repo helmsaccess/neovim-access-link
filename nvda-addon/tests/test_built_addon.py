@@ -3668,8 +3668,12 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
         for request_id in range(40):
-            plugin._rememberClipboardRequest(request_id, ("instance", None, "copyTextRequest"))
+            plugin._rememberClipboardRequest(
+                request_id,
+                ("instance", identity, "copyTextRequest"),
+            )
 
         self.assertEqual(32, len(plugin._pendingClipboardRequests))
         self.assertNotIn(0, plugin._pendingClipboardRequests)

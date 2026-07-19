@@ -79,7 +79,7 @@ from .core.diagnostics import DiagnosticBuffer
 from .core.connection_profiles import (
     parse_profile, parse_profiles,
 )
-from .core.connection_coordinator import ConnectionCoordinator
+from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
 from .core.connection_targets import (
     LOCAL_WINDOWS_TCP, local_windows_target, remote_ssh_target,
 )
@@ -603,8 +603,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._connectionCoordinator.clear_runtime_tracking()
         self._terminalIdentityElements.clear()
         self._pendingFocusContexts.clear()
-        self._pendingClipboardRequests.clear()
-        self._pendingTerminalControlRequests.clear()
+        self._discardClipboardRequests()
+        self._discardTerminalControlRequests()
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
@@ -1130,7 +1130,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ))
         accepted = client.send_control("pasteTextRequest", payload)
         if not accepted:
-            self._pendingClipboardRequests.pop(request_id, None)
+            self._connectionCoordinator.take_pending_request("clipboard", request_id)
             self._clipboardFailure(_("Could not send text to the active Neovim session"))
         self._diagnostics.record(
             "clipboardPasteRequested", requestId=request_id, accepted=accepted,
@@ -1152,7 +1152,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ))
         accepted = client.send_control("setRegisterRequest", payload)
         if not accepted:
-            self._pendingClipboardRequests.pop(request_id, None)
+            self._connectionCoordinator.take_pending_request("clipboard", request_id)
             self._clipboardFailure(_("Could not send text to the active Neovim session"))
         self._diagnostics.record(
             "clipboardRegisterRequested", requestId=request_id, accepted=accepted,
@@ -1193,24 +1193,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message(_("The active Neovim state is incomplete; try again"))
             return
         request_id = self._connectionCoordinator.next_request_id("terminalControl")
-        while (
-            len(self._pendingTerminalControlRequests)
-            >= _MAX_PENDING_TERMINAL_CONTROL_REQUESTS
-        ):
-            discarded_id = next(iter(self._pendingTerminalControlRequests))
-            self._pendingTerminalControlRequests.pop(discarded_id, None)
+        discarded_request_ids = self._connectionCoordinator.remember_pending_request(
+            "terminalControl",
+            request_id,
+            PendingControlRequest(
+                selected.identifier, identity, "leaveTerminalInputRequest",
+            ),
+            _MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
+        )
+        for discarded_id in discarded_request_ids:
             self._diagnostics.record(
                 "terminalControlRequestDiscarded", requestId=discarded_id,
                 reason="queueLimit",
             )
-        self._pendingTerminalControlRequests[request_id] = (
-            selected.identifier, identity, "leaveTerminalInputRequest",
-        )
         accepted = self._client.send_control(
             "leaveTerminalInputRequest", {**expected, "requestId": request_id},
         )
         if not accepted:
-            self._pendingTerminalControlRequests.pop(request_id, None)
+            self._connectionCoordinator.take_pending_request(
+                "terminalControl", request_id,
+            )
             ui.message(_("Could not ask Neovim to leave direct terminal input"))
         self._diagnostics.record(
             "leaveTerminalInputRequested", requestId=request_id, accepted=accepted,
@@ -1253,7 +1255,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ))
         accepted = client.send_control("copyTextRequest", payload)
         if not accepted:
-            self._pendingClipboardRequests.pop(request_id, None)
+            self._connectionCoordinator.take_pending_request("clipboard", request_id)
             self._clipboardFailure(_("Could not request text from the active Neovim session"))
         self._diagnostics.record(
             "clipboardCopyRequested", requestId=request_id, source=source, accepted=accepted,
@@ -1295,13 +1297,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         return self._connectionCoordinator.next_request_id("clipboard")
 
     def _rememberClipboardRequest(self, request_id, request):
-        while len(self._pendingClipboardRequests) >= _MAX_PENDING_CLIPBOARD_REQUESTS:
-            discarded_id = next(iter(self._pendingClipboardRequests))
-            self._pendingClipboardRequests.pop(discarded_id, None)
+        discarded_request_ids = self._connectionCoordinator.remember_pending_request(
+            "clipboard", request_id, PendingControlRequest(*request),
+            _MAX_PENDING_CLIPBOARD_REQUESTS,
+        )
+        for discarded_id in discarded_request_ids:
             self._diagnostics.record(
                 "clipboardRequestDiscarded", requestId=discarded_id, reason="queueLimit",
             )
-        self._pendingClipboardRequests[request_id] = request
 
     def _clipboardSuccess(self, message):
         mode = self._feedbackMode("clipboard")
@@ -2333,13 +2336,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 "clipboardResultIgnored", instanceId=instance_id, reason="invalidRequestId",
             )
             return None
-        pending = self._pendingClipboardRequests.pop(request_id, None)
+        pending = self._connectionCoordinator.take_pending_request(
+            "clipboard", request_id,
+        )
         expected_control = {
             "copyTextResult": "copyTextRequest",
             "pasteTextResult": "pasteTextRequest",
             "setRegisterResult": "setRegisterRequest",
         }.get(event_type)
-        if pending != (instance_id, identity, expected_control):
+        if pending != PendingControlRequest(instance_id, identity, expected_control):
             self._diagnostics.record(
                 "clipboardResultIgnored", instanceId=instance_id, requestId=request_id,
                 reason="staleOrUnbound",
@@ -2405,12 +2410,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         return {**event, "payload": clipboard_result_state(safe_payload)}
 
     def _discardClipboardRequests(self, *, instance_id=None):
-        if instance_id is None:
-            self._pendingClipboardRequests.clear()
-            return
-        for request_id, pending in tuple(self._pendingClipboardRequests.items()):
-            if pending[0] == instance_id:
-                self._pendingClipboardRequests.pop(request_id, None)
+        self._connectionCoordinator.discard_pending_requests(
+            "clipboard", instance_id,
+        )
 
     def _handleTerminalControlResult(self, instance_id, identity, event):
         payload = event.get("payload")
@@ -2421,8 +2423,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 reason="invalidRequestId",
             )
             return None
-        pending = self._pendingTerminalControlRequests.pop(request_id, None)
-        if pending != (instance_id, identity, "leaveTerminalInputRequest"):
+        pending = self._connectionCoordinator.take_pending_request(
+            "terminalControl", request_id,
+        )
+        if pending != PendingControlRequest(
+            instance_id, identity, "leaveTerminalInputRequest",
+        ):
             self._diagnostics.record(
                 "terminalControlResultIgnored", instanceId=instance_id,
                 requestId=request_id, reason="staleOrUnbound",
@@ -2446,12 +2452,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         return {**event, "payload": terminal_control_result_state(payload)}
 
     def _discardTerminalControlRequests(self, *, instance_id=None):
-        if instance_id is None:
-            self._pendingTerminalControlRequests.clear()
-            return
-        for request_id, pending in tuple(self._pendingTerminalControlRequests.items()):
-            if pending[0] == instance_id:
-                self._pendingTerminalControlRequests.pop(request_id, None)
+        self._connectionCoordinator.discard_pending_requests(
+            "terminalControl", instance_id,
+        )
 
     def _onManagedState(self, instance_id, state):
         queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
@@ -2475,8 +2478,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         identity = self._identity(obj)
         if previous != identity:
             self._pendingFocusContexts.clear()
-            self._pendingClipboardRequests.clear()
-            self._pendingTerminalControlRequests.clear()
+            self._discardClipboardRequests()
+            self._discardTerminalControlRequests()
             self._gate.disconnect()
             self._diagnostics.record(
                 "terminalFocusIdentityChanged",
@@ -2629,8 +2632,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._gate.disconnect()
         self._gate.focused = None
         self._pendingFocusContexts.clear()
-        self._pendingClipboardRequests.clear()
-        self._pendingTerminalControlRequests.clear()
+        self._discardClipboardRequests()
+        self._discardTerminalControlRequests()
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._resetTypedEcho()
@@ -3310,8 +3313,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._claimEligibleTargets.clear()
         self._claimInventoryErrors.clear()
         self._pendingFocusContexts.clear()
-        self._pendingClipboardRequests.clear()
-        self._pendingTerminalControlRequests.clear()
+        self._discardClipboardRequests()
+        self._discardTerminalControlRequests()
         if hasattr(self, "_instanceManager") and self._instanceManager.list():
             try:
                 self._instanceManager.stop_all()

@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.6+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Ein NVDA-unabhängiger `ConnectionCoordinator` besitzt gemeinsamen
+  Verbindungs- und Instanzzustand; ein identitätsgeprüfter Registrar schützt
+  Add-on-Neuladen vor dem verspäteten Beenden einer älteren Dienstinstanz.
+- Begrenzung, Korrelation und instanzbezogenes Verwerfen ausstehender
+  Zwischenablage- und Terminalsteuerungsanfragen liegen nun ebenfalls im
+  Coordinator. Ereignisbesitz, F12-Zuordnung und Fail-open-Verhalten bleiben
+  unverändert.
+- Der Stand besteht die vollständigen Add-on-, Bridge-, gettext- und
+  Neovim-Plugin-Prüfungen und wurde anschließend praktisch bestätigt.
+
 ## 0.94.2
 
 - Anwender- und Entwicklerdokumentation führen nun von den Grundbegriffen zur

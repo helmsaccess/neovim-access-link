@@ -67,9 +67,9 @@ darauf zu; Ereignisverhalten und F12-Zuordnung bleiben unverändert. Ein
 identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst die vollständig
 initialisierte Dienstinstanz und verhindert, dass das späte Beenden einer
 alten Instanz eine neuere Registrierung löscht. Offen sind
-die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik sowie
-die praktische Prüfung des erweiterten Coordinator-Zustands. Der vorherige
-Zwischenstand mit Instanzzuständen und identitätssicherer Registrierung wurde
+die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik. Der
+erweiterte Coordinator einschließlich begrenzter, korrelierter
+Zwischenablage- und Terminalsteuerungsanfragen wurde automatisiert und
 praktisch bestätigt.
 
 Die Platzierung frei belegbarer Befehle ist für eine spätere, getrennte Stufe

@@ -5,6 +5,7 @@ import unittest
 from nvim_nvda_core import (
     ConnectionCoordinator,
     ConnectionInstanceManager,
+    PendingControlRequest,
     SpeechPlanner,
     TerminalIdentity,
 )
@@ -47,8 +48,12 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         coordinator.runtime_states["connection-1"] = {"connected": True}
         coordinator.pending_full_states["connection-1"] = {"type": "fullState"}
         coordinator.pending_focus_contexts["connection-1"] = (1, terminal)
-        coordinator.pending_clipboard_requests[1] = (terminal, "connection-1")
-        coordinator.pending_terminal_control_requests[2] = (terminal, "connection-1")
+        coordinator.pending_clipboard_requests[1] = PendingControlRequest(
+            "connection-1", terminal, "copyTextRequest",
+        )
+        coordinator.pending_terminal_control_requests[2] = PendingControlRequest(
+            "connection-1", terminal, "leaveTerminalInputRequest",
+        )
         coordinator.transport_capabilities = frozenset({"focusContext", "clipboardTransfer"})
 
         coordinator.clear_runtime_tracking()
@@ -121,6 +126,35 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         self.assertEqual(0, coordinator.next_request_id("terminalControl"))
         with self.assertRaisesRegex(ValueError, "unknown request channel"):
             coordinator.next_request_id("other")
+
+    def test_pending_requests_are_bounded_correlated_and_discarded_by_instance(self) -> None:
+        coordinator = ConnectionCoordinator()
+        terminal = TerminalIdentity(10, 100)
+        first = PendingControlRequest("connection-1", terminal, "copyTextRequest")
+        second = PendingControlRequest("connection-2", terminal, "pasteTextRequest")
+        third = PendingControlRequest("connection-1", terminal, "setRegisterRequest")
+
+        self.assertEqual((), coordinator.remember_pending_request(
+            "clipboard", 1, first, 2,
+        ))
+        self.assertEqual((), coordinator.remember_pending_request(
+            "clipboard", 2, second, 2,
+        ))
+        self.assertEqual((1,), coordinator.remember_pending_request(
+            "clipboard", 3, third, 2,
+        ))
+        self.assertIsNone(coordinator.take_pending_request("clipboard", 1))
+        self.assertEqual(second, coordinator.take_pending_request("clipboard", 2))
+        coordinator.remember_pending_request("clipboard", 4, second, 2)
+        coordinator.discard_pending_requests("clipboard", "connection-1")
+        self.assertEqual({4: second}, coordinator.pending_clipboard_requests)
+        coordinator.discard_pending_requests("clipboard")
+        self.assertEqual({}, coordinator.pending_clipboard_requests)
+
+        with self.assertRaisesRegex(ValueError, "unknown pending request channel"):
+            coordinator.take_pending_request("focusContext", 1)
+        with self.assertRaisesRegex(ValueError, "invalid pending request"):
+            coordinator.remember_pending_request("clipboard", True, first, 2)
 
 
 if __name__ == "__main__":
