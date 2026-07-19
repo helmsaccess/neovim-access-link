@@ -36,7 +36,7 @@
 - GitHub releases publish the `.nvda-addon` plus one ZIP containing all German and English quick-guide, handbook, and developer-documentation HTML files; prerelease status also requires explicit user instruction.
 - When setting a release version, update `README.md`'s prominent release link and its versioned English and German changelog links; verify them again when publishing.
 - Prefer stable public NVDA and Neovim APIs.
-- Follow NVDA's coding conventions in NVDA-facing Python and in Python components without an established style; follow Neovim/Lua conventions in the Neovim plugin and keep every shared component internally consistent.
+- For NVDA-facing Python, follow NVDA's coding style exactly: UTF-8 and LF, tabs for indentation, 110 columns, and Ruff formatting/lint from `pyproject.toml`; never hand-align with spaces inside indentation. Preserve NVDA callback/API names, add a concise `# Translators:` comment immediately before translatable user-facing text, and use type annotations consistently where the surrounding NVDA interface does. Python components with an established different style keep it; otherwise use this NVDA style. The Neovim plugin follows its Lua conventions.
 - Use an existing public NVDA Windows wrapper where suitable, otherwise use `winBindings`; never define parallel Windows DLL bindings in the add-on.
 - Keep application-specific NVDA event and overlay entry points in the corresponding AppModule; any broader global hook requires explicit architectural justification and fail-open tests.
 - Document private API usage in an ADR before release.
