@@ -66,11 +66,27 @@ zuständig. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst di
 vollständig initialisierte Dienstinstanz und schützt Add-on-Neuladen vor dem
 verspäteten Beenden einer älteren Instanz. Schmale
 Kompatibilitätseigenschaften halten den bisherigen Ereignispfad während des
-Umbaus stabil. Ereignisbesitz, `nextHandler` und F12-Zuordnung wurden nicht
-verändert; ihre Verlagerung gehört ausdrücklich zu Phase 4 beziehungsweise 5.
+Umbaus stabil. Die F12-Zuordnung wurde nicht verändert; ihre Härtung gehört
+ausdrücklich zu Phase 5.
 Der Phase-3-Abschlussstand wurde anschließend mit lokalen und entfernten
 Verbindungen über mehrere Windows-Terminal-Fenster, Tabs und Panes praktisch
 bestätigt.
+
+Phase 4 ist automatisiert umgesetzt und praktisch bestätigt.
+Das Windows-Terminal-AppModule besitzt nun alle Terminalereignisse, die
+Overlayauswahl und jeden Aufruf von `nextHandler`. Ein undurchsichtiges Token
+verhindert, dass ein verspätetes `loseFocus` eines alten WT-Prozesses den neuen
+Fokus löscht. `gainFocus` verwendet einen zweiphasigen Vertrag: Der gemeinsame
+Dienst bereitet nur die Fokusentscheidung vor, das AppModule ruft NVDAs
+nativen Handler genau einmal auf, damit Terminal-LiveText initialisiert wird,
+und schließt danach die strukturierte Fokusbehandlung ab. Generation und Token
+verwerfen verspätete Abschlüsse; wartende `fullState`-Ereignisse gehen dabei
+nicht verloren. Frühe und späte Fehler fallen ohne zweiten nativen Aufruf
+offen aus. Lokale und entfernte Verbindungen, mehrere WT-Fenster, Tabs und
+Panes, Fokuswechsel, native Shellausgabe, Sprache und Klänge zeigten im
+anschließenden Praxistest keine Probleme. Braille konnte mangels verfügbarer
+Hardware nicht praktisch geprüft werden. F12 und frei belegbare Befehle
+bleiben in dieser Phase unverändert.
 
 Für Phase 5 ist ein bereits zuvor vorhandener F12-Fall konkret festgehalten:
 Der NVDA-Observer muss die physische Taste derzeit bis zu Neovims

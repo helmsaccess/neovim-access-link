@@ -5,6 +5,23 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.9+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Phase 4 verlagert alle Windows-Terminal-Ereignisse, die Overlayauswahl und
+  jeden Aufruf von `nextHandler` vollständig in das AppModule. Der gemeinsame
+  Dienst liefert nur noch fachliche Fokus- und Suppressionsentscheidungen.
+- `gainFocus` initialisiert NVDAs native Terminal-LiveText-Behandlung genau
+  einmal, bevor strukturierte Sprachunterdrückung oder ein wartender
+  `fullState` abgeschlossen werden. Adaptertoken und Fokusgenerationen
+  verwerfen verspätete Fokus- und `loseFocus`-Abschlüsse, ohne den Zustand
+  einer neueren WT-Instanz zu löschen.
+- Struktur-, Reentranz-, Fail-open-, Mehrfenster-, Tab- und Pane-Regressionen
+  bestehen automatisiert. F12 und frei belegbare Befehle bleiben unverändert;
+  lokale und entfernte Verbindungen, mehrere WT-Fenster, Tabs und Panes,
+  Fokuswechsel, native Shellausgabe, Sprache und Klänge wurden anschließend
+  ohne festgestellte Probleme praktisch geprüft. Braille blieb mangels
+  verfügbarer Hardware ungeprüft.
+
 ## 0.94.2-dev.8+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Phase 3 der Verantwortungsverschlankung trennt nun gemeinsame

@@ -3,7 +3,11 @@
 ## Status
 
 Als Zielarchitektur für eine schrittweise Migration angenommen. Der gemeinsame
-Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden. Für
+Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden.
+Terminalereignisse, Overlayauswahl und `nextHandler` liegen im
+Windows-Terminal-AppModule. Diese Stufe ist automatisiert sowie praktisch mit
+lokalen und entfernten Verbindungen in mehreren WT-Fenstern, Tabs und Panes
+bestätigt; eine praktische Brailleprüfung war nicht möglich. Für
 frei belegbare Befehle ist das Windows-Terminal-AppModule das Ziel; ihre
 eigentliche Verlagerung bleibt ein getrennt zu prüfender Migrationsschritt.
 
@@ -15,10 +19,10 @@ Werkzeuge sowie gemeinsame lokale und SSH-Verbindungen benötigen deshalb eine
 einmalige, geordnet beendete Lebensdauer. Windows-Terminal-Ereignisse,
 Overlayauswahl und `nextHandler` gehören dagegen zum AppModule.
 
-Die aktuelle Implementierung besitzt die öffentlichen Ereigniseinstiege im
-AppModule, delegiert Entscheidung und `nextHandler` aber an eine große
-GlobalPlugin-Instanz. Das funktioniert, verwischt jedoch die Grenze zwischen
-anwendungsspezifischer NVDA-Integration und gemeinsamem Zustand.
+Die frühere Implementierung besaß die öffentlichen Ereigniseinstiege im
+AppModule, delegierte Entscheidung und `nextHandler` aber an eine große
+GlobalPlugin-Instanz. Diese Delegation wurde entfernt; der gemeinsame Dienst
+liefert dem AppModule nur noch fachliche Fokus- und Suppressionsentscheidungen.
 
 ## Entscheidung
 
@@ -73,8 +77,10 @@ auf native Verarbeitung zurück.
 - Netzwerk-I/O, Reconnect, Parsing und Logging blockieren nie NVDAs
   Hauptthread.
 - Die für LiveText notwendige native Fokusbehandlung bleibt erhalten; ihre
-  genaue Reihenfolge wird vor der Ereignismigration durch Regressionstests
-  festgelegt.
+  Reihenfolge ist festgelegt: Fokus vorbereiten, `nextHandler` genau einmal
+  ausführen und erst danach Sprachunterdrückung sowie wartenden `fullState`
+  abschließen. Adaptertoken und Fokusgeneration verwerfen verspätete
+  Abschlüsse.
 
 ## Befehls-Scope
 

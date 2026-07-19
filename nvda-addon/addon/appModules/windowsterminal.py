@@ -24,6 +24,7 @@ class AppModule(appModuleHandler.AppModule):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._eventToken = object()
         cls = type(self)
         cls._observerAdapters.append(self)
         if cls._observerCallback is None:
@@ -54,109 +55,107 @@ class AppModule(appModuleHandler.AppModule):
         return NeovimAccessLink.getActivePlugin()
 
     def _prepareTerminalAction(self, plugin):
-        plugin._refreshFocusedTerminalForAction(api.getFocusObject(), self)
+        plugin._refreshFocusedTerminalForAction(
+            api.getFocusObject(), self, self._eventToken,
+        )
 
-    def _delegateEventFailOpen(self, plugin, method_name, nextHandler, *args, **kwargs):
-        """Delegate an NVDA event while guaranteeing native handling once.
-
-        An add-on failure must never prevent Windows Terminal's own event
-        handler from starting or continuing LiveText output.  The guarded
-        callback also avoids invoking ``nextHandler`` twice when an exception
-        happens after the plug-in already delegated the event.
-        """
-        delegated = False
-
-        def guardedNextHandler():
-            nonlocal delegated
-            if delegated:
-                return
-            delegated = True
-            nextHandler()
-
+    def _shouldUseNativeEvent(self, plugin, obj, event_name):
         try:
-            getattr(plugin, method_name)(*args, guardedNextHandler, **kwargs)
+            return plugin._shouldUseNativeTerminalEvent(obj)
         except Exception as error:
-            if delegated:
-                raise
             try:
-                plugin._failOpenTerminalEvent(method_name, error)
+                plugin._failOpenTerminalEvent(event_name, error)
             except Exception:
                 pass
-            guardedNextHandler()
+            return True
 
     def chooseNVDAObjectOverlayClasses(self, obj, clsList):
         plugin = self._plugin()
-        if plugin is not None:
-            plugin._chooseNVDAObjectOverlayClasses(obj, clsList)
+        if plugin is None:
+            return
+        try:
+            if (
+                getattr(obj, "role", None) == NeovimAccessLink.controlTypes.Role.TERMINAL
+                and plugin._identity(obj) is not None
+            ):
+                clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
+        except Exception as error:
+            try:
+                plugin._failOpenTerminalEvent("chooseNVDAObjectOverlayClasses", error)
+            except Exception:
+                pass
 
     def event_gainFocus(self, obj, nextHandler):
         plugin = self._plugin()
         if plugin is None:
             nextHandler()
             return
-        self._delegateEventFailOpen(
-            plugin, "_event_gainFocus", nextHandler, obj, app_module=self,
-        )
+        try:
+            decision = plugin._prepareTerminalFocus(
+                obj, self._eventToken, app_module=self,
+            )
+        except Exception as error:
+            try:
+                plugin._failOpenTerminalEvent("gainFocus", error)
+            except Exception:
+                pass
+            nextHandler()
+            return
+        nextHandler()
+        try:
+            plugin._finishTerminalFocus(decision)
+        except Exception as error:
+            try:
+                plugin._failOpenTerminalEvent("gainFocusCompletion", error)
+            except Exception:
+                pass
+            raise
 
     def event_appModule_loseFocus(self):
         plugin = self._plugin()
         if plugin is not None:
-            plugin._event_appModule_loseFocus(self)
+            try:
+                plugin._terminalApplicationLostFocus(self._eventToken)
+            except Exception as error:
+                try:
+                    plugin._failOpenTerminalEvent("appModuleLoseFocus", error)
+                except Exception:
+                    pass
 
     def event_textChange(self, obj, nextHandler):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "textChange"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(plugin, "_event_textChange", nextHandler, obj)
 
     def event_typedCharacter(self, obj, nextHandler, ch):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "typedCharacter"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(
-            plugin, "_event_typedCharacter", nextHandler, obj, ch=ch,
-        )
 
     def event_UIA_notification(self, obj, nextHandler, **kwargs):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "UIA_notification"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(
-            plugin, "_event_UIA_notification", nextHandler, obj, **kwargs,
-        )
 
     def event_liveRegionChange(self, obj, nextHandler):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "liveRegionChange"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(plugin, "_event_liveRegionChange", nextHandler, obj)
 
     def event_valueChange(self, obj, nextHandler):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "valueChange"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(plugin, "_event_valueChange", nextHandler, obj)
 
     def event_nameChange(self, obj, nextHandler):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "nameChange"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(plugin, "_event_nameChange", nextHandler, obj)
 
     def event_descriptionChange(self, obj, nextHandler):
         plugin = self._plugin()
-        if plugin is None:
+        if plugin is None or self._shouldUseNativeEvent(plugin, obj, "descriptionChange"):
             nextHandler()
-            return
-        self._delegateEventFailOpen(
-            plugin, "_event_descriptionChange", nextHandler, obj,
-        )
 
     @scriptHandler.script(
         description=_("Copy Neovim accessibility diagnostic report"),

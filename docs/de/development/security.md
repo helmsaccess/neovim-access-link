@@ -144,7 +144,10 @@ validiertes Windows-Terminal-Control. In fremden Anwendungen gibt er die
 Originalgeste unverändert weiter und verändert weder Gate noch Bindungen oder
 Unterdrückung. Globale Ereignishandler existieren nicht.
 Beim Verlassen von Windows Terminal räumt `event_appModule_loseFocus` den
-fokussierten Terminal- und Unterdrückungszustand auf.
+fokussierten Terminal- und Unterdrückungszustand auf. Ein pro AppModule
+undurchsichtiges Token verwirft verspätete Fokusverlustmeldungen eines alten
+WT-Prozesses. Auch der zweiphasige Fokusabschluss ist an Token, Generation und
+konkrete Terminalidentität gebunden.
 
 Das optionale Merken eines Windows-Terminal-Controls verwendet nur Prozess-ID,
 Fensterhandle, UIA-Klasse und die undurchsichtige UIA-Runtime-ID. Das Control

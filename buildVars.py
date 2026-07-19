@@ -8,7 +8,7 @@ import subprocess
 
 product_version = "0.94.2"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 8
+development_build: int | None = 9
 release_channel = "beta"
 
 addon_info = {

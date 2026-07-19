@@ -61,10 +61,25 @@ to own settings, Tools commands, and component forms. An identity-checked
 `ServiceRegistrar` publishes only the fully initialized service and protects
 add-on reloads from late termination of an older instance. Narrow
 compatibility properties keep the existing event path stable during the
-refactor. Event ownership, `nextHandler`, and F12 assignment were not changed;
-their relocation belongs explicitly to phases 4 and 5. The completed phase-3
-state was subsequently confirmed in practice with local and remote
-connections across multiple Windows Terminal windows, tabs, and panes.
+refactor. F12 assignment was not changed; its hardening belongs explicitly to
+phase 5. The completed phase-3 state was subsequently confirmed in practice
+with local and remote connections across multiple Windows Terminal windows,
+tabs, and panes.
+
+Phase 4 is implemented under automated coverage and confirmed in practical
+testing. The Windows Terminal AppModule now owns all terminal events,
+overlay selection, and every invocation of `nextHandler`. An opaque token
+prevents a late `loseFocus` from an old WT process from clearing newer focus.
+`gainFocus` uses a two-phase contract: the shared service only prepares the
+focus decision, the AppModule invokes NVDA's native handler exactly once so
+Terminal LiveText is initialized, and it completes structured focus handling
+afterwards. Generation and token reject late completions without losing a
+pending `fullState`. Early and late failures fail open without a second native
+call. Local and remote connections, multiple WT windows, tabs and panes, focus
+changes, native shell output, speech, and sounds showed no problems in the
+subsequent practical test. Braille could not be tested in practice because no
+hardware was available. F12 and configurable commands remain unchanged in
+this phase.
 
 Phase 5 records one concrete F12 issue that predates this refactor. The NVDA
 observer currently has to pass the physical key through to Neovim's

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.94.2-dev.9+feature.global-plugin-slimming (feature-branch test build)
+
+- Phase 4 moves every Windows Terminal event, overlay selection, and every
+  invocation of `nextHandler` fully into the AppModule. The shared service now
+  returns only domain focus and suppression decisions.
+- `gainFocus` initializes NVDA's native Terminal LiveText handling exactly once
+  before structured speech suppression or a pending `fullState` completes.
+  Adapter tokens and focus generations reject late focus and `loseFocus`
+  completions without clearing the state of a newer WT instance.
+- Structural, reentrant, fail-open, multi-window, tab, and pane regressions
+  pass under automated coverage. F12 and configurable commands remain
+  unchanged. Local and remote connections, multiple WT windows, tabs and
+  panes, focus changes, native shell output, speech, and sounds were then
+  exercised without observed problems. Braille remained untested because no
+  hardware was available.
+
 ## 0.94.2-dev.8+feature.global-plugin-slimming (feature-branch test build)
 
 - Phase 3 of the responsibility-boundary refactor now separates shared

@@ -50,7 +50,7 @@ msgstr ": Komponenten installieren oder aktualisieren..."
 msgid ": Remove components..."
 msgstr ": Komponenten entfernen..."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1341
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1350
 msgid "Activate Neovim accessibility before connecting a terminal"
 msgstr "Neovim-Barrierefreiheit vor dem Verbinden eines Terminals aktivieren"
 
@@ -118,11 +118,11 @@ msgstr "geändert"
 msgid "character device"
 msgstr "Zeichengerät"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:727
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:736
 msgid "Checking local and saved Neovim connections"
 msgstr "Lokale und gespeicherte Neovim-Verbindungen werden geprüft"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:568
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:583
 msgid "Choose a server and connect this terminal to a new Neovim session"
 msgstr "Einen Server auswählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden"
 
@@ -142,12 +142,12 @@ msgstr "eingeklappt"
 msgid "command-line mode"
 msgstr "Befehlszeilenmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1491
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1500
 #, python-brace-format
 msgid "Configure a Neovim connection before using {key} pairing"
 msgstr "Konfigurieren Sie eine Neovim-Verbindung, bevor Sie die Zuordnung mit {key} verwenden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1349
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1358
 msgid "Connect terminal to Neovim"
 msgstr "Terminal mit Neovim verbinden"
 
@@ -155,11 +155,11 @@ msgstr "Terminal mit Neovim verbinden"
 msgid "connected"
 msgstr "verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1458
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1467
 msgid "Connecting the focused local Neovim session"
 msgstr "Fokussierte lokale Neovim-Sitzung wird verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1469 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1484 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1503
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1478 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1493 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1512
 msgid "Connecting the focused Neovim session"
 msgstr "Fokussierte Neovim-Sitzung wird verbunden"
 
@@ -167,11 +167,11 @@ msgstr "Fokussierte Neovim-Sitzung wird verbunden"
 msgid "Connection name:"
 msgstr "Verbindungsname:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2133
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2142
 msgid "Connection remembered for this terminal tab until NVDA exits"
 msgstr "Verbindung für diesen Terminal-Tab bis zum Beenden von NVDA gemerkt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2076
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2085
 msgid "Connection selection requires a focused terminal"
 msgstr "Zum Auswählen einer Verbindung muss ein Terminal fokussiert sein"
 
@@ -199,7 +199,7 @@ msgstr "Zu aktualisierende Verbindungen:"
 msgid "copied"
 msgstr "kopiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2356
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2365
 msgid "Copied from Neovim"
 msgstr "Aus Neovim kopiert"
 
@@ -211,56 +211,56 @@ msgstr "Kopieren"
 msgid "Copy and &paste:"
 msgstr "Kopieren und &Einfügen:"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:162
+#: nvda-addon/addon/appModules/windowsterminal.py:161
 msgid "Copy Neovim accessibility diagnostic report"
 msgstr "Diagnosebericht zur Neovim-Barrierefreiheit kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:536
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:551
 msgid "Copy Neovim's last yank to the Windows clipboard"
 msgstr "Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertragen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:529
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:544
 msgid "Copy the active Neovim Visual selection to the Windows clipboard"
 msgstr "Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1222
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1231
 msgid "Could not ask Neovim to leave direct terminal input"
 msgstr "Neovim konnte nicht zum Verlassen der direkten Terminaleingabe aufgefordert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1107
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1116
 msgid "Could not copy Neovim diagnostic report"
 msgstr "Neovim-Diagnosebericht konnte nicht kopiert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1579
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1588
 msgid "Could not list local Neovim sessions"
 msgstr "Lokale Neovim-Sitzungen konnten nicht aufgelistet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1871
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1880
 #, python-brace-format
 msgid "Could not list Neovim sessions on {name}"
 msgstr "Neovim-Sitzungen auf {name} konnten nicht aufgelistet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1235
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1244
 msgid "Could not read text from the Windows clipboard"
 msgstr "Text aus der Windows-Zwischenablage konnte nicht gelesen werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1265
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1274
 msgid "Could not request text from the active Neovim session"
 msgstr "Text konnte nicht von der aktiven Neovim-Sitzung angefordert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1140 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1162
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1149 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1171
 msgid "Could not send text to the active Neovim session"
 msgstr "Text konnte nicht an die aktive Neovim-Sitzung gesendet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1735
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1744
 msgid "Could not start the local Neovim connection"
 msgstr "Lokale Neovim-Verbindung konnte nicht gestartet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2071
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2080
 msgid "Could not start the Neovim connection"
 msgstr "Neovim-Verbindung konnte nicht gestartet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2376
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2385
 msgid "Could not write text to the Windows clipboard"
 msgstr "Text konnte nicht in die Windows-Zwischenablage geschrieben werden"
 
@@ -309,7 +309,7 @@ msgstr "Diagnose"
 msgid "directory"
 msgstr "Verzeichnis"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:575
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:590
 msgid "Disconnect the selected Neovim connection instance"
 msgstr "Ausgewählte Neovim-Verbindungsinstanz trennen"
 
@@ -329,7 +329,7 @@ msgstr "leer"
 msgid "end of file"
 msgstr "Dateiende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3131
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3158
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr "Geben Sie das SSH-Passwort für {profile} ein. Es wird nicht gespeichert."
@@ -392,7 +392,7 @@ msgstr "Faltungen geschlossen"
 msgid "folds opened"
 msgstr "Faltungen geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:584
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:599
 msgid "Forget the temporary Neovim connection for the focused terminal"
 msgstr "Temporäre Neovim-Verbindung für das fokussierte Terminal vergessen"
 
@@ -432,7 +432,7 @@ msgstr "Ungültige Verbindung"
 msgid "invalid cursor position"
 msgstr "ungültige Cursorposition"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:559
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:574
 msgid "Leave direct input in the active Neovim terminal"
 msgstr "Direkte Eingabe im aktiven Neovim-Terminal verlassen"
 
@@ -457,20 +457,20 @@ msgstr "Zeile {line}"
 msgid "Linux username (optional when defined by SSH config):"
 msgstr "Linux-Benutzername (optional, wenn in der SSH-Konfiguration festgelegt):"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1718
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1727
 msgid "local"
 msgstr "lokal"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1372
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1381
 #, python-brace-format
 msgid "Local Neovim selected. Focus the desired Neovim session and press {key}"
 msgstr "Lokales Neovim ausgewählt. Fokussieren Sie die gewünschte Neovim-Sitzung und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1668
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1677
 msgid "Local Neovim session"
 msgstr "Lokale Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1714
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1723
 #, python-brace-format
 msgid "Local Neovim, {session}"
 msgstr "Lokales Neovim, {session}"
@@ -479,11 +479,11 @@ msgstr "Lokales Neovim, {session}"
 msgid "location list"
 msgstr "Positionsliste"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1515
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1524
 msgid "Looking for local Neovim sessions"
 msgstr "Lokale Neovim-Sitzungen werden gesucht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1826
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1835
 #, python-brace-format
 msgid "Looking for Neovim sessions on {name}"
 msgstr "Neovim-Sitzungen auf {name} werden gesucht"
@@ -539,7 +539,7 @@ msgstr "Modus {mode}"
 msgid "modified"
 msgstr "geändert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1079
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1088
 msgid "More than one Neovim session confirmed F12. Select the intended session."
 msgstr "Mehr als eine Neovim-Sitzung hat F12 bestätigt. Wählen Sie die gewünschte Sitzung aus."
 
@@ -551,15 +551,15 @@ msgstr "Verschieben"
 msgid "moved"
 msgstr "verschoben"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1670
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1679
 msgid "Multiple local Neovim sessions found; opening session selection"
 msgstr "Mehrere lokale Neovim-Sitzungen gefunden; Sitzungsauswahl wird geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1082
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1091
 msgid "Multiple Neovim sessions confirmed F12; opening session selection"
 msgstr "Mehrere Neovim-Sitzungen haben F12 bestätigt; Sitzungsauswahl wird geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1974
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1983
 #, python-brace-format
 msgid "Multiple Neovim sessions found on {name}; opening session selection"
 msgstr "Mehrere Neovim-Sitzungen auf {name} gefunden; Sitzungsauswahl wird geöffnet"
@@ -568,32 +568,32 @@ msgstr "Mehrere Neovim-Sitzungen auf {name} gefunden; Sitzungsauswahl wird geöf
 msgid "named pipe"
 msgstr "benannte Pipe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:693
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:702
 msgid "Neovim accessibility failed; normal terminal output restored"
 msgstr "Neovim-Barrierefreiheit fehlgeschlagen; normale Terminalausgabe wiederhergestellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:705
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:714
 msgid "Neovim accessibility off"
 msgstr "Neovim-Barrierefreiheit aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:724
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:733
 msgid "Neovim accessibility on"
 msgstr "Neovim-Barrierefreiheit an"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:762
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:771
 #, python-brace-format
 msgid "Neovim accessibility ready for {name}. Focus the desired Neovim session and press {key}"
 msgstr "Neovim-Barrierefreiheit für {name} bereit. Fokussieren Sie die gewünschte Neovim-Sitzung und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:711
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:720
 msgid "Neovim accessibility unavailable in this window"
 msgstr "Neovim-Barrierefreiheit ist in diesem Fenster nicht verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2426
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2435
 msgid "Neovim changed before terminal input could be left; try again"
 msgstr "Neovim hat sich geändert, bevor die Terminaleingabe verlassen werden konnte; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2366
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2375
 msgid "Neovim changed before the copy or paste completed; try again"
 msgstr "Neovim hat sich geändert, bevor das Kopieren oder Einfügen abgeschlossen war; versuchen Sie es erneut"
 
@@ -623,75 +623,75 @@ msgstr "Aktualisierung der Neovim-Komponenten abgeschlossen: {successful} erfolg
 msgid "Neovim component update results"
 msgstr "Ergebnisse der Aktualisierung von Neovim-Komponenten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1766
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1775
 #, python-brace-format
 msgid "Neovim connection disconnected: {name}"
 msgstr "Neovim-Verbindung getrennt: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2690
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2717
 msgid "Neovim connection lost; normal terminal output restored"
 msgstr "Neovim-Verbindung verloren; normale Terminalausgabe wiederhergestellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1648 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1945 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2086
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1657 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1954 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2095
 #, python-brace-format
 msgid "Neovim connection selected: {name}"
 msgstr "Neovim-Verbindung ausgewählt: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1729 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2065
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1738 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2074
 #, python-brace-format
 msgid "Neovim connection started: {name}"
 msgstr "Neovim-Verbindung gestartet: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1442
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1451
 #, python-brace-format
 msgid "Neovim connections are still being checked. Press {key} again after the ready message"
 msgstr "Neovim-Verbindungen werden noch geprüft. Drücken Sie {key} nach der Bereitschaftsmeldung erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1006
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1015
 #, python-brace-format
 msgid "Neovim connections ready. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1001
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1010
 #, python-brace-format
 msgid "Neovim connections ready. Password connections require manual selection. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Passwortverbindungen müssen manuell ausgewählt werden. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:991
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1000
 #, python-brace-format
 msgid "Neovim connections ready. Some saved connections could not be checked, and password connections require manual selection. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nicht geprüft werden und Passwortverbindungen müssen manuell ausgewählt werden. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:996
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1005
 #, python-brace-format
 msgid "Neovim connections ready. Some saved connections could not be checked. Focus Neovim and press {key}, or choose a connection manually"
 msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nicht geprüft werden. Fokussieren Sie Neovim und drücken Sie {key}, oder wählen Sie eine Verbindung manuell aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2380
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2389
 msgid "Neovim could not complete the copy or paste command"
 msgstr "Neovim konnte den Kopier- oder Einfügebefehl nicht abschließen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2428
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2437
 msgid "Neovim could not leave direct terminal input"
 msgstr "Neovim konnte die direkte Terminaleingabe nicht verlassen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2378
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2387
 msgid "Neovim could not replace its unnamed register"
 msgstr "Neovim konnte sein unbenanntes Register nicht ersetzen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1105
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1114
 msgid "Neovim diagnostic report copied"
 msgstr "Neovim-Diagnosebericht kopiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1187
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1196
 msgid "Neovim is not in direct terminal input"
 msgstr "Neovim befindet sich nicht in der direkten Terminaleingabe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1715 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1783 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1967
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1724 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1792 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1976
 msgid "Neovim session"
 msgstr "Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3132
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3159
 msgid "Neovim SSH password"
 msgstr "Neovim-SSH-Passwort"
 
@@ -704,11 +704,11 @@ msgstr "Neovim {connection}"
 msgid "next fold"
 msgstr "nächste Faltung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1177 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1278
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1186 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1287
 msgid "No active Neovim session is bound to this terminal"
 msgstr "Diesem Terminal ist keine aktive Neovim-Sitzung zugeordnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1874
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1883
 #, python-brace-format
 msgid "No active Neovim session was found on {name}"
 msgstr "Auf {name} wurde keine aktive Neovim-Sitzung gefunden"
@@ -717,7 +717,7 @@ msgstr "Auf {name} wurde keine aktive Neovim-Sitzung gefunden"
 msgid "No announcement"
 msgstr "Keine Ansage"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1332
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1341
 msgid "No completion documentation available"
 msgstr "Keine Dokumentation zur Vervollständigung verfügbar"
 
@@ -725,7 +725,7 @@ msgstr "Keine Dokumentation zur Vervollständigung verfügbar"
 msgid "no diagnostic"
 msgstr "keine Diagnose"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1588
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1597
 msgid "No local Neovim accessibility session was found. Install the local components and restart Neovim"
 msgstr "Keine lokale Sitzung für Neovim-Barrierefreiheit gefunden. Installieren Sie die lokalen Komponenten und starten Sie Neovim neu"
 
@@ -733,7 +733,7 @@ msgstr "Keine lokale Sitzung für Neovim-Barrierefreiheit gefunden. Installieren
 msgid "no matching pair"
 msgstr "kein zusammengehöriges Paar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1755
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1764
 msgid "No Neovim connection instance is selected for this terminal"
 msgstr "Für dieses Terminal ist keine Neovim-Verbindungsinstanz ausgewählt"
 
@@ -741,7 +741,7 @@ msgstr "Für dieses Terminal ist keine Neovim-Verbindungsinstanz ausgewählt"
 msgid "No target selected"
 msgstr "Kein Ziel ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1773
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1782
 msgid "No temporary Neovim connection is remembered for this terminal"
 msgstr "Für dieses Terminal ist keine temporäre Neovim-Verbindung gemerkt"
 
@@ -766,7 +766,7 @@ msgstr "Aus"
 msgid "on {connection}"
 msgstr "auf {connection}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1356
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1365
 msgid "Opening the Neovim server selection"
 msgstr "Neovim-Serverauswahl wird geöffnet"
 
@@ -795,15 +795,15 @@ msgstr "Parameter {parameter}"
 msgid "password prompt"
 msgstr "Passwortabfrage"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1121
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1130
 msgid "Paste is available only in Normal or Insert mode"
 msgstr "Einfügen ist nur im Normal- oder Einfügemodus verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:543
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:558
 msgid "Paste Windows clipboard text into the active Neovim buffer"
 msgstr "Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2361
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2370
 msgid "Pasted into Neovim"
 msgstr "In Neovim eingefügt"
 
@@ -819,7 +819,7 @@ msgstr "Datei mit privatem Schlüssel (optional):"
 msgid "quickfix"
 msgstr "Fehlerliste"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:520
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:535
 msgid "Read documentation for the selected Neovim completion item"
 msgstr "Dokumentation zum ausgewählten Neovim-Vervollständigungseintrag lesen"
 
@@ -837,11 +837,11 @@ msgstr "Makro {name} wird aufgezeichnet"
 msgid "register {name}"
 msgstr "Register {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2118
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2127
 msgid "Remember temporary terminal connection"
 msgstr "Temporäre Terminalverbindung merken"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2114
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2123
 #, python-brace-format
 msgid "Remember this connection for this Windows Terminal tab until NVDA or Windows Terminal closes?\n\n{connection}"
 msgstr "Diese Verbindung für diesen Windows-Terminal-Tab merken, bis NVDA oder Windows Terminal beendet wird?\n\n{connection}"
@@ -916,7 +916,7 @@ msgstr "Wählen Sie mindestens ein Ziel aus, von dem Komponenten entfernt werden
 msgid "Select at least one target to update."
 msgstr "Wählen Sie mindestens ein Ziel zum Aktualisieren aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1080
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1089
 msgid "Select Neovim session"
 msgstr "Neovim-Sitzung auswählen"
 
@@ -924,19 +924,19 @@ msgstr "Neovim-Sitzung auswählen"
 msgid "Select one or more targets. Administrator rights are not required."
 msgstr "Wählen Sie ein oder mehrere Ziele aus. Administratorrechte sind nicht erforderlich."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1255
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1264
 msgid "Select text in Neovim Visual mode before copying"
 msgstr "Wählen Sie vor dem Kopieren Text im visuellen Neovim-Modus aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1667
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1676
 msgid "Select the local Neovim session for the focused terminal."
 msgstr "Wählen Sie die lokale Neovim-Sitzung für das fokussierte Terminal aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1966
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1975
 msgid "Select the Neovim session for the focused terminal."
 msgstr "Wählen Sie die Neovim-Sitzung für das fokussierte Terminal aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1348
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1357
 msgid "Select where the Neovim session is running."
 msgstr "Wählen Sie aus, wo die Neovim-Sitzung ausgeführt wird."
 
@@ -981,15 +981,15 @@ msgstr "Der SSH-Port muss eine Zahl zwischen 1 und 65535 sein"
 msgid "SSH port:"
 msgstr "SSH-Port:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1695 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2033
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1704 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2042
 msgid "Starting a connection instance requires a focused terminal"
 msgstr "Zum Starten einer Verbindungsinstanz muss ein Terminal fokussiert sein"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:550
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:565
 msgid "Store Windows clipboard text in Neovim's unnamed register"
 msgstr "Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2363
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2372
 msgid "Stored the Windows clipboard in Neovim's unnamed register"
 msgstr "Windows-Zwischenablage im unbenannten Neovim-Register gespeichert"
 
@@ -1015,7 +1015,7 @@ msgstr "Tabulator"
 msgid "tab {index} of {count}"
 msgstr "Tab {index} von {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1777
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1786
 msgid "Temporary Neovim connection forgotten"
 msgstr "Temporäre Neovim-Verbindung vergessen"
 
@@ -1035,15 +1035,15 @@ msgstr "Terminal-Normalmodus"
 msgid "text replaced"
 msgstr "Text ersetzt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1199 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1298
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1208 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1307
 msgid "The active Neovim state is incomplete; try again"
 msgstr "Der aktive Neovim-Zustand ist unvollständig; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1281
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1290
 msgid "The connected Neovim components do not support copy and paste"
 msgstr "Die verbundenen Neovim-Komponenten unterstützen Kopieren und Einfügen nicht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1180
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1189
 msgid "The connected Neovim components do not support terminal control"
 msgstr "Die verbundenen Neovim-Komponenten unterstützen die Terminalsteuerung nicht"
 
@@ -1052,23 +1052,23 @@ msgstr "Die verbundenen Neovim-Komponenten unterstützen die Terminalsteuerung n
 msgid "The connection settings are invalid: {error}"
 msgstr "Die Verbindungseinstellungen sind ungültig: {error}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1127
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1136
 msgid "The current Neovim buffer cannot be edited by this command"
 msgstr "Der aktuelle Neovim-Puffer kann mit diesem Befehl nicht bearbeitet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2370
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2379
 msgid "The current Neovim context does not accept this paste"
 msgstr "Der aktuelle Neovim-Kontext lässt dieses Einfügen nicht zu"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1609
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1618
 msgid "The focused local Neovim did not confirm F12 pairing; try again"
 msgstr "Das fokussierte lokale Neovim hat die Zuordnung mit F12 nicht bestätigt; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1883
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1892
 msgid "The focused Neovim did not confirm F12 pairing; try again"
 msgstr "Das fokussierte Neovim hat die Zuordnung mit F12 nicht bestätigt; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2368
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2377
 msgid "The Neovim Visual selection is no longer available"
 msgstr "Die visuelle Neovim-Auswahl ist nicht mehr verfügbar"
 
@@ -1076,35 +1076,35 @@ msgstr "Die visuelle Neovim-Auswahl ist nicht mehr verfügbar"
 msgid "The saved Linux connections are invalid; correct them in settings first"
 msgstr "Die gespeicherten Linux-Verbindungen sind ungültig; korrigieren Sie sie zuerst in den Einstellungen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1364 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1379 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1467 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2029
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1373 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1388 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1476 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2038
 msgid "The selected connection profile is unavailable"
 msgstr "Das ausgewählte Verbindungsprofil ist nicht verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1682
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1691
 msgid "The selected local Neovim session is no longer available"
 msgstr "Die ausgewählte lokale Neovim-Sitzung ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2089
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2098
 msgid "The selected Neovim connection no longer exists"
 msgstr "Die ausgewählte Neovim-Verbindung ist nicht mehr vorhanden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1997
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2006
 msgid "The selected Neovim session is no longer available"
 msgstr "Die ausgewählte Neovim-Sitzung ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2372
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2381
 msgid "The selected Neovim text is too large to copy"
 msgstr "Der ausgewählte Neovim-Text ist zu groß zum Kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1245
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1254
 msgid "The Windows clipboard does not contain supported text"
 msgstr "Die Windows-Zwischenablage enthält keinen unterstützten Text"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2374
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2383
 msgid "There is no Neovim text to copy"
 msgstr "Es gibt keinen Neovim-Text zum Kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1073
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1082
 msgid "This computer"
 msgstr "Dieser Computer"
 
@@ -1112,7 +1112,7 @@ msgstr "Dieser Computer"
 msgid "this computer"
 msgstr "diesem Computer"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1344 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1713 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:484
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1353 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1722 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:484
 msgid "This computer - local Neovim"
 msgstr "Dieser Computer – lokales Neovim"
 
@@ -1128,7 +1128,7 @@ msgstr "Verwenden Sie zum Installieren oder Aktualisieren von Komponenten den Ad
 msgid "Tones"
 msgstr "Töne"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:513
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:528
 msgid "Turn Neovim accessibility on or off and discover configured connections"
 msgstr "Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen"
 
@@ -1231,17 +1231,17 @@ msgstr "{count} × {name}"
 msgid "{index} of {count}"
 msgstr "{index} von {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1805
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1814
 #, python-brace-format
 msgid "{label}, already connected"
 msgstr "{label}, bereits verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1801
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1810
 #, python-brace-format
 msgid "{label}, session {position} of {total}"
 msgstr "{label}, Sitzung {position} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1800
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1809
 #, python-brace-format
 msgid "{label}, started {started}"
 msgstr "{label}, gestartet {started}"
@@ -1261,7 +1261,7 @@ msgstr "{name} entfernt, {completed} von {total}"
 msgid "{name} updated, {completed} of {total}"
 msgstr "{name} aktualisiert, {completed} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1782
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1791
 #, python-brace-format
 msgid "{name}, working directory {cwd}"
 msgstr "{name}, Arbeitsverzeichnis {cwd}"
@@ -1281,7 +1281,7 @@ msgstr "{name}: {target}, Port {port}, {method}"
 msgid "{subject} {outcome}"
 msgstr "{subject} {outcome}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1074
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1083
 #, python-brace-format
 msgid "{target}: {session}"
 msgstr "{target}: {session}"

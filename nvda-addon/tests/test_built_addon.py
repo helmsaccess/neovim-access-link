@@ -78,6 +78,13 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.focused = plugin._identity(obj)
         plugin._focusedTerminalObject = obj
 
+    def _terminalAdapter(self):
+        from appModules.windowsterminal import AppModule
+
+        adapter = AppModule()
+        self.addCleanup(adapter.terminate)
+        return adapter
+
     def _install_mocks(self) -> None:
         addon_handler = types.ModuleType("addonHandler")
         addon_handler.initTranslation = lambda: None
@@ -1577,6 +1584,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertFalse(hasattr(GlobalPlugin, "event_gainFocus"))
         self.assertFalse(hasattr(GlobalPlugin, "chooseNVDAObjectOverlayClasses"))
+        self.assertNotIn("nextHandler", global_source)
+        self.assertNotIn("_chooseNVDAObjectOverlayClasses", global_source)
+        for event_name in (
+            "_event_gainFocus", "_event_textChange", "_event_typedCharacter",
+            "_event_UIA_notification", "_event_liveRegionChange",
+            "_event_valueChange", "_event_nameChange", "_event_descriptionChange",
+        ):
+            self.assertNotIn(event_name, global_source)
         self.assertTrue(hasattr(GlobalPlugin, "script_toggleNeovimMode"))
         self.assertFalse(hasattr(AppModule, "script_toggleNeovimMode"))
         self.assertEqual(
@@ -1601,10 +1616,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.bound_terminal = plugin._gate.focused
         native = []
 
-        def broken(_obj, _nextHandler):
+        def broken(_obj):
             raise RuntimeError("frontend failed")
 
-        plugin._event_textChange = broken
+        plugin._shouldUseNativeTerminalEvent = broken
         adapter.event_textChange(self.focus, lambda: native.append("native"))
 
         self.assertEqual(["native"], native)
@@ -1623,14 +1638,14 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = AppModule()
         native = []
 
-        def broken_after_delegation(_obj, nextHandler, app_module=None):
-            nextHandler()
+        def broken_after_delegation(_decision):
             raise RuntimeError("late frontend failure")
 
-        plugin._event_gainFocus = broken_after_delegation
+        plugin._finishTerminalFocus = broken_after_delegation
         with self.assertRaisesRegex(RuntimeError, "late frontend failure"):
             adapter.event_gainFocus(self.focus, lambda: native.append("native"))
         self.assertEqual(["native"], native)
+        self.assertFalse(plugin._gate.suppression_active)
         plugin.terminate()
 
     def test_global_service_does_not_inspect_focus_and_app_module_clears_scope(self) -> None:
@@ -1682,6 +1697,57 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIs(second_focus, plugin._focusedTerminalObject)
         second_adapter.event_appModule_loseFocus()
         self.assertIsNone(plugin._gate.focused)
+        plugin.terminate()
+
+    def test_reentrant_focus_keeps_new_scope_and_defers_old_pending_state(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        second_focus = types.SimpleNamespace(
+            processID=9000, windowHandle=9001, role=3, parent=None,
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: (42, 9001, 4, 6),
+            ),
+        )
+        client = types.SimpleNamespace(
+            start=lambda: None, stop=lambda: None,
+            send_control=lambda *_args: True,
+        )
+        plugin = GlobalPlugin()
+        first_identity = plugin._identity(self.focus)
+        instance = add_remote_instance(
+            plugin._instanceManager, "work", "one", "Work", client,
+        )
+        plugin._instanceManager.bind(first_identity, instance.identifier)
+        pending = {
+            "type": "fullState",
+            "payload": {
+                "mode": "normal", "lineText": "first pending",
+                "cursor": {"line": 1, "byteColumn": 0},
+            },
+        }
+        plugin._pendingInstanceFullStates[instance.identifier] = pending
+        first_adapter = AppModule()
+        second_adapter = AppModule()
+        native = []
+        cancellations_before = self.speechCancellations
+
+        def first_native():
+            native.append("first")
+            second_adapter.event_gainFocus(
+                second_focus, lambda: native.append("second"),
+            )
+
+        first_adapter.event_gainFocus(self.focus, first_native)
+
+        self.assertEqual(["first", "second"], native)
+        self.assertEqual(plugin._identity(second_focus), plugin._gate.focused)
+        self.assertIs(pending, plugin._pendingInstanceFullStates[instance.identifier])
+        self.assertEqual(cancellations_before, self.speechCancellations)
+        self.assertIn(
+            '"category": "staleTerminalFocusCompletionIgnored"',
+            plugin._diagnostics.report(),
+        )
         plugin.terminate()
 
     def test_all_open_ssh_connections_are_automatic_without_a_default(self) -> None:
@@ -2567,7 +2633,8 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.focus = terminal
         native_focus = []
-        plugin._event_gainFocus(terminal, lambda: native_focus.append(True))
+        adapter = self._terminalAdapter()
+        adapter.event_gainFocus(terminal, lambda: native_focus.append(True))
         self.assertEqual([True], native_focus)
         self.assertNotIn(instance.identifier, plugin._pendingInstanceFullStates)
         self.assertIn(instance.identifier, plugin._authenticatedInstances)
@@ -2655,9 +2722,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.focused = plugin._gate.bound_terminal = first_id
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._client = first_client
+        adapter = self._terminalAdapter()
         self.focus = second_obj
         native_focus_announcements = []
-        plugin._event_gainFocus(second_obj, lambda: native_focus_announcements.append("second"))
+        adapter.event_gainFocus(second_obj, lambda: native_focus_announcements.append("second"))
         self.assertIsNone(plugin._gate.bound_terminal)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual("requestFocusContext", second_client.controls[0][0])
@@ -2670,7 +2738,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("file second.lua, insert mode, on Second", self.spoken)
         self.focus = first_obj
-        plugin._event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
+        adapter.event_gainFocus(first_obj, lambda: native_focus_announcements.append("first"))
         self.assertIsNone(plugin._gate.bound_terminal)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual("requestFocusContext", first_client.controls[0][0])
@@ -2691,7 +2759,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(plugin._gate.suppression_active)
         previous_controls = (list(first_client.controls), list(second_client.controls))
         self.focus = unbound_obj
-        plugin._event_gainFocus(unbound_obj, lambda: native_focus_announcements.append("unbound"))
+        adapter.event_gainFocus(unbound_obj, lambda: native_focus_announcements.append("unbound"))
         self.assertEqual(previous_controls, (first_client.controls, second_client.controls))
         self.assertEqual(["second", "first", "unbound"], native_focus_announcements)
         self.assertFalse(plugin._gate.suppression_active)
@@ -2718,10 +2786,11 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._activeInstanceId = instance.identifier
         plugin._client = client
 
-        plugin._event_appModule_loseFocus()
+        adapter = self._terminalAdapter()
+        adapter.event_appModule_loseFocus()
         self.assertIsNone(plugin._gate.focused)
         self.assertFalse(plugin._gate.suppression_active)
-        plugin._event_gainFocus(self.focus, lambda: None)
+        adapter.event_gainFocus(self.focus, lambda: None)
 
         self.assertEqual("requestFocusContext", client.controls[-1][0])
         self.assertFalse(plugin._gate.suppression_active)
@@ -3132,7 +3201,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         plugin._gate.focused = None
 
-        plugin._event_gainFocus(self.focus, lambda: None)
+        self._terminalAdapter().event_gainFocus(self.focus, lambda: None)
         plugin._handleManagedEvent(instance.identifier, {"type": "lineChanged", "payload": {
             "mode": "normal", "lineText": "must remain silent",
             "cursor": {"line": 1, "byteColumn": 0},
@@ -3174,12 +3243,17 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._authenticatedInstances.update((first.identifier, second.identifier))
         plugin._gate.manual_enabled = True
 
+        adapters = {
+            first_obj.processID: self._terminalAdapter(),
+            second_obj.processID: self._terminalAdapter(),
+        }
+
         for obj, identity, instance, client in (
             (second_obj, second_id, second, second_client),
             (first_obj, first_id, first, first_client),
         ):
             self.focus = obj
-            plugin._event_gainFocus(obj, lambda: None)
+            adapters[obj.processID].event_gainFocus(obj, lambda: None)
             self.assertFalse(plugin._gate.suppression_active)
             request_id = client.controls[-1][1]["requestId"]
             plugin._handleManagedEvent(instance.identifier, {
@@ -3243,9 +3317,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNot(first_planner, second_planner)
         plugin._typedWord = ["secondPending"]
         plugin._rememberedTerminalBindings.update((first_id, second_id))
+        adapter = self._terminalAdapter()
 
         self.focus = first_obj
-        plugin._event_gainFocus(first_obj, lambda: None)
+        adapter.event_gainFocus(first_obj, lambda: None)
         first_request = first_client.controls[-1][1]["requestId"]
         plugin._handleManagedEvent(first.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": first_request, "bufferName": "/work/first.lua",
@@ -3259,7 +3334,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["firstPending"], plugin._typedWord)
 
         self.focus = second_obj
-        plugin._event_gainFocus(second_obj, lambda: None)
+        adapter.event_gainFocus(second_obj, lambda: None)
         second_request = second_client.controls[-1][1]["requestId"]
         plugin._handleManagedEvent(second.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": second_request, "bufferName": "/work/second.lua",
@@ -3300,8 +3375,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.messageBoxAnswers.append(0)
         plugin._offerTemporaryTerminalBinding(first_id, instance.identifier)
         self.assertNotIn(first_id, plugin._rememberedTerminalBindings)
+        adapter = self._terminalAdapter()
         plugin._gate.focused = first_id
-        plugin._event_gainFocus(second_obj, lambda: None)
+        adapter.event_gainFocus(second_obj, lambda: None)
         # Declining persistence means that focus alone never reactivates the
         # binding.  Keep the dormant in-memory mapping, however: destroying it
         # on a transient UIA focus identity change loses suppression and makes
@@ -3311,7 +3387,7 @@ class BuiltAddonTests(unittest.TestCase):
         stale_id = plugin._identity(second_obj)
         plugin._rememberedTerminalBindings.add(stale_id)
         plugin._gate.focused = TerminalIdentity(1, 2)
-        plugin._event_gainFocus(second_obj, lambda: None)
+        adapter.event_gainFocus(second_obj, lambda: None)
         self.assertNotIn(stale_id, plugin._rememberedTerminalBindings)
         plugin.terminate()
 
@@ -3623,7 +3699,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.action_copyLastNeovimYank(None)
         request = controls[-1][1]
         self.clipboard = "unchanged"
-        plugin._event_appModule_loseFocus()
+        self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "copyTextResult", "payload": {
                 **plugin._currentState, "requestId": request["requestId"], "ok": True,
@@ -3723,7 +3799,7 @@ class BuiltAddonTests(unittest.TestCase):
         request = controls[-1][1]
         spoken_before = len(self.spoken)
 
-        plugin._event_appModule_loseFocus()
+        self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "pasteTextResult", "payload": {
                 **plugin._currentState, "requestId": request["requestId"], "ok": True,
@@ -4201,7 +4277,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._beginClaimInventory = lambda: None
         called: list[bool] = []
-        plugin._event_textChange(self.focus, lambda: called.append(True))
+        self._terminalAdapter().event_textChange(self.focus, lambda: called.append(True))
         self.assertEqual([True], called)
         plugin.action_toggleNeovimMode(None)
         self.assertIn("local and saved", self.messages[-1])
@@ -4230,19 +4306,20 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertTrue(plugin._gate.suppression_active)
         called: list[bool] = []
+        adapter = self._terminalAdapter()
         cancellations_before_modes = self.speechCancellations
         for mode in (
             "normal", "insert", "visualCharacter", "visualLine", "visualBlock",
             "operatorPending", "commandLine", "replace",
         ):
             plugin._currentState["mode"] = mode
-            plugin._event_gainFocus(self.focus, lambda: called.append(True))
-            plugin._event_textChange(self.focus, lambda: called.append(True))
-            plugin._event_typedCharacter(self.focus, lambda: called.append(True), "x")
-            plugin._event_UIA_notification(self.focus, lambda: called.append(True))
+            adapter.event_gainFocus(self.focus, lambda: called.append(True))
+            adapter.event_textChange(self.focus, lambda: called.append(True))
+            adapter.event_typedCharacter(self.focus, lambda: called.append(True), "x")
+            adapter.event_UIA_notification(self.focus, lambda: called.append(True))
             for handler in (
-                plugin._event_liveRegionChange, plugin._event_valueChange,
-                plugin._event_nameChange, plugin._event_descriptionChange,
+                adapter.event_liveRegionChange, adapter.event_valueChange,
+                adapter.event_nameChange, adapter.event_descriptionChange,
             ):
                 handler(self.focus, lambda: called.append(True))
         # gainFocus must continue through NVDA so Terminal starts LiveText and
@@ -4252,10 +4329,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(cancellations_before_modes + 8, self.speechCancellations)
         called.clear()
         other = types.SimpleNamespace(processID=100, windowHandle=201)
-        plugin._event_textChange(other, lambda: called.append(True))
+        adapter.event_textChange(other, lambda: called.append(True))
         self.assertEqual([True], called)
         plugin._onNetworkState("disconnected")
-        plugin._event_textChange(self.focus, lambda: called.append(True))
+        adapter.event_textChange(self.focus, lambda: called.append(True))
         self.assertEqual([True, True], called)
         plugin.terminate()
 

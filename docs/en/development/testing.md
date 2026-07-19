@@ -121,6 +121,12 @@ Important cases are:
   mode;
 - native output in shells, wrong UIA classes, empty runtime IDs, disabled
   support, and disconnects;
+- complete event, overlay, and `nextHandler` ownership in the Windows Terminal
+  AppModule;
+- exactly one native focus invocation before structured speech suppression,
+  with fail-open behavior and no repeat after early or late failures;
+- late `loseFocus` and reentrant focus completion without clearing newer WT
+  focus or losing a pending `fullState`;
 - global unbound gesture metadata, but execution only in an exactly validated
   bound Windows Terminal control;
 - exactly one pass-through of the original gesture elsewhere.

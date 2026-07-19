@@ -203,9 +203,9 @@ must not close output again before state is confirmed.
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
-| Global Plugin | NVDA-process lifetime, shared-service composition and teardown, event orchestration until phase 4, and globally discoverable commands | Settings, Tools, or presentation-delivery implementation; unvalidated takeover of unrelated terminal controls |
+| Global Plugin | NVDA-process lifetime, shared-service composition and teardown, and provisionally globally discoverable commands | Application events, `nextHandler`, overlay selection, or implementation of Settings, Tools, and presentation delivery |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | Terminal events, focus binding, and suppression |
-| Windows Terminal AppModule | UIA events, concrete terminal identity, native-output delegation or suppression | General target selection or transport |
+| Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.

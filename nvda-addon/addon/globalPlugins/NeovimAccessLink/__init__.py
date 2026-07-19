@@ -8,6 +8,7 @@ import time
 import unicodedata
 import array
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 
 import addonHandler
 import api
@@ -95,6 +96,18 @@ addonHandler.initTranslation()
 
 from .nvda_ui import NvdaUiManager
 from .nvda_presentation import NvdaPresentation
+
+
+@dataclass(frozen=True)
+class TerminalFocusDecision:
+    """Immutable result of preparing one Windows Terminal focus event."""
+
+    adapter_token: object
+    generation: int
+    identity: TerminalIdentity | None
+    instance_id: str | None
+    pending_full_state: dict | None
+    suppress_native_speech: bool
 
 _CODE_ADDON = addonHandler.getCodeAddon()
 _ADDON_MANIFEST = _CODE_ADDON.manifest
@@ -306,6 +319,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._focusedTerminalObject = None
         self._terminalIdentityElements = {}
         self._focusedAppModule = None
+        self._focusedAdapterToken = None
+        self._terminalFocusGeneration = 0
         _registerNvdaConfigSpec()
         settings = self._loadSettings()
         self._settings = settings
@@ -505,7 +520,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 gesture.send()
             return
         self._refreshFocusedTerminalForAction(
-            obj, app_module,
+            obj, app_module, getattr(app_module, "_eventToken", None),
         )
         getattr(self, action_name)(gesture)
 
@@ -616,6 +631,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
+        self._focusedAdapterToken = None
         self._nvdaUi.unregister()
         self._presentation.close()
         self._diagnostics.record("addonStop")
@@ -674,13 +690,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         if elapsed_ms >= _TERMINAL_LIFECYCLE_INTERVAL_MS / 2:
             self._ensureTerminalLifecycleSweep()
-
-    def _chooseNVDAObjectOverlayClasses(self, obj, clsList):
-        if (
-            getattr(obj, "role", None) == controlTypes.Role.TERMINAL
-            and self._identity(obj) is not None
-        ):
-            clsList.insert(0, StructuredTerminalBrailleOverlay)
 
     def action_toggleNeovimMode(self, gesture):
         try:
@@ -2455,7 +2464,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._switchInstanceRuntime(instance_id)
             self._handleConnectionState(state)
 
-    def _event_gainFocus(self, obj, nextHandler, app_module=None):
+    def _prepareTerminalFocus(self, obj, adapter_token, app_module=None):
+        """Prepare shared state before the AppModule runs native focus handling."""
+        if adapter_token is None:
+            raise ValueError("adapter token is required")
         previous = self._gate.focused
         identity = self._identity(obj)
         if previous != identity:
@@ -2475,9 +2487,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._terminalIdentityElements[identity] = element
         self._focusedTerminalObject = obj if identity is not None else None
         self._focusedAppModule = app_module
+        self._focusedAdapterToken = adapter_token
+        self._terminalFocusGeneration += 1
+        generation = self._terminalFocusGeneration
         instance = self._instanceManager.selected_for(identity) if identity else None
         pending_full_state = (
-            self._pendingInstanceFullStates.pop(instance.identifier, None)
+            self._pendingInstanceFullStates.get(instance.identifier)
             if instance is not None else None
         )
         if identity in self._rememberedTerminalBindings:
@@ -2487,9 +2502,29 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._activateRememberedBinding(
                     identity, instance.identifier, focus_regained=previous != identity,
                 )
-        suppress_focus_speech = self._shouldSuppress(obj) or pending_full_state is not None
-        nextHandler()
-        if suppress_focus_speech:
+        return TerminalFocusDecision(
+            adapter_token=adapter_token,
+            generation=generation,
+            identity=identity,
+            instance_id=instance.identifier if instance is not None else None,
+            pending_full_state=pending_full_state,
+            suppress_native_speech=(
+                self._shouldSuppress(obj) or pending_full_state is not None
+            ),
+        )
+
+    def _finishTerminalFocus(self, decision):
+        """Complete prepared focus after the AppModule initialized native LiveText."""
+        if not isinstance(decision, TerminalFocusDecision):
+            raise ValueError("terminal focus decision is required")
+        if (
+            decision.adapter_token is not self._focusedAdapterToken
+            or decision.generation != self._terminalFocusGeneration
+            or decision.identity != self._gate.focused
+        ):
+            self._diagnostics.record("staleTerminalFocusCompletionIgnored")
+            return
+        if decision.suppress_native_speech:
             # Terminal.event_gainFocus must run: it starts LiveText monitoring
             # and initializes editable-text selection tracking.  Cancelling the
             # synchronous native focus report afterwards keeps that machinery
@@ -2497,13 +2532,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             speech.cancelSpeech()
             self._diagnostics.record(
                 "terminalFocusAnnouncementSuppressed",
-                terminal=self._identityFields(identity),
+                terminal=self._identityFields(decision.identity),
             )
-        if pending_full_state is not None:
+        if decision.pending_full_state is not None and decision.instance_id is not None:
+            if (
+                self._pendingInstanceFullStates.get(decision.instance_id)
+                is not decision.pending_full_state
+            ):
+                self._diagnostics.record(
+                    "terminalFocusPendingStateChanged",
+                    instanceId=decision.instance_id,
+                )
+                return
+            self._pendingInstanceFullStates.pop(decision.instance_id, None)
             self._diagnostics.record(
-                "instanceFullStateResumed", instanceId=instance.identifier,
+                "instanceFullStateResumed", instanceId=decision.instance_id,
             )
-            self._handleManagedEvent(instance.identifier, pending_full_state)
+            self._handleManagedEvent(
+                decision.instance_id, decision.pending_full_state,
+            )
 
     def _failOpenTerminalEvent(self, event_name, error):
         """Drop suppression after a frontend event failure."""
@@ -2515,7 +2562,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             errorType=type(error).__name__,
         )
 
-    def _refreshFocusedTerminalForAction(self, obj, app_module=None):
+    def _refreshFocusedTerminalForAction(
+        self, obj, app_module=None, adapter_token=None,
+    ):
         """Refresh focus when an action does not receive a new gainFocus event."""
         identity = self._identity(obj)
         previous = self._gate.focused
@@ -2526,6 +2575,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._terminalIdentityElements[identity] = element
         self._focusedTerminalObject = obj if identity is not None else None
         self._focusedAppModule = app_module if identity is not None else None
+        self._focusedAdapterToken = adapter_token if identity is not None else None
         self._diagnostics.record(
             "terminalActionFocusRefreshed",
             previous=self._identityFields(previous),
@@ -2599,11 +2649,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 errorType=type(error).__name__, error=str(error),
             )
 
-    def _event_appModule_loseFocus(self, app_module=None):
+    def _terminalApplicationLostFocus(self, adapter_token):
         if (
-            app_module is not None
-            and self._focusedAppModule is not None
-            and app_module is not self._focusedAppModule
+            adapter_token is not None
+            and self._focusedAdapterToken is not None
+            and adapter_token is not self._focusedAdapterToken
         ):
             self._diagnostics.record("staleAppModuleLoseFocusIgnored")
             return
@@ -2615,6 +2665,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._discardTerminalControlRequests()
         self._focusedTerminalObject = None
         self._focusedAppModule = None
+        self._focusedAdapterToken = None
         self._resetTypedEcho()
         if previous is not None:
             self._diagnostics.record(
@@ -2622,33 +2673,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 previous=self._identityFields(previous),
             )
 
-    def _event_textChange(self, obj, nextHandler):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_typedCharacter(self, obj, nextHandler, ch):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_UIA_notification(self, obj, nextHandler, **kwargs):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_liveRegionChange(self, obj, nextHandler):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_valueChange(self, obj, nextHandler):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_nameChange(self, obj, nextHandler):
-        if not self._shouldSuppress(obj):
-            nextHandler()
-
-    def _event_descriptionChange(self, obj, nextHandler):
-        if not self._shouldSuppress(obj):
-            nextHandler()
+    def _shouldUseNativeTerminalEvent(self, obj):
+        """Return whether the AppModule must continue native event handling."""
+        return not self._shouldSuppress(obj)
 
     def _onNetworkEvent(self, event):
         queueHandler.queueFunction(

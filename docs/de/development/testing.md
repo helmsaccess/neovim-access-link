@@ -128,6 +128,12 @@ Besonders wichtig sind:
   Modus;
 - native Ausgabe bei Shell, falscher UIA-Klasse, leerer Runtime-ID,
   deaktiviertem Add-on und Disconnect;
+- vollständiger Ereignis-, Overlay- und `nextHandler`-Besitz im
+  Windows-Terminal-AppModule;
+- genau ein nativer Fokusaufruf vor strukturierter Sprachunterdrückung,
+  fail-open ohne Wiederholung bei frühen und späten Fehlern;
+- verspätetes `loseFocus` und reentrante Fokusabschlüsse ohne Löschen des
+  neueren WT-Fokus oder Verlust eines wartenden `fullState`;
 - globale unbelegte Gestenmetadaten, aber Ausführung nur im exakt validierten
   und gebundenen Windows-Terminal-Control;
 - Weitergabe der Originalgeste außerhalb dieses Controls genau einmal.

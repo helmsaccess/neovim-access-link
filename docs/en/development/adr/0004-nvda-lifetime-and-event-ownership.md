@@ -3,7 +3,11 @@
 ## Status
 
 Accepted as the target architecture for an incremental migration. The shared
-service is now located through an identity-checked registrar. The Windows
+service is now located through an identity-checked registrar. Terminal events,
+overlay selection, and `nextHandler` now reside in the Windows Terminal
+AppModule. This stage is confirmed by automated and practical tests with local
+and remote connections across multiple WT windows, tabs, and panes; practical
+Braille testing was not possible. The Windows
 Terminal AppModule is the target for configurable commands; moving them
 remains a separate migration step that must be tested on its own.
 
@@ -15,10 +19,10 @@ and shared local and SSH connections therefore need one lifetime with orderly
 shutdown. Windows Terminal events, overlay selection, and `nextHandler` belong
 to the AppModule instead.
 
-The current implementation already places public event entry points in the
-AppModule, but delegates decisions and `nextHandler` to a large Global Plugin
-instance. This works, but obscures the boundary between application-specific
-NVDA integration and shared state.
+The former implementation placed public event entry points in the AppModule
+but delegated decisions and `nextHandler` to a large Global Plugin instance.
+That delegation has been removed; the shared service now returns only domain
+focus and suppression decisions to the AppModule.
 
 ## Decision
 
@@ -70,7 +74,9 @@ mismatch falls back to native processing without an assignment.
   another's output, focus response, or assignment.
 - Network I/O, reconnects, parsing, and logging never block NVDA's main thread.
 - Native focus handling required by LiveText remains intact; regression tests
-  will define its exact ordering before event migration.
+  define its order as prepare focus, invoke `nextHandler` exactly once, then
+  complete speech suppression and any pending `fullState`. Adapter tokens and
+  focus generations reject late completions.
 
 ## Command scope
 

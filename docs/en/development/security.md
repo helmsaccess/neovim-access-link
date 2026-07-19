@@ -63,6 +63,9 @@ only for a complete, allowed Windows Terminal control identity. In every other
 application the adapter sends the original gesture unchanged and leaves the
 gate, bindings, and suppression untouched. Focus events, overlays, F12, and
 the default-bound diagnostic command remain Windows-Terminal-AppModule-only.
+An opaque per-AppModule token rejects late focus-loss notifications from an
+old WT process. Two-phase focus completion is also bound to that token, its
+generation, and the concrete terminal identity.
 
 Each physical F12 press authorizes one claim attempt for the exact focused
 `TerminalIdentity`. Any intervening focus change rejects it; without a fresh
