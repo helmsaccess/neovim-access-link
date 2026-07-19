@@ -85,16 +85,16 @@ from .core.connection_targets import (
 )
 from .core.frontend_policy import FrontendPolicy
 from .core.gate import SessionGate, TerminalIdentity
-from .core.speech import Priority, SpeechPlanner
+from .core.speech import SpeechPlanner
 from .core.ssh_sessions import SshSessionLister
 from .core.local_sessions import LocalSessionLister
 from .core.service_registrar import ServiceRegistrar
-from .suggestion_sounds import EditorSoundCache, SpellingSoundCache, SuggestionSoundCache
 from .nvda_windows import processAlive
 
 addonHandler.initTranslation()
 
 from .nvda_ui import NvdaUiManager
+from .nvda_presentation import NvdaPresentation
 
 _CODE_ADDON = addonHandler.getCodeAddon()
 _ADDON_MANIFEST = _CODE_ADDON.manifest
@@ -277,17 +277,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         super().__init__()
         self._serviceRegistrationToken = None
         self._diagnostics = DiagnosticBuffer()
-        self._suggestionSounds = SuggestionSoundCache(
-            os.path.join(globalVars.appDir, "waves"),
-            on_diagnostic=self._diagnostics.record,
-        )
-        self._spellingSound = SpellingSoundCache(
-            os.path.join(globalVars.appDir, "waves"), on_diagnostic=self._diagnostics.record,
-        )
-        self._editorSounds = EditorSoundCache(
+        self._presentation = NvdaPresentation(
             os.path.join(globalVars.appDir, "waves"),
             os.path.join(_PACKAGE_DIR, "resources", "sounds"),
-            on_diagnostic=self._diagnostics.record,
+            lambda: self._settings,
+            _FEEDBACK_DEFAULTS,
+            _FEEDBACK_FOR_SOUND,
+            self._diagnostics.record,
         )
         self._connectionCoordinator = ConnectionCoordinator(
             gate=SessionGate(_FRONTEND_POLICY.enabled_kinds),
@@ -338,6 +334,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @property
     def _gate(self):
         return self._connectionCoordinator.gate
+
+    @property
+    def _suggestionSounds(self):
+        return self._presentation.suggestion_sounds
+
+    @property
+    def _spellingSound(self):
+        return self._presentation.spelling_sound
+
+    @property
+    def _editorSounds(self):
+        return self._presentation.editor_sounds
 
     @property
     def _planner(self):
@@ -602,16 +610,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._diagnostics.record("connectionInstancesStopError", error=str(error))
         self._connectionCoordinator.clear_runtime_tracking()
         self._terminalIdentityElements.clear()
-        self._pendingFocusContexts.clear()
+        self._connectionCoordinator.discard_focus_context()
         self._discardClipboardRequests()
         self._discardTerminalControlRequests()
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
         self._nvdaUi.unregister()
-        self._suggestionSounds.close()
-        self._spellingSound.close()
-        self._editorSounds.close()
+        self._presentation.close()
         self._diagnostics.record("addonStop")
         log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
         super().terminate()
@@ -1713,13 +1719,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             self._instanceManager.bind(identity, instance.identifier)
             self._ensureTerminalLifecycleSweep()
-            self._switchInstanceRuntime(instance.identifier)
+            self._connectionCoordinator.select_instance(
+                instance.identifier, identity, self._newInstanceRuntime,
+            )
             if offer_remember:
                 self._rememberOfferInstances.add(instance.identifier)
             if replace_instance_id and replace_instance_id != instance.identifier:
                 self._removeReplacedInstance(replace_instance_id)
-            self._client = client
-            self._gate.focused = identity
             ui.message(_("Neovim connection started: {name}").format(name=instance.label))
         except Exception as error:
             self._diagnostics.record(
@@ -1731,10 +1737,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _removeReplacedInstance(self, instance_id):
         try:
             self._instanceManager.remove(instance_id)
-            self._authenticatedInstances.discard(instance_id)
-            self._instanceTerminalPassthrough.pop(instance_id, None)
-            self._pendingInstanceFullStates.pop(instance_id, None)
-            self._dropInstanceRuntime(instance_id)
+            self._connectionCoordinator.discard_instance_tracking(
+                instance_id, self._newInstanceRuntime,
+            )
         except Exception as error:
             self._diagnostics.record(
                 "replacedConnectionStopError", instanceId=instance_id,
@@ -1751,12 +1756,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         self._rememberedTerminalBindings.discard(identity)
         self._terminalIdentityElements.pop(identity, None)
-        self._rememberOfferInstances.discard(instance.identifier)
         self._instanceManager.remove(instance.identifier)
-        self._authenticatedInstances.discard(instance.identifier)
-        self._instanceTerminalPassthrough.pop(instance.identifier, None)
-        self._pendingInstanceFullStates.pop(instance.identifier, None)
-        self._dropInstanceRuntime(instance.identifier)
+        self._connectionCoordinator.discard_instance_tracking(
+            instance.identifier, self._newInstanceRuntime,
+        )
         if self._client is not None:
             self._client = None
         self._gate.disconnect()
@@ -2052,23 +2055,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             self._instanceManager.bind(identity, instance.identifier)
             self._ensureTerminalLifecycleSweep()
-            self._switchInstanceRuntime(instance.identifier)
+            self._connectionCoordinator.select_instance(
+                instance.identifier, identity, self._newInstanceRuntime,
+            )
             if offer_remember:
                 self._rememberOfferInstances.add(instance.identifier)
             if replace_instance_id and replace_instance_id != instance.identifier:
-                try:
-                    self._instanceManager.remove(replace_instance_id)
-                    self._authenticatedInstances.discard(replace_instance_id)
-                    self._instanceTerminalPassthrough.pop(replace_instance_id, None)
-                    self._pendingInstanceFullStates.pop(replace_instance_id, None)
-                    self._dropInstanceRuntime(replace_instance_id)
-                except Exception as error:
-                    self._diagnostics.record(
-                        "replacedConnectionStopError", instanceId=replace_instance_id,
-                        errorType=type(error).__name__, error=str(error),
-                    )
-            self._client = client
-            self._gate.focused = identity
+                self._removeReplacedInstance(replace_instance_id)
             ui.message(_("Neovim connection started: {name}").format(name=instance.label))
         except Exception as error:
             self._diagnostics.record(
@@ -2085,11 +2078,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             instance = self._instanceManager.bind(identity, instance_id)
             self._ensureTerminalLifecycleSweep()
-            self._switchInstanceRuntime(instance_id)
-            self._client = self._instanceManager.client_for(instance_id)
-            self._gate.focused = identity
+            client = self._connectionCoordinator.select_instance(
+                instance_id, identity, self._newInstanceRuntime,
+            )
             self._gate.bound_terminal = identity
-            self._client.send_control("requestFullState", {})
+            client.send_control("requestFullState", {})
             ui.message(_("Neovim connection selected: {name}").format(name=instance.label))
         except ValueError as error:
             self._diagnostics.record("connectionInstanceBindError", error=str(error))
@@ -2173,21 +2166,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 and not focus_regained
             ):
                 return
-            self._switchInstanceRuntime(instance_id)
-            self._client = client
             trusted = instance_id in self._authenticatedInstances
-            if trusted:
-                # A live authenticated client proves session identity, not that
-                # Neovim is still visible in this WT control. Keep the transport
-                # selected but fail open until the focus-correlated context reply.
-                self._connected = True
-                self._gate.focused = identity
-                self._gate.disconnect()
-                self._gate.focused = identity
-            else:
-                self._connected = False
-                self._gate.disconnect()
-                self._gate.focused = identity
+            # A live authenticated client proves session identity, not that
+            # Neovim is still visible in this WT control. Keep the transport
+            # selected but fail open until the focus-correlated context reply.
+            self._connectionCoordinator.prepare_unconfirmed_instance(
+                instance_id, identity, self._newInstanceRuntime, trusted=trusted,
+            )
             # Focus events for Windows Terminal tabs can be followed by transient
             # child-focus events. Let focus settle before accepting a new fullState.
             self._scheduleMainThreadCall(
@@ -2213,10 +2198,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             client = self._instanceManager.client_for(instance_id)
             if instance_id in self._authenticatedInstances:
                 request_id = self._connectionCoordinator.next_request_id("focusContext")
-                self._pendingFocusContexts[instance_id] = (request_id, identity)
+                self._connectionCoordinator.remember_focus_context(
+                    instance_id, request_id, identity,
+                )
                 sent = client.send_control("requestFocusContext", {"requestId": request_id})
                 if not sent:
-                    self._pendingFocusContexts.pop(instance_id, None)
+                    self._connectionCoordinator.discard_focus_context(instance_id)
                 self._diagnostics.record(
                     "temporaryTerminalFocusContextRequested", instanceId=instance_id,
                     requestId=request_id, sent=sent,
@@ -2237,10 +2224,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         selected = self._instanceManager.selected_for(identity) if identity else None
         if event.get("type") == "focusContext":
             payload = event.get("payload")
-            pending = self._pendingFocusContexts.get(instance_id)
             request_id = payload.get("_focusRequestId") if isinstance(payload, dict) else None
             if (
-                pending is None or pending != (request_id, identity)
+                not self._connectionCoordinator.matches_focus_context(
+                    instance_id, request_id, identity,
+                )
                 or selected is None or selected.identifier != instance_id
                 or instance_id not in self._authenticatedInstances
             ):
@@ -2248,16 +2236,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     "focusContextIgnored", instanceId=instance_id, reason="staleOrUnbound",
                 )
                 return
-            self._pendingFocusContexts.pop(instance_id, None)
-            self._switchInstanceRuntime(instance_id)
-            self._client = self._instanceManager.client_for(instance_id)
-            self._connected = True
-            self._gate.focused = identity
-            self._gate.bound_terminal = identity
-            self._gate.authenticated = True
-            self._gate.nvim_active = True
-            self._gate.terminal_passthrough = self._instanceTerminalPassthrough.get(
-                instance_id, False
+            self._connectionCoordinator.discard_focus_context(instance_id)
+            self._connectionCoordinator.confirm_foreground_instance(
+                instance_id, identity, self._newInstanceRuntime,
             )
             self._diagnostics.record(
                 "temporaryTerminalForegroundConfirmed", instanceId=instance_id,
@@ -2296,8 +2277,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 reason="foregroundUnconfirmed",
             )
             return
-        self._switchInstanceRuntime(instance_id)
-        self._client = self._instanceManager.client_for(instance_id)
+        self._connectionCoordinator.select_instance(
+            instance_id, identity, self._newInstanceRuntime,
+        )
         if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
             event = self._handleClipboardResult(instance_id, identity, event)
             if event is None:
@@ -2464,7 +2446,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._authenticatedInstances.discard(instance_id)
             self._instanceTerminalPassthrough.pop(instance_id, None)
             self._pendingInstanceFullStates.pop(instance_id, None)
-            self._pendingFocusContexts.pop(instance_id, None)
+            self._connectionCoordinator.discard_focus_context(instance_id)
             self._discardClipboardRequests(instance_id=instance_id)
             self._discardTerminalControlRequests(instance_id=instance_id)
         identity = self._gate.focused
@@ -2477,7 +2459,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         previous = self._gate.focused
         identity = self._identity(obj)
         if previous != identity:
-            self._pendingFocusContexts.clear()
+            self._connectionCoordinator.discard_focus_context()
             self._discardClipboardRequests()
             self._discardTerminalControlRequests()
             self._gate.disconnect()
@@ -2595,12 +2577,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             except ValueError:
                 continue
             removed.add(instance.identifier)
-            self._authenticatedInstances.discard(instance.identifier)
-            self._instanceTerminalPassthrough.pop(instance.identifier, None)
-            self._pendingInstanceFullStates.pop(instance.identifier, None)
-            self._rememberOfferInstances.discard(instance.identifier)
-            self._discardTerminalControlRequests(instance_id=instance.identifier)
-            self._dropInstanceRuntime(instance.identifier)
+            self._connectionCoordinator.discard_instance_tracking(
+                instance.identifier, self._newInstanceRuntime,
+            )
             threading.Thread(
                 target=self._stopPrunedClient, args=(instance.identifier, client),
                 name="nvim-nvda-closed-terminal-stop", daemon=True,
@@ -2631,7 +2610,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         previous = self._gate.focused
         self._gate.disconnect()
         self._gate.focused = None
-        self._pendingFocusContexts.clear()
+        self._connectionCoordinator.discard_focus_context()
         self._discardClipboardRequests()
         self._discardTerminalControlRequests()
         self._focusedTerminalObject = None
@@ -2860,121 +2839,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 activated = True
         if not self._gate.manual_enabled:
             return
-        for action in self._planner.plan(
-            event, focus_announcement=self._focusAnnouncement(),
-        ):
-            indentation = getattr(action, "indentation_tones", None)
-            if indentation is not None:
-                self._reportIndentation(indentation, getattr(action, "indentation_level", None))
-            sound = getattr(action, "sound", None)
-            feedback_key = _FEEDBACK_FOR_SOUND.get(sound)
-            feedback_mode = self._feedbackMode(feedback_key) if feedback_key else 3
-            play_action_sound = bool(feedback_mode & 2)
-            if sound == "delete":
-                if play_action_sound and not self._editorSounds.play("delete"):
-                    tones.beep(180, 24)
-            elif sound == "replace":
-                if play_action_sound and not self._editorSounds.play("replace"):
-                    tones.beep(440, 18)
-                    tones.beep(620, 22)
-            elif sound == "lineStart" and mode == "normal":
-                if play_action_sound and not self._editorSounds.play("lineStart"):
-                    tones.beep(720, 12)
-            elif sound == "lineEnd" and mode == "normal":
-                if play_action_sound and not self._editorSounds.play("lineEnd"):
-                    tones.beep(360, 18)
-            elif sound == "fileStart":
-                if play_action_sound and not self._editorSounds.play("fileStart"):
-                    tones.beep(520, 35)
-            elif sound == "fileEnd":
-                if play_action_sound and not self._editorSounds.play("fileEnd"):
-                    tones.beep(260, 45)
-            elif sound == "lineCrossed":
-                if play_action_sound and not self._editorSounds.play("lineCrossed"):
-                    tones.beep(610, 16)
-            elif sound == "matchingError":
-                if play_action_sound and not self._editorSounds.play("matchingError"):
-                    tones.beep(190, 35)
-            elif sound == "suggestionsOpen":
-                self._suggestionSounds.play("open")
-            elif sound == "suggestionsClose":
-                self._suggestionSounds.play("close")
-            if action.interrupt and action.priority < Priority.CRITICAL:
-                speech.cancelSpeech()
-            priority = {
-                Priority.NAVIGATION: NvdaSpeechPriority.NORMAL,
-                Priority.STATUS: NvdaSpeechPriority.NEXT,
-                Priority.CRITICAL: NvdaSpeechPriority.NOW,
-            }[action.priority]
-            try:
-                event_type = event.get("type")
-                speech_allowed = self._actionSpeechAllowed(event_type, feedback_key)
-                if event_type == "modeChanged" and {previous_mode, mode} <= {"normal", "insert"}:
-                    speech_allowed = bool(self._feedbackMode("mode") & 1)
-                if speech_allowed and feedback_key == "lineBoundary" and feedback_mode & 1 and not action.text:
-                    speech.speakText(
-                        _("line start") if sound == "lineStart" else _("line end"), priority=priority,
-                    )
-                elif speech_allowed and feedback_key == "lineCrossed" and feedback_mode & 1:
-                    speech.speakText(_("new line"), priority=priority)
-                format_error = getattr(action, "format_error", None)
-                if format_error and speech_allowed:
-                    formatting = config.conf.get("documentFormatting", {})
-                    report_mode = int(formatting.get("reportSpellingErrors2", 0))
-                    if getattr(action, "typed_format_error", False):
-                        keyboard = config.conf.get("keyboard", {})
-                        speech_state = speech.getState() if hasattr(speech, "getState") else None
-                        speech_mode = str(getattr(speech_state, "speechMode", "on")).lower()
-                        speech_active = not (speech_mode.endswith("off") or "ondemand" in speech_mode)
-                        if report_mode and bool(keyboard.get("alertForSpellingErrors", True)) and speech_active:
-                            self._spellingSound.play()
-                    else:
-                        leaving = format_error.startswith("out:")
-                        kind = format_error[4:] if leaving else format_error
-                        if not leaving and report_mode & 2:
-                            self._spellingSound.play()
-                        if (report_mode & 1) or (leaving and report_mode & 3):
-                            label = "grammar error" if kind == "grammar" else "spelling error"
-                            speech.speakText(("out of " if leaving else "") + label, priority=priority)
-                elif getattr(action, "typed", False) and speech_allowed:
-                    self._speakStructuredTyping(
-                        action.text, payload, command_line=event_type == "commandLineChanged",
-                    )
-                elif getattr(action, "spelling", False) and speech_allowed:
-                    speech.speakSpelling(action.text, priority=priority)
-                elif action.text and speech_allowed:
-                    kwargs = {"priority": priority}
-                    if getattr(action, "force_symbols", False):
-                        kwargs["symbolLevel"] = 300  # characterProcessing.SymbolLevel.ALL
-                    speech.speakText(action.text, **kwargs)
-                if speech_allowed and getattr(action, "character_suffix", None):
-                    speech.speakSpelling(action.character_suffix, priority=priority)
-                if getattr(action, "braille_message", None):
-                    nvdaBraille.handler.message(action.braille_message)
-            except Exception as error:
-                self._diagnostics.record("speechError", errorType=type(error).__name__, error=str(error))
-                log.exception("NeovimAccessLink speech failure")
+        self._presentation.deliver_actions(
+            self._planner.plan(
+                event, focus_announcement=self._focusAnnouncement(),
+            ),
+            event_type=event.get("type"),
+            mode=mode,
+            previous_mode=previous_mode,
+            payload=payload,
+            speak_structured_typing=self._speakStructuredTyping,
+        )
         if self._gate.suppression_active:
             self._refreshBraille(rebuild=activated)
 
     def _reportIndentation(self, quarterTones, level):
-        formatting = config.conf.get("documentFormatting", {})
-        # NVDA ReportLineIndentation: 0 off, 1 speech, 2 tones, 3 both.
-        report_mode = int(formatting.get("reportLineIndentation", 0))
-        if report_mode == 0:
-            return
-        if not isinstance(quarterTones, int) or quarterTones < 0:
-            return
-        if report_mode in (2, 3) and quarterTones <= 72:
-            duration = int(formatting.get("indentToneDuration", 40))
-            frequency = round(220 * (2 ** (quarterTones / 24.0)))
-            tones.beep(frequency, duration)
-            self._diagnostics.record(
-                "indentationTone", quarterTones=quarterTones,
-                frequency=frequency, durationMs=duration,
-            )
-        if report_mode in (1, 3) or quarterTones > 72:
-            speech.speakText("no indent" if quarterTones == 0 else f"indentation level {level}")
+        self._presentation.report_indentation(quarterTones, level)
 
     def _speakStructuredTyping(self, text, state=None, *, command_line=False):
         keyboard = config.conf["keyboard"]
@@ -3127,10 +3006,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         }
 
     def _feedbackMode(self, key):
-        feedback = self._settings.get("feedback", {})
-        global_mode = feedback.get("global", _FEEDBACK_DEFAULTS["global"])
-        local_mode = feedback.get(key, _FEEDBACK_DEFAULTS.get(key, 3)) if key else 3
-        return int(global_mode) & int(local_mode)
+        return self._presentation.feedback_mode(key)
 
     def _focusAnnouncement(self):
         value = self._settings.get("focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT)
@@ -3140,48 +3016,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     @staticmethod
     def _modeSoundKind(mode):
-        if mode in {"insert", "terminal"}:
-            return "insert"
-        if mode in {"normal", "terminalNormal"}:
-            return "normal"
-        if mode == "commandLine":
-            return "commandLine"
-        return None
+        return NvdaPresentation.mode_sound_kind(mode)
 
     def _playModeSound(self, mode, *, focus_context=False):
-        sound_kind = self._modeSoundKind(mode)
-        if sound_kind == "insert":
-            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("insertMode"):
-                tones.beep(880, 45)
-            self._diagnostics.record(
-                "insertModeSound", cue="focusMode.wav", focusContext=focus_context,
-                mode=mode,
-            )
-        elif sound_kind == "normal":
-            if not focus_context:
-                speech.cancelSpeech()
-            if self._feedbackMode("mode") & 2 and not self._editorSounds.play("normalMode"):
-                tones.beep(330, 28)
-            self._diagnostics.record(
-                "normalModeSound", cue="browseMode.wav", focusContext=focus_context,
-                mode=mode,
-            )
-        elif sound_kind == "commandLine":
-            if self._feedbackMode("mode") & 2:
-                tones.beep(600, 30)
-            self._diagnostics.record(
-                "commandLineModeSound", cue="tone-600hz-30ms",
-                focusContext=focus_context, mode=mode,
-            )
+        self._presentation.play_mode_sound(mode, focus_context=focus_context)
 
     def _actionSpeechAllowed(self, event_type, feedback_key):
-        if feedback_key in {"delete", "replace"} and event_type in {
-            "textChanged", "textDeleted", "textReplaced", "replacementPerformed",
-        }:
-            return bool(self._feedbackMode(feedback_key) & 1)
-        if feedback_key in {"fileBoundary", "matchingError"}:
-            return bool(self._feedbackMode(feedback_key) & 1)
-        return True
+        return self._presentation.action_speech_allowed(event_type, feedback_key)
 
     def _loadSettings(self):
         try:
@@ -3312,7 +3153,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._claimBaselines.clear()
         self._claimEligibleTargets.clear()
         self._claimInventoryErrors.clear()
-        self._pendingFocusContexts.clear()
+        self._connectionCoordinator.discard_focus_context()
         self._discardClipboardRequests()
         self._discardTerminalControlRequests()
         if hasattr(self, "_instanceManager") and self._instanceManager.list():

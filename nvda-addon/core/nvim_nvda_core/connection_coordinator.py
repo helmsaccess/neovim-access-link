@@ -12,6 +12,23 @@ from .speech import SpeechPlanner
 
 
 @dataclass(frozen=True)
+class PendingFocusContext:
+    """Expected terminal identity for one focus-context response."""
+
+    request_id: int
+    terminal: TerminalIdentity
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.request_id, int)
+            or isinstance(self.request_id, bool)
+            or not 0 <= self.request_id < ConnectionCoordinator._REQUEST_ID_LIMIT
+            or not isinstance(self.terminal, TerminalIdentity)
+        ):
+            raise ValueError("valid pending focus context is required")
+
+
+@dataclass(frozen=True)
 class PendingControlRequest:
     """Expected identity and control kind for one correlated response."""
 
@@ -59,7 +76,7 @@ class ConnectionCoordinator:
         self.active_instance_id: str | None = None
         self.runtime_states: dict[str, dict[str, Any]] = {}
         self.pending_full_states: dict[str, dict[str, Any]] = {}
-        self.pending_focus_contexts: dict[str, Any] = {}
+        self.pending_focus_contexts: dict[str, PendingFocusContext] = {}
         self.pending_clipboard_requests: dict[int, PendingControlRequest] = {}
         self.pending_terminal_control_requests: dict[int, PendingControlRequest] = {}
         self.transport_capabilities: frozenset[str] = frozenset()
@@ -99,6 +116,85 @@ class ConnectionCoordinator:
             discarded.append(discarded_id)
         pending[request_id] = request
         return tuple(discarded)
+
+    def remember_focus_context(
+        self,
+        instance_id: str,
+        request_id: int,
+        terminal: TerminalIdentity,
+    ) -> None:
+        """Replace the single expected focus response for one instance."""
+        if not instance_id:
+            raise ValueError("instance ID is required")
+        self.pending_focus_contexts[instance_id] = PendingFocusContext(
+            request_id, terminal,
+        )
+
+    def matches_focus_context(
+        self,
+        instance_id: str,
+        request_id: int,
+        terminal: TerminalIdentity,
+    ) -> bool:
+        """Return whether a response matches the outstanding instance request."""
+        try:
+            expected = PendingFocusContext(request_id, terminal)
+        except ValueError:
+            return False
+        return self.pending_focus_contexts.get(instance_id) == expected
+
+    def discard_focus_context(self, instance_id: str | None = None) -> None:
+        if instance_id is None:
+            self.pending_focus_contexts.clear()
+        else:
+            self.pending_focus_contexts.pop(instance_id, None)
+
+    def select_instance(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+        create_runtime: Callable[[], dict[str, Any]],
+    ) -> Any:
+        """Select one managed client and its isolated runtime for a terminal."""
+        if not isinstance(terminal, TerminalIdentity):
+            raise ValueError("terminal identity is required")
+        client = self.instances.client_for(instance_id)
+        self.switch_runtime(instance_id, create_runtime)
+        self.active_client = client
+        self.gate.focused = terminal
+        return client
+
+    def prepare_unconfirmed_instance(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+        create_runtime: Callable[[], dict[str, Any]],
+        *,
+        trusted: bool,
+    ) -> Any:
+        """Select a remembered instance while keeping terminal output fail-open."""
+        client = self.select_instance(instance_id, terminal, create_runtime)
+        self.connected = bool(trusted)
+        self.gate.disconnect()
+        self.gate.focused = terminal
+        return client
+
+    def confirm_foreground_instance(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+        create_runtime: Callable[[], dict[str, Any]],
+    ) -> Any:
+        """Activate a focus-correlated managed instance for structured output."""
+        client = self.select_instance(instance_id, terminal, create_runtime)
+        self.connected = True
+        self.gate.bound_terminal = terminal
+        self.gate.authenticated = True
+        self.gate.nvim_active = True
+        self.gate.terminal_passthrough = self.terminal_passthrough.get(
+            instance_id, False,
+        )
+        return client
 
     def take_pending_request(
         self,
@@ -140,6 +236,25 @@ class ConnectionCoordinator:
         self.pending_clipboard_requests.clear()
         self.pending_terminal_control_requests.clear()
         self.transport_capabilities = frozenset()
+
+    def discard_instance_tracking(
+        self,
+        instance_id: str,
+        create_runtime: Callable[[], dict[str, Any]],
+    ) -> bool:
+        """Forget all coordinator-owned state for one removed instance."""
+        if not instance_id:
+            raise ValueError("instance ID is required")
+        self.authenticated_instances.discard(instance_id)
+        self.terminal_passthrough.pop(instance_id, None)
+        self.pending_full_states.pop(instance_id, None)
+        self.remember_offer_instances.discard(instance_id)
+        self.discard_focus_context(instance_id)
+        for channel in self._PENDING_CHANNELS:
+            self.discard_pending_requests(channel, instance_id)
+        if self.active_instance_id == instance_id:
+            self.active_client = None
+        return self.drop_runtime(instance_id, create_runtime)
 
     def switch_runtime(
         self,

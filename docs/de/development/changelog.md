@@ -5,6 +5,23 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.8+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Phase 3 der Verantwortungsverschlankung trennt nun gemeinsame
+  Verbindungs-, Anfrage- und Instanzzustände sowie die konkrete NVDA-Ausgabe
+  von Sprache, Braillemeldungen und Klängen aus der `GlobalPlugin`-Klasse.
+- Auswahl, fokusbestätigte Aktivierung und vollständige Bereinigung einer
+  Verbindungsinstanz verwenden gemeinsame Coordinator-Verträge. Ersetzen,
+  Trennen und das Entfernen geschlossener Tabs verwerfen dadurch dieselben
+  ausstehenden Zustände.
+- Ereignisbesitz, `nextHandler` und F12-Zuordnung bleiben unverändert und sind
+  bewusst den späteren Phasen 4 und 5 vorbehalten. Add-on-, Protokoll-,
+  Bridge-, Neovim-, gettext-, Dokumentations- und Paketprüfungen bestehen; die
+  praktische Abnahme mit lokalen und entfernten Verbindungen in mehreren
+  Fenstern, Tabs und Panes wurde anschließend bestätigt. Das bereits zuvor
+  vorhandene Einfügen von `<F12>` bei einer Zuordnung im Insert-Modus bleibt
+  als getrennter Phase-5-Fall offen.
+
 ## 0.94.2-dev.6+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Ein NVDA-unabhängiger `ConnectionCoordinator` besitzt gemeinsamen

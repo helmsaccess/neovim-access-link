@@ -6,8 +6,10 @@ from nvim_nvda_core import (
     ConnectionCoordinator,
     ConnectionInstanceManager,
     PendingControlRequest,
+    PendingFocusContext,
     SpeechPlanner,
     TerminalIdentity,
+    remote_ssh_target,
 )
 
 
@@ -20,7 +22,9 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         first.remembered_terminal_bindings.add(terminal)
         first.authenticated_instances.add("connection-1")
         first.terminal_passthrough["connection-1"] = True
-        first.pending_focus_contexts["connection-1"] = object()
+        first.pending_focus_contexts["connection-1"] = PendingFocusContext(
+            1, terminal,
+        )
         first.transport_capabilities = frozenset({"focusContext"})
 
         self.assertIsInstance(first.instances, ConnectionInstanceManager)
@@ -47,7 +51,7 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         coordinator.active_instance_id = "connection-1"
         coordinator.runtime_states["connection-1"] = {"connected": True}
         coordinator.pending_full_states["connection-1"] = {"type": "fullState"}
-        coordinator.pending_focus_contexts["connection-1"] = (1, terminal)
+        coordinator.remember_focus_context("connection-1", 1, terminal)
         coordinator.pending_clipboard_requests[1] = PendingControlRequest(
             "connection-1", terminal, "copyTextRequest",
         )
@@ -116,6 +120,108 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         self.assertEqual({"label": "new-3"}, coordinator.current_state)
         self.assertIsNone(coordinator.active_instance_id)
 
+    def test_discard_instance_tracking_removes_only_owned_instance_state(self) -> None:
+        coordinator = ConnectionCoordinator()
+        terminal = TerminalIdentity(10, 100)
+        other_terminal = TerminalIdentity(11, 101)
+
+        def create_runtime():
+            return {
+                "planner": SpeechPlanner(), "currentState": {}, "lastMode": None,
+                "typedWord": [], "typedPosition": None, "menuDocumentation": "",
+                "connected": False, "lastConnectionState": None,
+                "transportCapabilities": frozenset(),
+            }
+
+        coordinator.active_client = object()
+        coordinator.switch_runtime("connection-1", create_runtime)
+        coordinator.runtime_states["connection-2"] = create_runtime()
+        coordinator.authenticated_instances.update({"connection-1", "connection-2"})
+        coordinator.terminal_passthrough.update({"connection-1": True, "connection-2": False})
+        coordinator.pending_full_states.update({
+            "connection-1": {"type": "fullState"},
+            "connection-2": {"type": "fullState"},
+        })
+        coordinator.remember_offer_instances.update({"connection-1", "connection-2"})
+        coordinator.remember_focus_context("connection-1", 1, terminal)
+        coordinator.remember_focus_context("connection-2", 2, other_terminal)
+        coordinator.pending_clipboard_requests[1] = PendingControlRequest(
+            "connection-1", terminal, "copyTextRequest",
+        )
+        coordinator.pending_clipboard_requests[2] = PendingControlRequest(
+            "connection-2", other_terminal, "copyTextRequest",
+        )
+        coordinator.pending_terminal_control_requests[3] = PendingControlRequest(
+            "connection-1", terminal, "leaveTerminalInputRequest",
+        )
+
+        self.assertTrue(coordinator.discard_instance_tracking(
+            "connection-1", create_runtime,
+        ))
+
+        self.assertIsNone(coordinator.active_client)
+        self.assertIsNone(coordinator.active_instance_id)
+        self.assertEqual({"connection-2"}, coordinator.authenticated_instances)
+        self.assertEqual({"connection-2": False}, coordinator.terminal_passthrough)
+        self.assertEqual(
+            {"connection-2": {"type": "fullState"}},
+            coordinator.pending_full_states,
+        )
+        self.assertEqual({"connection-2"}, coordinator.remember_offer_instances)
+        self.assertEqual(
+            {"connection-2": PendingFocusContext(2, other_terminal)},
+            coordinator.pending_focus_contexts,
+        )
+        self.assertEqual({2}, set(coordinator.pending_clipboard_requests))
+        self.assertEqual({}, coordinator.pending_terminal_control_requests)
+        self.assertIn("connection-2", coordinator.runtime_states)
+
+        with self.assertRaisesRegex(ValueError, "instance ID is required"):
+            coordinator.discard_instance_tracking("", create_runtime)
+
+    def test_instance_selection_and_focus_confirmation_preserve_fail_open_order(self) -> None:
+        manager = ConnectionInstanceManager()
+        coordinator = ConnectionCoordinator(manager)
+        terminal = TerminalIdentity(10, 100)
+        class Client:
+            def start(self):
+                pass
+
+        client = Client()
+        instance = manager.add_target(
+            remote_ssh_target("target", "Target"), "session", "One", client,
+        )
+
+        def create_runtime():
+            return {
+                "planner": SpeechPlanner(), "currentState": {}, "lastMode": None,
+                "typedWord": [], "typedPosition": None, "menuDocumentation": "",
+                "connected": False, "lastConnectionState": None,
+                "transportCapabilities": frozenset(),
+            }
+
+        selected = coordinator.prepare_unconfirmed_instance(
+            instance.identifier, terminal, create_runtime, trusted=True,
+        )
+        self.assertIs(client, selected)
+        self.assertIs(client, coordinator.active_client)
+        self.assertTrue(coordinator.connected)
+        self.assertEqual(terminal, coordinator.gate.focused)
+        self.assertFalse(coordinator.gate.suppression_active)
+
+        coordinator.terminal_passthrough[instance.identifier] = True
+        confirmed = coordinator.confirm_foreground_instance(
+            instance.identifier, terminal, create_runtime,
+        )
+        self.assertIs(client, confirmed)
+        self.assertEqual(terminal, coordinator.gate.bound_terminal)
+        self.assertTrue(coordinator.gate.authenticated)
+        self.assertTrue(coordinator.gate.nvim_active)
+        self.assertTrue(coordinator.gate.terminal_passthrough)
+
+        with self.assertRaisesRegex(ValueError, "terminal identity is required"):
+            coordinator.select_instance(instance.identifier, None, create_runtime)
+
     def test_request_ids_are_bounded_and_independent_by_channel(self) -> None:
         coordinator = ConnectionCoordinator()
 
@@ -155,6 +261,38 @@ class ConnectionCoordinatorTests(unittest.TestCase):
             coordinator.take_pending_request("focusContext", 1)
         with self.assertRaisesRegex(ValueError, "invalid pending request"):
             coordinator.remember_pending_request("clipboard", True, first, 2)
+
+    def test_focus_contexts_are_correlated_and_discarded_by_instance(self) -> None:
+        coordinator = ConnectionCoordinator()
+        terminal = TerminalIdentity(10, 100)
+        other_terminal = TerminalIdentity(11, 101)
+
+        coordinator.remember_focus_context("connection-1", 1, terminal)
+        self.assertTrue(coordinator.matches_focus_context(
+            "connection-1", 1, terminal,
+        ))
+        self.assertFalse(coordinator.matches_focus_context(
+            "connection-1", 2, terminal,
+        ))
+        self.assertFalse(coordinator.matches_focus_context(
+            "connection-1", 1, other_terminal,
+        ))
+        self.assertFalse(coordinator.matches_focus_context(
+            "connection-1", None, terminal,
+        ))
+        coordinator.remember_focus_context("connection-2", 2, other_terminal)
+        coordinator.discard_focus_context("connection-1")
+        self.assertEqual(
+            {"connection-2": PendingFocusContext(2, other_terminal)},
+            coordinator.pending_focus_contexts,
+        )
+        coordinator.discard_focus_context()
+        self.assertEqual({}, coordinator.pending_focus_contexts)
+
+        with self.assertRaisesRegex(ValueError, "instance ID is required"):
+            coordinator.remember_focus_context("", 1, terminal)
+        with self.assertRaisesRegex(ValueError, "valid pending focus context"):
+            coordinator.remember_focus_context("connection-1", True, terminal)
 
 
 if __name__ == "__main__":

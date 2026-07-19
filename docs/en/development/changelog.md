@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.94.2-dev.8+feature.global-plugin-slimming (feature-branch test build)
+
+- Phase 3 of the responsibility-boundary refactor now separates shared
+  connection, request, and instance state, plus concrete NVDA speech, Braille
+  message, and sound delivery, from the `GlobalPlugin` class.
+- Instance selection, focus-confirmed activation, and complete disposal use
+  shared coordinator contracts. Replacement, manual disconnect, and closed-tab
+  pruning therefore discard the same pending state.
+- Event ownership, `nextHandler`, and F12 assignment remain unchanged and are
+  deliberately reserved for later phases 4 and 5. Add-on, protocol, bridge,
+  Neovim, gettext, documentation, and package checks pass; practical
+  acceptance with local and remote connections across multiple windows, tabs,
+  and panes was subsequently confirmed. The pre-existing insertion of `<F12>`
+  when assigning a session from Insert mode remains open as a separate phase-5
+  issue.
+
 ## 0.94.2-dev.6+feature.global-plugin-slimming (feature-branch test build)
 
 - An NVDA-independent `ConnectionCoordinator` owns shared connection and

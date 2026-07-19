@@ -13,7 +13,7 @@ for SSH, and the NVDA process on Windows. `protocol/python/` and
 | `bridge/python/` | Connect exactly one remote Linux Neovim session to SSH stdin/stdout | `nvim_nvda_bridge/__main__.py`, `bridge.py`, `session_registry.py`, `stdio.py` |
 | `protocol/python/` | MessagePack framing, message validation, sequencing, and local/SSH clients | `codec.py`, `messages.py`, `session.py`, `nvim_rpc.py`, `local_client.py`, `stdio_client.py` |
 | `nvda-addon/core/` | NVDA-independent connection models and coordination, service publication, gate, discovery, and speech/Braille planning | `connection_coordinator.py`, `service_registrar.py`, `gate.py`, `connection_instances.py`, `speech.py`, `braille.py` |
-| `nvda-addon/addon/` | NVDA Global Plugin, Windows Terminal AppModule, dialogs, resources, and locale catalogs | `globalPlugins/NeovimAccessLink/__init__.py`, `appModules/windowsterminal.py` |
+| `nvda-addon/addon/` | NVDA Global Plugin, Windows Terminal AppModule, UI and presentation services, resources, and locale catalogs | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | Rootless installation of Linux user components | `install_user.py` |
 | `tools/` | Reproducible package, documentation, catalog, and test tools | `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
 | `docs/de/` | Maintained German user and developer documentation | `README.md` |

@@ -209,11 +209,12 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
-| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen und getrennte Laufzeitzustände | NVDA-Ereignisse, `nextHandler` oder Dialoge |
+| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und Zustandsbereinigung einer Instanz | NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung der vollständig initialisierten prozessweiten Dienstinstanz | Lebenszyklusentscheidung oder Terminalereignisse |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
-| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Beenden gemeinsamer Dienste, global auffindbare Befehle | Implementierung von Einstellungen, Werkzeugen oder ungeprüfte Übernahme fremder Terminal-Controls |
+| `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
+| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Beenden gemeinsamer Dienste, Ereignisorchestrierung bis Phase 4 und global auffindbare Befehle | Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder ungeprüfte Übernahme fremder Terminal-Controls |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, konkrete Terminalidentität, Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 

@@ -55,22 +55,29 @@ mehr dessen Implementierung. Struktur-, Lokalisierungs-, Dialog-, Installer-
 und Built-Add-on-Tests bestehen; Einstellungen, Werkzeugdialoge und deutsche
 UI-Texte wurden anschließend praktisch bestätigt.
 
-Phase 3 ist teilweise umgesetzt. Ein NVDA-unabhängiger
-`ConnectionCoordinator` besitzt nun Instanzmanager, aktiven Client, Gate,
-aktiven Sprachplaner, Authentifizierung, Terminalzuordnungen, korrelierte
-ausstehende Anfragen und die getrennten Laufzeitzustände der
-Verbindungsinstanzen. Die Request-IDs der drei erlaubten Rückkanäle werden
-getrennt und begrenzt dort vergeben; auch Speichern und Aktivieren des
-jeweiligen Präsentationszustands erfolgen im Coordinator. Die
-`GlobalPlugin`-Klasse greift vorerst über schmale Kompatibilitätseigenschaften
-darauf zu; Ereignisverhalten und F12-Zuordnung bleiben unverändert. Ein
-identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst die vollständig
-initialisierte Dienstinstanz und verhindert, dass das späte Beenden einer
-alten Instanz eine neuere Registrierung löscht. Offen sind
-die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik. Der
-erweiterte Coordinator einschließlich begrenzter, korrelierter
-Zwischenablage- und Terminalsteuerungsanfragen wurde automatisiert und
-praktisch bestätigt.
+Phase 3 ist automatisiert umgesetzt. Ein NVDA-unabhängiger
+`ConnectionCoordinator` besitzt Instanzmanager, aktiven Client, Gate, aktiven
+Sprachplaner, Authentifizierung, Terminalzuordnungen, begrenzte korrelierte
+Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und
+vollständige Zustandsbereinigung einer Instanz. `NvdaPresentation` besitzt die
+NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen und Klänge;
+`NvdaUiManager` bleibt für Einstellungen, Werkzeuge und Komponentenformulare
+zuständig. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst die
+vollständig initialisierte Dienstinstanz und schützt Add-on-Neuladen vor dem
+verspäteten Beenden einer älteren Instanz. Schmale
+Kompatibilitätseigenschaften halten den bisherigen Ereignispfad während des
+Umbaus stabil. Ereignisbesitz, `nextHandler` und F12-Zuordnung wurden nicht
+verändert; ihre Verlagerung gehört ausdrücklich zu Phase 4 beziehungsweise 5.
+Der Phase-3-Abschlussstand wurde anschließend mit lokalen und entfernten
+Verbindungen über mehrere Windows-Terminal-Fenster, Tabs und Panes praktisch
+bestätigt.
+
+Für Phase 5 ist ein bereits zuvor vorhandener F12-Fall konkret festgehalten:
+Der NVDA-Observer muss die physische Taste derzeit bis zu Neovims
+`vim.on_key`-Claimbeobachtung durchlassen. Im Insert-Modus verarbeitet Neovim
+sie danach zusätzlich als Eingabe und fügt `<F12>` in den Buffer ein. Eine
+Lösung muss die verlässliche Fokuszuordnung erhalten und darf F12 außerhalb
+eines tatsächlich autorisierten Claims nicht schlucken.
 
 Die Platzierung frei belegbarer Befehle ist für eine spätere, getrennte Stufe
 geklärt: NVDA 2026.1.1 bezieht den Tastenbefehldialog aus dem vorherigen Fokus

@@ -51,20 +51,27 @@ and terminates this manager but no longer contains its implementation.
 Structure, localization, dialog, installer, and built-add-on tests pass;
 settings, Tools dialogs, and German UI text were then confirmed in practice.
 
-Phase 3 is partially implemented. An NVDA-independent
-`ConnectionCoordinator` now owns the instance manager, active client, gate,
-active speech planner, authentication, terminal bindings, correlated pending
-requests, and isolated runtime state for connection instances. It also
-allocates bounded, independent request IDs for the three allowlisted reverse
-channels and stores and activates each instance's presentation state. For now,
-the `GlobalPlugin` class reaches that state through narrow
-compatibility properties; event behavior and F12 assignment are unchanged. An
-identity-checked `ServiceRegistrar` publishes only the fully initialized
-service and prevents late termination of an old instance from removing a
-newer registration. Further relocation of connection, gate, and presentation
-behavior remains open, as do practical checks of the expanded coordinator
-state. The preceding intermediate state with instance state and identity-safe
-registration was confirmed in practice.
+Phase 3 is implemented under automated coverage. An NVDA-independent
+`ConnectionCoordinator` owns the instance manager, active client, gate, active
+speech planner, authentication, terminal bindings, bounded correlated
+requests, isolated runtime states, and instance selection, focus confirmation,
+and complete state disposal. `NvdaPresentation` owns NVDA-specific delivery of
+planned speech, Braille messages, and sounds, while `NvdaUiManager` continues
+to own settings, Tools commands, and component forms. An identity-checked
+`ServiceRegistrar` publishes only the fully initialized service and protects
+add-on reloads from late termination of an older instance. Narrow
+compatibility properties keep the existing event path stable during the
+refactor. Event ownership, `nextHandler`, and F12 assignment were not changed;
+their relocation belongs explicitly to phases 4 and 5. The completed phase-3
+state was subsequently confirmed in practice with local and remote
+connections across multiple Windows Terminal windows, tabs, and panes.
+
+Phase 5 records one concrete F12 issue that predates this refactor. The NVDA
+observer currently has to pass the physical key through to Neovim's
+`vim.on_key` claim observer. In Insert mode, Neovim then also processes it as
+input and inserts `<F12>` into the buffer. A solution must retain reliable
+focus assignment and must not consume F12 outside an actually authorized
+claim.
 
 Placement of configurable commands is settled for a later, separate stage:
 NVDA 2026.1.1 builds the Input Gestures dialog from the previous focus and its

@@ -4,7 +4,9 @@ from .connection_profiles import (
     remove_profile, save_profile, unique_profile_id,
 )
 from .connection_instances import ConnectionInstance, ConnectionInstanceManager
-from .connection_coordinator import ConnectionCoordinator, PendingControlRequest
+from .connection_coordinator import (
+    ConnectionCoordinator, PendingControlRequest, PendingFocusContext,
+)
 from .connection_targets import (
     LOCAL_WINDOWS_TARGET_ID, LOCAL_WINDOWS_TCP, REMOTE_SSH,
     ConnectionTarget, local_windows_target, remote_ssh_target,
@@ -24,7 +26,7 @@ __all__ = [
     "ConnectionTarget", "LOCAL_WINDOWS_TARGET_ID", "LOCAL_WINDOWS_TCP", "REMOTE_SSH",
     "AVAILABLE_ADAPTERS", "DiagnosticBuffer", "FrontendDescriptor", "FrontendPolicy",
     "LocalPluginInstaller", "LocalSessionLister", "LocalWindowsSession", "PendingControlRequest",
-    "Priority", "SessionGate",
+    "PendingFocusContext", "Priority", "SessionGate",
     "ServiceRegistrar", "SpeechAction", "SpeechPlanner",
     "TerminalIdentity", "InstallResult", "RemoteSession", "SshSessionLister", "SshUserInstaller",
     "default_local_plugin_directory", "local_registry_directory", "local_windows_target",

@@ -525,6 +525,20 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertNotIn(implementation, global_source)
             self.assertIn(implementation, ui_source)
 
+    def test_nvda_presentation_delivery_is_separate_from_global_plugin(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        presentation_source = (plugin / "nvda_presentation.py").read_text(
+            encoding="utf-8",
+        )
+
+        self.assertIn("class NvdaPresentation", presentation_source)
+        self.assertIn("self._presentation.deliver_actions(", global_source)
+        self.assertNotIn("def _play_action_sound", global_source)
+        self.assertIn("def _play_action_sound", presentation_source)
+        self.assertNotIn("SuggestionSoundCache(", global_source)
+        self.assertIn("SuggestionSoundCache(", presentation_source)
+
     def test_global_plugin_composes_connection_coordinator_without_duplicate_state(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
