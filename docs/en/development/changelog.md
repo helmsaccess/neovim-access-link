@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.95.0 (beta)
+
+- The product version was advanced to `0.95.0` at the user's explicit
+  direction. The configured release channel remains `beta`.
+- Windows Terminal events, overlay selection, `nextHandler`, and assignable
+  terminal commands are now owned by the AppModule. The Global Plugin focuses
+  more narrowly on shared lifetime, settings, tools, and service coordination.
+- F12 validates the concrete AppModule instance and complete `TermControl`
+  identity, rechecks focus on NVDA's main thread, and no longer inserts
+  `<F12>` during an otherwise unbound Insert-mode claim.
+- Parallel Windows DLL bindings were replaced with NVDA wrappers. Reload,
+  multiple Windows Terminal windows, tabs and panes, and fail-open paths have
+  broader automated coverage.
+- Structured Braille overlay selection owns its `controlTypes` dependency in
+  the AppModule and is exercised through the actual NVDA hook. Practical
+  testing with Braille hardware remains outstanding.
+- NVDA-facing Python follows NVDA style conventions. A dated quality review
+  records the comparison basis, corrected regressions, remaining limits, and
+  recommended follow-up work.
+
 ## 0.94.2-dev.13+feature.global-plugin-slimming (feature-branch test build)
 
 - Overlay selection now imports NVDA's `controlTypes` directly in the Windows

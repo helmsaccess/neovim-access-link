@@ -5,6 +5,27 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0 (Beta)
+
+- Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.95.0` angehoben.
+  Der konfigurierte Releasekanal bleibt unverändert `beta`.
+- Windows-Terminal-Ereignisse, Overlayauswahl, `nextHandler` und frei belegbare
+  Terminalbefehle gehören nun dem AppModule. Das Global Plugin konzentriert
+  sich stärker auf gemeinsame Lebensdauer, Einstellungen, Werkzeuge und
+  Dienstkoordination.
+- F12 prüft die konkrete AppModule-Instanz und vollständige
+  `TermControl`-Identität, bestätigt den Fokus erneut auf NVDAs Hauptthread und
+  fügt bei einer unbelegten Zuordnung im Insert-Modus kein `<F12>` mehr ein.
+- Eigene Windows-DLL-Bindings wurden durch NVDAs Wrapper ersetzt. Reload,
+  mehrere Windows-Terminal-Fenster, Tabs und Panes sowie Fail-open-Pfade sind
+  breiter automatisiert geprüft.
+- Die strukturierte Braille-Overlayauswahl besitzt ihre `controlTypes`-
+  Abhängigkeit direkt im AppModule und wird über den echten NVDA-Hook getestet.
+  Eine praktische Prüfung mit Braillehardware steht weiterhin aus.
+- NVDA-seitiger Python-Code folgt NVDAs Stilkonventionen. Ein datiertes
+  Qualitätsreview dokumentiert Vergleichsbasis, behobene Regressionen,
+  verbleibende Grenzen und empfohlene Folgeschritte.
+
 ## 0.94.2-dev.13+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Die Overlayauswahl importiert NVDAs `controlTypes` nun direkt im Windows-

@@ -1,8 +1,8 @@
 # Aktueller Status
 
-Stand: 18. Juli 2026. Produktversion im Quellstand: 0.94.2.
+Stand: 19. Juli 2026. Produktversion im Quellstand: 0.95.0.
 
-Der Quellstand ist für Version 0.94.2 vorbereitet. Der zugehörige
+Der Quellstand ist für Version 0.95.0 vorbereitet. Der zugehörige
 GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
 festgelegte Reife bleibt zwischen Alpha und Beta. Diese Dokumentation leitet
 aus Testumfang, Versionsnummer oder Funktionsmenge keine höhere
