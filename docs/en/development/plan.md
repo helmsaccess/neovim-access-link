@@ -56,7 +56,8 @@ Phase 3 is partially implemented. An NVDA-independent
 active speech planner, authentication, terminal bindings, correlated pending
 requests, and isolated runtime state for connection instances. It also
 allocates bounded, independent request IDs for the three allowlisted reverse
-channels. For now, the `GlobalPlugin` class reaches that state through narrow
+channels and stores and activates each instance's presentation state. For now,
+the `GlobalPlugin` class reaches that state through narrow
 compatibility properties; event behavior and F12 assignment are unchanged. An
 identity-checked `ServiceRegistrar` publishes only the fully initialized
 service and prevents late termination of an old instance from removing a

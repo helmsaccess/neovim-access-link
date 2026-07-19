@@ -60,11 +60,13 @@ Phase 3 ist teilweise umgesetzt. Ein NVDA-unabhängiger
 aktiven Sprachplaner, Authentifizierung, Terminalzuordnungen, korrelierte
 ausstehende Anfragen und die getrennten Laufzeitzustände der
 Verbindungsinstanzen. Die Request-IDs der drei erlaubten Rückkanäle werden
-getrennt und begrenzt dort vergeben. Die `GlobalPlugin`-Klasse greift vorerst
-über schmale Kompatibilitätseigenschaften darauf zu; Ereignisverhalten und
-F12-Zuordnung bleiben unverändert. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht
-erst die vollständig initialisierte Dienstinstanz und verhindert, dass das
-späte Beenden einer alten Instanz eine neuere Registrierung löscht. Offen sind
+getrennt und begrenzt dort vergeben; auch Speichern und Aktivieren des
+jeweiligen Präsentationszustands erfolgen im Coordinator. Die
+`GlobalPlugin`-Klasse greift vorerst über schmale Kompatibilitätseigenschaften
+darauf zu; Ereignisverhalten und F12-Zuordnung bleiben unverändert. Ein
+identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst die vollständig
+initialisierte Dienstinstanz und verhindert, dass das späte Beenden einer
+alten Instanz eine neuere Registrierung löscht. Offen sind
 die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik sowie
 die praktische Prüfung des erweiterten Coordinator-Zustands. Der vorherige
 Zwischenstand mit Instanzzuständen und identitätssicherer Registrierung wurde

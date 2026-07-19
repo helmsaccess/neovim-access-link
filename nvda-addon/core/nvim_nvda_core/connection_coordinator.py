@@ -25,6 +25,11 @@ class ConnectionCoordinator:
         self.instances = instance_manager or ConnectionInstanceManager()
         self.gate = gate or SessionGate()
         self.planner = planner or SpeechPlanner()
+        self.current_state: dict[str, Any] = {}
+        self.last_mode: str | None = None
+        self.typed_word: list[str] = []
+        self.typed_position: Any | None = None
+        self.menu_documentation = ""
         self.active_client: Any | None = None
         self.last_connection_state: str | None = None
         self.connected = False
@@ -68,27 +73,51 @@ class ConnectionCoordinator:
     def switch_runtime(
         self,
         instance_id: str,
-        active_runtime: dict[str, Any],
         create_runtime: Callable[[], dict[str, Any]],
-    ) -> dict[str, Any] | None:
+    ) -> bool:
         """Store the previous instance runtime and activate one isolated runtime."""
         if instance_id == self.active_instance_id:
-            return None
+            return False
         if self.active_instance_id is not None:
-            self.runtime_states[self.active_instance_id] = active_runtime
+            self.runtime_states[self.active_instance_id] = self._capture_runtime()
         runtime = self.runtime_states.pop(instance_id, None) or create_runtime()
+        self._activate_runtime(runtime)
         self.active_instance_id = instance_id
-        return runtime
+        return True
 
     def drop_runtime(
         self,
         instance_id: str,
         create_runtime: Callable[[], dict[str, Any]],
-    ) -> dict[str, Any] | None:
+    ) -> bool:
         """Forget one instance and return a blank runtime when it was active."""
         self.runtime_states.pop(instance_id, None)
         if self.active_instance_id != instance_id:
-            return None
-        runtime = create_runtime()
+            return False
+        self._activate_runtime(create_runtime())
         self.active_instance_id = None
-        return runtime
+        return True
+
+    def _capture_runtime(self) -> dict[str, Any]:
+        return {
+            "planner": self.planner,
+            "currentState": self.current_state,
+            "lastMode": self.last_mode,
+            "typedWord": self.typed_word,
+            "typedPosition": self.typed_position,
+            "menuDocumentation": self.menu_documentation,
+            "connected": self.connected,
+            "lastConnectionState": self.last_connection_state,
+            "transportCapabilities": self.transport_capabilities,
+        }
+
+    def _activate_runtime(self, runtime: dict[str, Any]) -> None:
+        self.planner = runtime["planner"]
+        self.current_state = runtime["currentState"]
+        self.last_mode = runtime["lastMode"]
+        self.typed_word = runtime["typedWord"]
+        self.typed_position = runtime["typedPosition"]
+        self.menu_documentation = runtime["menuDocumentation"]
+        self.connected = runtime["connected"]
+        self.last_connection_state = runtime["lastConnectionState"]
+        self.transport_capabilities = runtime["transportCapabilities"]

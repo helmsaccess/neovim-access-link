@@ -293,11 +293,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             gate=SessionGate(_FRONTEND_POLICY.enabled_kinds),
             planner=SpeechPlanner(translate=_),
         )
-        self._currentState = {}
-        self._lastMode = None
-        self._typedWord = []
-        self._typedPosition = None
-        self._menuDocumentation = ""
         self._sessionPasswords = {}
         self._sessionDiscoveryGeneration = 0
         self._pendingClaimTargets = {}
@@ -351,6 +346,46 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @_planner.setter
     def _planner(self, value):
         self._connectionCoordinator.planner = value
+
+    @property
+    def _currentState(self):
+        return self._connectionCoordinator.current_state
+
+    @_currentState.setter
+    def _currentState(self, value):
+        self._connectionCoordinator.current_state = value
+
+    @property
+    def _lastMode(self):
+        return self._connectionCoordinator.last_mode
+
+    @_lastMode.setter
+    def _lastMode(self, value):
+        self._connectionCoordinator.last_mode = value
+
+    @property
+    def _typedWord(self):
+        return self._connectionCoordinator.typed_word
+
+    @_typedWord.setter
+    def _typedWord(self, value):
+        self._connectionCoordinator.typed_word = value
+
+    @property
+    def _typedPosition(self):
+        return self._connectionCoordinator.typed_position
+
+    @_typedPosition.setter
+    def _typedPosition(self, value):
+        self._connectionCoordinator.typed_position = value
+
+    @property
+    def _menuDocumentation(self):
+        return self._connectionCoordinator.menu_documentation
+
+    @_menuDocumentation.setter
+    def _menuDocumentation(self, value):
+        self._connectionCoordinator.menu_documentation = value
 
     @property
     def _client(self):
@@ -2101,19 +2136,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         )
         ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
 
-    def _captureInstanceRuntime(self):
-        return {
-            "planner": self._planner,
-            "currentState": self._currentState,
-            "lastMode": self._lastMode,
-            "typedWord": self._typedWord,
-            "typedPosition": self._typedPosition,
-            "menuDocumentation": self._menuDocumentation,
-            "connected": self._connected,
-            "lastConnectionState": self._lastConnectionState,
-            "transportCapabilities": self._transportCapabilities,
-        }
-
     @staticmethod
     def _newInstanceRuntime():
         return {
@@ -2129,35 +2151,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         }
 
     def _switchInstanceRuntime(self, instance_id):
-        if instance_id == self._activeInstanceId:
-            return
-        runtime = self._connectionCoordinator.switch_runtime(
-            instance_id, self._captureInstanceRuntime(), self._newInstanceRuntime,
-        )
-        self._planner = runtime["planner"]
-        self._currentState = runtime["currentState"]
-        self._lastMode = runtime["lastMode"]
-        self._typedWord = runtime["typedWord"]
-        self._typedPosition = runtime["typedPosition"]
-        self._menuDocumentation = runtime["menuDocumentation"]
-        self._connected = runtime["connected"]
-        self._lastConnectionState = runtime["lastConnectionState"]
-        self._transportCapabilities = runtime["transportCapabilities"]
-
-    def _dropInstanceRuntime(self, instance_id):
-        runtime = self._connectionCoordinator.drop_runtime(
+        self._connectionCoordinator.switch_runtime(
             instance_id, self._newInstanceRuntime,
         )
-        if runtime is not None:
-            self._planner = runtime["planner"]
-            self._currentState = runtime["currentState"]
-            self._lastMode = runtime["lastMode"]
-            self._typedWord = runtime["typedWord"]
-            self._typedPosition = runtime["typedPosition"]
-            self._menuDocumentation = runtime["menuDocumentation"]
-            self._connected = runtime["connected"]
-            self._lastConnectionState = runtime["lastConnectionState"]
-            self._transportCapabilities = runtime["transportCapabilities"]
+
+    def _dropInstanceRuntime(self, instance_id):
+        self._connectionCoordinator.drop_runtime(
+            instance_id, self._newInstanceRuntime,
+        )
 
     def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
         try:

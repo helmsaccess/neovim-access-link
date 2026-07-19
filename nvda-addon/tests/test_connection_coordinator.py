@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from nvim_nvda_core import ConnectionCoordinator, ConnectionInstanceManager, TerminalIdentity
+from nvim_nvda_core import (
+    ConnectionCoordinator,
+    ConnectionInstanceManager,
+    SpeechPlanner,
+    TerminalIdentity,
+)
 
 
 class ConnectionCoordinatorTests(unittest.TestCase):
@@ -69,33 +74,41 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         created = []
 
         def create_runtime():
-            runtime = {"label": f"new-{len(created) + 1}"}
+            runtime = {
+                "planner": SpeechPlanner(),
+                "currentState": {"label": f"new-{len(created) + 1}"},
+                "lastMode": None,
+                "typedWord": [],
+                "typedPosition": None,
+                "menuDocumentation": "",
+                "connected": False,
+                "lastConnectionState": None,
+                "transportCapabilities": frozenset(),
+            }
             created.append(runtime)
             return runtime
 
-        first = coordinator.switch_runtime("connection-1", {"label": "initial"}, create_runtime)
-        self.assertEqual({"label": "new-1"}, first)
-        self.assertIsNone(coordinator.switch_runtime(
-            "connection-1", {"label": "ignored"}, create_runtime,
-        ))
-        second = coordinator.switch_runtime(
-            "connection-2", {"label": "first-active"}, create_runtime,
-        )
-        self.assertEqual({"label": "new-2"}, second)
+        self.assertTrue(coordinator.switch_runtime("connection-1", create_runtime))
+        self.assertEqual({"label": "new-1"}, coordinator.current_state)
+        self.assertFalse(coordinator.switch_runtime("connection-1", create_runtime))
+        coordinator.current_state = {"label": "first-active"}
+        self.assertTrue(coordinator.switch_runtime("connection-2", create_runtime))
+        self.assertEqual({"label": "new-2"}, coordinator.current_state)
         self.assertEqual(
-            {"label": "first-active"}, coordinator.runtime_states["connection-1"],
+            {"label": "first-active"},
+            coordinator.runtime_states["connection-1"]["currentState"],
         )
-        restored = coordinator.switch_runtime(
-            "connection-1", {"label": "second-active"}, create_runtime,
-        )
-        self.assertEqual({"label": "first-active"}, restored)
+        coordinator.current_state = {"label": "second-active"}
+        self.assertTrue(coordinator.switch_runtime("connection-1", create_runtime))
+        self.assertEqual({"label": "first-active"}, coordinator.current_state)
         self.assertEqual(
-            {"label": "second-active"}, coordinator.runtime_states["connection-2"],
+            {"label": "second-active"},
+            coordinator.runtime_states["connection-2"]["currentState"],
         )
 
-        self.assertIsNone(coordinator.drop_runtime("connection-2", create_runtime))
-        blank = coordinator.drop_runtime("connection-1", create_runtime)
-        self.assertEqual({"label": "new-3"}, blank)
+        self.assertFalse(coordinator.drop_runtime("connection-2", create_runtime))
+        self.assertTrue(coordinator.drop_runtime("connection-1", create_runtime))
+        self.assertEqual({"label": "new-3"}, coordinator.current_state)
         self.assertIsNone(coordinator.active_instance_id)
 
     def test_request_ids_are_bounded_and_independent_by_channel(self) -> None:

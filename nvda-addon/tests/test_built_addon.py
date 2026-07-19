@@ -535,6 +535,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
         self.assertIs(plugin._gate, plugin._connectionCoordinator.gate)
         self.assertIs(plugin._planner, plugin._connectionCoordinator.planner)
+        self.assertIs(plugin._currentState, plugin._connectionCoordinator.current_state)
+        self.assertIs(plugin._typedWord, plugin._connectionCoordinator.typed_word)
         self.assertIs(
             plugin._rememberedTerminalBindings,
             plugin._connectionCoordinator.remembered_terminal_bindings,
@@ -547,6 +549,8 @@ class BuiltAddonTests(unittest.TestCase):
             "_gate", "_planner", "_pendingFocusContexts", "_pendingClipboardRequests",
             "_pendingTerminalControlRequests", "_transportCapabilities",
             "_focusContextRequestId", "_clipboardRequestId", "_terminalControlRequestId",
+            "_currentState", "_lastMode", "_typedWord", "_typedPosition",
+            "_menuDocumentation",
         ):
             self.assertNotIn(legacy_field, vars(plugin))
 
