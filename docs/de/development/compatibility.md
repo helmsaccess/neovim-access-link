@@ -24,11 +24,12 @@ stabilen Stand vom 20. Mai 2026. Der offizielle Quelltag bestätigt 64-Bit-Pytho
 3.13.12. Verwendet werden ein anwendungsspezifisches
 `appModuleHandler.AppModule`, ein Global Plugin ohne globale Ereignis- oder
 Overlay-Hooks, dekorierte Scripts, `queueHandler.queueFunction`/`eventQueue`
-und öffentliche Speech-Funktionen. Das Global Plugin registriert unbelegte
-Scriptmetadaten, damit frei konfigurierbare Befehle überall im
-Tastenbefehldialog sichtbar sind; jeder Aufruf prüft den konkreten
-Windows-Terminal-Fokus erneut und reicht die Geste andernorts unverändert
-weiter.
+und öffentliche Speech-Funktionen. Frei konfigurierbare Terminalbefehle liegen
+im Windows-Terminal-AppModule. Sie erscheinen im Tastenbefehldialog zunächst
+nach zuvor fokussiertem Windows Terminal und werden nicht in fremden
+Anwendungen aufgelöst. Nach dem Laden der Klasse kann NVDAs Benutzergestenkarte
+eine gespeicherte Zuordnung andernorts weiter anzeigen; beim Aufruf werden
+konkrete AppModule- und Control-Identität erneut geprüft.
 Manifestwerte sind `minimumNVDAVersion = 2026.1` und
 `lastTestedNVDAVersion = 2026.1.1`. Installation, Add-on-Start,
 Serverinstallation, SSH-stdio-Verbindung, Sprach- und Soundausgabe sowie die
@@ -64,9 +65,9 @@ vorhandene Benutzerbelegungen bleiben unangetastet.
 Die Prüfung war nicht erschöpfend. Andere Windows-Versionen, NVDA-Versionen,
 Sprachprofile und reale Braillezeilen sind noch nicht breit in einer
 Kompatibilitätsmatrix getestet. Andere Terminalprogramme sind derzeit nicht
-freigegeben: Es baut dort keine Neovim-Bindung auf und aktiviert keine
-Terminalunterdrückung; frei belegte Befehle reichen ihre Geste ohne
-Neovim-Aktion weiter. PuTTY und weitere Frontends benötigen jeweils einen
+freigegeben: Es baut dort keine Neovim-Bindung auf, aktiviert keine
+Terminalunterdrückung und löst keine Windows-Terminal-AppModule-Befehle aus.
+PuTTY und weitere Frontends benötigen jeweils einen
 eigenen Identitäts-, Fokus-, Ausgabe- und Fail-open-Adapter mit praktischer
 Prüfung.
 

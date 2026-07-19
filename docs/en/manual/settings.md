@@ -141,16 +141,20 @@ profiles, Neovim configuration, SSH keys and configuration, unrelated plugins,
 and session data remain intact. The same connection can therefore be selected
 for installation again later.
 
-Use `NVDA menu → Preferences → Input gestures... → Neovim Access Link` to
-assign activation, manual connection, disconnect, forget-binding, and
-diagnostic-report commands. F12 is the default session-claim key shared with
-the installed plugin and should not be reassigned as activation.
+Focus Windows Terminal before opening `NVDA menu → Preferences → Input
+gestures... → Neovim Access Link` to assign activation, manual connection,
+disconnect, forget-binding, and diagnostic-report commands. NVDA lists and
+resolves the freely assignable commands through the Windows Terminal
+AppModule, not globally. F12 is the default session-claim key shared with the
+installed plugin and should not be reassigned as activation.
 
-Freely assignable commands remain visible in that category even when the
-dialog was opened from another application. Invocation rechecks the current
-UI Automation control. Outside an exactly recognized Windows Terminal control,
-the user-assigned gesture is passed through unchanged and no Neovim action is
-run.
+After upgrading from a feature build that exposed these commands through the
+Global Plugin, assign the desired gestures once again. Once the AppModule has
+loaded, NVDA may show a saved AppModule mapping in Input Gestures from another
+application for the rest of that NVDA run. Runtime resolution nevertheless
+remains AppModule-scoped, so the assignment cannot displace another NVDA
+command in an unrelated application. Invocation still rechecks the exact
+focused UI Automation control before running a Neovim action.
 
 The four copy/paste commands are assigned in that dialog as well. They do not
 replace Windows Terminal selection or `Ctrl+Shift+C`/`Ctrl+Shift+V`. Each use

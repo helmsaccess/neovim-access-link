@@ -7,9 +7,8 @@ service is now located through an identity-checked registrar. Terminal events,
 overlay selection, and `nextHandler` now reside in the Windows Terminal
 AppModule. This stage is confirmed by automated and practical tests with local
 and remote connections across multiple WT windows, tabs, and panes; practical
-Braille testing was not possible. The Windows
-Terminal AppModule is the target for configurable commands; moving them
-remains a separate migration step that must be tested on its own.
+Braille testing was not possible. The Windows Terminal AppModule now also owns
+the configurable terminal commands under automated and practical coverage.
 
 ## Context
 
@@ -30,9 +29,7 @@ A minimal Global Plugin remains as the process-wide composition and lifetime
 root. It may only:
 
 - register settings and tools once and remove them symmetrically;
-- construct, expose, and shut down shared services in an orderly manner;
-- provisionally provide metadata for configurable commands until a separate
-  step moves them to the Windows Terminal AppModule.
+- construct, expose, and shut down shared services in an orderly manner.
 
 Connections, assignments, the gate, protocol state, and presentation planning
 reside in ordinary services that do not inherit from `GlobalPlugin`. Their
@@ -44,6 +41,7 @@ The Windows Terminal AppModule owns:
 
 - every application-specific NVDA event entry point;
 - selection and removal of its overlays;
+- metadata and dispatch for configurable terminal commands;
 - every invocation of `nextHandler`, at most once per event;
 - the fail-open decision when the service, identity, or state is missing,
   stale, ambiguous, or faulty.
@@ -86,10 +84,14 @@ to native processing without an assignment.
 NVDA 2026.1.1 builds the Input Gestures dialog from the object that was focused
 before opening it and from that object's AppModule. Commands on the Windows
 Terminal AppModule are therefore discoverable when Windows Terminal was
-focused first. They will move there in a separate migration stage, which also
-scopes execution more narrowly to the current application context. Until then,
-the existing globally visible, unbound script metadata remains in place. No
-new global default gestures are introduced.
+focused first. They now reside there, which scopes normal NVDA resolution to
+that application. Dispatch still revalidates the concrete AppModule instance
+and control identity so a focus race fails open. Assignments stored by earlier
+feature builds for the Global Plugin must be assigned again. No new global
+default gestures are introduced. NVDA may display a saved AppModule assignment
+from another application after the class has loaded because Input Gestures
+enumerates the global user gesture map first; runtime resolution remains bound
+to the focused AppModule instance.
 
 ## Consequences
 

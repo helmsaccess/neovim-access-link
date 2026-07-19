@@ -90,8 +90,8 @@ Bindung hält das NVDA-Add-on nur für seine aktuelle Laufzeit im Arbeitsspeiche
 
 ## Was beim Aktivieren passiert
 
-Der frei belegbare NVDA-Aktivierungsbefehl schaltet den gemeinsamen Dienst ein
-oder wieder aus.
+Der nur bei fokussiertem Windows Terminal auflösbare, frei belegbare
+NVDA-Aktivierungsbefehl schaltet den gemeinsamen Dienst ein oder wieder aus.
 Beim ersten Einschalten geschieht Folgendes:
 
 1. Das Windows-Terminal-AppModule übernimmt unmittelbar das aktuell fokussierte
@@ -104,9 +104,10 @@ Beim ersten Einschalten geschieht Folgendes:
 
 Solange der Dienst eingeschaltet ist, autorisiert jeder physische F12-Druck
 genau einen Zuordnungsversuch für die vollständige UIA-Identität des aktuell
-fokussierten Controls. Der Aktivierungsbefehl bleibt dagegen überall der
-globale Ein-/Ausschalter. Weitere Fenster, Tabs oder Panes werden deshalb direkt
-mit F12 zugeordnet; bestehende Verbindungen bleiben erhalten.
+fokussierten Controls. Der Aktivierungsbefehl schaltet den gemeinsamen Dienst
+aus jedem fokussierten Windows-Terminal-Control ein oder aus. Weitere Fenster,
+Tabs oder Panes werden deshalb direkt mit F12 zugeordnet; bestehende
+Verbindungen bleiben erhalten.
 
 Diese Erfassung öffnet noch keine dauerhafte Editorverbindung. Es gibt keine
 Standardverbindung und keine Priorität zwischen lokalem Windows und SSH.

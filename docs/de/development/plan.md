@@ -104,15 +104,22 @@ veraltete Controls, mehrere WT-AppModules und schnelle Fokuswechsel. Der
 anschließende Praxistest des Normal- und Insert-Claims sowie der Fokus- und
 Control-Abschottung zeigte keine Fehler.
 
-Die Platzierung frei belegbarer Befehle ist für eine spätere, getrennte Stufe
-geklärt: NVDA 2026.1.1 bezieht den Tastenbefehldialog aus dem vorherigen Fokus
-und dessen AppModule. Bei zuvor fokussiertem Windows Terminal sind die Befehle
-des Windows-Terminal-AppModules deshalb sichtbar und können dort enger
-begrenzt werden. Bis diese Verlagerung eigens umgesetzt und geprüft ist,
-bleiben die vorhandenen Metadaten unverändert. Nach jeder Stufe müssen gebautes Add-on,
+Phase 6 ist automatisiert und praktisch bestätigt. Die zehn frei belegbaren
+Terminalbefehle liegen nicht mehr im Global Plugin, sondern im Windows-
+Terminal-AppModule.
+NVDA 2026.1.1 zeigt unbelegte Befehle zunächst an, wenn Windows Terminal vor
+dem Öffnen des Tastenbefehldialogs fokussiert war, und löst ihre Belegungen
+nicht mehr in fremden Anwendungen auf. Nach dem Laden der AppModule-Klasse
+kann eine gespeicherte Zuordnung andernorts aufgelistet bleiben; dies ist
+NVDAs Darstellung der Benutzergestenkarte, keine globale Ausführung. Die
+Ausführung prüft konkrete AppModule-Instanz und Control erneut; Fokusrennen und
+ein nicht verfügbarer gemeinsamer Dienst geben
+die Originalgeste durch. Für frühere GlobalPlugin-Skripte gespeicherte
+Belegungen müssen neu zugewiesen werden. Sichtbarkeit, Neuzuweisung, lokale und
+SSH-Befehle sowie mehrere Fenster, Tabs und Panes sind praktisch bestätigt;
+es wurde kein Fehler gefunden. Nach jeder Stufe müssen gebautes Add-on,
 Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und
-Fenstern geprüft werden; Architekturumbau und Verhaltensänderung werden nicht
-im selben Schritt vermischt.
+Fenstern geprüft werden.
 
 ## 3. Praktische Abschottung verbreitern
 

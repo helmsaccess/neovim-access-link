@@ -206,9 +206,14 @@ Windows-Add-on zurückrufen. Für ein anderes Konto oder einen anderen Host muss
 daher zuerst das passende Profil aktiviert oder der dialogbasierte
 Verbindungsbefehl verwendet werden.
 
-Über NVDAs Dialog „Eingaben“ können Anwender zusätzlich eine eigene Tastenkombination für
-„Server wählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“
-vergeben. Dieser Befehl öffnet immer die Profilauswahl. Die früher angebotenen,
+Nach vorherigem Fokussieren von Windows Terminal können Anwender über NVDAs
+Dialog „Eingaben“ zusätzlich eine eigene Tastenkombination für „Server wählen
+und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ vergeben. Dieser
+Befehl gehört wie die übrigen frei belegbaren Terminalbefehle zum Windows-
+Terminal-AppModule und wird in fremden Anwendungen nicht aufgelöst. Nach dem
+Laden der Klasse kann NVDAs globale Benutzergestenkarte eine gespeicherte
+Zuordnung dort trotzdem weiter im Dialog darstellen. Der Befehl öffnet immer
+die Profilauswahl. Die früher angebotenen,
 leicht verwechselbaren Befehle zum Auswählen oder zyklischen Wechseln einer
 bereits laufenden Verbindung sind nicht mehr öffentlich. Es gibt keine
 kollisionsanfällige Standardbelegung für diesen dialogbasierten Zusatzbefehl

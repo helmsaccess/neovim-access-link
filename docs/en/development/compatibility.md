@@ -11,6 +11,11 @@
 Neovim 0.10.1 is the provisional minimum. Newer optional APIs require feature
 tests. NVDA manifest values are minimum 2026.1 and last tested 2026.1.1; this
 boundary intentionally follows NVDA's 64-bit Python 3.13 transition.
+Configurable terminal scripts reside in the Windows Terminal AppModule. NVDA
+2026.1.1 initially lists them after Windows Terminal was focused before opening
+Input Gestures and does not resolve them in unrelated applications. Its user
+map may still display a saved assignment elsewhere after the class has loaded;
+dispatch also revalidates the concrete AppModule and control identity.
 
 The local Windows CLI and parallel local/SSH tabs were tested. Automatic F12
 binding and the following RPC connection were also confirmed practically with

@@ -218,9 +218,9 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
-| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Beenden gemeinsamer Dienste sowie vorläufig global auffindbare Befehle | Anwendungsevents, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen oder Präsentationsausgabe |
+| Global Plugin | NVDA-Prozesslebenszyklus sowie Zusammensetzung und Beenden gemeinsamer Dienste | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen oder Präsentationsausgabe |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Terminalereignisse, Fokusbindung und Unterdrückung |
-| Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
+| Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.

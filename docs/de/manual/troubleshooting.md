@@ -6,9 +6,10 @@ scheitert. Neovim Access Link enthält dafür einen kopierbaren Diagnosebericht.
 
 ## Diagnosebericht kopieren
 
-Der Befehl befindet sich unter „NVDA-Menü → Optionen → Tastenbefehle… → Neovim
-Access Link“. Standardmäßig ist `NVDA+Alt+D` zugewiesen. Der Bericht wird in die
-Windows-Zwischenablage kopiert.
+Windows Terminal fokussieren und danach „NVDA-Menü → Optionen →
+Tastenbefehle… → Neovim Access Link“ öffnen. Standardmäßig ist dem Befehl
+`NVDA+Alt+D` zugewiesen. Der Bericht wird in die Windows-Zwischenablage
+kopiert.
 
 Editortext, Auswahl, Registerinhalt, Passwörter und Tokens werden durch
 Platzhalter ersetzt. Technische Installationsmeldungen können dennoch lokale
@@ -20,7 +21,8 @@ Bericht deshalb auf persönliche Systemangaben geprüft werden.
 1. Prüfen, ob Windows Terminal fokussiert ist. Das Add-on greift absichtlich
    nicht in Notepad, PuTTY oder andere Anwendungen ein.
 2. Unter „NVDA-Menü → Optionen → Tastenbefehle…“ prüfen, ob dem
-   Aktivierungsbefehl eine Geste zugewiesen wurde.
+   Aktivierungsbefehl eine Geste zugewiesen wurde. Fehlt die Kategorie, den
+   Dialog schließen, Windows Terminal fokussieren und erneut öffnen.
 3. NVDA neu starten und erneut testen.
 4. Prüfen, ob „Neovim Access Link“ in NVDAs Liste installierter Add-ons
    aktiviert ist.

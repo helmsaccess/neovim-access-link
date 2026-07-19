@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.94.2-dev.11+feature.global-plugin-slimming (feature-branch test build)
+
+- Phase 6 moves all ten freely assignable terminal commands from the Global
+  Plugin to the Windows Terminal AppModule. NVDA lists them when Windows
+  Terminal was focused before opening Input Gestures and no longer resolves
+  their assignments in unrelated applications.
+- Dispatch revalidates the exact focused AppModule instance and complete
+  `TermControl` identity. A focus race or unavailable shared service passes the
+  original gesture through without changing gate, bindings, or suppression;
+  separate AppModule instances cannot execute one another's commands.
+- Script names, translated labels, categories, and default bindings are
+  unchanged. Because NVDA stores the owning class in a user gesture mapping,
+  gestures assigned to these commands in an earlier feature build must be
+  assigned again. Automated add-on and package coverage is complete. Practical
+  testing found no errors across local and SSH tabs and panes. It also
+  confirmed NVDA's expected display nuance: after the AppModule class has
+  loaded, the global user map may list a saved assignment from another
+  application, while runtime resolution remains Windows-Terminal-only.
+
 ## 0.94.2-dev.10+feature.global-plugin-slimming (feature-branch test build)
 
 - Phase 5 authorizes a physical F12 press only when NVDA's current focus

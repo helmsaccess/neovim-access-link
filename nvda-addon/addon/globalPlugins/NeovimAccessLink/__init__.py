@@ -19,7 +19,6 @@ import config
 import globalPluginHandler
 import globalVars
 import queueHandler
-import scriptHandler
 import speech
 import tones
 import ui
@@ -284,8 +283,6 @@ class StructuredTerminalBrailleOverlay:
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-    scriptCategory = _PRODUCT_NAME
-
     def __init__(self):
         super().__init__()
         self._serviceRegistrationToken = None
@@ -485,124 +482,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @_transportCapabilities.setter
     def _transportCapabilities(self, value):
         self._connectionCoordinator.transport_capabilities = value
-
-    def _dispatchConfiguredTerminalScript(self, gesture, action_name):
-        """Run a configurable command only for an exact Windows Terminal control.
-
-        These scripts are global solely so NVDA can always expose them in the
-        Input Gestures dialog.  They must not consume a user-assigned gesture
-        in another application or mutate terminal focus state there.
-        """
-        try:
-            obj = api.getFocusObject()
-            app_module = getattr(obj, "appModule", None)
-            descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
-            if (
-                descriptor is None
-                or getattr(app_module, "appName", None) != descriptor.app_module
-            ):
-                identity = None
-            else:
-                identity = self._identity(obj)
-        except Exception as error:
-            obj = None
-            identity = None
-            self._diagnostics.record(
-                "configuredGestureFocusFailed",
-                action=action_name,
-                errorType=type(error).__name__,
-            )
-        if identity is None:
-            self._diagnostics.record(
-                "configuredGesturePassedThrough", action=action_name,
-            )
-            if gesture is not None:
-                gesture.send()
-            return
-        self._refreshFocusedTerminalForAction(
-            obj, app_module, getattr(app_module, "_eventToken", None),
-        )
-        getattr(self, action_name)(gesture)
-
-    @scriptHandler.script(
-        description=_("Turn Neovim accessibility on or off and discover configured connections"),
-        category=scriptCategory,
-    )
-    def script_toggleNeovimMode(self, gesture):
-        self._dispatchConfiguredTerminalScript(gesture, "action_toggleNeovimMode")
-
-    @scriptHandler.script(
-        description=_("Read documentation for the selected Neovim completion item"),
-        category=scriptCategory,
-    )
-    def script_readCompletionDocumentation(self, gesture):
-        self._dispatchConfiguredTerminalScript(
-            gesture, "action_readCompletionDocumentation",
-        )
-
-    @scriptHandler.script(
-        description=_("Copy the active Neovim Visual selection to the Windows clipboard"),
-        category=scriptCategory,
-    )
-    def script_copyNeovimSelection(self, gesture):
-        self._dispatchConfiguredTerminalScript(gesture, "action_copyNeovimSelection")
-
-    @scriptHandler.script(
-        description=_("Copy Neovim's last yank to the Windows clipboard"),
-        category=scriptCategory,
-    )
-    def script_copyLastNeovimYank(self, gesture):
-        self._dispatchConfiguredTerminalScript(gesture, "action_copyLastNeovimYank")
-
-    @scriptHandler.script(
-        description=_("Paste Windows clipboard text into the active Neovim buffer"),
-        category=scriptCategory,
-    )
-    def script_pasteWindowsClipboard(self, gesture):
-        self._dispatchConfiguredTerminalScript(gesture, "action_pasteWindowsClipboard")
-
-    @scriptHandler.script(
-        description=_("Store Windows clipboard text in Neovim's unnamed register"),
-        category=scriptCategory,
-    )
-    def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
-        self._dispatchConfiguredTerminalScript(
-            gesture, "action_setNeovimRegisterFromWindowsClipboard",
-        )
-
-    @scriptHandler.script(
-        description=_("Leave direct input in the active Neovim terminal"),
-        category=scriptCategory,
-    )
-    def script_leaveDirectTerminalInput(self, gesture):
-        self._dispatchConfiguredTerminalScript(
-            gesture, "action_leaveDirectTerminalInput",
-        )
-
-    @scriptHandler.script(
-        description=_("Choose a server and connect this terminal to a new Neovim session"),
-        category=scriptCategory,
-    )
-    def script_startConnectionInstance(self, gesture):
-        self._dispatchConfiguredTerminalScript(gesture, "action_startConnectionInstance")
-
-    @scriptHandler.script(
-        description=_("Disconnect the selected Neovim connection instance"),
-        category=scriptCategory,
-    )
-    def script_disconnectConnectionInstance(self, gesture):
-        self._dispatchConfiguredTerminalScript(
-            gesture, "action_disconnectConnectionInstance",
-        )
-
-    @scriptHandler.script(
-        description=_("Forget the temporary Neovim connection for the focused terminal"),
-        category=scriptCategory,
-    )
-    def script_forgetTemporaryTerminalBinding(self, gesture):
-        self._dispatchConfiguredTerminalScript(
-            gesture, "action_forgetTemporaryTerminalBinding",
-        )
 
     def terminate(self):
         _serviceRegistrar.unpublish(self, self._serviceRegistrationToken)

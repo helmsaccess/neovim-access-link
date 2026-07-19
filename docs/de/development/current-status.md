@@ -95,7 +95,7 @@ Die Funktionstabelle und bekannte Unterschiede stehen in
 
 ### Zwischenablage
 
-Vier global auffindbare und frei belegbare NVDA-Befehle können:
+Vier frei belegbare Befehle des Windows-Terminal-AppModules können:
 
 - die aktive Visual-Auswahl nach Windows kopieren;
 - Neovims Register 0 nach Windows kopieren;
@@ -103,7 +103,12 @@ Vier global auffindbare und frei belegbare NVDA-Befehle können:
 - oder Register 0 ersetzen und das unbenannte Register darauf zeigen lassen.
 
 Lokal und über SSH gilt derselbe korrelierte, größenbegrenzte Pfad. Es gibt
-keine automatische Synchronisation und keine automatische Wiederholung.
+keine automatische Synchronisation und keine automatische Wiederholung. Diese
+und die übrigen frei belegbaren Terminalbefehle erscheinen im
+Tastenbefehldialog zunächst, wenn Windows Terminal vor dessen Öffnen fokussiert
+war; in fremden Anwendungen werden sie nicht aufgelöst. Sobald die AppModule-
+Klasse geladen ist, kann NVDA eine gespeicherte Zuordnung während dieses Laufs
+andernorts weiter auflisten, ohne ihre Ausführung global zu machen.
 
 ### Lokalisierung und Dokumentation
 

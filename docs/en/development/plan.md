@@ -96,14 +96,20 @@ unrelated applications, stale controls, multiple WT AppModules, and rapid
 focus changes. The subsequent practical test of Normal- and Insert-mode claims
 plus focus and control isolation found no errors.
 
-Placement of configurable commands is settled for a later, separate stage:
-NVDA 2026.1.1 builds the Input Gestures dialog from the previous focus and its
-AppModule. With Windows Terminal focused before opening the dialog, commands
-on its AppModule are therefore visible and can be scoped more narrowly there.
-The existing metadata remains unchanged until that relocation is implemented
-and tested separately. After each stage, verify the built add-on, fail-open
-behavior, and local and SSH sessions across multiple tabs, panes, and windows;
-do not combine architectural relocation with behavior changes in one step.
+Phase 6 is implemented under automated and practical coverage. The ten freely
+assignable terminal commands have moved from the Global Plugin to the Windows
+Terminal AppModule. NVDA 2026.1.1 initially lists unassigned commands when Windows
+Terminal was focused before opening Input Gestures and no longer resolves
+their assignments in unrelated applications. A saved assignment may remain
+listed elsewhere after the AppModule class has loaded; this is NVDA's user-map
+presentation, not global execution. Dispatch revalidates the exact AppModule
+instance and control;
+focus races and an unavailable shared service pass the original gesture
+through. Assignments stored for the former GlobalPlugin scripts must be
+assigned again. Visibility, reassignment, local and SSH commands, and multiple
+windows, tabs, and panes are practically confirmed; no fault was found. After
+each stage, verify the built add-on, fail-open behavior, and local and SSH
+sessions across multiple tabs, panes, and windows.
 
 ## 3. Broaden practical isolation coverage
 

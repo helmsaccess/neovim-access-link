@@ -19,10 +19,14 @@ focus correlation, structured Braille, or the existing mode-sound settings.
 Feedback also contains a profile-aware copy/paste success setting using the
 same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
 The four clipboard commands have no default gestures and are assigned through
-NVDA's Input Gestures dialog. Transfer direction, register, and target buffer
-cannot be supplied as free-form commands, and no automatic synchronization is
-provided. The register command replaces fixed register 0 and points the
-unnamed register to it; named user registers are not touched.
+NVDA's Input Gestures dialog after Windows Terminal was focused before opening
+it. Like the other configurable terminal commands, they belong to that
+AppModule and are not resolved in unrelated applications. After the class has
+loaded, NVDA may nevertheless continue displaying a saved assignment elsewhere
+through its global user gesture map. Transfer direction, register, and target
+buffer cannot be supplied as free-form commands, and no automatic
+synchronization is provided. The register command replaces fixed register 0
+and points the unnamed register to it; named user registers are not touched.
 
 An SSH profile stores ID, display name, host/alias, optional Linux user, port,
 optional key, and authentication method. Host and user are separate fields;

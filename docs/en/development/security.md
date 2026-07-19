@@ -57,12 +57,16 @@ diagnostics.
 Terminal suppression requires an authenticated, active, focused, exact binding
 and always fails open on error, timeout, disconnect, or deactivation.
 
-Freely configurable commands have global, unbound script metadata so NVDA can
-always show them in Input Gestures. Invocation reads focus once and delegates
-only for a complete, allowed Windows Terminal control identity. In every other
-application the adapter sends the original gesture unchanged and leaves the
-gate, bindings, and suppression untouched. Focus events, overlays, F12, and
-the default-bound diagnostic command remain Windows-Terminal-AppModule-only.
+Freely configurable commands belong to the Windows Terminal AppModule. NVDA
+initially lists their unassigned metadata after Windows Terminal was focused
+before opening Input Gestures. Once that module is loaded, NVDA's global user
+gesture map may list a saved assignment from another application, but runtime
+resolution still does not select it in that application's script chain.
+Invocation additionally requires that exact AppModule instance and a complete,
+allowed Windows Terminal control identity; a focus race passes the original
+gesture through and leaves gate, bindings, and suppression untouched. Focus
+events, overlays, F12, and the default-bound diagnostic command remain
+Windows-Terminal-AppModule-only.
 An opaque per-AppModule token rejects late focus-loss notifications from an
 old WT process. Two-phase focus completion is also bound to that token, its
 generation, and the concrete terminal identity.

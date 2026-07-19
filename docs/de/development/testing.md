@@ -286,6 +286,20 @@ Im eingebetteten Terminal zusätzlich prüfen:
 - `:bd` bei laufendem Job, wirkungslose `:bp`/`:bn`, tatsächlicher
   Bufferwechsel, `exit` und Exitstatus.
 
+### Frei belegbare Befehle
+
+Windows Terminal fokussieren und erst danach NVDAs Tastenbefehldialog öffnen.
+Die Produktkategorie und ihre frei belegbaren Befehle müssen dort sichtbar
+sein. Nach Fokus auf eine fremde Anwendung dürfen sie nicht aus deren
+AppModule-Skriptmenge aufgelöst werden. Nach Zuweisung einer Geste und Laden
+der AppModule-Klasse darf NVDAs globale Benutzergestenkarte die gespeicherte
+Zuordnung im Dialog andernorts weiter auflisten; ihre Ausführung muss trotzdem
+begrenzt bleiben. Ein Fokuswechsel zwischen Auflösung und Ausführung muss die
+Originalgeste genau einmal durchlassen; zwei Windows-Terminal-AppModule-
+Instanzen dürfen keine Befehle füreinander ausführen. Nach dem Wechsel von
+einem Build mit GlobalPlugin-Skripten werden die gewünschten Gesten einmal neu
+zugewiesen.
+
 ### Zwischenablage
 
 Die Produktkategorie muss in NVDAs Tastenbefehldialog auch aus einer fremden

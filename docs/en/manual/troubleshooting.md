@@ -2,16 +2,19 @@
 
 ## Copy a diagnostic report
 
-The command is under `NVDA menu → Preferences → Input gestures... → Neovim
-Access Link` and defaults to `NVDA+Alt+D`. Editor text, selections, registers,
+Focus Windows Terminal before opening `NVDA menu → Preferences → Input
+gestures... → Neovim Access Link`. The command defaults to `NVDA+Alt+D`.
+Editor text, selections, registers,
 passwords, and tokens are redacted. Installation paths, profile names, or SSH
 targets may still identify a system, so review the report before sharing it.
 
 ## No response
 
 Confirm Windows Terminal has focus, the add-on is enabled, and an activation
-gesture is assigned. The add-on deliberately does nothing in Notepad, PuTTY,
-or unknown applications. Restart NVDA after installation or upgrade.
+gesture is assigned. If the command category was absent during assignment,
+close the dialog, focus Windows Terminal, and open it again. The add-on
+deliberately does nothing in Notepad, PuTTY, or unknown applications. Restart
+NVDA after installation or upgrade.
 
 ## Local plugin not found
 

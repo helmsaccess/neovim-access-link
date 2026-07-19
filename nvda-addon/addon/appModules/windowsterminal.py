@@ -71,6 +71,49 @@ class AppModule(appModuleHandler.AppModule):
             api.getFocusObject(), self, self._eventToken,
         )
 
+    def _passThroughConfiguredTerminalScript(self, plugin, gesture, action_name):
+        if plugin is not None:
+            plugin._diagnostics.record(
+                "configuredGesturePassedThrough", action=action_name,
+            )
+        if gesture is not None:
+            gesture.send()
+
+    def _dispatchConfiguredTerminalScript(self, gesture, action_name):
+        """Run a configurable command only for this focused AppModule."""
+        plugin = self._plugin()
+        if plugin is None:
+            self._passThroughConfiguredTerminalScript(
+                plugin, gesture, action_name,
+            )
+            return
+        try:
+            focus_obj = api.getFocusObject()
+            if getattr(focus_obj, "appModule", None) is not self:
+                self._passThroughConfiguredTerminalScript(
+                    plugin, gesture, action_name,
+                )
+                return
+            if plugin._identity(focus_obj) is None:
+                self._passThroughConfiguredTerminalScript(
+                    plugin, gesture, action_name,
+                )
+                return
+            plugin._refreshFocusedTerminalForAction(
+                focus_obj, self, self._eventToken,
+            )
+        except Exception as error:
+            plugin._diagnostics.record(
+                "configuredGestureFocusFailed",
+                action=action_name,
+                errorType=type(error).__name__,
+            )
+            self._passThroughConfiguredTerminalScript(
+                plugin, gesture, action_name,
+            )
+            return
+        getattr(plugin, action_name)(gesture)
+
     def _shouldUseNativeEvent(self, plugin, obj, event_name):
         try:
             return plugin._shouldUseNativeTerminalEvent(obj)
@@ -168,6 +211,86 @@ class AppModule(appModuleHandler.AppModule):
         plugin = self._plugin()
         if plugin is None or self._shouldUseNativeEvent(plugin, obj, "descriptionChange"):
             nextHandler()
+
+    @scriptHandler.script(
+        description=_("Turn Neovim accessibility on or off and discover configured connections"),
+        category=scriptCategory,
+    )
+    def script_toggleNeovimMode(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_toggleNeovimMode")
+
+    @scriptHandler.script(
+        description=_("Read documentation for the selected Neovim completion item"),
+        category=scriptCategory,
+    )
+    def script_readCompletionDocumentation(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_readCompletionDocumentation",
+        )
+
+    @scriptHandler.script(
+        description=_("Copy the active Neovim Visual selection to the Windows clipboard"),
+        category=scriptCategory,
+    )
+    def script_copyNeovimSelection(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_copyNeovimSelection")
+
+    @scriptHandler.script(
+        description=_("Copy Neovim's last yank to the Windows clipboard"),
+        category=scriptCategory,
+    )
+    def script_copyLastNeovimYank(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_copyLastNeovimYank")
+
+    @scriptHandler.script(
+        description=_("Paste Windows clipboard text into the active Neovim buffer"),
+        category=scriptCategory,
+    )
+    def script_pasteWindowsClipboard(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_pasteWindowsClipboard")
+
+    @scriptHandler.script(
+        description=_("Store Windows clipboard text in Neovim's unnamed register"),
+        category=scriptCategory,
+    )
+    def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_setNeovimRegisterFromWindowsClipboard",
+        )
+
+    @scriptHandler.script(
+        description=_("Leave direct input in the active Neovim terminal"),
+        category=scriptCategory,
+    )
+    def script_leaveDirectTerminalInput(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_leaveDirectTerminalInput",
+        )
+
+    @scriptHandler.script(
+        description=_("Choose a server and connect this terminal to a new Neovim session"),
+        category=scriptCategory,
+    )
+    def script_startConnectionInstance(self, gesture):
+        self._dispatchConfiguredTerminalScript(gesture, "action_startConnectionInstance")
+
+    @scriptHandler.script(
+        description=_("Disconnect the selected Neovim connection instance"),
+        category=scriptCategory,
+    )
+    def script_disconnectConnectionInstance(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_disconnectConnectionInstance",
+        )
+
+    @scriptHandler.script(
+        description=_("Forget the temporary Neovim connection for the focused terminal"),
+        category=scriptCategory,
+    )
+    def script_forgetTemporaryTerminalBinding(self, gesture):
+        self._dispatchConfiguredTerminalScript(
+            gesture, "action_forgetTemporaryTerminalBinding",
+        )
 
     @scriptHandler.script(
         description=_("Copy Neovim accessibility diagnostic report"),

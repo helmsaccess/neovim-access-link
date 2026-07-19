@@ -5,6 +5,28 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.11+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Phase 6 verlagert alle zehn frei belegbaren Terminalbefehle vom Global
+  Plugin in das Windows-Terminal-AppModule. NVDA zeigt sie an, wenn Windows
+  Terminal vor dem Öffnen des Tastenbefehldialogs fokussiert war, und löst ihre
+  Belegungen nicht mehr in fremden Anwendungen auf.
+- Die Ausführung prüft die exakt fokussierte AppModule-Instanz und vollständige
+  `TermControl`-Identität erneut. Ein Fokusrennen oder nicht verfügbarer
+  gemeinsamer Dienst gibt die Originalgeste durch, ohne Gate, Bindungen oder
+  Unterdrückung zu verändern; getrennte AppModule-Instanzen können keine
+  Befehle füreinander ausführen.
+- Skriptnamen, übersetzte Bezeichnungen, Kategorien und Standardbelegungen
+  bleiben unverändert. Weil NVDA die besitzende Klasse in einer
+  Benutzergestenzuordnung speichert, müssen in einem früheren Featurebuild
+  zugewiesene Gesten einmal neu belegt werden. Automatisierte Add-on- und
+  Paketabdeckung ist vollständig. Der Praxistest fand in lokalen und SSH-Tabs
+  sowie Panes keine Fehler. Er bestätigte auch NVDAs erwartete
+  Darstellungsnuance: Nach dem Laden der AppModule-Klasse kann die globale
+  Benutzergestenkarte eine gespeicherte Zuordnung aus einer anderen Anwendung
+  heraus auflisten, während die Laufzeitauflösung auf Windows Terminal
+  begrenzt bleibt.
+
 ## 0.94.2-dev.10+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Phase 5 autorisiert einen physischen F12-Druck nur noch, wenn NVDAs

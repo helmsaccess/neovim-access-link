@@ -54,15 +54,27 @@ Einstellungen und Tastenzuweisungen werden nicht übernommen.
 Nach dem Neustart erscheint unter „NVDA-Menü → Optionen → Einstellungen…“ die
 Kategorie „Neovim Access Link“. Unter „NVDA-Menü → Optionen →
 Tastenbefehle…“ gibt es ebenfalls eine gleichnamige Kategorie für die
-Tastenzuweisungen. Die frei belegbaren Befehle werden dort unabhängig davon
-angezeigt, welche Anwendung vor dem Öffnen des Dialogs fokussiert war.
+Tastenzuweisungen, wenn vor dem Öffnen des Dialogs Windows Terminal fokussiert
+war.
 
 ## 3. Eigene Aktivierungstaste festlegen
 
-1. „NVDA-Menü → Optionen → Tastenbefehle…“ öffnen.
+1. Ein beliebiges Windows-Terminal-Control fokussieren und danach „NVDA-Menü →
+   Optionen → Tastenbefehle…“ öffnen.
 2. Die Kategorie „Neovim Access Link“ suchen.
 3. Dem Befehl „Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte
    Verbindungen erkennen“ eine gut erreichbare Tastenkombination zuweisen.
+
+NVDA zeigt die zunächst unbelegten Befehle an, wenn Windows Terminal vor dem
+Öffnen des Dialogs fokussiert war. Nach einer Zuweisung und dem Laden des
+Windows-Terminal-AppModules kann NVDA die gespeicherte Zuordnung bis zum
+nächsten NVDA-Neustart auch aus anderen Anwendungen heraus auflisten. Das ist
+nur die Darstellung von NVDAs Benutzergestenkarte: Ausgeführt wird der Befehl
+weiterhin ausschließlich bei fokussiertem Windows Terminal. Eine Belegung kann
+dadurch keinen anderen NVDA-Befehl in fremden Anwendungen verdrängen. Nach
+einem Wechsel von einem früheren Featurebuild, der diese Befehle noch dem
+Global Plugin zuordnete, müssen gewünschte Tastenkombinationen einmal neu
+belegt werden.
 
 `Ctrl+Alt+N` sollte nicht verwendet werden, weil Windows diese Kombination je
 nach NVDA-Installation für einen NVDA-Neustart verwenden kann.
@@ -84,9 +96,8 @@ Standardbelegung bereit:
 
 Diese Befehle müssen bei Bedarf mit eigenen NVDA-Tastenkombinationen belegt
 werden. Sie wirken nur in der ausdrücklich gebundenen und aktuell fokussierten
-Neovim-Sitzung. Außerhalb eines eindeutig erkannten Windows-Terminal-Controls
-wird eine solche eigene Tastenkombination unverändert an die fokussierte
-Anwendung weitergegeben; normales Windows-Terminal-Copy-and-Paste bleibt
+Neovim-Sitzung. Außerhalb von Windows Terminal werden sie von NVDA nicht als
+AppModule-Befehle aufgelöst; normales Windows-Terminal-Copy-and-Paste bleibt
 unverändert.
 
 ## 4. Komponenten installieren

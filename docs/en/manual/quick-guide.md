@@ -30,14 +30,19 @@ load. Old settings and gesture assignments are not imported.
 
 1. Open `NeovimAccessLink-<version>.nvda-addon`, confirm installation, and
    restart NVDA.
-2. Open `NVDA menu → Preferences → Input gestures...`.
+2. Focus any Windows Terminal control, then open
+   `NVDA menu → Preferences → Input gestures...`.
 3. Under “Neovim Access Link”, assign a convenient gesture to “Turn Neovim
    accessibility on or off and discover configured connections”.
 
-The freely assignable commands remain visible there regardless of which
-application had focus before the dialog opened. Outside an exactly recognized
-Windows Terminal control, an assigned gesture is passed unchanged to the
-focused application.
+NVDA initially lists the unassigned commands when Windows Terminal was focused
+before the dialog opened. After a gesture has been assigned and Windows
+Terminal's AppModule has loaded, NVDA may continue listing that saved mapping
+from other applications until NVDA restarts. This is only how NVDA presents
+its user gesture map: the command is resolved only while a Windows Terminal
+control has focus, so it cannot displace another NVDA command in an unrelated
+application. After upgrading from an earlier feature build that stored these
+commands under the Global Plugin, assign the desired gestures once again.
 
 Do not use F12 as the activation gesture. F12 identifies the currently focused
 Neovim session after activation. `Ctrl+Alt+N` may already start NVDA.
@@ -109,7 +114,8 @@ Switching among already bound windows, tabs, and panes needs no new F12. Native
 terminal output remains available until the matching authenticated connection
 answers the newly focused control's context request.
 
-The activation gesture remains the global on/off command in every control.
+The activation gesture turns the shared service on or off from any focused
+Windows Terminal control.
 
 ## First safety check
 

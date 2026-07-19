@@ -80,8 +80,9 @@ unknown application or an unbound tab.
 
 ## Manual selection
 
-Assign “Choose a server and connect this terminal to a new Neovim session” in
-`NVDA menu → Preferences → Input gestures...`. Use it for password profiles or
+Focus Windows Terminal, then assign “Choose a server and connect this terminal
+to a new Neovim session” in `NVDA menu → Preferences → Input gestures...`.
+Use it for password profiles or
 when automatic inventory cannot see the intended target. Choose the target,
 focus the intended Neovim in the same control, and press F12. A session choice
 appears only if multiple fresh matches genuinely remain.

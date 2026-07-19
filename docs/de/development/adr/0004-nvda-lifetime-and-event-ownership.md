@@ -7,9 +7,9 @@ Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden.
 Terminalereignisse, Overlayauswahl und `nextHandler` liegen im
 Windows-Terminal-AppModule. Diese Stufe ist automatisiert sowie praktisch mit
 lokalen und entfernten Verbindungen in mehreren WT-Fenstern, Tabs und Panes
-bestätigt; eine praktische Brailleprüfung war nicht möglich. Für
-frei belegbare Befehle ist das Windows-Terminal-AppModule das Ziel; ihre
-eigentliche Verlagerung bleibt ein getrennt zu prüfender Migrationsschritt.
+bestätigt; eine praktische Brailleprüfung war nicht möglich. Frei belegbare
+Terminalbefehle liegen nun ebenfalls unter automatisierter und praktischer
+Abdeckung im Windows-Terminal-AppModule.
 
 ## Kontext
 
@@ -30,9 +30,7 @@ Ein minimales Global Plugin bleibt als prozessweite Kompositions- und
 Lebenszykluswurzel. Es darf ausschließlich:
 
 - Einstellungen und Werkzeuge einmalig und symmetrisch registrieren;
-- gemeinsame Dienste aufbauen, verfügbar machen und geordnet beenden;
-- vorläufig die Metadaten frei belegbarer Befehle bereitstellen, bis sie in
-  einem getrennten Schritt in das Windows-Terminal-AppModule verlagert sind.
+- gemeinsame Dienste aufbauen, verfügbar machen und geordnet beenden.
 
 Verbindung, Zuordnung, Gate, Protokollzustand und Präsentationsplanung liegen
 in normalen Diensten ohne Vererbung von `GlobalPlugin`. Ihr Vertrag nimmt
@@ -44,6 +42,7 @@ Das Windows-Terminal-AppModule besitzt:
 
 - alle anwendungsspezifischen NVDA-Ereigniseinstiege;
 - die Auswahl und Entfernung eigener Overlays;
+- Metadaten und Ausführung frei belegbarer Terminalbefehle;
 - jeden Aufruf von `nextHandler`, höchstens einmal pro Ereignis;
 - die fail-open-Entscheidung, wenn Dienst, Identität oder Zustand fehlen,
   veraltet, mehrdeutig oder fehlerhaft sind.
@@ -90,11 +89,15 @@ auf native Verarbeitung zurück.
 NVDA 2026.1.1 erzeugt den Tastenbefehldialog aus dem vor dem Öffnen
 fokussierten Objekt und dessen AppModule. Bei zuvor fokussiertem Windows
 Terminal sind Befehle des Windows-Terminal-AppModules damit auffindbar. Sie
-sollen deshalb in einer eigenen Migrationsstufe dorthin verschoben werden und
-sind bei der Ausführung automatisch enger auf den aktuellen Anwendungskontext
-begrenzt. Bis dahin bleiben die vorhandenen global sichtbaren, unbelegten
-Skriptmetadaten bestehen. Es werden keine neuen globalen Standardgesten
-eingeführt.
+liegen nun dort und werden durch NVDAs normale Auflösung auf diese Anwendung
+begrenzt. Beim Aufruf werden konkrete AppModule-Instanz und Control-Identität
+zusätzlich erneut geprüft, damit ein Fokusrennen offen ausfällt. In früheren
+Featurebuilds für das Global Plugin gespeicherte Belegungen müssen neu
+zugewiesen werden. Es werden keine neuen globalen Standardgesten eingeführt.
+Nach dem Laden der Klasse kann NVDA eine gespeicherte AppModule-Zuordnung aus
+einer anderen Anwendung heraus darstellen, weil der Tastenbefehldialog zuerst
+die globale Benutzergestenkarte aufzählt; die Laufzeitauflösung bleibt an die
+fokussierte AppModule-Instanz gebunden.
 
 ## Folgen
 

@@ -894,16 +894,17 @@ class BuiltAddonTests(unittest.TestCase):
             "script_forgetTemporaryTerminalBinding",
         )
         for name in configurable_scripts:
-            metadata = getattr(GlobalPlugin, name)._test_script_kwargs
+            metadata = getattr(AppModule, name)._test_script_kwargs
             self.assertNotIn("gesture", metadata, name)
             self.assertEqual(_PRODUCT_NAME, metadata["category"], name)
             self.assertTrue(metadata["description"], name)
-            self.assertFalse(hasattr(AppModule, name), name)
+            self.assertFalse(hasattr(GlobalPlugin, name), name)
+        self.assertNotIn("scriptCategory", vars(GlobalPlugin))
         self.assertFalse(hasattr(GlobalPlugin, "script_selectConnection"))
         self.assertFalse(hasattr(GlobalPlugin, "script_nextConnection"))
         self.assertIn(
             "choose a server",
-            GlobalPlugin.script_startConnectionInstance._test_script_kwargs["description"].lower(),
+            AppModule.script_startConnectionInstance._test_script_kwargs["description"].lower(),
         )
         self.assertEqual(
             "kb:NVDA+alt+d",
@@ -912,10 +913,13 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
 
-    def test_configured_global_gesture_passes_through_outside_windows_terminal(self) -> None:
+    def test_configured_app_module_gesture_passes_through_after_focus_race(self) -> None:
+        from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
         self._focusPlugin(plugin)
         previous = plugin._gate.focused
         self.focus = types.SimpleNamespace(
@@ -928,7 +932,7 @@ class BuiltAddonTests(unittest.TestCase):
         forwarded = []
         gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
 
-        plugin.script_toggleNeovimMode(gesture)
+        adapter.script_toggleNeovimMode(gesture)
 
         self.assertEqual([True], forwarded)
         self.assertEqual(previous, plugin._gate.focused)
@@ -936,6 +940,111 @@ class BuiltAddonTests(unittest.TestCase):
         report = plugin._diagnostics.report()
         self.assertIn('"category": "configuredGesturePassedThrough"', report)
         self.assertIn('"action": "action_toggleNeovimMode"', report)
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_configured_app_module_gesture_fails_open_without_shared_service(self) -> None:
+        from appModules.windowsterminal import AppModule
+
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        forwarded = []
+
+        adapter.script_toggleNeovimMode(
+            types.SimpleNamespace(send=lambda: forwarded.append(True)),
+        )
+
+        self.assertEqual([True], forwarded)
+        adapter.terminate()
+
+    def test_configured_app_module_gesture_rejects_non_terminal_control(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        self.focus.UIAElement.cachedClassName = "OtherControl"
+        forwarded = []
+        handled = []
+        plugin.action_toggleNeovimMode = lambda gesture: handled.append(gesture)
+
+        adapter.script_toggleNeovimMode(
+            types.SimpleNamespace(send=lambda: forwarded.append(True)),
+        )
+
+        self.assertEqual([True], forwarded)
+        self.assertEqual([], handled)
+        self.assertIsNone(plugin._gate.focused)
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_configured_app_module_gesture_uses_only_exact_focused_adapter(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        first = AppModule()
+        second = AppModule()
+        self.focus.appModule = first
+        self._focusPlugin(plugin)
+        handled = []
+        plugin.action_toggleNeovimMode = lambda gesture: handled.append(gesture)
+        forwarded = []
+        gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
+
+        second.script_toggleNeovimMode(gesture)
+        first.script_toggleNeovimMode(gesture)
+
+        self.assertEqual([True], forwarded)
+        self.assertEqual([gesture], handled)
+        first.terminate()
+        second.terminate()
+        plugin.terminate()
+
+    def test_every_configurable_app_module_script_dispatches_its_action(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        scripts_and_actions = (
+            ("script_toggleNeovimMode", "action_toggleNeovimMode"),
+            ("script_readCompletionDocumentation", "action_readCompletionDocumentation"),
+            ("script_copyNeovimSelection", "action_copyNeovimSelection"),
+            ("script_copyLastNeovimYank", "action_copyLastNeovimYank"),
+            ("script_pasteWindowsClipboard", "action_pasteWindowsClipboard"),
+            (
+                "script_setNeovimRegisterFromWindowsClipboard",
+                "action_setNeovimRegisterFromWindowsClipboard",
+            ),
+            ("script_leaveDirectTerminalInput", "action_leaveDirectTerminalInput"),
+            ("script_startConnectionInstance", "action_startConnectionInstance"),
+            ("script_disconnectConnectionInstance", "action_disconnectConnectionInstance"),
+            (
+                "script_forgetTemporaryTerminalBinding",
+                "action_forgetTemporaryTerminalBinding",
+            ),
+        )
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        handled = []
+        marker = object()
+        for _script_name, action_name in scripts_and_actions:
+            setattr(
+                plugin, action_name,
+                lambda gesture, action_name=action_name: handled.append(
+                    (action_name, gesture),
+                ),
+            )
+
+        for script_name, _action_name in scripts_and_actions:
+            getattr(adapter, script_name)(marker)
+
+        self.assertEqual(
+            [(action_name, marker) for _script_name, action_name in scripts_and_actions],
+            handled,
+        )
+        adapter.terminate()
         plugin.terminate()
 
     def test_f12_observer_keeps_original_gesture_unbound_and_starts_claim_resolution(self) -> None:
@@ -1624,15 +1733,17 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._focusedTerminalObject = None
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(plugin._gate.focused)
-        AppModule()
+        adapter = AppModule()
+        self.focus.appModule = adapter
 
-        plugin.script_toggleNeovimMode(None)
+        adapter.script_toggleNeovimMode(None)
 
         expected = plugin._identity(self.focus)
         self.assertEqual(expected, plugin._gate.focused)
         self.assertIs(self.focus, plugin._focusedTerminalObject)
         self.assertEqual([expected], inventories)
         self.assertIn('"category": "terminalActionFocusRefreshed"', plugin._diagnostics.report())
+        adapter.terminate()
         plugin.terminate()
 
     def test_activation_in_unbound_second_control_still_disables_globally(self) -> None:
@@ -1687,15 +1798,19 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("off", self.messages[-1])
         plugin.terminate()
 
-    def test_terminal_events_stay_in_app_module_while_configurable_scripts_are_global(self) -> None:
+    def test_terminal_events_and_configurable_scripts_stay_in_app_module(self) -> None:
         with zipfile.ZipFile(build()) as archive:
             names = set(archive.namelist())
             global_source = archive.read(
                 "globalPlugins/NeovimAccessLink/__init__.py"
             ).decode("utf-8")
+            app_module_source = archive.read(
+                "appModules/windowsterminal.py"
+            ).decode("utf-8")
         self.assertIn("appModules/windowsterminal.py", names)
-        self.assertIn("_dispatchConfiguredTerminalScript", global_source)
-        self.assertIn("getFocusObject", global_source)
+        self.assertNotIn("_dispatchConfiguredTerminalScript", global_source)
+        self.assertIn("_dispatchConfiguredTerminalScript", app_module_source)
+        self.assertIn("getFocusObject", app_module_source)
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
@@ -1713,10 +1828,22 @@ class BuiltAddonTests(unittest.TestCase):
             "_event_valueChange", "_event_nameChange", "_event_descriptionChange",
         ):
             self.assertNotIn(event_name, global_source)
-        self.assertTrue(hasattr(GlobalPlugin, "script_toggleNeovimMode"))
-        self.assertFalse(hasattr(AppModule, "script_toggleNeovimMode"))
+        self.assertFalse(hasattr(GlobalPlugin, "script_toggleNeovimMode"))
+        self.assertTrue(hasattr(AppModule, "script_toggleNeovimMode"))
         self.assertEqual(
-            ["script_copyDiagnosticReport"],
+            [
+                "script_copyDiagnosticReport",
+                "script_copyLastNeovimYank",
+                "script_copyNeovimSelection",
+                "script_disconnectConnectionInstance",
+                "script_forgetTemporaryTerminalBinding",
+                "script_leaveDirectTerminalInput",
+                "script_pasteWindowsClipboard",
+                "script_readCompletionDocumentation",
+                "script_setNeovimRegisterFromWindowsClipboard",
+                "script_startConnectionInstance",
+                "script_toggleNeovimMode",
+            ],
             sorted(
                 name for name, value in vars(AppModule).items()
                 if name.startswith("script_")

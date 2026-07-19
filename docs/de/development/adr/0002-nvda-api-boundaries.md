@@ -74,9 +74,11 @@ Hauptthread bleiben ausgeschlossen. F12 wird vom nur für Windows Terminal
 geladenen AppModule beobachtet, aber weder als NVDA-Skript gebunden noch
 synthetisch weitergereicht.
 
-Das Global Plugin darf unbelegte Scriptmetadaten registrieren, damit frei
-konfigurierbare Befehle in NVDAs Tastenbefehldialog unabhängig von der gerade
-fokussierten Anwendung sichtbar bleiben. Diese Adapter lesen den Fokus einmal,
-delegieren nur an ein vollständig validiertes Windows-Terminal-Control und
-reichen die Originalgeste andernorts unverändert weiter. Globale Ereignis- und
-Overlay-Hooks bleiben ausgeschlossen.
+Das Global Plugin darf weder globale Ereignishandler noch frei belegbare
+Terminalscripts oder Overlayauswahl registrieren. Fokusereignisse, frei
+belegbare Befehle, F12, Overlays und Standardgesten gehören zum Windows-
+Terminal-AppModule. NVDA zeigt unbelegte Befehle zunächst an, wenn Windows
+Terminal vor dem Öffnen des Tastenbefehldialogs fokussiert war. Nach dem Laden
+der AppModule-Klasse kann NVDAs Benutzergestenkarte eine gespeicherte Zuordnung
+auch andernorts darstellen; die Laufzeitauflösung wählt sie nur im Windows-
+Terminal-Anwendungskontext aus.

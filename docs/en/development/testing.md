@@ -133,9 +133,11 @@ Important cases are:
   with fail-open behavior and no repeat after early or late failures;
 - late `loseFocus` and reentrant focus completion without clearing newer WT
   focus or losing a pending `fullState`;
-- global unbound gesture metadata, but execution only in an exactly validated
-  bound Windows Terminal control;
-- exactly one pass-through of the original gesture elsewhere.
+- unbound configurable gesture metadata only on the Windows Terminal
+  AppModule and none on the Global Plugin;
+- exact focused-AppModule and control validation, with one pass-through of the
+  original gesture if focus changes before execution;
+- separate AppModule instances never execute one another's command.
 
 ### Terminal and command line
 
@@ -270,9 +272,14 @@ In an embedded terminal, also check:
 
 ### Clipboard
 
-The product category must be visible in NVDA's Input Gestures dialog even when
-opened from another application. A gesture assigned there must pass through
-unchanged outside a valid Neovim control.
+Focus Windows Terminal before opening NVDA's Input Gestures dialog. The product
+category and freely assignable commands must be visible there, absent from an
+unrelated application's AppModule command set, and executable only for the
+exact focused Windows Terminal AppModule. After assigning a gesture and
+loading that AppModule class, reopening the dialog elsewhere may still list
+the saved mapping through NVDA's global user map; verify that execution remains
+scoped. Reassign commands once after moving from a build that stored them under
+the Global Plugin.
 
 Locally and over SSH, check:
 

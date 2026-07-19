@@ -91,7 +91,7 @@ See `accessibility.md` for the feature matrix and known differences.
 
 ### Clipboard
 
-Four globally discoverable, user-assignable NVDA commands can:
+Four user-assignable Windows Terminal AppModule commands can:
 
 - copy the active Visual selection to Windows;
 - copy Neovim register 0 to Windows;
@@ -99,7 +99,11 @@ Four globally discoverable, user-assignable NVDA commands can:
 - or replace register 0 and point the unnamed register at it.
 
 Local and SSH connections use the same correlated, size-bounded path. There is
-no automatic synchronization or retry.
+no automatic synchronization or retry. These and the other configurable
+terminal commands initially appear in Input Gestures after Windows Terminal
+was focused before opening the dialog; they are not resolved in unrelated
+applications. Once the AppModule class has loaded, NVDA may continue listing a
+saved mapping elsewhere for that run without making its execution global.
 
 ### Localization and documentation
 

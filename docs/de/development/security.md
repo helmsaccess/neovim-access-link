@@ -135,14 +135,18 @@ eine nichtleere Runtime-ID voraus. Das Session-Gate prüft die Frontendart
 unabhängig ein zweites Mal.
 Unbekannte, deaktivierte oder nur geplante Adapter bleiben fail-open; die
 Konfiguration kann keinen nicht implementierten Adapter freischalten.
-Ereignisse, Overlays, F12 und der standardbelegte Diagnosebefehl gehören
-ausschließlich zum von NVDA an `windowsterminal.exe` gebundenen AppModule. Das
-Global Plugin bietet nur unbelegte Skriptmetadaten für frei konfigurierbare
-Befehle, damit diese im Eingabedialog immer sichtbar sind. Bei einem Aufruf
-fragt der Adapter den Fokus einmal ab und delegiert nur für ein vollständig
-validiertes Windows-Terminal-Control. In fremden Anwendungen gibt er die
-Originalgeste unverändert weiter und verändert weder Gate noch Bindungen oder
-Unterdrückung. Globale Ereignishandler existieren nicht.
+Ereignisse, Overlays, F12, frei belegbare Befehle und der standardbelegte
+Diagnosebefehl gehören ausschließlich zum von NVDA an
+`windowsterminal.exe` gebundenen AppModule. NVDA zeigt die frei belegbaren
+Befehle zunächst an, wenn Windows Terminal vor dem Öffnen des Eingabedialogs
+fokussiert war. Sobald das Modul geladen ist, kann NVDAs globale
+Benutzergestenkarte eine gespeicherte Zuordnung auch aus einer anderen
+Anwendung heraus auflisten; bei der Laufzeitauflösung wird sie dort trotzdem
+nicht ausgewählt. Beim Aufruf verlangt der Adapter zusätzlich genau seine
+konkrete AppModule-Instanz und ein vollständig validiertes Windows-Terminal-
+Control. Ein Fokusrennen gibt die Originalgeste unverändert weiter und
+verändert weder Gate noch Bindungen oder Unterdrückung. Globale
+Ereignishandler existieren nicht.
 Beim Verlassen von Windows Terminal räumt `event_appModule_loseFocus` den
 fokussierten Terminal- und Unterdrückungszustand auf. Ein pro AppModule
 undurchsichtiges Token verwirft verspätete Fokusverlustmeldungen eines alten

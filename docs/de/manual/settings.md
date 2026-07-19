@@ -511,7 +511,8 @@ gewählten Host nach frisch markierten Neovim-Sitzungen:
 - interne numerische Sitzungskennungen müssen nicht eingegeben werden.
 
 Der NVDA-Befehl „Server wählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ kann
-unter „NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link“ frei belegt werden. Er
+nach vorherigem Fokussieren von Windows Terminal unter „NVDA-Menü → Optionen →
+Tastenbefehle… → Neovim Access Link“ frei belegt werden. Er
 fragt zuerst das Verbindungsziel ab und gibt danach genau das fokussierte
 Control für den nächsten physischen F12-Nachweis vor. So bleibt der Nachweis auch bei
 Passwortprofilen und Sonderfällen erhalten. Erst der frische Claim bestimmt die
@@ -519,11 +520,15 @@ Sitzung; bei mehreren echten Treffern kann eine Auswahl nach Name und
 Arbeitsverzeichnis erscheinen. Interne IDs und Fenstertitel werden nicht
 verwendet.
 
-Die frei belegbaren Befehle dieser Kategorie sind auch sichtbar, wenn der
-Dialog aus einer anderen Anwendung geöffnet wurde. Bei der Ausführung prüft
-das Add-on das aktuell fokussierte UIA-Control erneut. Außerhalb eines
-eindeutig erkannten Windows-Terminal-Controls wird die eigene Tastenkombination
-unverändert weitergegeben und keine Neovim-Aktion ausgelöst.
+Die frei belegbaren Befehle dieser Kategorie gehören zum Windows-Terminal-
+AppModule. Zunächst sind sie im Dialog sichtbar, wenn Windows Terminal vor
+dessen Öffnen fokussiert war. Nach einer Zuweisung und dem Laden des AppModules
+kann NVDA eine gespeicherte Zuordnung bis zum nächsten NVDA-Neustart auch aus
+anderen Anwendungen heraus auflisten. Außerhalb von Windows Terminal wird sie
+trotzdem nicht als Add-on-Befehl aufgelöst. Bei der Ausführung prüft das Add-on
+das aktuell fokussierte UIA-Control zusätzlich erneut. Nach einem Wechsel von
+einem früheren Featurebuild mit globalen Skriptmetadaten müssen gewünschte
+Tastenkombinationen einmal neu belegt werden.
 
 Nach erfolgreicher Verbindung fragt das Add-on bei Windows Terminal optional,
 ob diese Verbindung für das Terminal-Control gemerkt werden soll. Bei „Ja“ kann
@@ -537,8 +542,9 @@ Terminal vergessen“ entfernt die Zustimmung für den aktuellen Tab. Kann keine
 stabile `TermControl`-Runtime-ID gelesen werden, erscheint die Nachfrage nicht.
 
 Weitere Befehle zum ausdrücklichen Verbinden, Trennen und Vergessen einer
-temporären Terminalbindung können unter `NVDA-Menü → Optionen → Tastenbefehle…
-→ Neovim Access Link` mit eigenen Tastenkombinationen belegt werden.
+temporären Terminalbindung können nach vorherigem Fokussieren von Windows
+Terminal unter `NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link`
+mit eigenen Tastenkombinationen belegt werden.
 
 Dort werden auch die vier Copy/Paste-Befehle frei belegt. Sie ersetzen weder
 Windows-Terminals eigene Auswahl noch dessen `Ctrl+Shift+C`/`Ctrl+Shift+V`.
