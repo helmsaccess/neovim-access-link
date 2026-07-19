@@ -1811,6 +1811,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("_dispatchConfiguredTerminalScript", global_source)
         self.assertIn("_dispatchConfiguredTerminalScript", app_module_source)
         self.assertIn("getFocusObject", app_module_source)
+        self.assertIn("import controlTypes", app_module_source)
+        self.assertNotIn("NeovimAccessLink.controlTypes", app_module_source)
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
@@ -1850,6 +1852,51 @@ class BuiltAddonTests(unittest.TestCase):
                 and hasattr(value, "_test_script_kwargs")
             ),
         )
+
+    def test_windows_terminal_overlay_hook_inserts_only_for_a_terminal_control(self) -> None:
+        import controlTypes
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredTerminalBrailleOverlay
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        classes = [object]
+
+        adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+
+        self.assertIs(StructuredTerminalBrailleOverlay, classes[0])
+        non_terminal = types.SimpleNamespace(role=controlTypes.Role.TERMINAL + 1)
+        unchanged = [object]
+        adapter.chooseNVDAObjectOverlayClasses(non_terminal, unchanged)
+        self.assertEqual([object], unchanged)
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_windows_terminal_overlay_hook_fails_open_on_identity_error(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._identity(self.focus)
+        plugin._gate.bound_terminal = plugin._gate.focused
+        plugin._identity = lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
+        classes = []
+
+        adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+
+        self.assertEqual([], classes)
+        self.assertFalse(plugin._gate.suppression_active)
+        report = plugin._diagnostics.report()
+        self.assertIn('"category": "terminalEventFailedOpen"', report)
+        self.assertIn('"event": "chooseNVDAObjectOverlayClasses"', report)
+        adapter.terminate()
+        plugin.terminate()
 
     def test_windows_terminal_events_fail_open_exactly_once(self) -> None:
         from appModules.windowsterminal import AppModule

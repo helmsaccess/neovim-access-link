@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.94.2-dev.13+feature.global-plugin-slimming (feature-branch test build)
+
+- Overlay selection now imports NVDA's `controlTypes` directly in the Windows
+  Terminal AppModule. This restores insertion of the structured Braille
+  overlay without relying on an incidental Global Plugin re-export.
+- Regression tests invoke the actual NVDA overlay hook for matching and
+  non-matching controls as well as its fail-open error path.
+- F12 is now documented precisely as a public, process-wide decider with
+  AppModule-owned lifetime and strict context checks. Documented `E402`
+  exceptions are limited to the imports that require them.
+- A dated quality review records the reason for the work, comparison basis,
+  corrected and remaining findings, verification evidence, and recommended
+  follow-up order.
+
 ## 0.94.2-dev.12+feature.global-plugin-slimming (feature-branch test build)
 
 - Phase 7 formats only the Python modules loaded directly by NVDA according
@@ -8,7 +22,8 @@
 - Ruff 0.14.5 configuration restricted to `nvda-addon/addon/`, together with
   a path-filtered GitHub Actions check, prevents renewed style mixing. The
   Global Plugin's dynamically required import path has one narrow documented
-  exception; two genuinely unused imports are removed.
+  exception; two imports classified as unused are removed. Dev build 13
+  corrects the indirect `controlTypes` dependency missed in that classification.
 - No runtime behavior is intentionally changed. Complete suites and the built
   add-on verify the mechanically reformatted state.
 

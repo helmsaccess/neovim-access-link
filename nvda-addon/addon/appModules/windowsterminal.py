@@ -1,13 +1,15 @@
 """Windows Terminal adapter for the structured Neovim accessibility add-on.
 
-NVDA loads this AppModule only for Windows Terminal.  Application events,
-object overlays and input gestures therefore never participate in unrelated
-applications.
+NVDA loads this AppModule only for Windows Terminal. Application events and
+object overlays remain application-owned. The process-wide F12 decider exists
+only while an instance of this AppModule is loaded and is inert unless the
+exact focused AppModule and terminal control match.
 """
 
 import api
 import addonHandler
 import appModuleHandler
+import controlTypes
 import inputCore
 import queueHandler
 import scriptHandler
@@ -36,10 +38,7 @@ class AppModule(appModuleHandler.AppModule):
 		if self in cls._observerAdapters:
 			cls._observerAdapters.remove(self)
 		if not cls._observerAdapters and cls._observerCallback is not None:
-			try:
-				inputCore.decide_executeGesture.unregister(cls._observerCallback)
-			except LookupError:
-				pass
+			inputCore.decide_executeGesture.unregister(cls._observerCallback)
 			cls._observerCallback = None
 		super().terminate()
 
@@ -141,10 +140,7 @@ class AppModule(appModuleHandler.AppModule):
 		if plugin is None:
 			return
 		try:
-			if (
-				getattr(obj, "role", None) == NeovimAccessLink.controlTypes.Role.TERMINAL
-				and plugin._identity(obj) is not None
-			):
+			if getattr(obj, "role", None) == controlTypes.Role.TERMINAL and plugin._identity(obj) is not None:
 				clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
 		except Exception as error:
 			try:

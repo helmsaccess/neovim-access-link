@@ -68,11 +68,13 @@ Erweiterungsschnittstellen zugesagt.
 
 ## Nicht als Ausnahme zugelassen
 
-Globale Eingabe-Hooks, Monkeypatches, Terminal-Screen-Scraping, dauerhafte
-UIA-IDs, private Netzwerkschnittstellen und blockierende Arbeit im NVDA-
-Hauptthread bleiben ausgeschlossen. F12 wird vom nur für Windows Terminal
-geladenen AppModule beobachtet, aber weder als NVDA-Skript gebunden noch
-synthetisch weitergereicht.
+Rohe globale Tastatur-Hooks, Monkeypatches, Terminal-Screen-Scraping,
+dauerhafte UIA-IDs, private Netzwerkschnittstellen und blockierende Arbeit im
+NVDA-Hauptthread bleiben ausgeschlossen. F12 wird über den öffentlichen,
+prozessweit aufgerufenen Gesture-Decider beobachtet. Dessen Registrierung und
+strikte Kontextprüfung gehören zum nur für Windows Terminal geladenen
+AppModule; F12 wird weder als NVDA-Skript gebunden noch synthetisch
+weitergereicht.
 
 Das Global Plugin darf weder globale Ereignishandler noch frei belegbare
 Terminalscripts oder Overlayauswahl registrieren. Fokusereignisse, frei

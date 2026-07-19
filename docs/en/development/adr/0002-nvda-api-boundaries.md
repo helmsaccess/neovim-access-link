@@ -17,3 +17,8 @@ focused before opening Input Gestures. Its user gesture map may later display
 a saved mapping elsewhere once the AppModule class is loaded, but runtime
 resolution selects it only in the Windows Terminal application context.
 Replace private touchpoints when an official extension point becomes available.
+
+Raw global keyboard hooks remain excluded. F12 uses the public, process-wide
+gesture decider; the Windows Terminal AppModule owns its registration and
+strict context checks. F12 is neither bound as an NVDA script nor forwarded
+synthetically.

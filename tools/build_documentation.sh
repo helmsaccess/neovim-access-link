@@ -51,6 +51,7 @@ developer_sources=(
   docs/de/development/accessibility.md
   docs/de/development/release-and-build.md
   docs/de/development/nvda-2026.1-api-notes.md
+  docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/licensing-and-contributions.md
   nvda-addon/DEPENDENCIES.md
   docs/de/development/plan.md
@@ -94,6 +95,7 @@ developer_en_sources=(
   docs/en/development/accessibility.md
   docs/en/development/release-and-build.md
   docs/en/development/nvda-2026.1-api-notes.md
+  docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/licensing-and-contributions.md
   docs/en/development/dependencies.md
   docs/en/development/plan.md

@@ -20,6 +20,7 @@ local targets = {
   ["accessibility.md"] = "#docs__de__development__accessibilitymd__funktionsmatrix",
   ["release-and-build.md"] = "#docs__de__development__release-and-buildmd__release--versions--und-buildprozess",
   ["nvda-2026.1-api-notes.md"] = "#docs__de__development__nvda-20261-api-notesmd__nvda-202611-api-untersuchung",
+  ["quality-review-global-plugin-slimming-2026-07-19.md"] = "#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__qualitätsreview-der-global-plugin-verschlankung",
   ["licensing-and-contributions.md"] = "#docs__de__development__licensing-and-contributionsmd__lizenzierung-und-beiträge",
   ["../../../nvda-addon/DEPENDENCIES.md"] = "#nvda-addon__dependenciesmd__gebündelte-abhängigkeiten",
   ["plan.md"] = "#docs__de__development__planmd__aktiver-plan",

@@ -69,39 +69,41 @@ _VENDOR_DIR = os.path.join(_PACKAGE_DIR, "vendor")
 if _VENDOR_DIR not in sys.path:
 	sys.path.insert(0, _VENDOR_DIR)
 
-from .core.stdio_client import SshStdioClient
-from .core.local_client import LocalTcpClient
-from .core.clipboard import (
+# Bundled modules are importable only after the vendor path is installed.
+from .core.stdio_client import SshStdioClient  # noqa: E402
+from .core.local_client import LocalTcpClient  # noqa: E402
+from .core.clipboard import (  # noqa: E402
 	MAX_CLIPBOARD_TEXT_BYTES,
 	clipboard_result_state,
 	valid_clipboard_text,
 	valid_request_id,
 )
-from .core.terminal_control import terminal_control_result_state
-from .core.braille import plan_braille, source_offset_for_expanded
-from .core.diagnostics import DiagnosticBuffer
-from .core.connection_profiles import (
+from .core.terminal_control import terminal_control_result_state  # noqa: E402
+from .core.braille import plan_braille, source_offset_for_expanded  # noqa: E402
+from .core.diagnostics import DiagnosticBuffer  # noqa: E402
+from .core.connection_profiles import (  # noqa: E402
 	parse_profile,
 	parse_profiles,
 )
-from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
-from .core.connection_targets import (
+from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest  # noqa: E402
+from .core.connection_targets import (  # noqa: E402
 	LOCAL_WINDOWS_TCP,
 	local_windows_target,
 	remote_ssh_target,
 )
-from .core.frontend_policy import FrontendPolicy
-from .core.gate import SessionGate, TerminalIdentity
-from .core.speech import SpeechPlanner
-from .core.ssh_sessions import SshSessionLister
-from .core.local_sessions import LocalSessionLister
-from .core.service_registrar import ServiceRegistrar
-from .nvda_windows import processAlive
+from .core.frontend_policy import FrontendPolicy  # noqa: E402
+from .core.gate import SessionGate, TerminalIdentity  # noqa: E402
+from .core.speech import SpeechPlanner  # noqa: E402
+from .core.ssh_sessions import SshSessionLister  # noqa: E402
+from .core.local_sessions import LocalSessionLister  # noqa: E402
+from .core.service_registrar import ServiceRegistrar  # noqa: E402
+from .nvda_windows import processAlive  # noqa: E402
 
 addonHandler.initTranslation()
 
-from .nvda_ui import NvdaUiManager
-from .nvda_presentation import NvdaPresentation
+# These modules contain translated class text and must follow translation setup.
+from .nvda_ui import NvdaUiManager  # noqa: E402
+from .nvda_presentation import NvdaPresentation  # noqa: E402
 
 
 @dataclass(frozen=True)

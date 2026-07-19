@@ -126,9 +126,10 @@ unter `nvda-addon/addon/` folgen nun NVDAs Ruff-Format mit Tabs, LF und 110
 Zeichen Zeilenlänge. Core, Bridge, Protokoll und Tests behalten ihren jeweils
 bereits konsistenten Stil. Ruff 0.14.5 prüft nur diese klar begrenzte NVDA-
 Stilzone lokal und in GitHub Actions; der dynamisch erforderliche Importpfad
-des Global Plugins ist eng dokumentiert ausgenommen. Die Umformatierung
-enthält keine beabsichtigte Funktionsänderung und wird durch die vollständigen
-Tests sowie das gebaute Add-on geprüft.
+des Global Plugins besitzt nur an den erforderlichen Importen begründete
+`E402`-Ausnahmen. Der nachträglich erkannte Verlust der Braille-Overlayauswahl
+ist durch einen direkten `controlTypes`-Import im AppModule und Tests des
+tatsächlichen Overlay-Hooks korrigiert.
 
 ## 3. Praktische Abschottung verbreitern
 

@@ -116,9 +116,10 @@ under `nvda-addon/addon/` now follow NVDA's Ruff format with tabs, LF, and a
 110-character line length. Core, bridge, protocol, and test code retain their
 already consistent component styles. Ruff 0.14.5 checks only this explicit
 NVDA style zone locally and in GitHub Actions; the Global Plugin's dynamically
-required import ordering has one narrowly documented exception. The
-reformatting has no intended functional change and is verified through the
-complete suites and built add-on.
+required imports now carry individual, justified `E402` exceptions. The
+subsequently detected loss of Braille overlay selection is corrected by a
+direct `controlTypes` import in the AppModule and tests of the actual overlay
+hook.
 
 ## 3. Broaden practical isolation coverage
 

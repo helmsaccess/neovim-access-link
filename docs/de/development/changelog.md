@@ -5,6 +5,20 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.13+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Die Overlayauswahl importiert NVDAs `controlTypes` nun direkt im Windows-
+  Terminal-AppModule. Dadurch wird die strukturierte Braille-Overlayklasse
+  wieder eingesetzt, ohne von einem zufälligen Reexport des Global Plugins
+  abzuhängen.
+- Regressionstests rufen den tatsächlichen NVDA-Overlay-Hook für passende und
+  unpassende Controls sowie den fail-open-Fehlerpfad auf.
+- F12 ist jetzt präzise als öffentlicher, prozessweit aufgerufener Decider mit
+  AppModule-eigener Lebensdauer und strikter Kontextprüfung dokumentiert.
+  Begründete `E402`-Ausnahmen gelten nur noch an den erforderlichen Imports.
+- Ein datiertes Qualitätsreview erklärt Anlass, Vergleichsbasis, behobene und
+  verbleibende Befunde, Prüfnachweise und die empfohlene weitere Reihenfolge.
+
 ## 0.94.2-dev.12+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Phase 7 formatiert ausschließlich die direkt von NVDA geladenen Python-
@@ -13,8 +27,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Eine auf `nvda-addon/addon/` begrenzte Ruff-0.14.5-Konfiguration sowie eine
   entsprechend gefilterte GitHub-Actions-Prüfung verhindern erneute
   Stilvermischung. Der dynamisch erforderliche Importpfad des Global Plugins
-  ist eng dokumentiert ausgenommen; zwei tatsächlich unbenutzte Imports sind
-  entfernt.
+  ist dokumentiert ausgenommen; zwei als unbenutzt eingeordnete Imports sind
+  entfernt. Dev-Build 13 korrigiert die dabei übersehene indirekte
+  `controlTypes`-Abhängigkeit.
 - Die Änderung beabsichtigt kein Laufzeitverhalten zu ändern. Vollständige
   Suiten und gebautes Add-on prüfen den mechanisch umformatierten Stand.
 

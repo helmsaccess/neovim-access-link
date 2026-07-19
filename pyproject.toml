@@ -15,8 +15,3 @@ ignore = [
 	# NVDA uses tabs for Python indentation.
 	"W191",
 ]
-
-[tool.ruff.lint.per-file-ignores]
-# The package and vendor paths must be installed before bundled modules are imported,
-# and translations must be initialized before importing modules with translated class text.
-"nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py" = ["E402"]

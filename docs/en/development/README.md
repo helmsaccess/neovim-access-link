@@ -53,6 +53,9 @@ are neither user instructions nor substitutes for the current code.
 - [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA lifetime and application-event ownership](adr/0004-nvda-lifetime-and-event-ownership.md)
+- [Quality review of Global Plugin slimming, July 19, 2026](quality-review-global-plugin-slimming-2026-07-19.md) — dated comparison of the feature
+  branch with `main`, corrected regressions, open risks, and recommendations;
+  not a permanently authoritative architecture reference.
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
 
@@ -67,6 +70,9 @@ are neither user instructions nor substitutes for the current code.
 - `plan.md` describes intended work; a plan is not an implemented feature.
 - `changelog.md` preserves chronology; an older entry does not automatically
   describe current behavior.
+- Dated quality reviews record the comparison basis and evidence for one
+  development state. Architecture, current status, and code govern behavior
+  changed afterward.
 
 Every claim should state its scope. For example, “Windows Terminal” must not be
 generalized to “tab”: the code binds one concrete UI Automation `TermControl`,

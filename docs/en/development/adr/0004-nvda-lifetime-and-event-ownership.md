@@ -56,14 +56,16 @@ identity-checked registrar and removes it before the remaining teardown.
 
 ## F12 exception
 
-F12 remains the explicit assignment signal, but is neither a global input hook
-nor an NVDA script. Only the Windows Terminal AppModule observes the physical
-key. After an F12 match, NVDA's current focus object, its concrete registered
-AppModule instance, and the control identity derived from it must match the
-gate; merely having one AppModule instance is not substitute evidence.
-Assignment may start only when the same concrete focused Windows Terminal
-control is also confirmed again on NVDA's main thread. Any mismatch falls back
-to native processing without an assignment.
+F12 remains the explicit assignment signal and is not an NVDA script. The
+Windows Terminal AppModule owns registration with the public but process-wide
+`inputCore.decide_executeGesture` decider. Registration exists only while at
+least one instance of this AppModule is loaded, and non-claim keys return
+immediately without querying focus. After an F12 match, NVDA's current focus
+object, its concrete registered AppModule instance, and the control identity
+derived from it must match the gate; merely having one AppModule instance is
+not substitute evidence. Assignment may start only when the same concrete
+focused Windows Terminal control is also confirmed again on NVDA's main
+thread. Any mismatch falls back to native processing without an assignment.
 
 ## Non-negotiable invariants
 
