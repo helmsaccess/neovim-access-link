@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 18. Juli 2026.
+Stand: 19. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -27,7 +27,28 @@ Laufend:
   Polling und Fallbacks gegen den aktuellen Code prüfen;
 - HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen.
 
-## 2. Praktische Abschottung verbreitern
+## 2. NVDA-Verantwortungsgrenzen verschlanken
+
+[ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) wird in einzeln
+prüfbaren Schritten umgesetzt:
+
+- direkte Windows-DLL-Bindungen durch vorhandene NVDA-Wrapper oder
+  `winBindings` ersetzen;
+- UI-Registrierung und Komponentenverwaltung vom Terminalpfad trennen;
+- gemeinsame Verbindungen und Zustände aus der GlobalPlugin-Klasse in normale
+  Dienste verschieben;
+- Windows-Terminal-Ereignisse, Overlays und `nextHandler` vollständig im
+  AppModule besitzen;
+- F12-Fokusprüfung weiter eingrenzen, ohne Tab-, Pane- oder Fensterwechsel zu
+  beeinträchtigen.
+
+Die Platzierung frei belegbarer Befehle bleibt bis zur Klärung eines
+NVDA-üblichen Musters offen. Nach jeder Stufe müssen gebautes Add-on,
+Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und
+Fenstern geprüft werden; Architekturumbau und Verhaltensänderung werden nicht
+im selben Schritt vermischt.
+
+## 3. Praktische Abschottung verbreitern
 
 - Die wichtigsten negativen Windows-Terminal-Fälle für ungebundene Shell-Tabs
   und -Panes, getrennte Fenster, schnelle Fokuswechsel, geschlossene Controls
@@ -40,7 +61,7 @@ Laufend:
   `TermControl` eine Shell oder tmux Neovim sichtbar ersetzt, während dessen
   RPC-Kanal noch lebt. Screen-Scraping ist keine zulässige Abkürzung.
 
-## 3. Dateimanager praktisch abnehmen
+## 4. Dateimanager praktisch abnehmen
 
 Oil ist unter Windows/NVDA praktisch bestätigt. Als Nächstes werden netrw,
 mini.files, nvim-tree und Neo-tree schrittweise lokal und über SSH geprüft:
@@ -56,7 +77,7 @@ mini.files, nvim-tree und Neo-tree schrittweise lokal und über SSH geprüft:
 Fehlende öffentliche Pluginereignisse werden nicht durch unbeschränktes
 Polling oder allgemeines Popup-Scraping ersetzt.
 
-## 4. Braille an echter Hardware prüfen
+## 5. Braille an echter Hardware prüfen
 
 - Sobald Hardware verfügbar ist, mehr als eine repräsentative Braillezeile
   beziehungsweise Treiberkombination praktisch prüfen.
@@ -66,7 +87,7 @@ Polling oder allgemeines Popup-Scraping ersetzt.
 - Gefundene Hardwareunterschiede erst nach reproduzierbarem Nachweis in den
   Planer übernehmen.
 
-## 5. Robustheit und Kompatibilitätsbreite erhöhen
+## 6. Robustheit und Kompatibilitätsbreite erhöhen
 
 - Langzeitbetrieb, wiederholte SSH-Abbrüche und Reconnects testen.
 - Große Ereignislast, große Dateien und viele parallele Sitzungen messen.

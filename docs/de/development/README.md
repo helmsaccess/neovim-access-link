@@ -56,6 +56,7 @@ Code.
 - [ADR-0001: hybrider Neovim-Andockpunkt](adr/0001-neovim-integration-point.md)
 - [ADR-0002: NVDA-API-Grenzen](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: enger Oil-Bestätigungsfallback](adr/0003-oil-confirmation-fallback.md)
+- [ADR-0004: NVDA-Lebensdauer und Besitz von Anwendungsevents](adr/0004-nvda-lifetime-and-event-ownership.md)
 - [Aktiver Plan](plan.md)
 - [Changelog](changelog.md)
 

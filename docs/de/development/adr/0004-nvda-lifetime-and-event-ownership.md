@@ -1,0 +1,97 @@
+# ADR-0004: NVDA-Lebensdauer und Besitz von Anwendungsevents
+
+## Status
+
+Als Zielarchitektur für eine schrittweise Migration angenommen. Diese ADR
+ändert allein noch kein Laufzeitverhalten. Die Registrierung frei belegbarer
+Befehle und der konkrete Mechanismus zum Auffinden des gemeinsamen Dienstes
+bleiben offen, bis die NVDA-Community dazu geeignete Muster bestätigt.
+
+## Kontext
+
+NVDA lädt das Global Plugin einmal pro NVDA-Prozess, ein Windows-Terminal-
+AppModule dagegen für den jeweiligen Anwendungsprozess. Einstellungen,
+Werkzeuge sowie gemeinsame lokale und SSH-Verbindungen benötigen deshalb eine
+einmalige, geordnet beendete Lebensdauer. Windows-Terminal-Ereignisse,
+Overlayauswahl und `nextHandler` gehören dagegen zum AppModule.
+
+Die aktuelle Implementierung besitzt die öffentlichen Ereigniseinstiege im
+AppModule, delegiert Entscheidung und `nextHandler` aber an eine große
+GlobalPlugin-Instanz. Das funktioniert, verwischt jedoch die Grenze zwischen
+anwendungsspezifischer NVDA-Integration und gemeinsamem Zustand.
+
+## Entscheidung
+
+Ein minimales Global Plugin bleibt als prozessweite Kompositions- und
+Lebenszykluswurzel. Es darf ausschließlich:
+
+- Einstellungen und Werkzeuge einmalig und symmetrisch registrieren;
+- gemeinsame Dienste aufbauen, verfügbar machen und geordnet beenden;
+- vorläufig die Metadaten frei belegbarer Befehle bereitstellen, bis deren
+  endgültiger Scope geklärt ist.
+
+Verbindung, Zuordnung, Gate, Protokollzustand und Präsentationsplanung liegen
+in normalen Diensten ohne Vererbung von `GlobalPlugin`. Ihr Vertrag nimmt
+konkrete Terminalidentitäten und fachliche Daten entgegen und liefert
+Entscheidungen oder Ausgabepläne zurück. Er übernimmt weder öffentliche
+AppModule-Ereignisse noch `nextHandler` oder die Overlayliste.
+
+Das Windows-Terminal-AppModule besitzt:
+
+- alle anwendungsspezifischen NVDA-Ereigniseinstiege;
+- die Auswahl und Entfernung eigener Overlays;
+- jeden Aufruf von `nextHandler`, höchstens einmal pro Ereignis;
+- die fail-open-Entscheidung, wenn Dienst, Identität oder Zustand fehlen,
+  veraltet, mehrdeutig oder fehlerhaft sind.
+
+Beim Laden wird ein gemeinsamer Dienst erst nach vollständiger Initialisierung
+veröffentlicht. Beim Neuladen oder Beenden wird er zuerst als nicht verfügbar
+markiert; danach werden ausstehende Fokusentscheidungen verworfen,
+Unterdrückung deaktiviert, Verbindungen beendet und UI-Registrierungen
+symmetrisch entfernt. AppModules dürfen keine ungeprüfte alte Dienstinstanz
+weiterverwenden. Ob die aktuelle Instanz über einen Registrar, einen
+modulweiten Zugriff oder einen anderen öffentlichen NVDA-üblichen Mechanismus
+gefunden wird, legt diese ADR bewusst nicht fest.
+
+## F12-Ausnahme
+
+F12 bleibt das ausdrückliche Zuordnungssignal, ist aber weder ein globaler
+Eingabe-Hook noch ein NVDA-Skript. Nur das Windows-Terminal-AppModule beobachtet
+die physische Taste. Die Zuordnung darf erst beginnen, wenn sowohl bei der
+Erfassung als auch erneut auf NVDAs Hauptthread dasselbe konkrete fokussierte
+Windows-Terminal-Control bestätigt ist. Jede Abweichung fällt ohne Zuordnung
+auf native Verarbeitung zurück.
+
+## Nicht verhandelbare Invarianten
+
+- Fehler, Disconnect, Reload und unklarer Fokus fallen sofort offen auf NVDAs
+  native Terminalbehandlung zurück.
+- Tabs, Split-Panes, Fenster und mehrere Windows-Terminal-Prozesse bleiben über
+  die konkrete Control-Identität getrennt.
+- Lokale und SSH-Sitzungen dürfen gemeinsame Lebensdauer besitzen, aber keine
+  Ausgabe, Fokusantwort oder Bindung untereinander übernehmen.
+- Netzwerk-I/O, Reconnect, Parsing und Logging blockieren nie NVDAs
+  Hauptthread.
+- Die für LiveText notwendige native Fokusbehandlung bleibt erhalten; ihre
+  genaue Reihenfolge wird vor der Ereignismigration durch Regressionstests
+  festgelegt.
+
+## Offene Befehlsentscheidung
+
+Während der Migration bleiben die bereits global sichtbaren, unbelegten
+Skriptmetadaten bestehen. Es werden keine neuen globalen Standardgesten
+eingeführt. Die endgültige Platzierung wird erst entschieden, wenn geklärt ist,
+wie Befehle zugleich im Tastenbefehldialog auffindbar und zuverlässig auf das
+aktive Windows-Terminal-AppModule begrenzt werden können.
+
+## Folgen
+
+Die globale Lebensdauer bleibt dort erhalten, wo sie Doppelregistrierungen und
+mehrfache Verbindungen verhindert. Anwendungsevents werden enger an NVDAs
+AppModule-Modell gebunden. Die Umstellung erfolgt phasenweise; eine Phase wird
+nur übernommen, wenn automatisierte und praktische Prüfungen mindestens die
+bisherige Mehrfenster-, Fokus- und Fail-open-Zuverlässigkeit belegen.
+
+ADR-0002 bleibt für private NVDA-API-Ausnahmen maßgeblich. Diese ADR
+konkretisiert deren Verantwortungsgrenze, ohne neue private API-Nutzung zu
+erlauben.

@@ -52,6 +52,7 @@ are neither user instructions nor substitutes for the current code.
 - [ADR-0001: hybrid Neovim integration point](adr/0001-neovim-integration-point.md)
 - [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
+- [ADR-0004: NVDA lifetime and application-event ownership](adr/0004-nvda-lifetime-and-event-ownership.md)
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
 

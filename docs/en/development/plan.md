@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 18, 2026.
+Status date: July 19, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -25,7 +25,26 @@ In progress:
   controls, polling, and fallbacks against current code;
 - validate the HTML build, internal links, and published sources.
 
-## 2. Broaden practical isolation coverage
+## 2. Narrow NVDA responsibility boundaries
+
+Implement [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) in
+independently verifiable steps:
+
+- replace direct Windows DLL bindings with existing NVDA wrappers or
+  `winBindings`;
+- separate UI registration and component management from the terminal path;
+- move shared connections and state from the Global Plugin class into ordinary
+  services;
+- make the AppModule fully own Windows Terminal events, overlays, and
+  `nextHandler`;
+- narrow F12 focus checks without impairing tab, pane, or window transitions.
+
+Placement of configurable commands remains open until an established NVDA
+pattern is confirmed. After each stage, verify the built add-on, fail-open
+behavior, and local and SSH sessions across multiple tabs, panes, and windows;
+do not combine architectural relocation with behavior changes in one step.
+
+## 3. Broaden practical isolation coverage
 
 - Record the most important negative Windows Terminal cases incrementally for
   unbound shell tabs and panes, separate windows, rapid focus changes, closed
@@ -38,7 +57,7 @@ In progress:
   inside an already bound `TermControl` while Neovim's RPC channel stays live.
   Screen scraping is not an acceptable shortcut.
 
-## 3. Accept file managers practically
+## 4. Accept file managers practically
 
 Oil is practically confirmed under Windows and NVDA. Next, accept netrw,
 mini.files, nvim-tree, and Neo-tree incrementally, both locally and over SSH:
@@ -54,7 +73,7 @@ mini.files, nvim-tree, and Neo-tree incrementally, both locally and over SSH:
 Missing public plugin events must not be replaced with unbounded polling or
 general popup scraping.
 
-## 4. Test Braille on physical hardware
+## 5. Test Braille on physical hardware
 
 - When hardware is available, exercise more than one representative display
   or driver combination in practice.
@@ -63,7 +82,7 @@ general popup scraping.
 - Add hardware-specific behavior to the planner only after reproducible
   evidence.
 
-## 5. Increase robustness and compatibility breadth
+## 6. Increase robustness and compatibility breadth
 
 - Test long runtimes, repeated SSH loss, and reconnects.
 - Measure high event load, large files, and many concurrent sessions.
