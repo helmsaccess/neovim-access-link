@@ -101,6 +101,12 @@ Fokuswechsel während einer ausstehenden Auswertung, zwei Controls mit gleichem
 Prozess und Fensterhandle aber unterschiedlichen Runtime-IDs sowie parallele
 lokale und SSH-Instanzen. Ohne frischen eindeutigen Claim dürfen keine Bindung,
 Unterdrückung, Auswahl oder Verbindungsansage entstehen.
+Der NVDA-Decider wird außerdem gegen F12 in einer fremden Anwendung, ein
+fremdes oder veraltetes AppModule, einen zweiten WT-Prozess und einen schnellen
+Fokuswechsel vor der Hauptthreadauswertung geprüft. Die realen TUI-Tests müssen
+im Normal- und Insert-Modus einen Claim erhalten; im Insert-Modus darf weder
+`<F12>` noch ein Teil der Terminalsequenz im Buffer verbleiben. Diese Matrix
+läuft gegen Neovim 0.10.1 und 0.12.3.
 
 Graceful Exit, SIGKILL, PID-/Endpoint-/Nonce-Wiederverwendung, tote oder
 unklare Sessiondateien, eigene und fremde Sockets sowie geschlossene

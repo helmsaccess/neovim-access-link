@@ -61,8 +61,11 @@ sie vor dem übrigen Abbau.
 
 F12 bleibt das ausdrückliche Zuordnungssignal, ist aber weder ein globaler
 Eingabe-Hook noch ein NVDA-Skript. Nur das Windows-Terminal-AppModule beobachtet
-die physische Taste. Die Zuordnung darf erst beginnen, wenn sowohl bei der
-Erfassung als auch erneut auf NVDAs Hauptthread dasselbe konkrete fokussierte
+die physische Taste. Nach dem F12-Treffer müssen NVDAs aktuelles Fokusobjekt,
+dessen konkrete registrierte AppModule-Instanz und die daraus gebildete
+Control-Identität mit dem Gate übereinstimmen; ein bloß einzig vorhandenes
+AppModule ist kein Ersatznachweis. Die Zuordnung darf erst beginnen, wenn
+zusätzlich erneut auf NVDAs Hauptthread dasselbe konkrete fokussierte
 Windows-Terminal-Control bestätigt ist. Jede Abweichung fällt ohne Zuordnung
 auf native Verarbeitung zurück.
 

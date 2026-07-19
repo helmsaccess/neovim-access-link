@@ -38,6 +38,14 @@ vim.on_key = original_on_key
 local mapping = vim.fn.maparg("<F12>", "n", false, true)
 truth(type(mapping) == "table" and next(mapping) == nil,
   "F12 remains unbound for direct terminal delivery")
+local insert_mapping = vim.fn.maparg("<F12>", "i", false, true)
+if vim.version().minor < 11 then
+  truth(type(insert_mapping) == "table" and insert_mapping.rhs == "<Ignore>",
+    "Neovim 0.10 reserves an otherwise-unmapped Insert-mode F12")
+else
+  truth(type(insert_mapping) == "table" and next(insert_mapping) == nil,
+    "newer Neovim consumes Insert-mode F12 without a mapping")
+end
 truth(type(claim_on_key) == "function", "typed-key observer is registered")
 
 local runtime = vim.env.XDG_RUNTIME_DIR
@@ -86,6 +94,20 @@ local key_diagnostics = plugin.key_observer_diagnostics()
 truth(key_diagnostics.translatedTyped == "<F12>", "claim diagnostics identify only F12")
 truth(key_diagnostics.claimErrorKind == "", "scheduled claim completed without error")
 truth(key_diagnostics.modeAfterClaim == "n", "scheduled claim observed Normal mode")
+vim.api.nvim_get_mode = function() return { mode = "i", blocking = false } end
+local insert_result = claim_on_key(f12, f12)
+vim.api.nvim_get_mode = original_get_mode
+if vim.version().minor < 11 then
+  truth(insert_result == nil, "Neovim 0.10 relies on its narrow Insert mapping")
+else
+  truth(insert_result == "", "newer Neovim consumes the observed Insert-mode claim key")
+end
+truth(vim.wait(1000, function()
+  local current = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
+  return current.claimSequence == 2
+end, 10), "Insert-mode F12 still completes a claim")
+truth(plugin.key_observer_diagnostics().claimKeyConsumed == true,
+  "Insert-mode claim diagnostics record key consumption")
 local original_keytrans = vim.fn.keytrans
 vim.fn.keytrans = function() error("keytrans test failure") end
 truth(pcall(claim_on_key, "x", "x"), "key observer errors never escape into Neovim input")
@@ -96,11 +118,18 @@ truth(key_diagnostics.observerErrorCount == 1 and key_diagnostics.observerErrorK
 vim.notify = original_notify
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
 truth(type(value.claimedMonotonic) == "number" and value.claimedMonotonic > 0, "claim timestamp recorded")
-truth(value.claimSequence == 1, "first claim increments sequence")
+truth(value.claimSequence == 2, "Normal- and Insert-mode claims increment sequence")
 session.claim()
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))
-truth(value.claimSequence == 2, "repeated claim increments sequence again")
+truth(value.claimSequence == 3, "repeated claim increments sequence again")
 truth(notifications == 0, "F12 claim is silent in the terminal")
+
+vim.keymap.set("i", "<F12>", function() end, { desc = "Existing user F12" })
+plugin.setup()
+insert_mapping = vim.fn.maparg("<F12>", "i", false, true)
+truth(insert_mapping.desc == "Existing user F12",
+  "setup never replaces an existing Insert-mode F12 mapping")
+vim.keymap.del("i", "<F12>")
 
 vim.cmd("NvimNvdaSessionName Programming")
 value = vim.json.decode(table.concat(vim.fn.readfile(registry), "\n"))

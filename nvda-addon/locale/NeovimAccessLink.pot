@@ -211,7 +211,7 @@ msgstr ""
 msgid "Copy and &paste:"
 msgstr ""
 
-#: nvda-addon/addon/appModules/windowsterminal.py:161
+#: nvda-addon/addon/appModules/windowsterminal.py:173
 msgid "Copy Neovim accessibility diagnostic report"
 msgstr ""
 
@@ -329,7 +329,7 @@ msgstr ""
 msgid "end of file"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3158
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3159
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr ""
@@ -691,7 +691,7 @@ msgstr ""
 msgid "Neovim session"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3159
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3160
 msgid "Neovim SSH password"
 msgstr ""
 

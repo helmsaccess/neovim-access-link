@@ -85,7 +85,7 @@ class NvimBridgeTests(unittest.TestCase):
         self.assertNotIn("clipboardText", bridge.full_state())
         self.assertNotIn("requestId", bridge.full_state())
 
-    def test_real_tui_f12_claim_leaves_normal_mode(self) -> None:
+    def test_real_tui_f12_claim_preserves_normal_and_insert_input(self) -> None:
         root = pathlib.Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             nvim_socket = os.path.join(directory, "nvim.sock")
@@ -128,6 +128,35 @@ class NvimBridgeTests(unittest.TestCase):
                     check=True, capture_output=True, text=True,
                 ).stdout.strip()
                 self.assertEqual("n", output)
+                process.send(b"i")
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline:
+                    output = subprocess.run(
+                        ["nvim", "--server", nvim_socket, "--remote-expr", "mode(1)"],
+                        check=True, capture_output=True, text=True,
+                    ).stdout.strip()
+                    if output == "i":
+                        break
+                    time.sleep(0.02)
+                self.assertEqual("i", output)
+                process.send(b"\x1b[24~")
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline:
+                    value = json.loads(registry.read_text(encoding="utf-8"))
+                    if value.get("claimSequence") == 2:
+                        break
+                    time.sleep(0.02)
+                self.assertEqual(2, value.get("claimSequence"))
+                process.send(b"x")
+                time.sleep(0.1)
+                output = subprocess.run(
+                    [
+                        "nvim", "--server", nvim_socket, "--remote-expr",
+                        "mode(1) . ':' . getline(1)",
+                    ],
+                    check=True, capture_output=True, text=True,
+                ).stdout.strip()
+                self.assertEqual("i:x", output)
             finally:
                 process.terminate(force=True)
 

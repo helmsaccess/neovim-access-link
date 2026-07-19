@@ -81,12 +81,20 @@ subsequent practical test. Braille could not be tested in practice because no
 hardware was available. F12 and configurable commands remain unchanged in
 this phase.
 
-Phase 5 records one concrete F12 issue that predates this refactor. The NVDA
-observer currently has to pass the physical key through to Neovim's
-`vim.on_key` claim observer. In Insert mode, Neovim then also processes it as
-input and inserts `<F12>` into the buffer. A solution must retain reliable
-focus assignment and must not consume F12 outside an actually authorized
-claim.
+Phase 5 is implemented under automated coverage and practically confirmed.
+The F12 decider queries NVDA's current focus object only after the
+claim gesture matches. It authorizes only the concrete still-registered
+Windows Terminal AppModule instance when the complete `TermControl` identity
+derived from that object matches the gate. The former single-adapter fallback
+is gone; a focus change before queued main-thread evaluation still rejects the
+one-shot generation. In Insert mode the physical key remains observable as a
+claim but is no longer inserted as `<F12>`: Neovim 0.11 and later use the
+`vim.on_key` return contract, while Neovim 0.10 receives an Insert-mode
+`<Ignore>` mapping only when F12 was otherwise unbound. Other modes and
+existing user mappings remain unchanged. Automated negative cases cover
+unrelated applications, stale controls, multiple WT AppModules, and rapid
+focus changes. The subsequent practical test of Normal- and Insert-mode claims
+plus focus and control isolation found no errors.
 
 Placement of configurable commands is settled for a later, separate stage:
 NVDA 2026.1.1 builds the Input Gestures dialog from the previous focus and its

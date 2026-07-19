@@ -5,6 +5,24 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.94.2-dev.10+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Phase 5 autorisiert einen physischen F12-Druck nur noch, wenn NVDAs
+  aktuelles Fokusobjekt genau zu einer lebenden Windows-Terminal-AppModule-
+  Instanz gehört und dessen vollständige `TermControl`-Identität mit dem Gate
+  übereinstimmt. Der Einzeladapter-Fallback ist entfernt; Einmalgeneration und
+  erneute Prüfung auf dem Hauptthread bleiben als zweite Schranke erhalten.
+- Eine Zuordnung im Insert-Modus fügt bei unbelegtem F12 kein `<F12>` mehr in
+  den Buffer ein. Neovim ab 0.11 konsumiert nur diesen beobachteten
+  Insert-Claim in `vim.on_key`; Neovim 0.10 verwendet dafür ausschließlich
+  eine schmale Insert-Mode-`<Ignore>`-Zuordnung. Vorhandene Benutzerbelegungen
+  werden nicht überschrieben, andere Modi bleiben unverändert.
+- Negativtests decken fremde Anwendungen, veraltete Control-Identitäten,
+  mehrere AppModule-Instanzen und schnelle Fokuswechsel ab. Lua- und
+  Registrytests bestehen unter Neovim 0.10.1 und 0.12.3. Der anschließende
+  Praxistest von Normal- und Insert-Claims sowie Fokus- und Control-Abschottung
+  zeigte keine Fehler.
+
 ## 0.94.2-dev.9+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Phase 4 verlagert alle Windows-Terminal-Ereignisse, die Overlayauswahl und

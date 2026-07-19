@@ -43,6 +43,15 @@ is inert and F12 has no add-on effect. While support is enabled, each physical
 F12 authorizes one attempt for the exact focused control; the add-on refreshes
 terminal identity and looks for the fresh claim. Without one, it remains silent
 and creates no binding, dialog, or suppression.
+Authorization additionally requires NVDA's current focus object, that exact
+Windows Terminal AppModule instance, the complete UIA control identity, and
+the gate to agree. A single remaining AppModule is not a fallback. In Insert
+mode F12 remains observable as the physical claim but produces no text when
+the key was otherwise unbound. Existing Insert-mode mappings are preserved.
+Because no reverse channel from NVDA to that Neovim instance exists before the
+first connection, this narrow reservation also applies inside Neovim when NVDA
+does not authorize that press for assignment; F12 remains unchanged outside
+Neovim.
 Manual target/session selection remains available for passwords and special
 cases. Remembered terminal bindings use stable runtime IDs and live only in
 memory.

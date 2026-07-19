@@ -134,12 +134,16 @@ through manual target selection. The physical session mark is still required.
 
 The F12 mechanism combines two independent observations:
 
-1. The Windows Terminal AppModule observes the physical key through NVDA's
-   public `decide_executeGesture` boundary and records the concrete terminal
-   control. It lets the original key continue to the application.
+1. After the claim gesture matches, the Windows Terminal AppModule queries
+   NVDA's current focus object at the public `decide_executeGesture` boundary.
+   Only that concrete registered AppModule instance may authorize the complete
+   `TermControl` identity against the gate. The physical key continues
+   unchanged to the application.
 2. The Neovim plugin observes the unchanged key through `vim.on_key`. Outside
    the input callback it atomically increments `claimSequence` and updates the
-   monotonic timestamp in its session file.
+   monotonic timestamp in its session file. Only in Insert mode, an otherwise
+   unbound F12 is consumed after that observation so `<F12>` cannot enter the
+   buffer; Neovim 0.10 requires a narrow Insert-mode mapping for this.
 3. The add-on reads the candidates again. Only one fresh claim relative to the
    baseline may trigger assignment. No match has no effect; multiple matches
    require a choice.

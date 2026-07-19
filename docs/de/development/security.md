@@ -161,9 +161,19 @@ Der physische F12-Druck autorisiert bei eingeschaltetem Dienst genau einen
 Sitzungsdatei-Claim-Versuch für die fokussierte `TerminalIdentity`. Ein
 zwischenzeitlicher Fokuswechsel verwirft ihn; ohne frischen Neovim-Claim bleibt
 die Prüfung ohne Bindung, Dialog, Ausgabe oder Unterdrückung. Alle WT-
-AppModule-Instanzen teilen eine Beobachterregistrierung; die einmalige
-Generation verhindert doppelte Verarbeitung. Netzwerkaktivität darf keine
-Umbindung an ein ungebundenes Control anbieten oder durchführen.
+AppModule-Instanzen teilen eine Beobachterregistrierung. Sie prüft nach einem
+F12-Treffer NVDAs aktuelles Fokusobjekt und akzeptiert ausschließlich genau
+dessen noch registrierte AppModule-Instanz sowie dieselbe vollständige
+Control-Identität im Gate; einen Einzeladapter-Fallback gibt es nicht. Die
+einmalige Generation verhindert doppelte Verarbeitung. Im Insert-Modus
+konsumiert das Plugin nur ein ansonsten unbelegtes Claim-F12 nach der
+Beobachtung; vorhandene Benutzerbelegungen werden nicht überschrieben. Vor
+der ersten Verbindung kann Neovim NVDAs Autorisierungszustand nicht kennen.
+Diese Reservierung gilt deshalb innerhalb Neovims für jedes konfigurierte,
+unbelegte Insert-Claim-F12, bleibt aber auf genau diese Taste und diesen Modus
+beschränkt; NVDA selbst konsumiert die physische Taste nie.
+Netzwerkaktivität darf keine Umbindung an ein ungebundenes Control anbieten
+oder durchführen.
 
 Beim Fokusverlust wird Unterdrückung sofort suspendiert. Eine gemerkte Bindung
 wird erst nach einer frischen, zu Control, Instanz und Request-ID passenden

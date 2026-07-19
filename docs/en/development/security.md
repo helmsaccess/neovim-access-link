@@ -70,9 +70,17 @@ generation, and the concrete terminal identity.
 Each physical F12 press authorizes one claim attempt for the exact focused
 `TerminalIdentity`. Any intervening focus change rejects it; without a fresh
 Neovim claim, the check creates no binding, dialog, output, or suppression.
-Activity from another Neovim instance cannot move a binding. On focus loss
-or a control change, suppression is cleared before a request-ID-correlated
-focus-context response may reactivate the exact remembered connection.
+After an F12 match, the shared observer accepts only NVDA's current focus
+object, its exact still-registered AppModule instance, and the same complete
+control identity in the gate; there is no single-adapter fallback. In Insert
+mode the plugin consumes only an otherwise-unbound claim F12 after observing
+it and never replaces an existing user mapping. Before the first connection,
+Neovim cannot know NVDA's authorization state, so this reservation applies to
+every configured, unbound Insert claim F12 inside Neovim, but to no other key
+or mode; NVDA itself never consumes the physical key. Activity from another
+Neovim instance cannot move a binding. On focus loss or a control change, suppression
+is cleared before a request-ID-correlated focus-context response may reactivate
+the exact remembered connection.
 
 This still does not independently prove that Neovim remains the visible
 foreground program inside an already bound `TermControl` when a shell or tmux

@@ -95,6 +95,12 @@ pending resolution, two controls with the same process and window handle but
 different runtime IDs, and concurrent local and SSH instances. Without a fresh
 unique claim, no binding, suppression, choice, or connection announcement may
 occur.
+The NVDA decider is also exercised with F12 in an unrelated application, a
+foreign or stale AppModule, a second WT process, and a rapid focus change
+before main-thread evaluation. Real TUI tests must obtain a claim in both
+Normal and Insert mode; Insert mode must retain neither `<F12>` nor any part of
+the terminal sequence in the buffer. This matrix runs against Neovim 0.10.1
+and 0.12.3.
 
 Graceful exit, SIGKILL, PID/endpoint/nonce reuse, dead or uncertain records,
 owned and foreign sockets, and closed Windows Terminal controls must be

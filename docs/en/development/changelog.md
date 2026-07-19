@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.94.2-dev.10+feature.global-plugin-slimming (feature-branch test build)
+
+- Phase 5 authorizes a physical F12 press only when NVDA's current focus
+  object belongs to the exact live Windows Terminal AppModule instance and its
+  complete `TermControl` identity matches the gate. The single-adapter fallback
+  is removed; one-shot generation and main-thread revalidation remain as a
+  second barrier.
+- Assigning from Insert mode no longer inserts `<F12>` into the buffer when F12
+  is otherwise unbound. Neovim 0.11 and later consume only that observed
+  Insert claim in `vim.on_key`; Neovim 0.10 uses a narrowly scoped Insert-mode
+  `<Ignore>` mapping. Existing user mappings are not replaced and other modes
+  remain unchanged.
+- Negative tests cover unrelated applications, stale control identities,
+  multiple AppModule instances, and rapid focus changes. Lua and registry
+  tests pass with Neovim 0.10.1 and 0.12.3. The subsequent practical test of
+  Normal- and Insert-mode claims plus focus and control isolation found no
+  errors.
+
 ## 0.94.2-dev.9+feature.global-plugin-slimming (feature-branch test build)
 
 - Phase 4 moves every Windows Terminal event, overlay selection, and every

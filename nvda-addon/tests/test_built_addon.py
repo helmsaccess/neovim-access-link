@@ -684,9 +684,12 @@ class BuiltAddonTests(unittest.TestCase):
             self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
             / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
         ).read_text(encoding="utf-8")
-        self.assertIn("local observer_ok, observer_error = pcall(function()", lua)
+        self.assertIn("local observer_ok, observer_result = pcall(function()", lua)
         self.assertIn("local claim_ok, claim_error = pcall", lua)
         self.assertIn("key_observer_diagnostics.translatedTyped = typed_translated", lua)
+        self.assertIn("key_observer_diagnostics.claimKeyConsumed", lua)
+        self.assertIn('vim.keymap.set("i", component_config.sessionClaim.neovimKey', lua)
+        self.assertIn('return ""', lua)
         self.assertIn("key_observer_diagnostics.promptClass", lua)
         self.assertNotIn("key_observer_diagnostics.promptText", lua)
         setup_body = lua.split("function M.setup()", 1)[1].split("vim.on_key", 1)[0]
@@ -957,6 +960,7 @@ class BuiltAddonTests(unittest.TestCase):
         })
         order = []
         adapter = AppModule()
+        self.focus.appModule = adapter
         adapter.event_gainFocus(self.focus, lambda: None)
         plugin._claimInventoryReady = True
         adapter._prepareTerminalAction = lambda current: order.append(("focus", current))
@@ -984,6 +988,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         adapter = AppModule()
         adapter._plugin = lambda: None
+        self.focus.appModule = adapter
         gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
 
         allowed = adapter._decideExecuteGesture(gesture)
@@ -999,6 +1004,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = False
         adapter = AppModule()
+        self.focus.appModule = adapter
         handled = []
         adapter._handleObservedClaimGesture = lambda: handled.append(True)
 
@@ -1020,6 +1026,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         plugin._claimInventoryReady = True
         adapter = AppModule()
+        self.focus.appModule = adapter
         handled = []
         plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
 
@@ -1045,8 +1052,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._claimInventoryReady = True
         first_identity = plugin._gate.focused
         other = TerminalIdentity(
-            first_identity.process_id, first_identity.window_handle, first_identity.frontend_kind,
-            (42, first_identity.window_handle, 4, 99),
+            first_identity.process_id + 1, first_identity.window_handle + 1,
+            first_identity.frontend_kind,
+            (42, first_identity.window_handle + 1, 4, 99),
         )
         first, second = AppModule(), AppModule()
         self.assertEqual(1, len(self.inputDecider.handlers))
@@ -1054,13 +1062,20 @@ class BuiltAddonTests(unittest.TestCase):
         handled = []
         plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
 
-        plugin._focusedAppModule = first
+        self.focus.appModule = first
         self.assertTrue(self.inputDecider.handlers[0](gesture))
         self.assertEqual(1, len(handled))
         self.assertEqual(first_identity, handled[0]["expected_identity"])
 
+        second_focus = types.SimpleNamespace(
+            processID=other.process_id, windowHandle=other.window_handle,
+            role=3, parent=None, appModule=second,
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl", getRuntimeId=lambda: other.runtime_id,
+            ),
+        )
+        self.focus = second_focus
         plugin._gate.focused = other
-        plugin._focusedAppModule = second
         self.assertTrue(self.inputDecider.handlers[0](gesture))
         self.assertEqual(2, len(handled))
         self.assertEqual(other, handled[1]["expected_identity"])
@@ -1072,6 +1087,112 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(self.inputDecider.handlers))
         second.terminate()
         self.assertEqual(0, len(self.inputDecider.handlers))
+        plugin.terminate()
+
+    def test_claim_observer_queries_focus_only_for_f12_and_fails_open_on_focus_error(self) -> None:
+        from appModules.windowsterminal import AppModule
+        import api
+
+        adapter = AppModule()
+        focus_queries = []
+        original_get_focus = api.getFocusObject
+        api.getFocusObject = lambda: focus_queries.append(True) or self.focus
+        try:
+            self.assertTrue(self.inputDecider.handlers[0](
+                types.SimpleNamespace(normalizedIdentifiers=("kb:a",)),
+            ))
+            self.assertEqual([], focus_queries)
+            api.getFocusObject = lambda: (_ for _ in ()).throw(RuntimeError("focus unavailable"))
+            self.assertTrue(self.inputDecider.handlers[0](
+                types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+            ))
+        finally:
+            api.getFocusObject = original_get_focus
+        adapter.terminate()
+
+    def test_f12_observer_has_no_single_adapter_fallback_outside_its_focused_app_module(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        adapter = AppModule()
+        handled = []
+        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+        self.focus.appModule = types.SimpleNamespace(appName="explorer")
+
+        allowed = self.inputDecider.handlers[0](
+            types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual([], handled)
+        self.assertIsNone(plugin._pendingObservedClaim)
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_f12_observer_rejects_a_stale_terminal_identity_before_authorization(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        self.focus.UIAElement = types.SimpleNamespace(
+            cachedClassName="TermControl", getRuntimeId=lambda: (42, 200, 4, 99),
+        )
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args)
+
+        allowed = self.inputDecider.handlers[0](
+            types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+        )
+
+        self.assertTrue(allowed)
+        self.assertEqual([], scheduled)
+        self.assertIsNone(plugin._pendingObservedClaim)
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_queued_f12_from_previous_terminal_is_rejected_after_rapid_focus_change(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        import queueHandler
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._claimInventoryReady = True
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        queued = []
+        original_queue_function = queueHandler.queueFunction
+        queueHandler.queueFunction = lambda _queue, function, *args, **_kwargs: queued.append(
+            (function, args)
+        )
+        scheduled = []
+        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args)
+        try:
+            self.assertTrue(self.inputDecider.handlers[0](
+                types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+            ))
+            self.assertEqual(1, len(queued))
+            self.focus = types.SimpleNamespace(
+                processID=900, windowHandle=901, role=1, parent=None,
+                appModule=types.SimpleNamespace(appName="explorer"), UIAElement=None,
+            )
+            queued[0][0](*queued[0][1])
+        finally:
+            queueHandler.queueFunction = original_queue_function
+
+        self.assertEqual([], scheduled)
+        self.assertIsNone(plugin._pendingObservedClaim)
+        adapter.terminate()
         plugin.terminate()
 
     def test_f12_without_a_fresh_claim_is_silent_and_fails_open(self) -> None:
@@ -4352,6 +4473,7 @@ class BuiltAddonTests(unittest.TestCase):
                     "observerErrorCount": 0,
                     "observerErrorKind": "",
                     "claimErrorKind": "",
+                    "claimKeyConsumed": True,
                     "modeAfterClaim": "r?",
                     "translatedKey": "<F12>",
                     "translatedTyped": "<F12>",
@@ -4368,6 +4490,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn('"modeBlocking": true', report)
         self.assertIn('"currentErrorCode": "E565"', report)
         self.assertIn('"keyTranslated": "<F12>"', report)
+        self.assertIn('"keyClaimConsumed": true', report)
         self.assertIn('"keyModeAfterClaim": "r?"', report)
         self.assertIn('"keyPromptKind": "confirm"', report)
         self.assertIn('"keyPromptClass": "unsavedChanges"', report)

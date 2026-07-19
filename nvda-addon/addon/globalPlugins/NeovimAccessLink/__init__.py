@@ -2766,6 +2766,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             keyObserverErrorKind=keyObserverDiagnostics.get("observerErrorKind"),
             keyClaimErrorKind=keyObserverDiagnostics.get("claimErrorKind"),
             keyClaimSkippedMode=keyObserverDiagnostics.get("claimSkippedMode"),
+            keyClaimConsumed=keyObserverDiagnostics.get("claimKeyConsumed"),
             keyModeAfterClaim=keyObserverDiagnostics.get("modeAfterClaim"),
             keyTranslated=keyObserverDiagnostics.get("translatedKey"),
             keyTypedTranslated=keyObserverDiagnostics.get("translatedTyped"),

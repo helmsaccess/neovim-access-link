@@ -172,6 +172,15 @@ Zuordnung. Bei ausgeschaltetem Dienst ist der Beobachter inaktiv. Bei
 eingeschaltetem Dienst aktualisiert das Add-on nach F12 die Terminalzuordnung
 und sucht nach genau dem dadurch neu entstandenen Claim; ohne Treffer bleibt
 die Prüfung still und ohne Bindung, Dialog oder Unterdrückung.
+Vor der Autorisierung müssen das aktuelle NVDA-Fokusobjekt, genau dessen
+Windows-Terminal-AppModule-Instanz, die vollständige UIA-Control-Identität und
+das Gate übereinstimmen. Ein einzelnes noch lebendes AppModule genügt nicht als
+Fallback. Im Insert-Modus bleibt F12 als physischer Claim sichtbar, erzeugt bei
+ansonsten unbelegter Taste danach aber keinen Text. Bestehende
+Insert-Mode-Belegungen werden nicht ersetzt. Da vor der ersten Verbindung kein
+Rückkanal von NVDA zu dieser Neovim-Instanz besteht, gilt diese schmale
+Reservierung innerhalb Neovims auch dann, wenn NVDA den Tastendruck nicht für
+eine Zuordnung autorisiert; außerhalb von Neovim bleibt F12 unverändert.
 
 Der Aktivierungsbefehl startet die Hintergrunderfassung. F12 wird erst nach der
 Bereitschaftsmeldung zur Zuordnung ausgewertet. Der gesonderte Befehl „Server wählen und dieses

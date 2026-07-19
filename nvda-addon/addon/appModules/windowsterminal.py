@@ -45,11 +45,23 @@ class AppModule(appModuleHandler.AppModule):
 
     @classmethod
     def _dispatchClaimGesture(cls, gesture):
-        plugin = NeovimAccessLink.getActivePlugin()
-        adapter = getattr(plugin, "_focusedAppModule", None) if plugin is not None else None
-        if adapter not in cls._observerAdapters:
-            adapter = cls._observerAdapters[-1] if len(cls._observerAdapters) == 1 else None
-        return adapter._decideExecuteGesture(gesture) if adapter is not None else True
+        if not cls._isClaimGesture(gesture):
+            return True
+        try:
+            focus_obj = api.getFocusObject()
+        except Exception:
+            return True
+        adapter = getattr(focus_obj, "appModule", None)
+        if not any(adapter is candidate for candidate in tuple(cls._observerAdapters)):
+            return True
+        return adapter._decideExecuteGesture(gesture, focus_obj=focus_obj)
+
+    @staticmethod
+    def _isClaimGesture(gesture):
+        return NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() in (
+            identifier.lower()
+            for identifier in getattr(gesture, "normalizedIdentifiers", ())
+        )
 
     def _plugin(self):
         return NeovimAccessLink.getActivePlugin()
@@ -167,12 +179,15 @@ class AppModule(appModuleHandler.AppModule):
         if plugin is not None:
             plugin.action_copyDiagnosticReport(gesture)
 
-    def _decideExecuteGesture(self, gesture):
-        identifiers = tuple(
-            identifier.lower()
-            for identifier in getattr(gesture, "normalizedIdentifiers", ())
-        )
-        if NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() not in identifiers:
+    def _decideExecuteGesture(self, gesture, focus_obj=None):
+        if not self._isClaimGesture(gesture):
+            return True
+        if focus_obj is None:
+            try:
+                focus_obj = api.getFocusObject()
+            except Exception:
+                return True
+        if getattr(focus_obj, "appModule", None) is not self:
             return True
         plugin = self._plugin()
         if (
@@ -181,7 +196,9 @@ class AppModule(appModuleHandler.AppModule):
             or plugin._gate.focused is None
         ):
             return True
-        identity = plugin._gate.focused
+        identity = plugin._identity(focus_obj)
+        if identity is None or identity != plugin._gate.focused:
+            return True
         generation = plugin._captureObservedSessionClaim(identity)
         if generation is None:
             return True

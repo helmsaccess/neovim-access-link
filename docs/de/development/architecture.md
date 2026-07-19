@@ -140,13 +140,17 @@ Sitzungsmarkierung erforderlich.
 
 Die F12-Mechanik verbindet zwei voneinander unabhängige Beobachtungen:
 
-1. Die Windows-Terminal-AppModule sieht über NVDAs öffentliche
-   `decide_executeGesture`-Grenze, in welchem konkreten Terminal-Control der
-   physische Tastendruck stattfand. Sie lässt die Taste unverändert an die
-   Anwendung weiterlaufen.
+1. Nach einem Treffer der Claim-Taste fragt die Windows-Terminal-AppModule an
+   NVDAs öffentlicher `decide_executeGesture`-Grenze das aktuelle Fokusobjekt
+   ab. Nur dessen konkrete registrierte AppModule-Instanz darf die vollständige
+   `TermControl`-Identität gegen das Gate autorisieren. Die physische Taste
+   läuft unverändert an die Anwendung weiter.
 2. Das Neovim-Plugin erkennt dieselbe unveränderte Taste mit `vim.on_key`.
    Außerhalb des Eingabe-Callbacks erhöht es atomar `claimSequence` und
-   aktualisiert den monotonen Zeitwert seiner Sitzungsdatei.
+   aktualisiert den monotonen Zeitwert seiner Sitzungsdatei. Ein ansonsten
+   unbelegtes F12 wird nur im Insert-Modus nach dieser Beobachtung konsumiert,
+   damit kein `<F12>` in den Buffer gelangt; Neovim 0.10 benötigt dafür eine
+   schmale Insert-Mode-Zuordnung.
 3. Das Add-on liest die Kandidaten erneut. Nur ein gegenüber der Baseline
    frischer, eindeutiger Claim darf die Zuordnung auslösen. Kein Treffer bleibt
    wirkungslos; mehrere Treffer erfordern eine Auswahl.

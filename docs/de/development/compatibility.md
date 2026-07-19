@@ -55,6 +55,11 @@ Entwicklungsstand hatte dort funktioniert; Ursache und genaue Versionsgrenze
 sind bislang nicht untersucht und haben derzeit keine Priorität. Daraus wird
 keine Kompatibilitätszusage abgeleitet. Neovim 0.10.1 auf Rocky Linux 10.2
 bleibt die vorläufige Mindest- und Referenzversion.
+Da erst Neovim 0.11 eine Taste über den Rückgabewert von `vim.on_key`
+konsumieren kann, richtet das Plugin unter 0.10 ausschließlich für ein zuvor
+unbelegtes F12 im Insert-Modus eine stille `<Ignore>`-Zuordnung ein. Sie hält
+den physischen Claim nachweisbar, ohne `<F12>` in den Buffer einzufügen;
+vorhandene Benutzerbelegungen bleiben unangetastet.
 
 Die Prüfung war nicht erschöpfend. Andere Windows-Versionen, NVDA-Versionen,
 Sprachprofile und reale Braillezeilen sind noch nicht breit in einer

@@ -88,12 +88,21 @@ anschließenden Praxistest keine Probleme. Braille konnte mangels verfügbarer
 Hardware nicht praktisch geprüft werden. F12 und frei belegbare Befehle
 bleiben in dieser Phase unverändert.
 
-Für Phase 5 ist ein bereits zuvor vorhandener F12-Fall konkret festgehalten:
-Der NVDA-Observer muss die physische Taste derzeit bis zu Neovims
-`vim.on_key`-Claimbeobachtung durchlassen. Im Insert-Modus verarbeitet Neovim
-sie danach zusätzlich als Eingabe und fügt `<F12>` in den Buffer ein. Eine
-Lösung muss die verlässliche Fokuszuordnung erhalten und darf F12 außerhalb
-eines tatsächlich autorisierten Claims nicht schlucken.
+Phase 5 ist automatisiert umgesetzt und praktisch bestätigt.
+Der F12-Decider fragt erst nach einem Treffer der einen Claim-Taste NVDAs
+aktuelles Fokusobjekt ab. Er autorisiert nur die konkrete, noch registrierte
+Windows-Terminal-AppModule-Instanz, wenn die daraus gebildete vollständige
+`TermControl`-Identität mit dem Gate übereinstimmt. Der frühere
+Einzeladapter-Fallback ist entfernt; ein Fokuswechsel vor der eingereihten
+Hauptthreadauswertung verwirft weiterhin die Einmalgeneration. Im Insert-Modus
+bleibt die physische Taste als Claim nachweisbar, wird danach aber nicht mehr
+als `<F12>` eingefügt: ab Neovim 0.11 durch den Rückgabevertrag von
+`vim.on_key`, unter Neovim 0.10 durch eine nur bei unbelegtem F12 eingerichtete
+Insert-Mode-`<Ignore>`-Zuordnung. Andere Modi und vorhandene Benutzerbelegungen
+bleiben unverändert. Automatisierte Negativfälle umfassen fremde Anwendungen,
+veraltete Controls, mehrere WT-AppModules und schnelle Fokuswechsel. Der
+anschließende Praxistest des Normal- und Insert-Claims sowie der Fokus- und
+Control-Abschottung zeigte keine Fehler.
 
 Die Platzierung frei belegbarer Befehle ist für eine spätere, getrennte Stufe
 geklärt: NVDA 2026.1.1 bezieht den Tastenbefehldialog aus dem vorherigen Fokus

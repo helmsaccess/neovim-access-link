@@ -699,8 +699,23 @@ function M.setup()
   end, function(action)
     emit("fileManagerActionResult", "fileManagerAction", { fileManagerAction = action })
   end, group)
+  local version = vim.version()
+  local supports_key_consumption = version.major > 0 or version.minor >= 11
+  local insert_claim_key_unmapped = vim.fn.maparg(
+    component_config.sessionClaim.neovimKey, "i"
+  ) == ""
+  if not supports_key_consumption and insert_claim_key_unmapped then
+    -- Neovim 0.10 cannot consume a key from vim.on_key. Reserve only the
+    -- otherwise-unmapped Insert-mode claim key so its terminal notation is
+    -- not inserted after the observer has recorded the physical claim.
+    vim.keymap.set("i", component_config.sessionClaim.neovimKey, "<Ignore>", {
+      desc = "Neovim Access Link session claim",
+      nowait = true,
+      silent = true,
+    })
+  end
   vim.on_key(function(key, typed)
-    local observer_ok, observer_error = pcall(function()
+    local observer_ok, observer_result = pcall(function()
     local translated = vim.fn.keytrans(key)
     local typed_translated = vim.fn.keytrans(typed or "")
     if oil_confirmation_buffer then
@@ -739,6 +754,18 @@ function M.setup()
         local mode_ok, mode_value = pcall(vim.api.nvim_get_mode)
         key_observer_diagnostics.modeAfterClaim = mode_ok and mode_value.mode or "unavailable"
       end)
+      if (
+        supports_key_consumption
+        and insert_claim_key_unmapped
+        and claim_mode:sub(1, 1) == "i"
+      ) then
+        key_observer_diagnostics.claimKeyConsumed = true
+        return ""
+      end
+      key_observer_diagnostics.claimKeyConsumed = (
+        not supports_key_consumption and insert_claim_key_unmapped
+        and claim_mode:sub(1, 1) == "i"
+      )
       return
     end
     if command_line_generated_keys and (typed == nil or typed == "") then
@@ -915,8 +942,10 @@ function M.setup()
     end)
     if not observer_ok then
       key_observer_diagnostics.observerErrorCount = key_observer_diagnostics.observerErrorCount + 1
-      key_observer_diagnostics.observerErrorKind = fixed_error_kind(observer_error)
+      key_observer_diagnostics.observerErrorKind = fixed_error_kind(observer_result)
+      return
     end
+    return observer_result
   end, key_namespace)
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,

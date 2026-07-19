@@ -54,3 +54,8 @@ to beta.
 An older Neovim on Rocky Linux 9 did not connect with the current build; no
 compatibility promise is made for it. GUI front ends, portable Windows layouts,
 and `NVIM_APPNAME` are unsupported.
+Because only Neovim 0.11 and later can consume a key through the return value
+of `vim.on_key`, the plugin installs a silent `<Ignore>` mapping on 0.10 only
+for an otherwise-unbound F12 in Insert mode. This keeps the physical claim
+observable without inserting `<F12>` into the buffer and preserves existing
+user mappings.
