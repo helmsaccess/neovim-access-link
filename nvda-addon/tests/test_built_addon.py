@@ -509,6 +509,22 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("from winBindings import kernel32", sources)
         self.assertIn("import winUser", sources)
 
+    def test_nvda_ui_registration_and_component_management_are_separate_from_global_plugin(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        ui_source = (plugin / "nvda_ui.py").read_text(encoding="utf-8")
+
+        self.assertIn("class NvdaUiManager", ui_source)
+        self.assertIn("self._nvdaUi.register()", global_source)
+        self.assertIn("self._nvdaUi.unregister()", global_source)
+        for implementation in (
+            "def _registerSettingsPanel", "def _installMenus",
+            "def _promptConnectionProfile", "def _showConnectionProfileDialog",
+            "def _runServerInstalls", "def _runComponentRemovals",
+        ):
+            self.assertNotIn(implementation, global_source)
+            self.assertIn(implementation, ui_source)
+
     def test_nvda_window_identity_adapter_is_conclusive_only_for_matching_live_window(self) -> None:
         from globalPlugins.NeovimAccessLink import nvda_windows
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
@@ -3417,6 +3433,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin.terminate()
         self.assertEqual([], self.settingsCategoryClasses)
+        self.assertEqual([], plugin._nvdaUi._menuItems)
 
     def test_nvda_profile_switch_reloads_native_addon_settings(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -3690,7 +3707,7 @@ class BuiltAddonTests(unittest.TestCase):
             {"id": "example-host-two", "name": "Example host two", "host": "example-host", "user": "editor", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
         ]
-        plugin._promptConnectionProfile = lambda _existing, _profiles: queued.pop(0)
+        plugin._nvdaUi._promptConnectionProfile = lambda _existing, _profiles: queued.pop(0)
         panel._onAddConnection(None)
         panel._onAddConnection(None)
         self.assertEqual(["editor@example-host", "editor@example-host"], [
@@ -3700,7 +3717,9 @@ class BuiltAddonTests(unittest.TestCase):
             "Example host one — editor@example-host", "Example host two — editor@example-host",
         ], panel.connectionChoice.items)
         panel.connectionChoice.SetSelection(1)
-        plugin._promptConnectionProfile = lambda existing, _profiles: {**existing, "name": "Edited", "port": 2222}
+        plugin._nvdaUi._promptConnectionProfile = lambda existing, _profiles: {
+            **existing, "name": "Edited", "port": 2222,
+        }
         panel._onEditConnection(None)
         self.assertEqual(("Edited", 2222), (
             panel.connectionProfiles[1]["name"], panel.connectionProfiles[1]["port"],
@@ -3721,22 +3740,22 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         shown = []
-        plugin._showConnectionProfileDialog = lambda values: shown.append(dict(values)) or {
+        plugin._nvdaUi._showConnectionProfileDialog = lambda values: shown.append(dict(values)) or {
             "name": "Work", "host": "host.example", "user": "linux-user", "port": "2222",
             "identityFile": r"C:\keys\work key", "authentication": "openSsh",
         }
-        profile = plugin._promptConnectionProfile(None, [])
+        profile = plugin._nvdaUi._promptConnectionProfile(None, [])
         self.assertEqual(("linux-user@host.example", 2222, r"C:\keys\work key"), (
             f"{profile['user']}@{profile['host']}", profile["port"], profile["identityFile"],
         ))
         self.assertEqual([{}], shown)
-        choices = plugin._authenticationChoices()
+        choices = plugin._nvdaUi._authenticationChoices()
         self.assertIn("recommended", choices[0])
         self.assertIn("not saved", choices[1])
         self.assertNotIn("openSsh", " ".join(choices))
 
-        plugin._showConnectionProfileDialog = lambda _values: None
-        self.assertIsNone(plugin._promptConnectionProfile(profile, [profile]))
+        plugin._nvdaUi._showConnectionProfileDialog = lambda _values: None
+        self.assertIsNone(plugin._nvdaUi._promptConnectionProfile(profile, [profile]))
 
         attempts = iter((
             {"name": "Bad", "host": "-option", "user": "user", "port": "22",
@@ -3744,8 +3763,8 @@ class BuiltAddonTests(unittest.TestCase):
             {"name": "Password host", "host": "server", "user": "remote", "port": "22",
              "identityFile": r"C:\unused-key", "authentication": "password"},
         ))
-        plugin._showConnectionProfileDialog = lambda _values: next(attempts)
-        password_profile = plugin._promptConnectionProfile(None, [])
+        plugin._nvdaUi._showConnectionProfileDialog = lambda _values: next(attempts)
+        password_profile = plugin._nvdaUi._promptConnectionProfile(None, [])
         self.assertEqual("password", password_profile["authentication"])
         self.assertEqual("", password_profile["identityFile"])
         self.assertTrue(any("connection settings are invalid" in message for message in self.messages))
@@ -3779,7 +3798,7 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.checkListSelections.append([1, 2])
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
-        selected = plugin._chooseInstallProfiles()
+        selected = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual(["key", "pw"], [profile.identifier for profile in selected])
         connection_list = self.checkListBoxes[-1]
         self.assertEqual("Connections to update", connection_list.name)
@@ -3792,15 +3811,15 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(select_all.IsChecked())
 
         calls = []
-        plugin._chooseInstallProfiles = lambda: selected
+        plugin._nvdaUi._chooseInstallProfiles = lambda: selected
         plugin._passwordForProfile = lambda profile: "temporary password" if profile.identifier == "pw" else ""
-        plugin._runServerInstalls = lambda *args: calls.append(args)
+        plugin._nvdaUi._runServerInstalls = lambda *args: calls.append(args)
         class ImmediateThread:
             def __init__(inner_self, target, args, daemon):
                 inner_self.target, inner_self.args, inner_self.daemon = target, args, daemon
             def start(inner_self): inner_self.target(*inner_self.args)
         with mock.patch("threading.Thread", ImmediateThread):
-            plugin._onInstallServer(None)
+            plugin._nvdaUi._onInstallServer(None)
         jobs, package, immediate_results, local_plugin = calls[0]
         self.assertEqual(["key", "pw"], [profile.identifier for profile, _password in jobs])
         self.assertEqual(["", "temporary password"], [password for _profile, password in jobs])
@@ -3828,7 +3847,7 @@ class BuiltAddonTests(unittest.TestCase):
             select_all.handlers[sys.modules["wx"].EVT_CHECKBOX](None)
             return original_show(dialog)
         with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", select_all_then_show):
-            selected = plugin._chooseInstallProfiles()
+            selected = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
         plugin.terminate()
 
@@ -3864,7 +3883,7 @@ class BuiltAddonTests(unittest.TestCase):
             connection_list.Check(0, True)
             return original_show(dialog)
         with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", manually_check_then_show):
-            selected = plugin._chooseInstallProfiles()
+            selected = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual([False, False, True, False], synchronized)
         self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
         plugin.terminate()
@@ -3878,7 +3897,7 @@ class BuiltAddonTests(unittest.TestCase):
             "identityFile": "", "authentication": "openSsh",
         }]
         self.modalDialogResults.extend((sys.modules["wx"].ID_OK, sys.modules["wx"].ID_CANCEL))
-        self.assertIsNone(plugin._chooseInstallProfiles())
+        self.assertIsNone(plugin._nvdaUi._chooseInstallProfiles())
         self.assertTrue(self.messageBoxes)
         self.assertIn("Select at least one target", self.messageBoxes[-1][0][0])
         self.assertEqual((), self.checkListBoxes[-1].GetCheckedItems())
@@ -3903,13 +3922,13 @@ class BuiltAddonTests(unittest.TestCase):
             (profiles[1], InstallResult(False, "SSH package upload failed")),
             (profiles[2], InstallResult(False, "SSH password entry cancelled")),
         ]
-        summary = plugin._installResultSummary(results)
+        summary = plugin._nvdaUi._installResultSummary(results)
         self.assertIn("Successful: 1", summary)
         self.assertIn("Documentation (editor@example-host)", summary)
         self.assertIn("Failed: 2", summary)
         self.assertIn("Production (admin@example-host-2): SSH package upload failed", summary)
         self.assertIn("Password server (tester@pw): SSH password entry cancelled", summary)
-        plugin._finishServerInstalls(results)
+        plugin._nvdaUi._finishServerInstalls(results)
         self.assertEqual("Neovim component update results", self.messageDialogs[-1].title)
         self.assertEqual(summary, self.messageDialogs[-1].message)
         self.assertTrue(self.messageDialogs[-1].shown)
@@ -3939,10 +3958,13 @@ class BuiltAddonTests(unittest.TestCase):
             return result
         installer.install.side_effect = install
         finished = []
-        plugin._finishServerInstalls = finished.extend
-        with mock.patch("globalPlugins.NeovimAccessLink.SshUserInstaller", return_value=installer), \
+        plugin._nvdaUi._finishServerInstalls = finished.extend
+        with mock.patch(
+                "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
+                return_value=installer,
+        ), \
                 mock.patch.object(plugin._diagnostics, "record") as record:
-            plugin._runServerInstalls(
+            plugin._nvdaUi._runServerInstalls(
                 [(profiles[0], ""), (profiles[1], "temporary password")], "/tmp/package.tar.gz",
             )
         self.assertEqual(2, len(calls))
@@ -3968,7 +3990,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.checkListSelections.append([0, 2])
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
 
-        selected = plugin._chooseUninstallProfiles()
+        selected = plugin._nvdaUi._chooseUninstallProfiles()
 
         self.assertEqual(["local-windows", "two"], [target.identifier for target in selected])
         connection_list = self.checkListBoxes[-1]
@@ -3992,17 +4014,17 @@ class BuiltAddonTests(unittest.TestCase):
             "identityFile": r"C:\keys\remote", "authentication": "password",
         }])[0]
         local = local_windows_target("This computer")
-        plugin._chooseUninstallProfiles = lambda: [local, remote]
+        plugin._nvdaUi._chooseUninstallProfiles = lambda: [local, remote]
         plugin._passwordForProfile = lambda _profile: "temporary password"
         calls = []
-        run_removals = plugin._runComponentRemovals
-        plugin._runComponentRemovals = lambda *args: calls.append(args)
+        run_removals = plugin._nvdaUi._runComponentRemovals
+        plugin._nvdaUi._runComponentRemovals = lambda *args: calls.append(args)
         class ImmediateThread:
             def __init__(inner_self, target, args, daemon):
                 inner_self.target, inner_self.args, inner_self.daemon = target, args, daemon
             def start(inner_self): inner_self.target(*inner_self.args)
         with mock.patch("threading.Thread", ImmediateThread):
-            plugin._onRemoveComponents(None)
+            plugin._nvdaUi._onRemoveComponents(None)
         self.assertEqual(["local-windows", "remote"], [target.identifier for target, _password in calls[0][0]])
         self.assertEqual(["", "temporary password"], [password for _target, password in calls[0][0]])
         self.assertIn("Removing Neovim components from 2 targets", self.messages[-1])
@@ -4012,12 +4034,17 @@ class BuiltAddonTests(unittest.TestCase):
         ssh_installer = mock.Mock()
         ssh_installer.uninstall.return_value = InstallResult(True, "remote removed")
         finished = []
-        plugin._runComponentRemovals = run_removals
-        plugin._finishComponentRemovals = finished.extend
-        with mock.patch("globalPlugins.NeovimAccessLink.LocalPluginInstaller", return_value=local_installer), \
-                mock.patch("globalPlugins.NeovimAccessLink.SshUserInstaller", return_value=ssh_installer), \
+        plugin._nvdaUi._runComponentRemovals = run_removals
+        plugin._nvdaUi._finishComponentRemovals = finished.extend
+        with mock.patch(
+                "globalPlugins.NeovimAccessLink.nvda_ui.LocalPluginInstaller",
+                return_value=local_installer,
+        ), mock.patch(
+                "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
+                return_value=ssh_installer,
+        ), \
                 mock.patch.object(plugin._diagnostics, "record") as record:
-            plugin._runComponentRemovals([(local, ""), (remote, "temporary password")])
+            plugin._nvdaUi._runComponentRemovals([(local, ""), (remote, "temporary password")])
         local_installer.uninstall.assert_called_once_with()
         ssh_installer.uninstall.assert_called_once_with(
             "user@host", 2222, r"C:\keys\remote", "temporary password", plugin._askpassPath(),
@@ -4044,8 +4071,8 @@ class BuiltAddonTests(unittest.TestCase):
         ]
         before = list(plugin._settings["connections"])
 
-        summary = plugin._componentRemovalResultSummary(results)
-        plugin._finishComponentRemovals(results)
+        summary = plugin._nvdaUi._componentRemovalResultSummary(results)
+        plugin._nvdaUi._finishComponentRemovals(results)
 
         self.assertIn("Successful: 1", summary)
         self.assertIn("Documentation (editor@example)", summary)

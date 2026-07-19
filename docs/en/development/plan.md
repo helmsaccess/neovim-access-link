@@ -44,6 +44,14 @@ claim, lifecycle, and complete built-add-on tests pass. Practical Windows/NVDA
 checks of process exit, closed tabs/panes, and plugin reload remain open; the
 phase is not treated as practically accepted until they pass.
 
+Phase 2 is implemented under automated coverage: `NvdaUiManager` owns
+symmetrical settings and Tools-menu registration, connection forms, and
+Neovim component installation and removal. The `GlobalPlugin` class creates
+and terminates this manager but no longer contains its implementation.
+Structure, localization, dialog, installer, and complete built-add-on tests
+must pass. Practical checks of the real NVDA settings and Tools dialogs remain
+open; this phase is not treated as practically accepted until they pass.
+
 Placement of configurable commands remains open until an established NVDA
 pattern is confirmed. After each stage, verify the built add-on, fail-open
 behavior, and local and SSH sessions across multiple tabs, panes, and windows;

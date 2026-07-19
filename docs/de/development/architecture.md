@@ -211,7 +211,8 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
-| Global Plugin | Einstellungen, Lebenszyklus, Verbindungsdienste, global auffindbare Befehle | ungeprüfte Übernahme fremder Terminal-Controls |
+| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, Verbindungsdienste, global auffindbare Befehle | Implementierung von Einstellungen, Werkzeugen oder ungeprüfte Übernahme fremder Terminal-Controls |
+| `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, konkrete Terminalidentität, Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht

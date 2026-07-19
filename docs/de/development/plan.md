@@ -47,6 +47,15 @@ und vollständige Built-Add-on-Tests bestehen. Die praktische Prüfung von
 Prozessende, geschlossenen Tabs/Panes und Plugin-Neuladen unter Windows/NVDA
 steht noch aus; bis dahin gilt die Phase nicht als praktisch abgenommen.
 
+Phase 2 ist automatisiert umgesetzt: `NvdaUiManager` besitzt die symmetrische
+Registrierung von Einstellungen und Werkzeugmenü, die Verbindungsformulare
+sowie Installation und Entfernung der Neovim-Komponenten. Die
+`GlobalPlugin`-Klasse erzeugt und beendet diesen Manager, enthält aber nicht
+mehr dessen Implementierung. Struktur-, Lokalisierungs-, Dialog-, Installer-
+und vollständige Built-Add-on-Tests müssen bestehen. Die praktische Prüfung
+der echten NVDA-Einstellungen und Werkzeugdialoge steht noch aus; bis dahin
+gilt auch diese Phase nicht als praktisch abgenommen.
+
 Die Platzierung frei belegbarer Befehle bleibt bis zur Klärung eines
 NVDA-üblichen Musters offen. Nach jeder Stufe müssen gebautes Add-on,
 Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und

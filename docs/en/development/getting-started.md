@@ -85,7 +85,7 @@ the generated archive rather than only the source tree.
 | Local Windows session | `session.lua`, `local_sessions.py`, `local_client.py` | local Lua, protocol, and add-on tests |
 | Focus, WT binding, or suppression | `appModules/windowsterminal.py`, `gate.py`, Global Plugin | gate, isolation, package, and practical WT negative tests |
 | Speech or Braille | `speech.py`, `braille.py` | planner, Unicode, package, and practical NVDA tests |
-| Settings or dialogs | Global Plugin and `settings-reference.md` | settings, localization, and package tests |
+| Settings or Tools dialogs | `globalPlugins/NeovimAccessLink/nvda_ui.py` and `settings-reference.md` | settings, localization, and package tests |
 | Installation or build | `tools/`, `packaging/`, installer classes | built add-on, installation, and archive tests |
 
 [testing.md](testing.md) contains the complete mapping. One passing test does

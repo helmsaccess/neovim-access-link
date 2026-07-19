@@ -88,7 +88,7 @@ Archiv untersuchen und dürfen sich nicht nur auf den Quellbaum verlassen.
 | lokale Windows-Sitzung | `session.lua`, `local_sessions.py`, `local_client.py` | lokale Lua-, Protokoll- und Add-on-Tests |
 | Fokus, WT-Zuordnung oder Unterdrückung | `appModules/windowsterminal.py`, `gate.py`, Global Plugin | Gate-, Isolation-, Paket- und praktische WT-Negativtests |
 | Sprache oder Braille | `speech.py`, `braille.py` | Planer-, Unicode-, Paket- und praktische NVDA-Tests |
-| Einstellungen oder Dialoge | Global Plugin und `settings-reference.md` | Einstellungs-, Lokalisierungs- und Pakettests |
+| Einstellungen oder Werkzeugdialoge | `globalPlugins/NeovimAccessLink/nvda_ui.py` und `settings-reference.md` | Einstellungs-, Lokalisierungs- und Pakettests |
 | Installation oder Build | `tools/`, `packaging/`, Installerklassen | gebautes Add-on, Installations- und Archivtests |
 
 Die vollständige Zuordnung steht in [testing.md](testing.md). Ein einzelner

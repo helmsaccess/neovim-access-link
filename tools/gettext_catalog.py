@@ -32,6 +32,7 @@ LOCALE_ROOT = ROOT / "nvda-addon" / "locale"
 POT_PATH = LOCALE_ROOT / "NeovimAccessLink.pot"
 SOURCE_PATHS = (
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "__init__.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_ui.py",
     ROOT / "nvda-addon" / "addon" / "appModules" / "windowsterminal.py",
     ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "speech.py",
 )

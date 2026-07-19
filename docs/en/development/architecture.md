@@ -200,7 +200,8 @@ must not close output again before state is confirmed.
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
-| Global Plugin | Settings, lifecycle, connection services, globally discoverable commands | Unvalidated takeover of unrelated terminal controls |
+| Global Plugin | NVDA-process lifetime, shared-service composition, connection services, globally discoverable commands | Settings or Tools implementation, unvalidated takeover of unrelated terminal controls |
+| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | Terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, concrete terminal identity, native-output delegation or suppression | General target selection or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;

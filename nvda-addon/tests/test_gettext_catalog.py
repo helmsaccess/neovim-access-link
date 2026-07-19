@@ -23,6 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 GERMAN_PO = ROOT / "nvda-addon" / "locale" / "de" / "LC_MESSAGES" / "nvda.po"
 NVDA_TRANSLATION_MODULES = (
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "__init__.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_ui.py",
     ROOT / "nvda-addon" / "addon" / "appModules" / "windowsterminal.py",
 )
 
