@@ -11,6 +11,7 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 - Prefer extending existing APIs over creating parallel ones.
 - Prefer removing code over adding code.
 - Keep changes small, reversible and consistent with existing patterns.
+- Follow each component's and upstream API's established conventions; do not mix styles within a component or impose one component's style on another.
 - Logging is diagnostic only; correctness must never depend on logs.
 - Do not leave TODO comments unless explicitly requested.
 
@@ -45,6 +46,7 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
   translation catalogs as the preferred source so instructions match what users encounter.
 - Prefer inspecting locally available source code of target applications over web retrieval;
   sources for applications and add-ons are often available under `/tmp`.
+- Before sending technical questions externally, check local source, project documentation and official documentation; ask only unresolved questions, with at most three per focused message.
 - Add regression tests for bug fixes.
 - A task is complete only when implementation, tests and documentation agree.
 - Write project, collaboration and publication text in English, including issue,

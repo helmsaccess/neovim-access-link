@@ -36,6 +36,9 @@
 - GitHub releases publish the `.nvda-addon` plus one ZIP containing all German and English quick-guide, handbook, and developer-documentation HTML files; prerelease status also requires explicit user instruction.
 - When setting a release version, update `README.md`'s prominent release link and its versioned English and German changelog links; verify them again when publishing.
 - Prefer stable public NVDA and Neovim APIs.
+- Follow NVDA's coding conventions in NVDA-facing Python and in Python components without an established style; follow Neovim/Lua conventions in the Neovim plugin and keep every shared component internally consistent.
+- Use an existing public NVDA Windows wrapper where suitable, otherwise use `winBindings`; never define parallel Windows DLL bindings in the add-on.
+- Keep application-specific NVDA event and overlay entry points in the corresponding AppModule; any broader global hook requires explicit architectural justification and fail-open tests.
 - Document private API usage in an ADR before release.
 - Never disturb existing tmux or Neovim sessions for testing.
 - Never commit real hostnames, usernames, domains or secrets.
