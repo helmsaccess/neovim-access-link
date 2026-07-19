@@ -209,7 +209,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
-| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Authentifizierung, gemerkte Terminalzuordnungen und getrennte Laufzeitzustände | NVDA-Ereignisse, `nextHandler` oder Dialoge |
+| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen und getrennte Laufzeitzustände | NVDA-Ereignisse, `nextHandler` oder Dialoge |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung der vollständig initialisierten prozessweiten Dienstinstanz | Lebenszyklusentscheidung oder Terminalereignisse |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |

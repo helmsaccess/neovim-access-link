@@ -14,12 +14,18 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         first.remembered_terminal_bindings.add(terminal)
         first.authenticated_instances.add("connection-1")
         first.terminal_passthrough["connection-1"] = True
+        first.pending_focus_contexts["connection-1"] = object()
+        first.transport_capabilities = frozenset({"focusContext"})
 
         self.assertIsInstance(first.instances, ConnectionInstanceManager)
         self.assertIsNot(first.instances, second.instances)
+        self.assertIsNot(first.gate, second.gate)
+        self.assertIsNot(first.planner, second.planner)
         self.assertEqual(set(), second.remembered_terminal_bindings)
         self.assertEqual(set(), second.authenticated_instances)
         self.assertEqual({}, second.terminal_passthrough)
+        self.assertEqual({}, second.pending_focus_contexts)
+        self.assertEqual(frozenset(), second.transport_capabilities)
 
     def test_clear_runtime_tracking_preserves_last_observed_state_and_manager(self) -> None:
         manager = ConnectionInstanceManager()
@@ -35,6 +41,10 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         coordinator.active_instance_id = "connection-1"
         coordinator.runtime_states["connection-1"] = {"connected": True}
         coordinator.pending_full_states["connection-1"] = {"type": "fullState"}
+        coordinator.pending_focus_contexts["connection-1"] = (1, terminal)
+        coordinator.pending_clipboard_requests[1] = (terminal, "connection-1")
+        coordinator.pending_terminal_control_requests[2] = (terminal, "connection-1")
+        coordinator.transport_capabilities = frozenset({"focusContext", "clipboardTransfer"})
 
         coordinator.clear_runtime_tracking()
 
@@ -49,6 +59,10 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         self.assertIsNone(coordinator.active_instance_id)
         self.assertEqual({}, coordinator.runtime_states)
         self.assertEqual({}, coordinator.pending_full_states)
+        self.assertEqual({}, coordinator.pending_focus_contexts)
+        self.assertEqual({}, coordinator.pending_clipboard_requests)
+        self.assertEqual({}, coordinator.pending_terminal_control_requests)
+        self.assertEqual(frozenset(), coordinator.transport_capabilities)
 
     def test_runtime_switches_preserve_each_instance_and_drop_active_state(self) -> None:
         coordinator = ConnectionCoordinator()
@@ -83,6 +97,17 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         blank = coordinator.drop_runtime("connection-1", create_runtime)
         self.assertEqual({"label": "new-3"}, blank)
         self.assertIsNone(coordinator.active_instance_id)
+
+    def test_request_ids_are_bounded_and_independent_by_channel(self) -> None:
+        coordinator = ConnectionCoordinator()
+
+        self.assertEqual(1, coordinator.next_request_id("focusContext"))
+        self.assertEqual(1, coordinator.next_request_id("clipboard"))
+        self.assertEqual(2, coordinator.next_request_id("focusContext"))
+        coordinator._request_ids["terminalControl"] = coordinator._REQUEST_ID_LIMIT - 1
+        self.assertEqual(0, coordinator.next_request_id("terminalControl"))
+        with self.assertRaisesRegex(ValueError, "unknown request channel"):
+            coordinator.next_request_id("other")
 
 
 if __name__ == "__main__":

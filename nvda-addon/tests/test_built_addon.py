@@ -533,6 +533,8 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertIsInstance(plugin._connectionCoordinator, ConnectionCoordinator)
         self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
+        self.assertIs(plugin._gate, plugin._connectionCoordinator.gate)
+        self.assertIs(plugin._planner, plugin._connectionCoordinator.planner)
         self.assertIs(
             plugin._rememberedTerminalBindings,
             plugin._connectionCoordinator.remembered_terminal_bindings,
@@ -542,6 +544,9 @@ class BuiltAddonTests(unittest.TestCase):
             "_rememberedTerminalBindings", "_rememberOfferInstances",
             "_authenticatedInstances", "_instanceTerminalPassthrough",
             "_activeInstanceId", "_instanceRuntimeStates", "_pendingInstanceFullStates",
+            "_gate", "_planner", "_pendingFocusContexts", "_pendingClipboardRequests",
+            "_pendingTerminalControlRequests", "_transportCapabilities",
+            "_focusContextRequestId", "_clipboardRequestId", "_terminalControlRequestId",
         ):
             self.assertNotIn(legacy_field, vars(plugin))
 

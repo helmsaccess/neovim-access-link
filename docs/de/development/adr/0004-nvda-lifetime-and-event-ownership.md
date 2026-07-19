@@ -2,10 +2,10 @@
 
 ## Status
 
-Als Zielarchitektur für eine schrittweise Migration angenommen. Diese ADR
-ändert allein noch kein Laufzeitverhalten. Die Registrierung frei belegbarer
-Befehle und der konkrete Mechanismus zum Auffinden des gemeinsamen Dienstes
-bleiben offen, bis die NVDA-Community dazu geeignete Muster bestätigt.
+Als Zielarchitektur für eine schrittweise Migration angenommen. Der gemeinsame
+Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden. Für
+frei belegbare Befehle ist das Windows-Terminal-AppModule das Ziel; ihre
+eigentliche Verlagerung bleibt ein getrennt zu prüfender Migrationsschritt.
 
 ## Kontext
 
@@ -27,8 +27,8 @@ Lebenszykluswurzel. Es darf ausschließlich:
 
 - Einstellungen und Werkzeuge einmalig und symmetrisch registrieren;
 - gemeinsame Dienste aufbauen, verfügbar machen und geordnet beenden;
-- vorläufig die Metadaten frei belegbarer Befehle bereitstellen, bis deren
-  endgültiger Scope geklärt ist.
+- vorläufig die Metadaten frei belegbarer Befehle bereitstellen, bis sie in
+  einem getrennten Schritt in das Windows-Terminal-AppModule verlagert sind.
 
 Verbindung, Zuordnung, Gate, Protokollzustand und Präsentationsplanung liegen
 in normalen Diensten ohne Vererbung von `GlobalPlugin`. Ihr Vertrag nimmt
@@ -49,9 +49,9 @@ veröffentlicht. Beim Neuladen oder Beenden wird er zuerst als nicht verfügbar
 markiert; danach werden ausstehende Fokusentscheidungen verworfen,
 Unterdrückung deaktiviert, Verbindungen beendet und UI-Registrierungen
 symmetrisch entfernt. AppModules dürfen keine ungeprüfte alte Dienstinstanz
-weiterverwenden. Ob die aktuelle Instanz über einen Registrar, einen
-modulweiten Zugriff oder einen anderen öffentlichen NVDA-üblichen Mechanismus
-gefunden wird, legt diese ADR bewusst nicht fest.
+weiterverwenden. Die aktuelle Umsetzung veröffentlicht die vollständig
+initialisierte Instanz über einen identitätsgeprüften Registrar und entfernt
+sie vor dem übrigen Abbau.
 
 ## F12-Ausnahme
 
@@ -76,13 +76,16 @@ auf native Verarbeitung zurück.
   genaue Reihenfolge wird vor der Ereignismigration durch Regressionstests
   festgelegt.
 
-## Offene Befehlsentscheidung
+## Befehls-Scope
 
-Während der Migration bleiben die bereits global sichtbaren, unbelegten
+NVDA 2026.1.1 erzeugt den Tastenbefehldialog aus dem vor dem Öffnen
+fokussierten Objekt und dessen AppModule. Bei zuvor fokussiertem Windows
+Terminal sind Befehle des Windows-Terminal-AppModules damit auffindbar. Sie
+sollen deshalb in einer eigenen Migrationsstufe dorthin verschoben werden und
+sind bei der Ausführung automatisch enger auf den aktuellen Anwendungskontext
+begrenzt. Bis dahin bleiben die vorhandenen global sichtbaren, unbelegten
 Skriptmetadaten bestehen. Es werden keine neuen globalen Standardgesten
-eingeführt. Die endgültige Platzierung wird erst entschieden, wenn geklärt ist,
-wie Befehle zugleich im Tastenbefehldialog auffindbar und zuverlässig auf das
-aktive Windows-Terminal-AppModule begrenzt werden können.
+eingeführt.
 
 ## Folgen
 

@@ -56,19 +56,26 @@ und Built-Add-on-Tests bestehen; Einstellungen, Werkzeugdialoge und deutsche
 UI-Texte wurden anschließend praktisch bestätigt.
 
 Phase 3 ist teilweise umgesetzt. Ein NVDA-unabhängiger
-`ConnectionCoordinator` besitzt nun Instanzmanager, aktiven Client,
-Authentifizierung, Terminalzuordnungen und die getrennten Laufzeitzustände der
-Verbindungsinstanzen. Die `GlobalPlugin`-Klasse greift vorerst über schmale
-Kompatibilitätseigenschaften darauf zu; Ereignisverhalten und F12-Zuordnung
-bleiben unverändert. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht
+`ConnectionCoordinator` besitzt nun Instanzmanager, aktiven Client, Gate,
+aktiven Sprachplaner, Authentifizierung, Terminalzuordnungen, korrelierte
+ausstehende Anfragen und die getrennten Laufzeitzustände der
+Verbindungsinstanzen. Die Request-IDs der drei erlaubten Rückkanäle werden
+getrennt und begrenzt dort vergeben. Die `GlobalPlugin`-Klasse greift vorerst
+über schmale Kompatibilitätseigenschaften darauf zu; Ereignisverhalten und
+F12-Zuordnung bleiben unverändert. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht
 erst die vollständig initialisierte Dienstinstanz und verhindert, dass das
 späte Beenden einer alten Instanz eine neuere Registrierung löscht. Offen sind
 die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik sowie
-die praktische Prüfung von Add-on-Neuladen und Verbindungswechseln mit diesem
-Zwischenstand.
+die praktische Prüfung des erweiterten Coordinator-Zustands. Der vorherige
+Zwischenstand mit Instanzzuständen und identitätssicherer Registrierung wurde
+praktisch bestätigt.
 
-Die Platzierung frei belegbarer Befehle bleibt bis zur Klärung eines
-NVDA-üblichen Musters offen. Nach jeder Stufe müssen gebautes Add-on,
+Die Platzierung frei belegbarer Befehle ist für eine spätere, getrennte Stufe
+geklärt: NVDA 2026.1.1 bezieht den Tastenbefehldialog aus dem vorherigen Fokus
+und dessen AppModule. Bei zuvor fokussiertem Windows Terminal sind die Befehle
+des Windows-Terminal-AppModules deshalb sichtbar und können dort enger
+begrenzt werden. Bis diese Verlagerung eigens umgesetzt und geprüft ist,
+bleiben die vorhandenen Metadaten unverändert. Nach jeder Stufe müssen gebautes Add-on,
 Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und
 Fenstern geprüft werden; Architekturumbau und Verhaltensänderung werden nicht
 im selben Schritt vermischt.

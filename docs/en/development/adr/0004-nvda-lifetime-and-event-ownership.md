@@ -2,10 +2,10 @@
 
 ## Status
 
-Accepted as the target architecture for an incremental migration. This ADR
-alone does not change runtime behavior. Registration of configurable commands
-and the concrete mechanism for locating the shared service remain open until
-the NVDA community confirms suitable patterns.
+Accepted as the target architecture for an incremental migration. The shared
+service is now located through an identity-checked registrar. The Windows
+Terminal AppModule is the target for configurable commands; moving them
+remains a separate migration step that must be tested on its own.
 
 ## Context
 
@@ -27,8 +27,8 @@ root. It may only:
 
 - register settings and tools once and remove them symmetrically;
 - construct, expose, and shut down shared services in an orderly manner;
-- provisionally provide metadata for configurable commands until their final
-  scope is resolved.
+- provisionally provide metadata for configurable commands until a separate
+  step moves them to the Windows Terminal AppModule.
 
 Connections, assignments, the gate, protocol state, and presentation planning
 reside in ordinary services that do not inherit from `GlobalPlugin`. Their
@@ -48,9 +48,9 @@ During startup, a shared service is exposed only after complete
 initialization. During reload or termination, it is first marked unavailable;
 pending focus decisions are then discarded, suppression is disabled,
 connections are stopped, and UI registrations are removed symmetrically.
-AppModules must not continue using an unverified stale service instance. This
-ADR deliberately does not decide whether the current instance is found through
-a registrar, module-level access, or another established public NVDA pattern.
+AppModules must not continue using an unverified stale service instance. The
+current implementation publishes the fully initialized instance through an
+identity-checked registrar and removes it before the remaining teardown.
 
 ## F12 exception
 
@@ -72,13 +72,15 @@ mismatch falls back to native processing without an assignment.
 - Native focus handling required by LiveText remains intact; regression tests
   will define its exact ordering before event migration.
 
-## Open command decision
+## Command scope
 
-The existing globally visible, unbound script metadata remains during the
-migration. No new global default gestures will be introduced. Final placement
-will be decided only after determining how commands can remain discoverable in
-the Input Gestures dialog while being reliably restricted to the active
-Windows Terminal AppModule.
+NVDA 2026.1.1 builds the Input Gestures dialog from the object that was focused
+before opening it and from that object's AppModule. Commands on the Windows
+Terminal AppModule are therefore discoverable when Windows Terminal was
+focused first. They will move there in a separate migration stage, which also
+scopes execution more narrowly to the current application context. Until then,
+the existing globally visible, unbound script metadata remains in place. No
+new global default gestures are introduced.
 
 ## Consequences
 

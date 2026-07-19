@@ -276,8 +276,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def __init__(self):
         super().__init__()
         self._serviceRegistrationToken = None
-        self._gate = SessionGate(_FRONTEND_POLICY.enabled_kinds)
-        self._planner = SpeechPlanner(translate=_)
         self._diagnostics = DiagnosticBuffer()
         self._suggestionSounds = SuggestionSoundCache(
             os.path.join(globalVars.appDir, "waves"),
@@ -291,7 +289,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             os.path.join(_PACKAGE_DIR, "resources", "sounds"),
             on_diagnostic=self._diagnostics.record,
         )
-        self._connectionCoordinator = ConnectionCoordinator()
+        self._connectionCoordinator = ConnectionCoordinator(
+            gate=SessionGate(_FRONTEND_POLICY.enabled_kinds),
+            planner=SpeechPlanner(translate=_),
+        )
         self._currentState = {}
         self._lastMode = None
         self._typedWord = []
@@ -299,13 +300,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._menuDocumentation = ""
         self._sessionPasswords = {}
         self._sessionDiscoveryGeneration = 0
-        self._focusContextRequestId = 0
-        self._pendingFocusContexts = {}
-        self._clipboardRequestId = 0
-        self._pendingClipboardRequests = {}
-        self._terminalControlRequestId = 0
-        self._pendingTerminalControlRequests = {}
-        self._transportCapabilities = frozenset()
         self._pendingClaimTargets = {}
         self._claimGestureGeneration = 0
         self._pendingObservedClaim = None
@@ -345,6 +339,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _instanceManager(self):
         """Compatibility view while connection behavior moves into its coordinator."""
         return self._connectionCoordinator.instances
+
+    @property
+    def _gate(self):
+        return self._connectionCoordinator.gate
+
+    @property
+    def _planner(self):
+        return self._connectionCoordinator.planner
+
+    @_planner.setter
+    def _planner(self, value):
+        self._connectionCoordinator.planner = value
 
     @property
     def _client(self):
@@ -401,6 +407,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @property
     def _pendingInstanceFullStates(self):
         return self._connectionCoordinator.pending_full_states
+
+    @property
+    def _pendingFocusContexts(self):
+        return self._connectionCoordinator.pending_focus_contexts
+
+    @property
+    def _pendingClipboardRequests(self):
+        return self._connectionCoordinator.pending_clipboard_requests
+
+    @property
+    def _pendingTerminalControlRequests(self):
+        return self._connectionCoordinator.pending_terminal_control_requests
+
+    @property
+    def _transportCapabilities(self):
+        return self._connectionCoordinator.transport_capabilities
+
+    @_transportCapabilities.setter
+    def _transportCapabilities(self, value):
+        self._connectionCoordinator.transport_capabilities = value
 
     def _dispatchConfiguredTerminalScript(self, gesture, action_name):
         """Run a configurable command only for an exact Windows Terminal control.
@@ -1131,10 +1157,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         ):
             ui.message(_("The active Neovim state is incomplete; try again"))
             return
-        self._terminalControlRequestId = (
-            self._terminalControlRequestId + 1
-        ) % 2_147_483_648
-        request_id = self._terminalControlRequestId
+        request_id = self._connectionCoordinator.next_request_id("terminalControl")
         while (
             len(self._pendingTerminalControlRequests)
             >= _MAX_PENDING_TERMINAL_CONTROL_REQUESTS
@@ -1234,8 +1257,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         return identity, selected.identifier, self._client, state, expected
 
     def _nextClipboardRequestId(self):
-        self._clipboardRequestId = (self._clipboardRequestId + 1) % 2_147_483_648
-        return self._clipboardRequestId
+        return self._connectionCoordinator.next_request_id("clipboard")
 
     def _rememberClipboardRequest(self, request_id, request):
         while len(self._pendingClipboardRequests) >= _MAX_PENDING_CLIPBOARD_REQUESTS:
@@ -2186,8 +2208,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             client = self._instanceManager.client_for(instance_id)
             if instance_id in self._authenticatedInstances:
-                self._focusContextRequestId = (self._focusContextRequestId + 1) % 2_147_483_648
-                request_id = self._focusContextRequestId
+                request_id = self._connectionCoordinator.next_request_id("focusContext")
                 self._pendingFocusContexts[instance_id] = (request_id, identity)
                 sent = client.send_control("requestFocusContext", {"requestId": request_id})
                 if not sent:

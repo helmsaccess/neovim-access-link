@@ -52,18 +52,25 @@ Structure, localization, dialog, installer, and built-add-on tests pass;
 settings, Tools dialogs, and German UI text were then confirmed in practice.
 
 Phase 3 is partially implemented. An NVDA-independent
-`ConnectionCoordinator` now owns the instance manager, active client,
-authentication, terminal bindings, and isolated runtime state for connection
-instances. For now, the `GlobalPlugin` class reaches that state through narrow
+`ConnectionCoordinator` now owns the instance manager, active client, gate,
+active speech planner, authentication, terminal bindings, correlated pending
+requests, and isolated runtime state for connection instances. It also
+allocates bounded, independent request IDs for the three allowlisted reverse
+channels. For now, the `GlobalPlugin` class reaches that state through narrow
 compatibility properties; event behavior and F12 assignment are unchanged. An
 identity-checked `ServiceRegistrar` publishes only the fully initialized
 service and prevents late termination of an old instance from removing a
 newer registration. Further relocation of connection, gate, and presentation
-behavior remains open, as do practical checks of add-on reload and connection
-switching with this intermediate state.
+behavior remains open, as do practical checks of the expanded coordinator
+state. The preceding intermediate state with instance state and identity-safe
+registration was confirmed in practice.
 
-Placement of configurable commands remains open until an established NVDA
-pattern is confirmed. After each stage, verify the built add-on, fail-open
+Placement of configurable commands is settled for a later, separate stage:
+NVDA 2026.1.1 builds the Input Gestures dialog from the previous focus and its
+AppModule. With Windows Terminal focused before opening the dialog, commands
+on its AppModule are therefore visible and can be scoped more narrowly there.
+The existing metadata remains unchanged until that relocation is implemented
+and tested separately. After each stage, verify the built add-on, fail-open
 behavior, and local and SSH sessions across multiple tabs, panes, and windows;
 do not combine architectural relocation with behavior changes in one step.
 
