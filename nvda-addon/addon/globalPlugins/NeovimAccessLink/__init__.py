@@ -31,22 +31,8 @@ _TERMINAL_LIFECYCLE_INTERVAL_MS = 5 * 60 * 1_000
 
 def _windowIdentityExists(identity):
     """Return True/False for a conclusive HWND check, or None on uncertainty."""
-    try:
-        import ctypes
-        from ctypes import wintypes
-        user32 = ctypes.WinDLL("user32", use_last_error=True)
-        user32.IsWindow.argtypes = (wintypes.HWND,)
-        user32.IsWindow.restype = wintypes.BOOL
-        user32.GetWindowThreadProcessId.argtypes = (wintypes.HWND, ctypes.POINTER(wintypes.DWORD))
-        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
-        if not user32.IsWindow(identity.window_handle):
-            return False
-        process_id = wintypes.DWORD()
-        if not user32.GetWindowThreadProcessId(identity.window_handle, ctypes.byref(process_id)):
-            return False
-        return process_id.value == identity.process_id
-    except (AttributeError, OSError, TypeError, ValueError):
-        return None
+    from .nvda_windows import windowIdentityExists
+    return windowIdentityExists(identity)
 
 
 def _terminalIdentityExists(identity, known_element=None):
@@ -105,6 +91,7 @@ from .core.ssh_sessions import SshSessionLister
 from .core.local_install import LocalPluginInstaller
 from .core.local_sessions import LocalSessionLister
 from .suggestion_sounds import EditorSoundCache, SpellingSoundCache, SuggestionSoundCache
+from .nvda_windows import processAlive
 
 addonHandler.initTranslation()
 
@@ -123,6 +110,11 @@ _activePlugin = None
 def getActivePlugin():
     """Return the add-on service instance for application-specific adapters."""
     return _activePlugin
+
+
+def _localSessionLister():
+    """Create the neutral lister with NVDA's Windows process adapter."""
+    return LocalSessionLister(process_alive=processAlive)
 
 
 def _linuxComponentConfig():
@@ -798,7 +790,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         while True:
             attempts += 1
             try:
-                sessions = LocalSessionLister().list()
+                sessions = _localSessionLister().list()
             except Exception as error:
                 return [], error, attempts
             if predicate(sessions) or time.monotonic() >= deadline:
@@ -811,7 +803,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         def scan(kind, _target_id, profile):
             if kind == "localWindowsTcp":
-                return LocalSessionLister().list()
+                return _localSessionLister().list()
             return SshSessionLister().list(
                 profile.ssh_target, profile.port, profile.identity_file,
                 password=passwords.get(profile.identifier, ""),
@@ -1439,7 +1431,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         else:
             attempts = 1
             try:
-                sessions, error = LocalSessionLister().list(), None
+                sessions, error = _localSessionLister().list(), None
             except Exception as caught:
                 sessions, error = [], caught
         queueHandler.queueFunction(

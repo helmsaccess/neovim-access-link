@@ -69,33 +69,9 @@ class LocalSessionLister:
     @staticmethod
     def _default_process_alive(pid: int) -> bool | None:
         if os.name == "nt":
-            # os.kill(pid, 0) does not have POSIX probe semantics on every
-            # supported Windows Python build. Query the process handle without
-            # ever requesting termination rights.
-            try:
-                import ctypes
-                from ctypes import wintypes
-
-                kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-                kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
-                kernel32.OpenProcess.restype = wintypes.HANDLE
-                kernel32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
-                kernel32.GetExitCodeProcess.restype = wintypes.BOOL
-                kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
-                kernel32.CloseHandle.restype = wintypes.BOOL
-                handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-                if not handle:
-                    error = ctypes.get_last_error()
-                    return False if error == 87 else None  # ERROR_INVALID_PARAMETER
-                try:
-                    exit_code = wintypes.DWORD()
-                    if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
-                        return None
-                    return exit_code.value == 259  # STILL_ACTIVE
-                finally:
-                    kernel32.CloseHandle(handle)
-            except (AttributeError, OSError, TypeError, ValueError):
-                return None
+            # Windows process probing is injected by the NVDA integration so
+            # this neutral module never declares its own DLL boundary.
+            return None
         try:
             os.kill(pid, 0)
             return True

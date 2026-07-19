@@ -100,6 +100,12 @@ Graceful exit, SIGKILL, PID/endpoint/nonce reuse, dead or uncertain records,
 owned and foreign sockets, and closed Windows Terminal controls must be
 non-destructive. Cleanup must terminate neither Neovim nor tmux.
 
+Automated coverage for the NVDA-side Windows adapters distinguishes live and
+exited processes, invalid PIDs, access denial, and uncertain failures. Only a
+conclusively exited process may delete an owned session record; a closed
+terminal identity still requires two conclusive negative lifecycle checks
+before cleanup.
+
 ### Editor, presentation, and focus
 
 Core and add-on tests cover modes, navigation, editing, selection, completion,

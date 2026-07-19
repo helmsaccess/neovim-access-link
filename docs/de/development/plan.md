@@ -32,8 +32,6 @@ Laufend:
 [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) wird in einzeln
 prüfbaren Schritten umgesetzt:
 
-- direkte Windows-DLL-Bindungen durch vorhandene NVDA-Wrapper oder
-  `winBindings` ersetzen;
 - UI-Registrierung und Komponentenverwaltung vom Terminalpfad trennen;
 - gemeinsame Verbindungen und Zustände aus der GlobalPlugin-Klasse in normale
   Dienste verschieben;
@@ -41,6 +39,13 @@ prüfbaren Schritten umgesetzt:
   AppModule besitzen;
 - F12-Fokusprüfung weiter eingrenzen, ohne Tab-, Pane- oder Fensterwechsel zu
   beeinträchtigen.
+
+Phase 1 ist automatisiert umgesetzt: Fensteridentität und Prozesslebensdauer
+verwenden `winUser`, `winBindings` und `winKernel`; der neutrale Session-Lister
+erhält die Prozessprüfung injiziert. Adapter-, Registry-, Claim-, Lifecycle-
+und vollständige Built-Add-on-Tests bestehen. Die praktische Prüfung von
+Prozessende, geschlossenen Tabs/Panes und Plugin-Neuladen unter Windows/NVDA
+steht noch aus; bis dahin gilt die Phase nicht als praktisch abgenommen.
 
 Die Platzierung frei belegbarer Befehle bleibt bis zur Klärung eines
 NVDA-üblichen Musters offen. Nach jeder Stufe müssen gebautes Add-on,

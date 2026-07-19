@@ -498,6 +498,87 @@ class BuiltAddonTests(unittest.TestCase):
         source = (core / "local_sessions.py").read_text(encoding="utf-8")
         self.assertNotIn("query_registry_nonce", source)
 
+    def test_built_addon_uses_nvda_windows_adapters_without_private_dll_declarations(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (plugin / "__init__.py", plugin / "nvda_windows.py", plugin / "core" / "local_sessions.py")
+        )
+        self.assertNotIn("ctypes.WinDLL", sources)
+        self.assertNotIn("import ctypes", sources)
+        self.assertIn("from winBindings import kernel32", sources)
+        self.assertIn("import winUser", sources)
+
+    def test_nvda_window_identity_adapter_is_conclusive_only_for_matching_live_window(self) -> None:
+        from globalPlugins.NeovimAccessLink import nvda_windows
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+
+        identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 6))
+        live = types.SimpleNamespace(
+            isWindow=lambda _handle: True,
+            getWindowThreadProcessID=lambda _handle: (100, 7),
+        )
+        wrong_process = types.SimpleNamespace(
+            isWindow=lambda _handle: True,
+            getWindowThreadProcessID=lambda _handle: (101, 7),
+        )
+        closed = types.SimpleNamespace(
+            isWindow=lambda _handle: False,
+            getWindowThreadProcessID=lambda _handle: (_ for _ in ()).throw(AssertionError()),
+        )
+        uncertain = types.SimpleNamespace(
+            isWindow=lambda _handle: (_ for _ in ()).throw(OSError()),
+        )
+        self.assertTrue(nvda_windows.windowIdentityExists(identity, _winUser=live))
+        self.assertFalse(nvda_windows.windowIdentityExists(identity, _winUser=wrong_process))
+        self.assertFalse(nvda_windows.windowIdentityExists(identity, _winUser=closed))
+        self.assertIsNone(nvda_windows.windowIdentityExists(identity, _winUser=uncertain))
+
+    def test_nvda_process_adapter_distinguishes_live_ended_denied_and_unknown(self) -> None:
+        from globalPlugins.NeovimAccessLink import nvda_windows
+
+        handles = {1: 101, 2: 102, 3: 0, 4: 0, 5: 0}
+        errors = {3: 5, 4: 87, 5: 123}
+        active_pid = [0]
+        closed = []
+
+        def open_process(_access, _inherit, pid):
+            active_pid[0] = pid
+            return handles[pid]
+
+        kernel32 = types.SimpleNamespace(
+            OpenProcess=open_process,
+            GetLastError=lambda: errors.get(active_pid[0], 0),
+        )
+        win_kernel = types.SimpleNamespace(
+            GetExitCodeProcess=lambda handle: 259 if handle == 101 else 0,
+            closeHandle=closed.append,
+        )
+        check = lambda pid: nvda_windows.processAlive(
+            pid,
+            _kernel32=kernel32,
+            _winKernel=win_kernel,
+        )
+        self.assertTrue(check(1))
+        self.assertFalse(check(2))
+        self.assertIsNone(check(3), "access denied is uncertain")
+        self.assertFalse(check(4), "an invalid PID is conclusively dead")
+        self.assertIsNone(check(5), "an unknown OpenProcess failure is uncertain")
+        self.assertEqual([101, 102], closed)
+
+    def test_local_session_lister_receives_nvda_process_adapter(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+
+        callbacks = []
+
+        class Lister:
+            def __init__(self, *, process_alive):
+                callbacks.append(process_alive)
+
+        with mock.patch.object(addon_module, "LocalSessionLister", Lister):
+            self.assertIsInstance(addon_module._localSessionLister(), Lister)
+        self.assertEqual([addon_module.processAlive], callbacks)
+
     def test_bundled_neovim_plugin_supports_old_and_new_utfindex_signatures(self) -> None:
         lua = (
             self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
@@ -1139,6 +1220,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._finishAutomaticClaimResolution = lambda *args: completed.append(args)
 
         class LocalLister:
+            def __init__(inner_self, **_kwargs): pass
             def list(inner_self): return [local]
 
         class UnexpectedSshLister:
@@ -1177,6 +1259,7 @@ class BuiltAddonTests(unittest.TestCase):
         calls = []
 
         class DelayedLocalLister:
+            def __init__(inner_self, **_kwargs): pass
             def list(inner_self):
                 calls.append(True)
                 return [snapshots[min(len(calls) - 1, 1)]]
@@ -1248,6 +1331,7 @@ class BuiltAddonTests(unittest.TestCase):
         calls = []
 
         class DelayedLocalLister:
+            def __init__(inner_self, **_kwargs): pass
             def list(inner_self):
                 calls.append(True)
                 return [[stale], [fresh]][min(len(calls) - 1, 1)]

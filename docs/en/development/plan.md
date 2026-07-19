@@ -30,14 +30,19 @@ In progress:
 Implement [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) in
 independently verifiable steps:
 
-- replace direct Windows DLL bindings with existing NVDA wrappers or
-  `winBindings`;
 - separate UI registration and component management from the terminal path;
 - move shared connections and state from the Global Plugin class into ordinary
   services;
 - make the AppModule fully own Windows Terminal events, overlays, and
   `nextHandler`;
 - narrow F12 focus checks without impairing tab, pane, or window transitions.
+
+Phase 1 is implemented under automated coverage: window identity and process
+liveness use `winUser`, `winBindings`, and `winKernel`, while the neutral
+session lister receives the process probe by injection. Adapter, registry,
+claim, lifecycle, and complete built-add-on tests pass. Practical Windows/NVDA
+checks of process exit, closed tabs/panes, and plugin reload remain open; the
+phase is not treated as practically accepted until they pass.
 
 Placement of configurable commands remains open until an established NVDA
 pattern is confirmed. After each stage, verify the built add-on, fail-open

@@ -107,6 +107,12 @@ unklare Sessiondateien, eigene und fremde Sockets sowie geschlossene
 Windows-Terminal-Controls müssen nicht-destruktiv geprüft werden. Cleanup darf
 weder Neovim noch tmux beenden.
 
+Die NVDA-seitigen Windows-Adapter unterscheiden automatisiert lebende und
+beendete Prozesse, ungültige PIDs, Zugriffsverweigerung und unklare Fehler.
+Nur ein sicher beendeter Prozess darf einen eigenen Sitzungsdatensatz löschen;
+eine geschlossene Terminalidentität wird weiterhin erst nach zwei sicheren
+negativen Lifecycle-Prüfungen bereinigt.
+
 ### Editor, Präsentation und Fokus
 
 Core- und Add-on-Tests decken Modi, Navigation, Bearbeitung, Auswahl,
