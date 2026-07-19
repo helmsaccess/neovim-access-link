@@ -79,7 +79,7 @@ from .core.diagnostics import DiagnosticBuffer
 from .core.connection_profiles import (
     parse_profile, parse_profiles,
 )
-from .core.connection_instances import ConnectionInstanceManager
+from .core.connection_coordinator import ConnectionCoordinator
 from .core.connection_targets import (
     LOCAL_WINDOWS_TCP, local_windows_target, remote_ssh_target,
 )
@@ -88,6 +88,7 @@ from .core.gate import SessionGate, TerminalIdentity
 from .core.speech import Priority, SpeechPlanner
 from .core.ssh_sessions import SshSessionLister
 from .core.local_sessions import LocalSessionLister
+from .core.service_registrar import ServiceRegistrar
 from .suggestion_sounds import EditorSoundCache, SpellingSoundCache, SuggestionSoundCache
 from .nvda_windows import processAlive
 
@@ -104,12 +105,12 @@ try:
 except ImportError:
     _ADDON_VERSION = _ADDON_MANIFEST["version"]
 
-_activePlugin = None
+_serviceRegistrar = ServiceRegistrar()
 
 
 def getActivePlugin():
     """Return the add-on service instance for application-specific adapters."""
-    return _activePlugin
+    return _serviceRegistrar.current
 
 
 def _localSessionLister():
@@ -211,7 +212,7 @@ class StructuredLineRegion(nvdaBraille.Region):
         self.focusToHardLeft = True
 
     def update(self):
-        plugin = _activePlugin
+        plugin = getActivePlugin()
         state = dict(plugin._currentState) if plugin is not None else {}
         formatting = config.conf.get("documentFormatting", {})
         state["reportSpellingBraille"] = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
@@ -226,7 +227,7 @@ class StructuredLineRegion(nvdaBraille.Region):
         super().update()
 
     def routeTo(self, braillePos):
-        plugin = _activePlugin
+        plugin = getActivePlugin()
         if plugin is None or not plugin._shouldSuppress(self.obj):
             return
         if not 0 <= braillePos < len(self.brailleToRawPos):
@@ -254,14 +255,14 @@ class StructuredLineRegion(nvdaBraille.Region):
 
 class StructuredTerminalBrailleOverlay:
     def _reportNewLines(self, lines):
-        plugin = _activePlugin
+        plugin = getActivePlugin()
         if plugin is not None and plugin._shouldSuppress(self):
             plugin._diagnostics.record("terminalLiveTextSuppressed", lineCount=len(lines))
             return
         return super()._reportNewLines(lines)
 
     def getBrailleRegions(self, review=False):
-        plugin = _activePlugin
+        plugin = getActivePlugin()
         if review or plugin is None or not plugin._shouldSuppress(self):
             raise NotImplementedError
         # Return a concrete iterable. A yield would turn this into a generator
@@ -273,8 +274,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     scriptCategory = _PRODUCT_NAME
 
     def __init__(self):
-        global _activePlugin
         super().__init__()
+        self._serviceRegistrationToken = None
         self._gate = SessionGate(_FRONTEND_POLICY.enabled_kinds)
         self._planner = SpeechPlanner(translate=_)
         self._diagnostics = DiagnosticBuffer()
@@ -290,9 +291,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             os.path.join(_PACKAGE_DIR, "resources", "sounds"),
             on_diagnostic=self._diagnostics.record,
         )
-        self._client = None
-        self._lastConnectionState = None
-        self._connected = False
+        self._connectionCoordinator = ConnectionCoordinator()
         self._currentState = {}
         self._lastMode = None
         self._typedWord = []
@@ -300,14 +299,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._menuDocumentation = ""
         self._sessionPasswords = {}
         self._sessionDiscoveryGeneration = 0
-        self._instanceManager = ConnectionInstanceManager()
-        self._rememberedTerminalBindings = set()
-        self._rememberOfferInstances = set()
-        self._authenticatedInstances = set()
-        self._instanceTerminalPassthrough = {}
-        self._activeInstanceId = None
-        self._instanceRuntimeStates = {}
-        self._pendingInstanceFullStates = {}
         self._focusContextRequestId = 0
         self._pendingFocusContexts = {}
         self._clipboardRequestId = 0
@@ -330,7 +321,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._focusedTerminalObject = None
         self._terminalIdentityElements = {}
         self._focusedAppModule = None
-        _activePlugin = self
         _registerNvdaConfigSpec()
         settings = self._loadSettings()
         self._settings = settings
@@ -349,6 +339,68 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         )
         log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
         self._nvdaUi.register()
+        self._serviceRegistrationToken = _serviceRegistrar.publish(self)
+
+    @property
+    def _instanceManager(self):
+        """Compatibility view while connection behavior moves into its coordinator."""
+        return self._connectionCoordinator.instances
+
+    @property
+    def _client(self):
+        return self._connectionCoordinator.active_client
+
+    @_client.setter
+    def _client(self, value):
+        self._connectionCoordinator.active_client = value
+
+    @property
+    def _lastConnectionState(self):
+        return self._connectionCoordinator.last_connection_state
+
+    @_lastConnectionState.setter
+    def _lastConnectionState(self, value):
+        self._connectionCoordinator.last_connection_state = value
+
+    @property
+    def _connected(self):
+        return self._connectionCoordinator.connected
+
+    @_connected.setter
+    def _connected(self, value):
+        self._connectionCoordinator.connected = value
+
+    @property
+    def _rememberedTerminalBindings(self):
+        return self._connectionCoordinator.remembered_terminal_bindings
+
+    @property
+    def _rememberOfferInstances(self):
+        return self._connectionCoordinator.remember_offer_instances
+
+    @property
+    def _authenticatedInstances(self):
+        return self._connectionCoordinator.authenticated_instances
+
+    @property
+    def _instanceTerminalPassthrough(self):
+        return self._connectionCoordinator.terminal_passthrough
+
+    @property
+    def _activeInstanceId(self):
+        return self._connectionCoordinator.active_instance_id
+
+    @_activeInstanceId.setter
+    def _activeInstanceId(self, value):
+        self._connectionCoordinator.active_instance_id = value
+
+    @property
+    def _instanceRuntimeStates(self):
+        return self._connectionCoordinator.runtime_states
+
+    @property
+    def _pendingInstanceFullStates(self):
+        return self._connectionCoordinator.pending_full_states
 
     def _dispatchConfiguredTerminalScript(self, gesture, action_name):
         """Run a configurable command only for an exact Windows Terminal control.
@@ -469,7 +521,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         )
 
     def terminate(self):
-        global _activePlugin
+        _serviceRegistrar.unpublish(self, self._serviceRegistrationToken)
+        self._serviceRegistrationToken = None
         for pending in tuple(self._pendingMainThreadCalls):
             try:
                 pending.Stop()
@@ -486,25 +539,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._instanceManager.stop_all()
         except Exception as error:
             self._diagnostics.record("connectionInstancesStopError", error=str(error))
-        self._rememberedTerminalBindings.clear()
+        self._connectionCoordinator.clear_runtime_tracking()
         self._terminalIdentityElements.clear()
-        self._rememberOfferInstances.clear()
-        self._authenticatedInstances.clear()
-        self._instanceTerminalPassthrough.clear()
-        self._instanceRuntimeStates.clear()
-        self._pendingInstanceFullStates.clear()
         self._pendingFocusContexts.clear()
         self._pendingClipboardRequests.clear()
         self._pendingTerminalControlRequests.clear()
         self._pendingObservedClaim = None
         self._focusedTerminalObject = None
         self._focusedAppModule = None
-        self._activeInstanceId = None
         self._nvdaUi.unregister()
         self._suggestionSounds.close()
         self._spellingSound.close()
         self._editorSounds.close()
-        _activePlugin = None
         self._diagnostics.record("addonStop")
         log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
         super().terminate()
@@ -2063,9 +2109,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _switchInstanceRuntime(self, instance_id):
         if instance_id == self._activeInstanceId:
             return
-        if self._activeInstanceId is not None:
-            self._instanceRuntimeStates[self._activeInstanceId] = self._captureInstanceRuntime()
-        runtime = self._instanceRuntimeStates.pop(instance_id, None) or self._newInstanceRuntime()
+        runtime = self._connectionCoordinator.switch_runtime(
+            instance_id, self._captureInstanceRuntime(), self._newInstanceRuntime,
+        )
         self._planner = runtime["planner"]
         self._currentState = runtime["currentState"]
         self._lastMode = runtime["lastMode"]
@@ -2075,12 +2121,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._connected = runtime["connected"]
         self._lastConnectionState = runtime["lastConnectionState"]
         self._transportCapabilities = runtime["transportCapabilities"]
-        self._activeInstanceId = instance_id
 
     def _dropInstanceRuntime(self, instance_id):
-        self._instanceRuntimeStates.pop(instance_id, None)
-        if self._activeInstanceId == instance_id:
-            runtime = self._newInstanceRuntime()
+        runtime = self._connectionCoordinator.drop_runtime(
+            instance_id, self._newInstanceRuntime,
+        )
+        if runtime is not None:
             self._planner = runtime["planner"]
             self._currentState = runtime["currentState"]
             self._lastMode = runtime["lastMode"]
@@ -2090,7 +2136,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._connected = runtime["connected"]
             self._lastConnectionState = runtime["lastConnectionState"]
             self._transportCapabilities = runtime["transportCapabilities"]
-            self._activeInstanceId = None
 
     def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
         try:
@@ -3249,15 +3294,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             try:
                 self._instanceManager.stop_all()
             finally:
-                self._client = None
-                self._connected = False
-                self._rememberedTerminalBindings.clear()
-                self._rememberOfferInstances.clear()
-                self._authenticatedInstances.clear()
-                self._instanceTerminalPassthrough.clear()
-                self._instanceRuntimeStates.clear()
-                self._pendingInstanceFullStates.clear()
-                self._activeInstanceId = None
+                self._connectionCoordinator.clear_runtime_tracking()
             self._diagnostics.record("clientInstancesStopped")
             return
         client = self._client

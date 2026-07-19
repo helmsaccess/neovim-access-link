@@ -27,10 +27,11 @@ PROTOCOL_MODULES = (
     "session.py", "stdio_client.py", "terminal_control.py", "text.py",
 )
 CORE_MODULES = (
-    "__init__.py", "braille.py", "connection_instances.py", "connection_profiles.py",
+    "__init__.py", "braille.py", "connection_coordinator.py", "connection_instances.py",
+    "connection_profiles.py",
     "connection_targets.py", "diagnostics.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",
-    "ssh_install.py", "ssh_sessions.py",
+    "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )
 API_VERSION = re.compile(r"^(0|\d{4})\.\d(?:\.\d)?$")
 ADDON_VERSION = re.compile(r"^\d+\.\d+(?:\.\d+)?$")

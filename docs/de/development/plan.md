@@ -52,9 +52,20 @@ Registrierung von Einstellungen und Werkzeugmenü, die Verbindungsformulare
 sowie Installation und Entfernung der Neovim-Komponenten. Die
 `GlobalPlugin`-Klasse erzeugt und beendet diesen Manager, enthält aber nicht
 mehr dessen Implementierung. Struktur-, Lokalisierungs-, Dialog-, Installer-
-und vollständige Built-Add-on-Tests müssen bestehen. Die praktische Prüfung
-der echten NVDA-Einstellungen und Werkzeugdialoge steht noch aus; bis dahin
-gilt auch diese Phase nicht als praktisch abgenommen.
+und Built-Add-on-Tests bestehen; Einstellungen, Werkzeugdialoge und deutsche
+UI-Texte wurden anschließend praktisch bestätigt.
+
+Phase 3 ist teilweise umgesetzt. Ein NVDA-unabhängiger
+`ConnectionCoordinator` besitzt nun Instanzmanager, aktiven Client,
+Authentifizierung, Terminalzuordnungen und die getrennten Laufzeitzustände der
+Verbindungsinstanzen. Die `GlobalPlugin`-Klasse greift vorerst über schmale
+Kompatibilitätseigenschaften darauf zu; Ereignisverhalten und F12-Zuordnung
+bleiben unverändert. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht
+erst die vollständig initialisierte Dienstinstanz und verhindert, dass das
+späte Beenden einer alten Instanz eine neuere Registrierung löscht. Offen sind
+die weitere Verlagerung von Verbindungs-, Gate- und Präsentationslogik sowie
+die praktische Prüfung von Add-on-Neuladen und Verbindungswechseln mit diesem
+Zwischenstand.
 
 Die Platzierung frei belegbarer Befehle bleibt bis zur Klärung eines
 NVDA-üblichen Musters offen. Nach jeder Stufe müssen gebautes Add-on,

@@ -525,6 +525,43 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertNotIn(implementation, global_source)
             self.assertIn(implementation, ui_source)
 
+    def test_global_plugin_composes_connection_coordinator_without_duplicate_state(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+
+        plugin = GlobalPlugin()
+
+        self.assertIsInstance(plugin._connectionCoordinator, ConnectionCoordinator)
+        self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
+        self.assertIs(
+            plugin._rememberedTerminalBindings,
+            plugin._connectionCoordinator.remembered_terminal_bindings,
+        )
+        for legacy_field in (
+            "_client", "_connected", "_lastConnectionState", "_instanceManager",
+            "_rememberedTerminalBindings", "_rememberOfferInstances",
+            "_authenticatedInstances", "_instanceTerminalPassthrough",
+            "_activeInstanceId", "_instanceRuntimeStates", "_pendingInstanceFullStates",
+        ):
+            self.assertNotIn(legacy_field, vars(plugin))
+
+        plugin.terminate()
+
+    def test_service_registration_survives_stale_plugin_termination(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getActivePlugin
+
+        first = GlobalPlugin()
+        self.assertIs(first, getActivePlugin())
+
+        second = GlobalPlugin()
+        self.assertIs(second, getActivePlugin())
+
+        first.terminate()
+        self.assertIs(second, getActivePlugin())
+
+        second.terminate()
+        self.assertIsNone(getActivePlugin())
+
     def test_nvda_window_identity_adapter_is_conclusive_only_for_matching_live_window(self) -> None:
         from globalPlugins.NeovimAccessLink import nvda_windows
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity

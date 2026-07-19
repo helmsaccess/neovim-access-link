@@ -48,9 +48,19 @@ Phase 2 is implemented under automated coverage: `NvdaUiManager` owns
 symmetrical settings and Tools-menu registration, connection forms, and
 Neovim component installation and removal. The `GlobalPlugin` class creates
 and terminates this manager but no longer contains its implementation.
-Structure, localization, dialog, installer, and complete built-add-on tests
-must pass. Practical checks of the real NVDA settings and Tools dialogs remain
-open; this phase is not treated as practically accepted until they pass.
+Structure, localization, dialog, installer, and built-add-on tests pass;
+settings, Tools dialogs, and German UI text were then confirmed in practice.
+
+Phase 3 is partially implemented. An NVDA-independent
+`ConnectionCoordinator` now owns the instance manager, active client,
+authentication, terminal bindings, and isolated runtime state for connection
+instances. For now, the `GlobalPlugin` class reaches that state through narrow
+compatibility properties; event behavior and F12 assignment are unchanged. An
+identity-checked `ServiceRegistrar` publishes only the fully initialized
+service and prevents late termination of an old instance from removing a
+newer registration. Further relocation of connection, gate, and presentation
+behavior remains open, as do practical checks of add-on reload and connection
+switching with this intermediate state.
 
 Placement of configurable commands remains open until an established NVDA
 pattern is confirmed. After each stage, verify the built add-on, fail-open

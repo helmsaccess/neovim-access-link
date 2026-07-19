@@ -198,9 +198,11 @@ must not close output again before state is confirmed.
 | Bridge | Unix RPC connection, stdio framing, bounded forwarding | Arbitrary RPC or command execution, presentation |
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
+| `ConnectionCoordinator` | Instance manager, active client, authentication, remembered terminal bindings, and isolated runtime states | NVDA events, `nextHandler`, or dialogs |
+| `ServiceRegistrar` | Identity-checked publication of the fully initialized process-wide service | Lifecycle decisions or terminal events |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
-| Global Plugin | NVDA-process lifetime, shared-service composition, connection services, globally discoverable commands | Settings or Tools implementation, unvalidated takeover of unrelated terminal controls |
+| Global Plugin | NVDA-process lifetime, shared-service composition and teardown, globally discoverable commands | Settings or Tools implementation, unvalidated takeover of unrelated terminal controls |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | Terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, concrete terminal identity, native-output delegation or suppression | General target selection or transport |
 
