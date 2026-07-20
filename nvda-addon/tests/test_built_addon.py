@@ -687,6 +687,113 @@ class BuiltAddonTests(unittest.TestCase):
             diagnostics,
         )
 
+    def test_editor_session_controller_owns_runtime_mutation_and_isolation(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        self.assertTrue(controller.switch_instance("first"))
+        coordinator.typed_word = ["pending"]
+        coordinator.typed_position = ((1, 1), 3)
+
+        transition = controller.apply_event({
+            "type": "fullState",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "",
+                "_transport": {"capabilities": ["resync", 4, "clipboardTransfer"]},
+            },
+        })
+
+        self.assertEqual("fullState", transition.event_type)
+        self.assertIsNone(transition.previous_mode)
+        self.assertEqual("insert", transition.mode)
+        self.assertTrue(transition.reset_typed_echo)
+        self.assertEqual([], coordinator.typed_word)
+        self.assertIsNone(coordinator.typed_position)
+        self.assertEqual(frozenset({"resync", "clipboardTransfer"}), coordinator.transport_capabilities)
+        self.assertTrue(coordinator.connected)
+        self.assertEqual("connected", coordinator.last_connection_state)
+
+        actions = controller.plan_structured_typing(
+            "é",
+            {"bufferId": 1, "cursor": {"line": 1, "byteColumn": 2}},
+            command_line=False,
+            speak_characters=True,
+            speak_words=True,
+        )
+        self.assertEqual([("é", True)], [(action.text, action.spelling) for action in actions])
+        actions = controller.plan_structured_typing(
+            "é ",
+            {"bufferId": 1, "cursor": {"line": 1, "byteColumn": 3}},
+            command_line=False,
+            speak_characters=True,
+            speak_words=True,
+        )
+        self.assertEqual(
+            [("é", False), (" ", True)],
+            [(action.text, action.spelling) for action in actions],
+        )
+
+        controller.apply_event({
+            "type": "menuSelectionChanged",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "terminal",
+                "item": {"documentation": "first documentation"},
+            },
+        })
+        coordinator.typed_word = ["first"]
+        self.assertTrue(controller.switch_instance("second"))
+        self.assertEqual({}, coordinator.current_state)
+        self.assertEqual([], coordinator.typed_word)
+        self.assertEqual("", coordinator.menu_documentation)
+
+        controller.apply_event({
+            "type": "modeChanged",
+            "payload": {"bufferId": 2, "mode": "normal", "buftype": ""},
+        })
+        self.assertTrue(controller.switch_instance("first"))
+        self.assertEqual(1, coordinator.current_state["bufferId"])
+        self.assertEqual("insert", coordinator.last_mode)
+        self.assertEqual(["first"], coordinator.typed_word)
+        self.assertEqual("first documentation", coordinator.menu_documentation)
+
+        connection = controller.apply_connection_state("disconnected", reset_runtime=True)
+        self.assertEqual("connected", connection.previous)
+        self.assertTrue(connection.connection_lost)
+        self.assertEqual([], coordinator.typed_word)
+        controller.mark_disconnected()
+        self.assertFalse(coordinator.connected)
+
+        transition = controller.apply_event({
+            "type": "modeChanged",
+            "payload": {"bufferId": 1, "mode": "normal", "buftype": "terminal"},
+        })
+        self.assertEqual("terminal", transition.previous_buftype)
+        self.assertEqual(1, transition.previous_buffer_id)
+        self.assertEqual(1, transition.buffer_id)
+        self.assertTrue(transition.reset_typed_echo)
+        self.assertTrue(controller.drop_instance("first"))
+        self.assertIsNone(coordinator.active_instance_id)
+        self.assertEqual({}, coordinator.current_state)
+
+    def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        editor_source = (plugin / "editor_session.py").read_text(encoding="utf-8")
+
+        self.assertIn("class EditorSessionController", editor_source)
+        self.assertNotIn("GlobalPlugin", editor_source)
+        self.assertIn("self._editorSessionController.apply_event(event)", global_source)
+        self.assertNotIn("self._currentState = payload", global_source)
+        self.assertNotIn("self._lastMode = mode", global_source)
+        self.assertNotIn("self._menuDocumentation = documentation", global_source)
+
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
 

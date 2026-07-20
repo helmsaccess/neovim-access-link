@@ -202,11 +202,12 @@ must not close output again before state is confirmed.
 | Bridge | Unix RPC connection, stdio framing, bounded forwarding | Arbitrary RPC or command execution, presentation |
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
-| `ConnectionCoordinator` | Instance manager, active client, gate and active speech planner, authentication, bindings, correlated requests, isolated runtime states, and instance selection, focus confirmation, and state disposal | NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
+| `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
+| `EditorSessionController` | Domain mutation of the active isolated per-instance editor state, runtime switching, mode/menu/transport state, connection transitions, and neutral typing actions | Concrete NVDA output, focus binding, network I/O, or instance lifetime |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -241,6 +242,14 @@ NVDA's main-thread, dialog, message, and transport boundaries; it keeps no
 writable copy of claim state. Focus loss caused by the optional modal remember
 question is bridged by exactly one terminal- and instance-correlated
 reactivation; a different terminal focus discards it.
+
+The V2-5 `EditorSessionController` uses the active runtime managed by
+`ConnectionCoordinator` but is solely responsible for its domain mutation. It
+owns state and mode transitions, transport capabilities, menu documentation,
+connection state, and isolated per-instance typing echo. Its ordered neutral
+typing actions become speech only at the NVDA boundary. Event validation,
+focus/gate decisions, concrete presentation, and network callbacks remain
+separate.
 
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely

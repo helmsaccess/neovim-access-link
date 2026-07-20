@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.95.0-dev.31+feature.global-plugin-slimming (feature-branch test build)
+
+- The practical milestone after V2-4 is complete across multiple Windows
+  Terminal windows, tabs, and panes, local and remote sessions, and clipboard
+  paths. The corrected remember question exposed no further errors.
+- V2-5 starts with a normal `EditorSessionController`. It now owns domain
+  mutation of the active per-instance editor state, runtime switching, mode
+  and menu state, transport capabilities, connection transitions, and
+  structured typing echo.
+- The Global Plugin continues to deliver the ordered typing actions and other
+  plans through NVDA. Direct mutation of these editor fields was removed from
+  its production path; isolation and UTF-8 overlap have direct coverage in
+  addition to the existing event matrix.
+
 ## 0.95.0-dev.30+feature.global-plugin-slimming (feature-branch test build)
 
 - Practical V2-4 testing found a regression after the optional question to

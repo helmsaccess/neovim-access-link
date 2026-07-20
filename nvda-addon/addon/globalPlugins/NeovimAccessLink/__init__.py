@@ -5,7 +5,6 @@ import os
 import sys
 import threading
 import time
-import unicodedata
 import array
 
 import addonHandler
@@ -103,6 +102,7 @@ from .terminal_integration import (  # noqa: E402
 )
 from .settings_service import SettingsService  # noqa: E402
 from .managed_clients import ManagedClientFactory  # noqa: E402
+from .editor_session import EditorSessionController  # noqa: E402
 from .session_claim import (  # noqa: E402
 	ClaimTransitionKind,
 	DiscoverySelectionKind,
@@ -417,6 +417,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			gate=SessionGate(_FRONTEND_POLICY.enabled_kinds),
 			planner=SpeechPlanner(translate=_),
 		)
+		self._editorSessionController = EditorSessionController(
+			self._connectionCoordinator,
+			new_planner=lambda: SpeechPlanner(translate=_),
+		)
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
 		managed_client_factory = ManagedClientFactory(
@@ -438,7 +442,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			sleep=time.sleep,
 			local_claim_wait_seconds=_LOCAL_CLAIM_WAIT_SECONDS,
 			local_claim_poll_seconds=_LOCAL_CLAIM_POLL_SECONDS,
-			new_instance_runtime=self._newInstanceRuntime,
+			new_instance_runtime=self._editorSessionController.new_runtime,
 			stop_client_async=lambda instance_id, client: self._stopManagedClientAsync(
 				instance_id,
 				client,
@@ -463,7 +467,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			identity_exists=_terminalIdentityExists,
 			monotonic=time.monotonic,
 			lifecycle_interval_ms=_TERMINAL_LIFECYCLE_INTERVAL_MS,
-			new_instance_runtime=self._newInstanceRuntime,
+			new_instance_runtime=self._editorSessionController.new_runtime,
 			stop_client_async=self._stopManagedClientAsync,
 			log_lifecycle_failure=self._logTerminalLifecycleFailure,
 		)
@@ -2185,31 +2189,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
 
-	@staticmethod
-	def _newInstanceRuntime():
-		return {
-			"planner": SpeechPlanner(translate=_),
-			"currentState": {},
-			"lastMode": None,
-			"typedWord": [],
-			"typedPosition": None,
-			"menuDocumentation": "",
-			"connected": False,
-			"lastConnectionState": None,
-			"transportCapabilities": frozenset(),
-		}
+	def _newInstanceRuntime(self):
+		"""Compatibility factory while callers move to the editor controller."""
+		return self._editorSessionController.new_runtime()
 
 	def _switchInstanceRuntime(self, instance_id):
-		self._connectionCoordinator.switch_runtime(
-			instance_id,
-			self._newInstanceRuntime,
-		)
+		self._editorSessionController.switch_instance(instance_id)
 
 	def _dropInstanceRuntime(self, instance_id):
-		self._connectionCoordinator.drop_runtime(
-			instance_id,
-			self._newInstanceRuntime,
-		)
+		self._editorSessionController.drop_instance(instance_id)
 
 	def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
 		activation = self._sessionClaimService.activate_remembered_binding(
@@ -2294,7 +2282,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._connectionCoordinator.confirm_foreground_instance(
 				instance_id,
 				identity,
-				self._newInstanceRuntime,
+				self._editorSessionController.new_runtime,
 			)
 			self._diagnostics.record(
 				"temporaryTerminalForegroundConfirmed",
@@ -2339,7 +2327,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.select_instance(
 			instance_id,
 			identity,
-			self._newInstanceRuntime,
+			self._editorSessionController.new_runtime,
 		)
 		if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
 			event = self._handleClipboardResult(instance_id, identity, event)
@@ -2623,7 +2611,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Fail open immediately in the network thread. Speech/UI stays on main.
 		if state == "disconnected":
 			self._gate.disconnect()
-			self._connected = False
+			self._editorSessionController.mark_disconnected()
 		queueHandler.queueFunction(queueHandler.eventQueue, self._handleConnectionState, state)
 
 	def _recordNetworkDiagnostic(self, category, fields):
@@ -2631,31 +2619,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		log.debug("NeovimAccessLink %s %r", category, fields)
 
 	def _handleConnectionState(self, state):
-		previous = self._lastConnectionState
-		self._lastConnectionState = state
-		self._diagnostics.record("connectionState", previous=previous, state=state)
-		if state == "disconnected" and previous == "connected" and self._gate.focused is not None:
-			self._planner.reset()
-			self._resetTypedEcho()
+		transition = self._editorSessionController.apply_connection_state(
+			state,
+			reset_runtime=self._gate.focused is not None,
+		)
+		self._diagnostics.record("connectionState", previous=transition.previous, state=state)
+		if transition.connection_lost and self._gate.focused is not None:
+			speech.clearTypedWordBuffer()
 			ui.message(_("Neovim connection lost; normal terminal output restored"))
 			self._refreshBraille(rebuild=True)
 
 	def _handleEvent(self, event):
 		activated = False
 		payload = event.get("payload")
-		previous_state = self._currentState
+		transition = self._editorSessionController.apply_event(event)
 		keyObserverDiagnostics = (
 			payload.get("keyObserverDiagnostics", {}) if isinstance(payload, dict) else {}
 		)
 		if not isinstance(keyObserverDiagnostics, dict):
 			keyObserverDiagnostics = {}
-		if isinstance(payload, dict):
-			self._currentState = payload
-			transport = payload.get("_transport")
-			if isinstance(transport, dict) and isinstance(transport.get("capabilities"), list):
-				self._transportCapabilities = frozenset(
-					value for value in transport["capabilities"] if isinstance(value, str)
-				)
 		self._diagnostics.record(
 			"eventDispatch",
 			type=event.get("type"),
@@ -2689,17 +2671,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			keyPromptClass=keyObserverDiagnostics.get("promptClass"),
 			keyPromptLength=keyObserverDiagnostics.get("promptLength"),
 		)
-		mode = payload.get("mode") if isinstance(payload, dict) else None
-		previous_mode = self._lastMode
-		previous_buffer_id = previous_state.get("bufferId") if isinstance(previous_state, dict) else None
-		buffer_id = payload.get("bufferId") if isinstance(payload, dict) else None
-		if event.get("type") == "menuSelectionChanged" and isinstance(payload, dict):
-			item = payload.get("item", {})
-			documentation = item.get("documentation", "") if isinstance(item, dict) else ""
-			self._menuDocumentation = documentation if isinstance(documentation, str) else ""
-		elif event.get("type") == "menuClosed":
-			self._menuDocumentation = ""
-		event_type = event.get("type")
+		mode = transition.mode
+		previous_mode = transition.previous_mode
+		previous_buffer_id = transition.previous_buffer_id
+		buffer_id = transition.buffer_id
+		event_type = transition.event_type
 		terminal_passthrough = (
 			isinstance(payload, dict)
 			and payload.get("buftype") == "terminal"
@@ -2745,11 +2721,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			and mode_sound == "normal"
 			and (
 				previous_mode_sound == "insert"
-				or (
-					previous_mode == "commandLine"
-					and isinstance(previous_state, dict)
-					and previous_state.get("buftype") == "terminal"
-				)
+				or (previous_mode == "commandLine" and transition.previous_buftype == "terminal")
 			)
 		):
 			self._playModeSound(mode)
@@ -2762,15 +2734,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# Announce that distinct state once, while duplicate TermOpen /
 			# context events for the same buffer remain silent.
 			self._playModeSound(mode)
-		if event.get("type") == "fullState" or (
-			event.get("type") == "modeChanged" and mode != self._lastMode
-		):
-			self._resetTypedEcho()
-		if mode is not None:
-			self._lastMode = mode
-		if event.get("type") == "fullState":
-			self._connected = True
-			self._lastConnectionState = "connected"
+		if transition.reset_typed_echo:
+			speech.clearTypedWordBuffer()
+		if event_type == "fullState":
 			if self._gate.manual_enabled and self._gate.focused is not None:
 				self._gate.authenticated = True
 				self._gate.nvim_active = True
@@ -2799,50 +2765,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		keyboard = config.conf["keyboard"]
 		speak_characters = int(keyboard["speakTypedCharacters"]) != 0
 		speak_words = int(keyboard["speakTypedWords"]) != 0
-		cursor = state.get("cursor", {}) if isinstance(state, dict) else {}
-		line = cursor.get("line") if isinstance(cursor, dict) else None
-		byte_column = (
-			state.get("commandLinePosition")
-			if command_line and isinstance(state, dict)
-			else cursor.get("byteColumn")
-			if isinstance(cursor, dict)
-			else None
+		actions = self._editorSessionController.plan_structured_typing(
+			text,
+			state if isinstance(state, dict) else None,
+			command_line=command_line,
+			speak_characters=speak_characters,
+			speak_words=speak_words,
 		)
-		buffer_id = state.get("bufferId") if isinstance(state, dict) else None
-		byte_length = len(text.encode("utf-8")) if "\n" not in text else None
-		start = (
-			byte_column - byte_length if isinstance(byte_column, int) and byte_length is not None else None
-		)
-		identity = ("commandLine", buffer_id) if command_line else (buffer_id, line)
-		if self._typedPosition is not None and isinstance(start, int) and isinstance(byte_column, int):
-			previous_identity, previous_end = self._typedPosition
-			if previous_identity == identity and start < previous_end <= byte_column:
-				overlap = previous_end - start
-				encoded = text.encode("utf-8")
-				try:
-					text = encoded[overlap:].decode("utf-8")
-					start = previous_end
-				except UnicodeDecodeError:
-					# A malformed overlap must never cause older text to be guessed.
-					self._typedWord = []
-		if self._typedPosition is not None:
-			previous_identity, previous_end = self._typedPosition
-			if identity != previous_identity or start != previous_end:
-				self._typedWord = []
-		for character in text:
-			if unicodedata.category(character)[:1] in {"L", "M", "N"}:
-				self._typedWord.append(character)
+		for action in actions:
+			if action.spelling:
+				speech.speakSpelling(action.text)
 			else:
-				if self._typedWord and speak_words:
-					speech.speakText("".join(self._typedWord))
-				self._typedWord = []
-			if speak_characters:
-				speech.speakSpelling(character)
-		self._typedPosition = (identity, byte_column) if isinstance(byte_column, int) else None
+				speech.speakText(action.text)
 
 	def _resetTypedEcho(self):
-		self._typedWord = []
-		self._typedPosition = None
+		self._editorSessionController.reset_typed_echo()
 		speech.clearTypedWordBuffer()
 
 	def _refreshBraille(self, rebuild):
@@ -2977,5 +2914,5 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		except Exception as error:
 			self._diagnostics.record("clientStopError", errorType=type(error).__name__, error=str(error))
 			log.exception("NeovimAccessLink client shutdown failed")
-		self._connected = False
+		self._editorSessionController.mark_disconnected()
 		self._diagnostics.record("clientStopped")

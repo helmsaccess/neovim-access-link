@@ -5,6 +5,20 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.31+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der Praxis-Meilenstein nach V2-4 ist mit mehreren Windows-Terminal-Fenstern,
+  Tabs und Panes, lokalen und entfernten Sitzungen sowie Zwischenablagepfaden
+  abgeschlossen. Die korrigierte Merkabfrage zeigte keine weiteren Fehler.
+- V2-5 beginnt mit einem normalen `EditorSessionController`. Er besitzt nun
+  die fachliche Mutation des aktiven, instanzgetrennten Editorzustands,
+  Runtimewechsel, Modus- und Menüzustand, Transportfähigkeiten,
+  Verbindungsübergänge und strukturiertes Tippecho.
+- Das Global Plugin liefert weiterhin nur die geordneten Tippechoaktionen und
+  andere Pläne über NVDA aus. Direkte Mutation dieser Editorzustände wurde aus
+  seinem Produktionspfad entfernt; Isolation und UTF-8-Überlappung sind direkt
+  und über die bestehende Ereignismatrix geprüft.
+
 ## 0.95.0-dev.30+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Die praktische V2-4-Abnahme fand eine Regression nach der optionalen

@@ -213,11 +213,12 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
-| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und Zustandsbereinigung einer Instanz | NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
+| `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
+| `EditorSessionController` | fachliche Mutation des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transportzustand, Verbindungsübergänge und neutrale Tippechoaktionen | konkrete NVDA-Ausgabe, Fokusbindung, Netzwerk-I/O oder Instanzlebensdauer |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -253,6 +254,14 @@ Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Es hält keine
 schreibbare Kopie des Claimzustands. Der Fokusverlust der optionalen modalen
 Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
 Reaktivierung überbrückt; ein abweichender Terminalfokus verwirft sie.
+
+Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
+`ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren
+fachliche Mutation zuständig. Er übernimmt Zustands- und Modusübergänge,
+Transportfähigkeiten, Menü-Dokumentation, Verbindungszustand und das
+instanzgetrennte Tippecho. Seine geordneten neutralen Tippechoaktionen werden
+erst am NVDA-Rand als Sprache ausgegeben. Ereignisvalidierung, Fokus/Gate,
+konkrete Präsentation und Netzwerkcallbacks bleiben getrennt.
 
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei

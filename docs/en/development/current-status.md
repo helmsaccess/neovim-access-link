@@ -99,6 +99,13 @@ See `compatibility.md` for complete platform boundaries.
   output remain at the NVDA boundary. The Global Plugin now uses claim targets,
   eligibility, and baselines only through narrow service operations; no
   writable state copy is shared.
+- The following practical milestone is complete across multiple windows,
+  tabs, and panes, mixed local and remote sessions, and the clipboard paths.
+  V2-5 has therefore started: `EditorSessionController` mutates the active
+  isolated per-instance editor state, switches its runtime, processes mode,
+  menu, transport, and connection state, and creates ordered neutral actions
+  for structured typing echo. Concrete speech remains in `NvdaPresentation`
+  or at the narrow NVDA delivery boundary.
 
 ### Editor output
 

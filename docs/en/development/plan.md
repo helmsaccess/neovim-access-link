@@ -154,7 +154,12 @@ instance-correlated callbacks, and the claim service joins it to the
 existing start transition. The completion audit removed unnecessary forwarding
 methods and direct production access to mutable claim containers. The
 composition root retains only NVDA's main-thread, dialog, message, and
-transport boundaries. V2-5 begins after the combined practical milestone.
+transport boundaries. The combined practical milestone is now complete across
+multiple windows, tabs, and panes, local and remote sessions, and clipboard
+operations. The first V2-5 slice introduces `EditorSessionController`. It owns
+mutation and switching of isolated per-instance editor state, including mode,
+menu documentation, transport capabilities, connection state, and structured
+typing echo. Concrete NVDA delivery and focus/gate decisions remain outside.
 
 ## 3. Broaden practical isolation coverage
 

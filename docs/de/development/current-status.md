@@ -104,6 +104,14 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   verbleiben am NVDA-Rand. Das Global Plugin verwendet Claimziele,
   Berechtigungen und Baselines nur noch über schmale Dienstoperationen;
   schreibbare Zustandskopien werden nicht geteilt.
+- Der anschließende Praxis-Meilenstein ist mit mehreren Fenstern, Tabs und
+  Panes, gemischten lokalen und entfernten Sitzungen sowie den
+  Zwischenablagepfaden abgeschlossen. V2-5 hat daraufhin begonnen: Ein
+  `EditorSessionController` mutiert den aktiven instanzgetrennten
+  Editorzustand, wechselt dessen Runtime, verarbeitet Modus-, Menü-,
+  Transport- und Verbindungszustand und erzeugt geordnete neutrale Aktionen
+  für strukturiertes Tippecho. Konkrete Sprache bleibt bei
+  `NvdaPresentation` beziehungsweise am schmalen NVDA-Ausgaberand.
 
 ### Editorausgabe
 

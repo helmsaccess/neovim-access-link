@@ -167,7 +167,13 @@ Claimdienst verbindet sie mit seinem Startübergang. Der Abschluss-Audit
 entfernte unnötige Weiterleitungen und direkte produktive Zugriffe auf
 veränderliche Claim-Container. Die Kompositionswurzel behält nur NVDAs
 Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Nach dem gebündelten
-Praxis-Meilenstein beginnt V2-5.
+Praxis-Meilenstein beginnt V2-5. Dieser Meilenstein ist inzwischen mit
+mehreren Fenstern, Tabs und Panes, lokalen und entfernten Sitzungen sowie
+Zwischenablageoperationen abgeschlossen. Der erste V2-5-Schnitt führt einen
+`EditorSessionController` ein. Er übernimmt die Mutation und Umschaltung des
+instanzgetrennten Editorzustands einschließlich Modus, Menüdokumentation,
+Transportfähigkeiten, Verbindungszustand und strukturiertem Tippecho. Konkrete
+NVDA-Ausgabe und Fokus-/Gate-Entscheidungen bleiben außerhalb.
 
 ## 3. Praktische Abschottung verbreitern
 
