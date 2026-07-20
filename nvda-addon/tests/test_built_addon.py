@@ -1319,6 +1319,12 @@ class BuiltAddonTests(unittest.TestCase):
             "_typedPosition", "_menuDocumentation", "_transportCapabilities",
         ):
             self.assertNotIn(f"def {removed_editor_view}(self)", global_source)
+        for removed_claim_view in (
+            "_pendingClaimTargets", "_pendingObservedClaim", "_claimInventoryGeneration",
+            "_claimInventoryReady", "_claimBaselines", "_claimEligibleTargets",
+            "_claimInventoryErrors", "_sessionDiscoveryGeneration",
+        ):
+            self.assertNotIn(f"def {removed_claim_view}(self)", global_source)
 
         plugin.terminate()
 
@@ -2069,7 +2075,7 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = AppModule()
         self.focus.appModule = adapter
         adapter.event_gainFocus(self.focus, lambda: None)
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         original_refresh = plugin._terminalFocusService.refresh_for_action
 
         def refresh(*args, **kwargs):
@@ -2136,7 +2142,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         handled = []
@@ -2161,7 +2167,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         first_identity = plugin._gate.focused
         other = TerminalIdentity(
             first_identity.process_id + 1, first_identity.window_handle + 1,
@@ -2229,7 +2235,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         handled = []
         plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
@@ -2241,7 +2247,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(allowed)
         self.assertEqual([], handled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -2252,7 +2258,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         self.focus.UIAElement = types.SimpleNamespace(
@@ -2267,7 +2273,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(allowed)
         self.assertEqual([], scheduled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -2279,7 +2285,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         queued = []
@@ -2303,7 +2309,7 @@ class BuiltAddonTests(unittest.TestCase):
             queueHandler.queueFunction = original_queue_function
 
         self.assertEqual([], scheduled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -2313,7 +2319,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryGeneration = 4
+        plugin._sessionClaimService.inventory_generation = 4
         before = list(self.messages)
 
         plugin._finishAutomaticClaimResolution(
@@ -2331,7 +2337,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         original = plugin._gate.focused
         generation = plugin._sessionClaimService.authorize(original)
         plugin._gate.focused = TerminalIdentity(
@@ -2411,7 +2417,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
             (delay, callback, args)
@@ -2428,7 +2434,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = False
+        plugin._sessionClaimService.inventory_ready = False
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(True)
         sent = []
@@ -2438,7 +2444,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], inventories)
         self.assertEqual([True], sent)
         self.assertTrue(plugin._gate.manual_enabled)
-        self.assertFalse(plugin._claimInventoryReady)
+        self.assertFalse(plugin._sessionClaimService.inventory_ready)
         plugin.terminate()
 
     def test_explicit_local_discovery_can_fall_back_to_a_selected_ssh_profile(self) -> None:
@@ -2455,7 +2461,7 @@ class BuiltAddonTests(unittest.TestCase):
         })
         fallbacks = []
         plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
-        plugin._sessionDiscoveryGeneration = 4
+        plugin._sessionClaimService.discovery_generation = 4
         plugin._finishLocalSessionDiscovery(
             4, identity, [], None, True, True, True, profile,
         )
@@ -2473,7 +2479,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._sessionDiscoveryGeneration = 9
+        plugin._sessionClaimService.discovery_generation = 9
         stale = LocalWindowsSession(
             "1", "Stale", "C:/one", "127.0.0.1", 41001, 1,
             claim_age_ms=10, claimed_monotonic_ns=4_000,
@@ -2529,20 +2535,20 @@ class BuiltAddonTests(unittest.TestCase):
             "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
         )
         remote = RemoteSession("88", "Remote", "/work", claim_sequence=7)
-        plugin._claimInventoryGeneration = 3
+        plugin._sessionClaimService.inventory_generation = 3
         plugin._finishClaimInventory(3, [
             ("localWindowsTcp", "local-windows", None, [local], None),
             ("remoteSsh", "work", profile, [remote], None),
             ("remoteSsh", "offline", None, [], RuntimeError("offline")),
         ])
-        self.assertTrue(plugin._claimInventoryReady)
-        self.assertEqual(2, plugin._claimBaselines[(
+        self.assertTrue(plugin._sessionClaimService.inventory_ready)
+        self.assertEqual(2, plugin._sessionClaimService.baselines[(
             "localWindowsTcp", "local-windows", "77",
         )])
-        self.assertEqual(7, plugin._claimBaselines[("remoteSsh", "work", "88")])
+        self.assertEqual(7, plugin._sessionClaimService.baselines[("remoteSsh", "work", "88")])
         self.assertEqual({
             ("localWindowsTcp", "local-windows"), ("remoteSsh", "work"),
-        }, plugin._claimEligibleTargets)
+        }, plugin._sessionClaimService.eligible_targets)
         self.assertIn("could not be checked", self.messages[-1])
         plugin.terminate()
 
@@ -2564,12 +2570,12 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "two", "name": "Two", "host": "two", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 2,
             ("remoteSsh", "one", "88"): 4,
             ("remoteSsh", "two", "99"): 6,
         }
-        plugin._claimInventoryGeneration = 9
+        plugin._sessionClaimService.inventory_generation = 9
         connected = []
         plugin._connectAutomaticClaim = lambda terminal, candidate: connected.append(
             (terminal, candidate)
@@ -2587,7 +2593,7 @@ class BuiltAddonTests(unittest.TestCase):
         ], identity)
         self.assertEqual("one", connected[0][1][1].identifier)
         self.assertEqual("88", connected[0][1][2].identifier)
-        self.assertEqual(5, plugin._claimBaselines[("remoteSsh", "one", "88")])
+        self.assertEqual(5, plugin._sessionClaimService.baselines[("remoteSsh", "one", "88")])
         plugin.terminate()
 
     def test_local_f12_claim_does_not_wait_for_ssh_scans(self) -> None:
@@ -2682,8 +2688,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._claimInventoryGeneration = 7
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.inventory_generation = 7
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 2,
         }
         session = LocalWindowsSession(
@@ -2760,11 +2766,11 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 1,
             ("remoteSsh", "work", "88"): 3,
         }
-        plugin._claimInventoryGeneration = 12
+        plugin._sessionClaimService.inventory_generation = 12
         choices = []
         plugin._showAutomaticClaimChoice = lambda *args: choices.append(args)
         plugin._finishAutomaticClaimResolution(12, [
@@ -2844,7 +2850,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "work", "one", "Work", client)
         plugin._instanceManager.bind(first_identity, instance.identifier)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         plugin._gate.focused = TerminalIdentity(
             first_identity.process_id, first_identity.window_handle,
             first_identity.frontend_kind, (42, 200, 4, 12),
@@ -3511,7 +3517,7 @@ class BuiltAddonTests(unittest.TestCase):
         first = GlobalPlugin()
         self._focusPlugin(first)
         first._gate.manual_enabled = True
-        first._claimInventoryReady = True
+        first._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         queued = []
@@ -3529,9 +3535,9 @@ class BuiltAddonTests(unittest.TestCase):
         finally:
             queueHandler.queueFunction = original_queue_function
 
-        self.assertIsNone(first._pendingObservedClaim)
+        self.assertIsNone(first._sessionClaimService.pending_observed)
         self.assertIs(second._terminalIntegrationService, getTerminalIntegrationService())
-        self.assertIsNone(second._pendingObservedClaim)
+        self.assertIsNone(second._sessionClaimService.pending_observed)
         self.assertIn("frontendScopeChanged", first._diagnostics.report())
         first.terminate()
         adapter.terminate()
@@ -3836,7 +3842,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work server", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 7
+        plugin._sessionClaimService.discovery_generation = 7
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(
             (profile_id, session_id, kwargs)
         )
@@ -3864,7 +3870,7 @@ class BuiltAddonTests(unittest.TestCase):
         ]
         started = []
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
-        plugin._sessionDiscoveryGeneration = 4
+        plugin._sessionClaimService.discovery_generation = 4
         plugin._finishSessionDiscovery(3, profile, plugin._identity(self.focus), sessions, None)
         self.assertEqual([], started)
         self.singleChoiceSelections.append(1)
@@ -3894,7 +3900,7 @@ class BuiltAddonTests(unittest.TestCase):
         ]
         started = []
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
-        plugin._sessionDiscoveryGeneration = 5
+        plugin._sessionClaimService.discovery_generation = 5
         plugin._finishSessionDiscovery(
             5, profile, plugin._identity(self.focus), sessions, None,
             require_recent_claim=True,
@@ -3915,7 +3921,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 6
+        plugin._sessionClaimService.discovery_generation = 6
         plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must not connect")
         plugin._finishSessionDiscovery(
             6, profile, plugin._identity(self.focus), [
@@ -3951,7 +3957,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(self.focus)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
-        plugin._sessionDiscoveryGeneration = 8
+        plugin._sessionClaimService.discovery_generation = 8
         plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must reuse transport")
         plugin._finishSessionDiscovery(
             8, profile, identity,
@@ -4208,7 +4214,10 @@ class BuiltAddonTests(unittest.TestCase):
             "This computer - local Neovim", "editor@example-host", "admin@example-host-2",
         ], self.singleChoiceDialogs[-1].choices)
         self.assertNotIn("internal-two", self.singleChoiceDialogs[-1].choices)
-        self.assertEqual(("remoteSsh", "internal-two"), plugin._pendingClaimTargets[identity])
+        self.assertEqual(
+            ("remoteSsh", "internal-two"),
+            plugin._sessionClaimService.pending_targets[identity],
+        )
         self.assertTrue(any("press F12" in message for message in self.messages))
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
@@ -4234,7 +4243,10 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._gate.focused
         self.singleChoiceSelections.append(0)
         plugin.action_startConnectionInstance(None)
-        self.assertEqual((LOCAL_WINDOWS_TCP, ""), plugin._pendingClaimTargets[identity])
+        self.assertEqual(
+            (LOCAL_WINDOWS_TCP, ""),
+            plugin._sessionClaimService.pending_targets[identity],
+        )
         self.assertTrue(any("press F12" in message for message in self.messages))
         self.assertFalse(any("local-windows" in message for message in self.messages))
         plugin.terminate()
@@ -4248,7 +4260,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
+        plugin._sessionClaimService.pending_targets[identity] = (LOCAL_WINDOWS_TCP, "")
         selections = []
         plugin._beginLocalSessionSelection = lambda *args: selections.append(args)
         sent = []
@@ -4264,7 +4276,7 @@ class BuiltAddonTests(unittest.TestCase):
         fresh = LocalWindowsSession("2", "fresh", "C:/two", "127.0.0.1", 41002, 2,
                                     claim_age_ms=120)
         started = []
-        plugin._sessionDiscoveryGeneration = 8
+        plugin._sessionClaimService.discovery_generation = 8
         plugin._startLocalSession = lambda terminal, session, **kwargs: started.append(
             (terminal, session, kwargs)
         )
@@ -4294,7 +4306,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         fallbacks = []
         plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
-        plugin._sessionDiscoveryGeneration = 5
+        plugin._sessionClaimService.discovery_generation = 5
         plugin._finishLocalSessionDiscovery(
             5, identity, [previous_claim], None, True, True, True, profile, 5_000,
         )
@@ -4370,7 +4382,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         identity = plugin._gate.focused
         instance = plugin._instanceManager.add_target(
             local_windows_target("Local"), "old-local", "Local", Client(),
@@ -4470,7 +4482,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         # A modal wx dialog moves focus away from the Windows Terminal AppModule.
         plugin._gate.focused = None
-        plugin._sessionDiscoveryGeneration = 3
+        plugin._sessionClaimService.discovery_generation = 3
         plugin._finishSessionDiscovery(
             3, profile, identity, [RemoteSession("session", "root", "/root")], None,
             replace_existing=True, offer_remember=True, preserve_dialog_identity=True,
@@ -5427,7 +5439,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, old_instance.identifier)
         plugin._client = old
         plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
-        plugin._sessionDiscoveryGeneration = 9
+        plugin._sessionClaimService.discovery_generation = 9
         with mock.patch.object(addon_module, "SshStdioClient", Client):
             plugin._finishSessionDiscovery(
                 9, parse_profile(profile_value), identity,
@@ -5448,7 +5460,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 2
+        plugin._sessionClaimService.discovery_generation = 2
         plugin._startManagedInstance = lambda *_args, **_kwargs: self.fail("must not start")
         plugin._finishSessionDiscovery(2, profile, plugin._identity(self.focus), [], None)
         self.assertIn("No active Neovim session", self.messages[-1])

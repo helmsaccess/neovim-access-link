@@ -135,8 +135,12 @@ See `compatibility.md` for complete platform boundaries.
 - The second V2-6 slice removes the former Global Plugin views of editor
   planner, state, mode, typing, completion documentation, and transport
   capabilities. Tests now use the actual coordinator/controller ownership
-  boundary. Remaining compatibility views concern later connection, claim,
-  or focus migration and are audited separately before removal.
+  boundary.
+- The third V2-6 slice likewise removes the former Global Plugin views of
+  pending claims, inventory generation and readiness, baselines, eligible
+  targets, inventory errors, and discovery generation. Tests now use the
+  owning `SessionClaimService`; remaining compatibility views concern later
+  connection or focus migration and are audited separately before removal.
 
 ### Editor output
 

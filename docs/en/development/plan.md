@@ -189,7 +189,9 @@ partial-initialization and stale-callback coverage before practical
 acceptance.
 The first migration cleanup is complete: all seven editor-runtime
 compatibility properties have been removed from the Global Plugin, and tests
-now use the controller/coordinator contract directly. Connection-, claim-, and
+now use the controller/coordinator contract directly. The claim migration
+cleanup is also complete: eight claim, inventory, and discovery views have
+been removed, and tests use `SessionClaimService` directly. Connection- and
 focus-related compatibility views are removed only after the same production
 usage audit.
 

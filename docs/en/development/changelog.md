@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.40+feature.global-plugin-slimming (feature-branch test build)
+
+- The third V2-6 slice removes all eight Global Plugin compatibility
+  properties for pending claims, claim inventory, baselines, eligible targets,
+  inventory errors, and discovery generation.
+- Production already used `SessionClaimService`; integration tests now arrange
+  and inspect claim state through that owner instead of a second writable
+  Global Plugin surface.
+- Structural and behavioral tests cover one-shot F12 authorization, local and
+  SSH inventory, discovery generations, target isolation, and fail-open paths.
+
 ## 0.95.0-dev.39+feature.global-plugin-slimming (feature-branch test build)
 
 - The second V2-6 slice removes all seven Global Plugin compatibility

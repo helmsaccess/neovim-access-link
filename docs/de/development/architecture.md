@@ -248,6 +248,12 @@ interne Aufrufer verwenden die ausdrückliche Besitzgrenze von
 `EditorSessionController` und `ConnectionCoordinator`. Dadurch bleibt keine
 zweite schreibbare Editorzustandsschnittstelle erhalten.
 
+Es bietet auch keine Kompatibilitätseigenschaften für ausstehende Claims,
+Inventarzustand, Baselines, zulässige Ziele, Inventarfehler oder
+Discovery-Generation mehr an. Tests verwenden `SessionClaimService` direkt;
+damit besitzt Claimzustand einen schreibbaren Eigentümer und eine ausdrückliche
+Prüfgrenze.
+
 Das AppModule und das Braille-Overlay erhalten ausschließlich den
 `TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem
 Vertrag verborgen. Terminalbefehle verwenden eine feste Enum statt frei

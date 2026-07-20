@@ -235,6 +235,11 @@ documentation, or transport capabilities. Tests and internal consumers use
 the explicit `EditorSessionController` and `ConnectionCoordinator` ownership
 boundary. This avoids maintaining a second writable editor-state interface.
 
+It also no longer exposes compatibility properties for pending claims,
+inventory state, baselines, eligible targets, inventory errors, or discovery
+generation. Tests use `SessionClaimService` directly, so claim state has one
+writable owner and one explicit inspection boundary.
+
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
 that contract. Terminal commands use a fixed enum instead of freely resolved

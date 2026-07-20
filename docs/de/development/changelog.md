@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.40+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der dritte V2-6-Schnitt entfernt alle acht
+  Global-Plugin-Kompatibilitätseigenschaften für ausstehende Claims,
+  Claim-Inventar, Baselines, zulässige Ziele, Inventarfehler und
+  Discovery-Generation.
+- Der Produktivpfad verwendete bereits `SessionClaimService`; Integrationstests
+  richten Claimzustand nun über diesen Eigentümer ein und prüfen ihn dort,
+  statt eine zweite schreibbare Global-Plugin-Oberfläche zu erhalten.
+- Struktur- und Verhaltenstests decken einmalige F12-Autorisierung, lokales und
+  SSH-Inventar, Discovery-Generationen, Zieltrennung und Fail-open-Pfade ab.
+
 ## 0.95.0-dev.39+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der zweite V2-6-Schnitt entfernt alle sieben

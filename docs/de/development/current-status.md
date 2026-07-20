@@ -146,9 +146,14 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
 - Der zweite V2-6-Schnitt entfernt die früheren Global-Plugin-Sichten auf
   Editorplaner, Zustand, Modus, Tippecho, Completion-Dokumentation und
   Transport-Capabilities. Tests verwenden nun die tatsächliche Besitzgrenze
-  von Coordinator und Controller. Verbliebene Kompatibilitätssichten betreffen
-  spätere Verbindungs-, Claim- oder Fokusmigration und werden vor einer
-  Entfernung separat geprüft.
+  von Coordinator und Controller.
+- Der dritte V2-6-Schnitt entfernt entsprechend die früheren
+  Global-Plugin-Sichten auf ausstehende Claims, Inventargeneration und
+  -bereitschaft, Baselines, zulässige Ziele, Inventarfehler und
+  Discovery-Generation. Tests verwenden nun den besitzenden
+  `SessionClaimService`; verbliebene Kompatibilitätssichten betreffen spätere
+  Verbindungs- oder Fokusmigration und werden vor einer Entfernung separat
+  geprüft.
 
 ### Editorausgabe
 

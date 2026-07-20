@@ -208,8 +208,10 @@ Callbacks ab.
 Die erste Migrationsbereinigung ist abgeschlossen: Alle sieben
 Kompatibilitätseigenschaften für die Editorruntime wurden aus dem Global
 Plugin entfernt; Tests verwenden den Controller-/Coordinatorvertrag direkt.
-Verbindungs-, Claim- und Fokus-Kompatibilitätssichten werden erst nach
-demselben Produktivnutzungs-Audit entfernt.
+Auch die Claim-Migrationsbereinigung ist abgeschlossen: Acht Claim-,
+Inventar- und Discovery-Sichten wurden entfernt; Tests verwenden den
+`SessionClaimService` direkt. Verbindungs- und Fokus-Kompatibilitätssichten
+werden erst nach demselben Produktivnutzungs-Audit entfernt.
 
 ## 3. Praktische Abschottung verbreitern
 
