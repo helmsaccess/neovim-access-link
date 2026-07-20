@@ -203,7 +203,7 @@ must not close output again before state is confirmed.
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
-| `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
+| `service_registry.py` / `ServiceRegistrar` | Identity-checked process-wide publication of the fully initialized `TerminalIntegrationService` | A Global Plugin object, lifecycle decisions, or terminal events |
 | `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
@@ -213,6 +213,7 @@ must not close output again before state is confirmed.
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
+| `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
 | Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable terminal commands, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
@@ -272,6 +273,13 @@ method names, while focus decisions and F12 authorizations are immutable
 values. If the service is absent, has been replaced during add-on reload, or
 violates the contract, the AppModule passes the original gesture or native
 NVDA event through fail-open.
+
+The process-wide service instance lives in neutral `service_registry.py`. The
+Global Plugin publishes and removes the service through the same
+identity-checked `ServiceRegistrar` that the AppModule and Braille module only
+read. `nvda_braille.py` owns the region and overlay and imports no Global
+Plugin; `__init__.py` merely re-exports their class names for the Windows
+Terminal AppModule.
 
 The service holds no broad `_runtime` reference. The composition root supplies
 exactly one handler for every `TerminalCommand` plus separate callbacks for

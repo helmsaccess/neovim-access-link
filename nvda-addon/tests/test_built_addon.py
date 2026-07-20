@@ -3188,6 +3188,12 @@ class BuiltAddonTests(unittest.TestCase):
             service_source = archive.read(
                 "globalPlugins/NeovimAccessLink/terminal_integration.py"
             ).decode("utf-8")
+            braille_source = archive.read(
+                "globalPlugins/NeovimAccessLink/nvda_braille.py"
+            ).decode("utf-8")
+            registry_source = archive.read(
+                "globalPlugins/NeovimAccessLink/service_registry.py"
+            ).decode("utf-8")
             app_module_source = archive.read(
                 "appModules/windowsterminal.py"
             ).decode("utf-8")
@@ -3196,6 +3202,8 @@ class BuiltAddonTests(unittest.TestCase):
             "globalPlugins/NeovimAccessLink/terminal_integration.py",
             names,
         )
+        self.assertIn("globalPlugins/NeovimAccessLink/nvda_braille.py", names)
+        self.assertIn("globalPlugins/NeovimAccessLink/service_registry.py", names)
         self.assertNotIn("_dispatchConfiguredTerminalScript", global_source)
         self.assertIn("_dispatchConfiguredTerminalScript", app_module_source)
         self.assertIn("getFocusObject", app_module_source)
@@ -3204,6 +3212,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("getActivePlugin", app_module_source)
         self.assertIn("class TerminalIntegrationService", service_source)
         self.assertIn("class TerminalCommand(Enum)", service_source)
+        self.assertIn("class StructuredLineRegion", braille_source)
+        self.assertIn("class StructuredTerminalBrailleOverlay", braille_source)
+        self.assertNotIn("class StructuredLineRegion", global_source)
+        self.assertNotIn("class StructuredTerminalBrailleOverlay", global_source)
+        self.assertNotIn("GlobalPlugin", braille_source)
+        self.assertNotIn("GlobalPlugin", registry_source)
         self.assertNotIn("getattr(plugin, action_name)", app_module_source)
         self.assertIn("import controlTypes", app_module_source)
         self.assertNotIn("NeovimAccessLink.controlTypes", app_module_source)
@@ -3371,19 +3385,20 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_partially_initialized_terminal_service_fails_open_in_braille_overlay(self) -> None:
         import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import nvda_braille
 
         class BrokenService:
             def should_suppress_braille(inner_self, _obj):
                 raise RuntimeError("broken Braille service")
 
-        original_getter = addon_module.getTerminalIntegrationService
-        addon_module.getTerminalIntegrationService = lambda: BrokenService()
+        original_getter = nvda_braille.getTerminalIntegrationService
+        nvda_braille.getTerminalIntegrationService = lambda: BrokenService()
         overlay = addon_module.StructuredTerminalBrailleOverlay()
         try:
             with self.assertRaises(NotImplementedError):
                 overlay.getBrailleRegions()
         finally:
-            addon_module.getTerminalIntegrationService = original_getter
+            nvda_braille.getTerminalIntegrationService = original_getter
 
     def test_terminal_focus_and_claim_results_are_immutable(self) -> None:
         from dataclasses import FrozenInstanceError

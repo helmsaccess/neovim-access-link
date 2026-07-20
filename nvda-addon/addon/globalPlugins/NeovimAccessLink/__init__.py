@@ -73,7 +73,6 @@ from .core.clipboard import (  # noqa: E402
 	MAX_CLIPBOARD_TEXT_BYTES,
 	valid_clipboard_text,
 )
-from .core.braille import plan_braille, source_offset_for_expanded  # noqa: E402
 from .core.diagnostics import DiagnosticBuffer  # noqa: E402
 from .core.connection_profiles import (  # noqa: E402
 	parse_profile,
@@ -90,7 +89,6 @@ from .core.gate import SessionGate, TerminalIdentity  # noqa: E402
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
-from .core.service_registrar import ServiceRegistrar  # noqa: E402
 from .nvda_windows import processAlive  # noqa: E402
 from .terminal_integration import (  # noqa: E402
 	SessionClaimAuthorization as SessionClaimAuthorization,
@@ -117,6 +115,14 @@ from .terminal_focus import (  # noqa: E402
 	TerminalFocusDecision as TerminalFocusDecision,
 	TerminalFocusService,
 )
+from .service_registry import (  # noqa: E402
+	getTerminalIntegrationService as getTerminalIntegrationService,
+	serviceRegistrar as _serviceRegistrar,
+)
+from .nvda_braille import (  # noqa: E402
+	StructuredLineRegion as StructuredLineRegion,
+	StructuredTerminalBrailleOverlay as StructuredTerminalBrailleOverlay,
+)
 
 addonHandler.initTranslation()
 
@@ -133,13 +139,6 @@ try:
 	from .build_info import ARTIFACT_VERSION as _ADDON_VERSION
 except ImportError:
 	_ADDON_VERSION = _ADDON_MANIFEST["version"]
-
-_serviceRegistrar = ServiceRegistrar()
-
-
-def getTerminalIntegrationService():
-	"""Return the narrow service published for application-specific adapters."""
-	return _serviceRegistrar.current
 
 
 def _localSessionLister():
@@ -312,87 +311,6 @@ def _registerNvdaConfigSpec():
 	"""Expose add-on settings to NVDA's native configuration-profile stack."""
 	if _NVDA_CONFIG_SECTION not in config.conf.spec:
 		config.conf.spec[_NVDA_CONFIG_SECTION] = _NVDA_CONFIG_SPEC
-
-
-class StructuredLineRegion(nvdaBraille.Region):
-	"""Let NVDA translate and decorate one structured Neovim line."""
-
-	def __init__(self, obj):
-		super().__init__()
-		self.obj = obj
-		self.focusToHardLeft = True
-
-	def update(self):
-		service = getTerminalIntegrationService()
-		formatting = config.conf.get("documentFormatting", {})
-		report_spelling = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
-		try:
-			session_plan = (
-				service.braille_plan(self.obj, report_spelling=report_spelling)
-				if service is not None
-				else None
-			)
-		except Exception:
-			session_plan = None
-		plan = session_plan.plan if session_plan is not None else plan_braille({})
-		self._plan = plan
-		self._sourceLine = session_plan.source_line if session_plan is not None else ""
-		self.rawText = plan.text
-		self.cursorPos = plan.cursor
-		self.selectionStart = plan.selection_start
-		self.selectionEnd = plan.selection_end
-		self.brailleSelectionStart = None
-		self.brailleSelectionEnd = None
-		super().update()
-
-	def routeTo(self, braillePos):
-		service = getTerminalIntegrationService()
-		try:
-			suppressed = service is not None and service.should_suppress_braille(self.obj)
-		except Exception:
-			suppressed = False
-		if not suppressed:
-			return
-		if not 0 <= braillePos < len(self.brailleToRawPos):
-			service.record_braille_route_rejection("outOfRange", braillePos)
-			return
-		expanded_offset = self.brailleToRawPos[braillePos]
-		if self._plan.routing_byte_columns is not None:
-			if not 0 <= expanded_offset < len(self._plan.routing_byte_columns):
-				service.record_braille_route_rejection("semanticOutOfRange", braillePos)
-				return
-			byte_column = self._plan.routing_byte_columns[expanded_offset]
-			if byte_column is None:
-				service.record_braille_route_rejection("semanticStatus", braillePos)
-				return
-		else:
-			source_offset = source_offset_for_expanded(self._plan, expanded_offset)
-			byte_column = len(self._sourceLine[:source_offset].encode("utf-8"))
-		service.route_braille_cursor(self.obj, byte_column)
-
-
-class StructuredTerminalBrailleOverlay:
-	def _reportNewLines(self, lines):
-		service = getTerminalIntegrationService()
-		try:
-			suppressed = service is not None and service.suppress_terminal_live_text(self, len(lines))
-		except Exception:
-			suppressed = False
-		if suppressed:
-			return
-		return super()._reportNewLines(lines)
-
-	def getBrailleRegions(self, review=False):
-		service = getTerminalIntegrationService()
-		try:
-			suppressed = service is not None and service.should_suppress_braille(self)
-		except Exception:
-			suppressed = False
-		if review or not suppressed:
-			raise NotImplementedError
-		# Return a concrete iterable. A yield would turn this into a generator
-		# and defer NotImplementedError until outside NVDA's fallback try block.
-		return (StructuredLineRegion(self),)
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):

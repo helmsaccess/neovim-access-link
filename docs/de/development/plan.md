@@ -240,7 +240,10 @@ Rückreferenz des öffentlichen Terminaldienstes. Er erhält nur eine beim Aufba
 vollständig validierte feste Befehlszuordnung sowie schmale Callbacks für
 Diagnose, Fail-open, F12-Abschluss und Braille-Routing. Als Nächstes werden die
 noch in der Kompositionswurzel liegenden Brailleklassen auf einen eigenen
-NVDA-Randbaustein geprüft.
+NVDA-Randbaustein geprüft. Dieser Schnitt verschiebt Region und Overlay nach
+`nvda_braille.py`; die prozessweite Veröffentlichung liegt dabei in der
+neutralen `service_registry.py`, sodass keine zirkuläre Global-Plugin-
+Abhängigkeit entsteht. Als Nächstes folgt der abschließende V2-6-Strukturaudit.
 
 ## 3. Praktische Abschottung verbreitern
 

@@ -191,6 +191,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   dem öffentlichen `TerminalIntegrationService`. Eine vollständige feste
   Befehlszuordnung und schmale Callbacks ersetzen den freien Zugriff auf die
   Kompositionswurzel; Fokus-, F12- und Brailledienste bleiben getrennt.
+- Der elfte V2-6-Schnitt verschiebt Brailleregion und Terminaloverlay in
+  `nvda_braille.py`. Die neutrale `service_registry.py` besitzt die
+  prozessweite Dienstveröffentlichung; weder dieser Registry-Baustein noch das
+  Braillemodul importiert das Global Plugin.
 
 ### Editorausgabe
 

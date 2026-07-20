@@ -173,6 +173,10 @@ See `compatibility.md` for complete platform boundaries.
   Global Plugin back-reference. A complete fixed command map and narrow
   callbacks replace unrestricted access to the composition root; focus, F12,
   and Braille services remain separate.
+- The eleventh V2-6 slice moves the Braille region and terminal overlay into
+  `nvda_braille.py`. Neutral `service_registry.py` owns process-wide service
+  publication; neither that registry module nor the Braille module imports the
+  Global Plugin.
 
 ### Editor output
 

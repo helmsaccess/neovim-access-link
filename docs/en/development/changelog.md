@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.48+feature.global-plugin-slimming (feature-branch test build)
+
+- The eleventh V2-6 slice moves `StructuredLineRegion` and
+  `StructuredTerminalBrailleOverlay` out of the composition root into the
+  dedicated NVDA-edge module `nvda_braille.py`.
+- A neutral `service_registry.py` owns process-wide publication of the narrow
+  terminal service. The AppModule and Braille module use the same
+  identity-checked service without importing the Global Plugin.
+- The existing importable Braille class names remain available to the Windows
+  Terminal AppModule; routing and native fail-open output do not change.
+
 ## 0.95.0-dev.47+feature.global-plugin-slimming (feature-branch test build)
 
 - The tenth V2-6 slice removes the broad `_runtime` back-reference from

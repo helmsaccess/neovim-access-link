@@ -214,7 +214,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
-| `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
+| `service_registry.py` / `ServiceRegistrar` | identitätsgeprüfte prozessweite Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Global-Plugin-Objekt, Lebenszyklusentscheidung oder Terminalereignisse |
 | `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
@@ -224,6 +224,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
+| `nvda_braille.py` | NVDA-Brailleregion, Terminaloverlay, Übersetzung von Braillepositionen und Abruf des veröffentlichten Terminaldienstes | Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung |
 | Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, prozessweite Registrierung und Aufruf von `AddonRuntime.close()` | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder Abbaureihenfolge |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
@@ -291,6 +292,13 @@ aufgelöster Methodennamen; Fokusentscheidungen und F12-Autorisierungen sind
 unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
+
+Die prozessweite Dienstinstanz liegt in der neutralen `service_registry.py`.
+Das Global Plugin veröffentlicht und entfernt den Dienst über denselben
+identitätsgeprüften `ServiceRegistrar`, den AppModule und Braillemodul nur
+lesen. `nvda_braille.py` besitzt Region und Overlay und importiert kein Global
+Plugin; `__init__.py` exportiert ihre Klassennamen lediglich für das
+Windows-Terminal-AppModule weiter.
 
 Der Dienst besitzt keine breite `_runtime`-Referenz. Die Kompositionswurzel
 übergibt genau einen Handler für jeden `TerminalCommand` sowie getrennte

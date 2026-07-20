@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.48+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der elfte V2-6-Schnitt verschiebt `StructuredLineRegion` und
+  `StructuredTerminalBrailleOverlay` aus der Kompositionswurzel in den eigenen
+  NVDA-Randbaustein `nvda_braille.py`.
+- Ein neutrales `service_registry.py` besitzt die prozessweite Veröffentlichung
+  des schmalen Terminaldienstes. AppModule und Braillemodul verwenden denselben
+  identitätsgeprüften Dienst, ohne das Global Plugin zu importieren.
+- Die bisherigen importierbaren Brailleklassennamen bleiben für das
+  Windows-Terminal-AppModule erhalten; Routing und native Fail-open-Ausgabe
+  ändern sich nicht.
+
 ## 0.95.0-dev.47+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der zehnte V2-6-Schnitt entfernt die breite `_runtime`-Rückreferenz aus

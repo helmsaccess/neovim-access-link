@@ -218,7 +218,10 @@ broad `_runtime` back-reference is removed in the following slice. It receives
 only a composition-time validated fixed command map and narrow callbacks for
 diagnostics, fail-open handling, F12 completion, and Braille routing. The
 Braille classes still located in the composition root are audited next for a
-dedicated NVDA-edge module.
+dedicated NVDA-edge module. That slice moves the region and overlay to
+`nvda_braille.py`; process-wide publication lives in neutral
+`service_registry.py`, avoiding a circular Global Plugin dependency. The final
+V2-6 structural audit follows next.
 
 ## 3. Broaden practical isolation coverage
 
