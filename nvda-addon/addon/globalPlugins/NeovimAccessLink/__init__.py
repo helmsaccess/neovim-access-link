@@ -532,17 +532,39 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	@property
 	def _instanceManager(self):
-		"""Compatibility view while connection behavior moves into its coordinator."""
+		"""Return the instance owner used while composing NVDA-edge operations."""
 		return self._connectionCoordinator.instances
 
 	@property
 	def _gate(self):
+		"""Return the suppression gate used across NVDA-edge operations."""
 		return self._connectionCoordinator.gate
 
 	def terminate(self):
 		self._addonRuntime.close()
 		log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
 		super().terminate()
+
+	def _runtimeClosed(self):
+		runtime = getattr(self, "_addonRuntime", None)
+		return runtime is not None and runtime.closed
+
+	def _runRuntimeCallback(self, callback, *args):
+		if self._runtimeClosed():
+			return
+		callback(*args)
+
+	def _queueRuntimeCallback(self, callback, *args, immediate=False):
+		if self._runtimeClosed():
+			return False
+		queueHandler.queueFunction(
+			queueHandler.eventQueue,
+			self._runRuntimeCallback,
+			callback,
+			*args,
+			_immediate=immediate,
+		)
+		return True
 
 	def _scheduleMainThreadCall(self, delay_ms, callback, *args):
 		"""Keep wx.CallLater alive until it runs or the add-on terminates."""
@@ -554,6 +576,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			pending = holder[0]
 			if pending is not None:
 				self._pendingMainThreadCalls.discard(pending)
+			if self._runtimeClosed():
+				return
 			self._diagnostics.record(
 				"delayedActionStarted",
 				action=getattr(callback, "__name__", "unknown"),
@@ -689,9 +713,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _startClaimWorker(name, target, args):
 		threading.Thread(target=target, args=args, name=name, daemon=True).start()
 
-	@staticmethod
-	def _queueClaimResult(callback, *args):
-		queueHandler.queueFunction(queueHandler.eventQueue, callback, *args)
+	def _queueClaimResult(self, callback, *args):
+		self._queueRuntimeCallback(callback, *args)
 
 	@staticmethod
 	def _listLocalClaimSessions():
@@ -2004,7 +2027,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def _onManagedEvent(self, instance_id, event):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedEvent, instance_id, event)
+		self._queueRuntimeCallback(self._handleManagedEvent, instance_id, event)
 
 	def _handleManagedEvent(self, instance_id, event):
 		identity = self._gate.focused
@@ -2098,7 +2121,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# must never control whether native terminal output is suppressed.
 			import wx
 
-			wx.CallAfter(self._offerTemporaryTerminalBinding, identity, instance_id)
+			wx.CallAfter(
+				self._runRuntimeCallback,
+				self._offerTemporaryTerminalBinding,
+				identity,
+				instance_id,
+			)
 			return
 
 	def _handleClipboardResult(self, instance_id, identity, event):
@@ -2221,7 +2249,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._discardTerminalControlRequests()
 
 	def _onManagedState(self, instance_id, state):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
+		self._queueRuntimeCallback(self._handleManagedState, instance_id, state)
 
 	def _handleManagedState(self, instance_id, state):
 		if state == "disconnected":
@@ -2295,11 +2323,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return not self._shouldSuppress(obj)
 
 	def _onNetworkEvent(self, event):
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
+		self._queueRuntimeCallback(
 			self._handleScopedNetworkEvent,
 			event,
-			_immediate=event.get("type") == "modeChanged",
+			immediate=event.get("type") == "modeChanged",
 		)
 
 	def _handleScopedNetworkEvent(self, event):
@@ -2313,11 +2340,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._handleEvent(event)
 
 	def _onNetworkState(self, state):
+		if self._runtimeClosed():
+			return
 		# Fail open immediately in the network thread. Speech/UI stays on main.
 		if state == "disconnected":
 			self._gate.disconnect()
 			self._editorSessionController.mark_disconnected()
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleConnectionState, state)
+		self._queueRuntimeCallback(self._handleConnectionState, state)
 
 	def _recordNetworkDiagnostic(self, category, fields):
 		self._diagnostics.record(category, **fields)
@@ -2464,7 +2493,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			log.exception("NeovimAccessLink braille failure")
 
 	def _queueBrailleRefresh(self, rebuild):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._refreshBraille, rebuild)
+		self._queueRuntimeCallback(self._refreshBraille, rebuild)
 
 	def _shouldSuppress(self, obj):
 		identity = self._identity(obj)

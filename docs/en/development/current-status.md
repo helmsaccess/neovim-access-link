@@ -153,8 +153,13 @@ See `compatibility.md` for complete platform boundaries.
 - The sixth V2-6 slice removes seven active-client and connection-state views.
   Production and tests now use `ConnectionCoordinator` directly for the active
   client and instance, connection status, authenticated instances, terminal
-  passthrough, and deferred full states. Only the frequently used gate and
-  instance-manager composition views remain for a separate design decision.
+  passthrough, and deferred full states.
+- The seventh V2-6 slice closes the public terminal service immediately after
+  unpublication and rechecks queued runtime callbacks when they execute. Stale
+  service references and late claim, network, Braille, or scheduler calls are
+  therefore inert and fail open. The gate and instance manager remain after a
+  separate audit as frequently used composition dependencies; another layer
+  of indirection would not create a clearer ownership boundary.
 
 ### Editor output
 

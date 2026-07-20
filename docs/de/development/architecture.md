@@ -234,12 +234,20 @@ nicht; auch Instanz, Fokus und Gate müssen passen.
 `AddonRuntime` wird erst nach der Registrierung von Profilcallback,
 Einstellungen und Werkzeugen veröffentlicht. Der erste V2-6-Schnitt bündelt
 die bestehende Abbaureihenfolge und macht sie wiederholbar: Dienst entfernen,
-verzögerte Hauptthreadaufrufe abbrechen, Gate öffnen, Profilcallback
+veröffentlichten Dienst schließen, verzögerte Hauptthreadaufrufe abbrechen,
+Gate öffnen, Profilcallback
 abmelden, Verbindungen stoppen, Runtime-/Fokus-/Requestzustand löschen und
 zuletzt UI und Präsentation schließen. Jeder Schritt fällt getrennt aus, damit
 ein Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Einige schmal
 injizierte Abbaucallbacks bleiben bis zur weiteren V2-6-Besitzbereinigung
 vorübergehend bestehen.
+
+Der geschlossene `TerminalIntegrationService` ist eine Fail-open-Schranke für
+zurückgehaltene Referenzen: Er unterdrückt keine nativen Ereignisse oder
+Brailleausgabe, autorisiert keine Geste und erzeugt keine Diagnosewirkung.
+Claim-, Managed-Connection-, Netzwerk-, Braille- und verzögerte
+Hauptthreadcallbacks laufen zusätzlich durch eine Runtimeprüfung, die auch
+zwischen Einreihen und Ausführung erfolgtes Unpublish berücksichtigt.
 
 Das Global Plugin bietet keine Kompatibilitätseigenschaften für Editorplaner,
 kanonischen Zustand, Modus, strukturierten Tippechozustand,

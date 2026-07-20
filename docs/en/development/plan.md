@@ -199,8 +199,12 @@ and adapter state; their tests now use the three owning services directly. A
 focused-object and lifecycle audit then removes the last two focus-service
 views. A connection-state audit removes another seven properties in favor of
 direct `ConnectionCoordinator` ownership. Only the frequently used gate and
-instance-manager composition views remain in this cleanup group and require a
-separate readability and ownership decision.
+instance-manager composition dependencies remain after a separate audit:
+purely syntactic indirection would create neither a narrower contract nor a
+new owner. The next V2-6 slice closes the published terminal service after
+unpublication and makes queued runtime callbacks recheck the closed state
+when they actually execute. Late domain callbacks are therefore covered;
+partial initialization and remaining shutdown forwarding are audited next.
 
 ## 3. Broaden practical isolation coverage
 

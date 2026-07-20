@@ -169,8 +169,14 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Verbindungszustand. Produktion und Tests verwenden den
   `ConnectionCoordinator` nun direkt für aktiven Client und aktive Instanz,
   Verbindungsstatus, authentifizierte Instanzen, Terminal-Passthrough und
-  zurückgestellte Full-States. Nur die häufig verwendeten Kompositionssichten
-  auf Gate und Instanzmanager verbleiben für eine getrennte Designentscheidung.
+  zurückgestellte Full-States.
+- Der siebte V2-6-Schnitt schließt den öffentlichen Terminaldienst unmittelbar
+  nach dem Unpublish und sichert eingereihte Runtimecallbacks nochmals beim
+  Aufruf ab. Veraltete Dienstreferenzen und verspätete Claim-, Netzwerk-,
+  Braille- oder Scheduleraufrufe bleiben dadurch wirkungslos und fail-open.
+  Gate und Instanzmanager bleiben nach getrenntem Audit als häufig verwendete
+  Kompositionsabhängigkeiten bestehen; eine weitere Indirektion würde keine
+  klarere Besitzgrenze schaffen.
 
 ### Editorausgabe
 

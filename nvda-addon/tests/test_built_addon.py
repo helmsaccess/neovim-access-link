@@ -1394,6 +1394,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         order = []
         original_unpublish = addon_module._serviceRegistrar.unpublish
+        original_service_close = plugin._terminalIntegrationService.close
         original_disable = plugin._gate.disable
         original_stop_client = plugin._stopClient
         original_unregister = plugin._nvdaUi.unregister
@@ -1404,6 +1405,11 @@ class BuiltAddonTests(unittest.TestCase):
                 addon_module._serviceRegistrar,
                 "unpublish",
                 side_effect=lambda *args: order.append("unpublish") or original_unpublish(*args),
+            ),
+            mock.patch.object(
+                plugin._terminalIntegrationService,
+                "close",
+                side_effect=lambda: order.append("terminalService") or original_service_close(),
             ),
             mock.patch.object(
                 plugin._gate,
@@ -1428,13 +1434,17 @@ class BuiltAddonTests(unittest.TestCase):
         ):
             plugin.terminate()
 
-        self.assertEqual(["unpublish", "gate", "client", "ui", "presentation"], order)
+        self.assertEqual(
+            ["unpublish", "terminalService", "gate", "client", "ui", "presentation"],
+            order,
+        )
 
     def test_addon_runtime_publishes_late_and_closes_once_in_fixed_order(self) -> None:
         from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
 
         order = []
-        service = object()
+        service = mock.Mock()
+        service.close.side_effect = lambda: order.append("terminalService")
         token = object()
         registrar = mock.Mock()
         registrar.publish.side_effect = lambda value: order.append("publish") or token
@@ -1491,6 +1501,7 @@ class BuiltAddonTests(unittest.TestCase):
             [
                 "publish",
                 "unpublish",
+                "terminalService",
                 "mainThread",
                 "gate",
                 "profileSwitch",
@@ -1521,7 +1532,7 @@ class BuiltAddonTests(unittest.TestCase):
         presentation = mock.Mock()
         runtime = AddonRuntime(
             registrar=registrar,
-            integration_service=object(),
+            integration_service=mock.Mock(),
             pending_main_thread_calls=set(),
             gate=mock.Mock(),
             unregister_profile_switch=mock.Mock(),
@@ -1548,6 +1559,114 @@ class BuiltAddonTests(unittest.TestCase):
             error="stop failed",
         )
         diagnostics.record.assert_any_call("addonStop")
+
+    def test_unpublished_terminal_service_is_closed_and_fails_open(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
+
+        plugin = GlobalPlugin()
+        service = plugin._terminalIntegrationService
+        app_module = self.focus.appModule
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._sessionClaimService.inventory_ready = True
+        authorization = service.authorize_session_claim(self.focus, app_module)
+        self.assertIsNotNone(authorization)
+
+        plugin.terminate()
+        report_after_terminate = plugin._diagnostics.report()
+
+        self.assertTrue(service.closed)
+        self.assertFalse(service.close())
+        self.assertFalse(service.supports_braille_overlay(self.focus))
+        self.assertIsNone(service.prepare_focus(self.focus, object(), app_module))
+        service.finish_focus(object())
+        service.abandon_focus(object())
+        service.lose_focus(object())
+        self.assertTrue(service.should_use_native_event(self.focus, "typedCharacter"))
+        self.assertFalse(
+            service.dispatch_command(
+                TerminalCommand.TOGGLE_ACCESSIBILITY,
+                object(),
+                self.focus,
+                app_module,
+                object(),
+            )
+        )
+        service.copy_diagnostic_report(object())
+        self.assertIsNone(service.authorize_session_claim(self.focus, app_module))
+        self.assertFalse(
+            service.complete_session_claim(
+                authorization,
+                self.focus,
+                app_module,
+                object(),
+            )
+        )
+        self.assertFalse(service.cancel_session_claim(authorization))
+        self.assertFalse(service.should_suppress_braille(self.focus))
+        self.assertIsNone(service.braille_plan(self.focus, report_spelling=False))
+        self.assertFalse(service.suppress_terminal_live_text(self.focus, 1))
+        service.record_braille_route_rejection("closed", 0)
+        self.assertFalse(service.route_braille_cursor(self.focus, 0))
+        self.assertEqual(report_after_terminate, plugin._diagnostics.report())
+
+    def test_queued_runtime_callbacks_are_inert_after_unpublish(self) -> None:
+        import queueHandler
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        queued = []
+        executed = []
+        original_queue_function = queueHandler.queueFunction
+        queueHandler.queueFunction = lambda _queue, function, *args, **kwargs: queued.append(
+            (function, args, kwargs)
+        )
+        try:
+            self.assertTrue(plugin._queueRuntimeCallback(executed.append, "queued"))
+            self.assertEqual(1, len(queued))
+            plugin.terminate()
+
+            queued[0][0](*queued[0][1])
+            self.assertFalse(plugin._queueRuntimeCallback(executed.append, "future"))
+            plugin._onManagedEvent("connection-1", {"type": "fullState"})
+            plugin._onManagedState("connection-1", "connected")
+            plugin._onNetworkEvent({"type": "modeChanged"})
+            plugin._onNetworkState("connected")
+            plugin._queueBrailleRefresh(rebuild=True)
+            plugin._queueClaimResult(executed.append, "claim")
+        finally:
+            queueHandler.queueFunction = original_queue_function
+
+        self.assertEqual([], executed)
+        self.assertEqual(1, len(queued))
+
+    def test_delayed_runtime_callback_race_is_inert_after_teardown(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        import wx
+
+        class PendingCall:
+            def __init__(inner_self, callback):
+                inner_self.callback = callback
+                inner_self.stopped = False
+
+            def Stop(inner_self):
+                inner_self.stopped = True
+
+        pending = []
+        original_call_later = wx.CallLater
+        wx.CallLater = lambda _delay, callback: pending.append(PendingCall(callback)) or pending[-1]
+        try:
+            plugin = GlobalPlugin()
+            executed = []
+            call = plugin._scheduleMainThreadCall(100, executed.append, "late")
+            plugin.terminate()
+            call.callback()
+        finally:
+            wx.CallLater = original_call_later
+
+        self.assertTrue(call.stopped)
+        self.assertEqual([], executed)
 
     def test_global_initialization_failure_rolls_back_before_publication(self) -> None:
         import config

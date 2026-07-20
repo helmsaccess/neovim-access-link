@@ -218,9 +218,14 @@ entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt. Ein
 anschließender Fokusobjekt-/Lifecycle-Audit entfernt die letzten zwei
 Fokusdienstsichten. Ein Verbindungszustands-Audit entfernt weitere sieben
 Eigenschaften zugunsten des direkten `ConnectionCoordinator`-Besitzes. In
-dieser Bereinigungsgruppe verbleiben nur die häufig verwendeten
-Kompositionssichten auf Gate und Instanzmanager; sie benötigen eine getrennte
-Entscheidung zu Lesbarkeit und Eigentum.
+dieser Bereinigungsgruppe bleiben Gate und Instanzmanager nach getrenntem Audit
+bewusst als häufig verwendete Kompositionsabhängigkeiten bestehen: Eine rein
+syntaktische Indirektion schafft weder einen engeren Vertrag noch einen neuen
+Eigentümer. Der folgende V2-6-Schnitt schließt den veröffentlichten
+Terminaldienst nach dem Unpublish und lässt eingereihte Runtimecallbacks beim
+tatsächlichen Aufruf den geschlossenen Zustand erneut prüfen. Die Abdeckung
+für verspätete fachliche Callbacks ist damit vorhanden; Teilinitialisierung
+und verbleibende Abbauweiterleitungen werden anschließend weiter geprüft.
 
 ## 3. Praktische Abschottung verbreitern
 

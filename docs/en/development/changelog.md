@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.44+feature.global-plugin-slimming (feature-branch test build)
+
+- The seventh V2-6 slice closes the published terminal service immediately
+  after unpublication. Retained service references then return focus,
+  gestures, F12, and Braille to NVDA without producing effects.
+- Already queued claim, connection, Braille, and delayed main-thread callbacks
+  recheck the runtime when they actually execute. They cannot change state or
+  output after teardown.
+- The audit deliberately retains the gate and instance manager as frequently
+  used composition dependencies; indirect access would create neither a
+  narrower contract nor a new owner.
+
 ## 0.95.0-dev.43+feature.global-plugin-slimming (feature-branch test build)
 
 - The sixth V2-6 slice removes seven Global Plugin compatibility properties

@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.44+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der siebte V2-6-Schnitt schließt den veröffentlichten Terminaldienst direkt
+  nach dem Unpublish. Zurückgehaltene Dienstreferenzen geben danach Fokus,
+  Gesten, F12 und Braille stets an NVDA zurück und erzeugen keine Wirkung.
+- Bereits eingereihte Claim-, Verbindungs-, Braille- und verzögerte
+  Hauptthreadcallbacks prüfen die Runtime beim tatsächlichen Aufruf erneut.
+  Sie können nach dem Teardown weder Zustand noch Ausgabe verändern.
+- Der Audit behält Gate und Instanzmanager bewusst als häufig verwendete
+  Kompositionsabhängigkeiten; indirektere Zugriffe hätten keinen engeren
+  Vertrag oder eigenen neuen Besitzer geschaffen.
+
 ## 0.95.0-dev.43+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der sechste V2-6-Schnitt entfernt sieben

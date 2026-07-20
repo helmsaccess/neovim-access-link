@@ -77,6 +77,7 @@ class AddonRuntime:
 			"unpublish",
 			lambda: self._registrar.unpublish(self._integrationService, token),
 		)
+		self._run_close_step("terminalService", self._integrationService.close)
 		self._cancel_main_thread_calls()
 		self._run_close_step("gate", self._gate.disable)
 		if self._profileSwitchRegistered:

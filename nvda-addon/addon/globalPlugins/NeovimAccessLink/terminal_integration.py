@@ -55,14 +55,32 @@ class TerminalIntegrationService:
 		self._claimService = claim_service
 		self._editorSession = editor_session
 		self._generation = object()
+		self._closed = False
+
+	@property
+	def closed(self) -> bool:
+		return self._closed
+
+	def close(self) -> bool:
+		"""Invalidate the published service before shared runtime teardown."""
+		if self._closed:
+			return False
+		self._closed = True
+		self._generation = object()
+		self._claimService.cancel_pending_authorization()
+		return True
 
 	def _record(self, category: str, **fields: Any) -> None:
+		if self._closed:
+			return
 		try:
 			self._runtime._diagnostics.record(category, **fields)
 		except Exception:
 			pass
 
 	def _fail_open(self, event_name: str, error: Exception) -> None:
+		if self._closed:
+			return
 		try:
 			self._runtime._failOpenTerminalEvent(event_name, error)
 		except Exception:
@@ -71,6 +89,8 @@ class TerminalIntegrationService:
 			pass
 
 	def supports_braille_overlay(self, obj: object) -> bool:
+		if self._closed:
+			return False
 		try:
 			return self._focusService.identity(obj) is not None
 		except Exception as error:
@@ -78,6 +98,8 @@ class TerminalIntegrationService:
 			return False
 
 	def prepare_focus(self, obj: object, adapter_token: object, app_module: object) -> object | None:
+		if self._closed:
+			return None
 		try:
 			return self._focusService.prepare_focus(obj, adapter_token, app_module)
 		except Exception as error:
@@ -85,6 +107,8 @@ class TerminalIntegrationService:
 			return None
 
 	def finish_focus(self, decision: object) -> None:
+		if self._closed:
+			return
 		try:
 			self._focusService.finish_focus(decision)
 		except Exception as error:
@@ -92,15 +116,21 @@ class TerminalIntegrationService:
 
 	def abandon_focus(self, decision: object) -> None:
 		"""Fail open a prepared focus event after the published service changed."""
+		if self._closed:
+			return
 		self._fail_open("staleTerminalFocusService", RuntimeError("terminal service changed"))
 
 	def lose_focus(self, adapter_token: object) -> None:
+		if self._closed:
+			return
 		try:
 			self._focusService.lose_focus(adapter_token)
 		except Exception as error:
 			self._fail_open("appModuleLoseFocus", error)
 
 	def should_use_native_event(self, obj: object, event_name: str) -> bool:
+		if self._closed:
+			return True
 		try:
 			return not self._focusService.should_suppress(obj)
 		except Exception as error:
@@ -116,7 +146,7 @@ class TerminalIntegrationService:
 		adapter_token: object,
 	) -> bool:
 		"""Authorize and run one fixed command, returning whether it was handled."""
-		if not isinstance(command, TerminalCommand):
+		if self._closed or not isinstance(command, TerminalCommand):
 			self._record("configuredGesturePassedThrough", action="unknown")
 			return False
 		try:
@@ -160,6 +190,8 @@ class TerminalIntegrationService:
 		}
 
 	def copy_diagnostic_report(self, gesture: object) -> None:
+		if self._closed:
+			return
 		self._runtime.action_copyDiagnosticReport(gesture)
 
 	def authorize_session_claim(
@@ -167,6 +199,8 @@ class TerminalIntegrationService:
 		focus_obj: object,
 		app_module: object,
 	) -> SessionClaimAuthorization | None:
+		if self._closed:
+			return None
 		if getattr(focus_obj, "appModule", None) is not app_module:
 			return None
 		try:
@@ -195,7 +229,8 @@ class TerminalIntegrationService:
 		adapter_token: object,
 	) -> bool:
 		if (
-			not isinstance(authorization, SessionClaimAuthorization)
+			self._closed
+			or not isinstance(authorization, SessionClaimAuthorization)
 			or authorization.service_generation is not self._generation
 		):
 			return False
@@ -225,7 +260,8 @@ class TerminalIntegrationService:
 
 	def cancel_session_claim(self, authorization: SessionClaimAuthorization) -> bool:
 		if (
-			not isinstance(authorization, SessionClaimAuthorization)
+			self._closed
+			or not isinstance(authorization, SessionClaimAuthorization)
 			or authorization.service_generation is not self._generation
 		):
 			return False
@@ -235,6 +271,8 @@ class TerminalIntegrationService:
 		)
 
 	def should_suppress_braille(self, obj: object) -> bool:
+		if self._closed:
+			return False
 		try:
 			return self._focusService.should_suppress(obj)
 		except Exception as error:
@@ -257,6 +295,8 @@ class TerminalIntegrationService:
 		return True
 
 	def record_braille_route_rejection(self, reason: str, braille_pos: int) -> None:
+		if self._closed:
+			return
 		self._record("brailleRouteRejected", reason=reason, braillePos=braille_pos)
 
 	def route_braille_cursor(self, obj: object, byte_column: int) -> bool:
