@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from .editor_session import BrailleSessionPlan, EditorSessionController
+
 
 class TerminalCommand(Enum):
 	"""Commands that an application-specific adapter may request."""
@@ -39,12 +41,19 @@ class TerminalIntegrationService:
 	explicit without publishing the NVDA GlobalPlugin itself.
 	"""
 
-	def __init__(self, runtime: Any, focus_service: Any, claim_service: Any):
-		if runtime is None or focus_service is None or claim_service is None:
-			raise ValueError("runtime, focus service, and claim service are required")
+	def __init__(
+		self,
+		runtime: Any,
+		focus_service: Any,
+		claim_service: Any,
+		editor_session: EditorSessionController,
+	):
+		if runtime is None or focus_service is None or claim_service is None or editor_session is None:
+			raise ValueError("runtime, focus service, claim service, and editor session are required")
 		self._runtime = runtime
 		self._focusService = focus_service
 		self._claimService = claim_service
+		self._editorSession = editor_session
 		self._generation = object()
 
 	def _record(self, category: str, **fields: Any) -> None:
@@ -232,14 +241,14 @@ class TerminalIntegrationService:
 			self._fail_open("brailleSuppression", error)
 			return False
 
-	def braille_state(self, obj: object) -> dict:
+	def braille_plan(self, obj: object, *, report_spelling: bool) -> BrailleSessionPlan | None:
 		if not self.should_suppress_braille(obj):
-			return {}
+			return None
 		try:
-			return dict(self._runtime._currentState)
+			return self._editorSession.plan_braille(report_spelling=report_spelling)
 		except Exception as error:
-			self._fail_open("brailleState", error)
-			return {}
+			self._fail_open("braillePlan", error)
+			return None
 
 	def suppress_terminal_live_text(self, obj: object, line_count: int) -> bool:
 		if not self.should_suppress_braille(obj):
@@ -254,8 +263,15 @@ class TerminalIntegrationService:
 		if not self.should_suppress_braille(obj):
 			return False
 		try:
-			self._runtime._routeBrailleCursor(byte_column)
-			return True
+			plan = self._editorSession.plan_braille_route(byte_column)
+			if not plan.ready:
+				fields = {"byteColumn": byte_column} if plan.rejection_reason == "incompleteState" else {}
+				self._record("brailleRouteRejected", reason=plan.rejection_reason, **fields)
+				return False
+			payload = plan.payload()
+			accepted = self._runtime._sendBrailleRoute(payload)
+			self._record("brailleRoute", accepted=accepted, **payload)
+			return bool(accepted)
 		except Exception as error:
 			self._fail_open("brailleRoute", error)
 			return False

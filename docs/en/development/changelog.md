@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.34+feature.global-plugin-slimming (feature-branch test build)
+
+- The fourth V2-5 slice moves isolated Braille planning and semantic
+  cursor-routing payload validation into `EditorSessionController`.
+- The public terminal service still confirms the concrete terminal; the NVDA
+  overlay translates Braille positions, and only the Global Plugin sends the
+  fixed `routeCursor` command. Incomplete state, a missing capability, or
+  unconfirmed focus remain fail-open.
+- Direct and built-add-on tests cover snapshot isolation, tabs, Unicode,
+  file-manager lines, valid routing, and all rejection paths.
+
 ## 0.95.0-dev.33+feature.global-plugin-slimming (feature-branch test build)
 
 - The third V2-5 slice makes `EditorSessionController` return an immutable

@@ -118,7 +118,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   NVDA-Rand. Der nächste Schnitt bündelt Zustandsübergang,
   Terminal-Passthrough, Modusklangentscheidung und neutrale Sprachaktionen in
   einem unveränderlichen Ereignisplan. Das Global Plugin wendet nur noch die
-  Gate-Entscheidung an und liefert den Plan über `NvdaPresentation` aus.
+  Gate-Entscheidung an und liefert den Plan über `NvdaPresentation` aus. Der
+  Braillepfad erhält vom Controller einen isolierten Zeilenplan; semantisches
+  Cursor-Routing wird dort gegen Capability, aktiven Client und vollständigen
+  Editorzustand validiert. Terminalbestätigung, NVDA-Overlay und der konkrete
+  Transportaufruf bleiben außerhalb.
 
 ### Editorausgabe
 

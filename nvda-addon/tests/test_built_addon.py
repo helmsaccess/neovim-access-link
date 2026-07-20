@@ -1020,10 +1020,60 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(focus.mode_cue)
         self.assertEqual((), focus.speech_actions)
 
+    def test_editor_session_controller_plans_braille_snapshot_and_validated_route(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+        coordinator.current_state = {
+            "bufferId": 7,
+            "windowId": 11,
+            "changedtick": 13,
+            "lineText": "\t界z",
+            "tabstop": 4,
+            "cursor": {"line": 3, "byteColumn": 1},
+            "_transport": {"capabilities": ["cursorRouting"]},
+        }
+        coordinator.active_client = object()
+
+        session_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("\t界z", session_plan.source_line)
+        coordinator.current_state["lineText"] = "changed later"
+        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("\t界z", session_plan.source_line)
+
+        route = controller.plan_braille_route(1)
+        self.assertTrue(route.ready)
+        self.assertEqual({
+            "bufferId": 7,
+            "windowId": 11,
+            "line": 3,
+            "byteColumn": 1,
+            "changedtick": 13,
+        }, route.payload())
+
+        rejected_column = controller.plan_braille_route(-1)
+        self.assertFalse(rejected_column.ready)
+        self.assertEqual("incompleteState", rejected_column.rejection_reason)
+        coordinator.active_client = None
+        rejected_client = controller.plan_braille_route(1)
+        self.assertFalse(rejected_client.ready)
+        self.assertEqual("incompleteState", rejected_client.rejection_reason)
+        coordinator.current_state.pop("_transport")
+        coordinator.transport_capabilities = frozenset()
+        rejected_capability = controller.plan_braille_route(1)
+        self.assertFalse(rejected_capability.ready)
+        self.assertEqual("capabilityMissing", rejected_capability.rejection_reason)
+
     def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
         editor_source = (plugin / "editor_session.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
 
         self.assertIn("class EditorSessionController", editor_source)
         self.assertNotIn("GlobalPlugin", editor_source)
@@ -1035,6 +1085,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn('next_request_id("clipboard")', global_source)
         self.assertNotIn('remember_pending_request("clipboard"', global_source)
         self.assertNotIn("PendingControlRequest", global_source)
+        self.assertIn("self._editorSession.plan_braille(", facade_source)
+        self.assertIn("self._editorSession.plan_braille_route(", facade_source)
+        self.assertNotIn("self._runtime._currentState", facade_source)
+        self.assertNotIn("self._runtime._routeBrailleCursor", facade_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
@@ -7105,6 +7159,10 @@ class BuiltAddonTests(unittest.TestCase):
         region.routeTo(4)
         self.assertEqual("routeCursor", controls[0][0])
         self.assertEqual(1, controls[0][1]["byteColumn"])
+        plugin._currentState["_transport"] = {"capabilities": []}
+        region.routeTo(4)
+        self.assertEqual(1, len(controls))
+        self.assertIn('"reason": "capabilityMissing"', plugin._diagnostics.report())
         plugin.terminate()
 
     def test_braille_routing_ignores_valid_state_without_confirmed_terminal_gate(self) -> None:

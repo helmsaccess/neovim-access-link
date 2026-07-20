@@ -260,6 +260,14 @@ text is exposed only as a validated result to the NVDA boundary and is removed
 from the safe follow-up event. Focus/gate validation, transport calls, the
 Windows clipboard, diagnostics, and concrete presentation remain separate.
 
+For Braille, the controller copies the active canonical state into a
+`BrailleSessionPlan`; later editor events cannot mutate that plan. A
+`BrailleRoutePlan` contains either a fully validated fixed `routeCursor`
+payload or one bounded rejection reason. The public terminal service first
+confirms the concrete terminal and records the result. The overlay only maps
+NVDA's translated Braille position to the semantic byte column; the transport
+call remains in the Global Plugin.
+
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely
 accessible plugin dictionary. `NvdaUiManager` receives only that service, a

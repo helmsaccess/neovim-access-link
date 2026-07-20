@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any
 
+from .core.braille import BraillePlan, plan_braille as build_braille_plan
 from .core.clipboard import clipboard_result_state, valid_clipboard_text, valid_request_id
 from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
 from .core.gate import TerminalIdentity
@@ -64,6 +65,40 @@ class EditorEventPlan:
 	terminal_passthrough: bool
 	mode_cue: ModeCuePlan | None
 	speech_actions: tuple[SpeechAction, ...]
+
+
+@dataclass(frozen=True)
+class BrailleSessionPlan:
+	plan: BraillePlan
+	source_line: str
+
+
+@dataclass(frozen=True)
+class BrailleRoutePlan:
+	rejection_reason: str | None
+	buffer_id: int | None = None
+	window_id: int | None = None
+	line: int | None = None
+	byte_column: int | None = None
+	changedtick: int | None = None
+
+	@property
+	def ready(self) -> bool:
+		return self.rejection_reason is None
+
+	def payload(self) -> dict[str, int]:
+		if not self.ready:
+			raise ValueError("a rejected Braille route has no payload")
+		values = {
+			"bufferId": self.buffer_id,
+			"windowId": self.window_id,
+			"line": self.line,
+			"byteColumn": self.byte_column,
+			"changedtick": self.changedtick,
+		}
+		if not all(isinstance(value, int) and not isinstance(value, bool) for value in values.values()):
+			raise ValueError("a ready Braille route requires complete integer state")
+		return values
 
 
 class ControlReplyKind(Enum):
@@ -307,6 +342,51 @@ class EditorSessionController:
 				actions.append(StructuredTypingAction(character, True))
 		self._coordinator.typed_position = (identity, byte_column) if isinstance(byte_column, int) else None
 		return tuple(actions)
+
+	def plan_braille(self, *, report_spelling: bool) -> BrailleSessionPlan:
+		"""Return an isolated Braille plan for the active canonical editor state."""
+		state = dict(self._coordinator.current_state)
+		state["reportSpellingBraille"] = bool(report_spelling)
+		line = state.get("lineText")
+		return BrailleSessionPlan(
+			plan=build_braille_plan(state),
+			source_line=line if isinstance(line, str) else "",
+		)
+
+	def plan_braille_route(self, byte_column: int) -> BrailleRoutePlan:
+		"""Validate a semantic cursor route without performing transport I/O."""
+		state = self._coordinator.current_state
+		transport_value = state.get("_transport", {})
+		transport = transport_value if isinstance(transport_value, dict) else {}
+		capability_values = transport.get("capabilities")
+		capabilities = (
+			frozenset(value for value in capability_values if isinstance(value, str))
+			if isinstance(capability_values, list)
+			else self._coordinator.transport_capabilities
+		)
+		if "cursorRouting" not in capabilities:
+			return BrailleRoutePlan("capabilityMissing")
+		cursor_value = state.get("cursor", {})
+		cursor = cursor_value if isinstance(cursor_value, dict) else {}
+		values = (
+			state.get("bufferId"),
+			state.get("windowId"),
+			cursor.get("line"),
+			byte_column,
+			state.get("changedtick"),
+		)
+		if self._coordinator.active_client is None or not all(
+			isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in values
+		):
+			return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+		return BrailleRoutePlan(
+			None,
+			buffer_id=values[0],
+			window_id=values[1],
+			line=values[2],
+			byte_column=values[3],
+			changedtick=values[4],
+		)
 
 	def remember_clipboard_request(
 		self,

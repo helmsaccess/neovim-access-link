@@ -166,7 +166,10 @@ Network calls, the Windows clipboard, diagnostics, and translated feedback
 remain in the NVDA composition root. The third slice combines state
 transition, terminal passthrough, mode cue, and neutral speech actions in one
 immutable event plan. The Global Plugin no longer plans editor events itself;
-it only delivers through NVDA and applies gate transitions.
+it only delivers through NVDA and applies gate transitions. The fourth slice
+adds isolated Braille plans and validated semantic routing plans. The overlay
+remains NVDA-specific, and only the NVDA boundary performs the fixed
+`routeCursor` transport call.
 
 ## 3. Broaden practical isolation coverage
 

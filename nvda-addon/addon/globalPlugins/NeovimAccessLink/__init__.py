@@ -319,15 +319,19 @@ class StructuredLineRegion(nvdaBraille.Region):
 
 	def update(self):
 		service = getTerminalIntegrationService()
-		try:
-			state = service.braille_state(self.obj) if service is not None else {}
-		except Exception:
-			state = {}
-		self._state = state
 		formatting = config.conf.get("documentFormatting", {})
-		state["reportSpellingBraille"] = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
-		plan = plan_braille(state)
+		report_spelling = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
+		try:
+			session_plan = (
+				service.braille_plan(self.obj, report_spelling=report_spelling)
+				if service is not None
+				else None
+			)
+		except Exception:
+			session_plan = None
+		plan = session_plan.plan if session_plan is not None else plan_braille({})
 		self._plan = plan
+		self._sourceLine = session_plan.source_line if session_plan is not None else ""
 		self.rawText = plan.text
 		self.cursorPos = plan.cursor
 		self.selectionStart = plan.selection_start
@@ -358,8 +362,7 @@ class StructuredLineRegion(nvdaBraille.Region):
 				return
 		else:
 			source_offset = source_offset_for_expanded(self._plan, expanded_offset)
-			line = self._state.get("lineText", "")
-			byte_column = len(line[:source_offset].encode("utf-8"))
+			byte_column = len(self._sourceLine[:source_offset].encode("utf-8"))
 		service.route_braille_cursor(self.obj, byte_column)
 
 
@@ -493,6 +496,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self,
 			self._terminalFocusService,
 			self._sessionClaimService,
+			self._editorSessionController,
 		)
 		self._serviceRegistrationToken = _serviceRegistrar.publish(self._terminalIntegrationService)
 
@@ -2694,25 +2698,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity = self._identity(obj)
 		return identity is not None and self._gate.should_suppress(identity)
 
-	def _routeBrailleCursor(self, byte_column):
-		state = self._currentState
-		capabilities = state.get("_transport", {}).get("capabilities", [])
-		if "cursorRouting" not in capabilities:
-			self._diagnostics.record("brailleRouteRejected", reason="capabilityMissing")
-			return
-		cursor = state.get("cursor", {})
-		payload = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"line": cursor.get("line"),
-			"byteColumn": byte_column,
-			"changedtick": state.get("changedtick"),
-		}
-		if self._client is None or not all(isinstance(value, int) for value in payload.values()):
-			self._diagnostics.record("brailleRouteRejected", reason="incompleteState", byteColumn=byte_column)
-			return
-		accepted = self._client.send_control("routeCursor", payload)
-		self._diagnostics.record("brailleRoute", accepted=accepted, **payload)
+	def _sendBrailleRoute(self, payload):
+		client = self._client
+		return client is not None and bool(client.send_control("routeCursor", payload))
 
 	@staticmethod
 	def _identity(obj):

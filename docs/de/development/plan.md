@@ -181,7 +181,10 @@ Controller. Netzwerkaufruf, Windows-Zwischenablage, Diagnostik und
 Schnitt führt Zustandsübergang, Terminal-Passthrough, Modusklang und neutrale
 Sprachaktionen in einem unveränderlichen Ereignisplan zusammen. Damit plant
 das Global Plugin Editorereignisse nicht mehr selbst, sondern liefert nur
-über NVDA aus und wendet Gate-Übergänge an.
+über NVDA aus und wendet Gate-Übergänge an. Der vierte Schnitt ergänzt
+isolierte Braillepläne und validierte semantische Routingpläne. Das Overlay
+bleibt NVDA-spezifisch, und nur der NVDA-Rand führt den festen
+`routeCursor`-Transportaufruf aus.
 
 ## 3. Praktische Abschottung verbreitern
 

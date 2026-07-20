@@ -272,6 +272,14 @@ Ergebnis an den NVDA-Rand gegeben und aus dem sicheren Folgeereignis entfernt.
 Fokus/Gate, Transportaufruf, Windows-Zwischenablage, Diagnostik und konkrete
 Präsentation bleiben getrennt.
 
+Für Braille kopiert der Controller den aktiven kanonischen Zustand in einen
+`BrailleSessionPlan`; spätere Editorereignisse verändern diesen Plan nicht.
+Ein `BrailleRoutePlan` enthält entweder einen vollständig validierten festen
+`routeCursor`-Payload oder einen begrenzten Ablehnungsgrund. Das öffentliche
+Terminalservice prüft zuvor das konkrete Terminal und protokolliert das
+Ergebnis. Das Overlay rechnet nur NVDAs übersetzte Brailleposition in die
+semantische Bytespalte um; der Transportaufruf verbleibt im Global Plugin.
+
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei
 zugängliches Plugin-Dictionary. Der `NvdaUiManager` erhält nur diesen Dienst,

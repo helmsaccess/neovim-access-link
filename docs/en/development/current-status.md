@@ -111,7 +111,11 @@ See `compatibility.md` for complete platform boundaries.
   and concrete output remain at the NVDA boundary. The next slice combines the
   state transition, terminal passthrough, mode-cue decision, and neutral
   speech actions in one immutable event plan. The Global Plugin only applies
-  the gate decision and delivers the plan through `NvdaPresentation`.
+  the gate decision and delivers the plan through `NvdaPresentation`. The
+  Braille path receives an isolated line plan from the controller; semantic
+  cursor routing is validated there against capability, active client, and
+  complete editor state. Terminal confirmation, the NVDA overlay, and the
+  concrete transport call remain outside.
 
 ### Editor output
 

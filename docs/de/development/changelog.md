@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.34+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der vierte V2-5-Schnitt verschiebt die isolierte Brailleplanung und die
+  Validierung semantischer Cursor-Routing-Payloads in den
+  `EditorSessionController`.
+- Das öffentliche Terminalservice bestätigt weiterhin das konkrete Terminal;
+  das NVDA-Overlay übersetzt Braillepositionen, und nur das Global Plugin
+  sendet den festen `routeCursor`-Befehl. Unvollständiger Zustand, fehlende
+  Capability oder unbestätigter Fokus bleiben fail-open.
+- Direkte und gebaute Add-on-Tests decken Snapshot-Isolation, Tabs, Unicode,
+  Dateimanagerzeilen, gültiges Routing und alle Ablehnungswege ab.
+
 ## 0.95.0-dev.33+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der dritte V2-5-Schnitt erzeugt im `EditorSessionController` einen
