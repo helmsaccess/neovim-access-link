@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.26+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neutrale Dienst bereitet die Wiederherstellung einer gemerkten
+  Terminalbindung nun fail-open vor. Eine bekannte Instanz wird ausgewählt,
+  bleibt aber unbestätigt, bis Neovim den weiterhin fokussierten Tab oder das
+  Pane semantisch bestätigt.
+- Für bereits authentifizierte Instanzen plant der Dienst eine korrelierte
+  `focusContext`-Anforderung; andernfalls fordert der NVDA-Rand weiterhin einen
+  vollständigen Zustand an. Fokusverzögerung, Transportaufruf und Diagnostik
+  bleiben außerhalb des neutralen Dienstes.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
 ## 0.95.0-dev.25+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der `SessionClaimService` besitzt nun auch die neutralen Übergänge zur

@@ -89,7 +89,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   bisherigen Hauptthreadgrenzen. Auch die explizite Instanzauswahl und
   Trennung sind neutrale Dienstübergänge: Auswahlfehler stellen die vorherige
   Bindung wieder her, Trennung entfernt Runtimezustand und Bindung vor dem
-  asynchronen Clientstopp.
+  asynchronen Clientstopp. Die Wiederherstellung gemerkter Bindungen wird dort
+  fail-open vorbereitet und erzeugt je nach Authentifizierung eine korrelierte
+  Fokuskontext- oder Vollzustandsanforderung. Verzögerung und Transportaufruf
+  bleiben am NVDA-Rand.
 
 ### Editorausgabe
 

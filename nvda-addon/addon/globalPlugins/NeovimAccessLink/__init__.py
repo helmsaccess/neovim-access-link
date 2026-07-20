@@ -105,6 +105,8 @@ from .settings_service import SettingsService  # noqa: E402
 from .session_claim import (  # noqa: E402
 	ClaimTransitionKind,
 	DiscoverySelectionKind,
+	RememberedBindingActivationKind,
+	RememberedStateRequestKind,
 	SessionClaimService,
 )
 from .terminal_focus import (  # noqa: E402
@@ -2289,80 +2291,58 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
-		try:
-			client = self._instanceManager.client_for(instance_id)
-			if (
-				self._gate.bound_terminal == identity
-				and self._client is client
-				and self._gate.authenticated
-				and self._gate.nvim_active
-				and self._activeInstanceId == instance_id
-				and not focus_regained
-			):
-				return
-			trusted = instance_id in self._authenticatedInstances
-			# A live authenticated client proves session identity, not that
-			# Neovim is still visible in this WT control. Keep the transport
-			# selected but fail open until the focus-correlated context reply.
-			self._connectionCoordinator.prepare_unconfirmed_instance(
-				instance_id,
-				identity,
-				self._newInstanceRuntime,
-				trusted=trusted,
-			)
-			# Focus events for Windows Terminal tabs can be followed by transient
-			# child-focus events. Let focus settle before accepting a new fullState.
-			self._scheduleMainThreadCall(
-				100,
-				self._requestRememberedBindingState,
-				identity,
-				instance_id,
-			)
-			self._diagnostics.record(
-				"temporaryTerminalBindingActivated",
-				instanceId=instance_id,
-				terminal=self._identityFields(identity),
-				suppressionImmediate=False,
-			)
-		except ValueError:
-			self._rememberedTerminalBindings.discard(identity)
+		activation = self._sessionClaimService.activate_remembered_binding(
+			identity,
+			instance_id,
+			focus_regained=focus_regained,
+		)
+		if activation.kind != RememberedBindingActivationKind.ACTIVATE:
+			return
+		# Focus events for Windows Terminal tabs can be followed by transient
+		# child-focus events. Let focus settle before accepting a new fullState.
+		self._scheduleMainThreadCall(
+			100,
+			self._requestRememberedBindingState,
+			identity,
+			instance_id,
+		)
+		self._diagnostics.record(
+			"temporaryTerminalBindingActivated",
+			instanceId=instance_id,
+			terminal=self._identityFields(identity),
+			suppressionImmediate=False,
+		)
 
 	def _requestRememberedBindingState(self, identity, instance_id):
-		focused = self._gate.focused
-		selected = self._instanceManager.selected_for(identity)
-		if focused != identity or selected is None or selected.identifier != instance_id:
+		request = self._sessionClaimService.plan_remembered_state_request(identity, instance_id)
+		if request.kind == RememberedStateRequestKind.SKIP:
 			self._diagnostics.record(
 				"temporaryTerminalBindingStateSkipped",
 				instanceId=instance_id,
 				reason="focusChanged",
 			)
 			return
-		try:
-			client = self._instanceManager.client_for(instance_id)
-			if instance_id in self._authenticatedInstances:
-				request_id = self._connectionCoordinator.next_request_id("focusContext")
-				self._connectionCoordinator.remember_focus_context(
-					instance_id,
-					request_id,
-					identity,
-				)
-				sent = client.send_control("requestFocusContext", {"requestId": request_id})
-				if not sent:
-					self._connectionCoordinator.discard_focus_context(instance_id)
-				self._diagnostics.record(
-					"temporaryTerminalFocusContextRequested",
-					instanceId=instance_id,
-					requestId=request_id,
-					sent=sent,
-				)
-				return
-			client.send_control("requestFullState", {})
-			self._diagnostics.record(
-				"temporaryTerminalBindingStateRequested",
-				instanceId=instance_id,
+		if request.kind == RememberedStateRequestKind.STALE or request.client is None:
+			return
+		if request.kind == RememberedStateRequestKind.FOCUS_CONTEXT:
+			sent = request.client.send_control(
+				"requestFocusContext",
+				{"requestId": request.request_id},
 			)
-		except ValueError:
-			self._rememberedTerminalBindings.discard(identity)
+			if not sent:
+				self._connectionCoordinator.discard_focus_context(instance_id)
+			self._diagnostics.record(
+				"temporaryTerminalFocusContextRequested",
+				instanceId=instance_id,
+				requestId=request.request_id,
+				sent=sent,
+			)
+			return
+		request.client.send_control("requestFullState", {})
+		self._diagnostics.record(
+			"temporaryTerminalBindingStateRequested",
+			instanceId=instance_id,
+		)
 
 	def _onManagedEvent(self, instance_id, event):
 		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedEvent, instance_id, event)

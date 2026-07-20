@@ -608,6 +608,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.start_connection", global_source)
         self.assertIn("self._sessionClaimService.select_connection", global_source)
         self.assertIn("self._sessionClaimService.disconnect_connection", global_source)
+        self.assertIn("self._sessionClaimService.activate_remembered_binding", global_source)
+        self.assertIn("self._sessionClaimService.plan_remembered_state_request", global_source)
         self.assertNotIn("self._instanceManager.add_target(", global_source)
         self.assertNotIn("self._instanceManager.remove(", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
@@ -2312,6 +2314,10 @@ class BuiltAddonTests(unittest.TestCase):
             ConnectionStartResult,
             DiscoverySelection,
             DiscoverySelectionKind,
+            RememberedBindingActivation,
+            RememberedBindingActivationKind,
+            RememberedStateRequest,
+            RememberedStateRequestKind,
         )
 
         focus = TerminalFocusDecision(object(), 1, None, None, None, False)
@@ -2323,6 +2329,8 @@ class BuiltAddonTests(unittest.TestCase):
         start = ConnectionStartResult()
         connection_selection = ConnectionSelectionResult()
         disconnect = ConnectionDisconnectResult()
+        activation = RememberedBindingActivation(RememberedBindingActivationKind.STALE)
+        state_request = RememberedStateRequest(RememberedStateRequestKind.SKIP)
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2342,6 +2350,10 @@ class BuiltAddonTests(unittest.TestCase):
             connection_selection.error = "changed"
         with self.assertRaises(FrozenInstanceError):
             disconnect.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            activation.kind = RememberedBindingActivationKind.ACTIVATE
+        with self.assertRaises(FrozenInstanceError):
+            state_request.request_id = 1
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2511,6 +2523,56 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(plugin._gate.suppression_active)
         self.assertNotIn(identity, plugin._rememberedTerminalBindings)
         self.assertIn("Neovim connection disconnected", self.messages[-1])
+        plugin.terminate()
+
+    def test_remembered_binding_service_prepares_fail_open_correlated_context_request(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.session_claim import (
+            RememberedBindingActivationKind,
+            RememberedStateRequestKind,
+        )
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._rememberedTerminalBindings.add(identity)
+        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._gate.focused = identity
+        plugin._gate.manual_enabled = True
+
+        activation = plugin._sessionClaimService.activate_remembered_binding(
+            identity,
+            instance.identifier,
+            focus_regained=True,
+        )
+        request = plugin._sessionClaimService.plan_remembered_state_request(
+            identity,
+            instance.identifier,
+        )
+
+        self.assertEqual(RememberedBindingActivationKind.ACTIVATE, activation.kind)
+        self.assertEqual(instance, activation.instance)
+        self.assertIs(client, activation.client)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIsNone(plugin._gate.bound_terminal)
+        self.assertEqual(RememberedStateRequestKind.FOCUS_CONTEXT, request.kind)
+        self.assertIs(client, request.client)
+        self.assertTrue(
+            plugin._connectionCoordinator.matches_focus_context(
+                instance.identifier,
+                request.request_id,
+                identity,
+            )
+        )
         plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:

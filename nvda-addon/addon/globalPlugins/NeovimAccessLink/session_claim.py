@@ -74,6 +74,23 @@ class ConnectionPlanKind(Enum):
 	START = "start"
 
 
+class RememberedBindingActivationKind(Enum):
+	"""Outcome of preparing a remembered terminal binding."""
+
+	STALE = "stale"
+	ALREADY_ACTIVE = "alreadyActive"
+	ACTIVATE = "activate"
+
+
+class RememberedStateRequestKind(Enum):
+	"""Control request required to validate one remembered foreground binding."""
+
+	STALE = "stale"
+	SKIP = "skip"
+	FOCUS_CONTEXT = "focusContext"
+	FULL_STATE = "fullState"
+
+
 @dataclass(frozen=True)
 class ClaimTransition:
 	"""Immutable routing decision without NVDA UI or client side effects."""
@@ -140,6 +157,24 @@ class ConnectionDisconnectResult:
 	instance: ConnectionInstance | None = None
 	error_type: str = ""
 	error: str = ""
+
+
+@dataclass(frozen=True)
+class RememberedBindingActivation:
+	"""Prepared fail-open binding activation without scheduling NVDA work."""
+
+	kind: RememberedBindingActivationKind
+	instance: ConnectionInstance | None = None
+	client: object | None = None
+
+
+@dataclass(frozen=True)
+class RememberedStateRequest:
+	"""Correlated control request for one still-focused remembered binding."""
+
+	kind: RememberedStateRequestKind
+	client: object | None = None
+	request_id: int = 0
 
 
 class SessionClaimService:
@@ -741,6 +776,76 @@ class SessionClaimService:
 			instance=instance,
 			error_type=error_type,
 			error=error_message,
+		)
+
+	def activate_remembered_binding(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+		*,
+		focus_regained: bool,
+	) -> RememberedBindingActivation:
+		"""Prepare one remembered instance while suppression remains fail-open."""
+		try:
+			instance = next(
+				item for item in self._coordinator.instances.list() if item.identifier == instance_id
+			)
+			client = self._coordinator.instances.client_for(instance_id)
+		except (StopIteration, ValueError):
+			self._coordinator.remembered_terminal_bindings.discard(identity)
+			return RememberedBindingActivation(RememberedBindingActivationKind.STALE)
+		gate = self._coordinator.gate
+		if (
+			gate.bound_terminal == identity
+			and self._coordinator.active_client is client
+			and gate.authenticated
+			and gate.nvim_active
+			and self._coordinator.active_instance_id == instance_id
+			and not focus_regained
+		):
+			return RememberedBindingActivation(
+				RememberedBindingActivationKind.ALREADY_ACTIVE,
+				instance,
+				client,
+			)
+		self._coordinator.prepare_unconfirmed_instance(
+			instance_id,
+			identity,
+			self._newInstanceRuntime,
+			trusted=instance_id in self._coordinator.authenticated_instances,
+		)
+		return RememberedBindingActivation(
+			RememberedBindingActivationKind.ACTIVATE,
+			instance,
+			client,
+		)
+
+	def plan_remembered_state_request(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> RememberedStateRequest:
+		"""Plan a focus-correlated request only while identity and selection still match."""
+		selected = self._coordinator.instances.selected_for(identity)
+		if (
+			self._coordinator.gate.focused != identity
+			or selected is None
+			or selected.identifier != instance_id
+		):
+			return RememberedStateRequest(RememberedStateRequestKind.SKIP)
+		try:
+			client = self._coordinator.instances.client_for(instance_id)
+		except ValueError:
+			self._coordinator.remembered_terminal_bindings.discard(identity)
+			return RememberedStateRequest(RememberedStateRequestKind.STALE)
+		if instance_id not in self._coordinator.authenticated_instances:
+			return RememberedStateRequest(RememberedStateRequestKind.FULL_STATE, client)
+		request_id = self._coordinator.next_request_id("focusContext")
+		self._coordinator.remember_focus_context(instance_id, request_id, identity)
+		return RememberedStateRequest(
+			RememberedStateRequestKind.FOCUS_CONTEXT,
+			client,
+			request_id,
 		)
 
 	def begin_inventory(self) -> int:

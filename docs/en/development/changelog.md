@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.26+feature.global-plugin-slimming (feature-branch test build)
+
+- The neutral service now prepares restoration of a remembered terminal
+  binding fail-open. A known instance is selected but remains unconfirmed until
+  Neovim semantically confirms the still-focused tab or pane.
+- For an authenticated instance, the service plans a correlated `focusContext`
+  request; otherwise the NVDA boundary continues to request a full state.
+  Focus delay, transport calls, and diagnostics remain outside the neutral
+  service.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
 ## 0.95.0-dev.25+feature.global-plugin-slimming (feature-branch test build)
 
 - `SessionClaimService` now also owns the neutral transitions for selecting and

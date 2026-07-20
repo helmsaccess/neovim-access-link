@@ -158,7 +158,10 @@ auf dem NVDA-Hauptthread abgewickelt. Weitere Schnitte verschieben
 Clientkonstruktion und die Wiederherstellung gemerkter Bindungen hinter diese
 Grenze. Explizite Auswahl und Trennung laufen bereits als transaktionale
 Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
-asynchron ausgeführt.
+asynchron ausgeführt. Die fail-open Aktivierung einer gemerkten Instanz und die
+korrelierte Entscheidung zwischen Fokuskontext und Vollzustand liegen
+inzwischen ebenfalls im Dienst; UI-Angebot und Transportaufruf bleiben am
+NVDA-Rand.
 
 ## 3. Praktische Abschottung verbreitern
 
