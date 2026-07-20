@@ -211,7 +211,10 @@ Plugin entfernt; Tests verwenden den Controller-/Coordinatorvertrag direkt.
 Auch die Claim-Migrationsbereinigung ist abgeschlossen: Acht Claim-,
 Inventar- und Discovery-Sichten wurden entfernt; Tests verwenden den
 `SessionClaimService` direkt. Verbindungs- und Fokus-Kompatibilitätssichten
-werden erst nach demselben Produktivnutzungs-Audit entfernt.
+werden erst nach demselben Produktivnutzungs-Audit entfernt. Ein anschließender
+Audit passiver Sichten hat elf weitere reine Testeigenschaften für
+Präsentations-, Bindungs-, Runtime-, Request-, AppModule- und Adapterzustand
+entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt.
 
 ## 3. Praktische Abschottung verbreitern
 

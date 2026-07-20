@@ -141,6 +141,11 @@ See `compatibility.md` for complete platform boundaries.
   targets, inventory errors, and discovery generation. Tests now use the
   owning `SessionClaimService`; remaining compatibility views concern later
   connection or focus migration and are audited separately before removal.
+- The fourth V2-6 slice removes eleven more passive views with no production
+  callers. Sound-cache tests use `NvdaPresentation`; binding, runtime, and
+  request tests use `ConnectionCoordinator`; AppModule and adapter focus data
+  remain owned by `TerminalFocusService`. Active connection, gate, focused
+  object, and lifecycle views still require a separate production audit.
 
 ### Editor output
 

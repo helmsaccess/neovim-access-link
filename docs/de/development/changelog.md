@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.41+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der vierte V2-6-Schnitt entfernt elf passive
+  Global-Plugin-Kompatibilitätseigenschaften ohne Produktivaufrufer:
+  Sound-Caches, Sammlungen gemerkter Bindungen, Runtime-/Request-Container und
+  AppModule-/Adapter-Fokussichten.
+- Tests prüfen nun `NvdaPresentation`, `ConnectionCoordinator` und
+  `TerminalFocusService` direkt. Aktive Verbindungs-, Gate- und
+  Fokusoperationen bleiben unverändert.
+- Struktur- und Verhaltenstests decken Soundwiedergabe, gemerkte Tab- und
+  Pane-Bindungen, begrenzte Zwischenablage- und Terminalrequests,
+  Fokustrennung, Verbindungsabbau und nativen Terminal-Passthrough ab.
+
 ## 0.95.0-dev.40+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der dritte V2-6-Schnitt entfernt alle acht

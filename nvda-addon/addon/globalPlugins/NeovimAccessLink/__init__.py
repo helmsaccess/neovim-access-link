@@ -540,18 +540,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return self._connectionCoordinator.gate
 
 	@property
-	def _suggestionSounds(self):
-		return self._presentation.suggestion_sounds
-
-	@property
-	def _spellingSound(self):
-		return self._presentation.spelling_sound
-
-	@property
-	def _editorSounds(self):
-		return self._presentation.editor_sounds
-
-	@property
 	def _client(self):
 		return self._connectionCoordinator.active_client
 
@@ -576,14 +564,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.connected = value
 
 	@property
-	def _rememberedTerminalBindings(self):
-		return self._connectionCoordinator.remembered_terminal_bindings
-
-	@property
-	def _rememberOfferInstances(self):
-		return self._connectionCoordinator.remember_offer_instances
-
-	@property
 	def _authenticatedInstances(self):
 		return self._connectionCoordinator.authenticated_instances
 
@@ -600,24 +580,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.active_instance_id = value
 
 	@property
-	def _instanceRuntimeStates(self):
-		return self._connectionCoordinator.runtime_states
-
-	@property
 	def _pendingInstanceFullStates(self):
 		return self._connectionCoordinator.pending_full_states
-
-	@property
-	def _pendingFocusContexts(self):
-		return self._connectionCoordinator.pending_focus_contexts
-
-	@property
-	def _pendingClipboardRequests(self):
-		return self._connectionCoordinator.pending_clipboard_requests
-
-	@property
-	def _pendingTerminalControlRequests(self):
-		return self._connectionCoordinator.pending_terminal_control_requests
 
 	@property
 	def _focusedTerminalObject(self):
@@ -626,14 +590,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@_focusedTerminalObject.setter
 	def _focusedTerminalObject(self, value):
 		self._terminalFocusService.focused_terminal_object = value
-
-	@property
-	def _focusedAppModule(self):
-		return self._terminalFocusService.focused_app_module
-
-	@property
-	def _focusedAdapterToken(self):
-		return self._terminalFocusService.focused_adapter_token
 
 	def terminate(self):
 		self._addonRuntime.close()

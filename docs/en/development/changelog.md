@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.41+feature.global-plugin-slimming (feature-branch test build)
+
+- The fourth V2-6 slice removes eleven passive Global Plugin compatibility
+  properties that had no production callers: sound caches, remembered-binding
+  collections, runtime/request containers, and AppModule/adapter focus views.
+- Tests now inspect `NvdaPresentation`, `ConnectionCoordinator`, and
+  `TerminalFocusService` directly. Active connection, gate, and focus
+  operations remain unchanged.
+- Structural and behavioral tests cover sound playback, remembered tab and
+  pane bindings, bounded clipboard and terminal requests, focus isolation,
+  disconnection, and native terminal passthrough.
+
 ## 0.95.0-dev.40+feature.global-plugin-slimming (feature-branch test build)
 
 - The third V2-6 slice removes all eight Global Plugin compatibility

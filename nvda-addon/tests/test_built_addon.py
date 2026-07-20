@@ -1296,7 +1296,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
         self.assertIs(plugin._gate, plugin._connectionCoordinator.gate)
         self.assertIs(
-            plugin._rememberedTerminalBindings,
+            plugin._connectionCoordinator.remembered_terminal_bindings,
             plugin._connectionCoordinator.remembered_terminal_bindings,
         )
         for legacy_field in (
@@ -1325,6 +1325,13 @@ class BuiltAddonTests(unittest.TestCase):
             "_claimInventoryErrors", "_sessionDiscoveryGeneration",
         ):
             self.assertNotIn(f"def {removed_claim_view}(self)", global_source)
+        for removed_passive_view in (
+            "_suggestionSounds", "_spellingSound", "_editorSounds",
+            "_rememberedTerminalBindings", "_rememberOfferInstances",
+            "_instanceRuntimeStates", "_pendingFocusContexts", "_pendingClipboardRequests",
+            "_pendingTerminalControlRequests", "_focusedAppModule", "_focusedAdapterToken",
+        ):
+            self.assertNotIn(f"def {removed_passive_view}(self)", global_source)
 
         plugin.terminate()
 
@@ -1866,7 +1873,7 @@ class BuiltAddonTests(unittest.TestCase):
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
         )
         for cue in cues:
-            self.assertTrue(plugin._editorSounds.play(cue), cue)
+            self.assertTrue(plugin._presentation.editor_sounds.play(cue), cue)
         self.assertEqual(len(cues), len(self.soundFeeds))
         plugin.terminate()
 
@@ -3442,7 +3449,7 @@ class BuiltAddonTests(unittest.TestCase):
             identity,
             plugin._newInstanceRuntime,
         )
-        plugin._rememberedTerminalBindings.add(identity)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
         plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = True
         plugin._gate.authenticated = True
@@ -3455,7 +3462,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], plugin._instanceManager.list())
         self.assertIsNone(plugin._client)
         self.assertFalse(plugin._gate.suppression_active)
-        self.assertNotIn(identity, plugin._rememberedTerminalBindings)
+        self.assertNotIn(identity, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertIn("Neovim connection disconnected", self.messages[-1])
         plugin.terminate()
 
@@ -3478,7 +3485,7 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberedTerminalBindings.add(identity)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.focused = identity
         plugin._gate.manual_enabled = True
@@ -4605,13 +4612,13 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._rememberOfferInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remember_offer_instances.add(instance.identifier)
         plugin._handleManagedEvent(instance.identifier, {
             "type": "fullState", "payload": {
                 "mode": "normal", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
             },
         })
-        self.assertIn(identity, plugin._rememberedTerminalBindings)
+        self.assertIn(identity, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertTrue(plugin._gate.suppression_active)
         self.assertEqual([], client.controls)
         self.assertTrue(any("remembered" in message.lower() for message in self.messages))
@@ -4639,7 +4646,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(terminal)
         instance = add_remote_instance(plugin._instanceManager, "work", "42", "editor@example-host", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberOfferInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remember_offer_instances.add(instance.identifier)
 
         self.focus = dialog
         plugin._handleManagedEvent(instance.identifier, {
@@ -4649,7 +4656,7 @@ class BuiltAddonTests(unittest.TestCase):
             },
         })
         self.assertIn(instance.identifier, plugin._pendingInstanceFullStates)
-        self.assertIn(instance.identifier, plugin._rememberOfferInstances)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.remember_offer_instances)
         self.assertFalse(plugin._gate.suppression_active)
 
         self.focus = terminal
@@ -4691,7 +4698,7 @@ class BuiltAddonTests(unittest.TestCase):
         wrong_id, active_id = plugin._identity(wrong_obj), plugin._identity(active_obj)
         plugin._instanceManager.bind(wrong_id, instance.identifier)
         plugin._authenticatedInstances.add(instance.identifier)
-        plugin._rememberedTerminalBindings.add(wrong_id)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(wrong_id)
 
         self.focus = active_obj
         plugin._handleManagedEvent(instance.identifier, {"type": "characterMoved", "payload": {
@@ -4703,8 +4710,8 @@ class BuiltAddonTests(unittest.TestCase):
             plugin._instanceManager.selected_for(wrong_id).identifier,
         )
         self.assertIsNone(plugin._instanceManager.selected_for(active_id))
-        self.assertIn(wrong_id, plugin._rememberedTerminalBindings)
-        self.assertNotIn(active_id, plugin._rememberedTerminalBindings)
+        self.assertIn(wrong_id, plugin._connectionCoordinator.remembered_terminal_bindings)
+        self.assertNotIn(active_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual([], client.controls)
         self.assertFalse(any("move" in message.lower() for message in self.messages))
@@ -4738,7 +4745,7 @@ class BuiltAddonTests(unittest.TestCase):
         second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
         plugin._authenticatedInstances.update((first.identifier, second.identifier))
         plugin._gate.focused = plugin._gate.bound_terminal = first_id
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
@@ -4800,7 +4807,7 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberedTerminalBindings.add(identity)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
@@ -5024,7 +5031,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._client = client
         self._updateSettings(plugin, {"focusAnnouncement": 0})
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         source = {
             "bufferId": 2, "windowId": 10, "tabpageId": 20,
             "bufferName": "term://shell", "buftype": "terminal",
@@ -5083,7 +5090,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         self._updateSettings(plugin, {"focusAnnouncement": 0})
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         source = {
             "bufferId": 1, "windowId": 10, "tabpageId": 20,
             "bufferName": "/work/source.txt", "buftype": "",
@@ -5216,7 +5223,7 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberedTerminalBindings.add(identity)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.focused = None
@@ -5259,7 +5266,7 @@ class BuiltAddonTests(unittest.TestCase):
         second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
         plugin._authenticatedInstances.update((first.identifier, second.identifier))
         plugin._gate.manual_enabled = True
 
@@ -5336,7 +5343,7 @@ class BuiltAddonTests(unittest.TestCase):
         second_planner = plugin._connectionCoordinator.planner
         self.assertIsNot(first_planner, second_planner)
         plugin._connectionCoordinator.typed_word = ["secondPending"]
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
         adapter = self._terminalAdapter()
 
         self.focus = first_obj
@@ -5394,7 +5401,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(first_id, instance.identifier)
         self.messageBoxAnswers.append(0)
         plugin._offerTemporaryTerminalBinding(first_id, instance.identifier)
-        self.assertNotIn(first_id, plugin._rememberedTerminalBindings)
+        self.assertNotIn(first_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         adapter = self._terminalAdapter()
         plugin._gate.focused = first_id
         adapter.event_gainFocus(second_obj, lambda: None)
@@ -5405,10 +5412,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(instance.identifier, plugin._instanceManager.selected_for(first_id).identifier)
 
         stale_id = plugin._identity(second_obj)
-        plugin._rememberedTerminalBindings.add(stale_id)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(stale_id)
         plugin._gate.focused = TerminalIdentity(1, 2)
         adapter.event_gainFocus(second_obj, lambda: None)
-        self.assertNotIn(stale_id, plugin._rememberedTerminalBindings)
+        self.assertNotIn(stale_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         plugin.terminate()
 
     def test_explicit_session_replacement_starts_new_before_stopping_old_client(self) -> None:
@@ -5732,7 +5739,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.clipboard = ""
         plugin.action_setNeovimRegisterFromWindowsClipboard(None)
         self.assertEqual(control_count, len(client.controls))
-        self.assertEqual({}, plugin._pendingClipboardRequests)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
         self.assertIn("The Windows clipboard does not contain supported text", self.messages)
         plugin.terminate()
 
@@ -5810,7 +5817,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "requestId": request["requestId"], "ok": True, "resultCode": "ok",
             },
         })
-        self.assertEqual({}, plugin._pendingTerminalControlRequests)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_terminal_control_requests)
         self.assertNotIn("requestId", plugin._connectionCoordinator.current_state)
 
         plugin._connectionCoordinator.current_state = {
@@ -5838,10 +5845,10 @@ class BuiltAddonTests(unittest.TestCase):
             discarded.extend(plan.discarded_request_ids)
             plugin._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
 
-        self.assertEqual(32, len(plugin._pendingClipboardRequests))
+        self.assertEqual(32, len(plugin._connectionCoordinator.pending_clipboard_requests))
         self.assertEqual(list(range(1, 9)), discarded)
-        self.assertNotIn(1, plugin._pendingClipboardRequests)
-        self.assertIn(40, plugin._pendingClipboardRequests)
+        self.assertNotIn(1, plugin._connectionCoordinator.pending_clipboard_requests)
+        self.assertIn(40, plugin._connectionCoordinator.pending_clipboard_requests)
         self.assertIn('"reason": "queueLimit"', plugin._diagnostics.report())
         plugin.terminate()
 
@@ -5883,7 +5890,7 @@ class BuiltAddonTests(unittest.TestCase):
         })
 
         self.assertNotIn("Pasted into Neovim", self.spoken[spoken_before:])
-        self.assertEqual({}, plugin._pendingClipboardRequests)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
         plugin.terminate()
 
     def test_nvda_profile_switch_does_not_interrupt_an_active_connection(self) -> None:
@@ -6461,7 +6468,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         played: list[tuple[str, bool]] = []
-        plugin._editorSounds.play = lambda cue: played.append(
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(
             (cue, plugin._gate.terminal_passthrough)
         ) or True
         self.assertTrue(plugin._gate.suppression_active)
@@ -6544,7 +6551,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
             "bufferId": 2, "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
@@ -6582,7 +6589,7 @@ class BuiltAddonTests(unittest.TestCase):
                 plugin._gate.manual_enabled = True
                 self._updateSettings(plugin, {"focusAnnouncement": setting})
                 played: list[str] = []
-                plugin._editorSounds.play = lambda cue: played.append(cue) or True
+                plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
                 base = {
                     "bufferId": 1, "windowId": 10, "tabpageId": 20,
                     "bufferName": "/work/draft.md", "buftype": "",
@@ -6617,7 +6624,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "normal", "modeRaw": "n", "buftype": "", "bufferId": 1,
             "lineText": "", "cursor": {"line": 1, "byteColumn": 0},

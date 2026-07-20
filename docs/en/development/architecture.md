@@ -240,6 +240,12 @@ inventory state, baselines, eligible targets, inventory errors, or discovery
 generation. Tests use `SessionClaimService` directly, so claim state has one
 writable owner and one explicit inspection boundary.
 
+Passive compatibility views for presentation sound caches, remembered
+bindings and offers, runtime and request containers, and AppModule/adapter
+focus data have also been removed. Their tests inspect `NvdaPresentation`,
+`ConnectionCoordinator`, or `TerminalFocusService` directly. This does not
+move active NVDA effects or terminal-event ownership into those tests.
+
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
 that contract. Terminal commands use a fixed enum instead of freely resolved

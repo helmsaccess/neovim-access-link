@@ -154,6 +154,12 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   `SessionClaimService`; verbliebene Kompatibilitätssichten betreffen spätere
   Verbindungs- oder Fokusmigration und werden vor einer Entfernung separat
   geprüft.
+- Der vierte V2-6-Schnitt entfernt elf weitere passive Sichten ohne
+  Produktivaufrufer. Sound-Cache-Tests verwenden `NvdaPresentation`;
+  Bindungs-, Runtime- und Requesttests den `ConnectionCoordinator`;
+  AppModule- und Adapterfokusdaten verbleiben im `TerminalFocusService`.
+  Aktive Verbindungs-, Gate-, Fokusobjekt- und Lifecyclesichten benötigen
+  weiterhin einen getrennten Produktivaudit.
 
 ### Editorausgabe
 

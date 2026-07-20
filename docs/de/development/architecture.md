@@ -254,6 +254,13 @@ Discovery-Generation mehr an. Tests verwenden `SessionClaimService` direkt;
 damit besitzt Claimzustand einen schreibbaren Eigentümer und eine ausdrückliche
 Prüfgrenze.
 
+Passive Kompatibilitätssichten für Präsentations-Sound-Caches, gemerkte
+Bindungen und Angebote, Runtime- und Requestcontainer sowie
+AppModule-/Adapterfokusdaten sind ebenfalls entfernt. Ihre Tests prüfen
+`NvdaPresentation`, `ConnectionCoordinator` oder `TerminalFocusService`
+direkt. Aktive NVDA-Wirkungen oder Terminalereignisbesitz werden dadurch nicht
+in diese Tests verschoben.
+
 Das AppModule und das Braille-Overlay erhalten ausschließlich den
 `TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem
 Vertrag verborgen. Terminalbefehle verwenden eine feste Enum statt frei

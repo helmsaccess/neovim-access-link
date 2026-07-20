@@ -193,7 +193,9 @@ now use the controller/coordinator contract directly. The claim migration
 cleanup is also complete: eight claim, inventory, and discovery views have
 been removed, and tests use `SessionClaimService` directly. Connection- and
 focus-related compatibility views are removed only after the same production
-usage audit.
+usage audit. A following passive-view audit has removed eleven more
+test-only properties for presentation, binding, runtime, request, AppModule,
+and adapter state; their tests now use the three owning services directly.
 
 ## 3. Broaden practical isolation coverage
 
