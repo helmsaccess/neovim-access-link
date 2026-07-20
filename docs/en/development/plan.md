@@ -174,7 +174,11 @@ normalization and active-instance passthrough tracking into the controller.
 The sixth slice adds immutable allowlisted outbound plans after capability,
 mode, buffer, and canonical-state validation for clipboard, register, and
 embedded-terminal controls. Focus correlation, authentication, Windows
-clipboard access, and transport deliberately remain outside.
+clipboard access, and transport deliberately remain outside. The final audit
+moves semantic planner reset and completion-documentation access behind the
+same controller. V2-5 is therefore complete under automated coverage; only
+temporary compatibility properties remain for removal in V2-6. The planned
+practical acceptance follows that cleanup.
 
 ## 3. Broaden practical isolation coverage
 

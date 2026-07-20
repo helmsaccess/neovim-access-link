@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.95.0-dev.37+feature.global-plugin-slimming (feature-branch test build)
+
+- The final V2-5 audit moves semantic planner reset and per-instance
+  completion-documentation access behind `EditorSessionController`.
+- The Global Plugin retains only concrete NVDA effects: clearing NVDA's typed
+  word buffer and speaking the returned documentation.
+- V2-5 is complete under automated coverage. The remaining editor-state
+  compatibility properties are isolated migration wrappers scheduled for
+  removal with the runtime and teardown cleanup in V2-6.
+
 ## 0.95.0-dev.36+feature.global-plugin-slimming (feature-branch test build)
 
 - The sixth V2-5 slice moves capability, canonical-state, mode, and buffer

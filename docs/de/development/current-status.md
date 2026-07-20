@@ -130,7 +130,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Modus-, Buffer- und kanonischer Zustandsprüfung einen unveränderlichen
   ausgehenden Allowlist-Plan. Eine Ablehnung erzeugt keinen ausstehenden
   Request; exakte Terminalprüfung, Windows-Zwischenablage, Rückmeldung und
-  Senden verbleiben am NVDA-Rand.
+  Senden verbleiben am NVDA-Rand. Der abschließende Audit führt auch das
+  Zurücksetzen des semantischen Planers und den Zugriff auf instanzbezogene
+  Completion-Dokumentation durch den Controller. V2-5 ist automatisiert
+  abgeschlossen; Kompatibilitätseigenschaften bleiben nur als getrennte
+  Migrationshüllen für ihre Entfernung in V2-6.
 
 ### Editorausgabe
 

@@ -122,7 +122,10 @@ See `compatibility.md` for complete platform boundaries.
   immutable allowlisted outbound plan only after capability, mode, buffer, and
   canonical state validation. Rejection allocates no pending request; exact
   terminal checks, Windows clipboard access, feedback, and sending stay at the
-  NVDA boundary.
+  NVDA boundary. The final audit also routes semantic planner reset and
+  per-instance completion-documentation access through the controller. V2-5
+  is complete under automated coverage; compatibility properties remain only
+  as isolated migration wrappers for removal in V2-6.
 
 ### Editor output
 

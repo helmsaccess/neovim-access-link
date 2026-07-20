@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.37+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der abschließende V2-5-Audit verschiebt das Zurücksetzen des semantischen
+  Planers und den Zugriff auf die instanzbezogene Completion-Dokumentation
+  hinter den `EditorSessionController`.
+- Das Global Plugin behält nur konkrete NVDA-Wirkungen: NVDAs Wortpuffer für
+  Tippecho leeren und die zurückgegebene Dokumentation sprechen.
+- V2-5 ist automatisiert abgeschlossen. Die verbliebenen
+  Kompatibilitätseigenschaften für Editorzustand sind getrennte
+  Migrationshüllen, die mit der Runtime- und Teardown-Bereinigung in V2-6
+  entfernt werden.
+
 ## 0.95.0-dev.36+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der sechste V2-5-Schnitt verschiebt Capability-, Zustands-, Modus- und

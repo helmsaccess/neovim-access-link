@@ -778,6 +778,18 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, transition.previous_buffer_id)
         self.assertEqual(1, transition.buffer_id)
         self.assertTrue(transition.reset_typed_echo)
+
+        planner = mock.Mock()
+        coordinator.planner = planner
+        coordinator.typed_word = ["pending"]
+        coordinator.typed_position = ((1, 1), 7)
+        coordinator.menu_documentation = "Current completion details"
+        self.assertEqual("Current completion details", controller.completion_documentation())
+        controller.reset_planning_state()
+        planner.reset.assert_called_once_with()
+        self.assertEqual([], coordinator.typed_word)
+        self.assertIsNone(coordinator.typed_position)
+
         self.assertTrue(controller.drop_instance("first"))
         self.assertIsNone(coordinator.active_instance_id)
         self.assertEqual({}, coordinator.current_state)
@@ -1212,6 +1224,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("plan_leave_terminal_input_request(", editor_source)
         self.assertNotIn('state.get("mode") not in {"normal", "insert"}', global_source)
         self.assertNotIn('state.get("buftype") != "terminal"', global_source)
+        self.assertNotIn("self._planner.reset()", global_source)
+        self.assertNotIn("if self._menuDocumentation:", global_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager

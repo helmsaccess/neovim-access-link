@@ -190,7 +190,12 @@ Instanz in den Controller. Der sechste Schnitt ergänzt unveränderliche
 ausgehende Allowlist-Pläne nach Capability-, Modus-, Buffer- und kanonischer
 Zustandsprüfung für Zwischenablage, Register und eingebettete
 Terminalsteuerung. Fokuskorrelation, Authentifizierung,
-Windows-Zwischenablage und Transport bleiben bewusst außerhalb.
+Windows-Zwischenablage und Transport bleiben bewusst außerhalb. Der
+abschließende Audit verschiebt das Zurücksetzen des semantischen Planers und
+den Zugriff auf Completion-Dokumentation hinter denselben Controller. V2-5
+ist damit automatisiert abgeschlossen; nur vorübergehende
+Kompatibilitätseigenschaften werden in V2-6 entfernt. Die geplante praktische
+Abnahme folgt nach dieser Bereinigung.
 
 ## 3. Praktische Abschottung verbreitern
 

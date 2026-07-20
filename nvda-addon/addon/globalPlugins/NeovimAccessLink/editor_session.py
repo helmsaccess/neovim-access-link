@@ -316,6 +316,15 @@ class EditorSessionController:
 		self._coordinator.typed_word = []
 		self._coordinator.typed_position = None
 
+	def reset_planning_state(self) -> None:
+		"""Reset the active semantic planner and its structured typing state."""
+		self._coordinator.planner.reset()
+		self.reset_typed_echo()
+
+	def completion_documentation(self) -> str:
+		"""Return the current instance's validated completion documentation."""
+		return self._coordinator.menu_documentation
+
 	def mark_disconnected(self) -> None:
 		"""Open connection state immediately when called by a network callback."""
 		self._coordinator.connected = False

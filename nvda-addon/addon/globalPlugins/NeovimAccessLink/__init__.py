@@ -814,8 +814,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self._gate.manual_enabled:
 			self._sessionClaimService.cancel_pending_authorization()
 			self._gate.disable()
-			self._planner.reset()
-			self._resetTypedEcho()
+			self._resetEditorPlanning()
 			self._clearSessionPasswords()
 			self._stopClient()
 			ui.message(_("Neovim accessibility off"))
@@ -827,8 +826,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Neovim accessibility unavailable in this window"))
 			return
 		self._gate.manual_enabled = True
-		self._planner.reset()
-		self._resetTypedEcho()
+		self._resetEditorPlanning()
 		self._diagnostics.record("manualMode", enabled=True, terminal=self._identityFields(identity))
 		log.info("NeovimAccessLink manual mode requested")
 		self._gate.focused = identity
@@ -1293,8 +1291,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(message)
 
 	def action_readCompletionDocumentation(self, gesture):
-		if self._menuDocumentation:
-			speech.speakText(self._menuDocumentation, priority=NvdaSpeechPriority.NOW)
+		documentation = self._editorSessionController.completion_documentation()
+		if documentation:
+			speech.speakText(documentation, priority=NvdaSpeechPriority.NOW)
 		else:
 			ui.message(_("No completion documentation available"))
 
@@ -1412,8 +1411,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			gesture.send()
 		if not self._gate.manual_enabled:
 			self._gate.manual_enabled = True
-			self._planner.reset()
-			self._resetTypedEcho()
+			self._resetEditorPlanning()
 			self._gate.focused = identity
 			self._diagnostics.record(
 				"manualMode",
@@ -2665,6 +2663,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				speech.speakSpelling(action.text)
 			else:
 				speech.speakText(action.text)
+
+	def _resetEditorPlanning(self):
+		self._editorSessionController.reset_planning_state()
+		speech.clearTypedWordBuffer()
 
 	def _resetTypedEcho(self):
 		self._editorSessionController.reset_typed_echo()
