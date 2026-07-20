@@ -5,6 +5,29 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.20+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Die letzten nur delegierenden lokalen und entfernten Discovery-Methoden
+  wurden aus dem Global Plugin entfernt. Tests sprechen den neutralen
+  Claimdienst nun direkt an; Auswahl-UI und Verbindungsstarts bleiben bewusst
+  an ihren bisherigen NVDA-Hauptthreadgrenzen.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.19+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der nächste V2-4-Schnitt verschiebt die fachliche Entscheidung nach einem
+  autorisierten F12-Claim in den neutralen `SessionClaimService`. Ein
+  unveränderliches Ergebnis unterscheidet lokale, entfernte und automatische
+  Auflösung sowie noch nicht bereites Inventar.
+- Das Global Plugin behält NVDA-Meldungen, Dialoge, Hauptthread-Zeitsteuerung
+  und konkrete Verbindungsstarts. Discovery-Generation sowie lokale und SSH-
+  Sitzungslisten-Worker liegen nun ebenfalls im Claimdienst. Ausstehende
+  Zielwahlen werden weiterhin genau einmal verbraucht; nicht authentifizierte
+  alte Bindungen werden nicht wiederverwendet.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
 ## 0.95.0-dev.18+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der erste V2-4-Schnitt führt `SessionClaimService` als alleinigen Eigentümer

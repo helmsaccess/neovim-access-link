@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.95.0-dev.20+feature.global-plugin-slimming (feature-branch test build)
+
+- The final local and remote discovery methods that only delegated work have
+  been removed from the Global Plugin. Tests now address the neutral claim
+  service directly; selection UI and connection starts deliberately retain
+  their established NVDA main-thread boundaries.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.19+feature.global-plugin-slimming (feature-branch test build)
+
+- The next V2-4 slice moves the domain decision after an authorized F12 claim
+  into the neutral `SessionClaimService`. An immutable result distinguishes
+  local, remote, and automatic resolution from inventory that is not ready.
+- The Global Plugin retains NVDA messages, dialogs, main-thread scheduling,
+  and concrete connection starts. Discovery generation plus local and SSH
+  session-list workers now also belong to the claim service. Pending target
+  choices are still consumed exactly once, and unauthenticated stale bindings
+  are not reused.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
 ## 0.95.0-dev.18+feature.global-plugin-slimming (feature-branch test build)
 
 - The first V2-4 slice introduces `SessionClaimService` as the sole owner of

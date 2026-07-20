@@ -102,7 +102,7 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import SettingsService  # noqa: E402
-from .session_claim import SessionClaimService  # noqa: E402
+from .session_claim import ClaimTransitionKind, SessionClaimService  # noqa: E402
 from .terminal_focus import (  # noqa: E402
 	TerminalFocusDecision as TerminalFocusDecision,
 	TerminalFocusService,
@@ -410,7 +410,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			planner=SpeechPlanner(translate=_),
 		)
 		self._sessionPasswords = {}
-		self._sessionDiscoveryGeneration = 0
 		self._pendingMainThreadCalls = set()
 		self._sessionClaimService = SessionClaimService(
 			self._connectionCoordinator,
@@ -530,6 +529,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@_claimInventoryErrors.setter
 	def _claimInventoryErrors(self, value):
 		self._sessionClaimService.inventory_errors = value
+
+	@property
+	def _sessionDiscoveryGeneration(self):
+		return self._sessionClaimService.discovery_generation
+
+	@_sessionDiscoveryGeneration.setter
+	def _sessionDiscoveryGeneration(self, value):
+		self._sessionClaimService.discovery_generation = value
 
 	@property
 	def _gate(self):
@@ -770,7 +777,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _toggleNeovimMode(self):
 		identity = self._gate.focused
 		if self._gate.manual_enabled:
-			self._sessionDiscoveryGeneration += 1
 			self._sessionClaimService.cancel_pending_authorization()
 			self._gate.disable()
 			self._planner.reset()
@@ -1426,34 +1432,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if forward_gesture and gesture is not None:
 				gesture.send()
 			return
-		identity = expected_identity
-		selected = self._instanceManager.selected_for(identity) if identity is not None else None
-		selected_authenticated = selected is not None and selected.identifier in self._authenticatedInstances
-		pairing_selected = selected if selected_authenticated else None
-		self._diagnostics.record(
-			"sessionClaimGestureReceived",
-			terminal=self._identityFields(identity),
-			inventoryReady=self._claimInventoryReady,
-			selected=selected is not None,
-			selectedAuthenticated=selected_authenticated,
-		)
-		profile = (
-			self._connectionProfileById(pairing_selected.target_id)
-			if pairing_selected is not None and pairing_selected.transport_kind == "remoteSsh"
-			else None
-		)
-		pending_target = self._pendingClaimTargets.pop(identity, None) if identity is not None else None
-		if (
-			not pending_target
-			and pairing_selected is not None
-			and pairing_selected.transport_kind == LOCAL_WINDOWS_TCP
-		):
-			pending_target = (LOCAL_WINDOWS_TCP, "")
-		if identity is None or identity.frontend_kind != "windowsTerminal":
+		transition = self._sessionClaimService.consume_transition(expected_identity)
+		identity = transition.identity
+		if transition.kind == ClaimTransitionKind.PASS_THROUGH:
 			if forward_gesture and gesture is not None:
 				gesture.send()
 			return
-		if pairing_selected is None and not pending_target and not self._claimInventoryReady:
+		if transition.kind == ClaimTransitionKind.INVENTORY_PENDING:
 			ui.message(
 				_(
 					"Neovim connections are still being checked. Press {key} again after the ready message"
@@ -1463,17 +1448,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		local_claim_not_before_ns = time.monotonic_ns()
 		if forward_gesture and gesture is not None:
 			gesture.send()
-		if pending_target and pending_target[0] == LOCAL_WINDOWS_TCP:
-			if not self._gate.manual_enabled:
-				self._gate.manual_enabled = True
-				self._planner.reset()
-				self._resetTypedEcho()
-				self._gate.focused = identity
-				self._diagnostics.record(
-					"manualMode",
-					enabled=True,
-					terminal=self._identityFields(identity),
-				)
+		if not self._gate.manual_enabled:
+			self._gate.manual_enabled = True
+			self._planner.reset()
+			self._resetTypedEcho()
+			self._gate.focused = identity
+			self._diagnostics.record(
+				"manualMode",
+				enabled=True,
+				terminal=self._identityFields(identity),
+			)
+		if transition.kind == ClaimTransitionKind.LOCAL:
 			ui.message(_("Connecting the focused local Neovim session"))
 			self._scheduleMainThreadCall(
 				250,
@@ -1486,33 +1471,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				local_claim_not_before_ns,
 			)
 			return
-		if pending_target:
-			pending_profile = self._connectionProfileById(pending_target[1])
-			if pending_profile is None:
-				ui.message(_("The selected connection profile is unavailable"))
-				return
-			ui.message(_("Connecting the focused Neovim session"))
-			self._scheduleMainThreadCall(
-				250,
-				self._beginSessionSelection,
-				pending_profile,
-				identity,
-				True,
-				True,
-				True,
-			)
-			return
-		if pairing_selected is None:
-			if not self._gate.manual_enabled:
-				self._gate.manual_enabled = True
-				self._planner.reset()
-				self._resetTypedEcho()
-				self._gate.focused = identity
-				self._diagnostics.record(
-					"manualMode",
-					enabled=True,
-					terminal=self._identityFields(identity),
-				)
+		if transition.kind == ClaimTransitionKind.AUTOMATIC:
 			ui.message(_("Connecting the focused Neovim session"))
 			self._scheduleMainThreadCall(
 				250,
@@ -1521,23 +1480,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				local_claim_not_before_ns,
 			)
 			return
+		profile = self._connectionProfileById(transition.target_id)
 		if profile is None:
-			ui.message(
-				_("Configure a Neovim connection before using {key} pairing").format(
-					key=_SESSION_CLAIM_KEY_NAME,
+			if transition.explicit_target:
+				ui.message(_("The selected connection profile is unavailable"))
+			else:
+				ui.message(
+					_("Configure a Neovim connection before using {key} pairing").format(
+						key=_SESSION_CLAIM_KEY_NAME,
+					)
 				)
-			)
 			return
-		if not self._gate.manual_enabled:
-			self._gate.manual_enabled = True
-			self._planner.reset()
-			self._resetTypedEcho()
-			self._gate.focused = identity
-			self._diagnostics.record(
-				"manualMode",
-				enabled=True,
-				terminal=self._identityFields(identity),
-			)
 		ui.message(_("Connecting the focused Neovim session"))
 		self._scheduleMainThreadCall(
 			250,
@@ -1558,70 +1511,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fallback_profile=None,
 		claim_not_before_ns=0,
 	):
-		self._sessionDiscoveryGeneration += 1
-		generation = self._sessionDiscoveryGeneration
 		if not require_recent_claim:
 			ui.message(_("Looking for local Neovim sessions"))
-		threading.Thread(
-			target=self._discoverLocalSessions,
-			args=(
-				generation,
-				identity,
-				replace_existing,
-				offer_remember,
-				require_recent_claim,
-				fallback_profile,
-				claim_not_before_ns,
-			),
-			name="nvim-nvda-local-session-list",
-			daemon=True,
-		).start()
-
-	def _discoverLocalSessions(
-		self,
-		generation,
-		identity,
-		replace_existing,
-		offer_remember,
-		require_recent_claim,
-		fallback_profile,
-		claim_not_before_ns,
-	):
-		if require_recent_claim:
-
-			def fresh(sessions):
-				return any(
-					0 <= session.claim_age_ms <= 15_000
-					and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
-					for session in sessions
-				)
-
-			sessions, error, attempts = self._pollLocalSessions(fresh)
-			self._diagnostics.record(
-				"localClaimWaitCompleted",
-				attempts=attempts,
-				sessions=len(sessions),
-				matched=error is None and fresh(sessions),
-				errorType=type(error).__name__ if error is not None else "",
-			)
-		else:
-			attempts = 1
-			try:
-				sessions, error = _localSessionLister().list(), None
-			except Exception as caught:
-				sessions, error = [], caught
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishLocalSessionDiscovery,
-			generation,
+		self._sessionClaimService.start_local_discovery(
 			identity,
-			sessions,
-			error,
 			replace_existing,
 			offer_remember,
 			require_recent_claim,
 			fallback_profile,
 			claim_not_before_ns,
+			self._finishLocalSessionDiscovery,
 		)
 
 	def _finishLocalSessionDiscovery(
@@ -1636,11 +1535,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fallback_profile=None,
 		claim_not_before_ns=0,
 	):
-		if (
-			generation != self._sessionDiscoveryGeneration
-			or not self._gate.manual_enabled
-			or self._gate.focused != identity
-		):
+		if not self._sessionClaimService.is_discovery_current(generation, identity):
 			self._diagnostics.record("localSessionDiscoveryIgnored")
 			return
 		if error is not None:
@@ -1781,11 +1676,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Multiple local Neovim sessions found; opening session selection"))
 
 		def finish(result):
-			if (
-				generation != self._sessionDiscoveryGeneration
-				or not self._gate.manual_enabled
-				or self._gate.focused != identity
-			):
+			if not self._sessionClaimService.is_discovery_current(generation, identity):
 				return
 			if result != wx.ID_OK:
 				return
@@ -1958,8 +1849,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		password = self._passwordForProfile(profile)
 		if profile.authentication == "password" and password is None:
 			return
-		self._sessionDiscoveryGeneration += 1
-		generation = self._sessionDiscoveryGeneration
 		self._diagnostics.record(
 			"remoteSessionDiscoveryStarted",
 			profileId=profile.identifier,
@@ -1968,56 +1857,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		if not require_recent_claim:
 			ui.message(_("Looking for Neovim sessions on {name}").format(name=profile.name))
-		threading.Thread(
-			target=self._discoverRemoteSessions,
-			args=(
-				generation,
-				profile,
-				identity,
-				password or "",
-				replace_existing,
-				offer_remember,
-				require_recent_claim,
-				preserve_dialog_identity,
-			),
-			name="nvim-nvda-session-list",
-			daemon=True,
-		).start()
-
-	def _discoverRemoteSessions(
-		self,
-		generation,
-		profile,
-		identity,
-		password,
-		replace_existing,
-		offer_remember,
-		require_recent_claim,
-		preserve_dialog_identity,
-	):
-		try:
-			sessions = SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=password,
-				askpass_path=self._askpassPath(),
-			)
-			error = None
-		except Exception as caught:
-			sessions, error = [], caught
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishSessionDiscovery,
-			generation,
+		self._sessionClaimService.start_remote_discovery(
 			profile,
 			identity,
-			sessions,
-			error,
+			password or "",
 			replace_existing,
 			offer_remember,
 			require_recent_claim,
 			preserve_dialog_identity,
+			self._finishSessionDiscovery,
 		)
 
 	def _finishSessionDiscovery(
@@ -2032,10 +1880,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		require_recent_claim=False,
 		preserve_dialog_identity=False,
 	):
-		if (
-			generation != self._sessionDiscoveryGeneration
-			or not self._gate.manual_enabled
-			or (not preserve_dialog_identity and self._gate.focused != identity)
+		if not self._sessionClaimService.is_discovery_current(
+			generation,
+			identity,
+			preserve_dialog_identity=preserve_dialog_identity,
 		):
 			self._diagnostics.record("sessionDiscoveryIgnored", profileId=profile.identifier)
 			return
@@ -2196,10 +2044,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 		def finish_session_selection(result):
-			if (
-				generation != self._sessionDiscoveryGeneration
-				or not self._gate.manual_enabled
-				or (not preserve_dialog_identity and self._gate.focused != identity)
+			if not self._sessionClaimService.is_discovery_current(
+				generation,
+				identity,
+				preserve_dialog_identity=preserve_dialog_identity,
 			):
 				self._diagnostics.record(
 					"remoteSessionDialogIgnored",

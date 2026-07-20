@@ -590,6 +590,16 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("ThreadPoolExecutor", claim_source)
         self.assertIn("self._startWorker", claim_source)
         self.assertIn("self._queueMainThread", claim_source)
+        self.assertIn("class ClaimTransition", claim_source)
+        self.assertIn("self._sessionClaimService.consume_transition", global_source)
+        self.assertNotIn("pairing_selected =", global_source)
+        self.assertNotIn("self._sessionDiscoveryGeneration =", global_source)
+        self.assertIn("def begin_discovery", claim_source)
+        self.assertIn("self._sessionClaimService.is_discovery_current", global_source)
+        self.assertIn("self._sessionClaimService.start_local_discovery", global_source)
+        self.assertIn("self._sessionClaimService.start_remote_discovery", global_source)
+        self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
+        self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
@@ -1876,8 +1886,9 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
             addon_module.time, "sleep", lambda _seconds: None,
         ):
-            plugin._discoverLocalSessions(
+            plugin._sessionClaimService.discover_local_sessions(
                 7, identity, True, True, True, None, 5_000,
+                plugin._finishLocalSessionDiscovery,
             )
 
         self.assertEqual(2, len(calls))
@@ -2229,14 +2240,21 @@ class BuiltAddonTests(unittest.TestCase):
     def test_terminal_focus_and_claim_results_are_immutable(self) -> None:
         from dataclasses import FrozenInstanceError
         from globalPlugins.NeovimAccessLink import SessionClaimAuthorization, TerminalFocusDecision
+        from globalPlugins.NeovimAccessLink.session_claim import (
+            ClaimTransition,
+            ClaimTransitionKind,
+        )
 
         focus = TerminalFocusDecision(object(), 1, None, None, None, False)
         claim = SessionClaimAuthorization(object(), 1, object())
+        transition = ClaimTransition(ClaimTransitionKind.AUTOMATIC, object())
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
         with self.assertRaises(FrozenInstanceError):
             claim.generation = 2
+        with self.assertRaises(FrozenInstanceError):
+            transition.target_id = "changed"
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
         import queueHandler

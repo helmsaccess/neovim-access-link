@@ -74,9 +74,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   werden erst nach zwei eindeutigen Negativprüfungen bereinigt.
 - Der erste V2-4-Schnitt übergibt `SessionClaimService` die alleinige
   Zuständigkeit für einmalige F12-Autorisierung, Claim-Generationen und Claim-
-  Inventarzustand. Lokale und SSH-Inventarworker sowie die Kandidatenauswertung
-  laufen hinter diesem Dienst; Auswahl und Verbindungsübergänge behalten
-  während ihrer schrittweisen Verschiebung die bisherigen Hauptthreadgrenzen.
+  Inventarzustand. Lokale und SSH-Inventar- und Sitzungslisten-Worker,
+  Discovery-Generation sowie Kandidatenauswertung laufen hinter diesem Dienst.
+  Er entscheidet außerdem unveränderlich zwischen lokaler, entfernter und
+  automatischer Auflösung; NVDA-Meldungen, Dialoge und konkrete
+  Verbindungsstarts behalten ihre bisherigen Hauptthreadgrenzen.
 
 ### Editorausgabe
 

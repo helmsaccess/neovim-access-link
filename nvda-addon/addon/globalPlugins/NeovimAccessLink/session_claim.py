@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from enum import Enum
 
 from .core.connection_coordinator import ConnectionCoordinator
 from .core.gate import TerminalIdentity
@@ -42,6 +43,26 @@ class ClaimResolutionResult:
 	targets: int
 
 
+class ClaimTransitionKind(Enum):
+	"""Next action after one authorized claim gesture."""
+
+	PASS_THROUGH = "passThrough"
+	INVENTORY_PENDING = "inventoryPending"
+	LOCAL = "local"
+	REMOTE = "remote"
+	AUTOMATIC = "automatic"
+
+
+@dataclass(frozen=True)
+class ClaimTransition:
+	"""Immutable routing decision without NVDA UI or client side effects."""
+
+	kind: ClaimTransitionKind
+	identity: TerminalIdentity | None
+	target_id: str = ""
+	explicit_target: bool = False
+
+
 class SessionClaimService:
 	"""Own claim authorization and inventory state without NVDA dependencies."""
 
@@ -73,6 +94,7 @@ class SessionClaimService:
 		self._localClaimPollSeconds = local_claim_poll_seconds
 		self._gestureGeneration = 0
 		self._pendingObserved: tuple[TerminalIdentity, int] | None = None
+		self._discoveryGeneration = 0
 		self._inventoryGeneration = 0
 		self._inventoryReady = False
 		self._baselines: dict[tuple[str, str, str], int] = {}
@@ -123,15 +145,214 @@ class SessionClaimService:
 	def cancel_pending_authorization(self) -> None:
 		self._pendingObserved = None
 
+	def consume_transition(self, identity: TerminalIdentity | None) -> ClaimTransition:
+		"""Consume a pending target and decide the next claim action."""
+		selected = self._coordinator.instances.selected_for(identity) if identity is not None else None
+		selected_authenticated = (
+			selected is not None and selected.identifier in self._coordinator.authenticated_instances
+		)
+		pairing_selected = selected if selected_authenticated else None
+		self._recordDiagnostic(
+			"sessionClaimGestureReceived",
+			terminal=self._identityFields(identity),
+			inventoryReady=self._inventoryReady,
+			selected=selected is not None,
+			selectedAuthenticated=selected_authenticated,
+		)
+		pending_target = self._pendingTargets.pop(identity, None) if identity is not None else None
+		if (
+			pending_target is None
+			and pairing_selected is not None
+			and pairing_selected.transport_kind == "localWindowsTcp"
+		):
+			pending_target = ("localWindowsTcp", "")
+		if identity is None or identity.frontend_kind != "windowsTerminal":
+			return ClaimTransition(ClaimTransitionKind.PASS_THROUGH, identity)
+		if pairing_selected is None and pending_target is None and not self._inventoryReady:
+			return ClaimTransition(ClaimTransitionKind.INVENTORY_PENDING, identity)
+		if pending_target is not None:
+			kind, target_id = pending_target
+			if kind == "localWindowsTcp":
+				return ClaimTransition(
+					ClaimTransitionKind.LOCAL,
+					identity,
+					explicit_target=True,
+				)
+			return ClaimTransition(
+				ClaimTransitionKind.REMOTE,
+				identity,
+				target_id=target_id,
+				explicit_target=True,
+			)
+		if pairing_selected is None:
+			return ClaimTransition(ClaimTransitionKind.AUTOMATIC, identity)
+		return ClaimTransition(
+			ClaimTransitionKind.REMOTE,
+			identity,
+			target_id=pairing_selected.target_id,
+		)
+
 	def invalidate_connection_state(self) -> None:
 		"""Invalidate callbacks and clear discovery state during disconnect or teardown."""
 		self._pendingTargets.clear()
 		self._pendingObserved = None
+		self._discoveryGeneration += 1
 		self._inventoryGeneration += 1
 		self._inventoryReady = False
 		self._baselines.clear()
 		self._eligibleTargets.clear()
 		self._inventoryErrors.clear()
+
+	def begin_discovery(self) -> int:
+		"""Invalidate older session-list callbacks and return the new generation."""
+		self._discoveryGeneration += 1
+		return self._discoveryGeneration
+
+	def is_discovery_current(
+		self,
+		generation: int,
+		identity: TerminalIdentity,
+		*,
+		preserve_dialog_identity: bool = False,
+	) -> bool:
+		"""Validate a worker or dialog continuation against current claim scope."""
+		gate = self._coordinator.gate
+		return (
+			generation == self._discoveryGeneration
+			and gate.manual_enabled
+			and (preserve_dialog_identity or gate.focused == identity)
+		)
+
+	def start_local_discovery(
+		self,
+		identity: TerminalIdentity,
+		replace_existing: bool,
+		offer_remember: bool,
+		require_recent_claim: bool,
+		fallback_profile: object | None,
+		claim_not_before_ns: int,
+		finished: Callable[..., None],
+	) -> int:
+		generation = self.begin_discovery()
+		self._startWorker(
+			"nvim-nvda-local-session-list",
+			self.discover_local_sessions,
+			(
+				generation,
+				identity,
+				replace_existing,
+				offer_remember,
+				require_recent_claim,
+				fallback_profile,
+				claim_not_before_ns,
+				finished,
+			),
+		)
+		return generation
+
+	def discover_local_sessions(
+		self,
+		generation: int,
+		identity: TerminalIdentity,
+		replace_existing: bool,
+		offer_remember: bool,
+		require_recent_claim: bool,
+		fallback_profile: object | None,
+		claim_not_before_ns: int,
+		finished: Callable[..., None],
+	) -> None:
+		if require_recent_claim:
+
+			def fresh(sessions: list) -> bool:
+				return any(
+					0 <= session.claim_age_ms <= 15_000
+					and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
+					for session in sessions
+				)
+
+			sessions, error, attempts = self.poll_local_sessions(fresh)
+			self._recordDiagnostic(
+				"localClaimWaitCompleted",
+				attempts=attempts,
+				sessions=len(sessions),
+				matched=error is None and fresh(sessions),
+				errorType=type(error).__name__ if error is not None else "",
+			)
+		else:
+			try:
+				sessions, error = self._listLocalSessions(), None
+			except Exception as caught:
+				sessions, error = [], caught
+		self._queueMainThread(
+			finished,
+			generation,
+			identity,
+			sessions,
+			error,
+			replace_existing,
+			offer_remember,
+			require_recent_claim,
+			fallback_profile,
+			claim_not_before_ns,
+		)
+
+	def start_remote_discovery(
+		self,
+		profile: object,
+		identity: TerminalIdentity,
+		password: str,
+		replace_existing: bool,
+		offer_remember: bool,
+		require_recent_claim: bool,
+		preserve_dialog_identity: bool,
+		finished: Callable[..., None],
+	) -> int:
+		generation = self.begin_discovery()
+		self._startWorker(
+			"nvim-nvda-session-list",
+			self.discover_remote_sessions,
+			(
+				generation,
+				profile,
+				identity,
+				password,
+				replace_existing,
+				offer_remember,
+				require_recent_claim,
+				preserve_dialog_identity,
+				finished,
+			),
+		)
+		return generation
+
+	def discover_remote_sessions(
+		self,
+		generation: int,
+		profile: object,
+		identity: TerminalIdentity,
+		password: str,
+		replace_existing: bool,
+		offer_remember: bool,
+		require_recent_claim: bool,
+		preserve_dialog_identity: bool,
+		finished: Callable[..., None],
+	) -> None:
+		try:
+			sessions, error = self._listRemoteSessions(profile, password), None
+		except Exception as caught:
+			sessions, error = [], caught
+		self._queueMainThread(
+			finished,
+			generation,
+			profile,
+			identity,
+			sessions,
+			error,
+			replace_existing,
+			offer_remember,
+			require_recent_claim,
+			preserve_dialog_identity,
+		)
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1
@@ -426,6 +647,14 @@ class SessionClaimService:
 	@inventory_generation.setter
 	def inventory_generation(self, value: int) -> None:
 		self._inventoryGeneration = value
+
+	@property
+	def discovery_generation(self) -> int:
+		return self._discoveryGeneration
+
+	@discovery_generation.setter
+	def discovery_generation(self, value: int) -> None:
+		self._discoveryGeneration = value
 
 	@property
 	def inventory_ready(self) -> bool:

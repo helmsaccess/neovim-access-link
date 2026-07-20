@@ -72,9 +72,10 @@ See `compatibility.md` for complete platform boundaries.
   conclusive negative checks.
 - The first V2-4 slice gives `SessionClaimService` sole ownership of one-shot
   F12 authorization, claim generations, and claim inventory state. Local and
-  SSH inventory workers plus candidate evaluation run behind that service;
-  selection and connection transitions retain their established main-thread
-  boundaries while they are moved incrementally.
+  SSH inventory and session-list workers, discovery generation, and candidate
+  evaluation run behind that service. It also returns an immutable decision
+  between local, remote, and automatic resolution; NVDA messages, dialogs, and
+  concrete connection starts retain their established main-thread boundaries.
 
 ### Editor output
 

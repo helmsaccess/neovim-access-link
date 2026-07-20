@@ -145,8 +145,10 @@ sind direkt geprüft. Die prozessweite Verfügbarkeit von Einstellungen und
 Werkzeugen bleibt unverändert. Eine praktische Zwischenprüfung ist für diese
 internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
 V2-Schritten gebündelt. V2-4 hat begonnen: `SessionClaimService` besitzt F12-
-Autorisierung, Inventarzustand, Scans und Kandidatenauswertung; weitere
-Schnitte verschieben Auswahl und Verbindungsübergänge hinter diesen Dienst.
+Autorisierung, Inventarzustand, Scans, Kandidatenauswertung und die
+unveränderliche Übergangsentscheidung. Discovery-Lebensdauer und
+Sitzungslisten-Worker liegen ebenfalls dort; weitere Schnitte verschieben
+Auswahl und Verbindungsstarts hinter diesen Dienst.
 
 ## 3. Praktische Abschottung verbreitern
 
