@@ -235,8 +235,12 @@ entfernt die `_stopClient()`-Weiterleitung sowie getrennte Instanzmanager- und
 Editorrequestpfade aus der Runtime: Claim/Fokus, Clientstopp und vollständige
 Coordinator-Bereinigung haben nun je einen Schritt. Der Passwort-Callback
 bleibt als schmale Grenze zu dem tatsächlich im Global Plugin besessenen
-Speicher bestehen. Als Nächstes wird die Rückreferenz des öffentlichen
-Terminaldienstes auf das Global Plugin entfernt.
+Speicher bestehen. Der folgende Schnitt entfernt die breite `_runtime`-
+Rückreferenz des öffentlichen Terminaldienstes. Er erhält nur eine beim Aufbau
+vollständig validierte feste Befehlszuordnung sowie schmale Callbacks für
+Diagnose, Fail-open, F12-Abschluss und Braille-Routing. Als Nächstes werden die
+noch in der Kompositionswurzel liegenden Brailleklassen auf einen eigenen
+NVDA-Randbaustein geprüft.
 
 ## 3. Praktische Abschottung verbreitern
 

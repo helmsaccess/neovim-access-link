@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.95.0-dev.47+feature.global-plugin-slimming (feature-branch test build)
+
+- The tenth V2-6 slice removes the broad `_runtime` back-reference from
+  `TerminalIntegrationService`.
+- The service instead receives one complete fixed command map and narrow
+  callbacks for diagnostics, fail-open handling, F12 completion, and Braille
+  routing. Missing or additional commands are rejected during composition.
+- The AppModule, Braille overlay, F12 generations, and closed fail-open fence
+  retain their existing public contract.
+
 ## 0.95.0-dev.46+feature.global-plugin-slimming (feature-branch test build)
 
 - The ninth V2-6 slice removes the injected `_stopClient()` forwarding path

@@ -187,6 +187,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   über den Coordinator-Eigentümer und löscht dessen Laufzeitstand danach
   einmal. `_stopClient()` bleibt ausschließlich für aktive Nutzer- und
   Profilwechselpfade erhalten.
+- Der zehnte V2-6-Schnitt entfernt die breite Global-Plugin-Rückreferenz aus
+  dem öffentlichen `TerminalIntegrationService`. Eine vollständige feste
+  Befehlszuordnung und schmale Callbacks ersetzen den freien Zugriff auf die
+  Kompositionswurzel; Fokus-, F12- und Brailledienste bleiben getrennt.
 
 ### Editorausgabe
 

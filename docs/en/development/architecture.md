@@ -205,7 +205,7 @@ must not close output again before state is confirmed.
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
 | `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
-| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
 | `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard/terminal-control plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
@@ -272,6 +272,13 @@ method names, while focus decisions and F12 authorizations are immutable
 values. If the service is absent, has been replaced during add-on reload, or
 violates the contract, the AppModule passes the original gesture or native
 NVDA event through fail-open.
+
+The service holds no broad `_runtime` reference. The composition root supplies
+exactly one handler for every `TerminalCommand` plus separate callbacks for
+diagnostics, fail-open handling, F12 completion, and Braille routing. The
+constructor copies the command map and rejects missing, additional, or
+non-callable entries. The public service therefore cannot reach other Global
+Plugin methods or state.
 
 `TerminalIntegrationService` delegates focus operations directly to
 `TerminalFocusService`. Identity construction, UIA lifetime validation, the

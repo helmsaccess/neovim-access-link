@@ -169,6 +169,10 @@ See `compatibility.md` for complete platform boundaries.
   `AddonRuntime` invalidates claim and focus state, stops clients once through
   the coordinator owner, and then clears its runtime tracking once.
   `_stopClient()` remains only for active user and profile-switch paths.
+- The tenth V2-6 slice removes the public `TerminalIntegrationService`'s broad
+  Global Plugin back-reference. A complete fixed command map and narrow
+  callbacks replace unrestricted access to the composition root; focus, F12,
+  and Braille services remain separate.
 
 ### Editor output
 

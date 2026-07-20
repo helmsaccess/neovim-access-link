@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -34,26 +35,45 @@ class SessionClaimAuthorization:
 
 
 class TerminalIntegrationService:
-	"""Expose only operations required by application and Braille adapters.
-
-	The existing runtime remains the implementation owner during this migration
-	phase. Keeping every forwarding operation here makes later ownership moves
-	explicit without publishing the NVDA GlobalPlugin itself.
-	"""
+	"""Expose only operations required by application and Braille adapters."""
 
 	def __init__(
 		self,
-		runtime: Any,
 		focus_service: Any,
 		claim_service: Any,
 		editor_session: EditorSessionController,
+		*,
+		command_actions: Mapping[TerminalCommand, Callable[[object], None]],
+		copy_diagnostic_report: Callable[[object], None],
+		claim_focused_session: Callable[..., None],
+		send_braille_route: Callable[[dict[str, Any]], bool],
+		record_diagnostic: Callable[..., None],
+		fail_open_event: Callable[[str, Exception], None],
 	):
-		if runtime is None or focus_service is None or claim_service is None or editor_session is None:
-			raise ValueError("runtime, focus service, claim service, and editor session are required")
-		self._runtime = runtime
+		if focus_service is None or claim_service is None or editor_session is None:
+			raise ValueError("focus service, claim service, and editor session are required")
+		if set(command_actions) != set(TerminalCommand) or not all(
+			callable(action) for action in command_actions.values()
+		):
+			raise ValueError("one callable is required for every terminal command")
+		callbacks = (
+			copy_diagnostic_report,
+			claim_focused_session,
+			send_braille_route,
+			record_diagnostic,
+			fail_open_event,
+		)
+		if not all(callable(callback) for callback in callbacks):
+			raise ValueError("terminal integration callbacks are required")
 		self._focusService = focus_service
 		self._claimService = claim_service
 		self._editorSession = editor_session
+		self._commandActions = dict(command_actions)
+		self._copyDiagnosticReport = copy_diagnostic_report
+		self._claimFocusedSession = claim_focused_session
+		self._sendBrailleRoute = send_braille_route
+		self._recordDiagnostic = record_diagnostic
+		self._failOpenEvent = fail_open_event
 		self._generation = object()
 		self._closed = False
 
@@ -74,7 +94,7 @@ class TerminalIntegrationService:
 		if self._closed:
 			return
 		try:
-			self._runtime._diagnostics.record(category, **fields)
+			self._recordDiagnostic(category, **fields)
 		except Exception:
 			pass
 
@@ -82,10 +102,9 @@ class TerminalIntegrationService:
 		if self._closed:
 			return
 		try:
-			self._runtime._failOpenTerminalEvent(event_name, error)
+			self._failOpenEvent(event_name, error)
 		except Exception:
-			# _failOpenTerminalEvent opens the gate before recording diagnostics.
-			# A secondary diagnostics failure must not escape into NVDA's event path.
+			# A secondary fail-open failure must not escape into NVDA's event path.
 			pass
 
 	def supports_braille_overlay(self, obj: object) -> bool:
@@ -169,30 +188,13 @@ class TerminalIntegrationService:
 			)
 			self._record("configuredGesturePassedThrough", action=command.value)
 			return False
-		self._command_actions()[command](gesture)
+		self._commandActions[command](gesture)
 		return True
-
-	def _command_actions(self):
-		"""Return the explicit command allowlist using current runtime methods."""
-		return {
-			TerminalCommand.TOGGLE_ACCESSIBILITY: self._runtime.action_toggleNeovimMode,
-			TerminalCommand.READ_COMPLETION_DOCUMENTATION: (self._runtime.action_readCompletionDocumentation),
-			TerminalCommand.COPY_VISUAL_SELECTION: self._runtime.action_copyNeovimSelection,
-			TerminalCommand.COPY_LAST_YANK: self._runtime.action_copyLastNeovimYank,
-			TerminalCommand.PASTE_WINDOWS_CLIPBOARD: self._runtime.action_pasteWindowsClipboard,
-			TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD: (
-				self._runtime.action_setNeovimRegisterFromWindowsClipboard
-			),
-			TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT: (self._runtime.action_leaveDirectTerminalInput),
-			TerminalCommand.START_CONNECTION: self._runtime.action_startConnectionInstance,
-			TerminalCommand.DISCONNECT_CONNECTION: (self._runtime.action_disconnectConnectionInstance),
-			TerminalCommand.FORGET_TEMPORARY_BINDING: (self._runtime.action_forgetTemporaryTerminalBinding),
-		}
 
 	def copy_diagnostic_report(self, gesture: object) -> None:
 		if self._closed:
 			return
-		self._runtime.action_copyDiagnosticReport(gesture)
+		self._copyDiagnosticReport(gesture)
 
 	def authorize_session_claim(
 		self,
@@ -250,7 +252,7 @@ class TerminalIntegrationService:
 		if identity != authorization.identity:
 			self.cancel_session_claim(authorization)
 			return False
-		self._runtime.action_claimFocusedNeovimSession(
+		self._claimFocusedSession(
 			None,
 			forward_gesture=False,
 			expected_identity=authorization.identity,
@@ -309,7 +311,7 @@ class TerminalIntegrationService:
 				self._record("brailleRouteRejected", reason=plan.rejection_reason, **fields)
 				return False
 			payload = plan.payload()
-			accepted = self._runtime._sendBrailleRoute(payload)
+			accepted = self._sendBrailleRoute(payload)
 			self._record("brailleRoute", accepted=accepted, **payload)
 			return bool(accepted)
 		except Exception as error:

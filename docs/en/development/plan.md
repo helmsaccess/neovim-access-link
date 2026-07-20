@@ -214,7 +214,11 @@ and separate instance-manager and editor-request paths from the runtime:
 claim/focus invalidation, client shutdown, and complete coordinator cleanup
 now each have one step. The password callback remains as a narrow boundary to
 storage genuinely owned by the Global Plugin. The public terminal service's
-back-reference to the Global Plugin is removed next.
+broad `_runtime` back-reference is removed in the following slice. It receives
+only a composition-time validated fixed command map and narrow callbacks for
+diagnostics, fail-open handling, F12 completion, and Braille routing. The
+Braille classes still located in the composition root are audited next for a
+dedicated NVDA-edge module.
 
 ## 3. Broaden practical isolation coverage
 

@@ -5,6 +5,16 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.47+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der zehnte V2-6-Schnitt entfernt die breite `_runtime`-Rückreferenz aus
+  `TerminalIntegrationService`.
+- Der Dienst erhält stattdessen eine vollständige feste Befehlszuordnung und
+  schmale Callbacks für Diagnose, Fail-open, F12-Abschluss und Braille-Routing.
+  Fehlende oder zusätzliche Befehle werden beim Aufbau abgelehnt.
+- AppModule, Braille-Overlay, F12-Generationen und die geschlossene
+  Fail-open-Schranke behalten ihren bisherigen öffentlichen Vertrag.
+
 ## 0.95.0-dev.46+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der neunte V2-6-Schnitt entfernt die injizierte `_stopClient()`-Weiterleitung

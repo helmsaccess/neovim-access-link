@@ -488,10 +488,28 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 		)
 		self._terminalIntegrationService = TerminalIntegrationService(
-			self,
 			self._terminalFocusService,
 			self._sessionClaimService,
 			self._editorSessionController,
+			command_actions={
+				TerminalCommand.TOGGLE_ACCESSIBILITY: self.action_toggleNeovimMode,
+				TerminalCommand.READ_COMPLETION_DOCUMENTATION: self.action_readCompletionDocumentation,
+				TerminalCommand.COPY_VISUAL_SELECTION: self.action_copyNeovimSelection,
+				TerminalCommand.COPY_LAST_YANK: self.action_copyLastNeovimYank,
+				TerminalCommand.PASTE_WINDOWS_CLIPBOARD: self.action_pasteWindowsClipboard,
+				TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD: (
+					self.action_setNeovimRegisterFromWindowsClipboard
+				),
+				TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT: self.action_leaveDirectTerminalInput,
+				TerminalCommand.START_CONNECTION: self.action_startConnectionInstance,
+				TerminalCommand.DISCONNECT_CONNECTION: self.action_disconnectConnectionInstance,
+				TerminalCommand.FORGET_TEMPORARY_BINDING: self.action_forgetTemporaryTerminalBinding,
+			},
+			copy_diagnostic_report=self.action_copyDiagnosticReport,
+			claim_focused_session=self.action_claimFocusedNeovimSession,
+			send_braille_route=self._sendBrailleRoute,
+			record_diagnostic=self._diagnostics.record,
+			fail_open_event=self._failOpenTerminalEvent,
 		)
 		self._addonRuntime = AddonRuntime(
 			registrar=_serviceRegistrar,

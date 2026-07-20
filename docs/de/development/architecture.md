@@ -216,7 +216,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
 | `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
-| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
 | `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-/Terminalsteuerungspläne und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
@@ -291,6 +291,13 @@ aufgelöster Methodennamen; Fokusentscheidungen und F12-Autorisierungen sind
 unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
+
+Der Dienst besitzt keine breite `_runtime`-Referenz. Die Kompositionswurzel
+übergibt genau einen Handler für jeden `TerminalCommand` sowie getrennte
+Callbacks für Diagnose, Fail-open, F12-Abschluss und Braille-Routing. Der
+Konstruktor kopiert die Befehlszuordnung und lehnt fehlende, zusätzliche oder
+nicht aufrufbare Einträge ab. Damit kann der öffentliche Dienst keine anderen
+Methoden oder Zustände des Global Plugins erreichen.
 
 Der `TerminalIntegrationService` delegiert seine Fokusoperationen direkt an
 den `TerminalFocusService`. Dieser erhält Identitätsbildung, UIA-Lebensprüfung,

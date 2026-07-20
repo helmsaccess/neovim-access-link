@@ -581,6 +581,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._focusService.finish_focus", facade_source)
         self.assertIn("self._focusService.lose_focus", facade_source)
         self.assertNotIn("self._runtime._prepareTerminalFocus", facade_source)
+        self.assertNotIn("self._runtime", facade_source)
+        self.assertNotIn("GlobalPlugin", facade_source)
 
     def test_session_claim_authorization_has_one_non_global_owner(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
@@ -1711,6 +1713,35 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(service.route_braille_cursor(self.focus, 0))
         self.assertEqual(report_after_terminate, plugin._diagnostics.report())
 
+    def test_terminal_integration_requires_a_complete_narrow_action_contract(self) -> None:
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        actions = {command: mock.Mock() for command in TerminalCommand}
+        dependencies = {
+            "focus_service": mock.Mock(),
+            "claim_service": mock.Mock(),
+            "editor_session": mock.Mock(),
+            "command_actions": actions,
+            "copy_diagnostic_report": mock.Mock(),
+            "claim_focused_session": mock.Mock(),
+            "send_braille_route": mock.Mock(),
+            "record_diagnostic": mock.Mock(),
+            "fail_open_event": mock.Mock(),
+        }
+
+        service = TerminalIntegrationService(**dependencies)
+        self.assertFalse(service.closed)
+
+        incomplete = dict(actions)
+        incomplete.pop(TerminalCommand.TOGGLE_ACCESSIBILITY)
+        with self.assertRaisesRegex(ValueError, "every terminal command"):
+            TerminalIntegrationService(**{**dependencies, "command_actions": incomplete})
+        with self.assertRaisesRegex(ValueError, "callbacks are required"):
+            TerminalIntegrationService(**{**dependencies, "send_braille_route": None})
+
     def test_queued_runtime_callbacks_are_inert_after_unpublish(self) -> None:
         import queueHandler
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2227,6 +2258,7 @@ class BuiltAddonTests(unittest.TestCase):
     def test_configured_app_module_gesture_uses_only_exact_focused_adapter(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
 
         plugin = GlobalPlugin()
         first = AppModule()
@@ -2234,7 +2266,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = first
         self._focusPlugin(plugin)
         handled = []
-        plugin.action_toggleNeovimMode = lambda gesture: handled.append(gesture)
+        plugin._terminalIntegrationService._commandActions[
+            TerminalCommand.TOGGLE_ACCESSIBILITY
+        ] = lambda gesture: handled.append(gesture)
         forwarded = []
         gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
 
@@ -2261,23 +2295,27 @@ class BuiltAddonTests(unittest.TestCase):
     def test_every_configurable_app_module_script_dispatches_its_action(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
 
         scripts_and_actions = (
-            ("script_toggleNeovimMode", "action_toggleNeovimMode"),
-            ("script_readCompletionDocumentation", "action_readCompletionDocumentation"),
-            ("script_copyNeovimSelection", "action_copyNeovimSelection"),
-            ("script_copyLastNeovimYank", "action_copyLastNeovimYank"),
-            ("script_pasteWindowsClipboard", "action_pasteWindowsClipboard"),
+            ("script_toggleNeovimMode", TerminalCommand.TOGGLE_ACCESSIBILITY),
+            (
+                "script_readCompletionDocumentation",
+                TerminalCommand.READ_COMPLETION_DOCUMENTATION,
+            ),
+            ("script_copyNeovimSelection", TerminalCommand.COPY_VISUAL_SELECTION),
+            ("script_copyLastNeovimYank", TerminalCommand.COPY_LAST_YANK),
+            ("script_pasteWindowsClipboard", TerminalCommand.PASTE_WINDOWS_CLIPBOARD),
             (
                 "script_setNeovimRegisterFromWindowsClipboard",
-                "action_setNeovimRegisterFromWindowsClipboard",
+                TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD,
             ),
-            ("script_leaveDirectTerminalInput", "action_leaveDirectTerminalInput"),
-            ("script_startConnectionInstance", "action_startConnectionInstance"),
-            ("script_disconnectConnectionInstance", "action_disconnectConnectionInstance"),
+            ("script_leaveDirectTerminalInput", TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT),
+            ("script_startConnectionInstance", TerminalCommand.START_CONNECTION),
+            ("script_disconnectConnectionInstance", TerminalCommand.DISCONNECT_CONNECTION),
             (
                 "script_forgetTemporaryTerminalBinding",
-                "action_forgetTemporaryTerminalBinding",
+                TerminalCommand.FORGET_TEMPORARY_BINDING,
             ),
         )
         plugin = GlobalPlugin()
@@ -2285,19 +2323,16 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = adapter
         handled = []
         marker = object()
-        for _script_name, action_name in scripts_and_actions:
-            setattr(
-                plugin, action_name,
-                lambda gesture, action_name=action_name: handled.append(
-                    (action_name, gesture),
-                ),
+        for _script_name, command in scripts_and_actions:
+            plugin._terminalIntegrationService._commandActions[command] = (
+                lambda gesture, command=command: handled.append((command, gesture))
             )
 
-        for script_name, _action_name in scripts_and_actions:
+        for script_name, _command in scripts_and_actions:
             getattr(adapter, script_name)(marker)
 
         self.assertEqual(
-            [(action_name, marker) for _script_name, action_name in scripts_and_actions],
+            [(command, marker) for _script_name, command in scripts_and_actions],
             handled,
         )
         adapter.terminate()
@@ -2339,9 +2374,10 @@ class BuiltAddonTests(unittest.TestCase):
             normalizedIdentifiers=("kb:f12",),
             send=lambda: order.append(("send", gesture)),
         )
-        plugin.action_claimFocusedNeovimSession = lambda current, forward_gesture=True, **kwargs: (
+        def claim(current, forward_gesture=True, **kwargs):
             order.append(("claim", plugin, current, forward_gesture, kwargs))
-        )
+
+        plugin._terminalIntegrationService._claimFocusedSession = claim
 
         allowed = adapter._decideExecuteGesture(gesture)
 
@@ -2398,7 +2434,9 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = AppModule()
         self.focus.appModule = adapter
         handled = []
-        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+        plugin._terminalIntegrationService._claimFocusedSession = (
+            lambda *_args, **kwargs: handled.append(kwargs)
+        )
 
         allowed = adapter._decideExecuteGesture(
             types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
@@ -2430,7 +2468,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(self.inputDecider.handlers))
         gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
         handled = []
-        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+        plugin._terminalIntegrationService._claimFocusedSession = (
+            lambda *_args, **kwargs: handled.append(kwargs)
+        )
 
         self.focus.appModule = first
         self.assertTrue(self.inputDecider.handlers[0](gesture))
