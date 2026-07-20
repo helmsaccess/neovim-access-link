@@ -163,7 +163,10 @@ typing echo. Concrete NVDA delivery and focus/gate decisions remain outside.
 The second slice moves bounded request ownership and reply correlation for the
 clipboard, register, and embedded-terminal control into the same controller.
 Network calls, the Windows clipboard, diagnostics, and translated feedback
-remain in the NVDA composition root.
+remain in the NVDA composition root. The third slice combines state
+transition, terminal passthrough, mode cue, and neutral speech actions in one
+immutable event plan. The Global Plugin no longer plans editor events itself;
+it only delivers through NVDA and applies gate transitions.
 
 ## 3. Broaden practical isolation coverage
 

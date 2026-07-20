@@ -115,7 +115,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Antworten mit Instanz und Terminalidentität und entfernt einmaligen
   Zwischenablagetext vor der weiteren Zustandsverarbeitung. Transportaufruf,
   Fokus-/Gate-Prüfung, Windows-Zwischenablage und konkrete Ausgabe bleiben am
-  NVDA-Rand.
+  NVDA-Rand. Der nächste Schnitt bündelt Zustandsübergang,
+  Terminal-Passthrough, Modusklangentscheidung und neutrale Sprachaktionen in
+  einem unveränderlichen Ereignisplan. Das Global Plugin wendet nur noch die
+  Gate-Entscheidung an und liefert den Plan über `NvdaPresentation` aus.
 
 ### Editorausgabe
 

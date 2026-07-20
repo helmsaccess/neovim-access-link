@@ -882,6 +882,144 @@ class BuiltAddonTests(unittest.TestCase):
             terminal_reply.safe_event["payload"],
         )
 
+    def test_editor_session_controller_plans_mode_cues_speech_and_terminal_passthrough(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+
+        initial = controller.plan_event(
+            {
+                "type": "fullState",
+                "payload": {
+                    "bufferId": 1,
+                    "mode": "normal",
+                    "modeRaw": "n",
+                    "buftype": "",
+                    "lineText": "first",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=True,
+            allow_focus_context_cue=True,
+        )
+        self.assertIsNone(initial.mode_cue)
+        self.assertFalse(initial.terminal_passthrough)
+
+        insert = controller.plan_event(
+            {
+                "type": "modeChanged",
+                "payload": {
+                    "bufferId": 1,
+                    "mode": "insert",
+                    "modeRaw": "i",
+                    "buftype": "",
+                    "lineText": "first",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=True,
+            allow_focus_context_cue=True,
+        )
+        self.assertEqual("insert", insert.mode_cue.mode)
+        self.assertFalse(insert.mode_cue.focus_context)
+        self.assertTrue(any(action.text == "insert mode" for action in insert.speech_actions))
+
+        entered_terminal = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertEqual("terminalNormal", entered_terminal.mode_cue.mode)
+
+        direct_terminal = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminal",
+                    "modeRaw": "t",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertTrue(direct_terminal.terminal_passthrough)
+        self.assertEqual("terminal", direct_terminal.mode_cue.mode)
+        self.assertEqual((), direct_terminal.speech_actions)
+
+        terminal_normal = controller.plan_event(
+            {
+                "type": "modeChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertFalse(terminal_normal.terminal_passthrough)
+        self.assertEqual("terminalNormal", terminal_normal.mode_cue.mode)
+
+        duplicate = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertIsNone(duplicate.mode_cue)
+
+        focus = controller.plan_event(
+            {
+                "type": "focusContext",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                },
+            },
+            focus_announcement="none",
+            plan_speech=True,
+            allow_focus_context_cue=False,
+        )
+        self.assertIsNone(focus.mode_cue)
+        self.assertEqual((), focus.speech_actions)
+
     def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
@@ -889,7 +1027,8 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertIn("class EditorSessionController", editor_source)
         self.assertNotIn("GlobalPlugin", editor_source)
-        self.assertIn("self._editorSessionController.apply_event(event)", global_source)
+        self.assertIn("self._editorSessionController.plan_event(", global_source)
+        self.assertNotIn("self._planner.plan(", global_source)
         self.assertNotIn("self._currentState = payload", global_source)
         self.assertNotIn("self._lastMode = mode", global_source)
         self.assertNotIn("self._menuDocumentation = documentation", global_source)

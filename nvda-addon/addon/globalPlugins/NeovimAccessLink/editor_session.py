@@ -11,8 +11,19 @@ from typing import Any
 from .core.clipboard import clipboard_result_state, valid_clipboard_text, valid_request_id
 from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
 from .core.gate import TerminalIdentity
-from .core.speech import SpeechPlanner
+from .core.speech import SpeechAction, SpeechPlanner
 from .core.terminal_control import terminal_control_result_state
+
+
+def mode_sound_kind(mode: str | None) -> str | None:
+	"""Map canonical editor modes to the three neutral mode-cue kinds."""
+	if mode in {"insert", "terminal"}:
+		return "insert"
+	if mode in {"normal", "terminalNormal"}:
+		return "normal"
+	if mode == "commandLine":
+		return "commandLine"
+	return None
 
 
 @dataclass(frozen=True)
@@ -39,6 +50,20 @@ class ConnectionStateTransition:
 class StructuredTypingAction:
 	text: str
 	spelling: bool
+
+
+@dataclass(frozen=True)
+class ModeCuePlan:
+	mode: str
+	focus_context: bool = False
+
+
+@dataclass(frozen=True)
+class EditorEventPlan:
+	transition: EditorEventTransition
+	terminal_passthrough: bool
+	mode_cue: ModeCuePlan | None
+	speech_actions: tuple[SpeechAction, ...]
 
 
 class ControlReplyKind(Enum):
@@ -166,6 +191,43 @@ class EditorSessionController:
 			buffer_id=buffer_id,
 			previous_buftype=previous_buftype,
 			reset_typed_echo=reset_typed_echo,
+		)
+
+	def plan_event(
+		self,
+		event: Mapping[str, Any],
+		*,
+		focus_announcement: str,
+		plan_speech: bool,
+		allow_focus_context_cue: bool,
+	) -> EditorEventPlan:
+		"""Apply one event and return NVDA-neutral presentation decisions."""
+		transition = self.apply_event(event)
+		payload_value = event.get("payload")
+		payload = payload_value if isinstance(payload_value, dict) else None
+		terminal_passthrough = bool(
+			payload is not None and payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
+		)
+		mode_cue = self._plan_mode_cue(
+			transition,
+			payload,
+			allow_focus_context_cue=allow_focus_context_cue,
+		)
+		speech_actions = (
+			tuple(
+				self._coordinator.planner.plan(
+					dict(event),
+					focus_announcement=focus_announcement,
+				)
+			)
+			if plan_speech
+			else ()
+		)
+		return EditorEventPlan(
+			transition=transition,
+			terminal_passthrough=terminal_passthrough,
+			mode_cue=mode_cue,
+			speech_actions=speech_actions,
 		)
 
 	def reset_typed_echo(self) -> None:
@@ -391,6 +453,56 @@ class EditorSessionController:
 			max_pending,
 		)
 		return PendingRequestPlan(request_id, discarded)
+
+	@classmethod
+	def _plan_mode_cue(
+		cls,
+		transition: EditorEventTransition,
+		payload: Mapping[str, Any] | None,
+		*,
+		allow_focus_context_cue: bool,
+	) -> ModeCuePlan | None:
+		mode = transition.mode
+		previous_mode = transition.previous_mode
+		mode_sound = mode_sound_kind(mode)
+		previous_mode_sound = mode_sound_kind(previous_mode)
+		if transition.event_type == "focusContext" and allow_focus_context_cue and mode_sound is not None:
+			return ModeCuePlan(mode, focus_context=True)
+		if (
+			transition.event_type == "messageReceived"
+			and payload is not None
+			and payload.get("commandLineReturn") is True
+			and mode_sound is not None
+		):
+			return ModeCuePlan(mode)
+		if (
+			transition.event_type in {"commandLineChanged", "modeChanged"}
+			and mode_sound == "commandLine"
+			and previous_mode != "commandLine"
+		):
+			return ModeCuePlan(mode)
+		if (
+			transition.event_type in {"modeChanged", "contextChanged"}
+			and mode_sound == "insert"
+			and previous_mode_sound != "insert"
+		):
+			return ModeCuePlan(mode)
+		if (
+			transition.event_type in {"modeChanged", "contextChanged"}
+			and mode_sound == "normal"
+			and (
+				previous_mode_sound == "insert"
+				or (previous_mode == "commandLine" and transition.previous_buftype == "terminal")
+			)
+		):
+			return ModeCuePlan(mode)
+		if (
+			transition.event_type in {"modeChanged", "contextChanged"}
+			and mode == "terminalNormal"
+			and (previous_mode != "terminalNormal" or transition.previous_buffer_id != transition.buffer_id)
+		):
+			return ModeCuePlan(mode)
+		return None
 
 	@staticmethod
 	def _integer_field(value: Mapping[str, Any] | None, name: str) -> int | None:

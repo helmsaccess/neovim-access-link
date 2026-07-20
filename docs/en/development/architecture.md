@@ -248,7 +248,11 @@ The V2-5 `EditorSessionController` uses the active runtime managed by
 owns state and mode transitions, transport capabilities, menu documentation,
 connection state, and isolated per-instance typing echo. Its ordered neutral
 typing actions become speech only at the NVDA boundary. Protocol-envelope
-validation and network callbacks remain separate. The controller also
+validation and network callbacks remain separate. For each validated event,
+an immutable plan combines the state transition, domain terminal passthrough,
+at most one mode cue, and the ordered neutral speech actions. The Global
+Plugin applies passthrough to the gate and hands the cue and speech plan to
+`NvdaPresentation`. The controller also
 allocates bounded request IDs for clipboard,
 register, and terminal control, binds them to an instance and
 `TerminalIdentity`, and rejects foreign or late replies. One-shot clipboard

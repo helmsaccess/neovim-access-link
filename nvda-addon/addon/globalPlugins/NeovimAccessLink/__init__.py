@@ -2566,7 +2566,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _handleEvent(self, event):
 		activated = False
 		payload = event.get("payload")
-		transition = self._editorSessionController.apply_event(event)
+		plan = self._editorSessionController.plan_event(
+			event,
+			focus_announcement=self._focusAnnouncement(),
+			plan_speech=self._gate.manual_enabled,
+			allow_focus_context_cue=self._gate.manual_enabled,
+		)
+		transition = plan.transition
 		keyObserverDiagnostics = (
 			payload.get("keyObserverDiagnostics", {}) if isinstance(payload, dict) else {}
 		)
@@ -2607,14 +2613,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		mode = transition.mode
 		previous_mode = transition.previous_mode
-		previous_buffer_id = transition.previous_buffer_id
-		buffer_id = transition.buffer_id
 		event_type = transition.event_type
-		terminal_passthrough = (
-			isinstance(payload, dict)
-			and payload.get("buftype") == "terminal"
-			and payload.get("mode") == "terminal"
-		)
+		terminal_passthrough = plan.terminal_passthrough
 		if terminal_passthrough != self._gate.terminal_passthrough:
 			# Direct terminal input must fail open before any optional sound or
 			# speech is produced for the mode transition.
@@ -2624,50 +2624,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				enabled=terminal_passthrough,
 				bufferId=payload.get("bufferId") if isinstance(payload, dict) else None,
 			)
-		mode_sound = self._modeSoundKind(mode)
-		previous_mode_sound = self._modeSoundKind(previous_mode)
-		if event_type == "focusContext" and self._gate.manual_enabled and mode_sound is not None:
-			self._playModeSound(mode, focus_context=True)
-		elif (
-			event_type == "messageReceived"
-			and isinstance(payload, dict)
-			and payload.get("commandLineReturn") is True
-			and mode_sound is not None
-		):
-			# A message-producing Ex command has already returned to its
-			# previous editor mode. Play that mode cue immediately before the
-			# structured command result and configured return presentation.
-			self._playModeSound(mode)
-		elif (
-			event_type in {"commandLineChanged", "modeChanged"}
-			and mode_sound == "commandLine"
-			and previous_mode != "commandLine"
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode_sound == "insert"
-			and previous_mode_sound != "insert"
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode_sound == "normal"
-			and (
-				previous_mode_sound == "insert"
-				or (previous_mode == "commandLine" and transition.previous_buftype == "terminal")
+		if plan.mode_cue is not None:
+			self._presentation.play_mode_sound(
+				plan.mode_cue.mode,
+				focus_context=plan.mode_cue.focus_context,
 			)
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode == "terminalNormal"
-			and (previous_mode != "terminalNormal" or previous_buffer_id != buffer_id)
-		):
-			# :terminal enters raw mode "nt" before direct terminal input.
-			# Announce that distinct state once, while duplicate TermOpen /
-			# context events for the same buffer remain silent.
-			self._playModeSound(mode)
 		if transition.reset_typed_echo:
 			speech.clearTypedWordBuffer()
 		if event_type == "fullState":
@@ -2679,10 +2640,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self._gate.manual_enabled:
 			return
 		self._presentation.deliver_actions(
-			self._planner.plan(
-				event,
-				focus_announcement=self._focusAnnouncement(),
-			),
+			plan.speech_actions,
 			event_type=event.get("type"),
 			mode=mode,
 			previous_mode=previous_mode,
@@ -2770,13 +2728,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _focusAnnouncement(self):
 		return self._settingsService.focus_announcement()
-
-	@staticmethod
-	def _modeSoundKind(mode):
-		return NvdaPresentation.mode_sound_kind(mode)
-
-	def _playModeSound(self, mode, *, focus_context=False):
-		self._presentation.play_mode_sound(mode, focus_context=focus_context)
 
 	def _actionSpeechAllowed(self, event_type, feedback_key):
 		return self._presentation.action_speech_allowed(event_type, feedback_key)

@@ -260,7 +260,11 @@ Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
 fachliche Mutation zuständig. Er übernimmt Zustands- und Modusübergänge,
 Transportfähigkeiten, Menü-Dokumentation, Verbindungszustand und das
 instanzgetrennte Tippecho. Seine geordneten neutralen Tippechoaktionen werden
-erst am NVDA-Rand als Sprache ausgegeben. Der Controller vergibt außerdem die
+erst am NVDA-Rand als Sprache ausgegeben. Für jedes validierte Ereignis bündelt
+ein unveränderlicher Plan den Zustandsübergang, den fachlichen
+Terminal-Passthrough, höchstens einen Modusklang und die geordneten neutralen
+Sprachaktionen. Das Global Plugin wendet den Passthrough am Gate an und reicht
+Klang- und Sprachplan an `NvdaPresentation` weiter. Der Controller vergibt außerdem die
 begrenzten Anfrage-IDs für Zwischenablage, Register und Terminalsteuerung,
 bindet sie an Instanz und `TerminalIdentity` und verwirft fremde oder
 verspätete Antworten. Einmaliger Zwischenablagetext wird nur als geprüftes

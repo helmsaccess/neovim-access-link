@@ -5,6 +5,17 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.33+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der dritte V2-5-Schnitt erzeugt im `EditorSessionController` einen
+  unveränderlichen Plan aus Zustandsübergang, Terminal-Passthrough,
+  Modusklangentscheidung und neutralen Sprachaktionen.
+- Das Global Plugin plant Modusklänge und Sprache nicht mehr selbst. Es wendet
+  nur den Passthrough am Gate an und liefert Klang- und Sprachaktionen über
+  `NvdaPresentation` aus; konkrete NVDA-APIs bleiben aus dem Controller fern.
+- Direkte und gebaute Add-on-Tests decken die Modusklangmatrix,
+  Fokusansageoptionen, Kommandozeilenrückkehr und eingebettete Terminalmodi ab.
+
 ## 0.95.0-dev.32+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der zweite V2-5-Schnitt verschiebt begrenzte Zwischenablage-, Register- und

@@ -108,7 +108,10 @@ See `compatibility.md` for complete platform boundaries.
   and terminal-control requests, correlates their replies to instance and
   terminal identity, and removes one-shot clipboard text before further state
   processing. Transport calls, focus/gate validation, the Windows clipboard,
-  and concrete output remain at the NVDA boundary.
+  and concrete output remain at the NVDA boundary. The next slice combines the
+  state transition, terminal passthrough, mode-cue decision, and neutral
+  speech actions in one immutable event plan. The Global Plugin only applies
+  the gate decision and delivers the plan through `NvdaPresentation`.
 
 ### Editor output
 

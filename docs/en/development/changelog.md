@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.33+feature.global-plugin-slimming (feature-branch test build)
+
+- The third V2-5 slice makes `EditorSessionController` return an immutable
+  plan containing the state transition, terminal passthrough, mode-cue
+  decision, and neutral speech actions.
+- The Global Plugin no longer plans mode cues or speech itself. It only
+  applies passthrough to the gate and delivers cue and speech actions through
+  `NvdaPresentation`; concrete NVDA APIs stay out of the controller.
+- Direct and built-add-on tests cover the mode-cue matrix, focus-announcement
+  choices, command-line return, and embedded terminal modes.
+
 ## 0.95.0-dev.32+feature.global-plugin-slimming (feature-branch test build)
 
 - The second V2-5 slice moves bounded clipboard, register, and terminal-control

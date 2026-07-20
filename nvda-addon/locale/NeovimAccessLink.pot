@@ -329,7 +329,7 @@ msgstr ""
 msgid "end of file"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2813
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2764
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr ""
@@ -691,7 +691,7 @@ msgstr ""
 msgid "Neovim session"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2814
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2765
 msgid "Neovim SSH password"
 msgstr ""
 

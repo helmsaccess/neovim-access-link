@@ -177,7 +177,11 @@ NVDA-Ausgabe und Fokus-/Gate-Entscheidungen bleiben außerhalb. Der zweite
 Schnitt verschiebt die begrenzte Anfrageverwaltung und Antwortkorrelation für
 Zwischenablage, Register und eingebettete Terminalsteuerung in denselben
 Controller. Netzwerkaufruf, Windows-Zwischenablage, Diagnostik und
-übersetzte Rückmeldung bleiben in der NVDA-Kompositionswurzel.
+übersetzte Rückmeldung bleiben in der NVDA-Kompositionswurzel. Der dritte
+Schnitt führt Zustandsübergang, Terminal-Passthrough, Modusklang und neutrale
+Sprachaktionen in einem unveränderlichen Ereignisplan zusammen. Damit plant
+das Global Plugin Editorereignisse nicht mehr selbst, sondern liefert nur
+über NVDA aus und wendet Gate-Übergänge an.
 
 ## 3. Praktische Abschottung verbreitern
 
