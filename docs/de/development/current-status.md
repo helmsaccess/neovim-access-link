@@ -110,8 +110,12 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   `EditorSessionController` mutiert den aktiven instanzgetrennten
   Editorzustand, wechselt dessen Runtime, verarbeitet Modus-, Menü-,
   Transport- und Verbindungszustand und erzeugt geordnete neutrale Aktionen
-  für strukturiertes Tippecho. Konkrete Sprache bleibt bei
-  `NvdaPresentation` beziehungsweise am schmalen NVDA-Ausgaberand.
+  für strukturiertes Tippecho. Er besitzt außerdem die begrenzten
+  Zwischenablage-, Register- und Terminalsteuerungsanfragen, korreliert ihre
+  Antworten mit Instanz und Terminalidentität und entfernt einmaligen
+  Zwischenablagetext vor der weiteren Zustandsverarbeitung. Transportaufruf,
+  Fokus-/Gate-Prüfung, Windows-Zwischenablage und konkrete Ausgabe bleiben am
+  NVDA-Rand.
 
 ### Editorausgabe
 

@@ -160,6 +160,10 @@ operations. The first V2-5 slice introduces `EditorSessionController`. It owns
 mutation and switching of isolated per-instance editor state, including mode,
 menu documentation, transport capabilities, connection state, and structured
 typing echo. Concrete NVDA delivery and focus/gate decisions remain outside.
+The second slice moves bounded request ownership and reply correlation for the
+clipboard, register, and embedded-terminal control into the same controller.
+Network calls, the Windows clipboard, diagnostics, and translated feedback
+remain in the NVDA composition root.
 
 ## 3. Broaden practical isolation coverage
 

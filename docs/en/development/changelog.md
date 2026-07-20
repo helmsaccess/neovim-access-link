@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.32+feature.global-plugin-slimming (feature-branch test build)
+
+- The second V2-5 slice moves bounded clipboard, register, and terminal-control
+  requests plus instance/terminal correlation into `EditorSessionController`.
+- Foreign, late, and invalid replies are rejected there; one-shot clipboard
+  text is validated and removed from safe follow-up events. The Windows
+  clipboard, transport, focus/gate validation, diagnostics, and translated
+  feedback remain at the NVDA boundary.
+- Direct controller and built-add-on tests cover queue bounds, focus loss,
+  wrong terminal identity, reply sanitization, and local/remote
+  copy/paste/register paths.
+
 ## 0.95.0-dev.31+feature.global-plugin-slimming (feature-branch test build)
 
 - The practical milestone after V2-4 is complete across multiple Windows

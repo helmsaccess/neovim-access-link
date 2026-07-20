@@ -782,6 +782,106 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(coordinator.active_instance_id)
         self.assertEqual({}, coordinator.current_state)
 
+    def test_editor_session_controller_correlates_and_sanitizes_control_replies(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            ControlReplyKind,
+            EditorSessionController,
+        )
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(
+            coordinator,
+            new_planner=SpeechPlanner,
+            max_pending_clipboard_requests=2,
+            max_pending_terminal_control_requests=2,
+        )
+        identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 6))
+        other_identity = TerminalIdentity(100, 201, "windowsTerminal", (42, 201, 4, 7))
+
+        first = controller.remember_clipboard_request("instance-1", identity, "copyTextRequest")
+        second = controller.remember_clipboard_request("instance-1", identity, "pasteTextRequest")
+        third = controller.remember_clipboard_request("instance-1", identity, "setRegisterRequest")
+        self.assertEqual((first.request_id,), third.discarded_request_ids)
+        self.assertEqual(2, len(coordinator.pending_clipboard_requests))
+
+        invalid = controller.consume_clipboard_reply(
+            "instance-1",
+            identity,
+            {"type": "pasteTextResult", "payload": {"requestId": "not-an-id"}},
+        )
+        self.assertEqual(ControlReplyKind.INVALID_REQUEST_ID, invalid.kind)
+        self.assertIn(second.request_id, coordinator.pending_clipboard_requests)
+
+        stale = controller.consume_clipboard_reply(
+            "instance-1",
+            other_identity,
+            {
+                "type": "pasteTextResult",
+                "payload": {
+                    "requestId": second.request_id,
+                    "ok": True,
+                    "resultCode": "pasted",
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.STALE_OR_UNBOUND, stale.kind)
+        self.assertNotIn(second.request_id, coordinator.pending_clipboard_requests)
+
+        copy = controller.remember_clipboard_request("instance-1", identity, "copyTextRequest")
+        reply = controller.consume_clipboard_reply(
+            "instance-1",
+            identity,
+            {
+                "type": "copyTextResult",
+                "payload": {
+                    "requestId": copy.request_id,
+                    "ok": True,
+                    "resultCode": "copied",
+                    "clipboardText": "private selection",
+                    "text": "must also remain private",
+                    "bufferId": 7,
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.ACCEPTED, reply.kind)
+        self.assertTrue(reply.requires_clipboard_write)
+        self.assertEqual("private selection", reply.clipboard_text)
+        self.assertNotIn("clipboardText", reply.safe_payload)
+        self.assertNotIn("text", reply.safe_payload)
+        self.assertEqual({"bufferId": 7}, reply.safe_event["payload"])
+        failed = controller.finish_clipboard_reply(reply, clipboard_written=False)
+        self.assertFalse(failed.ok)
+        self.assertEqual("clipboardWriteFailed", failed.result_code)
+
+        terminal = controller.remember_terminal_control_request(
+            "instance-1",
+            identity,
+            "leaveTerminalInputRequest",
+        )
+        terminal_reply = controller.consume_terminal_control_reply(
+            "instance-1",
+            identity,
+            {
+                "type": "leaveTerminalInputResult",
+                "payload": {
+                    "requestId": terminal.request_id,
+                    "ok": True,
+                    "resultCode": "ok",
+                    "bufferId": 9,
+                    "modeRaw": "nt",
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.ACCEPTED, terminal_reply.kind)
+        self.assertTrue(terminal_reply.ok)
+        self.assertEqual(
+            {"bufferId": 9, "modeRaw": "nt"},
+            terminal_reply.safe_event["payload"],
+        )
+
     def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
@@ -793,6 +893,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("self._currentState = payload", global_source)
         self.assertNotIn("self._lastMode = mode", global_source)
         self.assertNotIn("self._menuDocumentation = documentation", global_source)
+        self.assertNotIn('next_request_id("clipboard")', global_source)
+        self.assertNotIn('remember_pending_request("clipboard"', global_source)
+        self.assertNotIn("PendingControlRequest", global_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
@@ -5222,15 +5325,20 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
-        for request_id in range(40):
-            plugin._rememberClipboardRequest(
-                request_id,
-                ("instance", identity, "copyTextRequest"),
+        discarded = []
+        for _request in range(40):
+            plan = plugin._editorSessionController.remember_clipboard_request(
+                "instance",
+                identity,
+                "copyTextRequest",
             )
+            discarded.extend(plan.discarded_request_ids)
+            plugin._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
 
         self.assertEqual(32, len(plugin._pendingClipboardRequests))
-        self.assertNotIn(0, plugin._pendingClipboardRequests)
-        self.assertIn(39, plugin._pendingClipboardRequests)
+        self.assertEqual(list(range(1, 9)), discarded)
+        self.assertNotIn(1, plugin._pendingClipboardRequests)
+        self.assertIn(40, plugin._pendingClipboardRequests)
         self.assertIn('"reason": "queueLimit"', plugin._diagnostics.report())
         plugin.terminate()
 

@@ -71,18 +71,15 @@ from .core.stdio_client import SshStdioClient  # noqa: E402
 from .core.local_client import LocalTcpClient  # noqa: E402
 from .core.clipboard import (  # noqa: E402
 	MAX_CLIPBOARD_TEXT_BYTES,
-	clipboard_result_state,
 	valid_clipboard_text,
-	valid_request_id,
 )
-from .core.terminal_control import terminal_control_result_state  # noqa: E402
 from .core.braille import plan_braille, source_offset_for_expanded  # noqa: E402
 from .core.diagnostics import DiagnosticBuffer  # noqa: E402
 from .core.connection_profiles import (  # noqa: E402
 	parse_profile,
 	parse_profiles,
 )
-from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest  # noqa: E402
+from .core.connection_coordinator import ConnectionCoordinator  # noqa: E402
 from .core.connection_targets import (  # noqa: E402
 	LOCAL_WINDOWS_TCP,
 	local_windows_target,
@@ -102,7 +99,7 @@ from .terminal_integration import (  # noqa: E402
 )
 from .settings_service import SettingsService  # noqa: E402
 from .managed_clients import ManagedClientFactory  # noqa: E402
-from .editor_session import EditorSessionController  # noqa: E402
+from .editor_session import ControlReplyKind, EditorSessionController  # noqa: E402
 from .session_claim import (  # noqa: E402
 	ClaimTransitionKind,
 	DiscoverySelectionKind,
@@ -420,6 +417,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._editorSessionController = EditorSessionController(
 			self._connectionCoordinator,
 			new_planner=lambda: SpeechPlanner(translate=_),
+			max_pending_clipboard_requests=_MAX_PENDING_CLIPBOARD_REQUESTS,
+			max_pending_terminal_control_requests=_MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
 		)
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
@@ -1084,23 +1083,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "text": text}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"pasteTextRequest",
-			),
+		plan = self._editorSessionController.remember_clipboard_request(
+			instance_id,
+			identity,
+			"pasteTextRequest",
 		)
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		payload = {**expected, "requestId": plan.request_id, "text": text}
 		accepted = client.send_control("pasteTextRequest", payload)
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardPasteRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
 			bytes=len(text.encode("utf-8")),
 		)
@@ -1113,23 +1109,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "text": text}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"setRegisterRequest",
-			),
+		plan = self._editorSessionController.remember_clipboard_request(
+			instance_id,
+			identity,
+			"setRegisterRequest",
 		)
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		payload = {**expected, "requestId": plan.request_id, "text": text}
 		accepted = client.send_control("setRegisterRequest", payload)
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardRegisterRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
 			bytes=len(text.encode("utf-8")),
 		)
@@ -1173,36 +1166,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		):
 			ui.message(_("The active Neovim state is incomplete; try again"))
 			return
-		request_id = self._connectionCoordinator.next_request_id("terminalControl")
-		discarded_request_ids = self._connectionCoordinator.remember_pending_request(
-			"terminalControl",
-			request_id,
-			PendingControlRequest(
-				selected.identifier,
-				identity,
-				"leaveTerminalInputRequest",
-			),
-			_MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
+		plan = self._editorSessionController.remember_terminal_control_request(
+			selected.identifier,
+			identity,
+			"leaveTerminalInputRequest",
 		)
-		for discarded_id in discarded_request_ids:
-			self._diagnostics.record(
-				"terminalControlRequestDiscarded",
-				requestId=discarded_id,
-				reason="queueLimit",
-			)
+		self._recordDiscardedControlRequests("terminalControl", plan.discarded_request_ids)
 		accepted = self._client.send_control(
 			"leaveTerminalInputRequest",
-			{**expected, "requestId": request_id},
+			{**expected, "requestId": plan.request_id},
 		)
 		if not accepted:
-			self._connectionCoordinator.take_pending_request(
-				"terminalControl",
-				request_id,
-			)
+			self._editorSessionController.cancel_terminal_control_request(plan.request_id)
 			ui.message(_("Could not ask Neovim to leave direct terminal input"))
 		self._diagnostics.record(
 			"leaveTerminalInputRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
 			instanceId=selected.identifier,
 		)
@@ -1236,23 +1215,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if source == "visualSelection" and state.get("modeRaw") not in {"v", "V", "\x16"}:
 			self._clipboardFailure(_("Select text in Neovim Visual mode before copying"))
 			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "source": source}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"copyTextRequest",
-			),
+		plan = self._editorSessionController.remember_clipboard_request(
+			instance_id,
+			identity,
+			"copyTextRequest",
 		)
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		payload = {**expected, "requestId": plan.request_id, "source": source}
 		accepted = client.send_control("copyTextRequest", payload)
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
 			self._clipboardFailure(_("Could not request text from the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardCopyRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			source=source,
 			accepted=accepted,
 		)
@@ -1288,19 +1264,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return None
 		return identity, selected.identifier, self._client, state, expected
 
-	def _nextClipboardRequestId(self):
-		return self._connectionCoordinator.next_request_id("clipboard")
-
-	def _rememberClipboardRequest(self, request_id, request):
-		discarded_request_ids = self._connectionCoordinator.remember_pending_request(
-			"clipboard",
-			request_id,
-			PendingControlRequest(*request),
-			_MAX_PENDING_CLIPBOARD_REQUESTS,
+	def _recordDiscardedControlRequests(self, channel, request_ids):
+		category = (
+			"clipboardRequestDiscarded" if channel == "clipboard" else "terminalControlRequestDiscarded"
 		)
-		for discarded_id in discarded_request_ids:
+		for discarded_id in request_ids:
 			self._diagnostics.record(
-				"clipboardRequestDiscarded",
+				category,
 				requestId=discarded_id,
 				reason="queueLimit",
 			)
@@ -2361,88 +2331,68 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 	def _handleClipboardResult(self, instance_id, identity, event):
-		payload = event.get("payload")
-		event_type = event.get("type")
-		request_id = payload.get("requestId") if isinstance(payload, dict) else None
-		if not valid_request_id(request_id):
+		reply = self._editorSessionController.consume_clipboard_reply(instance_id, identity, event)
+		if reply.kind == ControlReplyKind.INVALID_REQUEST_ID:
 			self._diagnostics.record(
 				"clipboardResultIgnored",
 				instanceId=instance_id,
 				reason="invalidRequestId",
 			)
 			return None
-		pending = self._connectionCoordinator.take_pending_request(
-			"clipboard",
-			request_id,
-		)
-		expected_control = {
-			"copyTextResult": "copyTextRequest",
-			"pasteTextResult": "pasteTextRequest",
-			"setRegisterResult": "setRegisterRequest",
-		}.get(event_type)
-		if pending != PendingControlRequest(instance_id, identity, expected_control):
+		if reply.kind == ControlReplyKind.STALE_OR_UNBOUND:
 			self._diagnostics.record(
 				"clipboardResultIgnored",
 				instanceId=instance_id,
-				requestId=request_id,
+				requestId=reply.request_id,
 				reason="staleOrUnbound",
 			)
 			return None
-		safe_payload = dict(payload)
-		text = safe_payload.pop("clipboardText", None)
-		safe_payload.pop("text", None)
-		ok = payload.get("ok") is True
-		result_code = payload.get("resultCode")
-		if not isinstance(result_code, str) or len(result_code) > 64:
-			ok = False
-			result_code = "invalidResult"
-		if event_type == "copyTextResult" and ok:
-			if not valid_clipboard_text(text):
-				ok = False
-				result_code = "invalidText"
-			else:
-				try:
-					copied = bool(api.copyToClip(text))
-				except Exception as error:
-					copied = False
-					self._diagnostics.record(
-						"clipboardWriteFailed",
-						errorType=type(error).__name__,
-					)
-				if copied:
-					self._clipboardSuccess(_("Copied from Neovim"))
-				else:
-					ok = False
-					result_code = "clipboardWriteFailed"
-		elif event_type == "pasteTextResult" and ok:
+		clipboard_written = True
+		if reply.requires_clipboard_write:
+			try:
+				clipboard_written = bool(api.copyToClip(reply.clipboard_text))
+			except Exception as error:
+				clipboard_written = False
+				self._diagnostics.record(
+					"clipboardWriteFailed",
+					errorType=type(error).__name__,
+				)
+		reply = self._editorSessionController.finish_clipboard_reply(
+			reply,
+			clipboard_written=clipboard_written,
+		)
+		if reply.event_type == "copyTextResult" and reply.ok:
+			self._clipboardSuccess(_("Copied from Neovim"))
+		elif reply.event_type == "pasteTextResult" and reply.ok:
 			self._clipboardSuccess(_("Pasted into Neovim"))
-		elif event_type == "setRegisterResult" and ok:
+		elif reply.event_type == "setRegisterResult" and reply.ok:
 			self._clipboardSuccess(_("Stored the Windows clipboard in Neovim's unnamed register"))
-		if not ok:
-			if result_code == "staleState":
+		if not reply.ok:
+			if reply.result_code == "staleState":
 				message = _("Neovim changed before the copy or paste completed; try again")
-			elif result_code in {"visualSelectionRequired", "selectionUnavailable"}:
+			elif reply.result_code in {"visualSelectionRequired", "selectionUnavailable"}:
 				message = _("The Neovim Visual selection is no longer available")
-			elif result_code in {"bufferNotEditable", "unsupportedContext", "unsupportedMode"}:
+			elif reply.result_code in {"bufferNotEditable", "unsupportedContext", "unsupportedMode"}:
 				message = _("The current Neovim context does not accept this paste")
-			elif result_code == "textTooLarge":
+			elif reply.result_code == "textTooLarge":
 				message = _("The selected Neovim text is too large to copy")
-			elif result_code == "emptyText":
+			elif reply.result_code == "emptyText":
 				message = _("There is no Neovim text to copy")
-			elif result_code == "clipboardWriteFailed":
+			elif reply.result_code == "clipboardWriteFailed":
 				message = _("Could not write text to the Windows clipboard")
-			elif result_code == "registerRejected":
+			elif reply.result_code == "registerRejected":
 				message = _("Neovim could not replace its unnamed register")
 			else:
 				message = _("Neovim could not complete the copy or paste command")
 			self._clipboardFailure(message)
+		safe_payload = reply.safe_payload or {}
 		self._diagnostics.record(
 			"clipboardResult",
 			instanceId=instance_id,
-			requestId=request_id,
-			type=event_type,
-			ok=ok,
-			resultCode=result_code,
+			requestId=reply.request_id,
+			type=reply.event_type,
+			ok=reply.ok,
+			resultCode=reply.result_code,
 			copiedCharacterCount=safe_payload.get("copiedCharacterCount"),
 			copiedLineCount=safe_payload.get("copiedLineCount"),
 			insertedBytes=safe_payload.get("insertedBytes"),
@@ -2450,47 +2400,34 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			storedBytes=safe_payload.get("storedBytes"),
 			storedLineCount=safe_payload.get("storedLineCount"),
 		)
-		return {**event, "payload": clipboard_result_state(safe_payload)}
+		return dict(reply.safe_event) if reply.safe_event is not None else None
 
 	def _discardClipboardRequests(self, *, instance_id=None):
-		self._connectionCoordinator.discard_pending_requests(
-			"clipboard",
-			instance_id,
-		)
+		self._editorSessionController.discard_clipboard_requests(instance_id)
 
 	def _handleTerminalControlResult(self, instance_id, identity, event):
-		payload = event.get("payload")
-		request_id = payload.get("requestId") if isinstance(payload, dict) else None
-		if not valid_request_id(request_id):
+		reply = self._editorSessionController.consume_terminal_control_reply(
+			instance_id,
+			identity,
+			event,
+		)
+		if reply.kind == ControlReplyKind.INVALID_REQUEST_ID:
 			self._diagnostics.record(
 				"terminalControlResultIgnored",
 				instanceId=instance_id,
 				reason="invalidRequestId",
 			)
 			return None
-		pending = self._connectionCoordinator.take_pending_request(
-			"terminalControl",
-			request_id,
-		)
-		if pending != PendingControlRequest(
-			instance_id,
-			identity,
-			"leaveTerminalInputRequest",
-		):
+		if reply.kind == ControlReplyKind.STALE_OR_UNBOUND:
 			self._diagnostics.record(
 				"terminalControlResultIgnored",
 				instanceId=instance_id,
-				requestId=request_id,
+				requestId=reply.request_id,
 				reason="staleOrUnbound",
 			)
 			return None
-		ok = payload.get("ok") is True
-		result_code = payload.get("resultCode")
-		if not isinstance(result_code, str) or len(result_code) > 64:
-			ok = False
-			result_code = "invalidResult"
-		if not ok:
-			if result_code == "staleState":
+		if not reply.ok:
+			if reply.result_code == "staleState":
 				message = _("Neovim changed before terminal input could be left; try again")
 			else:
 				message = _("Neovim could not leave direct terminal input")
@@ -2498,17 +2435,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._diagnostics.record(
 			"terminalControlResult",
 			instanceId=instance_id,
-			requestId=request_id,
-			ok=ok,
-			resultCode=result_code,
+			requestId=reply.request_id,
+			ok=reply.ok,
+			resultCode=reply.result_code,
 		)
-		return {**event, "payload": terminal_control_result_state(payload)}
+		return dict(reply.safe_event) if reply.safe_event is not None else None
 
 	def _discardTerminalControlRequests(self, *, instance_id=None):
-		self._connectionCoordinator.discard_pending_requests(
-			"terminalControl",
-			instance_id,
-		)
+		self._editorSessionController.discard_terminal_control_requests(instance_id)
 
 	def _discardTransientFocusContext(self):
 		self._connectionCoordinator.discard_focus_context()

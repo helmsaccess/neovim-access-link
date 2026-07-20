@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import unicodedata
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from enum import Enum
 from typing import Any
 
-from .core.connection_coordinator import ConnectionCoordinator
+from .core.clipboard import clipboard_result_state, valid_clipboard_text, valid_request_id
+from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
+from .core.gate import TerminalIdentity
 from .core.speech import SpeechPlanner
+from .core.terminal_control import terminal_control_result_state
 
 
 @dataclass(frozen=True)
@@ -37,6 +41,48 @@ class StructuredTypingAction:
 	spelling: bool
 
 
+class ControlReplyKind(Enum):
+	ACCEPTED = "accepted"
+	INVALID_REQUEST_ID = "invalidRequestId"
+	STALE_OR_UNBOUND = "staleOrUnbound"
+
+
+@dataclass(frozen=True)
+class PendingRequestPlan:
+	request_id: int
+	discarded_request_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class ClipboardReply:
+	kind: ControlReplyKind
+	request_id: int | None = None
+	event_type: str | None = None
+	ok: bool = False
+	result_code: str = "invalidResult"
+	clipboard_text: str | None = None
+	safe_payload: Mapping[str, Any] | None = None
+	safe_event: Mapping[str, Any] | None = None
+
+	@property
+	def requires_clipboard_write(self) -> bool:
+		return (
+			self.kind == ControlReplyKind.ACCEPTED
+			and self.event_type == "copyTextResult"
+			and self.ok
+			and self.clipboard_text is not None
+		)
+
+
+@dataclass(frozen=True)
+class TerminalControlReply:
+	kind: ControlReplyKind
+	request_id: int | None = None
+	ok: bool = False
+	result_code: str = "invalidResult"
+	safe_event: Mapping[str, Any] | None = None
+
+
 class EditorSessionController:
 	"""Own mutation of the active editor runtime selected by the coordinator."""
 
@@ -45,9 +91,13 @@ class EditorSessionController:
 		coordinator: ConnectionCoordinator,
 		*,
 		new_planner: Callable[[], SpeechPlanner],
+		max_pending_clipboard_requests: int = 32,
+		max_pending_terminal_control_requests: int = 16,
 	) -> None:
 		self._coordinator = coordinator
 		self._newPlanner = new_planner
+		self._maxPendingClipboardRequests = max_pending_clipboard_requests
+		self._maxPendingTerminalControlRequests = max_pending_terminal_control_requests
 
 	def new_runtime(self) -> dict[str, Any]:
 		"""Return one isolated runtime in the coordinator's stable storage format."""
@@ -195,6 +245,152 @@ class EditorSessionController:
 				actions.append(StructuredTypingAction(character, True))
 		self._coordinator.typed_position = (identity, byte_column) if isinstance(byte_column, int) else None
 		return tuple(actions)
+
+	def remember_clipboard_request(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+		control: str,
+	) -> PendingRequestPlan:
+		return self._remember_request(
+			"clipboard",
+			instance_id,
+			identity,
+			control,
+			self._maxPendingClipboardRequests,
+		)
+
+	def remember_terminal_control_request(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+		control: str,
+	) -> PendingRequestPlan:
+		return self._remember_request(
+			"terminalControl",
+			instance_id,
+			identity,
+			control,
+			self._maxPendingTerminalControlRequests,
+		)
+
+	def cancel_clipboard_request(self, request_id: int) -> None:
+		self._coordinator.take_pending_request("clipboard", request_id)
+
+	def cancel_terminal_control_request(self, request_id: int) -> None:
+		self._coordinator.take_pending_request("terminalControl", request_id)
+
+	def discard_clipboard_requests(self, instance_id: str | None = None) -> None:
+		self._coordinator.discard_pending_requests("clipboard", instance_id)
+
+	def discard_terminal_control_requests(self, instance_id: str | None = None) -> None:
+		self._coordinator.discard_pending_requests("terminalControl", instance_id)
+
+	def consume_clipboard_reply(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+		event: Mapping[str, Any],
+	) -> ClipboardReply:
+		payload_value = event.get("payload")
+		payload = payload_value if isinstance(payload_value, dict) else None
+		event_type_value = event.get("type")
+		event_type = event_type_value if isinstance(event_type_value, str) else None
+		request_id = payload.get("requestId") if payload is not None else None
+		if not valid_request_id(request_id):
+			return ClipboardReply(ControlReplyKind.INVALID_REQUEST_ID)
+		pending = self._coordinator.take_pending_request("clipboard", request_id)
+		expected_control = {
+			"copyTextResult": "copyTextRequest",
+			"pasteTextResult": "pasteTextRequest",
+			"setRegisterResult": "setRegisterRequest",
+		}.get(event_type)
+		expected = (
+			PendingControlRequest(instance_id, identity, expected_control)
+			if expected_control is not None
+			else None
+		)
+		if pending != expected:
+			return ClipboardReply(
+				ControlReplyKind.STALE_OR_UNBOUND,
+				request_id=request_id,
+				event_type=event_type,
+			)
+
+		safe_payload = dict(payload)
+		clipboard_text = safe_payload.pop("clipboardText", None)
+		safe_payload.pop("text", None)
+		ok = payload.get("ok") is True
+		result_code = payload.get("resultCode")
+		if not isinstance(result_code, str) or len(result_code) > 64:
+			ok = False
+			result_code = "invalidResult"
+		if event_type == "copyTextResult" and ok and not valid_clipboard_text(clipboard_text):
+			ok = False
+			result_code = "invalidText"
+		return ClipboardReply(
+			ControlReplyKind.ACCEPTED,
+			request_id=request_id,
+			event_type=event_type,
+			ok=ok,
+			result_code=result_code,
+			clipboard_text=clipboard_text if isinstance(clipboard_text, str) else None,
+			safe_payload=safe_payload,
+			safe_event={**event, "payload": clipboard_result_state(safe_payload)},
+		)
+
+	@staticmethod
+	def finish_clipboard_reply(reply: ClipboardReply, *, clipboard_written: bool) -> ClipboardReply:
+		if reply.requires_clipboard_write and not clipboard_written:
+			return replace(reply, ok=False, result_code="clipboardWriteFailed")
+		return reply
+
+	def consume_terminal_control_reply(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+		event: Mapping[str, Any],
+	) -> TerminalControlReply:
+		payload_value = event.get("payload")
+		payload = payload_value if isinstance(payload_value, dict) else None
+		request_id = payload.get("requestId") if payload is not None else None
+		if not valid_request_id(request_id):
+			return TerminalControlReply(ControlReplyKind.INVALID_REQUEST_ID)
+		pending = self._coordinator.take_pending_request("terminalControl", request_id)
+		if pending != PendingControlRequest(instance_id, identity, "leaveTerminalInputRequest"):
+			return TerminalControlReply(
+				ControlReplyKind.STALE_OR_UNBOUND,
+				request_id=request_id,
+			)
+		ok = payload.get("ok") is True
+		result_code = payload.get("resultCode")
+		if not isinstance(result_code, str) or len(result_code) > 64:
+			ok = False
+			result_code = "invalidResult"
+		return TerminalControlReply(
+			ControlReplyKind.ACCEPTED,
+			request_id=request_id,
+			ok=ok,
+			result_code=result_code,
+			safe_event={**event, "payload": terminal_control_result_state(payload)},
+		)
+
+	def _remember_request(
+		self,
+		channel: str,
+		instance_id: str,
+		identity: TerminalIdentity,
+		control: str,
+		max_pending: int,
+	) -> PendingRequestPlan:
+		request_id = self._coordinator.next_request_id(channel)
+		discarded = self._coordinator.remember_pending_request(
+			channel,
+			request_id,
+			PendingControlRequest(instance_id, identity, control),
+			max_pending,
+		)
+		return PendingRequestPlan(request_id, discarded)
 
 	@staticmethod
 	def _integer_field(value: Mapping[str, Any] | None, name: str) -> int | None:

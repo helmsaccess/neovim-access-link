@@ -173,7 +173,11 @@ Zwischenablageoperationen abgeschlossen. Der erste V2-5-Schnitt führt einen
 `EditorSessionController` ein. Er übernimmt die Mutation und Umschaltung des
 instanzgetrennten Editorzustands einschließlich Modus, Menüdokumentation,
 Transportfähigkeiten, Verbindungszustand und strukturiertem Tippecho. Konkrete
-NVDA-Ausgabe und Fokus-/Gate-Entscheidungen bleiben außerhalb.
+NVDA-Ausgabe und Fokus-/Gate-Entscheidungen bleiben außerhalb. Der zweite
+Schnitt verschiebt die begrenzte Anfrageverwaltung und Antwortkorrelation für
+Zwischenablage, Register und eingebettete Terminalsteuerung in denselben
+Controller. Netzwerkaufruf, Windows-Zwischenablage, Diagnostik und
+übersetzte Rückmeldung bleiben in der NVDA-Kompositionswurzel.
 
 ## 3. Praktische Abschottung verbreitern
 

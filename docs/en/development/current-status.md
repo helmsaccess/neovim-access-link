@@ -104,8 +104,11 @@ See `compatibility.md` for complete platform boundaries.
   V2-5 has therefore started: `EditorSessionController` mutates the active
   isolated per-instance editor state, switches its runtime, processes mode,
   menu, transport, and connection state, and creates ordered neutral actions
-  for structured typing echo. Concrete speech remains in `NvdaPresentation`
-  or at the narrow NVDA delivery boundary.
+  for structured typing echo. It also owns the bounded clipboard, register,
+  and terminal-control requests, correlates their replies to instance and
+  terminal identity, and removes one-shot clipboard text before further state
+  processing. Transport calls, focus/gate validation, the Windows clipboard,
+  and concrete output remain at the NVDA boundary.
 
 ### Editor output
 
