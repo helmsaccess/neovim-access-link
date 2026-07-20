@@ -16,7 +16,8 @@ class AddonRuntime:
 		integration_service: Any,
 		pending_main_thread_calls: set[Any],
 		gate: Any,
-		unregister_profile_switch: Callable[[], None],
+		profile_switch_action: Any,
+		profile_switch_handler: Callable[..., None],
 		clear_session_passwords: Callable[[], None],
 		stop_connections: Callable[[], None],
 		instance_manager: Any,
@@ -34,7 +35,8 @@ class AddonRuntime:
 		self._integrationService = integration_service
 		self._pendingMainThreadCalls = pending_main_thread_calls
 		self._gate = gate
-		self._unregisterProfileSwitch = unregister_profile_switch
+		self._profileSwitchAction = profile_switch_action
+		self._profileSwitchHandler = profile_switch_handler
 		self._clearSessionPasswords = clear_session_passwords
 		self._stopConnections = stop_connections
 		self._instanceManager = instance_manager
@@ -47,42 +49,53 @@ class AddonRuntime:
 		self._diagnostics = diagnostics
 		self._registrationToken: object | None = None
 		self._profileSwitchRegistered = False
+		self._started = False
 		self._closed = False
 
 	@property
 	def closed(self) -> bool:
 		return self._closed
 
-	def mark_profile_switch_registered(self) -> None:
+	def start(self) -> bool:
+		"""Register and publish once, rolling back any partial activation."""
 		if self._closed:
 			raise RuntimeError("runtime is closed")
-		self._profileSwitchRegistered = True
-
-	def publish(self) -> None:
-		"""Publish only after every process-wide registration has completed."""
-		if self._closed:
-			raise RuntimeError("runtime is closed")
-		if self._registrationToken is None:
+		if self._started:
+			return False
+		try:
+			self._profileSwitchAction.register(self._profileSwitchHandler)
+			self._profileSwitchRegistered = True
+			self._uiManager.register()
 			self._registrationToken = self._registrar.publish(self._integrationService)
+			self._started = True
+		except Exception:
+			self.close()
+			raise
+		return True
 
 	def close(self) -> bool:
 		"""Close once, keeping teardown fail-open after an individual failure."""
 		if self._closed:
 			return False
 		self._closed = True
+		self._started = False
 
 		token = self._registrationToken
 		self._registrationToken = None
-		self._run_close_step(
-			"unpublish",
-			lambda: self._registrar.unpublish(self._integrationService, token),
-		)
+		if token is not None:
+			self._run_close_step(
+				"unpublish",
+				lambda: self._registrar.unpublish(self._integrationService, token),
+			)
 		self._run_close_step("terminalService", self._integrationService.close)
 		self._cancel_main_thread_calls()
 		self._run_close_step("gate", self._gate.disable)
 		if self._profileSwitchRegistered:
 			self._profileSwitchRegistered = False
-			self._run_close_step("profileSwitch", self._unregisterProfileSwitch)
+			self._run_close_step(
+				"profileSwitch",
+				lambda: self._profileSwitchAction.unregister(self._profileSwitchHandler),
+			)
 		self._run_close_step("passwords", self._clearSessionPasswords)
 		self._run_close_step("connections", self._stopConnections)
 		self._run_close_step("instances", self._instanceManager.stop_all)

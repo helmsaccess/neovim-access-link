@@ -225,7 +225,12 @@ Eigentümer. Der folgende V2-6-Schnitt schließt den veröffentlichten
 Terminaldienst nach dem Unpublish und lässt eingereihte Runtimecallbacks beim
 tatsächlichen Aufruf den geschlossenen Zustand erneut prüfen. Die Abdeckung
 für verspätete fachliche Callbacks ist damit vorhanden; Teilinitialisierung
-und verbleibende Abbauweiterleitungen werden anschließend weiter geprüft.
+und verbleibende Abbauweiterleitungen werden anschließend weiter geprüft. Der
+folgende Schnitt bündelt Profilcallback-, UI- und Dienstaktivierung in
+`AddonRuntime.start()`. Fehler an jedem dieser Schritte führen über denselben
+Teardown zur vollständigen Rückabwicklung; die Teilinitialisierungsabdeckung
+ist damit vorhanden. Als Nächstes werden die verbleibenden Abbauweiterleitungen
+auf eindeutigen Besitz und unnötig doppelte Bereinigung geprüft.
 
 ## 3. Praktische Abschottung verbreitern
 

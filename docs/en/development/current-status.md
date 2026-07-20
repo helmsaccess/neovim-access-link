@@ -160,6 +160,11 @@ See `compatibility.md` for complete platform boundaries.
   therefore inert and fail open. The gate and instance manager remain after a
   separate audit as frequently used composition dependencies; another layer
   of indirection would not create a clearer ownership boundary.
+- The eighth V2-6 slice also centralizes activation in `AddonRuntime`. The
+  profile callback, UI, and publication run exactly once in that order;
+  failure at each boundary triggers the same complete teardown. The Global
+  Plugin no longer marks registration and publication through separate
+  transitional calls.
 
 ### Editor output
 

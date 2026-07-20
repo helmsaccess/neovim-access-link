@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.45+feature.global-plugin-slimming (feature-branch test build)
+
+- The eighth V2-6 slice gives `AddonRuntime` one symmetrical activation
+  sequence: register the profile callback, register the NVDA UI, and only then
+  publish the terminal service.
+- Failure at any of these three steps immediately uses the same idempotent
+  teardown. No partial menus, Settings entry, profile callback, service
+  reference, or presentation resource remains.
+- `mark_profile_switch_registered`, the separate publish call, and an injected
+  unregister callback are removed from the composition root.
+
 ## 0.95.0-dev.44+feature.global-plugin-slimming (feature-branch test build)
 
 - The seventh V2-6 slice closes the published terminal service immediately

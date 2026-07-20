@@ -541,9 +541,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("class SettingsService", settings_source)
         self.assertNotIn("self._plugin", ui_source)
         self.assertNotIn("GlobalPlugin", ui_source)
-        self.assertIn("self._nvdaUi.register()", global_source)
+        self.assertNotIn("self._nvdaUi.register()", global_source)
         self.assertNotIn("self._nvdaUi.unregister()", global_source)
+        self.assertIn("self._uiManager.register()", runtime_source)
         self.assertIn("self._uiManager.unregister", runtime_source)
+        self.assertIn("self._addonRuntime.start()", global_source)
         self.assertIn("self._addonRuntime.close()", global_source)
         for implementation in (
             "def _registerSettingsPanel", "def _installMenus",
@@ -1455,6 +1457,10 @@ class BuiltAddonTests(unittest.TestCase):
         pending.Stop.side_effect = lambda: order.append("mainThread")
         gate = mock.Mock()
         gate.disable.side_effect = lambda: order.append("gate")
+        profile_switch = mock.Mock()
+        profile_switch.register.side_effect = lambda _handler: order.append("profileRegister")
+        profile_switch.unregister.side_effect = lambda _handler: order.append("profileSwitch")
+        profile_handler = mock.Mock()
         instances = mock.Mock()
         instances.stop_all.side_effect = lambda: order.append("instances")
         coordinator = mock.Mock()
@@ -1470,6 +1476,7 @@ class BuiltAddonTests(unittest.TestCase):
         claim = mock.Mock()
         claim.cancel_pending_authorization.side_effect = lambda: order.append("sessionClaim")
         ui_manager = mock.Mock()
+        ui_manager.register.side_effect = lambda: order.append("uiRegister")
         ui_manager.unregister.side_effect = lambda: order.append("ui")
         presentation = mock.Mock()
         presentation.close.side_effect = lambda: order.append("presentation")
@@ -1480,7 +1487,8 @@ class BuiltAddonTests(unittest.TestCase):
             integration_service=service,
             pending_main_thread_calls={pending},
             gate=gate,
-            unregister_profile_switch=lambda: order.append("profileSwitch"),
+            profile_switch_action=profile_switch,
+            profile_switch_handler=profile_handler,
             clear_session_passwords=lambda: order.append("passwords"),
             stop_connections=lambda: order.append("connections"),
             instance_manager=instances,
@@ -1492,13 +1500,15 @@ class BuiltAddonTests(unittest.TestCase):
             presentation=presentation,
             diagnostics=diagnostics,
         )
-        runtime.mark_profile_switch_registered()
-        runtime.publish()
+        self.assertTrue(runtime.start())
+        self.assertFalse(runtime.start())
         self.assertTrue(runtime.close())
         self.assertFalse(runtime.close())
 
         self.assertEqual(
             [
+                "profileRegister",
+                "uiRegister",
                 "publish",
                 "unpublish",
                 "terminalService",
@@ -1521,6 +1531,8 @@ class BuiltAddonTests(unittest.TestCase):
         )
         registrar.publish.assert_called_once_with(service)
         registrar.unpublish.assert_called_once_with(service, token)
+        profile_switch.register.assert_called_once_with(profile_handler)
+        profile_switch.unregister.assert_called_once_with(profile_handler)
         diagnostics.record.assert_any_call("addonStop")
 
     def test_addon_runtime_continues_teardown_after_a_step_failure(self) -> None:
@@ -1535,7 +1547,8 @@ class BuiltAddonTests(unittest.TestCase):
             integration_service=mock.Mock(),
             pending_main_thread_calls=set(),
             gate=mock.Mock(),
-            unregister_profile_switch=mock.Mock(),
+            profile_switch_action=mock.Mock(),
+            profile_switch_handler=mock.Mock(),
             clear_session_passwords=mock.Mock(),
             stop_connections=mock.Mock(side_effect=RuntimeError("stop failed")),
             instance_manager=mock.Mock(),
@@ -1559,6 +1572,64 @@ class BuiltAddonTests(unittest.TestCase):
             error="stop failed",
         )
         diagnostics.record.assert_any_call("addonStop")
+
+    def test_addon_runtime_start_rolls_back_each_partial_activation(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        for failure_step in ("profile", "ui", "publish"):
+            with self.subTest(failureStep=failure_step):
+                registrar = mock.Mock()
+                integration_service = mock.Mock()
+                profile_switch = mock.Mock()
+                profile_handler = mock.Mock()
+                ui_manager = mock.Mock()
+                presentation = mock.Mock()
+                if failure_step == "profile":
+                    profile_switch.register.side_effect = RuntimeError("profile failed")
+                elif failure_step == "ui":
+                    ui_manager.register.side_effect = RuntimeError("ui failed")
+                else:
+                    registrar.publish.side_effect = RuntimeError("publish failed")
+                runtime = AddonRuntime(
+                    registrar=registrar,
+                    integration_service=integration_service,
+                    pending_main_thread_calls=set(),
+                    gate=mock.Mock(),
+                    profile_switch_action=profile_switch,
+                    profile_switch_handler=profile_handler,
+                    clear_session_passwords=mock.Mock(),
+                    stop_connections=mock.Mock(),
+                    instance_manager=mock.Mock(),
+                    coordinator=mock.Mock(),
+                    focus_service=mock.Mock(),
+                    editor_session=mock.Mock(),
+                    claim_service=mock.Mock(),
+                    ui_manager=ui_manager,
+                    presentation=presentation,
+                    diagnostics=mock.Mock(),
+                )
+
+                with self.assertRaisesRegex(RuntimeError, rf"{failure_step} failed"):
+                    runtime.start()
+
+                self.assertTrue(runtime.closed)
+                integration_service.close.assert_called_once_with()
+                ui_manager.unregister.assert_called_once_with()
+                presentation.close.assert_called_once_with()
+                registrar.unpublish.assert_not_called()
+                if failure_step == "profile":
+                    profile_switch.unregister.assert_not_called()
+                    ui_manager.register.assert_not_called()
+                    registrar.publish.assert_not_called()
+                else:
+                    profile_switch.unregister.assert_called_once_with(profile_handler)
+                    ui_manager.register.assert_called_once_with()
+                    if failure_step == "ui":
+                        registrar.publish.assert_not_called()
+                    else:
+                        registrar.publish.assert_called_once_with(integration_service)
+                with self.assertRaisesRegex(RuntimeError, "runtime is closed"):
+                    runtime.start()
 
     def test_unpublished_terminal_service_is_closed_and_fails_open(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -1674,6 +1745,7 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
 
         with (
+            mock.patch.object(addon_module.NvdaPresentation, "close") as close_presentation,
             mock.patch.object(
                 addon_module._serviceRegistrar,
                 "publish",
@@ -1686,6 +1758,28 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(getTerminalIntegrationService())
         self.assertEqual([], self.settingsCategoryClasses)
         self.assertEqual([], config.post_configProfileSwitch.handlers)
+        close_presentation.assert_called_once_with()
+
+    def test_global_partial_ui_registration_failure_rolls_back_runtime(self) -> None:
+        import config
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        with (
+            mock.patch.object(
+                addon_module.NvdaUiManager,
+                "_registerSettingsPanel",
+                side_effect=RuntimeError("settings panel failed"),
+            ),
+            mock.patch.object(addon_module.NvdaPresentation, "close") as close_presentation,
+            self.assertRaisesRegex(RuntimeError, "settings panel failed"),
+        ):
+            GlobalPlugin()
+
+        self.assertIsNone(getTerminalIntegrationService())
+        self.assertEqual([], self.settingsCategoryClasses)
+        self.assertEqual([], config.post_configProfileSwitch.handlers)
+        close_presentation.assert_called_once_with()
 
     def test_service_replacement_during_native_focus_keeps_new_service_current_and_open(self) -> None:
         from appModules.windowsterminal import AppModule

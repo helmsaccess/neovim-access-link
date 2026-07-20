@@ -177,6 +177,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Gate und Instanzmanager bleiben nach getrenntem Audit als häufig verwendete
   Kompositionsabhängigkeiten bestehen; eine weitere Indirektion würde keine
   klarere Besitzgrenze schaffen.
+- Der achte V2-6-Schnitt bündelt auch die Aktivierung in `AddonRuntime`.
+  Profilcallback, UI und Veröffentlichung erfolgen genau einmal in dieser
+  Reihenfolge; Fehler an jeder Grenze lösen denselben vollständigen Teardown
+  aus. Das Global Plugin markiert Registrierung und Publish nicht mehr über
+  getrennte Übergangsaufrufe.
 
 ### Editorausgabe
 

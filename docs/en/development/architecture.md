@@ -220,13 +220,13 @@ must not close output again before state is confirmed.
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
 
-`AddonRuntime` is published only after profile, Settings, and Tools
-registration has completed. Its first V2-6 slice centralizes the existing
-shutdown order and makes it idempotent: unpublish, close the published
-service, cancel delayed main-thread calls, open the gate, unregister the
-profile callback, stop connections, clear runtime/focus/request state, then
-close UI and presentation. Each step fails independently so one cleanup error
-cannot leave later resources active. Some narrowly injected shutdown
+`AddonRuntime.start()` first registers the profile callback, then Settings and
+Tools, and publishes the terminal service last. If any step fails, the runtime
+immediately uses its complete idempotent teardown: unpublish, close the
+published service, cancel delayed main-thread calls, open the gate, unregister
+the profile callback, stop connections, clear runtime/focus/request state,
+then close UI and presentation. Each step fails independently so one cleanup
+error cannot leave later resources active. Some narrowly injected shutdown
 callbacks remain transitional until the remaining V2-6 ownership cleanup is
 complete.
 

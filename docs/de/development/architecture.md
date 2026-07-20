@@ -231,13 +231,14 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
 
-`AddonRuntime` wird erst nach der Registrierung von Profilcallback,
-Einstellungen und Werkzeugen veröffentlicht. Der erste V2-6-Schnitt bündelt
-die bestehende Abbaureihenfolge und macht sie wiederholbar: Dienst entfernen,
-veröffentlichten Dienst schließen, verzögerte Hauptthreadaufrufe abbrechen,
-Gate öffnen, Profilcallback
-abmelden, Verbindungen stoppen, Runtime-/Fokus-/Requestzustand löschen und
-zuletzt UI und Präsentation schließen. Jeder Schritt fällt getrennt aus, damit
+`AddonRuntime.start()` registriert zuerst den Profilcallback, danach
+Einstellungen und Werkzeuge und veröffentlicht erst zuletzt den
+Terminaldienst. Schlägt einer dieser Schritte fehl, verwendet die Runtime
+unmittelbar ihren vollständigen, wiederholbaren Teardown. Dieser entfernt den
+Dienst, schließt den veröffentlichten Dienst, bricht verzögerte
+Hauptthreadaufrufe ab, öffnet das Gate, meldet den Profilcallback ab, stoppt
+Verbindungen, löscht Runtime-/Fokus-/Requestzustand und schließt zuletzt UI
+und Präsentation. Jeder Schritt fällt getrennt aus, damit
 ein Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Einige schmal
 injizierte Abbaucallbacks bleiben bis zur weiteren V2-6-Besitzbereinigung
 vorübergehend bestehen.

@@ -498,11 +498,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			integration_service=self._terminalIntegrationService,
 			pending_main_thread_calls=self._pendingMainThreadCalls,
 			gate=self._gate,
-			unregister_profile_switch=(
-				lambda: config.post_configProfileSwitch.unregister(
-					self._settingsService.handle_profile_switch,
-				)
-			),
+			profile_switch_action=config.post_configProfileSwitch,
+			profile_switch_handler=self._settingsService.handle_profile_switch,
 			clear_session_passwords=self._clearSessionPasswords,
 			stop_connections=lambda: self._stopClient(),
 			instance_manager=self._instanceManager,
@@ -515,8 +512,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			diagnostics=self._diagnostics,
 		)
 		try:
-			config.post_configProfileSwitch.register(self._settingsService.handle_profile_switch)
-			self._addonRuntime.mark_profile_switch_registered()
 			settings = self._settingsService.snapshot()
 			self._diagnostics.record(
 				"addonStart",
@@ -524,8 +519,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				configured=bool(settings.get("connections")),
 			)
 			log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
-			self._nvdaUi.register()
-			self._addonRuntime.publish()
+			self._addonRuntime.start()
 		except Exception:
 			self._addonRuntime.close()
 			raise

@@ -205,6 +205,11 @@ new owner. The next V2-6 slice closes the published terminal service after
 unpublication and makes queued runtime callbacks recheck the closed state
 when they actually execute. Late domain callbacks are therefore covered;
 partial initialization and remaining shutdown forwarding are audited next.
+The following slice centralizes profile-callback, UI, and service activation
+in `AddonRuntime.start()`. Failure at every one of these steps uses the same
+teardown for complete rollback, providing partial-initialization coverage.
+Remaining shutdown forwarding is audited next for clear ownership and
+unnecessary duplicate cleanup.
 
 ## 3. Broaden practical isolation coverage
 

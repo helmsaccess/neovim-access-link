@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.45+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der achte V2-6-Schnitt gibt `AddonRuntime` eine symmetrische
+  Aktivierungssequenz: Profilcallback registrieren, NVDA-UI registrieren und
+  erst danach den Terminaldienst veröffentlichen.
+- Fehler in jedem dieser drei Schritte verwenden unmittelbar denselben
+  idempotenten Teardown. Teilweise angelegte Menüs, Einstellungen,
+  Profilcallbacks, Dienstreferenzen und Präsentationsressourcen bleiben nicht
+  zurück.
+- `mark_profile_switch_registered`, der separate Publish-Aufruf und ein
+  injizierter Unregister-Callback entfallen aus der Kompositionswurzel.
+
 ## 0.95.0-dev.44+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der siebte V2-6-Schnitt schließt den veröffentlichten Terminaldienst direkt
