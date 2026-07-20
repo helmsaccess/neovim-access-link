@@ -195,6 +195,17 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   `nvda_braille.py`. Die neutrale `service_registry.py` besitzt die
   prozessweite Dienstveröffentlichung; weder dieser Registry-Baustein noch das
   Braillemodul importiert das Global Plugin.
+- Der abschließende V2-6-Strukturaudit entfernt die letzte nur von Tests
+  verwendete Runtimefabrik und ergänzt Abhängigkeitsprüfungen am Paket. Die
+  Kompositionswurzel umfasst 2.499 Zeilen mit 112 Methoden und genau zwei
+  Eigenschaften: die häufig verwendeten Kompositionssichten auf Gate und
+  Instanzmanager. Dort verbleibt kein AppModule-Ereigniseinstieg, und keiner
+  der ausgelagerten Runtime- oder NVDA-Randdienste hängt von der
+  `GlobalPlugin`-Klasse ab. Weitere Auslagerungen werden bewusst gestoppt,
+  solange kein zusätzlicher Gewinn bei Besitz, Zuverlässigkeit oder
+  Testbarkeit belegt ist. V2-6 und Praxis-Meilenstein 2 sind ohne neu
+  gemeldeten Fehler abgeschlossen. Praktische Braillehardware bleibt nicht
+  verfügbar.
 
 ### Editorausgabe
 

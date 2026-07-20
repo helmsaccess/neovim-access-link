@@ -2,14 +2,16 @@
 
 ## Status
 
-Als Zielarchitektur für eine schrittweise Migration angenommen. Der gemeinsame
+Durch die schrittweise Migration angenommen und umgesetzt. Der gemeinsame
 Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden.
 Terminalereignisse, Overlayauswahl und `nextHandler` liegen im
 Windows-Terminal-AppModule. Diese Stufe ist automatisiert sowie praktisch mit
 lokalen und entfernten Verbindungen in mehreren WT-Fenstern, Tabs und Panes
 bestätigt; eine praktische Brailleprüfung war nicht möglich. Frei belegbare
 Terminalbefehle liegen nun ebenfalls unter automatisierter und praktischer
-Abdeckung im Windows-Terminal-AppModule.
+Abdeckung im Windows-Terminal-AppModule. Der abschließende Praxismeilenstein
+ergab keinen gemeldeten Fehler in den aktuellen lokalen, SSH-, Fokus-,
+Terminal-, Zwischenablage-, Dateimanager- und Reloadvarianten.
 
 ## Kontext
 
@@ -55,6 +57,12 @@ symmetrisch entfernt. AppModules dürfen keine ungeprüfte alte Dienstinstanz
 weiterverwenden. Die aktuelle Umsetzung veröffentlicht die vollständig
 initialisierte Instanz über einen identitätsgeprüften Registrar und entfernt
 sie vor dem übrigen Abbau.
+Der abgeschlossene Strukturaudit bestätigt außerdem, dass ausgelagerte
+Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry- und
+Terminaldienstmodule nicht von der `GlobalPlugin`-Klasse abhängen. Die
+Kompositionswurzel behält direkte Sichten auf Gate und Instanzmanager, weil
+diese ihre häufig verwendeten Abhängigkeiten und keine eigenen
+Zustandseigentümer sind.
 
 ## F12-Ausnahme
 

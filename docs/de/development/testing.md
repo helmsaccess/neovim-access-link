@@ -150,6 +150,10 @@ Besonders wichtig sind:
 - globale unbelegte Gestenmetadaten, aber Ausführung nur im exakt validierten
   und gebundenen Windows-Terminal-Control;
 - Weitergabe der Originalgeste außerhalb dieses Controls genau einmal.
+- Strukturtests am gebauten Paket halten alle Anwendungseinstiege aus dem
+  Global Plugin heraus und verwerfen Global-Plugin-Abhängigkeiten in den
+  ausgelagerten Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry-
+  und Terminaldienstmodulen.
 
 ### Terminal und Kommandozeile
 

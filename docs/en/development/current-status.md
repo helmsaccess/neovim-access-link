@@ -177,6 +177,15 @@ See `compatibility.md` for complete platform boundaries.
   `nvda_braille.py`. Neutral `service_registry.py` owns process-wide service
   publication; neither that registry module nor the Braille module imports the
   Global Plugin.
+- The final V2-6 structural audit removes the remaining test-only runtime
+  factory and adds package-level dependency checks. The composition root is
+  2,499 lines with 112 methods and exactly two properties: the frequently used
+  gate and instance-manager composition views. No AppModule event entry point
+  remains there, and none of the extracted runtime or NVDA-edge services
+  depends on the `GlobalPlugin` class. Further extraction is deliberately
+  stopped without a demonstrated ownership, reliability, or testability gain.
+  Automated V2-6 work and practical milestone 2 are complete without a newly
+  reported error. Practical Braille hardware remains unavailable.
 
 ### Editor output
 

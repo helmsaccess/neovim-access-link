@@ -40,9 +40,9 @@ independently verifiable steps:
 Phase 1 is implemented under automated coverage: window identity and process
 liveness use `winUser`, `winBindings`, and `winKernel`, while the neutral
 session lister receives the process probe by injection. Adapter, registry,
-claim, lifecycle, and complete built-add-on tests pass. Practical Windows/NVDA
-checks of process exit, closed tabs/panes, and plugin reload remain open; the
-phase is not treated as practically accepted until they pass.
+claim, lifecycle, and complete built-add-on tests pass. Subsequent practical
+Windows/NVDA tests covered multiple windows, tabs and panes, reloads, local and
+SSH sessions, and fail-open transitions without a reported error.
 
 Phase 2 is implemented under automated coverage: `NvdaUiManager` owns
 symmetrical settings and Tools-menu registration, connection forms, and
@@ -221,7 +221,13 @@ Braille classes still located in the composition root are audited next for a
 dedicated NVDA-edge module. That slice moves the region and overlay to
 `nvda_braille.py`; process-wide publication lives in neutral
 `service_registry.py`, avoiding a circular Global Plugin dependency. The final
-V2-6 structural audit follows next.
+V2-6 structural audit removes the last test-only editor-runtime factory and
+adds built-package dependency checks. It confirms that application events
+remain in the AppModule and extracted services do not depend on the Global
+Plugin class. The frequently used gate and instance-manager composition views
+remain because another forwarding layer would not improve ownership.
+Automated V2-6 work and practical milestone 2 are complete without a newly
+reported error. Practical Braille hardware remains the documented test gap.
 
 ## 3. Broaden practical isolation coverage
 

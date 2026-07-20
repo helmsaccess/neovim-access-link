@@ -1343,6 +1343,36 @@ class BuiltAddonTests(unittest.TestCase):
             "_instanceTerminalPassthrough", "_activeInstanceId", "_pendingInstanceFullStates",
         ):
             self.assertNotIn(f"def {removed_passive_view}(self)", global_source)
+        self.assertNotIn("def _newInstanceRuntime(self)", global_source)
+
+        for module_name in (
+            "addon_runtime.py",
+            "editor_session.py",
+            "nvda_braille.py",
+            "nvda_ui.py",
+            "service_registry.py",
+            "session_claim.py",
+            "terminal_focus.py",
+            "terminal_integration.py",
+        ):
+            source = (
+                self.extract_path / "globalPlugins" / "NeovimAccessLink" / module_name
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("GlobalPlugin", source, module_name)
+
+        for app_event_entry in (
+            "def chooseNVDAObjectOverlayClasses(",
+            "def event_gainFocus(",
+            "def event_loseFocus(",
+            "def event_textChange(",
+            "def event_typedCharacter(",
+            "def event_UIA_notification(",
+            "def event_liveRegionChange(",
+            "def event_valueChange(",
+            "def event_nameChange(",
+            "def event_descriptionChange(",
+        ):
+            self.assertNotIn(app_event_entry, global_source)
 
         plugin.terminate()
 
@@ -3555,7 +3585,7 @@ class BuiltAddonTests(unittest.TestCase):
                 plugin._connectionCoordinator.confirm_foreground_instance(
                     instance.identifier,
                     identity,
-                    plugin._newInstanceRuntime,
+                    plugin._editorSessionController.new_runtime,
                 )
                 plugin._gate.manual_enabled = True
                 original_message_box = wx.MessageBox
@@ -3710,7 +3740,7 @@ class BuiltAddonTests(unittest.TestCase):
         second = add_remote_instance(plugin._instanceManager, "two", "22", "Second", Client())
         plugin._instanceManager.bind(identity, first.identifier)
         original_select = plugin._connectionCoordinator.select_instance
-        original_select(first.identifier, identity, plugin._newInstanceRuntime)
+        original_select(first.identifier, identity, plugin._editorSessionController.new_runtime)
 
         def select(instance_id, terminal, create_runtime):
             if instance_id == second.identifier:
@@ -3750,7 +3780,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._connectionCoordinator.select_instance(
             instance.identifier,
             identity,
-            plugin._newInstanceRuntime,
+            plugin._editorSessionController.new_runtime,
         )
         plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
         plugin._gate.bound_terminal = identity

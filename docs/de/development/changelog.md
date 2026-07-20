@@ -5,6 +5,23 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.49+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der abschließende V2-6-Strukturaudit entfernt die letzte ausschließlich von
+  Tests verwendete Global-Plugin-Fabrik für neue Editorruntimes. Tests fordern
+  neuen Editorzustand nun beim besitzenden `EditorSessionController` an.
+- Strukturtests am gebauten Paket sichern ab, dass Anwendungsevents im
+  Windows-Terminal-AppModule bleiben und Runtime, UI, Fokus, Claim, Editor,
+  Braille, Registry sowie Terminaldienst nicht von der `GlobalPlugin`-Klasse
+  abhängen.
+- Der Audit behält nur die Kompositionssichten auf Gate und Instanzmanager.
+  Beide werden am NVDA-Rand umfangreich verwendet; eine weitere Weiterleitung
+  würde Besitz und Zustand nicht enger begrenzen.
+- Praxis-Meilenstein 2 wurde ohne gemeldeten Fehler mit den aktuellen lokalen
+  und SSH-, Fenster-/Tab-/Pane-, Fokus-, Modus-, Terminal-, Zwischenablage-,
+  Dateimanager- und Reloadvarianten abgeschlossen. Praktische Braillehardware
+  bleibt die dokumentierte Ausnahme.
+
 ## 0.95.0-dev.48+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der elfte V2-6-Schnitt verschiebt `StructuredLineRegion` und

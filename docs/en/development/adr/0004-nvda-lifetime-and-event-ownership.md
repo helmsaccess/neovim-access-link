@@ -2,13 +2,15 @@
 
 ## Status
 
-Accepted as the target architecture for an incremental migration. The shared
+Accepted and implemented through the incremental migration. The shared
 service is now located through an identity-checked registrar. Terminal events,
 overlay selection, and `nextHandler` now reside in the Windows Terminal
 AppModule. This stage is confirmed by automated and practical tests with local
 and remote connections across multiple WT windows, tabs, and panes; practical
 Braille testing was not possible. The Windows Terminal AppModule now also owns
 the configurable terminal commands under automated and practical coverage.
+The final practical milestone reported no error across the current local,
+SSH, focus, terminal, clipboard, file-manager, and reload variants.
 
 ## Context
 
@@ -53,6 +55,11 @@ connections are stopped, and UI registrations are removed symmetrically.
 AppModules must not continue using an unverified stale service instance. The
 current implementation publishes the fully initialized instance through an
 identity-checked registrar and removes it before the remaining teardown.
+The completed structural audit also confirms that the extracted runtime, UI,
+focus, claim, editor, Braille, registry, and terminal-service modules do not
+depend on the `GlobalPlugin` class. The composition root retains direct gate
+and instance-manager views because they are its frequently used dependencies,
+not independent state owners.
 
 ## F12 exception
 

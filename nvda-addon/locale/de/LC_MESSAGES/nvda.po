@@ -199,7 +199,7 @@ msgstr "Zu aktualisierende Verbindungen:"
 msgid "copied"
 msgstr "kopiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2087
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2083
 msgid "Copied from Neovim"
 msgstr "Aus Neovim kopiert"
 
@@ -260,7 +260,7 @@ msgstr "Lokale Neovim-Verbindung konnte nicht gestartet werden"
 msgid "Could not start the Neovim connection"
 msgstr "Neovim-Verbindung konnte nicht gestartet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2104
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2100
 msgid "Could not write text to the Windows clipboard"
 msgstr "Text konnte nicht in die Windows-Zwischenablage geschrieben werden"
 
@@ -329,7 +329,7 @@ msgstr "leer"
 msgid "end of file"
 msgstr "Dateiende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2476
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2470
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr "Geben Sie das SSH-Passwort für {profile} ein. Es wird nicht gespeichert."
@@ -589,11 +589,11 @@ msgstr "Neovim-Barrierefreiheit für {name} bereit. Fokussieren Sie die gewünsc
 msgid "Neovim accessibility unavailable in this window"
 msgstr "Neovim-Barrierefreiheit ist in diesem Fenster nicht verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2153
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2149
 msgid "Neovim changed before terminal input could be left; try again"
 msgstr "Neovim hat sich geändert, bevor die Terminaleingabe verlassen werden konnte; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2094
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2090
 msgid "Neovim changed before the copy or paste completed; try again"
 msgstr "Neovim hat sich geändert, bevor das Kopieren oder Einfügen abgeschlossen war; versuchen Sie es erneut"
 
@@ -628,7 +628,7 @@ msgstr "Ergebnisse der Aktualisierung von Neovim-Komponenten"
 msgid "Neovim connection disconnected: {name}"
 msgstr "Neovim-Verbindung getrennt: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2286
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2282
 msgid "Neovim connection lost; normal terminal output restored"
 msgstr "Neovim-Verbindung verloren; normale Terminalausgabe wiederhergestellt"
 
@@ -667,15 +667,15 @@ msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nic
 msgid "Neovim connections ready. Some saved connections could not be checked. Focus Neovim and press {key}, or choose a connection manually"
 msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nicht geprüft werden. Fokussieren Sie Neovim und drücken Sie {key}, oder wählen Sie eine Verbindung manuell aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2108
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2104
 msgid "Neovim could not complete the copy or paste command"
 msgstr "Neovim konnte den Kopier- oder Einfügebefehl nicht abschließen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2155
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2151
 msgid "Neovim could not leave direct terminal input"
 msgstr "Neovim konnte die direkte Terminaleingabe nicht verlassen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2106
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2102
 msgid "Neovim could not replace its unnamed register"
 msgstr "Neovim konnte sein unbenanntes Register nicht ersetzen"
 
@@ -691,7 +691,7 @@ msgstr "Neovim befindet sich nicht in der direkten Terminaleingabe"
 msgid "Neovim session"
 msgstr "Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2477
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2471
 msgid "Neovim SSH password"
 msgstr "Neovim-SSH-Passwort"
 
@@ -803,7 +803,7 @@ msgstr "Einfügen ist nur im Normal- oder Einfügemodus verfügbar"
 msgid "Paste Windows clipboard text into the active Neovim buffer"
 msgstr "Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2089
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2085
 msgid "Pasted into Neovim"
 msgstr "In Neovim eingefügt"
 
@@ -989,7 +989,7 @@ msgstr "Zum Starten einer Verbindungsinstanz muss ein Terminal fokussiert sein"
 msgid "Store Windows clipboard text in Neovim's unnamed register"
 msgstr "Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2091
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2087
 msgid "Stored the Windows clipboard in Neovim's unnamed register"
 msgstr "Windows-Zwischenablage im unbenannten Neovim-Register gespeichert"
 
@@ -1056,7 +1056,7 @@ msgstr "Die Verbindungseinstellungen sind ungültig: {error}"
 msgid "The current Neovim buffer cannot be edited by this command"
 msgstr "Der aktuelle Neovim-Puffer kann mit diesem Befehl nicht bearbeitet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2098
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2094
 msgid "The current Neovim context does not accept this paste"
 msgstr "Der aktuelle Neovim-Kontext lässt dieses Einfügen nicht zu"
 
@@ -1068,7 +1068,7 @@ msgstr "Das fokussierte lokale Neovim hat die Zuordnung mit F12 nicht bestätigt
 msgid "The focused Neovim did not confirm F12 pairing; try again"
 msgstr "Das fokussierte Neovim hat die Zuordnung mit F12 nicht bestätigt; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2096
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2092
 msgid "The Neovim Visual selection is no longer available"
 msgstr "Die visuelle Neovim-Auswahl ist nicht mehr verfügbar"
 
@@ -1092,7 +1092,7 @@ msgstr "Die ausgewählte Neovim-Verbindung ist nicht mehr vorhanden"
 msgid "The selected Neovim session is no longer available"
 msgstr "Die ausgewählte Neovim-Sitzung ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2100
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2096
 msgid "The selected Neovim text is too large to copy"
 msgstr "Der ausgewählte Neovim-Text ist zu groß zum Kopieren"
 
@@ -1100,7 +1100,7 @@ msgstr "Der ausgewählte Neovim-Text ist zu groß zum Kopieren"
 msgid "The Windows clipboard does not contain supported text"
 msgstr "Die Windows-Zwischenablage enthält keinen unterstützten Text"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2102
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2098
 msgid "There is no Neovim text to copy"
 msgstr "Es gibt keinen Neovim-Text zum Kopieren"
 

@@ -1885,10 +1885,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
 
-	def _newInstanceRuntime(self):
-		"""Compatibility factory while callers move to the editor controller."""
-		return self._editorSessionController.new_runtime()
-
 	def _switchInstanceRuntime(self, instance_id):
 		self._editorSessionController.switch_instance(instance_id)
 
@@ -2428,8 +2424,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	@staticmethod
 	def _identity(obj):
-		# Compatibility for existing callers; focus runtime uses the injected
-		# identity function owned by TerminalFocusService.
 		return _identityForObject(obj)
 
 	def _identityFields(self, identity):

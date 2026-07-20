@@ -43,9 +43,9 @@ prüfbaren Schritten umgesetzt:
 Phase 1 ist automatisiert umgesetzt: Fensteridentität und Prozesslebensdauer
 verwenden `winUser`, `winBindings` und `winKernel`; der neutrale Session-Lister
 erhält die Prozessprüfung injiziert. Adapter-, Registry-, Claim-, Lifecycle-
-und vollständige Built-Add-on-Tests bestehen. Die praktische Prüfung von
-Prozessende, geschlossenen Tabs/Panes und Plugin-Neuladen unter Windows/NVDA
-steht noch aus; bis dahin gilt die Phase nicht als praktisch abgenommen.
+und vollständige Built-Add-on-Tests bestehen. Nachfolgende praktische
+Windows-/NVDA-Tests deckten mehrere Fenster, Tabs und Panes, Reloads, lokale
+und SSH-Sitzungen sowie Fail-open-Übergänge ohne gemeldeten Fehler ab.
 
 Phase 2 ist automatisiert umgesetzt: `NvdaUiManager` besitzt die symmetrische
 Registrierung von Einstellungen und Werkzeugmenü, die Verbindungsformulare
@@ -243,7 +243,15 @@ noch in der Kompositionswurzel liegenden Brailleklassen auf einen eigenen
 NVDA-Randbaustein geprüft. Dieser Schnitt verschiebt Region und Overlay nach
 `nvda_braille.py`; die prozessweite Veröffentlichung liegt dabei in der
 neutralen `service_registry.py`, sodass keine zirkuläre Global-Plugin-
-Abhängigkeit entsteht. Als Nächstes folgt der abschließende V2-6-Strukturaudit.
+Abhängigkeit entsteht. Der abschließende V2-6-Strukturaudit entfernt die letzte
+nur von Tests verwendete Editorruntimefabrik und ergänzt
+Abhängigkeitsprüfungen am gebauten Paket. Er bestätigt, dass Anwendungsevents
+im AppModule verbleiben und ausgelagerte Dienste nicht von der
+`GlobalPlugin`-Klasse abhängen. Die häufig verwendeten Kompositionssichten auf
+Gate und Instanzmanager bleiben bestehen, weil eine weitere Weiterleitung den
+Besitz nicht verbessert. V2-6 und Praxis-Meilenstein 2 sind ohne neu
+gemeldeten Fehler abgeschlossen. Praktische Braillehardware bleibt die
+dokumentierte Testlücke.
 
 ## 3. Praktische Abschottung verbreitern
 

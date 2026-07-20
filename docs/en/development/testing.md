@@ -144,6 +144,10 @@ Important cases are:
 - exact focused-AppModule and control validation, with one pass-through of the
   original gesture if focus changes before execution;
 - separate AppModule instances never execute one another's command.
+- built-package structure checks keep all application-event entry points out
+  of the Global Plugin and reject Global Plugin dependencies from extracted
+  runtime, UI, focus, claim, editor, Braille, registry, and terminal-service
+  modules.
 
 ### Terminal and command line
 

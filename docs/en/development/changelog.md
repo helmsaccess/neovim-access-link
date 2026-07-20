@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.95.0-dev.49+feature.global-plugin-slimming (feature-branch test build)
+
+- The final V2-6 structural audit removes the last test-only Global Plugin
+  runtime factory; tests now request new editor state from its owning
+  `EditorSessionController`.
+- Structural package tests enforce that application events stay in the
+  Windows Terminal AppModule and that runtime, UI, focus, claim, editor,
+  Braille, registry, and terminal-service modules do not depend on the
+  `GlobalPlugin` class.
+- The audit retains only the gate and instance-manager composition views. Both
+  are extensively used at the NVDA boundary; another forwarding layer would
+  not narrow ownership or state.
+- Practical milestone 2 was completed without a reported error across the
+  current local and SSH, window/tab/pane, focus, mode, terminal, clipboard,
+  file-manager, and reload variants. Practical Braille hardware remains the
+  documented exception.
+
 ## 0.95.0-dev.48+feature.global-plugin-slimming (feature-branch test build)
 
 - The eleventh V2-6 slice moves `StructuredLineRegion` and
