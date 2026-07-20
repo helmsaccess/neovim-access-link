@@ -77,8 +77,13 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Inventarzustand. Lokale und SSH-Inventar- und Sitzungslisten-Worker,
   Discovery-Generation sowie Kandidatenauswertung laufen hinter diesem Dienst.
   Er entscheidet außerdem unveränderlich zwischen lokaler, entfernter und
-  automatischer Auflösung sowie den Ergebnissen einer Sitzungssuche. NVDA-
-  Meldungen, Dialoge und konkrete Verbindungsstarts behalten ihre bisherigen
+  automatischer Auflösung sowie den Ergebnissen einer Sitzungssuche. Aus dem
+  gemeinsamen Instanzzustand plant er jetzt auch Wiederverwendung oder Start
+  lokaler und entfernter Sitzungen einschließlich einer gegebenenfalls zu
+  ersetzenden Instanz. Einen aktuellen Wiederverwendungsplan wendet er auf die
+  Instanzbindungen an und liefert verdrängte Terminalidentitäten zur
+  NVDA-seitigen Fokusbereinigung zurück. NVDA-Meldungen, Dialoge, konkrete
+  Clientstarts und fokusbezogene Nebenwirkungen behalten ihre bisherigen
   Hauptthreadgrenzen.
 
 ### Editorausgabe

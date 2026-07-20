@@ -1600,26 +1600,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def _reuseLocalSession(self, identity, session, offer_remember=False):
-		matches = [
-			instance
-			for instance in self._instanceManager.list()
-			if instance.transport_kind == LOCAL_WINDOWS_TCP and instance.session_id == session.identifier
-		]
-		if not matches:
+		plan = self._sessionClaimService.plan_local_connection(
+			identity,
+			session,
+			allow_reuse=True,
+			replace_existing=False,
+		)
+		instance = self._applyConnectionReuse(identity, plan, offer_remember)
+		if instance is None:
 			return False
-		instance = matches[0]
-		for terminal in self._instanceManager.bound_terminals_for(instance.identifier):
-			if terminal != identity:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalFocusService.forget_identity(terminal)
-		self._instanceManager.bind(identity, instance.identifier)
-		self._ensureTerminalLifecycleSweep()
-		if offer_remember and identity not in self._rememberedTerminalBindings:
-			self._rememberOfferInstances.add(instance.identifier)
 		self._activateRememberedBinding(identity, instance.identifier)
 		ui.message(_("Neovim connection selected: {name}").format(name=instance.label))
 		return True
+
+	def _applyConnectionReuse(self, identity, plan, offer_remember=False):
+		result = self._sessionClaimService.apply_connection_reuse(identity, plan)
+		if result is None:
+			return None
+		for terminal in result.displaced_identities:
+			self._rememberedTerminalBindings.discard(terminal)
+			self._terminalFocusService.forget_identity(terminal)
+		self._ensureTerminalLifecycleSweep()
+		if offer_remember and identity not in self._rememberedTerminalBindings:
+			self._rememberOfferInstances.add(result.instance.identifier)
+		return result.instance
 
 	def _startLocalSession(
 		self,
@@ -1628,12 +1632,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		replace_existing=False,
 		offer_remember=False,
 	):
-		existing = self._instanceManager.selected_for(identity) if replace_existing else None
+		plan = self._sessionClaimService.plan_local_connection(
+			identity,
+			session,
+			allow_reuse=False,
+			replace_existing=replace_existing,
+		)
 		self._startLocalManagedInstance(
 			session,
 			identity,
 			self._remoteSessionLabel(session),
-			existing.identifier if existing is not None else "",
+			plan.replace_instance_id,
 			offer_remember,
 		)
 
@@ -1937,27 +1946,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _reuseClaimedSession(self, profile, identity, session, offer_remember=False):
 		"""Move or refresh an existing transport instead of duplicating it."""
-		matches = [
-			instance
-			for instance in self._instanceManager.list()
-			if instance.target_id == profile.identifier and instance.session_id == session.identifier
-		]
-		if not matches:
-			return False
-		selected = self._instanceManager.selected_for(identity)
-		instance = next(
-			(item for item in matches if selected and item.identifier == selected.identifier),
-			matches[0],
+		plan = self._sessionClaimService.plan_remote_connection(
+			identity,
+			profile.identifier,
+			session,
+			allow_reuse=True,
+			replace_existing=False,
 		)
-		for terminal in self._instanceManager.bound_terminals_for(instance.identifier):
-			if terminal != identity:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalFocusService.forget_identity(terminal)
-		self._instanceManager.bind(identity, instance.identifier)
-		self._ensureTerminalLifecycleSweep()
-		if offer_remember and identity not in self._rememberedTerminalBindings:
-			self._rememberOfferInstances.add(instance.identifier)
+		instance = self._applyConnectionReuse(identity, plan, offer_remember)
+		if instance is None:
+			return False
 		client = self._instanceManager.client_for(instance.identifier)
 		already_active = (
 			self._gate.bound_terminal == identity
@@ -1987,13 +1985,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		replace_existing=False,
 		offer_remember=False,
 	):
-		existing = self._instanceManager.selected_for(identity) if replace_existing else None
+		plan = self._sessionClaimService.plan_remote_connection(
+			identity,
+			profile.identifier,
+			session,
+			allow_reuse=False,
+			replace_existing=replace_existing,
+		)
 		self._startManagedInstance(
 			profile.identifier,
 			session.identifier,
 			identity=identity,
 			session_label=self._remoteSessionLabel(session),
-			replace_instance_id=existing.identifier if existing is not None else "",
+			replace_instance_id=plan.replace_instance_id,
 			offer_remember=offer_remember,
 		)
 

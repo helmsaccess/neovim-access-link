@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .core.connection_coordinator import ConnectionCoordinator
+from .core.connection_instances import ConnectionInstance
 from .core.gate import TerminalIdentity
 
 
@@ -65,6 +66,13 @@ class DiscoverySelectionKind(Enum):
 	CHOOSE = "choose"
 
 
+class ConnectionPlanKind(Enum):
+	"""Whether a discovered session reuses an instance or starts a new one."""
+
+	REUSE = "reuse"
+	START = "start"
+
+
 @dataclass(frozen=True)
 class ClaimTransition:
 	"""Immutable routing decision without NVDA UI or client side effects."""
@@ -84,6 +92,23 @@ class DiscoverySelection:
 	sessions: tuple[object, ...] = ()
 	error_type: str = ""
 	error: str = ""
+
+
+@dataclass(frozen=True)
+class ConnectionPlan:
+	"""Immutable connection action selected from coordinator-owned instances."""
+
+	kind: ConnectionPlanKind
+	instance: ConnectionInstance | None = None
+	replace_instance_id: str = ""
+
+
+@dataclass(frozen=True)
+class ConnectionReuseResult:
+	"""Applied instance binding plus terminal identities displaced by reuse."""
+
+	instance: ConnectionInstance
+	displaced_identities: tuple[TerminalIdentity, ...] = ()
 
 
 class SessionClaimService:
@@ -458,6 +483,92 @@ class SessionClaimService:
 		if len(sessions) > 1:
 			return DiscoverySelection(DiscoverySelectionKind.CHOOSE, sessions=tuple(sessions))
 		return DiscoverySelection(DiscoverySelectionKind.SELECT, session=sessions[0])
+
+	def plan_local_connection(
+		self,
+		identity: TerminalIdentity,
+		session: object,
+		*,
+		allow_reuse: bool,
+		replace_existing: bool,
+	) -> ConnectionPlan:
+		"""Plan local reuse or replacement without starting or stopping a client."""
+		manager = self._coordinator.instances
+		if allow_reuse:
+			instance = next(
+				(
+					item
+					for item in manager.list()
+					if item.transport_kind == "localWindowsTcp" and item.session_id == session.identifier
+				),
+				None,
+			)
+			if instance is not None:
+				return ConnectionPlan(ConnectionPlanKind.REUSE, instance=instance)
+		selected = manager.selected_for(identity) if replace_existing else None
+		return ConnectionPlan(
+			ConnectionPlanKind.START,
+			replace_instance_id=selected.identifier if selected is not None else "",
+		)
+
+	def plan_remote_connection(
+		self,
+		identity: TerminalIdentity,
+		target_id: str,
+		session: object,
+		*,
+		allow_reuse: bool,
+		replace_existing: bool,
+	) -> ConnectionPlan:
+		"""Plan remote reuse or replacement without starting or stopping a client."""
+		manager = self._coordinator.instances
+		if allow_reuse:
+			matches = tuple(
+				item
+				for item in manager.list()
+				if item.target_id == target_id and item.session_id == session.identifier
+			)
+			if matches:
+				selected = manager.selected_for(identity)
+				instance = next(
+					(
+						item
+						for item in matches
+						if selected is not None and item.identifier == selected.identifier
+					),
+					matches[0],
+				)
+				return ConnectionPlan(ConnectionPlanKind.REUSE, instance=instance)
+		selected = manager.selected_for(identity) if replace_existing else None
+		return ConnectionPlan(
+			ConnectionPlanKind.START,
+			replace_instance_id=selected.identifier if selected is not None else "",
+		)
+
+	def apply_connection_reuse(
+		self,
+		identity: TerminalIdentity,
+		plan: ConnectionPlan,
+	) -> ConnectionReuseResult | None:
+		"""Apply a current reuse plan without invoking focus, UI, or client operations."""
+		instance = plan.instance
+		if plan.kind != ConnectionPlanKind.REUSE or instance is None:
+			return None
+		manager = self._coordinator.instances
+		if not any(item.identifier == instance.identifier for item in manager.list()):
+			return None
+		try:
+			displaced = tuple(
+				terminal
+				for terminal in manager.bound_terminals_for(instance.identifier)
+				if terminal != identity
+			)
+			for terminal in displaced:
+				manager.unbind(terminal)
+			manager.bind(identity, instance.identifier)
+		except ValueError:
+			return None
+		return ConnectionReuseResult(instance, displaced)
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1

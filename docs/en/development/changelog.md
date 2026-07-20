@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.95.0-dev.23+feature.global-plugin-slimming (feature-branch test build)
+
+- The claim service now also applies a current reuse plan to the shared
+  instance bindings. It binds the destination identity and immutably reports
+  which other terminal identities were displaced back to the NVDA boundary.
+- Focus cleanup, lifecycle scheduling, state requests, diagnostics, and
+  announcements remain NVDA-side. A stale or incomplete plan fails open
+  without changing a binding or client.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.22+feature.global-plugin-slimming (feature-branch test build)
+
+- The neutral `SessionClaimService` now decides from the shared instance state
+  whether a local or remote session reuses an existing connection or starts a
+  new one. For explicit replacement, the plan identifies the currently
+  selected instance without changing clients or terminal bindings itself.
+- The established safety order remains intact: a new connection is fully
+  started before the old instance is removed. NVDA main-thread effects,
+  concrete client starts, and binding changes retain their existing boundaries
+  in this slice.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
 ## 0.95.0-dev.21+feature.global-plugin-slimming (feature-branch test build)
 
 - Local and remote discovery results are now evaluated in the neutral

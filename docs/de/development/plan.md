@@ -148,8 +148,12 @@ V2-Schritten gebündelt. V2-4 hat begonnen: `SessionClaimService` besitzt F12-
 Autorisierung, Inventarzustand, Scans, Kandidatenauswertung und die
 unveränderliche Übergangsentscheidung. Discovery-Lebensdauer und
 Sitzungslisten-Worker sowie die fachliche Ergebnisauswahl liegen ebenfalls
-dort; weitere Schnitte verschieben Wiederverwendung und Verbindungsstarts
-hinter diesen Dienst.
+dort. Der Dienst plant inzwischen außerdem Wiederverwendung oder Start einer
+lokalen beziehungsweise entfernten Instanz, ohne selbst Clients oder Bindungen
+zu starten. Einen aktuellen Wiederverwendungsplan setzt er auf den neutralen
+Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
+zurück. Weitere Schnitte verschieben die konkreten Verbindungsstarts und die
+Wiederherstellung gemerkter Bindungen hinter diese Grenze.
 
 ## 3. Praktische Abschottung verbreitern
 

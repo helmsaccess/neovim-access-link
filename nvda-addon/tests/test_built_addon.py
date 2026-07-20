@@ -601,6 +601,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("class DiscoverySelection", claim_source)
         self.assertIn("self._sessionClaimService.resolve_local_discovery", global_source)
         self.assertIn("self._sessionClaimService.resolve_remote_discovery", global_source)
+        self.assertIn("class ConnectionPlan", claim_source)
+        self.assertIn("self._sessionClaimService.plan_local_connection", global_source)
+        self.assertIn("self._sessionClaimService.plan_remote_connection", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
         self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
@@ -2295,6 +2298,9 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink.session_claim import (
             ClaimTransition,
             ClaimTransitionKind,
+            ConnectionPlan,
+            ConnectionPlanKind,
+            ConnectionReuseResult,
             DiscoverySelection,
             DiscoverySelectionKind,
         )
@@ -2303,6 +2309,8 @@ class BuiltAddonTests(unittest.TestCase):
         claim = SessionClaimAuthorization(object(), 1, object())
         transition = ClaimTransition(ClaimTransitionKind.AUTOMATIC, object())
         selection = DiscoverySelection(DiscoverySelectionKind.EMPTY)
+        plan = ConnectionPlan(ConnectionPlanKind.START)
+        reuse = ConnectionReuseResult(object())
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2312,6 +2320,73 @@ class BuiltAddonTests(unittest.TestCase):
             transition.target_id = "changed"
         with self.assertRaises(FrozenInstanceError):
             selection.kind = DiscoverySelectionKind.SELECT
+        with self.assertRaises(FrozenInstanceError):
+            plan.replace_instance_id = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            reuse.displaced_identities = ()
+
+    def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink.session_claim import ConnectionPlanKind
+
+        events = []
+
+        class Client:
+            def __init__(inner_self, name):
+                inner_self.name = name
+
+            def start(inner_self):
+                events.append(f"start-{inner_self.name}")
+
+            def stop(inner_self):
+                events.append(f"stop-{inner_self.name}")
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        first = add_remote_instance(
+            plugin._instanceManager, "work", "22", "First", Client("first"),
+        )
+        second = add_remote_instance(
+            plugin._instanceManager, "work", "22", "Second", Client("second"),
+        )
+        plugin._instanceManager.bind(identity, second.identifier)
+        displaced_identity = type(identity)(
+            process_id=identity.process_id,
+            window_handle=identity.window_handle,
+            frontend_kind=identity.frontend_kind,
+            runtime_id=(42, identity.window_handle, 4, 53),
+        )
+        plugin._instanceManager.bind(displaced_identity, second.identifier)
+        session = RemoteSession("22", "project", "/work")
+
+        reuse = plugin._sessionClaimService.plan_remote_connection(
+            identity,
+            "work",
+            session,
+            allow_reuse=True,
+            replace_existing=False,
+        )
+        replacement = plugin._sessionClaimService.plan_remote_connection(
+            identity,
+            "work",
+            session,
+            allow_reuse=False,
+            replace_existing=True,
+        )
+        applied = plugin._sessionClaimService.apply_connection_reuse(identity, reuse)
+
+        self.assertEqual(ConnectionPlanKind.REUSE, reuse.kind)
+        self.assertEqual(second, reuse.instance)
+        self.assertEqual(second, applied.instance)
+        self.assertEqual((displaced_identity,), applied.displaced_identities)
+        self.assertIsNone(plugin._instanceManager.selected_for(displaced_identity))
+        self.assertEqual(second, plugin._instanceManager.selected_for(identity))
+        self.assertEqual(ConnectionPlanKind.START, replacement.kind)
+        self.assertEqual(second.identifier, replacement.replace_instance_id)
+        self.assertEqual(["start-first", "start-second"], events)
+        self.assertEqual([first, second], plugin._instanceManager.list())
+        plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
         import queueHandler

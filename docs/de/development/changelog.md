@@ -5,6 +5,32 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.23+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der Claimdienst wendet einen aktuellen Wiederverwendungsplan nun auch auf
+  die gemeinsam verwalteten Instanzbindungen an. Er bindet die Zielidentität
+  und gibt unveränderlich an den NVDA-Rand zurück, welche anderen
+  Terminalidentitäten dabei verdrängt wurden.
+- Fokusbereinigung, Lifecycle-Zeitplanung, Zustandsanforderung, Diagnostik und
+  Ansage bleiben NVDA-seitig. Ein veralteter oder unvollständiger Plan fällt
+  ohne Bindungs- oder Clientänderung offen aus.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.22+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neutrale `SessionClaimService` entscheidet nun anhand der gemeinsam
+  verwalteten Instanzen, ob eine lokale oder entfernte Sitzung eine bestehende
+  Verbindung wiederverwendet oder eine neue Verbindung startet. Bei einer
+  ausdrücklichen Ersetzung benennt der Plan die bisher gewählte Instanz, ohne
+  selbst Clients oder Terminalbindungen zu verändern.
+- Die bestehende Sicherheitsreihenfolge bleibt erhalten: Eine neue Verbindung
+  wird vollständig gestartet, bevor die alte Instanz entfernt wird. NVDA-
+  Hauptthreadeffekte, konkrete Clientstarts und Bindungswechsel bleiben in
+  diesem Schnitt an ihren bisherigen Grenzen.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
 ## 0.95.0-dev.21+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Lokale und entfernte Discovery-Ergebnisse werden nun im neutralen
