@@ -99,7 +99,11 @@ from .terminal_integration import (  # noqa: E402
 )
 from .settings_service import SettingsService  # noqa: E402
 from .managed_clients import ManagedClientFactory  # noqa: E402
-from .editor_session import ControlReplyKind, EditorSessionController  # noqa: E402
+from .editor_session import (  # noqa: E402
+	ControlReplyKind,
+	ControlRequestRejection,
+	EditorSessionController,
+)
 from .session_claim import (  # noqa: E402
 	ClaimTransitionKind,
 	DiscoverySelectionKind,
@@ -1072,31 +1076,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, state, expected = context
-		if state.get("mode") not in {"normal", "insert"} or state.get("modeBlocking") is True:
-			self._clipboardFailure(_("Paste is available only in Normal or Insert mode"))
-			return
-		if (
-			state.get("buftype", "") != ""
-			or state.get("modifiable") is not True
-			or state.get("readonly") is True
-			or state.get("fileManager")
-		):
-			self._clipboardFailure(_("The current Neovim buffer cannot be edited by this command"))
+		identity, instance_id, client = context
+		rejection = self._editorSessionController.validate_clipboard_request("pasteTextRequest")
+		if rejection is not None:
+			self._reportClipboardRequestRejection(rejection)
 			return
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		plan = self._editorSessionController.remember_clipboard_request(
+		plan = self._editorSessionController.plan_clipboard_request(
 			instance_id,
 			identity,
 			"pasteTextRequest",
 		)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
 		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
-		payload = {**expected, "requestId": plan.request_id, "text": text}
-		accepted = client.send_control("pasteTextRequest", payload)
+		accepted = client.send_control(plan.control, {**plan.payload, "text": text})
 		if not accepted:
 			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a paste request.
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardPasteRequested",
@@ -1109,20 +1109,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, _state, expected = context
+		identity, instance_id, client = context
+		rejection = self._editorSessionController.validate_clipboard_request("setRegisterRequest")
+		if rejection is not None:
+			self._reportClipboardRequestRejection(rejection)
+			return
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		plan = self._editorSessionController.remember_clipboard_request(
+		plan = self._editorSessionController.plan_clipboard_request(
 			instance_id,
 			identity,
 			"setRegisterRequest",
 		)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
 		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
-		payload = {**expected, "requestId": plan.request_id, "text": text}
-		accepted = client.send_control("setRegisterRequest", payload)
+		accepted = client.send_control(plan.control, {**plan.payload, "text": text})
 		if not accepted:
 			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a register update request.
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardRegisterRequested",
@@ -1132,62 +1139,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def action_leaveDirectTerminalInput(self, gesture):
-		identity = self._gate.focused
-		selected = self._instanceManager.selected_for(identity) if identity else None
-		if (
-			identity is None
-			or selected is None
-			or self._client is None
-			or selected.identifier != self._activeInstanceId
-			or not self._gate.manual_enabled
-			or not self._gate.authenticated
-			or not self._gate.nvim_active
-			or self._gate.bound_terminal != identity
-		):
+		context = self._boundControlContext()
+		if context is None:
+			# Translators: Reported when no Neovim session owns the focused terminal.
 			ui.message(_("No active Neovim session is bound to this terminal"))
 			return
-		if "terminalControl" not in self._transportCapabilities:
-			ui.message(_("The connected Neovim components do not support terminal control"))
-			return
-		state = self._currentState
-		if (
-			state.get("buftype") != "terminal"
-			or state.get("mode") != "terminal"
-			or state.get("modeRaw") != "t"
-			or state.get("modeBlocking") is True
-		):
-			ui.message(_("Neovim is not in direct terminal input"))
-			return
-		expected = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"tabpageId": state.get("tabpageId"),
-			"modeRaw": state.get("modeRaw"),
-		}
-		if any(
-			not isinstance(expected[name], int) or isinstance(expected[name], bool)
-			for name in ("bufferId", "windowId", "tabpageId")
-		):
-			ui.message(_("The active Neovim state is incomplete; try again"))
-			return
-		plan = self._editorSessionController.remember_terminal_control_request(
-			selected.identifier,
+		identity, instance_id, client = context
+		plan = self._editorSessionController.plan_leave_terminal_input_request(
+			instance_id,
 			identity,
-			"leaveTerminalInputRequest",
 		)
+		if not plan.ready:
+			self._reportTerminalControlRequestRejection(plan.rejection)
+			return
 		self._recordDiscardedControlRequests("terminalControl", plan.discarded_request_ids)
-		accepted = self._client.send_control(
-			"leaveTerminalInputRequest",
-			{**expected, "requestId": plan.request_id},
-		)
+		accepted = client.send_control(plan.control, dict(plan.payload))
 		if not accepted:
 			self._editorSessionController.cancel_terminal_control_request(plan.request_id)
+			# Translators: Reported when Neovim rejects leaving direct terminal input.
 			ui.message(_("Could not ask Neovim to leave direct terminal input"))
 		self._diagnostics.record(
 			"leaveTerminalInputRequested",
 			requestId=plan.request_id,
 			accepted=accepted,
-			instanceId=selected.identifier,
+			instanceId=instance_id,
 		)
 
 	def _readWindowsClipboardText(self):
@@ -1215,20 +1190,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, state, expected = context
-		if source == "visualSelection" and state.get("modeRaw") not in {"v", "V", "\x16"}:
-			self._clipboardFailure(_("Select text in Neovim Visual mode before copying"))
-			return
-		plan = self._editorSessionController.remember_clipboard_request(
+		identity, instance_id, client = context
+		plan = self._editorSessionController.plan_clipboard_request(
 			instance_id,
 			identity,
 			"copyTextRequest",
+			source=source,
 		)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
 		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
-		payload = {**expected, "requestId": plan.request_id, "source": source}
-		accepted = client.send_control("copyTextRequest", payload)
+		accepted = client.send_control(plan.control, dict(plan.payload))
 		if not accepted:
 			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a copy request.
 			self._clipboardFailure(_("Could not request text from the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardCopyRequested",
@@ -1238,6 +1214,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def _clipboardControlContext(self):
+		context = self._boundControlContext()
+		if context is None or not self._gate.suppression_active:
+			# Translators: Reported when no Neovim session owns the focused terminal.
+			self._clipboardFailure(_("No active Neovim session is bound to this terminal"))
+			return None
+		return context
+
+	def _boundControlContext(self):
 		identity = self._gate.focused
 		selected = self._instanceManager.selected_for(identity) if identity else None
 		if (
@@ -1245,28 +1229,44 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			or selected is None
 			or self._client is None
 			or selected.identifier != self._activeInstanceId
-			or not self._gate.suppression_active
+			or not self._gate.manual_enabled
+			or not self._gate.authenticated
+			or not self._gate.nvim_active
+			or self._gate.bound_terminal != identity
 		):
-			self._clipboardFailure(_("No active Neovim session is bound to this terminal"))
 			return None
-		if "clipboardTransfer" not in self._transportCapabilities:
-			self._clipboardFailure(_("The connected Neovim components do not support copy and paste"))
-			return None
-		state = self._currentState
-		expected = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"tabpageId": state.get("tabpageId"),
-			"changedtick": state.get("changedtick"),
-			"modeRaw": state.get("modeRaw"),
-		}
-		if any(
-			not isinstance(expected[name], int) or isinstance(expected[name], bool)
-			for name in ("bufferId", "windowId", "tabpageId", "changedtick")
-		) or not isinstance(expected["modeRaw"], str):
-			self._clipboardFailure(_("The active Neovim state is incomplete; try again"))
-			return None
-		return identity, selected.identifier, self._client, state, expected
+		return identity, selected.identifier, self._client
+
+	def _reportClipboardRequestRejection(self, rejection):
+		if rejection == ControlRequestRejection.CAPABILITY_MISSING:
+			# Translators: Reported when installed Neovim components are too old for clipboard transfer.
+			message = _("The connected Neovim components do not support copy and paste")
+		elif rejection == ControlRequestRejection.VISUAL_SELECTION_REQUIRED:
+			# Translators: Reported when the copy-selection command is used outside Visual mode.
+			message = _("Select text in Neovim Visual mode before copying")
+		elif rejection == ControlRequestRejection.PASTE_MODE_UNAVAILABLE:
+			# Translators: Reported when paste is requested in an unsupported Neovim mode.
+			message = _("Paste is available only in Normal or Insert mode")
+		elif rejection == ControlRequestRejection.BUFFER_NOT_EDITABLE:
+			# Translators: Reported when the current Neovim buffer cannot receive pasted text.
+			message = _("The current Neovim buffer cannot be edited by this command")
+		else:
+			# Translators: Reported when semantic editor state is missing for a control request.
+			message = _("The active Neovim state is incomplete; try again")
+		self._clipboardFailure(message)
+
+	@staticmethod
+	def _reportTerminalControlRequestRejection(rejection):
+		if rejection == ControlRequestRejection.CAPABILITY_MISSING:
+			# Translators: Reported when installed Neovim components are too old for terminal control.
+			message = _("The connected Neovim components do not support terminal control")
+		elif rejection == ControlRequestRejection.NOT_DIRECT_TERMINAL:
+			# Translators: Reported when Neovim is not accepting direct terminal input.
+			message = _("Neovim is not in direct terminal input")
+		else:
+			# Translators: Reported when semantic editor state is missing for a control request.
+			message = _("The active Neovim state is incomplete; try again")
+		ui.message(message)
 
 	def _recordDiscardedControlRequests(self, channel, request_ids):
 		category = (

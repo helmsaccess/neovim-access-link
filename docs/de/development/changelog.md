@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.36+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der sechste V2-5-Schnitt verschiebt Capability-, Zustands-, Modus- und
+  Bufferprüfung für Zwischenablage, Register und eingebettete
+  Terminalsteuerung in den `EditorSessionController`.
+- Gültige Aktionen erzeugen unveränderliche ausgehende Pläne mit festem
+  Allowlist-Befehl und begrenzter Korrelations-ID; abgelehnte Aktionen liefern
+  genau einen begrenzten Grund und erzeugen keinen ausstehenden Request.
+- Prüfung von Terminal und Gate, Zugriff auf die Windows-Zwischenablage,
+  übersetzte Rückmeldung, Diagnostik und konkreter Transportaufruf verbleiben
+  am NVDA-Rand.
+
 ## 0.95.0-dev.35+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der fünfte V2-5-Schnitt lässt den `EditorSessionController` den gespeicherten

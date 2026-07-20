@@ -125,7 +125,12 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Controller einen isolierten Zeilenplan; semantisches Cursor-Routing wird
   dort gegen Capability, aktiven Client und vollständigen Editorzustand
   validiert. Terminalbestätigung, Instanzauthentifizierung, NVDA-Overlay und
-  konkreter Transport bleiben außerhalb.
+  konkreter Transport bleiben außerhalb. Zwischenablage-, Register- und
+  eingebettete Terminalaktionen erhalten ebenfalls erst nach Capability-,
+  Modus-, Buffer- und kanonischer Zustandsprüfung einen unveränderlichen
+  ausgehenden Allowlist-Plan. Eine Ablehnung erzeugt keinen ausstehenden
+  Request; exakte Terminalprüfung, Windows-Zwischenablage, Rückmeldung und
+  Senden verbleiben am NVDA-Rand.
 
 ### Editorausgabe
 

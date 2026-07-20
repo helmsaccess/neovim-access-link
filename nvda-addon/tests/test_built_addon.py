@@ -882,6 +882,117 @@ class BuiltAddonTests(unittest.TestCase):
             terminal_reply.safe_event["payload"],
         )
 
+    def test_editor_session_controller_validates_outbound_control_plans(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            ControlRequestRejection,
+            EditorSessionController,
+        )
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 6))
+        coordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 2,
+            "tabpageId": 3,
+            "changedtick": 4,
+            "mode": "normal",
+            "modeRaw": "n",
+            "modeBlocking": False,
+            "buftype": "",
+            "modifiable": True,
+            "readonly": False,
+            "fileManager": None,
+        }
+
+        missing_capability = controller.plan_clipboard_request(
+            "instance-1", identity, "setRegisterRequest",
+        )
+        self.assertEqual(ControlRequestRejection.CAPABILITY_MISSING, missing_capability.rejection)
+        self.assertEqual({}, coordinator.pending_clipboard_requests)
+
+        coordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        incomplete_state = dict(coordinator.current_state)
+        incomplete_state.pop("changedtick")
+        coordinator.current_state = incomplete_state
+        incomplete = controller.plan_clipboard_request(
+            "instance-1", identity, "setRegisterRequest",
+        )
+        self.assertEqual(ControlRequestRejection.INCOMPLETE_STATE, incomplete.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "changedtick": 4,
+            "mode": "visualCharacter",
+        }
+        visual = controller.plan_clipboard_request(
+            "instance-1",
+            identity,
+            "copyTextRequest",
+            source="visualSelection",
+        )
+        self.assertEqual(ControlRequestRejection.VISUAL_SELECTION_REQUIRED, visual.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "commandLine",
+            "modeRaw": "c",
+        }
+        paste_mode = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertEqual(ControlRequestRejection.PASTE_MODE_UNAVAILABLE, paste_mode.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "normal",
+            "modeRaw": "n",
+            "readonly": True,
+        }
+        read_only = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertEqual(ControlRequestRejection.BUFFER_NOT_EDITABLE, read_only.rejection)
+
+        coordinator.current_state = {**coordinator.current_state, "readonly": False}
+        paste = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertTrue(paste.ready)
+        self.assertEqual("pasteTextRequest", paste.control)
+        self.assertEqual("n", paste.payload["modeRaw"])
+        self.assertEqual(paste.request_id, paste.payload["requestId"])
+        with self.assertRaises(TypeError):
+            paste.payload["modeRaw"] = "i"
+
+        no_terminal_capability = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(
+            ControlRequestRejection.CAPABILITY_MISSING,
+            no_terminal_capability.rejection,
+        )
+        coordinator.transport_capabilities = frozenset({"clipboardTransfer", "terminalControl"})
+        not_terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(ControlRequestRejection.NOT_DIRECT_TERMINAL, not_terminal.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "terminal",
+            "modeRaw": "t",
+            "buftype": "terminal",
+            "windowId": None,
+        }
+        incomplete_terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(ControlRequestRejection.INCOMPLETE_STATE, incomplete_terminal.rejection)
+        coordinator.current_state["windowId"] = 2
+        terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertTrue(terminal.ready)
+        self.assertEqual("leaveTerminalInputRequest", terminal.control)
+        self.assertNotIn("changedtick", terminal.payload)
+        self.assertEqual(terminal.request_id, terminal.payload["requestId"])
+
     def test_editor_session_controller_plans_mode_cues_speech_and_terminal_passthrough(self) -> None:
         from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
         from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
@@ -1097,6 +1208,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("self._runtime._routeBrailleCursor", facade_source)
         self.assertNotIn('payload["_connectionLabel"]', global_source)
         self.assertNotIn("self._instanceTerminalPassthrough[instance_id] =", global_source)
+        self.assertIn("plan_clipboard_request(", editor_source)
+        self.assertIn("plan_leave_terminal_input_request(", editor_source)
+        self.assertNotIn('state.get("mode") not in {"normal", "insert"}', global_source)
+        self.assertNotIn('state.get("buftype") != "terminal"', global_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
@@ -5438,6 +5553,13 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertTrue(any("unnamed register" in item for item in self.spoken))
         self.assertNotIn("new unnamed register", plugin._diagnostics.report())
+
+        control_count = len(client.controls)
+        self.clipboard = ""
+        plugin.action_setNeovimRegisterFromWindowsClipboard(None)
+        self.assertEqual(control_count, len(client.controls))
+        self.assertEqual({}, plugin._pendingClipboardRequests)
+        self.assertIn("The Windows clipboard does not contain supported text", self.messages)
         plugin.terminate()
 
     def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:

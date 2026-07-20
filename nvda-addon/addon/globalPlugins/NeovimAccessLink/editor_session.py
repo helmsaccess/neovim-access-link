@@ -6,6 +6,7 @@ import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from enum import Enum
+from types import MappingProxyType
 from typing import Any
 
 from .core.braille import BraillePlan, plan_braille as build_braille_plan
@@ -107,10 +108,32 @@ class ControlReplyKind(Enum):
 	STALE_OR_UNBOUND = "staleOrUnbound"
 
 
+class ControlRequestRejection(Enum):
+	CAPABILITY_MISSING = "capabilityMissing"
+	INCOMPLETE_STATE = "incompleteState"
+	VISUAL_SELECTION_REQUIRED = "visualSelectionRequired"
+	PASTE_MODE_UNAVAILABLE = "pasteModeUnavailable"
+	BUFFER_NOT_EDITABLE = "bufferNotEditable"
+	NOT_DIRECT_TERMINAL = "notDirectTerminal"
+
+
 @dataclass(frozen=True)
 class PendingRequestPlan:
 	request_id: int
 	discarded_request_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class OutboundControlPlan:
+	rejection: ControlRequestRejection | None
+	control: str | None = None
+	request_id: int | None = None
+	discarded_request_ids: tuple[int, ...] = ()
+	payload: Mapping[str, Any] | None = None
+
+	@property
+	def ready(self) -> bool:
+		return self.rejection is None
 
 
 @dataclass(frozen=True)
@@ -411,6 +434,127 @@ class EditorSessionController:
 			byte_column=values[3],
 			changedtick=values[4],
 		)
+
+	def plan_clipboard_request(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+		control: str,
+		*,
+		source: str | None = None,
+	) -> OutboundControlPlan:
+		"""Validate and correlate one fixed clipboard control without sending it."""
+		rejection = self.validate_clipboard_request(control, source=source)
+		if rejection is not None:
+			return OutboundControlPlan(rejection)
+		state = self._coordinator.current_state
+		base_payload = self._clipboard_request_state(state)
+		if base_payload is None:
+			return OutboundControlPlan(ControlRequestRejection.INCOMPLETE_STATE)
+		pending = self.remember_clipboard_request(instance_id, identity, control)
+		payload = {**base_payload, "requestId": pending.request_id}
+		if control == "copyTextRequest":
+			payload["source"] = source
+		return OutboundControlPlan(
+			None,
+			control=control,
+			request_id=pending.request_id,
+			discarded_request_ids=pending.discarded_request_ids,
+			payload=MappingProxyType(payload),
+		)
+
+	def validate_clipboard_request(
+		self,
+		control: str,
+		*,
+		source: str | None = None,
+	) -> ControlRequestRejection | None:
+		"""Return the bounded reason why a clipboard action cannot run."""
+		if control not in {"copyTextRequest", "pasteTextRequest", "setRegisterRequest"}:
+			raise ValueError("unsupported clipboard control")
+		if "clipboardTransfer" not in self._coordinator.transport_capabilities:
+			return ControlRequestRejection.CAPABILITY_MISSING
+		state = self._coordinator.current_state
+		if self._clipboard_request_state(state) is None:
+			return ControlRequestRejection.INCOMPLETE_STATE
+		if control == "copyTextRequest":
+			if source not in {"visualSelection", "yankRegister"}:
+				raise ValueError("unsupported copy source")
+			if source == "visualSelection" and state.get("modeRaw") not in {"v", "V", "\x16"}:
+				return ControlRequestRejection.VISUAL_SELECTION_REQUIRED
+		if control == "pasteTextRequest":
+			if state.get("mode") not in {"normal", "insert"} or state.get("modeBlocking") is True:
+				return ControlRequestRejection.PASTE_MODE_UNAVAILABLE
+			if (
+				state.get("buftype", "") != ""
+				or state.get("modifiable") is not True
+				or state.get("readonly") is True
+				or state.get("fileManager")
+			):
+				return ControlRequestRejection.BUFFER_NOT_EDITABLE
+		return None
+
+	def plan_leave_terminal_input_request(
+		self,
+		instance_id: str,
+		identity: TerminalIdentity,
+	) -> OutboundControlPlan:
+		"""Validate and correlate the fixed terminal-mode escape control."""
+		if "terminalControl" not in self._coordinator.transport_capabilities:
+			return OutboundControlPlan(ControlRequestRejection.CAPABILITY_MISSING)
+		state = self._coordinator.current_state
+		if (
+			state.get("buftype") != "terminal"
+			or state.get("mode") != "terminal"
+			or state.get("modeRaw") != "t"
+			or state.get("modeBlocking") is True
+		):
+			return OutboundControlPlan(ControlRequestRejection.NOT_DIRECT_TERMINAL)
+		values = {
+			"bufferId": state.get("bufferId"),
+			"windowId": state.get("windowId"),
+			"tabpageId": state.get("tabpageId"),
+		}
+		if not all(self._is_integer(value) for value in values.values()):
+			return OutboundControlPlan(ControlRequestRejection.INCOMPLETE_STATE)
+		pending = self.remember_terminal_control_request(
+			instance_id,
+			identity,
+			"leaveTerminalInputRequest",
+		)
+		return OutboundControlPlan(
+			None,
+			control="leaveTerminalInputRequest",
+			request_id=pending.request_id,
+			discarded_request_ids=pending.discarded_request_ids,
+			payload=MappingProxyType(
+				{
+					**values,
+					"modeRaw": state.get("modeRaw"),
+					"requestId": pending.request_id,
+				}
+			),
+		)
+
+	@classmethod
+	def _clipboard_request_state(cls, state: Mapping[str, Any]) -> dict[str, Any] | None:
+		values = {
+			"bufferId": state.get("bufferId"),
+			"windowId": state.get("windowId"),
+			"tabpageId": state.get("tabpageId"),
+			"changedtick": state.get("changedtick"),
+		}
+		mode_raw = state.get("modeRaw")
+		if not all(cls._is_integer(value) for value in values.values()) or not isinstance(
+			mode_raw,
+			str,
+		):
+			return None
+		return {**values, "modeRaw": mode_raw}
+
+	@staticmethod
+	def _is_integer(value: Any) -> bool:
+		return isinstance(value, int) and not isinstance(value, bool)
 
 	def remember_clipboard_request(
 		self,

@@ -207,7 +207,7 @@ must not close output again before state is confirmed.
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
-| `EditorSessionController` | Domain mutation of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, connection-label normalization, neutral typing actions, and bounded clipboard/terminal-control requests with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
+| `EditorSessionController` | Domain mutation of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, connection-label normalization, neutral typing actions, and validated outbound clipboard/terminal-control plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -260,8 +260,12 @@ allocates bounded request IDs for clipboard,
 register, and terminal control, binds them to an instance and
 `TerminalIdentity`, and rejects foreign or late replies. One-shot clipboard
 text is exposed only as a validated result to the NVDA boundary and is removed
-from the safe follow-up event. Focus/gate validation, transport calls, the
-Windows clipboard, diagnostics, and concrete presentation remain separate.
+from the safe follow-up event. Before sending, the same controller validates
+the negotiated capability and canonical buffer/mode state and returns either
+an immutable allowlisted outbound plan or one bounded rejection reason. It
+allocates a pending request only for a valid action. Exact focus/gate
+validation, transport calls, the Windows clipboard, diagnostics, and concrete
+presentation remain separate.
 
 For Braille, the controller copies the active canonical state into a
 `BrailleSessionPlan`; later editor events cannot mutate that plan. A

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.36+feature.global-plugin-slimming (feature-branch test build)
+
+- The sixth V2-5 slice moves capability, canonical-state, mode, and buffer
+  validation for clipboard, register, and embedded-terminal controls into
+  `EditorSessionController`.
+- Valid actions produce immutable, allowlisted outbound plans with a bounded
+  correlation ID; rejected actions produce one bounded reason and allocate no
+  pending request.
+- Exact terminal/gate checks, Windows clipboard access, translated feedback,
+  diagnostics, and the concrete transport call remain at the NVDA boundary.
+
 ## 0.95.0-dev.35+feature.global-plugin-slimming (feature-branch test build)
 
 - The fifth V2-5 slice makes `EditorSessionController` normalize the saved

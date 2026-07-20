@@ -186,8 +186,11 @@ isolierte Braillepläne und validierte semantische Routingpläne. Das Overlay
 bleibt NVDA-spezifisch, und nur der NVDA-Rand führt den festen
 `routeCursor`-Transportaufruf aus. Der fünfte Schnitt verschiebt die
 Normalisierung des Verbindungsnamens und die Passthroughverfolgung der aktiven
-Instanz in den Controller. Fokuskorrelation, Authentifizierung und Transport
-bleiben bewusst außerhalb.
+Instanz in den Controller. Der sechste Schnitt ergänzt unveränderliche
+ausgehende Allowlist-Pläne nach Capability-, Modus-, Buffer- und kanonischer
+Zustandsprüfung für Zwischenablage, Register und eingebettete
+Terminalsteuerung. Fokuskorrelation, Authentifizierung,
+Windows-Zwischenablage und Transport bleiben bewusst außerhalb.
 
 ## 3. Praktische Abschottung verbreitern
 

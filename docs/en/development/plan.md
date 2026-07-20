@@ -171,7 +171,10 @@ adds isolated Braille plans and validated semantic routing plans. The overlay
 remains NVDA-specific, and only the NVDA boundary performs the fixed
 `routeCursor` transport call. The fifth slice moves connection-label
 normalization and active-instance passthrough tracking into the controller.
-Focus correlation, authentication, and transport deliberately remain outside.
+The sixth slice adds immutable allowlisted outbound plans after capability,
+mode, buffer, and canonical-state validation for clipboard, register, and
+embedded-terminal controls. Focus correlation, authentication, Windows
+clipboard access, and transport deliberately remain outside.
 
 ## 3. Broaden practical isolation coverage
 

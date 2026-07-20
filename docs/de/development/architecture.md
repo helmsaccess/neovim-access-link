@@ -218,7 +218,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
-| `EditorSessionController` | fachliche Mutation des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie begrenzte Zwischenablage-/Terminalsteuerungsanfragen und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
+| `EditorSessionController` | fachliche Mutation des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-/Terminalsteuerungspläne und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -273,8 +273,12 @@ begrenzten Anfrage-IDs für Zwischenablage, Register und Terminalsteuerung,
 bindet sie an Instanz und `TerminalIdentity` und verwirft fremde oder
 verspätete Antworten. Einmaliger Zwischenablagetext wird nur als geprüftes
 Ergebnis an den NVDA-Rand gegeben und aus dem sicheren Folgeereignis entfernt.
-Fokus/Gate, Transportaufruf, Windows-Zwischenablage, Diagnostik und konkrete
-Präsentation bleiben getrennt.
+Vor dem Senden prüft derselbe Controller ausgehandelte Capability und
+kanonischen Buffer-/Moduszustand. Er liefert entweder einen unveränderlichen
+ausgehenden Allowlist-Plan oder genau einen begrenzten Ablehnungsgrund und
+erzeugt nur für eine gültige Aktion einen ausstehenden Request. Exakte
+Fokus-/Gate-Prüfung, Transportaufruf, Windows-Zwischenablage, Diagnostik und
+konkrete Präsentation bleiben getrennt.
 
 Für Braille kopiert der Controller den aktiven kanonischen Zustand in einen
 `BrailleSessionPlan`; spätere Editorereignisse verändern diesen Plan nicht.

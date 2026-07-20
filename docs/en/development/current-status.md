@@ -118,6 +118,11 @@ See `compatibility.md` for complete platform boundaries.
   controller; semantic cursor routing is validated there against capability,
   active client, and complete editor state. Terminal confirmation, instance
   authentication, the NVDA overlay, and concrete transport remain outside.
+  Clipboard, register, and embedded-terminal actions likewise receive an
+  immutable allowlisted outbound plan only after capability, mode, buffer, and
+  canonical state validation. Rejection allocates no pending request; exact
+  terminal checks, Windows clipboard access, feedback, and sending stay at the
+  NVDA boundary.
 
 ### Editor output
 
