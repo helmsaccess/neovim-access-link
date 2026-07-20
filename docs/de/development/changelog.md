@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.42+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der fünfte V2-6-Schnitt entfernt die letzten zwei
+  Global-Plugin-Kompatibilitätseigenschaften für Fokus/Lifecycle: fokussiertes
+  Terminalobjekt und Zeitwert des Lifecycle-Sweeps.
+- Brailleaktualisierung und Integrationstests verwenden nun direkt den
+  besitzenden `TerminalFocusService`. Fokusentscheidung, UIA-Lebensregel,
+  Scheduler und AppModule-Ereignispfad ändern sich nicht.
+- Struktur- und Verhaltenstests decken Fokusaktualisierung bei Aktionen,
+  veralteten Fokusverlust zwischen Fenstern, wiederholte Lifecycle-Bereinigung
+  und semantischen Braillezustand ab.
+
 ## 0.95.0-dev.41+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der vierte V2-6-Schnitt entfernt elf passive

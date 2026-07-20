@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.42+feature.global-plugin-slimming (feature-branch test build)
+
+- The fifth V2-6 slice removes the last two Global Plugin focus/lifecycle
+  compatibility properties: the focused terminal object and lifecycle sweep
+  timestamp.
+- Braille refresh and integration tests now use the owning
+  `TerminalFocusService` directly. No focus decision, UIA lifetime rule,
+  scheduler, or AppModule event path changes.
+- Structural and behavioral tests cover action-time focus refresh, stale focus
+  loss across windows, repeated lifecycle pruning, and semantic Braille state.
+
 ## 0.95.0-dev.41+feature.global-plugin-slimming (feature-branch test build)
 
 - The fourth V2-6 slice removes eleven passive Global Plugin compatibility

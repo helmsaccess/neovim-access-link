@@ -195,7 +195,9 @@ been removed, and tests use `SessionClaimService` directly. Connection- and
 focus-related compatibility views are removed only after the same production
 usage audit. A following passive-view audit has removed eleven more
 test-only properties for presentation, binding, runtime, request, AppModule,
-and adapter state; their tests now use the three owning services directly.
+and adapter state; their tests now use the three owning services directly. A
+focused-object and lifecycle audit then removes the last two focus-service
+views; only active connection and gate views remain in this cleanup group.
 
 ## 3. Broaden practical isolation coverage
 

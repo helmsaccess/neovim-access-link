@@ -146,6 +146,10 @@ See `compatibility.md` for complete platform boundaries.
   request tests use `ConnectionCoordinator`; AppModule and adapter focus data
   remain owned by `TerminalFocusService`. Active connection, gate, focused
   object, and lifecycle views still require a separate production audit.
+- The fifth V2-6 slice completes the focus/lifecycle compatibility cleanup.
+  Braille refresh reads the focused terminal object from
+  `TerminalFocusService`, and lifecycle tests adjust that service's timestamp
+  directly. Active connection and gate views remain for their own audit.
 
 ### Editor output
 

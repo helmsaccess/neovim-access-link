@@ -160,6 +160,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   AppModule- und Adapterfokusdaten verbleiben im `TerminalFocusService`.
   Aktive Verbindungs-, Gate-, Fokusobjekt- und Lifecyclesichten benötigen
   weiterhin einen getrennten Produktivaudit.
+- Der fünfte V2-6-Schnitt schließt die Bereinigung der
+  Fokus-/Lifecycle-Kompatibilität ab. Die Brailleaktualisierung liest das
+  fokussierte Terminalobjekt aus `TerminalFocusService`; Lifecycletests ändern
+  den Zeitwert direkt an diesem Dienst. Aktive Verbindungs- und Gatesichten
+  verbleiben für ihren eigenen Audit.
 
 ### Editorausgabe
 

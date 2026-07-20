@@ -246,6 +246,11 @@ focus data have also been removed. Their tests inspect `NvdaPresentation`,
 `ConnectionCoordinator`, or `TerminalFocusService` directly. This does not
 move active NVDA effects or terminal-event ownership into those tests.
 
+The focused terminal object and lifecycle sweep timestamp likewise have no
+Global Plugin compatibility view. Braille refresh and lifecycle tests use the
+owning `TerminalFocusService`; focus decisions and UIA lifetime handling remain
+encapsulated there.
+
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
 that contract. Terminal commands use a fixed enum instead of freely resolved

@@ -76,7 +76,7 @@ class BuiltAddonTests(unittest.TestCase):
     def _focusPlugin(self, plugin, obj=None) -> None:
         obj = obj or self.focus
         plugin._gate.focused = plugin._identity(obj)
-        plugin._focusedTerminalObject = obj
+        plugin._terminalFocusService.focused_terminal_object = obj
 
     @staticmethod
     def _settingsSnapshot(plugin) -> dict:
@@ -1330,6 +1330,7 @@ class BuiltAddonTests(unittest.TestCase):
             "_rememberedTerminalBindings", "_rememberOfferInstances",
             "_instanceRuntimeStates", "_pendingFocusContexts", "_pendingClipboardRequests",
             "_pendingTerminalControlRequests", "_focusedAppModule", "_focusedAdapterToken",
+            "_focusedTerminalObject", "_terminalLifecycleScheduledAt",
         ):
             self.assertNotIn(f"def {removed_passive_view}(self)", global_source)
 
@@ -2826,7 +2827,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         stale = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 53))
         plugin._gate.focused = stale
-        plugin._focusedTerminalObject = None
+        plugin._terminalFocusService.focused_terminal_object = None
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(plugin._gate.focused)
         adapter = AppModule()
@@ -2836,7 +2837,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         expected = plugin._identity(self.focus)
         self.assertEqual(expected, plugin._gate.focused)
-        self.assertIs(self.focus, plugin._focusedTerminalObject)
+        self.assertIs(self.focus, plugin._terminalFocusService.focused_terminal_object)
         self.assertEqual([expected], inventories)
         self.assertIn('"category": "terminalActionFocusRefreshed"', plugin._diagnostics.report())
         adapter.terminate()
@@ -3715,7 +3716,7 @@ class BuiltAddonTests(unittest.TestCase):
         # NVDA may deliver this after the second WT has already gained focus.
         first_adapter.event_appModule_loseFocus()
         self.assertEqual(second_identity, plugin._gate.focused)
-        self.assertIs(second_focus, plugin._focusedTerminalObject)
+        self.assertIs(second_focus, plugin._terminalFocusService.focused_terminal_object)
         second_adapter.event_appModule_loseFocus()
         self.assertIsNone(plugin._gate.focused)
         plugin.terminate()
@@ -4123,12 +4124,16 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(scheduled))
         self.assertEqual(addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS, scheduled[0][0])
         plugin._gate.focused = None
-        plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+        plugin._terminalFocusService.lifecycle_scheduled_at -= (
+            addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+        )
         with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False):
             scheduled[0][1](*scheduled[0][2])
             self.assertEqual([instance], plugin._instanceManager.list())
             self.assertEqual(2, len(scheduled))
-            plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+            plugin._terminalFocusService.lifecycle_scheduled_at -= (
+                addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+            )
             scheduled[1][1](*scheduled[1][2])
         self.assertEqual([], plugin._instanceManager.list())
         plugin.terminate()

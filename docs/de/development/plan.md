@@ -214,7 +214,10 @@ Inventar- und Discovery-Sichten wurden entfernt; Tests verwenden den
 werden erst nach demselben Produktivnutzungs-Audit entfernt. Ein anschließender
 Audit passiver Sichten hat elf weitere reine Testeigenschaften für
 Präsentations-, Bindungs-, Runtime-, Request-, AppModule- und Adapterzustand
-entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt.
+entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt. Ein
+anschließender Fokusobjekt-/Lifecycle-Audit entfernt die letzten zwei
+Fokusdienstsichten; in dieser Bereinigungsgruppe verbleiben nur aktive
+Verbindungs- und Gatesichten.
 
 ## 3. Praktische Abschottung verbreitern
 

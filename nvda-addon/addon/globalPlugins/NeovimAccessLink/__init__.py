@@ -583,14 +583,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _pendingInstanceFullStates(self):
 		return self._connectionCoordinator.pending_full_states
 
-	@property
-	def _focusedTerminalObject(self):
-		return self._terminalFocusService.focused_terminal_object
-
-	@_focusedTerminalObject.setter
-	def _focusedTerminalObject(self, value):
-		self._terminalFocusService.focused_terminal_object = value
-
 	def terminate(self):
 		self._addonRuntime.close()
 		log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
@@ -628,14 +620,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _runTerminalLifecycleSweep(self):
 		self._terminalFocusService.run_lifecycle_sweep()
-
-	@property
-	def _terminalLifecycleScheduledAt(self):
-		return self._terminalFocusService.lifecycle_scheduled_at
-
-	@_terminalLifecycleScheduledAt.setter
-	def _terminalLifecycleScheduledAt(self, value):
-		self._terminalFocusService.lifecycle_scheduled_at = value
 
 	def action_toggleNeovimMode(self, gesture):
 		try:
@@ -2512,7 +2496,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _refreshBraille(self, rebuild):
 		try:
-			focus = self._focusedTerminalObject
+			focus = self._terminalFocusService.focused_terminal_object
 			if focus is None:
 				return
 			if rebuild:
