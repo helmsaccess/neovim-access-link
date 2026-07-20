@@ -19,11 +19,8 @@ class AddonRuntime:
 		profile_switch_action: Any,
 		profile_switch_handler: Callable[..., None],
 		clear_session_passwords: Callable[[], None],
-		stop_connections: Callable[[], None],
-		instance_manager: Any,
 		coordinator: Any,
 		focus_service: Any,
-		editor_session: Any,
 		claim_service: Any,
 		ui_manager: Any,
 		presentation: Any,
@@ -38,11 +35,8 @@ class AddonRuntime:
 		self._profileSwitchAction = profile_switch_action
 		self._profileSwitchHandler = profile_switch_handler
 		self._clearSessionPasswords = clear_session_passwords
-		self._stopConnections = stop_connections
-		self._instanceManager = instance_manager
 		self._coordinator = coordinator
 		self._focusService = focus_service
-		self._editorSession = editor_session
 		self._claimService = claim_service
 		self._uiManager = ui_manager
 		self._presentation = presentation
@@ -97,21 +91,21 @@ class AddonRuntime:
 				lambda: self._profileSwitchAction.unregister(self._profileSwitchHandler),
 			)
 		self._run_close_step("passwords", self._clearSessionPasswords)
-		self._run_close_step("connections", self._stopConnections)
-		self._run_close_step("instances", self._instanceManager.stop_all)
-		self._run_close_step("runtimeTracking", self._coordinator.clear_runtime_tracking)
+		self._run_close_step("connectionClaims", self._claimService.invalidate_connection_state)
 		self._run_close_step("terminalFocus", self._focusService.clear)
-		self._run_close_step("focusContext", self._coordinator.discard_focus_context)
-		self._run_close_step("clipboardRequests", self._editorSession.discard_clipboard_requests)
-		self._run_close_step(
-			"terminalControlRequests",
-			self._editorSession.discard_terminal_control_requests,
-		)
-		self._run_close_step("sessionClaim", self._claimService.cancel_pending_authorization)
+		self._run_close_step("connections", self._stop_owned_connections)
+		self._run_close_step("runtimeTracking", self._coordinator.clear_runtime_tracking)
 		self._run_close_step("ui", self._uiManager.unregister)
 		self._run_close_step("presentation", self._presentation.close)
 		self._record("addonStop")
 		return True
+
+	def _stop_owned_connections(self) -> None:
+		instances = self._coordinator.instances
+		if not instances.list():
+			return
+		instances.stop_all()
+		self._record("clientInstancesStopped")
 
 	def _cancel_main_thread_calls(self) -> None:
 		for pending in tuple(self._pendingMainThreadCalls):

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.46+feature.global-plugin-slimming (feature-branch test build)
+
+- The ninth V2-6 slice removes the injected `_stopClient()` forwarding path
+  and separate instance-manager and editor-request shutdown paths from
+  `AddonRuntime`.
+- Teardown invalidates claim and focus state, stops every managed client
+  exactly once, then clears all coordinator runtime tracking exactly once.
+  Unmanaged clients from the earlier internal architecture are no longer
+  supported.
+- Manual deactivation, error recovery, and profile switching retain
+  `_stopClient()`; user behavior outside add-on teardown does not change.
+
 ## 0.95.0-dev.45+feature.global-plugin-slimming (feature-branch test build)
 
 - The eighth V2-6 slice gives `AddonRuntime` one symmetrical activation

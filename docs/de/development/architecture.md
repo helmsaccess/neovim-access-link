@@ -237,11 +237,13 @@ Terminaldienst. Schlägt einer dieser Schritte fehl, verwendet die Runtime
 unmittelbar ihren vollständigen, wiederholbaren Teardown. Dieser entfernt den
 Dienst, schließt den veröffentlichten Dienst, bricht verzögerte
 Hauptthreadaufrufe ab, öffnet das Gate, meldet den Profilcallback ab, stoppt
-Verbindungen, löscht Runtime-/Fokus-/Requestzustand und schließt zuletzt UI
-und Präsentation. Jeder Schritt fällt getrennt aus, damit
-ein Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Einige schmal
-injizierte Abbaucallbacks bleiben bis zur weiteren V2-6-Besitzbereinigung
-vorübergehend bestehen.
+Verbindungen genau einmal über den Coordinator-Eigentümer, löscht dessen
+Runtime-/Fokus-/Requestzustand genau einmal und schließt zuletzt UI und
+Präsentation. Claim- und Terminalfokusgenerationen werden vor dem Clientstopp
+ungültig. Jeder Schritt fällt getrennt aus, damit ein Bereinigungsfehler keine
+späteren Ressourcen aktiv lässt.
+Der Callback zum Leeren der nur im Global Plugin gehaltenen Sitzungspasswörter
+bleibt als schmale, eigentumsbezogene Abbaugrenze bestehen.
 
 Der geschlossene `TerminalIntegrationService` ist eine Fail-open-Schranke für
 zurückgehaltene Referenzen: Er unterdrückt keine nativen Ereignisse oder

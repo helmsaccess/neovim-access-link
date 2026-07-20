@@ -501,11 +501,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			profile_switch_action=config.post_configProfileSwitch,
 			profile_switch_handler=self._settingsService.handle_profile_switch,
 			clear_session_passwords=self._clearSessionPasswords,
-			stop_connections=lambda: self._stopClient(),
-			instance_manager=self._instanceManager,
 			coordinator=self._connectionCoordinator,
 			focus_service=self._terminalFocusService,
-			editor_session=self._editorSessionController,
 			claim_service=self._sessionClaimService,
 			ui_manager=self._nvdaUi,
 			presentation=self._presentation,
@@ -1445,8 +1442,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if identity is None:
 			ui.message(_("Starting a connection instance requires a focused terminal"))
 			return
-		if not self._instanceManager.list() and self._connectionCoordinator.active_client is not None:
-			self._stopClient()
 		target = local_windows_target(_("This computer - local Neovim"))
 		label = _("Local Neovim, {session}").format(
 			session=session_label or _("Neovim session"),
@@ -1858,8 +1853,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		password = self._passwordForProfile(profile)
 		if profile.authentication == "password" and password is None:
 			return
-		if not self._instanceManager.list() and self._connectionCoordinator.active_client is not None:
-			self._stopClient()
 		result = self._sessionClaimService.start_remote_connection(
 			identity,
 			profile,
@@ -2566,21 +2559,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
-		if hasattr(self, "_instanceManager") and self._instanceManager.list():
+		if self._instanceManager.list():
 			try:
 				self._instanceManager.stop_all()
 			finally:
 				self._connectionCoordinator.clear_runtime_tracking()
 			self._diagnostics.record("clientInstancesStopped")
 			return
-		client = self._connectionCoordinator.active_client
-		self._connectionCoordinator.active_client = None
-		if client is None:
-			return
-		try:
-			client.stop()
-		except Exception as error:
-			self._diagnostics.record("clientStopError", errorType=type(error).__name__, error=str(error))
-			log.exception("NeovimAccessLink client shutdown failed")
-		self._editorSessionController.mark_disconnected()
-		self._diagnostics.record("clientStopped")
+		self._connectionCoordinator.clear_runtime_tracking()

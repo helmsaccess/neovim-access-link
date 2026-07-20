@@ -165,6 +165,10 @@ See `compatibility.md` for complete platform boundaries.
   failure at each boundary triggers the same complete teardown. The Global
   Plugin no longer marks registration and publication through separate
   transitional calls.
+- The ninth V2-6 slice removes duplicate connection cleanup from teardown.
+  `AddonRuntime` invalidates claim and focus state, stops clients once through
+  the coordinator owner, and then clears its runtime tracking once.
+  `_stopClient()` remains only for active user and profile-switch paths.
 
 ### Editor output
 

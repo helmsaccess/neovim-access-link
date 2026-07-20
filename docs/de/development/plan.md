@@ -230,7 +230,13 @@ folgende Schnitt bündelt Profilcallback-, UI- und Dienstaktivierung in
 `AddonRuntime.start()`. Fehler an jedem dieser Schritte führen über denselben
 Teardown zur vollständigen Rückabwicklung; die Teilinitialisierungsabdeckung
 ist damit vorhanden. Als Nächstes werden die verbleibenden Abbauweiterleitungen
-auf eindeutigen Besitz und unnötig doppelte Bereinigung geprüft.
+auf eindeutigen Besitz und unnötig doppelte Bereinigung geprüft. Dieser Audit
+entfernt die `_stopClient()`-Weiterleitung sowie getrennte Instanzmanager- und
+Editorrequestpfade aus der Runtime: Claim/Fokus, Clientstopp und vollständige
+Coordinator-Bereinigung haben nun je einen Schritt. Der Passwort-Callback
+bleibt als schmale Grenze zu dem tatsächlich im Global Plugin besessenen
+Speicher bestehen. Als Nächstes wird die Rückreferenz des öffentlichen
+Terminaldienstes auf das Global Plugin entfernt.
 
 ## 3. Praktische Abschottung verbreitern
 

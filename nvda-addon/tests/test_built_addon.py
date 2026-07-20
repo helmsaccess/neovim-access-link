@@ -547,6 +547,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._uiManager.unregister", runtime_source)
         self.assertIn("self._addonRuntime.start()", global_source)
         self.assertIn("self._addonRuntime.close()", global_source)
+        self.assertNotIn("self._stopConnections", runtime_source)
+        self.assertNotIn("self._instanceManager", runtime_source)
+        self.assertNotIn("self._editorSession", runtime_source)
+        self.assertNotIn("active_client", runtime_source)
         for implementation in (
             "def _registerSettingsPanel", "def _installMenus",
             "def _promptConnectionProfile", "def _showConnectionProfileDialog",
@@ -1394,11 +1398,20 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        add_remote_instance(plugin._instanceManager, "work", "88", "Work", Client())
         order = []
         original_unpublish = addon_module._serviceRegistrar.unpublish
         original_service_close = plugin._terminalIntegrationService.close
         original_disable = plugin._gate.disable
-        original_stop_client = plugin._stopClient
+        original_stop_connections = plugin._instanceManager.stop_all
         original_unregister = plugin._nvdaUi.unregister
         original_close = plugin._presentation.close
 
@@ -1419,9 +1432,9 @@ class BuiltAddonTests(unittest.TestCase):
                 side_effect=lambda: order.append("gate") or original_disable(),
             ),
             mock.patch.object(
-                plugin,
-                "_stopClient",
-                side_effect=lambda: order.append("client") or original_stop_client(),
+                plugin._instanceManager,
+                "stop_all",
+                side_effect=lambda: order.append("connections") or original_stop_connections(),
             ),
             mock.patch.object(
                 plugin._nvdaUi,
@@ -1437,7 +1450,7 @@ class BuiltAddonTests(unittest.TestCase):
             plugin.terminate()
 
         self.assertEqual(
-            ["unpublish", "terminalService", "gate", "client", "ui", "presentation"],
+            ["unpublish", "terminalService", "gate", "connections", "ui", "presentation"],
             order,
         )
 
@@ -1461,20 +1474,14 @@ class BuiltAddonTests(unittest.TestCase):
         profile_switch.register.side_effect = lambda _handler: order.append("profileRegister")
         profile_switch.unregister.side_effect = lambda _handler: order.append("profileSwitch")
         profile_handler = mock.Mock()
-        instances = mock.Mock()
-        instances.stop_all.side_effect = lambda: order.append("instances")
         coordinator = mock.Mock()
+        coordinator.instances.list.return_value = [object()]
+        coordinator.instances.stop_all.side_effect = lambda: order.append("connections")
         coordinator.clear_runtime_tracking.side_effect = lambda: order.append("runtimeTracking")
-        coordinator.discard_focus_context.side_effect = lambda: order.append("focusContext")
         focus = mock.Mock()
         focus.clear.side_effect = lambda: order.append("terminalFocus")
-        editor = mock.Mock()
-        editor.discard_clipboard_requests.side_effect = lambda: order.append("clipboardRequests")
-        editor.discard_terminal_control_requests.side_effect = (
-            lambda: order.append("terminalControlRequests")
-        )
         claim = mock.Mock()
-        claim.cancel_pending_authorization.side_effect = lambda: order.append("sessionClaim")
+        claim.invalidate_connection_state.side_effect = lambda: order.append("connectionClaims")
         ui_manager = mock.Mock()
         ui_manager.register.side_effect = lambda: order.append("uiRegister")
         ui_manager.unregister.side_effect = lambda: order.append("ui")
@@ -1490,11 +1497,8 @@ class BuiltAddonTests(unittest.TestCase):
             profile_switch_action=profile_switch,
             profile_switch_handler=profile_handler,
             clear_session_passwords=lambda: order.append("passwords"),
-            stop_connections=lambda: order.append("connections"),
-            instance_manager=instances,
             coordinator=coordinator,
             focus_service=focus,
-            editor_session=editor,
             claim_service=claim,
             ui_manager=ui_manager,
             presentation=presentation,
@@ -1516,14 +1520,10 @@ class BuiltAddonTests(unittest.TestCase):
                 "gate",
                 "profileSwitch",
                 "passwords",
-                "connections",
-                "instances",
-                "runtimeTracking",
+                "connectionClaims",
                 "terminalFocus",
-                "focusContext",
-                "clipboardRequests",
-                "terminalControlRequests",
-                "sessionClaim",
+                "connections",
+                "runtimeTracking",
                 "ui",
                 "presentation",
             ],
@@ -1542,6 +1542,9 @@ class BuiltAddonTests(unittest.TestCase):
         diagnostics = mock.Mock()
         ui_manager = mock.Mock()
         presentation = mock.Mock()
+        coordinator = mock.Mock()
+        coordinator.instances.list.return_value = [object()]
+        coordinator.instances.stop_all.side_effect = RuntimeError("stop failed")
         runtime = AddonRuntime(
             registrar=registrar,
             integration_service=mock.Mock(),
@@ -1550,11 +1553,8 @@ class BuiltAddonTests(unittest.TestCase):
             profile_switch_action=mock.Mock(),
             profile_switch_handler=mock.Mock(),
             clear_session_passwords=mock.Mock(),
-            stop_connections=mock.Mock(side_effect=RuntimeError("stop failed")),
-            instance_manager=mock.Mock(),
-            coordinator=mock.Mock(),
+            coordinator=coordinator,
             focus_service=mock.Mock(),
-            editor_session=mock.Mock(),
             claim_service=mock.Mock(),
             ui_manager=ui_manager,
             presentation=presentation,
@@ -1572,6 +1572,38 @@ class BuiltAddonTests(unittest.TestCase):
             error="stop failed",
         )
         diagnostics.record.assert_any_call("addonStop")
+
+    def test_global_teardown_stops_managed_clients_without_global_forwarder(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self):
+                inner_self.stop_count = 0
+
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                inner_self.stop_count += 1
+
+        plugin = GlobalPlugin()
+        client = Client()
+        add_remote_instance(plugin._instanceManager, "work", "88", "Work", client)
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.pending_focus_contexts["connection-1"] = object()
+        plugin._connectionCoordinator.pending_clipboard_requests[1] = object()
+        plugin._sessionClaimService.inventory_ready = True
+
+        with mock.patch.object(plugin, "_stopClient") as legacy_stop:
+            plugin.terminate()
+
+        legacy_stop.assert_not_called()
+        self.assertEqual(1, client.stop_count)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_focus_contexts)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
+        self.assertFalse(plugin._sessionClaimService.inventory_ready)
 
     def test_addon_runtime_start_rolls_back_each_partial_activation(self) -> None:
         from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
@@ -1598,11 +1630,8 @@ class BuiltAddonTests(unittest.TestCase):
                     profile_switch_action=profile_switch,
                     profile_switch_handler=profile_handler,
                     clear_session_passwords=mock.Mock(),
-                    stop_connections=mock.Mock(),
-                    instance_manager=mock.Mock(),
                     coordinator=mock.Mock(),
                     focus_service=mock.Mock(),
-                    editor_session=mock.Mock(),
                     claim_service=mock.Mock(),
                     ui_manager=ui_manager,
                     presentation=presentation,
@@ -6122,10 +6151,12 @@ class BuiltAddonTests(unittest.TestCase):
 
         class Client:
             def __init__(inner_self): inner_self.stops = 0
+            def start(inner_self): pass
             def stop(inner_self): inner_self.stops += 1
 
         plugin = GlobalPlugin()
         client = Client()
+        add_remote_instance(plugin._instanceManager, "work", "active", "Work", client)
         plugin._connectionCoordinator.active_client = client
         plugin._connectionCoordinator.connected = True
         plugin._gate.manual_enabled = True

@@ -224,11 +224,12 @@ the instance, focus, and gate must also match.
 Tools, and publishes the terminal service last. If any step fails, the runtime
 immediately uses its complete idempotent teardown: unpublish, close the
 published service, cancel delayed main-thread calls, open the gate, unregister
-the profile callback, stop connections, clear runtime/focus/request state,
-then close UI and presentation. Each step fails independently so one cleanup
-error cannot leave later resources active. Some narrowly injected shutdown
-callbacks remain transitional until the remaining V2-6 ownership cleanup is
-complete.
+the profile callback, stop connections exactly once through their coordinator
+owner, clear its runtime/focus/request state exactly once, then close UI and
+presentation. Claim and terminal-focus generations are invalidated before
+clients stop. Each step fails independently so one cleanup error cannot leave
+later resources active. The callback that clears session passwords held only
+by the Global Plugin remains as a narrow ownership-specific shutdown boundary.
 
 A closed `TerminalIntegrationService` is a fail-open fence for retained
 references: it suppresses no native event or Braille output, authorizes no

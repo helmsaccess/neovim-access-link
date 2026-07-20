@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.46+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neunte V2-6-Schnitt entfernt die injizierte `_stopClient()`-Weiterleitung
+  sowie separate Instanzmanager- und Editorrequest-Abbaupfade aus
+  `AddonRuntime`.
+- Der Teardown invalidiert Claim- und Fokuszustand, stoppt jeden verwalteten
+  Client genau einmal und löscht anschließend den gesamten
+  Coordinator-Laufzeitstand genau einmal. Nicht verwaltete Clients aus der
+  früheren internen Architektur werden nicht weiter unterstützt.
+- Der manuelle Abschalt-, Fehler- und Profilwechselpfad behält `_stopClient()`;
+  das Nutzerverhalten außerhalb des Add-on-Teardowns ändert sich nicht.
+
 ## 0.95.0-dev.45+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der achte V2-6-Schnitt gibt `AddonRuntime` eine symmetrische

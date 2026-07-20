@@ -209,7 +209,12 @@ The following slice centralizes profile-callback, UI, and service activation
 in `AddonRuntime.start()`. Failure at every one of these steps uses the same
 teardown for complete rollback, providing partial-initialization coverage.
 Remaining shutdown forwarding is audited next for clear ownership and
-unnecessary duplicate cleanup.
+unnecessary duplicate cleanup. That audit removes `_stopClient()` forwarding
+and separate instance-manager and editor-request paths from the runtime:
+claim/focus invalidation, client shutdown, and complete coordinator cleanup
+now each have one step. The password callback remains as a narrow boundary to
+storage genuinely owned by the Global Plugin. The public terminal service's
+back-reference to the Global Plugin is removed next.
 
 ## 3. Broaden practical isolation coverage
 

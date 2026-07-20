@@ -182,6 +182,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Reihenfolge; Fehler an jeder Grenze lösen denselben vollständigen Teardown
   aus. Das Global Plugin markiert Registrierung und Publish nicht mehr über
   getrennte Übergangsaufrufe.
+- Der neunte V2-6-Schnitt beseitigt die doppelte Verbindungsbereinigung im
+  Teardown. `AddonRuntime` invalidiert Claim und Fokus, stoppt Clients einmal
+  über den Coordinator-Eigentümer und löscht dessen Laufzeitstand danach
+  einmal. `_stopClient()` bleibt ausschließlich für aktive Nutzer- und
+  Profilwechselpfade erhalten.
 
 ### Editorausgabe
 
