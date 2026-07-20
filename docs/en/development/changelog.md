@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.95.0-dev.15+feature.global-plugin-slimming (feature-branch test build)
+
+- A dedicated `SettingsService` now owns loading, normalization, persistence,
+  and NVDA profile switching. The Settings panel and presentation adapter use
+  detached snapshots or domain updates instead of a freely mutable plugin
+  dictionary.
+- `NvdaUiManager` no longer receives a Global Plugin instance. Its narrow
+  dependencies, idempotent registration, partial failures, cancellation
+  paths, and background operations have automated coverage; Settings and Tools
+  remain available process-wide.
+- This internal phase has not yet received a separate practical check.
+
+## 0.95.0-dev.14+feature.global-plugin-slimming (feature-branch test build)
+
+- A new public `TerminalIntegrationService` hides the concrete Global Plugin
+  from the Windows Terminal AppModule and Braille overlay. A fixed command
+  type replaces dynamic method names; focus decisions and F12 authorizations
+  are immutable.
+- Failure, partial initialization, add-on reload, late focus errors, a broken
+  Braille contract, and stale F12 authorization paths have automated fail-open
+  coverage. This internal phase has not yet received a separate practical
+  check.
+
 ## 0.95.0 (beta)
 
 - The product version was advanced to `0.95.0` at the user's explicit

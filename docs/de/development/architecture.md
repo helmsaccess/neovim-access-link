@@ -214,16 +214,33 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und Zustandsbereinigung einer Instanz | NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
-| `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung der vollständig initialisierten prozessweiten Dienstinstanz | Lebenszyklusentscheidung oder Terminalereignisse |
+| `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
+| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
 | Global Plugin | NVDA-Prozesslebenszyklus sowie Zusammensetzung und Beenden gemeinsamer Dienste | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen oder Präsentationsausgabe |
-| `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Terminalereignisse, Fokusbindung und Unterdrückung |
+| `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
+
+Das AppModule und das Braille-Overlay erhalten ausschließlich den
+`TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem
+Vertrag verborgen. Terminalbefehle verwenden eine feste Enum statt frei
+aufgelöster Methodennamen; Fokusentscheidungen und F12-Autorisierungen sind
+unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
+oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
+native NVDA-Ereignis fail-open.
+
+Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
+fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei
+zugängliches Plugin-Dictionary. Der `NvdaUiManager` erhält nur diesen Dienst,
+einen Diagnose-Recorder und die wenigen Callbacks für Passwort- und
+Komponentenabläufe. Menü und Einstellungskategorie bleiben trotzdem genau
+einmal im Prozesslebenszyklus des Global Plugins registriert.
 
 ## Das Fail-open-Gate
 

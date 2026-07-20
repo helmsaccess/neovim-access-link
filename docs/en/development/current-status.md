@@ -1,6 +1,6 @@
 # Current status
 
-Status date: July 19, 2026. Product version in the source tree: 0.95.0.
+Status date: July 20, 2026. Product version in the source tree: 0.95.0.
 
 The source tree is prepared for version 0.95.0. Its corresponding GitHub
 release link is kept prominently in `README.md`. Project-defined maturity
@@ -58,6 +58,14 @@ See `compatibility.md` for complete platform boundaries.
   valid `fullState` constrain and authenticate the persistent path.
 - Focus loss, deactivation, protocol errors, and transport loss restore native
   terminal output fail-open.
+- The Windows Terminal AppModule and structured Braille overlay reach the
+  shared service through a narrow `TerminalIntegrationService`. Fixed command
+  values and immutable focus and claim results prevent private or dynamic
+  calls across the AppModule boundary.
+- A dedicated `SettingsService` owns loading, normalization, persistence, and
+  NVDA profile switching. Presentation and Tools dialogs receive only
+  snapshots or narrow operations; `NvdaUiManager` has no Global Plugin
+  instance.
 
 ### Editor output
 

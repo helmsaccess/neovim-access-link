@@ -98,6 +98,12 @@ from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
 from .core.service_registrar import ServiceRegistrar  # noqa: E402
 from .nvda_windows import processAlive  # noqa: E402
+from .terminal_integration import (  # noqa: E402
+	SessionClaimAuthorization as SessionClaimAuthorization,
+	TerminalCommand as TerminalCommand,
+	TerminalIntegrationService,
+)
+from .settings_service import SettingsService  # noqa: E402
 
 addonHandler.initTranslation()
 
@@ -130,8 +136,8 @@ except ImportError:
 _serviceRegistrar = ServiceRegistrar()
 
 
-def getActivePlugin():
-	"""Return the add-on service instance for application-specific adapters."""
+def getTerminalIntegrationService():
+	"""Return the narrow service published for application-specific adapters."""
 	return _serviceRegistrar.current
 
 
@@ -244,8 +250,12 @@ class StructuredLineRegion(nvdaBraille.Region):
 		self.focusToHardLeft = True
 
 	def update(self):
-		plugin = getActivePlugin()
-		state = dict(plugin._currentState) if plugin is not None else {}
+		service = getTerminalIntegrationService()
+		try:
+			state = service.braille_state(self.obj) if service is not None else {}
+		except Exception:
+			state = {}
+		self._state = state
 		formatting = config.conf.get("documentFormatting", {})
 		state["reportSpellingBraille"] = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
 		plan = plan_braille(state)
@@ -259,47 +269,50 @@ class StructuredLineRegion(nvdaBraille.Region):
 		super().update()
 
 	def routeTo(self, braillePos):
-		plugin = getActivePlugin()
-		if plugin is None or not plugin._shouldSuppress(self.obj):
+		service = getTerminalIntegrationService()
+		try:
+			suppressed = service is not None and service.should_suppress_braille(self.obj)
+		except Exception:
+			suppressed = False
+		if not suppressed:
 			return
 		if not 0 <= braillePos < len(self.brailleToRawPos):
-			plugin._diagnostics.record("brailleRouteRejected", reason="outOfRange", braillePos=braillePos)
+			service.record_braille_route_rejection("outOfRange", braillePos)
 			return
 		expanded_offset = self.brailleToRawPos[braillePos]
 		if self._plan.routing_byte_columns is not None:
 			if not 0 <= expanded_offset < len(self._plan.routing_byte_columns):
-				plugin._diagnostics.record(
-					"brailleRouteRejected",
-					reason="semanticOutOfRange",
-					braillePos=braillePos,
-				)
+				service.record_braille_route_rejection("semanticOutOfRange", braillePos)
 				return
 			byte_column = self._plan.routing_byte_columns[expanded_offset]
 			if byte_column is None:
-				plugin._diagnostics.record(
-					"brailleRouteRejected",
-					reason="semanticStatus",
-					braillePos=braillePos,
-				)
+				service.record_braille_route_rejection("semanticStatus", braillePos)
 				return
 		else:
 			source_offset = source_offset_for_expanded(self._plan, expanded_offset)
-			line = plugin._currentState.get("lineText", "")
+			line = self._state.get("lineText", "")
 			byte_column = len(line[:source_offset].encode("utf-8"))
-		plugin._routeBrailleCursor(byte_column)
+		service.route_braille_cursor(self.obj, byte_column)
 
 
 class StructuredTerminalBrailleOverlay:
 	def _reportNewLines(self, lines):
-		plugin = getActivePlugin()
-		if plugin is not None and plugin._shouldSuppress(self):
-			plugin._diagnostics.record("terminalLiveTextSuppressed", lineCount=len(lines))
+		service = getTerminalIntegrationService()
+		try:
+			suppressed = service is not None and service.suppress_terminal_live_text(self, len(lines))
+		except Exception:
+			suppressed = False
+		if suppressed:
 			return
 		return super()._reportNewLines(lines)
 
 	def getBrailleRegions(self, review=False):
-		plugin = getActivePlugin()
-		if review or plugin is None or not plugin._shouldSuppress(self):
+		service = getTerminalIntegrationService()
+		try:
+			suppressed = service is not None and service.should_suppress_braille(self)
+		except Exception:
+			suppressed = False
+		if review or not suppressed:
 			raise NotImplementedError
 		# Return a concrete iterable. A yield would turn this into a generator
 		# and defer NotImplementedError until outside NVDA's fallback try block.
@@ -311,10 +324,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		super().__init__()
 		self._serviceRegistrationToken = None
 		self._diagnostics = DiagnosticBuffer()
+		_registerNvdaConfigSpec()
+		self._settingsService = SettingsService(
+			config.conf,
+			section_name=_NVDA_CONFIG_SECTION,
+			feedback_defaults=_FEEDBACK_DEFAULTS,
+			focus_announcement_values=_FOCUS_ANNOUNCEMENT_VALUES,
+			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
+			record_diagnostic=self._diagnostics.record,
+			on_connections_changed=self._onSettingsConnectionsChanged,
+		)
 		self._presentation = NvdaPresentation(
 			os.path.join(globalVars.appDir, "waves"),
 			os.path.join(_PACKAGE_DIR, "resources", "sounds"),
-			lambda: self._settings,
+			self._settingsService.snapshot,
 			_FEEDBACK_DEFAULTS,
 			_FEEDBACK_FOR_SOUND,
 			self._diagnostics.record,
@@ -342,17 +365,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._focusedAppModule = None
 		self._focusedAdapterToken = None
 		self._terminalFocusGeneration = 0
-		_registerNvdaConfigSpec()
-		settings = self._loadSettings()
-		self._settings = settings
 		self._nvdaUi = NvdaUiManager(
-			self,
+			self._settingsService,
+			record_diagnostic=self._diagnostics.record,
+			password_for_profile=self._passwordForProfile,
+			askpass_path=self._askpassPath,
 			product_name=_PRODUCT_NAME,
 			package_dir=_PACKAGE_DIR,
 			feedback_defaults=_FEEDBACK_DEFAULTS,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 		)
-		config.post_configProfileSwitch.register(self._onNvdaConfigProfileSwitch)
+		config.post_configProfileSwitch.register(self._settingsService.handle_profile_switch)
+		settings = self._settingsService.snapshot()
 		self._diagnostics.record(
 			"addonStart",
 			nvdaVersion=getattr(buildVersion, "version", "unknown"),
@@ -360,7 +384,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
 		self._nvdaUi.register()
-		self._serviceRegistrationToken = _serviceRegistrar.publish(self)
+		self._terminalIntegrationService = TerminalIntegrationService(self)
+		self._serviceRegistrationToken = _serviceRegistrar.publish(self._terminalIntegrationService)
 
 	@property
 	def _instanceManager(self):
@@ -508,7 +533,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.transport_capabilities = value
 
 	def terminate(self):
-		_serviceRegistrar.unpublish(self, self._serviceRegistrationToken)
+		_serviceRegistrar.unpublish(self._terminalIntegrationService, self._serviceRegistrationToken)
 		self._serviceRegistrationToken = None
 		for pending in tuple(self._pendingMainThreadCalls):
 			try:
@@ -519,7 +544,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._terminalLifecycleCall = None
 		self._terminalLifecycleMisses.clear()
 		self._gate.disable()
-		config.post_configProfileSwitch.unregister(self._onNvdaConfigProfileSwitch)
+		config.post_configProfileSwitch.unregister(self._settingsService.handle_profile_switch)
 		self._clearSessionPasswords()
 		self._stopClient()
 		try:
@@ -672,6 +697,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._pendingObservedClaim = None
 		return self._gate.manual_enabled and self._gate.focused == identity
 
+	def _cancelObservedSessionClaim(self, identity, generation):
+		"""Discard only the matching queued claim after its frontend scope changed."""
+		if self._pendingObservedClaim != (identity, generation):
+			return False
+		self._pendingObservedClaim = None
+		self._diagnostics.record("sessionClaimIgnored", reason="frontendScopeChanged")
+		return True
+
 	def _promptForSessionClaim(self, profile, identity):
 		self._diagnostics.record(
 			"sessionClaimRequested",
@@ -688,7 +721,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _automaticClaimProfiles(self):
 		"""Return profiles that can be inspected without opening a password dialog."""
 		try:
-			profiles = parse_profiles(self._settings.get("connections", []))
+			profiles = parse_profiles(self._settingsService.snapshot().get("connections", []))
 		except ValueError as error:
 			self._diagnostics.record("claimInventoryConfigError", error=str(error))
 			return []
@@ -922,7 +955,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._claimEligibleTargets = eligible
 		self._claimInventoryErrors = errors
 		self._claimInventoryReady = True
-		configured = len(self._settings.get("connections", []))
+		configured = len(self._settingsService.snapshot().get("connections", []))
 		scanned_remote = len([item for item in results if item[0] == "remoteSsh"])
 		automatic = len([target for target in eligible if target[0] == "remoteSsh"])
 		local_sessions = sum(
@@ -1367,7 +1400,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self._gate.manual_enabled:
 			ui.message(_("Activate Neovim accessibility before connecting a terminal"))
 			return
-		profiles = self._settings.get("connections", [])
+		profiles = self._settingsService.snapshot().get("connections", [])
 		choices = [_("This computer - local Neovim")]
 		choices.extend(profile.get("name", "") for profile in profiles)
 		profile_dialog = wx.SingleChoiceDialog(
@@ -2278,7 +2311,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		try:
 			profile = next(
 				item
-				for item in parse_profiles(self._settings.get("connections", []))
+				for item in parse_profiles(self._settingsService.snapshot().get("connections", []))
 				if item.identifier == profile_id
 			)
 		except (StopIteration, ValueError) as error:
@@ -3362,10 +3395,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return self._presentation.feedback_mode(key)
 
 	def _focusAnnouncement(self):
-		value = self._settings.get("focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT)
-		if isinstance(value, int) and 0 <= value < len(_FOCUS_ANNOUNCEMENT_VALUES):
-			return _FOCUS_ANNOUNCEMENT_VALUES[value]
-		return _FOCUS_ANNOUNCEMENT_VALUES[_FOCUS_ANNOUNCEMENT_DEFAULT]
+		return self._settingsService.focus_announcement()
 
 	@staticmethod
 	def _modeSoundKind(mode):
@@ -3377,97 +3407,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _actionSpeechAllowed(self, event_type, feedback_key):
 		return self._presentation.action_speech_allowed(event_type, feedback_key)
 
-	def _loadSettings(self):
-		try:
-			section = config.conf[_NVDA_CONFIG_SECTION]
-			connections_value = section.get("connections", "[]")
-			if not isinstance(connections_value, str):
-				raise ValueError("connections must be a JSON string")
-			feedback_section = section.get("feedback", {})
-			if not hasattr(feedback_section, "items"):
-				raise ValueError("feedback must be an object")
-			settings = {
-				"connections": json.loads(connections_value),
-				"focusAnnouncement": section.get(
-					"focusAnnouncement",
-					_FOCUS_ANNOUNCEMENT_DEFAULT,
-				),
-				# NVDA exposes nested configuration through AggregatedSection.
-				# Iterating that object does not have normal mapping semantics,
-				# while its public items() method does.
-				"feedback": dict(feedback_section.items()),
-			}
-		except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
-			self._diagnostics.record(
-				"configError",
-				errorType=type(error).__name__,
-				error=str(error),
-				source="nvdaConfig",
-			)
-			settings = {}
-		return self._normalizeSettings(settings)
-
-	def _normalizeSettings(self, settings):
-		raw_feedback = settings.get("feedback", {})
-		raw_connections = settings.get("connections")
-		if not isinstance(raw_feedback, dict):
-			self._diagnostics.record("configError", error="feedback must be an object")
-			raw_feedback = {}
-		feedback = dict(_FEEDBACK_DEFAULTS)
-		for key in feedback:
-			value = raw_feedback.get(key, feedback[key])
-			if isinstance(value, int) and 0 <= value <= 3:
-				feedback[key] = value
-			else:
-				self._diagnostics.record("configError", error="invalid feedback mode", option=key)
-		try:
-			connections = parse_profiles(raw_connections)
-		except ValueError as error:
-			self._diagnostics.record("configError", error=str(error), option="connections")
-			connections = []
-		focus_announcement = settings.get(
-			"focusAnnouncement",
-			_FOCUS_ANNOUNCEMENT_DEFAULT,
-		)
-		if not (
-			isinstance(focus_announcement, int) and 0 <= focus_announcement < len(_FOCUS_ANNOUNCEMENT_VALUES)
-		):
-			self._diagnostics.record(
-				"configError",
-				error="invalid focus announcement",
-				option="focusAnnouncement",
-			)
-			focus_announcement = _FOCUS_ANNOUNCEMENT_DEFAULT
-		return {
-			"feedback": feedback,
-			"focusAnnouncement": focus_announcement,
-			"connections": [profile.as_dict() for profile in connections],
-		}
-
-	def _onNvdaConfigProfileSwitch(self, **_kwargs):
-		previous = self._settings
-		self._settings = self._loadSettings()
-		connections_changed = previous.get("connections") != self._settings.get("connections")
-		self._diagnostics.record(
-			"nvdaConfigProfileSettingsReloaded",
-			feedbackChanged=previous.get("feedback") != self._settings.get("feedback"),
-			focusAnnouncementChanged=(
-				previous.get("focusAnnouncement") != self._settings.get("focusAnnouncement")
-			),
-			connectionsChanged=connections_changed,
-		)
-		if connections_changed and self._gate.manual_enabled:
-			self._beginClaimInventory()
+	def _onSettingsConnectionsChanged(self):
+		"""Refresh claim discovery only while manual support is active."""
+		if not self._gate.manual_enabled:
+			return False
+		self._beginClaimInventory()
+		return True
 
 	def _connectionProfileById(self, identifier):
-		try:
-			return next(
-				profile
-				for profile in parse_profiles(self._settings.get("connections", []))
-				if profile.identifier == identifier
-			)
-		except (StopIteration, ValueError):
-			return None
+		return self._settingsService.connection_profile_by_id(identifier)
 
 	def _passwordForProfile(self, profile):
 		if profile is None or profile.authentication != "password":
@@ -3534,25 +3482,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			log.exception("NeovimAccessLink client shutdown failed")
 		self._connected = False
 		self._diagnostics.record("clientStopped")
-
-	@staticmethod
-	def _writeSettingsToNvda(settings):
-		section = config.conf[_NVDA_CONFIG_SECTION]
-		section["focusAnnouncement"] = int(
-			settings.get(
-				"focusAnnouncement",
-				_FOCUS_ANNOUNCEMENT_DEFAULT,
-			)
-		)
-		section["connections"] = json.dumps(
-			settings.get("connections", []),
-			ensure_ascii=False,
-			separators=(",", ":"),
-		)
-		feedback = section["feedback"]
-		values = settings.get("feedback", {})
-		for key, default in _FEEDBACK_DEFAULTS.items():
-			feedback[key] = int(values.get(key, default))
-
-	def _saveSettings(self):
-		self._writeSettingsToNvda(self._settings)

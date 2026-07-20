@@ -61,165 +61,122 @@ class AppModule(appModuleHandler.AppModule):
 			identifier.lower() for identifier in getattr(gesture, "normalizedIdentifiers", ())
 		)
 
-	def _plugin(self):
-		return NeovimAccessLink.getActivePlugin()
+	def _service(self):
+		return NeovimAccessLink.getTerminalIntegrationService()
 
-	def _prepareTerminalAction(self, plugin):
-		plugin._refreshFocusedTerminalForAction(
-			api.getFocusObject(),
-			self,
-			self._eventToken,
-		)
-
-	def _passThroughConfiguredTerminalScript(self, plugin, gesture, action_name):
-		if plugin is not None:
-			plugin._diagnostics.record(
-				"configuredGesturePassedThrough",
-				action=action_name,
-			)
+	@staticmethod
+	def _passThroughConfiguredTerminalScript(gesture):
 		if gesture is not None:
 			gesture.send()
 
-	def _dispatchConfiguredTerminalScript(self, gesture, action_name):
+	def _dispatchConfiguredTerminalScript(self, gesture, command):
 		"""Run a configurable command only for this focused AppModule."""
-		plugin = self._plugin()
-		if plugin is None:
-			self._passThroughConfiguredTerminalScript(
-				plugin,
-				gesture,
-				action_name,
-			)
+		service = self._service()
+		if service is None:
+			self._passThroughConfiguredTerminalScript(gesture)
 			return
 		try:
 			focus_obj = api.getFocusObject()
-			if getattr(focus_obj, "appModule", None) is not self:
-				self._passThroughConfiguredTerminalScript(
-					plugin,
-					gesture,
-					action_name,
-				)
-				return
-			if plugin._identity(focus_obj) is None:
-				self._passThroughConfiguredTerminalScript(
-					plugin,
-					gesture,
-					action_name,
-				)
-				return
-			plugin._refreshFocusedTerminalForAction(
+		except Exception:
+			self._passThroughConfiguredTerminalScript(gesture)
+			return
+		try:
+			handled = service.dispatch_command(
+				command,
+				gesture,
 				focus_obj,
 				self,
 				self._eventToken,
 			)
-		except Exception as error:
-			plugin._diagnostics.record(
-				"configuredGestureFocusFailed",
-				action=action_name,
-				errorType=type(error).__name__,
-			)
-			self._passThroughConfiguredTerminalScript(
-				plugin,
-				gesture,
-				action_name,
-			)
-			return
-		getattr(plugin, action_name)(gesture)
+		except Exception:
+			handled = False
+		if not handled:
+			self._passThroughConfiguredTerminalScript(gesture)
 
-	def _shouldUseNativeEvent(self, plugin, obj, event_name):
+	@staticmethod
+	def _shouldUseNativeEvent(service, obj, event_name):
 		try:
-			return plugin._shouldUseNativeTerminalEvent(obj)
-		except Exception as error:
-			try:
-				plugin._failOpenTerminalEvent(event_name, error)
-			except Exception:
-				pass
+			return service.should_use_native_event(obj, event_name)
+		except Exception:
 			return True
 
 	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
-		plugin = self._plugin()
-		if plugin is None:
+		service = self._service()
+		if service is None:
 			return
 		try:
-			if getattr(obj, "role", None) == controlTypes.Role.TERMINAL and plugin._identity(obj) is not None:
-				clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
-		except Exception as error:
-			try:
-				plugin._failOpenTerminalEvent("chooseNVDAObjectOverlayClasses", error)
-			except Exception:
-				pass
+			supported = service.supports_braille_overlay(obj)
+		except Exception:
+			supported = False
+		if getattr(obj, "role", None) == controlTypes.Role.TERMINAL and supported:
+			clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
 
 	def event_gainFocus(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None:
+		service = self._service()
+		if service is None:
 			nextHandler()
 			return
 		try:
-			decision = plugin._prepareTerminalFocus(
-				obj,
-				self._eventToken,
-				app_module=self,
-			)
-		except Exception as error:
-			try:
-				plugin._failOpenTerminalEvent("gainFocus", error)
-			except Exception:
-				pass
-			nextHandler()
-			return
+			decision = service.prepare_focus(obj, self._eventToken, self)
+		except Exception:
+			decision = None
 		nextHandler()
-		try:
-			plugin._finishTerminalFocus(decision)
-		except Exception as error:
+		if decision is None:
+			return
+		if service is not self._service():
 			try:
-				plugin._failOpenTerminalEvent("gainFocusCompletion", error)
+				service.abandon_focus(decision)
 			except Exception:
 				pass
-			raise
+			return
+		try:
+			service.finish_focus(decision)
+		except Exception:
+			# Native focus handling already ran exactly once. The service owns
+			# fail-open cleanup; never leak a secondary failure into NVDA's hook.
+			pass
 
 	def event_appModule_loseFocus(self):
-		plugin = self._plugin()
-		if plugin is not None:
+		service = self._service()
+		if service is not None:
 			try:
-				plugin._terminalApplicationLostFocus(self._eventToken)
-			except Exception as error:
-				try:
-					plugin._failOpenTerminalEvent("appModuleLoseFocus", error)
-				except Exception:
-					pass
+				service.lose_focus(self._eventToken)
+			except Exception:
+				pass
 
 	def event_textChange(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "textChange"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "textChange"):
 			nextHandler()
 
 	def event_typedCharacter(self, obj, nextHandler, ch):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "typedCharacter"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "typedCharacter"):
 			nextHandler()
 
 	def event_UIA_notification(self, obj, nextHandler, **kwargs):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "UIA_notification"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "UIA_notification"):
 			nextHandler()
 
 	def event_liveRegionChange(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "liveRegionChange"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "liveRegionChange"):
 			nextHandler()
 
 	def event_valueChange(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "valueChange"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "valueChange"):
 			nextHandler()
 
 	def event_nameChange(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "nameChange"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "nameChange"):
 			nextHandler()
 
 	def event_descriptionChange(self, obj, nextHandler):
-		plugin = self._plugin()
-		if plugin is None or self._shouldUseNativeEvent(plugin, obj, "descriptionChange"):
+		service = self._service()
+		if service is None or self._shouldUseNativeEvent(service, obj, "descriptionChange"):
 			nextHandler()
 
 	@scriptHandler.script(
@@ -227,7 +184,10 @@ class AppModule(appModuleHandler.AppModule):
 		category=scriptCategory,
 	)
 	def script_toggleNeovimMode(self, gesture):
-		self._dispatchConfiguredTerminalScript(gesture, "action_toggleNeovimMode")
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.TOGGLE_ACCESSIBILITY,
+		)
 
 	@scriptHandler.script(
 		description=_("Read documentation for the selected Neovim completion item"),
@@ -236,7 +196,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_readCompletionDocumentation(self, gesture):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
-			"action_readCompletionDocumentation",
+			NeovimAccessLink.TerminalCommand.READ_COMPLETION_DOCUMENTATION,
 		)
 
 	@scriptHandler.script(
@@ -244,21 +204,30 @@ class AppModule(appModuleHandler.AppModule):
 		category=scriptCategory,
 	)
 	def script_copyNeovimSelection(self, gesture):
-		self._dispatchConfiguredTerminalScript(gesture, "action_copyNeovimSelection")
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.COPY_VISUAL_SELECTION,
+		)
 
 	@scriptHandler.script(
 		description=_("Copy Neovim's last yank to the Windows clipboard"),
 		category=scriptCategory,
 	)
 	def script_copyLastNeovimYank(self, gesture):
-		self._dispatchConfiguredTerminalScript(gesture, "action_copyLastNeovimYank")
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.COPY_LAST_YANK,
+		)
 
 	@scriptHandler.script(
 		description=_("Paste Windows clipboard text into the active Neovim buffer"),
 		category=scriptCategory,
 	)
 	def script_pasteWindowsClipboard(self, gesture):
-		self._dispatchConfiguredTerminalScript(gesture, "action_pasteWindowsClipboard")
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.PASTE_WINDOWS_CLIPBOARD,
+		)
 
 	@scriptHandler.script(
 		description=_("Store Windows clipboard text in Neovim's unnamed register"),
@@ -267,7 +236,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_setNeovimRegisterFromWindowsClipboard(self, gesture):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
-			"action_setNeovimRegisterFromWindowsClipboard",
+			NeovimAccessLink.TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD,
 		)
 
 	@scriptHandler.script(
@@ -277,7 +246,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_leaveDirectTerminalInput(self, gesture):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
-			"action_leaveDirectTerminalInput",
+			NeovimAccessLink.TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT,
 		)
 
 	@scriptHandler.script(
@@ -285,7 +254,10 @@ class AppModule(appModuleHandler.AppModule):
 		category=scriptCategory,
 	)
 	def script_startConnectionInstance(self, gesture):
-		self._dispatchConfiguredTerminalScript(gesture, "action_startConnectionInstance")
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.START_CONNECTION,
+		)
 
 	@scriptHandler.script(
 		description=_("Disconnect the selected Neovim connection instance"),
@@ -294,7 +266,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_disconnectConnectionInstance(self, gesture):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
-			"action_disconnectConnectionInstance",
+			NeovimAccessLink.TerminalCommand.DISCONNECT_CONNECTION,
 		)
 
 	@scriptHandler.script(
@@ -304,7 +276,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_forgetTemporaryTerminalBinding(self, gesture):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
-			"action_forgetTemporaryTerminalBinding",
+			NeovimAccessLink.TerminalCommand.FORGET_TEMPORARY_BINDING,
 		)
 
 	@scriptHandler.script(
@@ -313,9 +285,12 @@ class AppModule(appModuleHandler.AppModule):
 		gesture="kb:NVDA+alt+d",
 	)
 	def script_copyDiagnosticReport(self, gesture):
-		plugin = self._plugin()
-		if plugin is not None:
-			plugin.action_copyDiagnosticReport(gesture)
+		service = self._service()
+		if service is not None:
+			try:
+				service.copy_diagnostic_report(gesture)
+			except Exception:
+				pass
 
 	def _decideExecuteGesture(self, gesture, focus_obj=None):
 		if not self._isClaimGesture(gesture):
@@ -327,37 +302,51 @@ class AppModule(appModuleHandler.AppModule):
 				return True
 		if getattr(focus_obj, "appModule", None) is not self:
 			return True
-		plugin = self._plugin()
-		if plugin is None or not plugin._gate.manual_enabled or plugin._gate.focused is None:
+		service = self._service()
+		if service is None:
 			return True
-		identity = plugin._identity(focus_obj)
-		if identity is None or identity != plugin._gate.focused:
+		try:
+			authorization = service.authorize_session_claim(focus_obj, self)
+		except Exception:
 			return True
-		generation = plugin._captureObservedSessionClaim(identity)
-		if generation is None:
+		if authorization is None:
 			return True
-		plugin._diagnostics.record(
-			"sessionClaimGestureCaptured",
-			source="decideExecuteGesture",
-			terminal=plugin._identityFields(identity),
-			generation=generation,
-		)
 		queueHandler.queueFunction(
 			queueHandler.eventQueue,
 			self._handleObservedClaimGesture,
-			identity,
-			generation,
+			service,
+			authorization,
 		)
 		return True
 
-	def _handleObservedClaimGesture(self, identity, generation):
-		plugin = self._plugin()
-		if plugin is None:
+	def _handleObservedClaimGesture(self, originating_service, authorization):
+		service = self._service()
+		if service is None:
+			try:
+				originating_service.cancel_session_claim(authorization)
+			except Exception:
+				pass
 			return
-		self._prepareTerminalAction(plugin)
-		plugin.action_claimFocusedNeovimSession(
-			None,
-			forward_gesture=False,
-			expected_identity=identity,
-			claim_generation=generation,
-		)
+		if service is not originating_service:
+			try:
+				originating_service.cancel_session_claim(authorization)
+			except Exception:
+				pass
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			try:
+				service.cancel_session_claim(authorization)
+			except Exception:
+				pass
+			return
+		try:
+			service.complete_session_claim(
+				authorization,
+				focus_obj,
+				self,
+				self._eventToken,
+			)
+		except Exception:
+			pass

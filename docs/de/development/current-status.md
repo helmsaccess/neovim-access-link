@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 19. Juli 2026. Produktversion im Quellstand: 0.95.0.
+Stand: 20. Juli 2026. Produktversion im Quellstand: 0.95.0.
 
 Der Quellstand ist für Version 0.95.0 vorbereitet. Der zugehörige
 GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
@@ -60,6 +60,14 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   gültige `fullState` begrenzen und authentifizieren den dauerhaften Pfad.
 - Fokusverlust, Deaktivierung, Protokollfehler und Transportende geben native
   Terminalausgabe fail-open wieder frei.
+- Das Windows-Terminal-AppModule und das strukturierte Braille-Overlay greifen
+  über einen schmalen `TerminalIntegrationService` auf den gemeinsamen Dienst
+  zu. Feste Befehlswerte und unveränderliche Fokus- und Claim-Ergebnisse
+  verhindern private oder dynamische Aufrufe über die AppModule-Grenze.
+- Ein eigener `SettingsService` besitzt Laden, Normalisierung, Speichern und
+  NVDA-Profilwechsel. Präsentation und Werkzeugdialoge erhalten nur Snapshots
+  oder schmale Operationen; der `NvdaUiManager` kennt keine Global-Plugin-
+  Instanz.
 
 ### Editorausgabe
 

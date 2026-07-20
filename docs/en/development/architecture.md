@@ -203,16 +203,33 @@ must not close output again before state is confirmed.
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
 | `ConnectionCoordinator` | Instance manager, active client, gate and active speech planner, authentication, bindings, correlated requests, isolated runtime states, and instance selection, focus confirmation, and state disposal | NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
-| `ServiceRegistrar` | Identity-checked publication of the fully initialized process-wide service | Lifecycle decisions or terminal events |
+| `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
+| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
 | Global Plugin | NVDA-process lifetime plus shared-service composition and teardown | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, and presentation delivery |
-| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | Terminal events, focus binding, and suppression |
+| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable terminal commands, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
+
+The AppModule and Braille overlay receive only the
+`TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
+that contract. Terminal commands use a fixed enum instead of freely resolved
+method names, while focus decisions and F12 authorizations are immutable
+values. If the service is absent, has been replaced during add-on reload, or
+violates the contract, the AppModule passes the original gesture or native
+NVDA event through fail-open.
+
+The settings panel, presentation adapter, and profile-switch path use snapshots
+or domain operations supplied by `SettingsService`; no dialog mutates a freely
+accessible plugin dictionary. `NvdaUiManager` receives only that service, a
+diagnostic recorder, and the small password and component-operation callbacks
+it needs. Its Tools entries and Settings category nevertheless remain registered
+exactly once for the Global Plugin's process lifetime.
 
 ## The fail-open gate
 

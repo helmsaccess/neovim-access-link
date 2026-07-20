@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 19. Juli 2026.
+Stand: 20. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -130,6 +130,20 @@ des Global Plugins besitzt nur an den erforderlichen Importen begründete
 `E402`-Ausnahmen. Der nachträglich erkannte Verlust der Braille-Overlayauswahl
 ist durch einen direkten `controlTypes`-Import im AppModule und Tests des
 tatsächlichen Overlay-Hooks korrigiert.
+
+Die anschließende Verschlankung V2 wird wieder in kleine, automatisiert
+abgesicherte Phasen geteilt. V2-1 und V2-2 sind automatisiert umgesetzt: Der
+Registrar veröffentlicht nur einen schmalen `TerminalIntegrationService` für
+AppModule und Braille-Overlay. Ein eigener `SettingsService` besitzt Laden,
+Normalisierung, Speichern und Profilwechsel. Präsentation und
+`NvdaUiManager` verwenden dessen Snapshots und fachliche Operationen; der
+UI-Manager kennt weder das Global Plugin noch dessen Zustand. Doppelte
+Registrierung, Teilfehler, ungültige Konfiguration und Verbindungsänderungen
+sind direkt geprüft. Die prozessweite Verfügbarkeit von Einstellungen und
+Werkzeugen bleibt unverändert. Eine praktische Zwischenprüfung ist für diese
+internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
+V2-Schritten gebündelt. Als Nächstes erhält der Terminalfokus in V2-3 einen
+eigenen Zustandsdienst.
 
 ## 3. Praktische Abschottung verbreitern
 

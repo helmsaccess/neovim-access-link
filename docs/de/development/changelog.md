@@ -5,6 +5,29 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.15+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Ein eigener `SettingsService` besitzt nun Laden, Normalisierung, Speichern
+  und NVDA-Profilwechsel. Einstellungsdialog und Präsentation arbeiten mit
+  getrennten Snapshots beziehungsweise fachlichen Updates statt mit einem
+  frei veränderlichen Plugin-Dictionary.
+- Der `NvdaUiManager` erhält keine Global-Plugin-Instanz mehr. Seine schmalen
+  Abhängigkeiten, idempotente Registrierung, Teilfehler, Abbruchpfade und
+  Hintergrundoperationen sind automatisiert geprüft; Einstellungen und
+  Werkzeuge bleiben prozessweit verfügbar.
+- Diese interne Phase wurde noch nicht separat praktisch abgenommen.
+
+## 0.95.0-dev.14+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Ein neuer öffentlicher `TerminalIntegrationService` verbirgt das konkrete
+  Global Plugin vor Windows-Terminal-AppModule und Braille-Overlay. Ein fester
+  Befehlstyp ersetzt dynamische Methodennamen; Fokusentscheidungen und
+  F12-Autorisierungen sind unveränderlich.
+- Ausfall, unvollständige Initialisierung, Add-on-Neuladen, späte Fokusfehler,
+  ein defekter Braillevertrag und veraltete F12-Autorisierungen sind fail-open
+  automatisiert geprüft. Diese interne Phase wurde noch nicht separat
+  praktisch abgenommen.
+
 ## 0.95.0 (Beta)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.95.0` angehoben.
