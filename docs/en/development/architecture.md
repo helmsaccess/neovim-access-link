@@ -204,6 +204,7 @@ must not close output again before state is confirmed.
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
+| `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
@@ -212,12 +213,21 @@ must not close output again before state is confirmed.
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
-| Global Plugin | NVDA-process lifetime plus shared-service composition and teardown | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, and presentation delivery |
+| Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable terminal commands, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
+
+`AddonRuntime` is published only after profile, Settings, and Tools
+registration has completed. Its first V2-6 slice centralizes the existing
+shutdown order and makes it idempotent: unpublish, cancel delayed main-thread
+calls, open the gate, unregister the profile callback, stop connections,
+clear runtime/focus/request state, then close UI and presentation. Each step
+fails independently so one cleanup error cannot leave later resources active.
+Some narrowly injected shutdown callbacks remain transitional until the
+remaining V2-6 ownership cleanup is complete.
 
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind

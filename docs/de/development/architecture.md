@@ -215,6 +215,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
+| `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
@@ -223,12 +224,22 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
-| Global Plugin | NVDA-Prozesslebenszyklus sowie Zusammensetzung und Beenden gemeinsamer Dienste | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen oder Präsentationsausgabe |
+| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, prozessweite Registrierung und Aufruf von `AddonRuntime.close()` | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder Abbaureihenfolge |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
+
+`AddonRuntime` wird erst nach der Registrierung von Profilcallback,
+Einstellungen und Werkzeugen veröffentlicht. Der erste V2-6-Schnitt bündelt
+die bestehende Abbaureihenfolge und macht sie wiederholbar: Dienst entfernen,
+verzögerte Hauptthreadaufrufe abbrechen, Gate öffnen, Profilcallback
+abmelden, Verbindungen stoppen, Runtime-/Fokus-/Requestzustand löschen und
+zuletzt UI und Präsentation schließen. Jeder Schritt fällt getrennt aus, damit
+ein Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Einige schmal
+injizierte Abbaucallbacks bleiben bis zur weiteren V2-6-Besitzbereinigung
+vorübergehend bestehen.
 
 Das AppModule und das Braille-Overlay erhalten ausschließlich den
 `TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem

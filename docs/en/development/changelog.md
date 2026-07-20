@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.38+feature.global-plugin-slimming (feature-branch test build)
+
+- V2-6 starts with a normal `AddonRuntime` that owns late publication and one
+  fixed, idempotent teardown sequence for the composed process-wide services.
+- The public terminal service is unpublished before pending main-thread calls
+  are cancelled and the gate is opened. Connections, runtime tracking, focus,
+  requests, UI, and presentation are then closed in explicit order.
+- A failed teardown step is diagnosed without preventing later cleanup. A
+  publication failure rolls back profile and UI registration; direct tests
+  cover exact ordering, double close, failure continuation, and rollback.
+
 ## 0.95.0-dev.37+feature.global-plugin-slimming (feature-branch test build)
 
 - The final V2-5 audit moves semantic planner reset and per-instance

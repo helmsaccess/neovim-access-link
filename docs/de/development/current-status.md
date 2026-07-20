@@ -135,6 +135,13 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Completion-Dokumentation durch den Controller. V2-5 ist automatisiert
   abgeschlossen; Kompatibilitätseigenschaften bleiben nur als getrennte
   Migrationshüllen für ihre Entfernung in V2-6.
+- V2-6 hat mit einem normalen `AddonRuntime` begonnen. Er veröffentlicht den
+  vollständigen Terminaldienst erst nach der prozessweiten Registrierung und
+  besitzt eine feste, wiederholbare Abbaureihenfolge. Entfernen des Dienstes
+  und fail-open Gate-Öffnung geschehen vor Verbindungs- und
+  Zustandsbereinigung; UI und Präsentation schließen zuletzt. Einzelne
+  Bereinigungsfehler werden diagnostiziert, ohne spätere Schritte zu stoppen;
+  ein später Initialisierungsfehler rollt Registrierungen zurück.
 
 ### Editorausgabe
 

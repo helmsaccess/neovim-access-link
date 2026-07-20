@@ -5,6 +5,20 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.38+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- V2-6 beginnt mit einem normalen `AddonRuntime`, der die späte
+  Veröffentlichung und eine feste, wiederholbare Abbaureihenfolge der
+  zusammengesetzten prozessweiten Dienste besitzt.
+- Der öffentliche Terminaldienst wird vor dem Abbruch ausstehender
+  Hauptthreadaufrufe und vor dem Öffnen des Gates entfernt. Danach folgen
+  Verbindungen, Runtimezustand, Fokus, Requests, UI und Präsentation in
+  ausdrücklicher Reihenfolge.
+- Ein fehlerhafter Abbauschritt wird diagnostiziert, ohne die weitere
+  Bereinigung zu verhindern. Ein Publikationsfehler rollt Profil- und
+  UI-Registrierung zurück; direkte Tests decken Reihenfolge, doppeltes
+  Schließen, Fehlerfortsetzung und Rückrollen ab.
+
 ## 0.95.0-dev.37+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der abschließende V2-5-Audit verschiebt das Zurücksetzen des semantischen

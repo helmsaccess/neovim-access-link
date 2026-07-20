@@ -99,6 +99,7 @@ from .terminal_integration import (  # noqa: E402
 )
 from .settings_service import SettingsService  # noqa: E402
 from .managed_clients import ManagedClientFactory  # noqa: E402
+from .addon_runtime import AddonRuntime  # noqa: E402
 from .editor_session import (  # noqa: E402
 	ControlReplyKind,
 	ControlRequestRejection,
@@ -397,7 +398,6 @@ class StructuredTerminalBrailleOverlay:
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
-		self._serviceRegistrationToken = None
 		self._diagnostics = DiagnosticBuffer()
 		_registerNvdaConfigSpec()
 		self._settingsService = SettingsService(
@@ -487,22 +487,48 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			feedback_defaults=_FEEDBACK_DEFAULTS,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 		)
-		config.post_configProfileSwitch.register(self._settingsService.handle_profile_switch)
-		settings = self._settingsService.snapshot()
-		self._diagnostics.record(
-			"addonStart",
-			nvdaVersion=getattr(buildVersion, "version", "unknown"),
-			configured=bool(settings.get("connections")),
-		)
-		log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
-		self._nvdaUi.register()
 		self._terminalIntegrationService = TerminalIntegrationService(
 			self,
 			self._terminalFocusService,
 			self._sessionClaimService,
 			self._editorSessionController,
 		)
-		self._serviceRegistrationToken = _serviceRegistrar.publish(self._terminalIntegrationService)
+		self._addonRuntime = AddonRuntime(
+			registrar=_serviceRegistrar,
+			integration_service=self._terminalIntegrationService,
+			pending_main_thread_calls=self._pendingMainThreadCalls,
+			gate=self._gate,
+			unregister_profile_switch=(
+				lambda: config.post_configProfileSwitch.unregister(
+					self._settingsService.handle_profile_switch,
+				)
+			),
+			clear_session_passwords=self._clearSessionPasswords,
+			stop_connections=lambda: self._stopClient(),
+			instance_manager=self._instanceManager,
+			coordinator=self._connectionCoordinator,
+			focus_service=self._terminalFocusService,
+			editor_session=self._editorSessionController,
+			claim_service=self._sessionClaimService,
+			ui_manager=self._nvdaUi,
+			presentation=self._presentation,
+			diagnostics=self._diagnostics,
+		)
+		try:
+			config.post_configProfileSwitch.register(self._settingsService.handle_profile_switch)
+			self._addonRuntime.mark_profile_switch_registered()
+			settings = self._settingsService.snapshot()
+			self._diagnostics.record(
+				"addonStart",
+				nvdaVersion=getattr(buildVersion, "version", "unknown"),
+				configured=bool(settings.get("connections")),
+			)
+			log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
+			self._nvdaUi.register()
+			self._addonRuntime.publish()
+		except Exception:
+			self._addonRuntime.close()
+			raise
 
 	@property
 	def _instanceManager(self):
@@ -730,31 +756,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return self._terminalFocusService.focused_adapter_token
 
 	def terminate(self):
-		_serviceRegistrar.unpublish(self._terminalIntegrationService, self._serviceRegistrationToken)
-		self._serviceRegistrationToken = None
-		for pending in tuple(self._pendingMainThreadCalls):
-			try:
-				pending.Stop()
-			except Exception:
-				pass
-		self._pendingMainThreadCalls.clear()
-		self._gate.disable()
-		config.post_configProfileSwitch.unregister(self._settingsService.handle_profile_switch)
-		self._clearSessionPasswords()
-		self._stopClient()
-		try:
-			self._instanceManager.stop_all()
-		except Exception as error:
-			self._diagnostics.record("connectionInstancesStopError", error=str(error))
-		self._connectionCoordinator.clear_runtime_tracking()
-		self._terminalFocusService.clear()
-		self._connectionCoordinator.discard_focus_context()
-		self._discardClipboardRequests()
-		self._discardTerminalControlRequests()
-		self._sessionClaimService.cancel_pending_authorization()
-		self._nvdaUi.unregister()
-		self._presentation.close()
-		self._diagnostics.record("addonStop")
+		self._addonRuntime.close()
 		log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
 		super().terminate()
 

@@ -126,6 +126,12 @@ See `compatibility.md` for complete platform boundaries.
   per-instance completion-documentation access through the controller. V2-5
   is complete under automated coverage; compatibility properties remain only
   as isolated migration wrappers for removal in V2-6.
+- V2-6 has started with a normal `AddonRuntime`. It publishes the completed
+  terminal service only after process-wide registration and owns one fixed,
+  idempotent shutdown sequence. Unpublication and fail-open gate reset precede
+  connection and state cleanup; UI and presentation close last. Individual
+  cleanup failures are diagnosed without stopping later steps, and a late
+  initialization failure rolls registrations back.
 
 ### Editor output
 

@@ -535,13 +535,16 @@ class BuiltAddonTests(unittest.TestCase):
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
         ui_source = (plugin / "nvda_ui.py").read_text(encoding="utf-8")
         settings_source = (plugin / "settings_service.py").read_text(encoding="utf-8")
+        runtime_source = (plugin / "addon_runtime.py").read_text(encoding="utf-8")
 
         self.assertIn("class NvdaUiManager", ui_source)
         self.assertIn("class SettingsService", settings_source)
         self.assertNotIn("self._plugin", ui_source)
         self.assertNotIn("GlobalPlugin", ui_source)
         self.assertIn("self._nvdaUi.register()", global_source)
-        self.assertIn("self._nvdaUi.unregister()", global_source)
+        self.assertNotIn("self._nvdaUi.unregister()", global_source)
+        self.assertIn("self._uiManager.unregister", runtime_source)
+        self.assertIn("self._addonRuntime.close()", global_source)
         for implementation in (
             "def _registerSettingsPanel", "def _installMenus",
             "def _promptConnectionProfile", "def _showConnectionProfileDialog",
@@ -1405,6 +1408,144 @@ class BuiltAddonTests(unittest.TestCase):
             plugin.terminate()
 
         self.assertEqual(["unpublish", "gate", "client", "ui", "presentation"], order)
+
+    def test_addon_runtime_publishes_late_and_closes_once_in_fixed_order(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        order = []
+        service = object()
+        token = object()
+        registrar = mock.Mock()
+        registrar.publish.side_effect = lambda value: order.append("publish") or token
+        registrar.unpublish.side_effect = (
+            lambda value, registration: order.append("unpublish") or True
+        )
+        pending = mock.Mock()
+        pending.Stop.side_effect = lambda: order.append("mainThread")
+        gate = mock.Mock()
+        gate.disable.side_effect = lambda: order.append("gate")
+        instances = mock.Mock()
+        instances.stop_all.side_effect = lambda: order.append("instances")
+        coordinator = mock.Mock()
+        coordinator.clear_runtime_tracking.side_effect = lambda: order.append("runtimeTracking")
+        coordinator.discard_focus_context.side_effect = lambda: order.append("focusContext")
+        focus = mock.Mock()
+        focus.clear.side_effect = lambda: order.append("terminalFocus")
+        editor = mock.Mock()
+        editor.discard_clipboard_requests.side_effect = lambda: order.append("clipboardRequests")
+        editor.discard_terminal_control_requests.side_effect = (
+            lambda: order.append("terminalControlRequests")
+        )
+        claim = mock.Mock()
+        claim.cancel_pending_authorization.side_effect = lambda: order.append("sessionClaim")
+        ui_manager = mock.Mock()
+        ui_manager.unregister.side_effect = lambda: order.append("ui")
+        presentation = mock.Mock()
+        presentation.close.side_effect = lambda: order.append("presentation")
+        diagnostics = mock.Mock()
+
+        runtime = AddonRuntime(
+            registrar=registrar,
+            integration_service=service,
+            pending_main_thread_calls={pending},
+            gate=gate,
+            unregister_profile_switch=lambda: order.append("profileSwitch"),
+            clear_session_passwords=lambda: order.append("passwords"),
+            stop_connections=lambda: order.append("connections"),
+            instance_manager=instances,
+            coordinator=coordinator,
+            focus_service=focus,
+            editor_session=editor,
+            claim_service=claim,
+            ui_manager=ui_manager,
+            presentation=presentation,
+            diagnostics=diagnostics,
+        )
+        runtime.mark_profile_switch_registered()
+        runtime.publish()
+        self.assertTrue(runtime.close())
+        self.assertFalse(runtime.close())
+
+        self.assertEqual(
+            [
+                "publish",
+                "unpublish",
+                "mainThread",
+                "gate",
+                "profileSwitch",
+                "passwords",
+                "connections",
+                "instances",
+                "runtimeTracking",
+                "terminalFocus",
+                "focusContext",
+                "clipboardRequests",
+                "terminalControlRequests",
+                "sessionClaim",
+                "ui",
+                "presentation",
+            ],
+            order,
+        )
+        registrar.publish.assert_called_once_with(service)
+        registrar.unpublish.assert_called_once_with(service, token)
+        diagnostics.record.assert_any_call("addonStop")
+
+    def test_addon_runtime_continues_teardown_after_a_step_failure(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        registrar = mock.Mock()
+        diagnostics = mock.Mock()
+        ui_manager = mock.Mock()
+        presentation = mock.Mock()
+        runtime = AddonRuntime(
+            registrar=registrar,
+            integration_service=object(),
+            pending_main_thread_calls=set(),
+            gate=mock.Mock(),
+            unregister_profile_switch=mock.Mock(),
+            clear_session_passwords=mock.Mock(),
+            stop_connections=mock.Mock(side_effect=RuntimeError("stop failed")),
+            instance_manager=mock.Mock(),
+            coordinator=mock.Mock(),
+            focus_service=mock.Mock(),
+            editor_session=mock.Mock(),
+            claim_service=mock.Mock(),
+            ui_manager=ui_manager,
+            presentation=presentation,
+            diagnostics=diagnostics,
+        )
+
+        self.assertTrue(runtime.close())
+
+        ui_manager.unregister.assert_called_once_with()
+        presentation.close.assert_called_once_with()
+        diagnostics.record.assert_any_call(
+            "runtimeCloseStepError",
+            step="connections",
+            errorType="RuntimeError",
+            error="stop failed",
+        )
+        diagnostics.record.assert_any_call("addonStop")
+
+    def test_global_initialization_failure_rolls_back_before_publication(self) -> None:
+        import config
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        with (
+            mock.patch.object(
+                addon_module._serviceRegistrar,
+                "publish",
+                side_effect=RuntimeError("publication failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "publication failed"),
+        ):
+            GlobalPlugin()
+
+        self.assertIsNone(getTerminalIntegrationService())
+        self.assertEqual([], self.settingsCategoryClasses)
+        self.assertEqual([], config.post_configProfileSwitch.handlers)
 
     def test_service_replacement_during_native_focus_keeps_new_service_current_and_open(self) -> None:
         from appModules.windowsterminal import AppModule

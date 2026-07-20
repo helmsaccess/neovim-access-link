@@ -179,6 +179,14 @@ moves semantic planner reset and completion-documentation access behind the
 same controller. V2-5 is therefore complete under automated coverage; only
 temporary compatibility properties remain for removal in V2-6. The planned
 practical acceptance follows that cleanup.
+V2-6 has started with `AddonRuntime`: late publication and the existing
+teardown sequence now have one idempotent owner. Unpublication, delayed-call
+cancellation, fail-open gate reset, connection/state cleanup, and final
+UI/presentation closure have direct ordering and failure-continuation tests.
+The remaining V2-6 work moves composition ownership further into this runtime,
+removes migration properties and narrow transitional callbacks, and completes
+partial-initialization and stale-callback coverage before practical
+acceptance.
 
 ## 3. Broaden practical isolation coverage
 

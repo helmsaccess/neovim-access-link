@@ -196,6 +196,15 @@ den Zugriff auf Completion-Dokumentation hinter denselben Controller. V2-5
 ist damit automatisiert abgeschlossen; nur vorübergehende
 Kompatibilitätseigenschaften werden in V2-6 entfernt. Die geplante praktische
 Abnahme folgt nach dieser Bereinigung.
+V2-6 hat mit `AddonRuntime` begonnen: Späte Veröffentlichung und die bestehende
+Abbaureihenfolge besitzen nun einen wiederholbaren Eigentümer. Für
+Dienstentfernung, Abbruch verzögerter Aufrufe, fail-open Gate-Öffnung,
+Verbindungs-/Zustandsbereinigung und abschließendes Schließen von UI und
+Präsentation bestehen direkte Reihenfolge- und Fehlerfortsetzungstests. Die
+weitere V2-6-Arbeit verschiebt Zusammensetzungsbesitz tiefer in diese Runtime,
+entfernt Migrationseigenschaften und schmale Übergangscallbacks und schließt
+vor der Praxisabnahme die Abdeckung für Teilinitialisierung und verspätete
+Callbacks ab.
 
 ## 3. Praktische Abschottung verbreitern
 
