@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.43+feature.global-plugin-slimming (feature-branch test build)
+
+- The sixth V2-6 slice removes seven Global Plugin compatibility properties
+  for active client/instance state, connection status, authenticated
+  instances, terminal passthrough, and deferred full states.
+- Production and tests now use the owning `ConnectionCoordinator` directly;
+  no connection transition, authentication rule, transport call, or request
+  correlation changes.
+- Structural and behavioral tests cover selection rollback, fail-open focus,
+  reentrant focus, mixed local/SSH instances, deferred authentication, tab
+  reactivation, clipboard, profile switches, reconnection, and Braille routing.
+
 ## 0.95.0-dev.42+feature.global-plugin-slimming (feature-branch test build)
 
 - The fifth V2-6 slice removes the last two Global Plugin focus/lifecycle

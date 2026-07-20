@@ -539,50 +539,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _gate(self):
 		return self._connectionCoordinator.gate
 
-	@property
-	def _client(self):
-		return self._connectionCoordinator.active_client
-
-	@_client.setter
-	def _client(self, value):
-		self._connectionCoordinator.active_client = value
-
-	@property
-	def _lastConnectionState(self):
-		return self._connectionCoordinator.last_connection_state
-
-	@_lastConnectionState.setter
-	def _lastConnectionState(self, value):
-		self._connectionCoordinator.last_connection_state = value
-
-	@property
-	def _connected(self):
-		return self._connectionCoordinator.connected
-
-	@_connected.setter
-	def _connected(self, value):
-		self._connectionCoordinator.connected = value
-
-	@property
-	def _authenticatedInstances(self):
-		return self._connectionCoordinator.authenticated_instances
-
-	@property
-	def _instanceTerminalPassthrough(self):
-		return self._connectionCoordinator.terminal_passthrough
-
-	@property
-	def _activeInstanceId(self):
-		return self._connectionCoordinator.active_instance_id
-
-	@_activeInstanceId.setter
-	def _activeInstanceId(self, value):
-		self._connectionCoordinator.active_instance_id = value
-
-	@property
-	def _pendingInstanceFullStates(self):
-		return self._connectionCoordinator.pending_full_states
-
 	def terminate(self):
 		self._addonRuntime.close()
 		log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
@@ -653,7 +609,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		log.info("NeovimAccessLink manual mode requested")
 		self._gate.focused = identity
 		self._beginClaimInventory()
-		if self._connected:
+		if self._connectionCoordinator.connected:
 			self._gate.authenticated = True
 			self._gate.nvim_active = True
 			self._gate.bound_terminal = identity
@@ -877,7 +833,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				"nvdaVersion": getattr(buildVersion, "version", "unknown"),
 				"manualEnabled": self._gate.manual_enabled,
 				"suppressionActive": self._gate.suppression_active,
-				"connected": self._connected,
+				"connected": self._connectionCoordinator.connected,
 			},
 			product_name=_PRODUCT_NAME,
 		)
@@ -1047,15 +1003,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if (
 			identity is None
 			or selected is None
-			or self._client is None
-			or selected.identifier != self._activeInstanceId
+			or self._connectionCoordinator.active_client is None
+			or selected.identifier != self._connectionCoordinator.active_instance_id
 			or not self._gate.manual_enabled
 			or not self._gate.authenticated
 			or not self._gate.nvim_active
 			or self._gate.bound_terminal != identity
 		):
 			return None
-		return identity, selected.identifier, self._client
+		return identity, selected.identifier, self._connectionCoordinator.active_client
 
 	def _reportClipboardRequestRejection(self, rejection):
 		if rejection == ControlRequestRejection.CAPABILITY_MISSING:
@@ -1472,7 +1428,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if identity is None:
 			ui.message(_("Starting a connection instance requires a focused terminal"))
 			return
-		if not self._instanceManager.list() and self._client is not None:
+		if not self._instanceManager.list() and self._connectionCoordinator.active_client is not None:
 			self._stopClient()
 		target = local_windows_target(_("This computer - local Neovim"))
 		label = _("Local Neovim, {session}").format(
@@ -1738,10 +1694,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		client = self._instanceManager.client_for(instance.identifier)
 		already_active = (
 			self._gate.bound_terminal == identity
-			and self._client is client
+			and self._connectionCoordinator.active_client is client
 			and self._gate.authenticated
 			and self._gate.nvim_active
-			and self._activeInstanceId == instance.identifier
+			and self._connectionCoordinator.active_instance_id == instance.identifier
 		)
 		self._activateRememberedBinding(identity, instance.identifier)
 		if already_active and self._sessionClaimService.has_temporary_binding_offer(instance.identifier):
@@ -1885,7 +1841,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		password = self._passwordForProfile(profile)
 		if profile.authentication == "password" and password is None:
 			return
-		if not self._instanceManager.list() and self._client is not None:
+		if not self._instanceManager.list() and self._connectionCoordinator.active_client is not None:
 			self._stopClient()
 		result = self._sessionClaimService.start_remote_connection(
 			identity,
@@ -2064,7 +2020,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				)
 				or selected is None
 				or selected.identifier != instance_id
-				or instance_id not in self._authenticatedInstances
+				or instance_id not in self._connectionCoordinator.authenticated_instances
 			):
 				self._diagnostics.record(
 					"focusContextIgnored",
@@ -2093,7 +2049,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					self._instanceManager.client_for(instance_id)
 				except ValueError:
 					return
-				self._pendingInstanceFullStates[instance_id] = event
+				self._connectionCoordinator.pending_full_states[instance_id] = event
 				self._diagnostics.record(
 					"instanceFullStateDeferred",
 					instanceId=instance_id,
@@ -2103,13 +2059,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._diagnostics.record("instanceEventIgnored", instanceId=instance_id, reason="notSelected")
 			return
 		if (
-			instance_id in self._authenticatedInstances
+			instance_id in self._connectionCoordinator.authenticated_instances
 			and event.get("type") != "focusContext"
 			and not (
 				self._gate.authenticated
 				and self._gate.nvim_active
 				and self._gate.bound_terminal == identity
-				and self._activeInstanceId == instance_id
+				and self._connectionCoordinator.active_instance_id == instance_id
 			)
 		):
 			self._diagnostics.record(
@@ -2132,7 +2088,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if event is None:
 				return
 		if event.get("type") == "fullState":
-			self._authenticatedInstances.add(instance_id)
+			self._connectionCoordinator.authenticated_instances.add(instance_id)
 		self._handleEvent(event, connection_label=selected.context_label)
 		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
 			instance_id
@@ -2269,9 +2225,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _handleManagedState(self, instance_id, state):
 		if state == "disconnected":
-			self._authenticatedInstances.discard(instance_id)
-			self._instanceTerminalPassthrough.pop(instance_id, None)
-			self._pendingInstanceFullStates.pop(instance_id, None)
+			self._connectionCoordinator.authenticated_instances.discard(instance_id)
+			self._connectionCoordinator.terminal_passthrough.pop(instance_id, None)
+			self._connectionCoordinator.pending_full_states.pop(instance_id, None)
 			self._connectionCoordinator.discard_focus_context(instance_id)
 			self._discardClipboardRequests(instance_id=instance_id)
 			self._discardTerminalControlRequests(instance_id=instance_id)
@@ -2290,7 +2246,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _failOpenTerminalEvent(self, event_name, error):
 		"""Drop suppression after a frontend event failure."""
 		self._gate.disconnect()
-		self._client = None
+		self._connectionCoordinator.active_client = None
 		self._diagnostics.record(
 			"terminalEventFailedOpen",
 			event=event_name,
@@ -2515,7 +2471,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return identity is not None and self._gate.should_suppress(identity)
 
 	def _sendBrailleRoute(self, payload):
-		client = self._client
+		client = self._connectionCoordinator.active_client
 		return client is not None and bool(client.send_control("routeCursor", payload))
 
 	@staticmethod
@@ -2594,8 +2550,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				self._connectionCoordinator.clear_runtime_tracking()
 			self._diagnostics.record("clientInstancesStopped")
 			return
-		client = self._client
-		self._client = None
+		client = self._connectionCoordinator.active_client
+		self._connectionCoordinator.active_client = None
 		if client is None:
 			return
 		try:

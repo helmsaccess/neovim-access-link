@@ -5,6 +5,20 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.43+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der sechste V2-6-Schnitt entfernt sieben
+  Global-Plugin-Kompatibilitätseigenschaften für aktiven Client-/Instanzzustand,
+  Verbindungsstatus, authentifizierte Instanzen, Terminal-Passthrough und
+  zurückgestellte Full-States.
+- Produktion und Tests verwenden nun direkt den besitzenden
+  `ConnectionCoordinator`; Verbindungsübergang, Authentifizierungsregel,
+  Transportaufruf und Requestkorrelation ändern sich nicht.
+- Struktur- und Verhaltenstests decken Auswahl-Rollback, Fail-open-Fokus,
+  wiedereintretenden Fokus, gemischte lokale/SSH-Instanzen, zurückgestellte
+  Authentifizierung, Tab-Reaktivierung, Zwischenablage, Profilwechsel,
+  Wiederverbindung und Braille-Routing ab.
+
 ## 0.95.0-dev.42+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der fünfte V2-6-Schnitt entfernt die letzten zwei

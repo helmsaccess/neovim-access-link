@@ -1331,6 +1331,8 @@ class BuiltAddonTests(unittest.TestCase):
             "_instanceRuntimeStates", "_pendingFocusContexts", "_pendingClipboardRequests",
             "_pendingTerminalControlRequests", "_focusedAppModule", "_focusedAdapterToken",
             "_focusedTerminalObject", "_terminalLifecycleScheduledAt",
+            "_client", "_lastConnectionState", "_connected", "_authenticatedInstances",
+            "_instanceTerminalPassthrough", "_activeInstanceId", "_pendingInstanceFullStates",
         ):
             self.assertNotIn(f"def {removed_passive_view}(self)", global_source)
 
@@ -3252,7 +3254,7 @@ class BuiltAddonTests(unittest.TestCase):
                     client,
                 )
                 plugin._instanceManager.bind(identity, instance.identifier)
-                plugin._authenticatedInstances.add(instance.identifier)
+                plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
                 plugin._connectionCoordinator.confirm_foreground_instance(
                     instance.identifier,
                     identity,
@@ -3424,7 +3426,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(result.instance)
         self.assertEqual("RuntimeError", result.error_type)
         self.assertEqual(first, plugin._instanceManager.selected_for(identity))
-        self.assertIs(plugin._instanceManager.client_for(first.identifier), plugin._client)
+        self.assertIs(
+            plugin._instanceManager.client_for(first.identifier),
+            plugin._connectionCoordinator.active_client,
+        )
         plugin.terminate()
 
     def test_disconnect_connection_instance_stops_client_asynchronously_and_fails_open(self) -> None:
@@ -3461,7 +3466,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual(["start", "stop"], events)
         self.assertEqual([], plugin._instanceManager.list())
-        self.assertIsNone(plugin._client)
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertNotIn(identity, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertIn("Neovim connection disconnected", self.messages[-1])
@@ -3487,7 +3492,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = identity
         plugin._gate.manual_enabled = True
 
@@ -3654,7 +3659,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.authenticated = True
         plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._client = object()
+        plugin._connectionCoordinator.active_client = object()
         plugin._terminalFocusService.prepare_focus = mock.Mock(side_effect=RuntimeError("focus failed"))
         original_record = plugin._diagnostics.record
         plugin._diagnostics.record = mock.Mock(side_effect=RuntimeError("diagnostics failed"))
@@ -3666,7 +3671,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual([True], native)
         self.assertFalse(plugin._gate.suppression_active)
-        self.assertIsNone(plugin._client)
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
         adapter.terminate()
         plugin.terminate()
 
@@ -3748,7 +3753,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "cursor": {"line": 1, "byteColumn": 0},
             },
         }
-        plugin._pendingInstanceFullStates[instance.identifier] = pending
+        plugin._connectionCoordinator.pending_full_states[instance.identifier] = pending
         first_adapter = AppModule()
         second_adapter = AppModule()
         native = []
@@ -3764,7 +3769,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual(["first", "second"], native)
         self.assertEqual(plugin._identity(second_focus), plugin._gate.focused)
-        self.assertIs(pending, plugin._pendingInstanceFullStates[instance.identifier])
+        self.assertIs(pending, plugin._connectionCoordinator.pending_full_states[instance.identifier])
         self.assertEqual(cancellations_before, self.speechCancellations)
         self.assertIn(
             '"category": "staleTerminalFocusCompletionIgnored"',
@@ -3964,7 +3969,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work, project", client)
         identity = plugin._identity(self.focus)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._sessionClaimService.discovery_generation = 8
         plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must reuse transport")
         plugin._finishSessionDiscovery(
@@ -4029,7 +4034,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(self.focus)
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = True
@@ -4365,7 +4370,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(2, len(instances))
         local_instance = plugin._instanceManager.selected_for(local_identity)
         self.assertEqual(LOCAL_WINDOWS_TCP, local_instance.transport_kind)
-        plugin._authenticatedInstances.add(local_instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(local_instance.identifier)
         self.assertFalse(hasattr(local_instance, "profile_id"))
         self.assertEqual(("127.0.0.1", 45678, 1), (
             Client.created[0].host, Client.created[0].port, Client.created[0].starts,
@@ -4400,7 +4405,7 @@ class BuiltAddonTests(unittest.TestCase):
             local_windows_target("Local"), "old-local", "Local", Client(),
         )
         plugin._instanceManager.bind(identity, instance.identifier)
-        self.assertNotIn(instance.identifier, plugin._authenticatedInstances)
+        self.assertNotIn(instance.identifier, plugin._connectionCoordinator.authenticated_instances)
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
             (delay, callback, args)
@@ -4660,7 +4665,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "cursor": {"line": 1, "byteColumn": 0},
             },
         })
-        self.assertIn(instance.identifier, plugin._pendingInstanceFullStates)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.pending_full_states)
         self.assertIn(instance.identifier, plugin._connectionCoordinator.remember_offer_instances)
         self.assertFalse(plugin._gate.suppression_active)
 
@@ -4669,8 +4674,8 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = self._terminalAdapter()
         adapter.event_gainFocus(terminal, lambda: native_focus.append(True))
         self.assertEqual([True], native_focus)
-        self.assertNotIn(instance.identifier, plugin._pendingInstanceFullStates)
-        self.assertIn(instance.identifier, plugin._authenticatedInstances)
+        self.assertNotIn(instance.identifier, plugin._connectionCoordinator.pending_full_states)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.authenticated_instances)
         self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("ready", self.spoken)
         plugin.terminate()
@@ -4702,7 +4707,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "legacy", "session", "editor@example-host", client)
         wrong_id, active_id = plugin._identity(wrong_obj), plugin._identity(active_obj)
         plugin._instanceManager.bind(wrong_id, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.add(wrong_id)
 
         self.focus = active_obj
@@ -4751,10 +4756,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
-        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._connectionCoordinator.authenticated_instances.update((first.identifier, second.identifier))
         plugin._gate.focused = plugin._gate.bound_terminal = first_id
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._client = first_client
+        plugin._connectionCoordinator.active_client = first_client
         adapter = self._terminalAdapter()
         self.focus = second_obj
         native_focus_announcements = []
@@ -4813,11 +4818,11 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
 
         adapter = self._terminalAdapter()
         adapter.event_appModule_loseFocus()
@@ -4894,11 +4899,11 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._handleManagedEvent(instance.identifier, {
             "type": "fullState", "payload": {
                 "bufferId": 1, "windowId": 10, "tabpageId": 20,
@@ -5029,11 +5034,11 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         self._updateSettings(plugin, {"focusAnnouncement": 0})
         played: list[str] = []
         plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
@@ -5229,7 +5234,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.focused = None
 
@@ -5272,7 +5277,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
         plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
-        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._connectionCoordinator.authenticated_instances.update((first.identifier, second.identifier))
         plugin._gate.manual_enabled = True
 
         adapters = {
@@ -5449,7 +5454,7 @@ class BuiltAddonTests(unittest.TestCase):
         old.instance = "old"
         old_instance = add_remote_instance(plugin._instanceManager, "work", "1", "old", old)
         plugin._instanceManager.bind(identity, old_instance.identifier)
-        plugin._client = old
+        plugin._connectionCoordinator.active_client = old
         plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
         plugin._sessionClaimService.discovery_generation = 9
         with mock.patch.object(addon_module, "SshStdioClient", Client):
@@ -5680,9 +5685,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
         base = {
             "bufferId": 1, "windowId": 1000, "tabpageId": 1, "changedtick": 9,
@@ -5762,9 +5767,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
         plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
@@ -5801,9 +5806,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.terminal_passthrough = True
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._connectionCoordinator.transport_capabilities = frozenset({"terminalControl"})
         plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3,
@@ -5871,9 +5876,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
         plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
@@ -5908,16 +5913,16 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         client = Client()
-        plugin._client = client
-        plugin._connected = True
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.connected = True
         plugin._gate.manual_enabled = True
         config.conf["NeovimAccessLink"]["feedback"]["global"] = 0
 
         config.post_configProfileSwitch.notify()
 
-        self.assertIs(client, plugin._client)
+        self.assertIs(client, plugin._connectionCoordinator.active_client)
         self.assertEqual(0, client.stops)
-        self.assertTrue(plugin._connected)
+        self.assertTrue(plugin._connectionCoordinator.connected)
         self.assertEqual(0, self._settingsSnapshot(plugin)["feedback"]["global"])
         plugin.terminate()
         self.assertEqual(1, client.stops)
@@ -6689,7 +6694,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
-        plugin._client = types.SimpleNamespace(
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )
@@ -7070,7 +7075,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._handleEvent({"type": "textChanged", "payload": {
             **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
         }})
-        plugin._lastConnectionState = "connected"
+        plugin._connectionCoordinator.last_connection_state = "connected"
         plugin._handleConnectionState("disconnected")
         plugin._handleEvent({"type": "fullState", "payload": {
             **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
@@ -7461,7 +7466,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
-        plugin._client = types.SimpleNamespace(
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )
@@ -7493,7 +7498,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
-        plugin._client = types.SimpleNamespace(
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )

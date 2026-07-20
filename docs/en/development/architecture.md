@@ -251,6 +251,12 @@ Global Plugin compatibility view. Braille refresh and lifecycle tests use the
 owning `TerminalFocusService`; focus decisions and UIA lifetime handling remain
 encapsulated there.
 
+Active client and instance state, connection status, authenticated-instance
+tracking, per-instance terminal passthrough, and deferred full states also
+have no Global Plugin compatibility properties. The Global Plugin joins
+effects at the NVDA boundary through `ConnectionCoordinator` directly; that
+coordinator remains the sole writable owner of these fields.
+
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
 that contract. Terminal commands use a fixed enum instead of freely resolved

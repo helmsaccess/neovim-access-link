@@ -216,8 +216,11 @@ Audit passiver Sichten hat elf weitere reine Testeigenschaften für
 Präsentations-, Bindungs-, Runtime-, Request-, AppModule- und Adapterzustand
 entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt. Ein
 anschließender Fokusobjekt-/Lifecycle-Audit entfernt die letzten zwei
-Fokusdienstsichten; in dieser Bereinigungsgruppe verbleiben nur aktive
-Verbindungs- und Gatesichten.
+Fokusdienstsichten. Ein Verbindungszustands-Audit entfernt weitere sieben
+Eigenschaften zugunsten des direkten `ConnectionCoordinator`-Besitzes. In
+dieser Bereinigungsgruppe verbleiben nur die häufig verwendeten
+Kompositionssichten auf Gate und Instanzmanager; sie benötigen eine getrennte
+Entscheidung zu Lesbarkeit und Eigentum.
 
 ## 3. Praktische Abschottung verbreitern
 

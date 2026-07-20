@@ -150,6 +150,11 @@ See `compatibility.md` for complete platform boundaries.
   Braille refresh reads the focused terminal object from
   `TerminalFocusService`, and lifecycle tests adjust that service's timestamp
   directly. Active connection and gate views remain for their own audit.
+- The sixth V2-6 slice removes seven active-client and connection-state views.
+  Production and tests now use `ConnectionCoordinator` directly for the active
+  client and instance, connection status, authenticated instances, terminal
+  passthrough, and deferred full states. Only the frequently used gate and
+  instance-manager composition views remain for a separate design decision.
 
 ### Editor output
 

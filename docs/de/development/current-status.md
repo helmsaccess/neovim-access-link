@@ -165,6 +165,12 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   fokussierte Terminalobjekt aus `TerminalFocusService`; Lifecycletests ändern
   den Zeitwert direkt an diesem Dienst. Aktive Verbindungs- und Gatesichten
   verbleiben für ihren eigenen Audit.
+- Der sechste V2-6-Schnitt entfernt sieben Sichten auf aktiven Client- und
+  Verbindungszustand. Produktion und Tests verwenden den
+  `ConnectionCoordinator` nun direkt für aktiven Client und aktive Instanz,
+  Verbindungsstatus, authentifizierte Instanzen, Terminal-Passthrough und
+  zurückgestellte Full-States. Nur die häufig verwendeten Kompositionssichten
+  auf Gate und Instanzmanager verbleiben für eine getrennte Designentscheidung.
 
 ### Editorausgabe
 
