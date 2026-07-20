@@ -216,6 +216,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate und aktiver Sprachplaner, Authentifizierung, Zuordnungen, korrelierte Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und Zustandsbereinigung einer Instanz | NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -234,6 +235,12 @@ aufgelöster Methodennamen; Fokusentscheidungen und F12-Autorisierungen sind
 unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
+
+Der `TerminalIntegrationService` delegiert seine Fokusoperationen direkt an
+den `TerminalFocusService`. Dieser erhält Identitätsbildung, UIA-Lebensprüfung,
+Hauptthread-Scheduler und wenige fachliche Callbacks explizit injiziert. Ein
+geschlossenes, nicht fokussiertes Control wird erst nach zwei eindeutigen
+Negativprüfungen entfernt; unklare UIA-Fehler gelten nicht als Schließung.
 
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei

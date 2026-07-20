@@ -66,6 +66,10 @@ See `compatibility.md` for complete platform boundaries.
   NVDA profile switching. Presentation and Tools dialogs receive only
   snapshots or narrow operations; `NvdaUiManager` has no Global Plugin
   instance.
+- `TerminalFocusService` owns terminal identity, focus generation,
+  AppModule/adapter correlation, and the periodic lifecycle sweep. Uncertain
+  UIA results fail open; closed, unfocused controls are disposed only after two
+  conclusive negative checks.
 
 ### Editor output
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.95.0-dev.17+feature.global-plugin-slimming (feature-branch test build)
+
+- The new `TerminalFocusService` owns terminal identity, focus generation,
+  AppModule/adapter correlation, focus completion, and the lifecycle sweep.
+  The public terminal facade delegates focus operations directly to it.
+- Closed controls still require two conclusive negative checks; focused
+  controls and uncertain UIA results are retained. Client shutdown after
+  disposal remains off the main thread.
+- This internal phase has not yet received a separate practical check.
+
+## 0.95.0-dev.16+feature.global-plugin-slimming (feature-branch test build)
+
+- The first V2-3 slice moved the focused object, identity cache,
+  AppModule/adapter correlation, and focus generation into
+  `TerminalFocusService`; the lifecycle sweep followed in `dev.17`.
+
 ## 0.95.0-dev.15+feature.global-plugin-slimming (feature-branch test build)
 
 - A dedicated `SettingsService` now owns loading, normalization, persistence,

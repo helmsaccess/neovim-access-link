@@ -122,17 +122,18 @@ direct `controlTypes` import in the AppModule and tests of the actual overlay
 hook.
 
 The follow-up V2 slimming work is again divided into small phases protected by
-automated tests. V2-1 and V2-2 are implemented under automated coverage. The
+automated tests. V2-1 through V2-3 are implemented under automated coverage. The
 registrar publishes only a narrow `TerminalIntegrationService` for the
 AppModule and Braille overlay. A dedicated `SettingsService` owns loading,
 normalization, persistence, and profile switching. Presentation and
 `NvdaUiManager` use its snapshots and domain operations; the UI manager knows
-neither the Global Plugin nor its state. Duplicate registration, partial
+neither the Global Plugin nor its state. A dedicated `TerminalFocusService`
+owns identity, focus correlation, and the lifecycle sweep. Duplicate registration, partial
 failure, invalid configuration, and connection changes have direct coverage.
 Process-wide availability of Settings and Tools is unchanged. No separate
 practical check is planned for these internal phases; it will be combined with
-later user-visible V2 stages. V2-3 next gives terminal focus its own state
-service.
+later user-visible V2 stages. V2-4 next places claim and connection flows
+behind their own service.
 
 ## 3. Broaden practical isolation coverage
 

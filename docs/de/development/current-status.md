@@ -68,6 +68,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   NVDA-Profilwechsel. Präsentation und Werkzeugdialoge erhalten nur Snapshots
   oder schmale Operationen; der `NvdaUiManager` kennt keine Global-Plugin-
   Instanz.
+- Ein `TerminalFocusService` besitzt Terminalidentität, Fokusgeneration,
+  AppModule-/Adapterkorrelation und den periodischen Lifecycle-Sweep. Unsichere
+  UIA-Ergebnisse fallen offen aus; geschlossene, nicht fokussierte Controls
+  werden erst nach zwei eindeutigen Negativprüfungen bereinigt.
 
 ### Editorausgabe
 

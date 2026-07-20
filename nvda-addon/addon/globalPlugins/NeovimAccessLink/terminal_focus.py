@@ -37,6 +37,13 @@ class TerminalFocusService:
 		handle_pending_full_state: Callable[[str, dict], None],
 		reset_typed_echo: Callable[[], None],
 		cancel_speech: Callable[[], None],
+		schedule_main_thread_call: Callable[..., object],
+		identity_exists: Callable[[TerminalIdentity, object | None], bool],
+		monotonic: Callable[[], float],
+		lifecycle_interval_ms: int,
+		new_instance_runtime: Callable[[], dict],
+		stop_client_async: Callable[[str, object], None],
+		log_lifecycle_failure: Callable[[], None],
 	):
 		self._coordinator = coordinator
 		self._identityForObject = identity_for_object
@@ -48,11 +55,21 @@ class TerminalFocusService:
 		self._handlePendingFullState = handle_pending_full_state
 		self._resetTypedEcho = reset_typed_echo
 		self._cancelSpeech = cancel_speech
+		self._scheduleMainThreadCall = schedule_main_thread_call
+		self._identityExists = identity_exists
+		self._monotonic = monotonic
+		self._lifecycleIntervalMs = lifecycle_interval_ms
+		self._newInstanceRuntime = new_instance_runtime
+		self._stopClientAsync = stop_client_async
+		self._logLifecycleFailure = log_lifecycle_failure
 		self._focusedTerminalObject = None
 		self._identityElements: dict[TerminalIdentity, object] = {}
 		self._focusedAppModule = None
 		self._focusedAdapterToken = None
 		self._generation = 0
+		self._lifecycleCall = None
+		self._lifecycleScheduledAt = 0.0
+		self._lifecycleMisses: dict[TerminalIdentity, int] = {}
 
 	@property
 	def focused_terminal_object(self) -> object | None:
@@ -84,6 +101,8 @@ class TerminalFocusService:
 		self._identityElements.pop(identity, None)
 
 	def clear(self) -> None:
+		self._lifecycleCall = None
+		self._lifecycleMisses.clear()
 		self._identityElements.clear()
 		self._focusedTerminalObject = None
 		self._focusedAppModule = None
@@ -217,3 +236,82 @@ class TerminalFocusService:
 	def should_suppress(self, obj: object) -> bool:
 		identity = self.identity(obj)
 		return identity is not None and self._coordinator.gate.should_suppress(identity)
+
+	@property
+	def lifecycle_scheduled_at(self) -> float:
+		return self._lifecycleScheduledAt
+
+	@lifecycle_scheduled_at.setter
+	def lifecycle_scheduled_at(self, value: float) -> None:
+		self._lifecycleScheduledAt = value
+
+	def ensure_lifecycle_sweep(self) -> None:
+		"""Schedule periodic closed-control checks while instances exist."""
+		if self._lifecycleCall is not None or not self._coordinator.instances.list():
+			return
+		self._lifecycleScheduledAt = self._monotonic()
+		self._lifecycleCall = self._scheduleMainThreadCall(
+			self._lifecycleIntervalMs,
+			self.run_lifecycle_sweep,
+		)
+
+	def run_lifecycle_sweep(self) -> None:
+		self._lifecycleCall = None
+		elapsed_ms = (self._monotonic() - self._lifecycleScheduledAt) * 1_000
+		try:
+			self.prune_closed_bindings()
+		except Exception as error:
+			self._coordinator.gate.disconnect()
+			self._coordinator.active_client = None
+			self._recordDiagnostic("terminalLifecycleFailedOpen", errorType=type(error).__name__)
+			self._logLifecycleFailure()
+			return
+		if elapsed_ms >= self._lifecycleIntervalMs / 2:
+			self.ensure_lifecycle_sweep()
+
+	def prune_closed_bindings(self) -> set[str]:
+		removed: set[str] = set()
+		instances = self._coordinator.instances
+		for instance in list(instances.list()):
+			try:
+				terminals = instances.bound_terminals_for(instance.identifier)
+			except ValueError:
+				continue
+			invalid = []
+			for terminal in terminals:
+				if terminal == self._coordinator.gate.focused:
+					self._lifecycleMisses.pop(terminal, None)
+					continue
+				if self._identityExists(terminal, self.known_element(terminal)):
+					self._lifecycleMisses.pop(terminal, None)
+					continue
+				misses = self._lifecycleMisses.get(terminal, 0) + 1
+				self._lifecycleMisses[terminal] = misses
+				if misses >= 2:
+					invalid.append(terminal)
+			if not invalid:
+				continue
+			for terminal in invalid:
+				instances.unbind(terminal)
+				self._coordinator.remembered_terminal_bindings.discard(terminal)
+				self.forget_identity(terminal)
+				self._lifecycleMisses.pop(terminal, None)
+				if self._coordinator.gate.focused == terminal:
+					self._coordinator.gate.focused = None
+					self._coordinator.gate.disconnect()
+					self._coordinator.active_client = None
+			if instances.bound_terminals_for(instance.identifier):
+				continue
+			try:
+				_detached, client = instances.detach(instance.identifier)
+			except ValueError:
+				continue
+			removed.add(instance.identifier)
+			self._coordinator.discard_instance_tracking(instance.identifier, self._newInstanceRuntime)
+			self._stopClientAsync(instance.identifier, client)
+			self._recordDiagnostic(
+				"closedTerminalBindingPruned",
+				instanceId=instance.identifier,
+				terminals=[self.identity_fields(terminal) for terminal in invalid],
+			)
+		return removed

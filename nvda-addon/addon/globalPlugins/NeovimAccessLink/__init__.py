@@ -420,9 +420,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._claimEligibleTargets = set()
 		self._claimInventoryErrors = {}
 		self._pendingMainThreadCalls = set()
-		self._terminalLifecycleCall = None
-		self._terminalLifecycleScheduledAt = 0.0
-		self._terminalLifecycleMisses = {}
 		self._terminalFocusService = TerminalFocusService(
 			self._connectionCoordinator,
 			identity_for_object=_identityForObject,
@@ -434,6 +431,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			handle_pending_full_state=self._handleManagedEvent,
 			reset_typed_echo=self._resetTypedEcho,
 			cancel_speech=speech.cancelSpeech,
+			schedule_main_thread_call=self._scheduleMainThreadCall,
+			identity_exists=_terminalIdentityExists,
+			monotonic=time.monotonic,
+			lifecycle_interval_ms=_TERMINAL_LIFECYCLE_INTERVAL_MS,
+			new_instance_runtime=self._newInstanceRuntime,
+			stop_client_async=self._stopPrunedClientAsync,
+			log_lifecycle_failure=self._logTerminalLifecycleFailure,
 		)
 		self._nvdaUi = NvdaUiManager(
 			self._settingsService,
@@ -627,8 +631,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			except Exception:
 				pass
 		self._pendingMainThreadCalls.clear()
-		self._terminalLifecycleCall = None
-		self._terminalLifecycleMisses.clear()
 		self._gate.disable()
 		config.post_configProfileSwitch.unregister(self._settingsService.handle_profile_switch)
 		self._clearSessionPasswords()
@@ -677,35 +679,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return pending
 
 	def _ensureTerminalLifecycleSweep(self):
-		"""Periodically notice closed WT tabs even when Neovim is otherwise idle."""
-		if self._terminalLifecycleCall is not None or not self._instanceManager.list():
-			return
-		self._terminalLifecycleScheduledAt = time.monotonic()
-		self._terminalLifecycleCall = self._scheduleMainThreadCall(
-			_TERMINAL_LIFECYCLE_INTERVAL_MS,
-			self._runTerminalLifecycleSweep,
-		)
+		self._terminalFocusService.ensure_lifecycle_sweep()
 
 	def _runTerminalLifecycleSweep(self):
-		self._terminalLifecycleCall = None
-		# Some unit-test wx shims execute CallLater synchronously. Avoid a
-		# recursive reschedule while retaining the real delayed behavior.
-		elapsed_ms = (time.monotonic() - self._terminalLifecycleScheduledAt) * 1_000
-		try:
-			self._pruneClosedTerminalBindings()
-		except Exception as error:
-			# This maintenance task must never retain suppression or become a
-			# repeating source of failures on NVDA's main thread.
-			self._gate.disconnect()
-			self._client = None
-			self._diagnostics.record(
-				"terminalLifecycleFailedOpen",
-				errorType=type(error).__name__,
-			)
-			log.exception("terminal lifecycle sweep failed open")
-			return
-		if elapsed_ms >= _TERMINAL_LIFECYCLE_INTERVAL_MS / 2:
-			self._ensureTerminalLifecycleSweep()
+		self._terminalFocusService.run_lifecycle_sweep()
+
+	@property
+	def _terminalLifecycleScheduledAt(self):
+		return self._terminalFocusService.lifecycle_scheduled_at
+
+	@_terminalLifecycleScheduledAt.setter
+	def _terminalLifecycleScheduledAt(self, value):
+		self._terminalFocusService.lifecycle_scheduled_at = value
 
 	def action_toggleNeovimMode(self, gesture):
 		try:
@@ -2926,66 +2911,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return self._terminalFocusService.refresh_for_action(obj, app_module, adapter_token)
 
 	def _pruneClosedTerminalBindings(self):
-		removed = set()
-		for instance in list(self._instanceManager.list()):
-			try:
-				terminals = self._instanceManager.bound_terminals_for(instance.identifier)
-			except ValueError:
-				continue
-			invalid = []
-			for terminal in terminals:
-				# A focused terminal is direct positive evidence of life. UIA
-				# tree searches can transiently miss an otherwise active WT
-				# tab while focus or accessibility objects are being rebuilt.
-				if terminal == self._gate.focused:
-					self._terminalLifecycleMisses.pop(terminal, None)
-					continue
-				exists = _terminalIdentityExists(
-					terminal,
-					self._terminalFocusService.known_element(terminal),
-				)
-				if exists:
-					self._terminalLifecycleMisses.pop(terminal, None)
-					continue
-				misses = self._terminalLifecycleMisses.get(terminal, 0) + 1
-				self._terminalLifecycleMisses[terminal] = misses
-				# Never destroy a binding on one negative UIA observation.
-				if misses >= 2:
-					invalid.append(terminal)
-			if not invalid:
-				continue
-			for terminal in invalid:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalFocusService.forget_identity(terminal)
-				self._terminalLifecycleMisses.pop(terminal, None)
-				if self._gate.focused == terminal:
-					self._gate.focused = None
-					self._gate.disconnect()
-					self._client = None
-			if self._instanceManager.bound_terminals_for(instance.identifier):
-				continue
-			try:
-				_detached, client = self._instanceManager.detach(instance.identifier)
-			except ValueError:
-				continue
-			removed.add(instance.identifier)
-			self._connectionCoordinator.discard_instance_tracking(
-				instance.identifier,
-				self._newInstanceRuntime,
-			)
-			threading.Thread(
-				target=self._stopPrunedClient,
-				args=(instance.identifier, client),
-				name="nvim-nvda-closed-terminal-stop",
-				daemon=True,
-			).start()
-			self._diagnostics.record(
-				"closedTerminalBindingPruned",
-				instanceId=instance.identifier,
-				terminals=[self._identityFields(terminal) for terminal in invalid],
-			)
-		return removed
+		return self._terminalFocusService.prune_closed_bindings()
+
+	def _stopPrunedClientAsync(self, instance_id, client):
+		threading.Thread(
+			target=self._stopPrunedClient,
+			args=(instance_id, client),
+			name="nvim-nvda-closed-terminal-stop",
+			daemon=True,
+		).start()
+
+	@staticmethod
+	def _logTerminalLifecycleFailure():
+		log.exception("terminal lifecycle sweep failed open")
 
 	def _stopPrunedClient(self, instance_id, client):
 		try:

@@ -564,6 +564,8 @@ class BuiltAddonTests(unittest.TestCase):
             "self._focusedAdapterToken =",
             "self._terminalFocusGeneration =",
             "self._terminalIdentityElements =",
+            "self._terminalLifecycleCall =",
+            "self._terminalLifecycleMisses =",
         ):
             self.assertNotIn(field, global_source)
         self.assertIn("self._focusService.prepare_focus", facade_source)
@@ -2713,7 +2715,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_closed_terminal_prunes_binding_and_stops_client_off_main_thread(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         stopped = threading.Event()
@@ -2735,7 +2736,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = True
         plugin._gate.focused = None
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
             self.assertEqual({instance.identifier}, plugin._pruneClosedTerminalBindings())
         self.assertTrue(stopped.wait(1))
@@ -2746,7 +2747,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_closed_terminal_pruning_preserves_other_window_and_client(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
@@ -2764,7 +2764,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(dead, dead_instance.identifier)
         plugin._instanceManager.bind(live, live_instance.identifier)
         with mock.patch.object(
-            addon_module, "_terminalIdentityExists",
+            plugin._terminalFocusService, "_identityExists",
             side_effect=lambda identity, _element=None: identity == live,
         ):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
@@ -2775,7 +2775,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_whole_closed_window_prunes_all_its_tabs_but_not_other_window(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
@@ -2794,7 +2793,7 @@ class BuiltAddonTests(unittest.TestCase):
         survivor = add_remote_instance(plugin._instanceManager, "other", "live", "Live", Client())
         plugin._instanceManager.bind(survivor_identity, survivor.identifier)
         with mock.patch.object(
-            addon_module, "_terminalIdentityExists",
+            plugin._terminalFocusService, "_identityExists",
             side_effect=lambda identity, _element=None: identity.window_handle == 201,
         ):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
@@ -2822,13 +2821,13 @@ class BuiltAddonTests(unittest.TestCase):
             scheduled.append((delay, callback, args))
             return object()
 
-        plugin._scheduleMainThreadCall = schedule
+        plugin._terminalFocusService._scheduleMainThreadCall = schedule
         plugin._ensureTerminalLifecycleSweep()
         self.assertEqual(1, len(scheduled))
         self.assertEqual(addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS, scheduled[0][0])
         plugin._gate.focused = None
         plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False):
             scheduled[0][1](*scheduled[0][2])
             self.assertEqual([instance], plugin._instanceManager.list())
             self.assertEqual(2, len(scheduled))
@@ -2850,7 +2849,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._gate.focused
         instance = add_remote_instance(plugin._instanceManager, "local", "1", "Focused local", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False) as exists:
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False) as exists:
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
         exists.assert_not_called()
@@ -2889,8 +2888,12 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.bound_terminal = identity
         self.assertTrue(plugin._gate.suppression_active)
         scheduled = []
-        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args) or object()
-        plugin._pruneClosedTerminalBindings = mock.Mock(side_effect=RuntimeError("broken UIA"))
+        plugin._terminalFocusService._scheduleMainThreadCall = (
+            lambda *args: scheduled.append(args) or object()
+        )
+        plugin._terminalFocusService.prune_closed_bindings = mock.Mock(
+            side_effect=RuntimeError("broken UIA"),
+        )
 
         plugin._runTerminalLifecycleSweep()
 

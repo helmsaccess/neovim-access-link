@@ -205,6 +205,7 @@ must not close output again before state is confirmed.
 | `ConnectionCoordinator` | Instance manager, active client, gate and active speech planner, authentication, bindings, correlated requests, isolated runtime states, and instance selection, focus confirmation, and state disposal | NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -223,6 +224,12 @@ method names, while focus decisions and F12 authorizations are immutable
 values. If the service is absent, has been replaced during add-on reload, or
 violates the contract, the AppModule passes the original gesture or native
 NVDA event through fail-open.
+
+`TerminalIntegrationService` delegates focus operations directly to
+`TerminalFocusService`. Identity construction, UIA lifetime validation, the
+main-thread scheduler, and a few domain callbacks are injected explicitly. A
+closed, unfocused control is removed only after two conclusive negative checks;
+an uncertain UIA failure is not treated as closure.
 
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely
