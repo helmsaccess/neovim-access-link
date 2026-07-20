@@ -8,7 +8,6 @@ import time
 import unicodedata
 import array
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
 
 import addonHandler
 import api
@@ -104,24 +103,16 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import SettingsService  # noqa: E402
+from .terminal_focus import (  # noqa: E402
+	TerminalFocusDecision as TerminalFocusDecision,
+	TerminalFocusService,
+)
 
 addonHandler.initTranslation()
 
 # These modules contain translated class text and must follow translation setup.
 from .nvda_ui import NvdaUiManager  # noqa: E402
 from .nvda_presentation import NvdaPresentation  # noqa: E402
-
-
-@dataclass(frozen=True)
-class TerminalFocusDecision:
-	"""Immutable result of preparing one Windows Terminal focus event."""
-
-	adapter_token: object
-	generation: int
-	identity: TerminalIdentity | None
-	instance_id: str | None
-	pending_full_state: dict | None
-	suppress_native_speech: bool
 
 
 _CODE_ADDON = addonHandler.getCodeAddon()
@@ -203,6 +194,78 @@ def _frontendPolicy():
 
 
 _FRONTEND_POLICY = _frontendPolicy()
+
+
+def _identityForObject(obj):
+	process_id = getattr(obj, "processID", None)
+	window_handle = getattr(obj, "windowHandle", None)
+	if not isinstance(process_id, int) or not isinstance(window_handle, int) or not window_handle:
+		return None
+	descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
+	if descriptor is None or not descriptor.enabled:
+		return None
+	candidate = obj
+	for _depth in range(8):
+		element = getattr(candidate, "UIAElement", None)
+		if element is not None:
+			try:
+				class_name = str(element.cachedClassName or "")
+				if class_name in descriptor.uia_class_names:
+					runtime_id = tuple(int(value) for value in element.getRuntimeId())
+					if runtime_id or not descriptor.requires_runtime_id:
+						candidate_process = getattr(candidate, "processID", process_id)
+						candidate_window = getattr(candidate, "windowHandle", window_handle)
+						if not isinstance(candidate_process, int) or not isinstance(candidate_window, int):
+							break
+						return TerminalIdentity(
+							candidate_process,
+							candidate_window,
+							"windowsTerminal",
+							runtime_id,
+						)
+			except Exception:
+				pass
+		try:
+			candidate = candidate.parent
+		except Exception:
+			break
+		if candidate is None:
+			break
+	return None
+
+
+def _identityElementForObject(obj, identity):
+	candidate = obj
+	for _depth in range(8):
+		element = getattr(candidate, "UIAElement", None)
+		if element is not None:
+			try:
+				runtime_id = tuple(int(value) for value in element.getRuntimeId())
+				if runtime_id == identity.runtime_id:
+					return element
+			except Exception:
+				pass
+		try:
+			candidate = candidate.parent
+		except Exception:
+			break
+		if candidate is None:
+			break
+	return None
+
+
+def _terminalIdentityFields(identity):
+	return (
+		None
+		if identity is None
+		else {
+			"processId": identity.process_id,
+			"windowHandle": identity.window_handle,
+			"frontendKind": identity.frontend_kind,
+			"runtimeId": list(identity.runtime_id),
+		}
+	)
+
 
 _FEEDBACK_DEFAULTS = {
 	"global": 3,
@@ -360,11 +423,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._terminalLifecycleCall = None
 		self._terminalLifecycleScheduledAt = 0.0
 		self._terminalLifecycleMisses = {}
-		self._focusedTerminalObject = None
-		self._terminalIdentityElements = {}
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
-		self._terminalFocusGeneration = 0
+		self._terminalFocusService = TerminalFocusService(
+			self._connectionCoordinator,
+			identity_for_object=_identityForObject,
+			identity_element=_identityElementForObject,
+			identity_fields=_terminalIdentityFields,
+			record_diagnostic=self._diagnostics.record,
+			discard_transient_context=self._discardTransientFocusContext,
+			activate_remembered_binding=self._activateRememberedBinding,
+			handle_pending_full_state=self._handleManagedEvent,
+			reset_typed_echo=self._resetTypedEcho,
+			cancel_speech=speech.cancelSpeech,
+		)
 		self._nvdaUi = NvdaUiManager(
 			self._settingsService,
 			record_diagnostic=self._diagnostics.record,
@@ -384,7 +454,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
 		self._nvdaUi.register()
-		self._terminalIntegrationService = TerminalIntegrationService(self)
+		self._terminalIntegrationService = TerminalIntegrationService(self, self._terminalFocusService)
 		self._serviceRegistrationToken = _serviceRegistrar.publish(self._terminalIntegrationService)
 
 	@property
@@ -532,6 +602,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _transportCapabilities(self, value):
 		self._connectionCoordinator.transport_capabilities = value
 
+	@property
+	def _focusedTerminalObject(self):
+		return self._terminalFocusService.focused_terminal_object
+
+	@_focusedTerminalObject.setter
+	def _focusedTerminalObject(self, value):
+		self._terminalFocusService.focused_terminal_object = value
+
+	@property
+	def _focusedAppModule(self):
+		return self._terminalFocusService.focused_app_module
+
+	@property
+	def _focusedAdapterToken(self):
+		return self._terminalFocusService.focused_adapter_token
+
 	def terminate(self):
 		_serviceRegistrar.unpublish(self._terminalIntegrationService, self._serviceRegistrationToken)
 		self._serviceRegistrationToken = None
@@ -552,14 +638,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		except Exception as error:
 			self._diagnostics.record("connectionInstancesStopError", error=str(error))
 		self._connectionCoordinator.clear_runtime_tracking()
-		self._terminalIdentityElements.clear()
+		self._terminalFocusService.clear()
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
 		self._pendingObservedClaim = None
-		self._focusedTerminalObject = None
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
 		self._nvdaUi.unregister()
 		self._presentation.close()
 		self._diagnostics.record("addonStop")
@@ -1791,7 +1874,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if terminal != identity:
 				self._instanceManager.unbind(terminal)
 				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
+				self._terminalFocusService.forget_identity(terminal)
 		self._instanceManager.bind(identity, instance.identifier)
 		self._ensureTerminalLifecycleSweep()
 		if offer_remember and identity not in self._rememberedTerminalBindings:
@@ -1945,7 +2028,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("No Neovim connection instance is selected for this terminal"))
 			return
 		self._rememberedTerminalBindings.discard(identity)
-		self._terminalIdentityElements.pop(identity, None)
+		self._terminalFocusService.forget_identity(identity)
 		self._instanceManager.remove(instance.identifier)
 		self._connectionCoordinator.discard_instance_tracking(
 			instance.identifier,
@@ -2176,7 +2259,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if terminal != identity:
 				self._instanceManager.unbind(terminal)
 				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
+				self._terminalFocusService.forget_identity(terminal)
 		self._instanceManager.bind(identity, instance.identifier)
 		self._ensureTerminalLifecycleSweep()
 		if offer_remember and identity not in self._rememberedTerminalBindings:
@@ -2796,6 +2879,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			instance_id,
 		)
 
+	def _discardTransientFocusContext(self):
+		self._connectionCoordinator.discard_focus_context()
+		self._discardClipboardRequests()
+		self._discardTerminalControlRequests()
+
 	def _onManagedState(self, instance_id, state):
 		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
 
@@ -2814,90 +2902,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._handleConnectionState(state)
 
 	def _prepareTerminalFocus(self, obj, adapter_token, app_module=None):
-		"""Prepare shared state before the AppModule runs native focus handling."""
-		if adapter_token is None:
-			raise ValueError("adapter token is required")
-		previous = self._gate.focused
-		identity = self._identity(obj)
-		if previous != identity:
-			self._connectionCoordinator.discard_focus_context()
-			self._discardClipboardRequests()
-			self._discardTerminalControlRequests()
-			self._gate.disconnect()
-			self._diagnostics.record(
-				"terminalFocusIdentityChanged",
-				previous=self._identityFields(previous),
-				current=self._identityFields(identity),
-			)
-		self._gate.focused = identity
-		if identity is not None:
-			element = self._identityElement(obj, identity)
-			if element is not None:
-				self._terminalIdentityElements[identity] = element
-		self._focusedTerminalObject = obj if identity is not None else None
-		self._focusedAppModule = app_module
-		self._focusedAdapterToken = adapter_token
-		self._terminalFocusGeneration += 1
-		generation = self._terminalFocusGeneration
-		instance = self._instanceManager.selected_for(identity) if identity else None
-		pending_full_state = (
-			self._pendingInstanceFullStates.get(instance.identifier) if instance is not None else None
-		)
-		if identity in self._rememberedTerminalBindings:
-			if instance is None:
-				self._rememberedTerminalBindings.discard(identity)
-			else:
-				self._activateRememberedBinding(
-					identity,
-					instance.identifier,
-					focus_regained=previous != identity,
-				)
-		return TerminalFocusDecision(
-			adapter_token=adapter_token,
-			generation=generation,
-			identity=identity,
-			instance_id=instance.identifier if instance is not None else None,
-			pending_full_state=pending_full_state,
-			suppress_native_speech=(self._shouldSuppress(obj) or pending_full_state is not None),
-		)
+		return self._terminalFocusService.prepare_focus(obj, adapter_token, app_module)
 
 	def _finishTerminalFocus(self, decision):
-		"""Complete prepared focus after the AppModule initialized native LiveText."""
-		if not isinstance(decision, TerminalFocusDecision):
-			raise ValueError("terminal focus decision is required")
-		if (
-			decision.adapter_token is not self._focusedAdapterToken
-			or decision.generation != self._terminalFocusGeneration
-			or decision.identity != self._gate.focused
-		):
-			self._diagnostics.record("staleTerminalFocusCompletionIgnored")
-			return
-		if decision.suppress_native_speech:
-			# Terminal.event_gainFocus must run: it starts LiveText monitoring
-			# and initializes editable-text selection tracking.  Cancelling the
-			# synchronous native focus report afterwards keeps that machinery
-			# intact while structured fullState remains authoritative.
-			speech.cancelSpeech()
-			self._diagnostics.record(
-				"terminalFocusAnnouncementSuppressed",
-				terminal=self._identityFields(decision.identity),
-			)
-		if decision.pending_full_state is not None and decision.instance_id is not None:
-			if self._pendingInstanceFullStates.get(decision.instance_id) is not decision.pending_full_state:
-				self._diagnostics.record(
-					"terminalFocusPendingStateChanged",
-					instanceId=decision.instance_id,
-				)
-				return
-			self._pendingInstanceFullStates.pop(decision.instance_id, None)
-			self._diagnostics.record(
-				"instanceFullStateResumed",
-				instanceId=decision.instance_id,
-			)
-			self._handleManagedEvent(
-				decision.instance_id,
-				decision.pending_full_state,
-			)
+		self._terminalFocusService.finish_focus(decision)
 
 	def _failOpenTerminalEvent(self, event_name, error):
 		"""Drop suppression after a frontend event failure."""
@@ -2915,23 +2923,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		app_module=None,
 		adapter_token=None,
 	):
-		"""Refresh focus when an action does not receive a new gainFocus event."""
-		identity = self._identity(obj)
-		previous = self._gate.focused
-		self._gate.focused = identity
-		if identity is not None:
-			element = self._identityElement(obj, identity)
-			if element is not None:
-				self._terminalIdentityElements[identity] = element
-		self._focusedTerminalObject = obj if identity is not None else None
-		self._focusedAppModule = app_module if identity is not None else None
-		self._focusedAdapterToken = adapter_token if identity is not None else None
-		self._diagnostics.record(
-			"terminalActionFocusRefreshed",
-			previous=self._identityFields(previous),
-			current=self._identityFields(identity),
-		)
-		return identity
+		return self._terminalFocusService.refresh_for_action(obj, app_module, adapter_token)
 
 	def _pruneClosedTerminalBindings(self):
 		removed = set()
@@ -2950,7 +2942,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					continue
 				exists = _terminalIdentityExists(
 					terminal,
-					self._terminalIdentityElements.get(terminal),
+					self._terminalFocusService.known_element(terminal),
 				)
 				if exists:
 					self._terminalLifecycleMisses.pop(terminal, None)
@@ -2965,7 +2957,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			for terminal in invalid:
 				self._instanceManager.unbind(terminal)
 				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
+				self._terminalFocusService.forget_identity(terminal)
 				self._terminalLifecycleMisses.pop(terminal, None)
 				if self._gate.focused == terminal:
 					self._gate.focused = None
@@ -3007,28 +2999,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			)
 
 	def _terminalApplicationLostFocus(self, adapter_token):
-		if (
-			adapter_token is not None
-			and self._focusedAdapterToken is not None
-			and adapter_token is not self._focusedAdapterToken
-		):
-			self._diagnostics.record("staleAppModuleLoseFocusIgnored")
-			return
-		previous = self._gate.focused
-		self._gate.disconnect()
-		self._gate.focused = None
-		self._connectionCoordinator.discard_focus_context()
-		self._discardClipboardRequests()
-		self._discardTerminalControlRequests()
-		self._focusedTerminalObject = None
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
-		self._resetTypedEcho()
-		if previous is not None:
-			self._diagnostics.record(
-				"terminalApplicationLostFocus",
-				previous=self._identityFields(previous),
-			)
+		self._terminalFocusService.lose_focus(adapter_token)
 
 	def _shouldUseNativeTerminalEvent(self, obj):
 		"""Return whether the AppModule must continue native event handling."""
@@ -3320,76 +3291,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	@staticmethod
 	def _identity(obj):
-		process_id = getattr(obj, "processID", None)
-		window_handle = getattr(obj, "windowHandle", None)
-		if not isinstance(process_id, int) or not isinstance(window_handle, int) or not window_handle:
-			return None
-		descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
-		if descriptor is None or not descriptor.enabled:
-			return None
-		candidate = obj
-		for _depth in range(8):
-			element = getattr(candidate, "UIAElement", None)
-			if element is not None:
-				try:
-					class_name = str(element.cachedClassName or "")
-					if class_name in descriptor.uia_class_names:
-						runtime_id = tuple(int(value) for value in element.getRuntimeId())
-						if runtime_id or not descriptor.requires_runtime_id:
-							candidate_process = getattr(candidate, "processID", process_id)
-							candidate_window = getattr(candidate, "windowHandle", window_handle)
-							if not isinstance(candidate_process, int) or not isinstance(
-								candidate_window, int
-							):
-								break
-							return TerminalIdentity(
-								candidate_process,
-								candidate_window,
-								"windowsTerminal",
-								runtime_id,
-							)
-				except Exception:
-					pass
-			try:
-				candidate = candidate.parent
-			except Exception:
-				break
-			if candidate is None:
-				break
-		return None
+		# Compatibility for existing callers; focus runtime uses the injected
+		# identity function owned by TerminalFocusService.
+		return _identityForObject(obj)
 
-	@staticmethod
-	def _identityElement(obj, identity):
-		candidate = obj
-		for _depth in range(8):
-			element = getattr(candidate, "UIAElement", None)
-			if element is not None:
-				try:
-					runtime_id = tuple(int(value) for value in element.getRuntimeId())
-					if runtime_id == identity.runtime_id:
-						return element
-				except Exception:
-					pass
-			try:
-				candidate = candidate.parent
-			except Exception:
-				break
-			if candidate is None:
-				break
-		return None
-
-	@staticmethod
-	def _identityFields(identity):
-		return (
-			None
-			if identity is None
-			else {
-				"processId": identity.process_id,
-				"windowHandle": identity.window_handle,
-				"frontendKind": identity.frontend_kind,
-				"runtimeId": list(identity.runtime_id),
-			}
-		)
+	def _identityFields(self, identity):
+		return self._terminalFocusService.identity_fields(identity)
 
 	def _feedbackMode(self, key):
 		return self._presentation.feedback_mode(key)

@@ -550,6 +550,27 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertNotIn(implementation, global_source)
             self.assertIn(implementation, ui_source)
 
+    def test_terminal_focus_state_has_one_non_global_owner(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        focus_source = (plugin / "terminal_focus.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
+
+        self.assertIn("class TerminalFocusService", focus_source)
+        self.assertNotIn("GlobalPlugin", focus_source)
+        for field in (
+            "self._focusedTerminalObject =",
+            "self._focusedAppModule =",
+            "self._focusedAdapterToken =",
+            "self._terminalFocusGeneration =",
+            "self._terminalIdentityElements =",
+        ):
+            self.assertNotIn(field, global_source)
+        self.assertIn("self._focusService.prepare_focus", facade_source)
+        self.assertIn("self._focusService.finish_focus", facade_source)
+        self.assertIn("self._focusService.lose_focus", facade_source)
+        self.assertNotIn("self._runtime._prepareTerminalFocus", facade_source)
+
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
 
@@ -1247,13 +1268,13 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = adapter
         adapter.event_gainFocus(self.focus, lambda: None)
         plugin._claimInventoryReady = True
-        original_refresh = plugin._refreshFocusedTerminalForAction
+        original_refresh = plugin._terminalFocusService.refresh_for_action
 
         def refresh(*args, **kwargs):
             order.append(("focus", args))
             return original_refresh(*args, **kwargs)
 
-        plugin._refreshFocusedTerminalForAction = refresh
+        plugin._terminalFocusService.refresh_for_action = refresh
         gesture = types.SimpleNamespace(
             normalizedIdentifiers=("kb:f12",),
             send=lambda: order.append(("send", gesture)),
@@ -2262,7 +2283,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._identity(self.focus)
         plugin._gate.bound_terminal = plugin._gate.focused
-        plugin._identity = lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
+        plugin._terminalFocusService._identityForObject = (
+            lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
+        )
         classes = []
 
         adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
@@ -2291,7 +2314,7 @@ class BuiltAddonTests(unittest.TestCase):
         def broken(_obj):
             raise RuntimeError("frontend failed")
 
-        plugin._shouldUseNativeTerminalEvent = broken
+        plugin._terminalFocusService.should_suppress = broken
         adapter.event_textChange(self.focus, lambda: native.append("native"))
 
         self.assertEqual(["native"], native)
@@ -2313,7 +2336,7 @@ class BuiltAddonTests(unittest.TestCase):
         def broken_after_delegation(_decision):
             raise RuntimeError("late frontend failure")
 
-        plugin._finishTerminalFocus = broken_after_delegation
+        plugin._terminalFocusService.finish_focus = broken_after_delegation
         adapter.event_gainFocus(self.focus, lambda: native.append("native"))
         self.assertEqual(["native"], native)
         self.assertFalse(plugin._gate.suppression_active)
@@ -2332,7 +2355,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._client = object()
-        plugin._prepareTerminalFocus = mock.Mock(side_effect=RuntimeError("focus failed"))
+        plugin._terminalFocusService.prepare_focus = mock.Mock(side_effect=RuntimeError("focus failed"))
         original_record = plugin._diagnostics.record
         plugin._diagnostics.record = mock.Mock(side_effect=RuntimeError("diagnostics failed"))
         native = []

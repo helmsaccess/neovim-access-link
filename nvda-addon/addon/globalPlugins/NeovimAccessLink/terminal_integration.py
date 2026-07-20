@@ -39,10 +39,11 @@ class TerminalIntegrationService:
 	explicit without publishing the NVDA GlobalPlugin itself.
 	"""
 
-	def __init__(self, runtime: Any):
-		if runtime is None:
-			raise ValueError("runtime is required")
+	def __init__(self, runtime: Any, focus_service: Any):
+		if runtime is None or focus_service is None:
+			raise ValueError("runtime and focus service are required")
 		self._runtime = runtime
+		self._focusService = focus_service
 		self._generation = object()
 
 	def _record(self, category: str, **fields: Any) -> None:
@@ -61,25 +62,21 @@ class TerminalIntegrationService:
 
 	def supports_braille_overlay(self, obj: object) -> bool:
 		try:
-			return self._runtime._identity(obj) is not None
+			return self._focusService.identity(obj) is not None
 		except Exception as error:
 			self._fail_open("chooseNVDAObjectOverlayClasses", error)
 			return False
 
 	def prepare_focus(self, obj: object, adapter_token: object, app_module: object) -> object | None:
 		try:
-			return self._runtime._prepareTerminalFocus(
-				obj,
-				adapter_token,
-				app_module=app_module,
-			)
+			return self._focusService.prepare_focus(obj, adapter_token, app_module)
 		except Exception as error:
 			self._fail_open("gainFocus", error)
 			return None
 
 	def finish_focus(self, decision: object) -> None:
 		try:
-			self._runtime._finishTerminalFocus(decision)
+			self._focusService.finish_focus(decision)
 		except Exception as error:
 			self._fail_open("gainFocusCompletion", error)
 
@@ -89,13 +86,13 @@ class TerminalIntegrationService:
 
 	def lose_focus(self, adapter_token: object) -> None:
 		try:
-			self._runtime._terminalApplicationLostFocus(adapter_token)
+			self._focusService.lose_focus(adapter_token)
 		except Exception as error:
 			self._fail_open("appModuleLoseFocus", error)
 
 	def should_use_native_event(self, obj: object, event_name: str) -> bool:
 		try:
-			return self._runtime._shouldUseNativeTerminalEvent(obj)
+			return not self._focusService.should_suppress(obj)
 		except Exception as error:
 			self._fail_open(event_name, error)
 			return True
@@ -116,10 +113,10 @@ class TerminalIntegrationService:
 			if getattr(focus_obj, "appModule", None) is not app_module:
 				self._record("configuredGesturePassedThrough", action=command.value)
 				return False
-			if self._runtime._identity(focus_obj) is None:
+			if self._focusService.identity(focus_obj) is None:
 				self._record("configuredGesturePassedThrough", action=command.value)
 				return False
-			self._runtime._refreshFocusedTerminalForAction(
+			self._focusService.refresh_for_action(
 				focus_obj,
 				app_module,
 				adapter_token,
@@ -166,7 +163,7 @@ class TerminalIntegrationService:
 			gate = self._runtime._gate
 			if not gate.manual_enabled or gate.focused is None:
 				return None
-			identity = self._runtime._identity(focus_obj)
+			identity = self._focusService.identity(focus_obj)
 			if identity is None or identity != gate.focused:
 				return None
 			generation = self._runtime._captureObservedSessionClaim(identity)
@@ -175,7 +172,7 @@ class TerminalIntegrationService:
 			self._record(
 				"sessionClaimGestureCaptured",
 				source="decideExecuteGesture",
-				terminal=self._runtime._identityFields(identity),
+				terminal=self._focusService.identity_fields(identity),
 				generation=generation,
 			)
 			return SessionClaimAuthorization(identity, generation, self._generation)
@@ -199,7 +196,7 @@ class TerminalIntegrationService:
 			self.cancel_session_claim(authorization)
 			return False
 		try:
-			identity = self._runtime._refreshFocusedTerminalForAction(
+			identity = self._focusService.refresh_for_action(
 				focus_obj,
 				app_module,
 				adapter_token,
@@ -232,7 +229,7 @@ class TerminalIntegrationService:
 
 	def should_suppress_braille(self, obj: object) -> bool:
 		try:
-			return self._runtime._shouldSuppress(obj)
+			return self._focusService.should_suppress(obj)
 		except Exception as error:
 			self._fail_open("brailleSuppression", error)
 			return False
