@@ -7,7 +7,6 @@ import threading
 import time
 import unicodedata
 import array
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import addonHandler
 import api
@@ -103,6 +102,7 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import SettingsService  # noqa: E402
+from .session_claim import SessionClaimService  # noqa: E402
 from .terminal_focus import (  # noqa: E402
 	TerminalFocusDecision as TerminalFocusDecision,
 	TerminalFocusService,
@@ -411,15 +411,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		self._sessionPasswords = {}
 		self._sessionDiscoveryGeneration = 0
-		self._pendingClaimTargets = {}
-		self._claimGestureGeneration = 0
-		self._pendingObservedClaim = None
-		self._claimInventoryGeneration = 0
-		self._claimInventoryReady = False
-		self._claimBaselines = {}
-		self._claimEligibleTargets = set()
-		self._claimInventoryErrors = {}
 		self._pendingMainThreadCalls = set()
+		self._sessionClaimService = SessionClaimService(
+			self._connectionCoordinator,
+			record_diagnostic=self._diagnostics.record,
+			identity_fields=_terminalIdentityFields,
+			list_local_sessions=self._listLocalClaimSessions,
+			list_remote_sessions=self._listRemoteClaimSessions,
+			queue_main_thread=self._queueClaimResult,
+			start_worker=self._startClaimWorker,
+			monotonic=time.monotonic,
+			sleep=time.sleep,
+			local_claim_wait_seconds=_LOCAL_CLAIM_WAIT_SECONDS,
+			local_claim_poll_seconds=_LOCAL_CLAIM_POLL_SECONDS,
+		)
 		self._terminalFocusService = TerminalFocusService(
 			self._connectionCoordinator,
 			identity_for_object=_identityForObject,
@@ -458,13 +463,73 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
 		self._nvdaUi.register()
-		self._terminalIntegrationService = TerminalIntegrationService(self, self._terminalFocusService)
+		self._terminalIntegrationService = TerminalIntegrationService(
+			self,
+			self._terminalFocusService,
+			self._sessionClaimService,
+		)
 		self._serviceRegistrationToken = _serviceRegistrar.publish(self._terminalIntegrationService)
 
 	@property
 	def _instanceManager(self):
 		"""Compatibility view while connection behavior moves into its coordinator."""
 		return self._connectionCoordinator.instances
+
+	@property
+	def _pendingClaimTargets(self):
+		return self._sessionClaimService.pending_targets
+
+	@_pendingClaimTargets.setter
+	def _pendingClaimTargets(self, value):
+		self._sessionClaimService.pending_targets = value
+
+	@property
+	def _pendingObservedClaim(self):
+		return self._sessionClaimService.pending_observed
+
+	@_pendingObservedClaim.setter
+	def _pendingObservedClaim(self, value):
+		self._sessionClaimService.pending_observed = value
+
+	@property
+	def _claimInventoryGeneration(self):
+		return self._sessionClaimService.inventory_generation
+
+	@_claimInventoryGeneration.setter
+	def _claimInventoryGeneration(self, value):
+		self._sessionClaimService.inventory_generation = value
+
+	@property
+	def _claimInventoryReady(self):
+		return self._sessionClaimService.inventory_ready
+
+	@_claimInventoryReady.setter
+	def _claimInventoryReady(self, value):
+		self._sessionClaimService.inventory_ready = value
+
+	@property
+	def _claimBaselines(self):
+		return self._sessionClaimService.baselines
+
+	@_claimBaselines.setter
+	def _claimBaselines(self, value):
+		self._sessionClaimService.baselines = value
+
+	@property
+	def _claimEligibleTargets(self):
+		return self._sessionClaimService.eligible_targets
+
+	@_claimEligibleTargets.setter
+	def _claimEligibleTargets(self, value):
+		self._sessionClaimService.eligible_targets = value
+
+	@property
+	def _claimInventoryErrors(self):
+		return self._sessionClaimService.inventory_errors
+
+	@_claimInventoryErrors.setter
+	def _claimInventoryErrors(self, value):
+		self._sessionClaimService.inventory_errors = value
 
 	@property
 	def _gate(self):
@@ -644,7 +709,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
-		self._pendingObservedClaim = None
+		self._sessionClaimService.cancel_pending_authorization()
 		self._nvdaUi.unregister()
 		self._presentation.close()
 		self._diagnostics.record("addonStop")
@@ -706,7 +771,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity = self._gate.focused
 		if self._gate.manual_enabled:
 			self._sessionDiscoveryGeneration += 1
-			self._pendingObservedClaim = None
+			self._sessionClaimService.cancel_pending_authorization()
 			self._gate.disable()
 			self._planner.reset()
 			self._resetTypedEcho()
@@ -737,41 +802,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Checking local and saved Neovim connections"))
 
 	def _captureObservedSessionClaim(self, identity):
-		"""Authorize this physical F12 for exactly the focused WT control."""
-		if (
-			not self._gate.manual_enabled
-			or identity is None
-			or identity.frontend_kind != "windowsTerminal"
-			or (
-				not self._claimInventoryReady
-				and identity not in self._pendingClaimTargets
-				and self._instanceManager.selected_for(identity) is None
-			)
-		):
-			return None
-		self._claimGestureGeneration += 1
-		generation = self._claimGestureGeneration
-		self._pendingObservedClaim = (identity, generation)
-		self._diagnostics.record(
-			"sessionClaimAuthorized",
-			generation=generation,
-			terminal=self._identityFields(identity),
-		)
-		return generation
+		return self._sessionClaimService.authorize(identity)
 
 	def _acceptObservedSessionClaim(self, identity, generation):
-		if self._pendingObservedClaim != (identity, generation):
-			return False
-		self._pendingObservedClaim = None
-		return self._gate.manual_enabled and self._gate.focused == identity
+		return self._sessionClaimService.accept(identity, generation)
 
 	def _cancelObservedSessionClaim(self, identity, generation):
-		"""Discard only the matching queued claim after its frontend scope changed."""
-		if self._pendingObservedClaim != (identity, generation):
-			return False
-		self._pendingObservedClaim = None
-		self._diagnostics.record("sessionClaimIgnored", reason="frontendScopeChanged")
-		return True
+		return self._sessionClaimService.cancel(identity, generation)
 
 	def _promptForSessionClaim(self, profile, identity):
 		self._diagnostics.record(
@@ -811,23 +848,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return result
 
 	def _beginClaimInventory(self):
-		self._claimInventoryGeneration += 1
-		generation = self._claimInventoryGeneration
-		self._claimInventoryReady = False
 		profiles = self._automaticClaimProfiles()
 		passwords = {
 			profile.identifier: self._sessionPasswords.get(profile.identifier, "") for profile in profiles
 		}
-		threading.Thread(
-			target=self._scanClaimTargets,
-			args=(generation, profiles, passwords, True, None),
-			name="nvim-nvda-claim-inventory",
-			daemon=True,
-		).start()
+		self._sessionClaimService.start_inventory(
+			profiles,
+			passwords,
+			self._finishClaimInventory,
+		)
 
 	def _beginAutomaticClaimResolution(self, identity, local_claim_not_before_ns=0):
-		self._claimInventoryGeneration += 1
-		generation = self._claimInventoryGeneration
 		profiles = [
 			profile
 			for profile in self._automaticClaimProfiles()
@@ -837,19 +868,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			profile.identifier: self._sessionPasswords.get(profile.identifier, "") for profile in profiles
 		}
 		baseline = dict(self._claimBaselines)
-		threading.Thread(
-			target=self._scanAutomaticClaimTargets,
-			args=(
-				generation,
-				profiles,
-				passwords,
-				identity,
-				baseline,
-				local_claim_not_before_ns,
-			),
-			name="nvim-nvda-claim-resolution",
-			daemon=True,
-		).start()
+		self._sessionClaimService.start_resolution(
+			profiles,
+			passwords,
+			identity,
+			baseline,
+			local_claim_not_before_ns,
+			self._finishAutomaticClaimResolution,
+		)
 
 	def _scanAutomaticClaimTargets(
 		self,
@@ -860,208 +886,84 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		baseline,
 		local_claim_not_before_ns=0,
 	):
-		"""Resolve a local claim without waiting for unrelated SSH probes.
-
-		F12 reaches only the focused terminal.  Therefore a newly incremented
-		local claim is already conclusive; scanning remote hosts afterwards
-		would add latency and can make a second key press invalidate the first
-		scan generation.  When no local claim changed, retain the existing
-		parallel SSH resolution path.
-		"""
-
-		def changed(sessions):
-			return any(
-				self._claimSequence(session)
-				> baseline.get(
-					("localWindowsTcp", "local-windows", session.identifier),
-					0,
-				)
-				or (
-					local_claim_not_before_ns > 0
-					and 0 <= session.claim_age_ms <= 15_000
-					and session.claimed_monotonic_ns >= local_claim_not_before_ns
-				)
-				for session in sessions
-			)
-
-		local_sessions, local_error, local_attempts = self._pollLocalSessions(changed)
-		local_changed = local_error is None and changed(local_sessions)
-		self._diagnostics.record(
-			"automaticLocalClaimChecked",
-			attempts=local_attempts,
-			sessions=len(local_sessions),
-			changed=local_changed,
-			errorType=type(local_error).__name__ if local_error is not None else "",
-		)
-		local_result = (
-			"localWindowsTcp",
-			"local-windows",
-			None,
-			local_sessions,
-			local_error,
-		)
-		if local_changed:
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
-				self._finishAutomaticClaimResolution,
-				generation,
-				[local_result],
-				identity,
-				local_claim_not_before_ns,
-			)
-			return
-
-		jobs = [("remoteSsh", profile.identifier, profile) for profile in profiles]
-
-		def scan(profile):
-			return SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=passwords.get(profile.identifier, ""),
-				askpass_path=self._askpassPath(),
-			)
-
-		results = [local_result]
-		if jobs:
-			workers = max(1, min(4, len(jobs)))
-			with ThreadPoolExecutor(
-				max_workers=workers,
-				thread_name_prefix="nvim-nvda-claim-remote",
-			) as pool:
-				futures = {
-					pool.submit(scan, profile): (kind, target_id, profile)
-					for kind, target_id, profile in jobs
-				}
-				for future in as_completed(futures):
-					kind, target_id, profile = futures[future]
-					try:
-						results.append((kind, target_id, profile, future.result(), None))
-					except Exception as error:
-						results.append((kind, target_id, profile, [], error))
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishAutomaticClaimResolution,
+		self._sessionClaimService.scan_automatic_targets(
 			generation,
-			results,
+			profiles,
+			passwords,
 			identity,
+			baseline,
+			local_claim_not_before_ns,
+			self._finishAutomaticClaimResolution,
 		)
 
 	@staticmethod
-	def _pollLocalSessions(predicate):
-		"""Wait briefly for Neovim's atomic registry update on a worker thread."""
-		deadline = time.monotonic() + _LOCAL_CLAIM_WAIT_SECONDS
-		attempts = 0
-		sessions = []
-		while True:
-			attempts += 1
-			try:
-				sessions = _localSessionLister().list()
-			except Exception as error:
-				return [], error, attempts
-			if predicate(sessions) or time.monotonic() >= deadline:
-				return sessions, None, attempts
-			time.sleep(_LOCAL_CLAIM_POLL_SECONDS)
+	def _startClaimWorker(name, target, args):
+		threading.Thread(target=target, args=args, name=name, daemon=True).start()
+
+	@staticmethod
+	def _queueClaimResult(callback, *args):
+		queueHandler.queueFunction(queueHandler.eventQueue, callback, *args)
+
+	@staticmethod
+	def _listLocalClaimSessions():
+		return _localSessionLister().list()
+
+	def _listRemoteClaimSessions(self, profile, password):
+		return SshSessionLister().list(
+			profile.ssh_target,
+			profile.port,
+			profile.identity_file,
+			password=password,
+			askpass_path=self._askpassPath(),
+		)
+
+	def _pollLocalSessions(self, predicate):
+		return self._sessionClaimService.poll_local_sessions(predicate)
 
 	def _scanClaimTargets(self, generation, profiles, passwords, inventory, identity):
-		jobs = [("localWindowsTcp", "local-windows", None)]
-		jobs.extend(("remoteSsh", profile.identifier, profile) for profile in profiles)
-
-		def scan(kind, _target_id, profile):
-			if kind == "localWindowsTcp":
-				return _localSessionLister().list()
-			return SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=passwords.get(profile.identifier, ""),
-				askpass_path=self._askpassPath(),
-			)
-
-		results = []
-		workers = max(1, min(4, len(jobs)))
-		with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="nvim-nvda-scan") as pool:
-			futures = {
-				pool.submit(scan, kind, target_id, profile): (kind, target_id, profile)
-				for kind, target_id, profile in jobs
-			}
-			for future in as_completed(futures):
-				kind, target_id, profile = futures[future]
-				try:
-					results.append((kind, target_id, profile, future.result(), None))
-				except Exception as error:
-					results.append((kind, target_id, profile, [], error))
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishClaimInventory if inventory else self._finishAutomaticClaimResolution,
+		self._sessionClaimService.scan_targets(
 			generation,
-			results,
+			profiles,
+			passwords,
 			identity,
+			self._finishClaimInventory if inventory else self._finishAutomaticClaimResolution,
 		)
 
 	@staticmethod
 	def _claimSequence(session):
-		value = getattr(session, "claim_sequence", 0)
-		return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+		return SessionClaimService.claim_sequence(session)
 
 	def _finishClaimInventory(self, generation, results, _identity=None):
-		if generation != self._claimInventoryGeneration or not self._gate.manual_enabled:
-			self._diagnostics.record("claimInventoryIgnored")
+		summary = self._sessionClaimService.finish_inventory(generation, results)
+		if summary is None:
 			return
-		baselines = {}
-		eligible = set()
-		errors = {}
-		for kind, target_id, _profile, sessions, error in results:
-			target = (kind, target_id)
-			if error is not None:
-				errors[target] = str(error)
-				continue
-			eligible.add(target)
-			for session in sessions:
-				baselines[(kind, target_id, session.identifier)] = self._claimSequence(session)
-		self._claimBaselines = baselines
-		self._claimEligibleTargets = eligible
-		self._claimInventoryErrors = errors
-		self._claimInventoryReady = True
 		configured = len(self._settingsService.snapshot().get("connections", []))
-		scanned_remote = len([item for item in results if item[0] == "remoteSsh"])
-		automatic = len([target for target in eligible if target[0] == "remoteSsh"])
-		local_sessions = sum(
-			len(sessions)
-			for kind, _target_id, _profile, sessions, error in results
-			if kind == "localWindowsTcp" and error is None
-		)
-		remote_sessions = sum(
-			len(sessions)
-			for kind, _target_id, _profile, sessions, error in results
-			if kind == "remoteSsh" and error is None
-		)
 		self._diagnostics.record(
 			"claimInventoryReady",
-			eligibleTargets=len(eligible),
-			errors=len(errors),
-			eligibleSessions=len(baselines),
-			localSessions=local_sessions,
-			remoteSessions=remote_sessions,
-			automaticSshProfiles=automatic,
-			scannedSshProfiles=scanned_remote,
+			eligibleTargets=summary.eligible_targets,
+			errors=summary.errors,
+			eligibleSessions=summary.eligible_sessions,
+			localSessions=summary.local_sessions,
+			remoteSessions=summary.remote_sessions,
+			automaticSshProfiles=summary.automatic_ssh_profiles,
+			scannedSshProfiles=summary.scanned_ssh_profiles,
 			configuredSshProfiles=configured,
 		)
-		if errors and configured > scanned_remote:
+		if summary.errors and configured > summary.scanned_ssh_profiles:
 			ui.message(
 				_(
 					"Neovim connections ready. Some saved connections could not be checked, "
 					"and password connections require manual selection. Focus Neovim and press {key}"
 				).format(key=_SESSION_CLAIM_KEY_NAME)
 			)
-		elif errors:
+		elif summary.errors:
 			ui.message(
 				_(
 					"Neovim connections ready. Some saved connections could not be checked. "
 					"Focus Neovim and press {key}, or choose a connection manually"
 				).format(key=_SESSION_CLAIM_KEY_NAME)
 			)
-		elif configured > scanned_remote:
+		elif configured > summary.scanned_ssh_profiles:
 			ui.message(
 				_(
 					"Neovim connections ready. Password connections require manual selection. "
@@ -1082,48 +984,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity,
 		local_claim_not_before_ns=0,
 	):
-		if (
-			generation != self._claimInventoryGeneration
-			or not self._gate.manual_enabled
-			or self._gate.focused != identity
-		):
-			self._diagnostics.record("automaticClaimResolutionIgnored")
+		resolution = self._sessionClaimService.finish_resolution(
+			generation,
+			results,
+			identity,
+			local_claim_not_before_ns,
+		)
+		if resolution is None:
 			return
-		candidates = []
-		new_baselines = dict(self._claimBaselines)
-		for kind, target_id, profile, sessions, error in results:
-			if error is not None:
-				self._diagnostics.record(
-					"automaticClaimTargetError",
-					targetKind=kind,
-					targetId=target_id,
-					errorType=type(error).__name__,
-					error=str(error),
-				)
-				continue
-			current_keys = set()
-			for session in sessions:
-				key = (kind, target_id, session.identifier)
-				current_keys.add(key)
-				sequence = self._claimSequence(session)
-				previous = self._claimBaselines.get(key, 0)
-				fresh_local_claim = (
-					kind == "localWindowsTcp"
-					and local_claim_not_before_ns > 0
-					and 0 <= session.claim_age_ms <= 15_000
-					and session.claimed_monotonic_ns >= local_claim_not_before_ns
-				)
-				if sequence > previous or fresh_local_claim:
-					candidates.append((kind, profile, session))
-				new_baselines[key] = sequence
-			for key in list(new_baselines):
-				if key[:2] == (kind, target_id) and key not in current_keys:
-					del new_baselines[key]
-		self._claimBaselines = new_baselines
+		for target_error in resolution.errors:
+			self._diagnostics.record(
+				"automaticClaimTargetError",
+				targetKind=target_error.target_kind,
+				targetId=target_error.target_id,
+				errorType=target_error.error_type,
+				error=target_error.error,
+			)
+		candidates = resolution.candidates
 		self._diagnostics.record(
 			"automaticClaimResolutionCompleted",
 			candidates=len(candidates),
-			targets=len(results),
+			targets=resolution.targets,
 		)
 		if not candidates:
 			return
@@ -1164,12 +1045,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Multiple Neovim sessions confirmed F12; opening session selection"))
 
 		def finish(result):
-			if (
-				result != wx.ID_OK
-				or generation != self._claimInventoryGeneration
-				or not self._gate.manual_enabled
-				or self._gate.focused != identity
-			):
+			if result != wx.ID_OK or not self._sessionClaimService.is_current(generation, identity):
 				return
 			selection = dialog.GetSelection()
 			if 0 <= selection < len(candidates):
@@ -3299,13 +3175,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._sessionPasswords.clear()
 
 	def _stopClient(self):
-		self._pendingClaimTargets.clear()
-		self._pendingObservedClaim = None
-		self._claimInventoryGeneration += 1
-		self._claimInventoryReady = False
-		self._claimBaselines.clear()
-		self._claimEligibleTargets.clear()
-		self._claimInventoryErrors.clear()
+		self._sessionClaimService.invalidate_connection_state()
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()

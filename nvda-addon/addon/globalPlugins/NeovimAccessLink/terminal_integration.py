@@ -39,11 +39,12 @@ class TerminalIntegrationService:
 	explicit without publishing the NVDA GlobalPlugin itself.
 	"""
 
-	def __init__(self, runtime: Any, focus_service: Any):
-		if runtime is None or focus_service is None:
-			raise ValueError("runtime and focus service are required")
+	def __init__(self, runtime: Any, focus_service: Any, claim_service: Any):
+		if runtime is None or focus_service is None or claim_service is None:
+			raise ValueError("runtime, focus service, and claim service are required")
 		self._runtime = runtime
 		self._focusService = focus_service
+		self._claimService = claim_service
 		self._generation = object()
 
 	def _record(self, category: str, **fields: Any) -> None:
@@ -160,13 +161,10 @@ class TerminalIntegrationService:
 		if getattr(focus_obj, "appModule", None) is not app_module:
 			return None
 		try:
-			gate = self._runtime._gate
-			if not gate.manual_enabled or gate.focused is None:
-				return None
 			identity = self._focusService.identity(focus_obj)
-			if identity is None or identity != gate.focused:
+			if identity is None:
 				return None
-			generation = self._runtime._captureObservedSessionClaim(identity)
+			generation = self._claimService.authorize(identity)
 			if generation is None:
 				return None
 			self._record(
@@ -222,7 +220,7 @@ class TerminalIntegrationService:
 			or authorization.service_generation is not self._generation
 		):
 			return False
-		return self._runtime._cancelObservedSessionClaim(
+		return self._claimService.cancel(
 			authorization.identity,
 			authorization.generation,
 		)

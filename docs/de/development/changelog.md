@@ -5,6 +5,18 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.18+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der erste V2-4-Schnitt führt `SessionClaimService` als alleinigen Eigentümer
+  von einmaliger F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand
+  ein. Die öffentliche Terminalfassade autorisiert und verwirft Claims nun
+  direkt über diesen neutralen Dienst.
+- Lokale/SSH-Inventarworker und die rein fachliche Auswertung von Inventar und
+  frischen Kandidaten laufen nun hinter dem Dienst; NVDA-Queue und Adapter sind
+  injiziert. Auswahl und Verbindungsübergänge behalten ihr Verhalten, bis
+  spätere V2-4-Schnitte ihre Orchestrierung verschieben.
+- Dieser interne Schnitt wurde noch nicht separat praktisch abgenommen.
+
 ## 0.95.0-dev.17+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der neue `TerminalFocusService` besitzt Terminalidentität, Fokusgeneration,

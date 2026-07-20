@@ -144,8 +144,9 @@ Registrierung, Teilfehler, ungültige Konfiguration und Verbindungsänderungen
 sind direkt geprüft. Die prozessweite Verfügbarkeit von Einstellungen und
 Werkzeugen bleibt unverändert. Eine praktische Zwischenprüfung ist für diese
 internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
-V2-Schritten gebündelt. Als Nächstes werden Claim- und Verbindungsablauf in
-V2-4 hinter einen eigenen Dienst gestellt.
+V2-Schritten gebündelt. V2-4 hat begonnen: `SessionClaimService` besitzt F12-
+Autorisierung, Inventarzustand, Scans und Kandidatenauswertung; weitere
+Schnitte verschieben Auswahl und Verbindungsübergänge hinter diesen Dienst.
 
 ## 3. Praktische Abschottung verbreitern
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.18+feature.global-plugin-slimming (feature-branch test build)
+
+- The first V2-4 slice introduces `SessionClaimService` as the sole owner of
+  one-shot F12 authorization, claim generations, and claim inventory state.
+  The public terminal facade now authorizes and cancels claims directly
+  through that neutral service.
+- Local/SSH inventory workers and the pure evaluation of inventory and fresh
+  candidates now run behind the service with injected NVDA queue and adapter
+  boundaries. Selection and connection transitions retain their existing
+  behavior while later V2-4 slices move their orchestration.
+- This internal slice has not yet received a separate practical check.
+
 ## 0.95.0-dev.17+feature.global-plugin-slimming (feature-branch test build)
 
 - The new `TerminalFocusService` owns terminal identity, focus generation,

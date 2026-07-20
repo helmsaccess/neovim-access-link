@@ -72,6 +72,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   AppModule-/Adapterkorrelation und den periodischen Lifecycle-Sweep. Unsichere
   UIA-Ergebnisse fallen offen aus; geschlossene, nicht fokussierte Controls
   werden erst nach zwei eindeutigen Negativprüfungen bereinigt.
+- Der erste V2-4-Schnitt übergibt `SessionClaimService` die alleinige
+  Zuständigkeit für einmalige F12-Autorisierung, Claim-Generationen und Claim-
+  Inventarzustand. Lokale und SSH-Inventarworker sowie die Kandidatenauswertung
+  laufen hinter diesem Dienst; Auswahl und Verbindungsübergänge behalten
+  während ihrer schrittweisen Verschiebung die bisherigen Hauptthreadgrenzen.
 
 ### Editorausgabe
 

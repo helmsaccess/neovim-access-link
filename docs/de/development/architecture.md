@@ -217,6 +217,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ServiceRegistrar` | identitätsgeprüfte Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Lebenszyklusentscheidung oder Terminalereignisse |
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
+| `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -241,6 +242,13 @@ den `TerminalFocusService`. Dieser erhält Identitätsbildung, UIA-Lebensprüfun
 Hauptthread-Scheduler und wenige fachliche Callbacks explizit injiziert. Ein
 geschlossenes, nicht fokussiertes Control wird erst nach zwei eindeutigen
 Negativprüfungen entfernt; unklare UIA-Fehler gelten nicht als Schließung.
+
+Der `TerminalIntegrationService` autorisiert und verwirft physische F12-Claims
+außerdem direkt über `SessionClaimService`. Dieser Dienst besitzt den
+veränderlichen Claim- und Inventarzustand, lokale/SSH-Inventarworker und die
+Kandidatenauswertung. Auswahl und Verbindungsübergänge verbleiben vorübergehend
+in der Kompositionswurzel, bis weitere V2-4-Schnitte sie hinter dieselbe Grenze
+verschieben.
 
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei

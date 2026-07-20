@@ -206,6 +206,7 @@ must not close output again before state is confirmed.
 | `ServiceRegistrar` | Identity-checked publication of the fully initialized `TerminalIntegrationService` | Lifecycle decisions or terminal events |
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
+| `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -230,6 +231,12 @@ NVDA event through fail-open.
 main-thread scheduler, and a few domain callbacks are injected explicitly. A
 closed, unfocused control is removed only after two conclusive negative checks;
 an uncertain UIA failure is not treated as closure.
+
+`TerminalIntegrationService` also authorizes and cancels physical F12 claims
+directly through `SessionClaimService`. That service owns the mutable claim and
+inventory state, local/SSH inventory workers, and candidate evaluation.
+Selection and connection transitions remain in the composition root
+temporarily while the remaining V2-4 slices move them behind the same boundary.
 
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely

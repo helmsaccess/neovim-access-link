@@ -132,8 +132,9 @@ owns identity, focus correlation, and the lifecycle sweep. Duplicate registratio
 failure, invalid configuration, and connection changes have direct coverage.
 Process-wide availability of Settings and Tools is unchanged. No separate
 practical check is planned for these internal phases; it will be combined with
-later user-visible V2 stages. V2-4 next places claim and connection flows
-behind their own service.
+later user-visible V2 stages. V2-4 has begun: `SessionClaimService` owns F12
+authorization, inventory state, scanning, and candidate evaluation, while
+later slices move selection and connection transitions behind it.
 
 ## 3. Broaden practical isolation coverage
 

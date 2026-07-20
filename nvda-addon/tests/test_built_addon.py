@@ -573,6 +573,25 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._focusService.lose_focus", facade_source)
         self.assertNotIn("self._runtime._prepareTerminalFocus", facade_source)
 
+    def test_session_claim_authorization_has_one_non_global_owner(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        claim_source = (plugin / "session_claim.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
+
+        self.assertIn("class SessionClaimService", claim_source)
+        self.assertNotIn("GlobalPlugin", claim_source)
+        self.assertNotIn("self._claimGestureGeneration =", global_source)
+        self.assertNotIn("self._pendingObservedClaim = None", global_source)
+        self.assertIn("self._claimService.authorize", facade_source)
+        self.assertIn("self._claimService.cancel", facade_source)
+        self.assertNotIn("self._runtime._captureObservedSessionClaim", facade_source)
+        self.assertNotIn("self._runtime._cancelObservedSessionClaim", facade_source)
+        self.assertIn("ThreadPoolExecutor", claim_source)
+        self.assertIn("self._startWorker", claim_source)
+        self.assertIn("self._queueMainThread", claim_source)
+        self.assertNotIn("ThreadPoolExecutor", global_source)
+
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
 

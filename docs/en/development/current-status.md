@@ -70,6 +70,11 @@ See `compatibility.md` for complete platform boundaries.
   AppModule/adapter correlation, and the periodic lifecycle sweep. Uncertain
   UIA results fail open; closed, unfocused controls are disposed only after two
   conclusive negative checks.
+- The first V2-4 slice gives `SessionClaimService` sole ownership of one-shot
+  F12 authorization, claim generations, and claim inventory state. Local and
+  SSH inventory workers plus candidate evaluation run behind that service;
+  selection and connection transitions retain their established main-thread
+  boundaries while they are moved incrementally.
 
 ### Editor output
 
