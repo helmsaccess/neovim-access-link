@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 20. Juli 2026. Produktversion im Quellstand: 0.95.0.
+Stand: 21. Juli 2026. Produktversion im Quellstand: 0.95.0.
 
 Der Quellstand ist für Version 0.95.0 vorbereitet. Der zugehörige
 GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
@@ -136,7 +136,8 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   abgeschlossen. Seine sieben vorübergehenden
   Global-Plugin-Kompatibilitätseigenschaften wurden inzwischen in V2-6
   entfernt.
-- V2-6 hat mit einem normalen `AddonRuntime` begonnen. Er veröffentlicht den
+- V2-6 ist abgeschlossen und begann mit einem normalen `AddonRuntime`. Er
+  veröffentlicht den
   vollständigen Terminaldienst erst nach der prozessweiten Registrierung und
   besitzt eine feste, wiederholbare Abbaureihenfolge. Entfernen des Dienstes
   und fail-open Gate-Öffnung geschehen vor Verbindungs- und

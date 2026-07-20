@@ -1,6 +1,6 @@
 # Current status
 
-Status date: July 20, 2026. Product version in the source tree: 0.95.0.
+Status date: July 21, 2026. Product version in the source tree: 0.95.0.
 
 The source tree is prepared for version 0.95.0. Its corresponding GitHub
 release link is kept prominently in `README.md`. Project-defined maturity
@@ -126,8 +126,8 @@ See `compatibility.md` for complete platform boundaries.
   per-instance completion-documentation access through the controller. V2-5
   is complete under automated coverage. Its seven temporary Global Plugin
   compatibility properties have since been removed in V2-6.
-- V2-6 has started with a normal `AddonRuntime`. It publishes the completed
-  terminal service only after process-wide registration and owns one fixed,
+- V2-6 is complete and began with a normal `AddonRuntime`. It publishes the
+  completed terminal service only after process-wide registration and owns one fixed,
   idempotent shutdown sequence. Unpublication and fail-open gate reset precede
   connection and state cleanup; UI and presentation close last. Individual
   cleanup failures are diagnosed without stopping later steps, and a late

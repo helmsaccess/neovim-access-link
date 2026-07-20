@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 20. Juli 2026.
+Stand: 21. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -14,244 +14,33 @@ die Prüfung jeder denkbaren Kombination noch feste Reaktions- oder
 Behebungszeiten. Reproduzierbare Fehler werden nach Möglichkeit zeitnah
 untersucht; Sicherheits-, Isolations- und Datenverlustrisiken haben Vorrang.
 
-## 1. Dokumentation verständlich und überprüfbar machen
+## 1. Dokumentation verständlich und überprüfbar halten
 
 Laufend:
 
 - Entwicklerdokumentation mit Architektur und Begriffen beginnen lassen,
   bevor Protokolldetails und Spezialfälle folgen;
-- dauerhafte Referenz, aktuellen Status, aktiven Plan und historische
-  Entwicklung klar trennen;
+- dauerhafte Referenz, aktuellen Status, aktiven Plan, Changelog und datierte
+  Berichte klar trennen;
 - deutsche und englische Kernkapitel strukturell parallel halten;
 - Aussagen zu Prozessen, Session-Registry, Zuordnung, Gate, Rückkanälen,
   Polling und Fallbacks gegen den aktuellen Code prüfen;
 - HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen.
 
-## 2. NVDA-Verantwortungsgrenzen verschlanken
+## 2. Architekturgrenzen nur bei belegtem Nutzen weiter verändern
 
-[ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) wird in einzeln
-prüfbaren Schritten umgesetzt:
+Die in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
+Verschlankung ist umgesetzt und praktisch über mehrere Fenster, Tabs und Panes
+mit lokalen und entfernten Sitzungen geprüft. Der aktuelle Aufbau steht in
+`current-status.md`; die Entwicklung und ihre Messwerte stehen im Changelog
+sowie in den Anhängen A und B.
 
-- UI-Registrierung und Komponentenverwaltung vom Terminalpfad trennen;
-- gemeinsame Verbindungen und Zustände aus der GlobalPlugin-Klasse in normale
-  Dienste verschieben;
-- Windows-Terminal-Ereignisse, Overlays und `nextHandler` vollständig im
-  AppModule besitzen;
-- F12-Fokusprüfung weiter eingrenzen, ohne Tab-, Pane- oder Fensterwechsel zu
-  beeinträchtigen.
-
-Phase 1 ist automatisiert umgesetzt: Fensteridentität und Prozesslebensdauer
-verwenden `winUser`, `winBindings` und `winKernel`; der neutrale Session-Lister
-erhält die Prozessprüfung injiziert. Adapter-, Registry-, Claim-, Lifecycle-
-und vollständige Built-Add-on-Tests bestehen. Nachfolgende praktische
-Windows-/NVDA-Tests deckten mehrere Fenster, Tabs und Panes, Reloads, lokale
-und SSH-Sitzungen sowie Fail-open-Übergänge ohne gemeldeten Fehler ab.
-
-Phase 2 ist automatisiert umgesetzt: `NvdaUiManager` besitzt die symmetrische
-Registrierung von Einstellungen und Werkzeugmenü, die Verbindungsformulare
-sowie Installation und Entfernung der Neovim-Komponenten. Die
-`GlobalPlugin`-Klasse erzeugt und beendet diesen Manager, enthält aber nicht
-mehr dessen Implementierung. Struktur-, Lokalisierungs-, Dialog-, Installer-
-und Built-Add-on-Tests bestehen; Einstellungen, Werkzeugdialoge und deutsche
-UI-Texte wurden anschließend praktisch bestätigt.
-
-Phase 3 ist automatisiert umgesetzt. Ein NVDA-unabhängiger
-`ConnectionCoordinator` besitzt Instanzmanager, aktiven Client, Gate, aktiven
-Sprachplaner, Authentifizierung, Terminalzuordnungen, begrenzte korrelierte
-Anfragen, getrennte Laufzeitzustände sowie Auswahl, Fokusbestätigung und
-vollständige Zustandsbereinigung einer Instanz. `NvdaPresentation` besitzt die
-NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen und Klänge;
-`NvdaUiManager` bleibt für Einstellungen, Werkzeuge und Komponentenformulare
-zuständig. Ein identitätsgeprüfter `ServiceRegistrar` veröffentlicht erst die
-vollständig initialisierte Dienstinstanz und schützt Add-on-Neuladen vor dem
-verspäteten Beenden einer älteren Instanz. Schmale
-Kompatibilitätseigenschaften halten den bisherigen Ereignispfad während des
-Umbaus stabil. Die F12-Zuordnung wurde nicht verändert; ihre Härtung gehört
-ausdrücklich zu Phase 5.
-Der Phase-3-Abschlussstand wurde anschließend mit lokalen und entfernten
-Verbindungen über mehrere Windows-Terminal-Fenster, Tabs und Panes praktisch
-bestätigt.
-
-Phase 4 ist automatisiert umgesetzt und praktisch bestätigt.
-Das Windows-Terminal-AppModule besitzt nun alle Terminalereignisse, die
-Overlayauswahl und jeden Aufruf von `nextHandler`. Ein undurchsichtiges Token
-verhindert, dass ein verspätetes `loseFocus` eines alten WT-Prozesses den neuen
-Fokus löscht. `gainFocus` verwendet einen zweiphasigen Vertrag: Der gemeinsame
-Dienst bereitet nur die Fokusentscheidung vor, das AppModule ruft NVDAs
-nativen Handler genau einmal auf, damit Terminal-LiveText initialisiert wird,
-und schließt danach die strukturierte Fokusbehandlung ab. Generation und Token
-verwerfen verspätete Abschlüsse; wartende `fullState`-Ereignisse gehen dabei
-nicht verloren. Frühe und späte Fehler fallen ohne zweiten nativen Aufruf
-offen aus. Lokale und entfernte Verbindungen, mehrere WT-Fenster, Tabs und
-Panes, Fokuswechsel, native Shellausgabe, Sprache und Klänge zeigten im
-anschließenden Praxistest keine Probleme. Braille konnte mangels verfügbarer
-Hardware nicht praktisch geprüft werden. F12 und frei belegbare Befehle
-bleiben in dieser Phase unverändert.
-
-Phase 5 ist automatisiert umgesetzt und praktisch bestätigt.
-Der F12-Decider fragt erst nach einem Treffer der einen Claim-Taste NVDAs
-aktuelles Fokusobjekt ab. Er autorisiert nur die konkrete, noch registrierte
-Windows-Terminal-AppModule-Instanz, wenn die daraus gebildete vollständige
-`TermControl`-Identität mit dem Gate übereinstimmt. Der frühere
-Einzeladapter-Fallback ist entfernt; ein Fokuswechsel vor der eingereihten
-Hauptthreadauswertung verwirft weiterhin die Einmalgeneration. Im Insert-Modus
-bleibt die physische Taste als Claim nachweisbar, wird danach aber nicht mehr
-als `<F12>` eingefügt: ab Neovim 0.11 durch den Rückgabevertrag von
-`vim.on_key`, unter Neovim 0.10 durch eine nur bei unbelegtem F12 eingerichtete
-Insert-Mode-`<Ignore>`-Zuordnung. Andere Modi und vorhandene Benutzerbelegungen
-bleiben unverändert. Automatisierte Negativfälle umfassen fremde Anwendungen,
-veraltete Controls, mehrere WT-AppModules und schnelle Fokuswechsel. Der
-anschließende Praxistest des Normal- und Insert-Claims sowie der Fokus- und
-Control-Abschottung zeigte keine Fehler.
-
-Phase 6 ist automatisiert und praktisch bestätigt. Die zehn frei belegbaren
-Terminalbefehle liegen nicht mehr im Global Plugin, sondern im Windows-
-Terminal-AppModule.
-NVDA 2026.1.1 zeigt unbelegte Befehle zunächst an, wenn Windows Terminal vor
-dem Öffnen des Tastenbefehldialogs fokussiert war, und löst ihre Belegungen
-nicht mehr in fremden Anwendungen auf. Nach dem Laden der AppModule-Klasse
-kann eine gespeicherte Zuordnung andernorts aufgelistet bleiben; dies ist
-NVDAs Darstellung der Benutzergestenkarte, keine globale Ausführung. Die
-Ausführung prüft konkrete AppModule-Instanz und Control erneut; Fokusrennen und
-ein nicht verfügbarer gemeinsamer Dienst geben
-die Originalgeste durch. Für frühere GlobalPlugin-Skripte gespeicherte
-Belegungen müssen neu zugewiesen werden. Sichtbarkeit, Neuzuweisung, lokale und
-SSH-Befehle sowie mehrere Fenster, Tabs und Panes sind praktisch bestätigt;
-es wurde kein Fehler gefunden. Nach jeder Stufe müssen gebautes Add-on,
-Fail-open-Verhalten sowie lokale und SSH-Sitzungen in mehreren Tabs, Panes und
-Fenstern geprüft werden.
-
-Phase 7 ist mechanisch umgesetzt. Die direkt von NVDA geladenen Python-Module
-unter `nvda-addon/addon/` folgen nun NVDAs Ruff-Format mit Tabs, LF und 110
-Zeichen Zeilenlänge. Core, Bridge, Protokoll und Tests behalten ihren jeweils
-bereits konsistenten Stil. Ruff 0.14.5 prüft nur diese klar begrenzte NVDA-
-Stilzone lokal und in GitHub Actions; der dynamisch erforderliche Importpfad
-des Global Plugins besitzt nur an den erforderlichen Importen begründete
-`E402`-Ausnahmen. Der nachträglich erkannte Verlust der Braille-Overlayauswahl
-ist durch einen direkten `controlTypes`-Import im AppModule und Tests des
-tatsächlichen Overlay-Hooks korrigiert.
-
-Die anschließende Verschlankung V2 wird wieder in kleine, automatisiert
-abgesicherte Phasen geteilt. V2-1 bis V2-3 sind automatisiert umgesetzt: Der
-Registrar veröffentlicht nur einen schmalen `TerminalIntegrationService` für
-AppModule und Braille-Overlay. Ein eigener `SettingsService` besitzt Laden,
-Normalisierung, Speichern und Profilwechsel. Präsentation und
-`NvdaUiManager` verwenden dessen Snapshots und fachliche Operationen; der
-UI-Manager kennt weder das Global Plugin noch dessen Zustand. Ein eigener
-`TerminalFocusService` besitzt Identität, Fokuskorrelation und Lifecycle-Sweep.
-Doppelte Registrierung, Teilfehler, ungültige Konfiguration und Verbindungsänderungen
-sind direkt geprüft. Die prozessweite Verfügbarkeit von Einstellungen und
-Werkzeugen bleibt unverändert. Eine praktische Zwischenprüfung ist für diese
-internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
-V2-Schritten gebündelt. V2-4 ist automatisiert abgeschlossen:
-`SessionClaimService` besitzt F12-
-Autorisierung, Inventarzustand, Scans, Kandidatenauswertung und die
-unveränderliche Übergangsentscheidung. Discovery-Lebensdauer und
-Sitzungslisten-Worker sowie die fachliche Ergebnisauswahl liegen ebenfalls
-dort. Der Dienst plant Wiederverwendung oder Start einer lokalen
-beziehungsweise entfernten Instanz und setzt einen aktuellen Plan auf den
-neutralen
-Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
-zurück. Start, Bindung und Runtime-Auswahl neuer Instanzen liegen ebenfalls in
-diesem Dienst; Rückrollen und ersetzte Clients werden ohne blockierenden Stopp
-auf dem NVDA-Hauptthread abgewickelt. Explizite Auswahl und Trennung laufen als
-transaktionale Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
-asynchron ausgeführt. Die fail-open Aktivierung einer gemerkten Instanz und die
-korrelierte Entscheidung zwischen Fokuskontext und Vollzustand liegen
-inzwischen ebenfalls im Dienst. Er besitzt auch den ausstehenden Merkvorgang
-temporärer Terminalbindungen und validiert Fokus, Control und Instanz nach dem
-modalen Dialog erneut; Dialog, Diagnostik und Transportaufruf bleiben am
-NVDA-Rand. Eine injizierte Fabrik kapselt die lokale und entfernte
-Clientkonstruktion sowie deren instanzkorrelierte Callbacks; der
-Claimdienst verbindet sie mit seinem Startübergang. Der Abschluss-Audit
-entfernte unnötige Weiterleitungen und direkte produktive Zugriffe auf
-veränderliche Claim-Container. Die Kompositionswurzel behält nur NVDAs
-Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Nach dem gebündelten
-Praxis-Meilenstein beginnt V2-5. Dieser Meilenstein ist inzwischen mit
-mehreren Fenstern, Tabs und Panes, lokalen und entfernten Sitzungen sowie
-Zwischenablageoperationen abgeschlossen. Der erste V2-5-Schnitt führt einen
-`EditorSessionController` ein. Er übernimmt die Mutation und Umschaltung des
-instanzgetrennten Editorzustands einschließlich Modus, Menüdokumentation,
-Transportfähigkeiten, Verbindungszustand und strukturiertem Tippecho. Konkrete
-NVDA-Ausgabe und Fokus-/Gate-Entscheidungen bleiben außerhalb. Der zweite
-Schnitt verschiebt die begrenzte Anfrageverwaltung und Antwortkorrelation für
-Zwischenablage, Register und eingebettete Terminalsteuerung in denselben
-Controller. Netzwerkaufruf, Windows-Zwischenablage, Diagnostik und
-übersetzte Rückmeldung bleiben in der NVDA-Kompositionswurzel. Der dritte
-Schnitt führt Zustandsübergang, Terminal-Passthrough, Modusklang und neutrale
-Sprachaktionen in einem unveränderlichen Ereignisplan zusammen. Damit plant
-das Global Plugin Editorereignisse nicht mehr selbst, sondern liefert nur
-über NVDA aus und wendet Gate-Übergänge an. Der vierte Schnitt ergänzt
-isolierte Braillepläne und validierte semantische Routingpläne. Das Overlay
-bleibt NVDA-spezifisch, und nur der NVDA-Rand führt den festen
-`routeCursor`-Transportaufruf aus. Der fünfte Schnitt verschiebt die
-Normalisierung des Verbindungsnamens und die Passthroughverfolgung der aktiven
-Instanz in den Controller. Der sechste Schnitt ergänzt unveränderliche
-ausgehende Allowlist-Pläne nach Capability-, Modus-, Buffer- und kanonischer
-Zustandsprüfung für Zwischenablage, Register und eingebettete
-Terminalsteuerung. Fokuskorrelation, Authentifizierung,
-Windows-Zwischenablage und Transport bleiben bewusst außerhalb. Der
-abschließende Audit verschiebt das Zurücksetzen des semantischen Planers und
-den Zugriff auf Completion-Dokumentation hinter denselben Controller. V2-5
-ist damit automatisiert abgeschlossen; nur vorübergehende
-Kompatibilitätseigenschaften werden in V2-6 entfernt. Die geplante praktische
-Abnahme folgt nach dieser Bereinigung.
-V2-6 hat mit `AddonRuntime` begonnen: Späte Veröffentlichung und die bestehende
-Abbaureihenfolge besitzen nun einen wiederholbaren Eigentümer. Für
-Dienstentfernung, Abbruch verzögerter Aufrufe, fail-open Gate-Öffnung,
-Verbindungs-/Zustandsbereinigung und abschließendes Schließen von UI und
-Präsentation bestehen direkte Reihenfolge- und Fehlerfortsetzungstests. Die
-weitere V2-6-Arbeit verschiebt Zusammensetzungsbesitz tiefer in diese Runtime,
-entfernt Migrationseigenschaften und schmale Übergangscallbacks und schließt
-vor der Praxisabnahme die Abdeckung für Teilinitialisierung und verspätete
-Callbacks ab.
-Die erste Migrationsbereinigung ist abgeschlossen: Alle sieben
-Kompatibilitätseigenschaften für die Editorruntime wurden aus dem Global
-Plugin entfernt; Tests verwenden den Controller-/Coordinatorvertrag direkt.
-Auch die Claim-Migrationsbereinigung ist abgeschlossen: Acht Claim-,
-Inventar- und Discovery-Sichten wurden entfernt; Tests verwenden den
-`SessionClaimService` direkt. Verbindungs- und Fokus-Kompatibilitätssichten
-werden erst nach demselben Produktivnutzungs-Audit entfernt. Ein anschließender
-Audit passiver Sichten hat elf weitere reine Testeigenschaften für
-Präsentations-, Bindungs-, Runtime-, Request-, AppModule- und Adapterzustand
-entfernt; die Tests verwenden nun die drei besitzenden Dienste direkt. Ein
-anschließender Fokusobjekt-/Lifecycle-Audit entfernt die letzten zwei
-Fokusdienstsichten. Ein Verbindungszustands-Audit entfernt weitere sieben
-Eigenschaften zugunsten des direkten `ConnectionCoordinator`-Besitzes. In
-dieser Bereinigungsgruppe bleiben Gate und Instanzmanager nach getrenntem Audit
-bewusst als häufig verwendete Kompositionsabhängigkeiten bestehen: Eine rein
-syntaktische Indirektion schafft weder einen engeren Vertrag noch einen neuen
-Eigentümer. Der folgende V2-6-Schnitt schließt den veröffentlichten
-Terminaldienst nach dem Unpublish und lässt eingereihte Runtimecallbacks beim
-tatsächlichen Aufruf den geschlossenen Zustand erneut prüfen. Die Abdeckung
-für verspätete fachliche Callbacks ist damit vorhanden; Teilinitialisierung
-und verbleibende Abbauweiterleitungen werden anschließend weiter geprüft. Der
-folgende Schnitt bündelt Profilcallback-, UI- und Dienstaktivierung in
-`AddonRuntime.start()`. Fehler an jedem dieser Schritte führen über denselben
-Teardown zur vollständigen Rückabwicklung; die Teilinitialisierungsabdeckung
-ist damit vorhanden. Als Nächstes werden die verbleibenden Abbauweiterleitungen
-auf eindeutigen Besitz und unnötig doppelte Bereinigung geprüft. Dieser Audit
-entfernt die `_stopClient()`-Weiterleitung sowie getrennte Instanzmanager- und
-Editorrequestpfade aus der Runtime: Claim/Fokus, Clientstopp und vollständige
-Coordinator-Bereinigung haben nun je einen Schritt. Der Passwort-Callback
-bleibt als schmale Grenze zu dem tatsächlich im Global Plugin besessenen
-Speicher bestehen. Der folgende Schnitt entfernt die breite `_runtime`-
-Rückreferenz des öffentlichen Terminaldienstes. Er erhält nur eine beim Aufbau
-vollständig validierte feste Befehlszuordnung sowie schmale Callbacks für
-Diagnose, Fail-open, F12-Abschluss und Braille-Routing. Als Nächstes werden die
-noch in der Kompositionswurzel liegenden Brailleklassen auf einen eigenen
-NVDA-Randbaustein geprüft. Dieser Schnitt verschiebt Region und Overlay nach
-`nvda_braille.py`; die prozessweite Veröffentlichung liegt dabei in der
-neutralen `service_registry.py`, sodass keine zirkuläre Global-Plugin-
-Abhängigkeit entsteht. Der abschließende V2-6-Strukturaudit entfernt die letzte
-nur von Tests verwendete Editorruntimefabrik und ergänzt
-Abhängigkeitsprüfungen am gebauten Paket. Er bestätigt, dass Anwendungsevents
-im AppModule verbleiben und ausgelagerte Dienste nicht von der
-`GlobalPlugin`-Klasse abhängen. Die häufig verwendeten Kompositionssichten auf
-Gate und Instanzmanager bleiben bestehen, weil eine weitere Weiterleitung den
-Besitz nicht verbessert. V2-6 und Praxis-Meilenstein 2 sind ohne neu
-gemeldeten Fehler abgeschlossen. Praktische Braillehardware bleibt die
-dokumentierte Testlücke.
+Eine weitere Aufteilung ist nicht allein wegen Dateigröße oder LOC geplant.
+Sie wird nur wieder aufgenommen, wenn sie einen eindeutigen Zustandsbesitzer,
+einen kleineren öffentlichen Vertrag, einen ohne NVDA prüfbaren Fehlerpfad
+oder einen belegbaren Robustheitsgewinn schafft. AppModule-Ereignisbesitz,
+Fail-open, F12-Isolation, asynchroner Transport sowie Fenster-, Tab- und
+Pane-Trennung bleiben dabei verbindliche Invarianten.
 
 ## 3. Praktische Abschottung verbreitern
 

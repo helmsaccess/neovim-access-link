@@ -1,7 +1,9 @@
-# Qualitätsreview der Global-Plugin-Verschlankung
+# Anhang A: Qualitätsreview der Global-Plugin-Verschlankung
 
-Reviewdatum: 19. Juli 2026  
-Vergleich: `feature/global-plugin-slimming` gegen `main`  
+Reviewdatum: 19. Juli 2026, 20:04:03 CEST (UTC+02:00)
+
+Vergleich: `feature/global-plugin-slimming` gegen `main`
+
 Produktstand des geprüften Testbuilds: `0.94.2-dev.13`
 
 ## Warum dieser Bericht existiert

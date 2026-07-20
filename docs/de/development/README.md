@@ -57,9 +57,6 @@ Code.
 - [ADR-0002: NVDA-API-Grenzen](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: enger Oil-Bestätigungsfallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA-Lebensdauer und Besitz von Anwendungsevents](adr/0004-nvda-lifetime-and-event-ownership.md)
-- [Qualitätsreview der Global-Plugin-Verschlankung vom 19. Juli 2026](quality-review-global-plugin-slimming-2026-07-19.md) – datierter Vergleich des
-  Featurebranches mit `main`, behobene Regressionen, offene Risiken und
-  Handlungsempfehlung; keine dauerhaft maßgebliche Architekturreferenz.
 - [Aktiver Plan](plan.md)
 - [Changelog](changelog.md)
 
@@ -83,3 +80,16 @@ Alle Aussagen sollen ihren Geltungsbereich benennen. „Windows Terminal“ darf
 beispielsweise nicht pauschal mit „Tab“ gleichgesetzt werden: Der Code bindet
 ein konkretes UI-Automation-`TermControl`, das je nach Layout einen Tabinhalt
 oder ein Pane repräsentieren kann.
+
+## Anhänge: datierte Qualitätsberichte
+
+Die Berichte bewahren Vergleichsbasis, Messwerte und damalige Empfehlungen.
+Sie stehen am Ende der gebauten Entwicklerdokumentation und ersetzen weder die
+aktuelle Architektur noch Status, Plan oder Code.
+
+- [Anhang A: Qualitätsreview der Global-Plugin-Verschlankung vom 19. Juli 2026, 20:04:03 CEST](quality-review-global-plugin-slimming-2026-07-19.md) –
+  Zwischenreview des Featurebranches gegen `main`, einschließlich behobener
+  Regressionen und damaliger Restrisiken.
+- [Anhang B: Codeanalyse des abgeschlossenen Featurestands gegenüber `v0.94.2` vom 21. Juli 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) –
+  quantitative und qualitative Abschlussbewertung von Testbarkeit,
+  Wartbarkeit, Robustheit und zusätzlicher Strukturkomplexität.

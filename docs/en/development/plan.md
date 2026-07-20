@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 20, 2026.
+Status date: July 21, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -10,224 +10,37 @@ available or practically confirmed.
 Order and test depth depend on risk, available test environments, and defects
 that are actually reported. The plan promises neither coverage of every
 possible combination nor fixed response or resolution times. Reproducible
-defects are investigated as promptly as circumstances allow; security,
-isolation, and data-loss risks take priority.
+defects are investigated as promptly as possible; security, isolation, and
+data-loss risks take priority.
 
-## 1. Make documentation understandable and verifiable
+## 1. Keep documentation understandable and verifiable
 
-In progress:
+Ongoing:
 
 - start developer documentation with architecture and terminology before
   protocol details and special cases;
-- separate durable reference, current status, active plan, and history;
+- keep durable reference, current status, active plan, changelog, and dated
+  reports clearly separated;
 - keep German and English core chapters structurally parallel;
 - verify claims about processes, session registry, assignment, gate, reverse
-  controls, polling, and fallbacks against current code;
-- validate the HTML build, internal links, and published sources.
+  controls, polling, and fallbacks against the current code;
+- validate the HTML build, internal links, and published sources
+  automatically.
 
-## 2. Narrow NVDA responsibility boundaries
+## 2. Change architecture boundaries only for demonstrated benefit
 
-Implement [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) in
-independently verifiable steps:
+The slimming decided in
+[ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) is implemented and
+has been exercised practically across multiple windows, tabs, and panes with
+local and remote sessions. `current-status.md` describes the current design;
+the changelog and Appendices A and B preserve its development and metrics.
 
-- separate UI registration and component management from the terminal path;
-- move shared connections and state from the Global Plugin class into ordinary
-  services;
-- make the AppModule fully own Windows Terminal events, overlays, and
-  `nextHandler`;
-- narrow F12 focus checks without impairing tab, pane, or window transitions.
-
-Phase 1 is implemented under automated coverage: window identity and process
-liveness use `winUser`, `winBindings`, and `winKernel`, while the neutral
-session lister receives the process probe by injection. Adapter, registry,
-claim, lifecycle, and complete built-add-on tests pass. Subsequent practical
-Windows/NVDA tests covered multiple windows, tabs and panes, reloads, local and
-SSH sessions, and fail-open transitions without a reported error.
-
-Phase 2 is implemented under automated coverage: `NvdaUiManager` owns
-symmetrical settings and Tools-menu registration, connection forms, and
-Neovim component installation and removal. The `GlobalPlugin` class creates
-and terminates this manager but no longer contains its implementation.
-Structure, localization, dialog, installer, and built-add-on tests pass;
-settings, Tools dialogs, and German UI text were then confirmed in practice.
-
-Phase 3 is implemented under automated coverage. An NVDA-independent
-`ConnectionCoordinator` owns the instance manager, active client, gate, active
-speech planner, authentication, terminal bindings, bounded correlated
-requests, isolated runtime states, and instance selection, focus confirmation,
-and complete state disposal. `NvdaPresentation` owns NVDA-specific delivery of
-planned speech, Braille messages, and sounds, while `NvdaUiManager` continues
-to own settings, Tools commands, and component forms. An identity-checked
-`ServiceRegistrar` publishes only the fully initialized service and protects
-add-on reloads from late termination of an older instance. Narrow
-compatibility properties keep the existing event path stable during the
-refactor. F12 assignment was not changed; its hardening belongs explicitly to
-phase 5. The completed phase-3 state was subsequently confirmed in practice
-with local and remote connections across multiple Windows Terminal windows,
-tabs, and panes.
-
-Phase 4 is implemented under automated coverage and confirmed in practical
-testing. The Windows Terminal AppModule now owns all terminal events,
-overlay selection, and every invocation of `nextHandler`. An opaque token
-prevents a late `loseFocus` from an old WT process from clearing newer focus.
-`gainFocus` uses a two-phase contract: the shared service only prepares the
-focus decision, the AppModule invokes NVDA's native handler exactly once so
-Terminal LiveText is initialized, and it completes structured focus handling
-afterwards. Generation and token reject late completions without losing a
-pending `fullState`. Early and late failures fail open without a second native
-call. Local and remote connections, multiple WT windows, tabs and panes, focus
-changes, native shell output, speech, and sounds showed no problems in the
-subsequent practical test. Braille could not be tested in practice because no
-hardware was available. F12 and configurable commands remain unchanged in
-this phase.
-
-Phase 5 is implemented under automated coverage and practically confirmed.
-The F12 decider queries NVDA's current focus object only after the
-claim gesture matches. It authorizes only the concrete still-registered
-Windows Terminal AppModule instance when the complete `TermControl` identity
-derived from that object matches the gate. The former single-adapter fallback
-is gone; a focus change before queued main-thread evaluation still rejects the
-one-shot generation. In Insert mode the physical key remains observable as a
-claim but is no longer inserted as `<F12>`: Neovim 0.11 and later use the
-`vim.on_key` return contract, while Neovim 0.10 receives an Insert-mode
-`<Ignore>` mapping only when F12 was otherwise unbound. Other modes and
-existing user mappings remain unchanged. Automated negative cases cover
-unrelated applications, stale controls, multiple WT AppModules, and rapid
-focus changes. The subsequent practical test of Normal- and Insert-mode claims
-plus focus and control isolation found no errors.
-
-Phase 6 is implemented under automated and practical coverage. The ten freely
-assignable terminal commands have moved from the Global Plugin to the Windows
-Terminal AppModule. NVDA 2026.1.1 initially lists unassigned commands when Windows
-Terminal was focused before opening Input Gestures and no longer resolves
-their assignments in unrelated applications. A saved assignment may remain
-listed elsewhere after the AppModule class has loaded; this is NVDA's user-map
-presentation, not global execution. Dispatch revalidates the exact AppModule
-instance and control;
-focus races and an unavailable shared service pass the original gesture
-through. Assignments stored for the former GlobalPlugin scripts must be
-assigned again. Visibility, reassignment, local and SSH commands, and multiple
-windows, tabs, and panes are practically confirmed; no fault was found. After
-each stage, verify the built add-on, fail-open behavior, and local and SSH
-sessions across multiple tabs, panes, and windows.
-
-Phase 7 is mechanically implemented. Python modules loaded directly by NVDA
-under `nvda-addon/addon/` now follow NVDA's Ruff format with tabs, LF, and a
-110-character line length. Core, bridge, protocol, and test code retain their
-already consistent component styles. Ruff 0.14.5 checks only this explicit
-NVDA style zone locally and in GitHub Actions; the Global Plugin's dynamically
-required imports now carry individual, justified `E402` exceptions. The
-subsequently detected loss of Braille overlay selection is corrected by a
-direct `controlTypes` import in the AppModule and tests of the actual overlay
-hook.
-
-The follow-up V2 slimming work is again divided into small phases protected by
-automated tests. V2-1 through V2-3 are implemented under automated coverage. The
-registrar publishes only a narrow `TerminalIntegrationService` for the
-AppModule and Braille overlay. A dedicated `SettingsService` owns loading,
-normalization, persistence, and profile switching. Presentation and
-`NvdaUiManager` use its snapshots and domain operations; the UI manager knows
-neither the Global Plugin nor its state. A dedicated `TerminalFocusService`
-owns identity, focus correlation, and the lifecycle sweep. Duplicate
-registration, partial failure, invalid configuration, and connection changes
-have direct coverage.
-Process-wide availability of Settings and Tools is unchanged. No separate
-practical check is planned for these internal phases; it will be combined with
-later user-visible V2 stages. V2-4 is complete under automated coverage:
-`SessionClaimService` owns F12
-authorization, inventory state, scanning, candidate evaluation, and the
-immutable transition decision. Discovery lifetime and session-list workers
-plus domain selection of their results also live there. The service now plans
-reuse or start of a local or remote instance, applies a current reuse plan to
-neutral bindings, and reports displaced terminal identities to the NVDA
-boundary. Start, binding, and runtime selection of new instances are also
-service transitions; rollback and replaced clients are handled without a
-blocking stop on NVDA's main thread. Explicit selection and disconnect are
-transactional service transitions, with client stops scheduled only after
-fail-open state teardown. Fail-open activation of a remembered instance and
-the correlated choice between focus context and full state are also owned by
-the service. It additionally owns pending offers for temporary terminal
-bindings and revalidates focus, control, and instance after the modal dialog;
-dialogs, diagnostics, and transport calls remain at the NVDA boundary. An
-injected factory encapsulates local and remote client construction plus
-instance-correlated callbacks, and the claim service joins it to the
-existing start transition. The completion audit removed unnecessary forwarding
-methods and direct production access to mutable claim containers. The
-composition root retains only NVDA's main-thread, dialog, message, and
-transport boundaries. The combined practical milestone is now complete across
-multiple windows, tabs, and panes, local and remote sessions, and clipboard
-operations. The first V2-5 slice introduces `EditorSessionController`. It owns
-mutation and switching of isolated per-instance editor state, including mode,
-menu documentation, transport capabilities, connection state, and structured
-typing echo. Concrete NVDA delivery and focus/gate decisions remain outside.
-The second slice moves bounded request ownership and reply correlation for the
-clipboard, register, and embedded-terminal control into the same controller.
-Network calls, the Windows clipboard, diagnostics, and translated feedback
-remain in the NVDA composition root. The third slice combines state
-transition, terminal passthrough, mode cue, and neutral speech actions in one
-immutable event plan. The Global Plugin no longer plans editor events itself;
-it only delivers through NVDA and applies gate transitions. The fourth slice
-adds isolated Braille plans and validated semantic routing plans. The overlay
-remains NVDA-specific, and only the NVDA boundary performs the fixed
-`routeCursor` transport call. The fifth slice moves connection-label
-normalization and active-instance passthrough tracking into the controller.
-The sixth slice adds immutable allowlisted outbound plans after capability,
-mode, buffer, and canonical-state validation for clipboard, register, and
-embedded-terminal controls. Focus correlation, authentication, Windows
-clipboard access, and transport deliberately remain outside. The final audit
-moves semantic planner reset and completion-documentation access behind the
-same controller. V2-5 is therefore complete under automated coverage; only
-temporary compatibility properties remain for removal in V2-6. The planned
-practical acceptance follows that cleanup.
-V2-6 has started with `AddonRuntime`: late publication and the existing
-teardown sequence now have one idempotent owner. Unpublication, delayed-call
-cancellation, fail-open gate reset, connection/state cleanup, and final
-UI/presentation closure have direct ordering and failure-continuation tests.
-The remaining V2-6 work moves composition ownership further into this runtime,
-removes migration properties and narrow transitional callbacks, and completes
-partial-initialization and stale-callback coverage before practical
-acceptance.
-The first migration cleanup is complete: all seven editor-runtime
-compatibility properties have been removed from the Global Plugin, and tests
-now use the controller/coordinator contract directly. The claim migration
-cleanup is also complete: eight claim, inventory, and discovery views have
-been removed, and tests use `SessionClaimService` directly. Connection- and
-focus-related compatibility views are removed only after the same production
-usage audit. A following passive-view audit has removed eleven more
-test-only properties for presentation, binding, runtime, request, AppModule,
-and adapter state; their tests now use the three owning services directly. A
-focused-object and lifecycle audit then removes the last two focus-service
-views. A connection-state audit removes another seven properties in favor of
-direct `ConnectionCoordinator` ownership. Only the frequently used gate and
-instance-manager composition dependencies remain after a separate audit:
-purely syntactic indirection would create neither a narrower contract nor a
-new owner. The next V2-6 slice closes the published terminal service after
-unpublication and makes queued runtime callbacks recheck the closed state
-when they actually execute. Late domain callbacks are therefore covered;
-partial initialization and remaining shutdown forwarding are audited next.
-The following slice centralizes profile-callback, UI, and service activation
-in `AddonRuntime.start()`. Failure at every one of these steps uses the same
-teardown for complete rollback, providing partial-initialization coverage.
-Remaining shutdown forwarding is audited next for clear ownership and
-unnecessary duplicate cleanup. That audit removes `_stopClient()` forwarding
-and separate instance-manager and editor-request paths from the runtime:
-claim/focus invalidation, client shutdown, and complete coordinator cleanup
-now each have one step. The password callback remains as a narrow boundary to
-storage genuinely owned by the Global Plugin. The public terminal service's
-broad `_runtime` back-reference is removed in the following slice. It receives
-only a composition-time validated fixed command map and narrow callbacks for
-diagnostics, fail-open handling, F12 completion, and Braille routing. The
-Braille classes still located in the composition root are audited next for a
-dedicated NVDA-edge module. That slice moves the region and overlay to
-`nvda_braille.py`; process-wide publication lives in neutral
-`service_registry.py`, avoiding a circular Global Plugin dependency. The final
-V2-6 structural audit removes the last test-only editor-runtime factory and
-adds built-package dependency checks. It confirms that application events
-remain in the AppModule and extracted services do not depend on the Global
-Plugin class. The frequently used gate and instance-manager composition views
-remain because another forwarding layer would not improve ownership.
-Automated V2-6 work and practical milestone 2 are complete without a newly
-reported error. Practical Braille hardware remains the documented test gap.
+No further split is planned merely because of file size or LOC. Reopen this
+work only if it creates one unambiguous state owner, a smaller public
+contract, a failure path testable without NVDA, or a demonstrated robustness
+gain. AppModule event ownership, fail-open behavior, F12 isolation,
+asynchronous transport, and separation of windows, tabs, and panes remain
+mandatory invariants.
 
 ## 3. Broaden practical isolation coverage
 

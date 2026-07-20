@@ -53,9 +53,6 @@ are neither user instructions nor substitutes for the current code.
 - [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA lifetime and application-event ownership](adr/0004-nvda-lifetime-and-event-ownership.md)
-- [Quality review of Global Plugin slimming, July 19, 2026](quality-review-global-plugin-slimming-2026-07-19.md) — dated comparison of the feature
-  branch with `main`, corrected regressions, open risks, and recommendations;
-  not a permanently authoritative architecture reference.
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
 
@@ -77,3 +74,16 @@ are neither user instructions nor substitutes for the current code.
 Every claim should state its scope. For example, “Windows Terminal” must not be
 generalized to “tab”: the code binds one concrete UI Automation `TermControl`,
 which may represent a tab's content or a pane depending on the layout.
+
+## Appendices: dated quality reports
+
+The reports preserve their comparison basis, measurements, and contemporary
+recommendations. They appear at the end of the built developer documentation
+and replace neither current architecture, status, plan, nor source code.
+
+- [Appendix A: Quality review of Global Plugin slimming, July 19, 2026, 20:04:03 CEST](quality-review-global-plugin-slimming-2026-07-19.md) — an
+  intermediate review of the feature branch against `main`, including fixed
+  regressions and the residual risks known at that time.
+- [Appendix B: Analysis of the completed feature state against `v0.94.2`, July 21, 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) —
+  a quantitative and qualitative final assessment of testability,
+  maintainability, robustness, and added structural complexity.
