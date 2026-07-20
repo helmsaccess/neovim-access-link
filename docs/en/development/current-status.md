@@ -74,8 +74,9 @@ See `compatibility.md` for complete platform boundaries.
   F12 authorization, claim generations, and claim inventory state. Local and
   SSH inventory and session-list workers, discovery generation, and candidate
   evaluation run behind that service. It also returns an immutable decision
-  between local, remote, and automatic resolution; NVDA messages, dialogs, and
-  concrete connection starts retain their established main-thread boundaries.
+  between local, remote, and automatic resolution and for each session-list
+  result; NVDA messages, dialogs, and concrete connection starts retain their
+  established main-thread boundaries.
 
 ### Editor output
 

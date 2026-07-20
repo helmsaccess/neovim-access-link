@@ -77,8 +77,9 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Inventarzustand. Lokale und SSH-Inventar- und Sitzungslisten-Worker,
   Discovery-Generation sowie Kandidatenauswertung laufen hinter diesem Dienst.
   Er entscheidet außerdem unveränderlich zwischen lokaler, entfernter und
-  automatischer Auflösung; NVDA-Meldungen, Dialoge und konkrete
-  Verbindungsstarts behalten ihre bisherigen Hauptthreadgrenzen.
+  automatischer Auflösung sowie den Ergebnissen einer Sitzungssuche. NVDA-
+  Meldungen, Dialoge und konkrete Verbindungsstarts behalten ihre bisherigen
+  Hauptthreadgrenzen.
 
 ### Editorausgabe
 

@@ -598,6 +598,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.is_discovery_current", global_source)
         self.assertIn("self._sessionClaimService.start_local_discovery", global_source)
         self.assertIn("self._sessionClaimService.start_remote_discovery", global_source)
+        self.assertIn("class DiscoverySelection", claim_source)
+        self.assertIn("self._sessionClaimService.resolve_local_discovery", global_source)
+        self.assertIn("self._sessionClaimService.resolve_remote_discovery", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
         self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
@@ -1666,6 +1669,55 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(any("No local" in message for message in self.messages))
         plugin.terminate()
 
+    def test_claim_service_resolves_local_and_remote_discovery_outcomes(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink.session_claim import DiscoverySelectionKind
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        plugin._sessionDiscoveryGeneration = 9
+        stale = LocalWindowsSession(
+            "1", "Stale", "C:/one", "127.0.0.1", 41001, 1,
+            claim_age_ms=10, claimed_monotonic_ns=4_000,
+        )
+        fresh = LocalWindowsSession(
+            "2", "Fresh", "C:/two", "127.0.0.1", 41002, 2,
+            claim_age_ms=20, claimed_monotonic_ns=6_000,
+        )
+
+        stale_result = plugin._sessionClaimService.resolve_local_discovery(
+            8, identity, [fresh], None,
+            require_recent_claim=True, has_fallback=False, claim_not_before_ns=5_000,
+        )
+        local_result = plugin._sessionClaimService.resolve_local_discovery(
+            9, identity, [stale, fresh], None,
+            require_recent_claim=True, has_fallback=False, claim_not_before_ns=5_000,
+        )
+        fallback_result = plugin._sessionClaimService.resolve_local_discovery(
+            9, identity, [], None,
+            require_recent_claim=False, has_fallback=True, claim_not_before_ns=0,
+        )
+        remote_sessions = [
+            RemoteSession("one", "One", "/one"),
+            RemoteSession("two", "Two", "/two"),
+        ]
+        remote_result = plugin._sessionClaimService.resolve_remote_discovery(
+            9, identity, remote_sessions, None,
+            require_recent_claim=False, preserve_dialog_identity=False,
+        )
+
+        self.assertEqual(DiscoverySelectionKind.STALE, stale_result.kind)
+        self.assertEqual(DiscoverySelectionKind.SELECT, local_result.kind)
+        self.assertEqual("2", local_result.session.identifier)
+        self.assertEqual(DiscoverySelectionKind.FALLBACK, fallback_result.kind)
+        self.assertEqual(DiscoverySelectionKind.CHOOSE, remote_result.kind)
+        self.assertEqual(("one", "two"), tuple(item.identifier for item in remote_result.sessions))
+        plugin.terminate()
+
     def test_inventory_baselines_local_and_every_reachable_ssh_profile(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profile
@@ -2243,11 +2295,14 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink.session_claim import (
             ClaimTransition,
             ClaimTransitionKind,
+            DiscoverySelection,
+            DiscoverySelectionKind,
         )
 
         focus = TerminalFocusDecision(object(), 1, None, None, None, False)
         claim = SessionClaimAuthorization(object(), 1, object())
         transition = ClaimTransition(ClaimTransitionKind.AUTOMATIC, object())
+        selection = DiscoverySelection(DiscoverySelectionKind.EMPTY)
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2255,6 +2310,8 @@ class BuiltAddonTests(unittest.TestCase):
             claim.generation = 2
         with self.assertRaises(FrozenInstanceError):
             transition.target_id = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            selection.kind = DiscoverySelectionKind.SELECT
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
         import queueHandler

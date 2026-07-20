@@ -102,7 +102,11 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import SettingsService  # noqa: E402
-from .session_claim import ClaimTransitionKind, SessionClaimService  # noqa: E402
+from .session_claim import (  # noqa: E402
+	ClaimTransitionKind,
+	DiscoverySelectionKind,
+	SessionClaimService,
+)
 from .terminal_focus import (  # noqa: E402
 	TerminalFocusDecision as TerminalFocusDecision,
 	TerminalFocusService,
@@ -1535,36 +1539,36 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fallback_profile=None,
 		claim_not_before_ns=0,
 	):
-		if not self._sessionClaimService.is_discovery_current(generation, identity):
+		selection = self._sessionClaimService.resolve_local_discovery(
+			generation,
+			identity,
+			sessions,
+			error,
+			require_recent_claim=require_recent_claim,
+			has_fallback=fallback_profile is not None,
+			claim_not_before_ns=claim_not_before_ns,
+		)
+		if selection.kind == DiscoverySelectionKind.STALE:
 			self._diagnostics.record("localSessionDiscoveryIgnored")
 			return
-		if error is not None:
+		if selection.kind == DiscoverySelectionKind.ERROR:
 			self._diagnostics.record(
 				"localSessionDiscoveryError",
-				errorType=type(error).__name__,
-				error=str(error),
+				errorType=selection.error_type,
+				error=selection.error,
 			)
-			if fallback_profile is not None:
-				self._beginSessionSelection(
-					fallback_profile,
-					identity,
-					replace_existing,
-					offer_remember,
-					require_recent_claim,
-				)
-				return
 			ui.message(_("Could not list local Neovim sessions"))
 			return
-		if not sessions:
-			if fallback_profile is not None:
-				self._beginSessionSelection(
-					fallback_profile,
-					identity,
-					replace_existing,
-					offer_remember,
-					require_recent_claim,
-				)
-				return
+		if selection.kind == DiscoverySelectionKind.FALLBACK:
+			self._beginSessionSelection(
+				fallback_profile,
+				identity,
+				replace_existing,
+				offer_remember,
+				require_recent_claim,
+			)
+			return
+		if selection.kind == DiscoverySelectionKind.EMPTY:
 			ui.message(
 				_(
 					"No local Neovim accessibility session was found. Install the local components "
@@ -1572,47 +1576,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				)
 			)
 			return
-		if require_recent_claim:
-			claimed = [
-				session
-				for session in sessions
-				if 0 <= session.claim_age_ms <= 15_000
-				and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
-			]
-			if not claimed:
-				if fallback_profile is not None:
-					self._beginSessionSelection(
-						fallback_profile,
-						identity,
-						replace_existing,
-						offer_remember,
-						require_recent_claim,
-					)
-					return
-				ui.message(_("The focused local Neovim did not confirm F12 pairing; try again"))
-				return
-			session = min(claimed, key=lambda item: item.claim_age_ms)
-			if self._reuseLocalSession(identity, session, offer_remember):
-				return
-			self._startLocalSession(
-				identity,
-				session,
-				replace_existing=replace_existing,
-				offer_remember=offer_remember,
-			)
+		if selection.kind == DiscoverySelectionKind.CLAIM_MISSING:
+			ui.message(_("The focused local Neovim did not confirm F12 pairing; try again"))
 			return
-		if len(sessions) > 1:
+		if selection.kind == DiscoverySelectionKind.CHOOSE:
 			self._showLocalSessionChoice(
 				generation,
 				identity,
-				sessions,
+				selection.sessions,
 				replace_existing,
 				offer_remember,
 			)
 			return
+		session = selection.session
+		if require_recent_claim:
+			if self._reuseLocalSession(identity, session, offer_remember):
+				return
 		self._startLocalSession(
 			identity,
-			sessions[0],
+			session,
 			replace_existing=replace_existing,
 			offer_remember=offer_remember,
 		)
@@ -1880,36 +1862,50 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		require_recent_claim=False,
 		preserve_dialog_identity=False,
 	):
-		if not self._sessionClaimService.is_discovery_current(
+		selection = self._sessionClaimService.resolve_remote_discovery(
 			generation,
 			identity,
+			sessions,
+			error,
+			require_recent_claim=require_recent_claim,
 			preserve_dialog_identity=preserve_dialog_identity,
-		):
+		)
+		if selection.kind == DiscoverySelectionKind.STALE:
 			self._diagnostics.record("sessionDiscoveryIgnored", profileId=profile.identifier)
 			return
-		if error is not None:
+		if selection.kind == DiscoverySelectionKind.ERROR:
 			self._diagnostics.record(
 				"sessionDiscoveryError",
 				profileId=profile.identifier,
-				errorType=type(error).__name__,
-				error=str(error),
+				errorType=selection.error_type,
+				error=selection.error,
 			)
 			ui.message(_("Could not list Neovim sessions on {name}").format(name=profile.name))
 			return
-		if not sessions:
+		if selection.kind == DiscoverySelectionKind.EMPTY:
 			ui.message(_("No active Neovim session was found on {name}").format(name=profile.name))
 			return
+		if selection.kind == DiscoverySelectionKind.CLAIM_MISSING:
+			self._diagnostics.record(
+				"freshSessionClaimMissing",
+				profileId=profile.identifier,
+				sessionCount=len(sessions),
+			)
+			ui.message(_("The focused Neovim did not confirm F12 pairing; try again"))
+			return
+		if selection.kind == DiscoverySelectionKind.CHOOSE:
+			self._showRemoteSessionChoice(
+				generation,
+				profile,
+				identity,
+				selection.sessions,
+				replace_existing,
+				offer_remember,
+				preserve_dialog_identity,
+			)
+			return
+		session = selection.session
 		if require_recent_claim:
-			claimed = [session for session in sessions if 0 <= session.claim_age_ms <= 15_000]
-			if not claimed:
-				self._diagnostics.record(
-					"freshSessionClaimMissing",
-					profileId=profile.identifier,
-					sessionCount=len(sessions),
-				)
-				ui.message(_("The focused Neovim did not confirm F12 pairing; try again"))
-				return
-			session = min(claimed, key=lambda item: item.claim_age_ms)
 			self._diagnostics.record(
 				"freshSessionClaimSelected",
 				profileId=profile.identifier,
@@ -1931,21 +1927,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				offer_remember,
 			)
 			return
-		if len(sessions) > 1:
-			self._showRemoteSessionChoice(
-				generation,
-				profile,
-				identity,
-				sessions,
-				replace_existing,
-				offer_remember,
-				preserve_dialog_identity,
-			)
-			return
 		self._startDiscoveredSession(
 			profile,
 			identity,
-			sessions[0],
+			session,
 			replace_existing,
 			offer_remember,
 		)

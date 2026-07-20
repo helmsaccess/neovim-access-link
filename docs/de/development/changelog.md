@@ -5,6 +5,17 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.21+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Lokale und entfernte Discovery-Ergebnisse werden nun im neutralen
+  `SessionClaimService` ausgewertet. Unveränderliche Ergebnisse unterscheiden
+  veraltete Fortsetzungen, Fehler, leere Listen, SSH-Fallback, fehlende frische
+  Claims, Einzelauswahl und erforderliche Auswahldialoge.
+- NVDA-Meldungen und modale Dialoge bleiben auf dem Hauptthread im Global
+  Plugin; Wiederverwendung und konkrete Verbindungsstarts folgen in den
+  nächsten V2-4-Schnitten.
+- Dieser interne Schnitt wurde noch nicht separat praktisch geprüft.
+
 ## 0.95.0-dev.20+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Die letzten nur delegierenden lokalen und entfernten Discovery-Methoden

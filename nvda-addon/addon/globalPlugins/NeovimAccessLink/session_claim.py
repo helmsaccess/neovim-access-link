@@ -53,6 +53,18 @@ class ClaimTransitionKind(Enum):
 	AUTOMATIC = "automatic"
 
 
+class DiscoverySelectionKind(Enum):
+	"""Domain outcome of one accepted local or remote session listing."""
+
+	STALE = "stale"
+	ERROR = "error"
+	EMPTY = "empty"
+	FALLBACK = "fallback"
+	CLAIM_MISSING = "claimMissing"
+	SELECT = "select"
+	CHOOSE = "choose"
+
+
 @dataclass(frozen=True)
 class ClaimTransition:
 	"""Immutable routing decision without NVDA UI or client side effects."""
@@ -61,6 +73,17 @@ class ClaimTransition:
 	identity: TerminalIdentity | None
 	target_id: str = ""
 	explicit_target: bool = False
+
+
+@dataclass(frozen=True)
+class DiscoverySelection:
+	"""Immutable selection result consumed by the NVDA main-thread adapter."""
+
+	kind: DiscoverySelectionKind
+	session: object | None = None
+	sessions: tuple[object, ...] = ()
+	error_type: str = ""
+	error: str = ""
 
 
 class SessionClaimService:
@@ -353,6 +376,88 @@ class SessionClaimService:
 			require_recent_claim,
 			preserve_dialog_identity,
 		)
+
+	def resolve_local_discovery(
+		self,
+		generation: int,
+		identity: TerminalIdentity,
+		sessions: list,
+		error: Exception | None,
+		*,
+		require_recent_claim: bool,
+		has_fallback: bool,
+		claim_not_before_ns: int,
+	) -> DiscoverySelection:
+		"""Choose the next local-discovery action without invoking NVDA UI."""
+		if not self.is_discovery_current(generation, identity):
+			return DiscoverySelection(DiscoverySelectionKind.STALE)
+		if error is not None:
+			if has_fallback:
+				return DiscoverySelection(DiscoverySelectionKind.FALLBACK)
+			return DiscoverySelection(
+				DiscoverySelectionKind.ERROR,
+				error_type=type(error).__name__,
+				error=str(error),
+			)
+		if not sessions:
+			return DiscoverySelection(
+				DiscoverySelectionKind.FALLBACK if has_fallback else DiscoverySelectionKind.EMPTY
+			)
+		if require_recent_claim:
+			claimed = tuple(
+				session
+				for session in sessions
+				if 0 <= session.claim_age_ms <= 15_000
+				and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
+			)
+			if not claimed:
+				return DiscoverySelection(
+					DiscoverySelectionKind.FALLBACK if has_fallback else DiscoverySelectionKind.CLAIM_MISSING
+				)
+			return DiscoverySelection(
+				DiscoverySelectionKind.SELECT,
+				session=min(claimed, key=lambda item: item.claim_age_ms),
+			)
+		if len(sessions) > 1:
+			return DiscoverySelection(DiscoverySelectionKind.CHOOSE, sessions=tuple(sessions))
+		return DiscoverySelection(DiscoverySelectionKind.SELECT, session=sessions[0])
+
+	def resolve_remote_discovery(
+		self,
+		generation: int,
+		identity: TerminalIdentity,
+		sessions: list,
+		error: Exception | None,
+		*,
+		require_recent_claim: bool,
+		preserve_dialog_identity: bool,
+	) -> DiscoverySelection:
+		"""Choose the next remote-discovery action without invoking NVDA UI."""
+		if not self.is_discovery_current(
+			generation,
+			identity,
+			preserve_dialog_identity=preserve_dialog_identity,
+		):
+			return DiscoverySelection(DiscoverySelectionKind.STALE)
+		if error is not None:
+			return DiscoverySelection(
+				DiscoverySelectionKind.ERROR,
+				error_type=type(error).__name__,
+				error=str(error),
+			)
+		if not sessions:
+			return DiscoverySelection(DiscoverySelectionKind.EMPTY)
+		if require_recent_claim:
+			claimed = tuple(session for session in sessions if 0 <= session.claim_age_ms <= 15_000)
+			if not claimed:
+				return DiscoverySelection(DiscoverySelectionKind.CLAIM_MISSING)
+			return DiscoverySelection(
+				DiscoverySelectionKind.SELECT,
+				session=min(claimed, key=lambda item: item.claim_age_ms),
+			)
+		if len(sessions) > 1:
+			return DiscoverySelection(DiscoverySelectionKind.CHOOSE, sessions=tuple(sessions))
+		return DiscoverySelection(DiscoverySelectionKind.SELECT, session=sessions[0])
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.95.0-dev.21+feature.global-plugin-slimming (feature-branch test build)
+
+- Local and remote discovery results are now evaluated in the neutral
+  `SessionClaimService`. Immutable results distinguish stale continuations,
+  errors, empty listings, SSH fallback, missing fresh claims, direct selection,
+  and a required selection dialog.
+- NVDA messages and modal dialogs remain on the main thread in the Global
+  Plugin; reuse and concrete connection starts follow in later V2-4 slices.
+- This internal slice has not yet received a separate practical check.
+
 ## 0.95.0-dev.20+feature.global-plugin-slimming (feature-branch test build)
 
 - The final local and remote discovery methods that only delegated work have

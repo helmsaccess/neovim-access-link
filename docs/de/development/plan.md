@@ -147,8 +147,9 @@ internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
 V2-Schritten gebündelt. V2-4 hat begonnen: `SessionClaimService` besitzt F12-
 Autorisierung, Inventarzustand, Scans, Kandidatenauswertung und die
 unveränderliche Übergangsentscheidung. Discovery-Lebensdauer und
-Sitzungslisten-Worker liegen ebenfalls dort; weitere Schnitte verschieben
-Auswahl und Verbindungsstarts hinter diesen Dienst.
+Sitzungslisten-Worker sowie die fachliche Ergebnisauswahl liegen ebenfalls
+dort; weitere Schnitte verschieben Wiederverwendung und Verbindungsstarts
+hinter diesen Dienst.
 
 ## 3. Praktische Abschottung verbreitern
 

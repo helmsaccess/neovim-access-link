@@ -135,7 +135,8 @@ practical check is planned for these internal phases; it will be combined with
 later user-visible V2 stages. V2-4 has begun: `SessionClaimService` owns F12
 authorization, inventory state, scanning, candidate evaluation, and the
 immutable transition decision. Discovery lifetime and session-list workers
-also live there; later slices move selection and connection starts behind it.
+plus domain selection of their results also live there; later slices move
+reuse and connection starts behind it.
 
 ## 3. Broaden practical isolation coverage
 
