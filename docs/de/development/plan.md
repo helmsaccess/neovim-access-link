@@ -155,8 +155,10 @@ Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
 zurück. Start, Bindung und Runtime-Auswahl neuer Instanzen liegen ebenfalls in
 diesem Dienst; Rückrollen und ersetzte Clients werden ohne blockierenden Stopp
 auf dem NVDA-Hauptthread abgewickelt. Weitere Schnitte verschieben
-Clientkonstruktion, Verbindungsbefehle und die Wiederherstellung gemerkter
-Bindungen hinter diese Grenze.
+Clientkonstruktion und die Wiederherstellung gemerkter Bindungen hinter diese
+Grenze. Explizite Auswahl und Trennung laufen bereits als transaktionale
+Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
+asynchron ausgeführt.
 
 ## 3. Praktische Abschottung verbreitern
 

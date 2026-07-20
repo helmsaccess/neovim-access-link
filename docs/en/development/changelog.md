@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.25+feature.global-plugin-slimming (feature-branch test build)
+
+- `SessionClaimService` now also owns the neutral transitions for selecting and
+  disconnecting a managed instance. A failed selection restores the previous
+  terminal binding; if even restoration fails, the gate remains open.
+- Disconnect immediately removes the terminal binding and isolated runtime
+  state. The client is then stopped outside NVDA's main thread. Focus cleanup,
+  state requests, messages, and diagnostics remain at the NVDA boundary.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
 ## 0.95.0-dev.24+feature.global-plugin-slimming (feature-branch test build)
 
 - Starting, binding, and selecting the runtime for local and remote clients now

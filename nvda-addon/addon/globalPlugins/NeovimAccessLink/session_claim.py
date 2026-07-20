@@ -123,6 +123,25 @@ class ConnectionStartResult:
 	replacement_error: str = ""
 
 
+@dataclass(frozen=True)
+class ConnectionSelectionResult:
+	"""Selected managed instance and client, or a fail-open error."""
+
+	instance: ConnectionInstance | None = None
+	client: object | None = None
+	error_type: str = ""
+	error: str = ""
+
+
+@dataclass(frozen=True)
+class ConnectionDisconnectResult:
+	"""Detached instance, optionally with an asynchronous-stop scheduling error."""
+
+	instance: ConnectionInstance | None = None
+	error_type: str = ""
+	error: str = ""
+
+
 class SessionClaimService:
 	"""Own claim authorization and inventory state without NVDA dependencies."""
 
@@ -648,6 +667,81 @@ class SessionClaimService:
 			return
 		self._coordinator.discard_instance_tracking(instance_id, self._newInstanceRuntime)
 		self._stopClientAsync(instance_id, client)
+
+	def select_connection(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> ConnectionSelectionResult:
+		"""Bind and select an existing instance without NVDA output or control requests."""
+		if not isinstance(identity, TerminalIdentity):
+			return ConnectionSelectionResult(error_type="ValueError", error="terminal identity is required")
+		manager = self._coordinator.instances
+		previous = manager.selected_for(identity)
+		try:
+			instance = manager.bind(identity, instance_id)
+			client = self._coordinator.select_instance(
+				instance_id,
+				identity,
+				self._newInstanceRuntime,
+			)
+		except Exception as error:
+			try:
+				if previous is None:
+					manager.unbind(identity)
+					self._coordinator.active_client = None
+					self._coordinator.gate.disconnect()
+				else:
+					manager.bind(identity, previous.identifier)
+					self._coordinator.select_instance(
+						previous.identifier,
+						identity,
+						self._newInstanceRuntime,
+					)
+			except Exception:
+				manager.unbind(identity)
+				self._coordinator.active_client = None
+				self._coordinator.gate.disconnect()
+			return ConnectionSelectionResult(error_type=type(error).__name__, error=str(error))
+		return ConnectionSelectionResult(instance=instance, client=client)
+
+	def disconnect_connection(self, identity: TerminalIdentity) -> ConnectionDisconnectResult:
+		"""Detach the selected instance and stop its client outside NVDA's main thread."""
+		if not isinstance(identity, TerminalIdentity):
+			return ConnectionDisconnectResult(error_type="ValueError", error="terminal identity is required")
+		manager = self._coordinator.instances
+		instance = manager.selected_for(identity)
+		if instance is None:
+			return ConnectionDisconnectResult()
+		was_active = self._coordinator.active_instance_id == instance.identifier
+		try:
+			_detached, client = manager.detach(instance.identifier)
+		except Exception as error:
+			return ConnectionDisconnectResult(error_type=type(error).__name__, error=str(error))
+		error_type = ""
+		error_message = ""
+		try:
+			self._coordinator.remembered_terminal_bindings.discard(identity)
+			self._coordinator.discard_instance_tracking(
+				instance.identifier,
+				self._newInstanceRuntime,
+			)
+			if was_active:
+				self._coordinator.gate.disconnect()
+		except Exception as error:
+			error_type = type(error).__name__
+			error_message = str(error)
+		try:
+			self._stopClientAsync(instance.identifier, client)
+		except Exception as error:
+			if not error_type:
+				error_type = type(error).__name__
+				error_message = str(error)
+		return ConnectionDisconnectResult(
+			instance=instance,
+			error_type=error_type,
+			error=error_message,
+		)
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1

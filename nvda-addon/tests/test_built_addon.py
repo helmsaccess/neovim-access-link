@@ -606,7 +606,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.plan_local_connection", global_source)
         self.assertIn("self._sessionClaimService.plan_remote_connection", global_source)
         self.assertIn("self._sessionClaimService.start_connection", global_source)
+        self.assertIn("self._sessionClaimService.select_connection", global_source)
+        self.assertIn("self._sessionClaimService.disconnect_connection", global_source)
         self.assertNotIn("self._instanceManager.add_target(", global_source)
+        self.assertNotIn("self._instanceManager.remove(", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
         self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
@@ -2303,7 +2306,9 @@ class BuiltAddonTests(unittest.TestCase):
             ClaimTransitionKind,
             ConnectionPlan,
             ConnectionPlanKind,
+            ConnectionDisconnectResult,
             ConnectionReuseResult,
+            ConnectionSelectionResult,
             ConnectionStartResult,
             DiscoverySelection,
             DiscoverySelectionKind,
@@ -2316,6 +2321,8 @@ class BuiltAddonTests(unittest.TestCase):
         plan = ConnectionPlan(ConnectionPlanKind.START)
         reuse = ConnectionReuseResult(object())
         start = ConnectionStartResult()
+        connection_selection = ConnectionSelectionResult()
+        disconnect = ConnectionDisconnectResult()
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2331,6 +2338,10 @@ class BuiltAddonTests(unittest.TestCase):
             reuse.displaced_identities = ()
         with self.assertRaises(FrozenInstanceError):
             start.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            connection_selection.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            disconnect.error = "changed"
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2428,6 +2439,78 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("RuntimeError", result.error_type)
         self.assertEqual([], plugin._instanceManager.list())
         self.assertEqual(["start", "stop"], events)
+        plugin.terminate()
+
+    def test_session_claim_service_restores_previous_binding_after_selection_failure(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        first = add_remote_instance(plugin._instanceManager, "one", "11", "First", Client())
+        second = add_remote_instance(plugin._instanceManager, "two", "22", "Second", Client())
+        plugin._instanceManager.bind(identity, first.identifier)
+        original_select = plugin._connectionCoordinator.select_instance
+        original_select(first.identifier, identity, plugin._newInstanceRuntime)
+
+        def select(instance_id, terminal, create_runtime):
+            if instance_id == second.identifier:
+                raise RuntimeError("cannot select")
+            return original_select(instance_id, terminal, create_runtime)
+
+        with mock.patch.object(plugin._connectionCoordinator, "select_instance", side_effect=select):
+            result = plugin._sessionClaimService.select_connection(identity, second.identifier)
+
+        self.assertIsNone(result.instance)
+        self.assertEqual("RuntimeError", result.error_type)
+        self.assertEqual(first, plugin._instanceManager.selected_for(identity))
+        self.assertIs(plugin._instanceManager.client_for(first.identifier), plugin._client)
+        plugin.terminate()
+
+    def test_disconnect_connection_instance_stops_client_asynchronously_and_fails_open(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        events = []
+
+        class Client:
+            def start(inner_self):
+                events.append("start")
+
+            def stop(inner_self):
+                events.append("stop")
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._connectionCoordinator.select_instance(
+            instance.identifier,
+            identity,
+            plugin._newInstanceRuntime,
+        )
+        plugin._rememberedTerminalBindings.add(identity)
+        plugin._gate.bound_terminal = identity
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._stopManagedClientAsync = lambda _instance_id, selected_client: selected_client.stop()
+
+        plugin.action_disconnectConnectionInstance(None)
+
+        self.assertEqual(["start", "stop"], events)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIsNone(plugin._client)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertNotIn(identity, plugin._rememberedTerminalBindings)
+        self.assertIn("Neovim connection disconnected", self.messages[-1])
         plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:

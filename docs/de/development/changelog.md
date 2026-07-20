@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.25+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der `SessionClaimService` besitzt nun auch die neutralen Übergänge zur
+  Auswahl und Trennung einer verwalteten Instanz. Scheitert eine Auswahl, wird
+  die vorherige Terminalbindung wiederhergestellt; gelingt auch das nicht,
+  bleibt das Gate offen.
+- Beim Trennen werden Terminalbindung und isolierter Runtimezustand sofort
+  entfernt. Der Client wird anschließend außerhalb des NVDA-Hauptthreads
+  beendet. Fokusbereinigung, Zustandsanforderung, Meldungen und Diagnostik
+  bleiben am NVDA-Rand.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
 ## 0.95.0-dev.24+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Start, Instanzbindung und Runtime-Auswahl lokaler und entfernter Clients

@@ -1808,21 +1808,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity = self._gate.focused
 		if identity is None:
 			return
-		instance = self._instanceManager.selected_for(identity) if identity else None
-		if instance is None:
+		result = self._sessionClaimService.disconnect_connection(identity)
+		if result.instance is None:
+			if result.error_type:
+				self._diagnostics.record(
+					"connectionInstanceDisconnectError",
+					errorType=result.error_type,
+					error=result.error,
+				)
 			ui.message(_("No Neovim connection instance is selected for this terminal"))
 			return
-		self._rememberedTerminalBindings.discard(identity)
 		self._terminalFocusService.forget_identity(identity)
-		self._instanceManager.remove(instance.identifier)
-		self._connectionCoordinator.discard_instance_tracking(
-			instance.identifier,
-			self._newInstanceRuntime,
-		)
-		if self._client is not None:
-			self._client = None
-		self._gate.disconnect()
-		ui.message(_("Neovim connection disconnected: {name}").format(name=instance.label))
+		if result.error_type:
+			self._diagnostics.record(
+				"connectionInstanceDisconnectError",
+				instanceId=result.instance.identifier,
+				errorType=result.error_type,
+				error=result.error,
+			)
+		ui.message(_("Neovim connection disconnected: {name}").format(name=result.instance.label))
 
 	def action_forgetTemporaryTerminalBinding(self, gesture):
 		identity = self._gate.focused
@@ -2196,20 +2200,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if identity is None:
 			ui.message(_("Connection selection requires a focused terminal"))
 			return
-		try:
-			instance = self._instanceManager.bind(identity, instance_id)
-			self._ensureTerminalLifecycleSweep()
-			client = self._connectionCoordinator.select_instance(
-				instance_id,
-				identity,
-				self._newInstanceRuntime,
+		result = self._sessionClaimService.select_connection(identity, instance_id)
+		if result.instance is None or result.client is None:
+			self._diagnostics.record(
+				"connectionInstanceBindError",
+				errorType=result.error_type,
+				error=result.error,
 			)
-			self._gate.bound_terminal = identity
-			client.send_control("requestFullState", {})
-			ui.message(_("Neovim connection selected: {name}").format(name=instance.label))
-		except ValueError as error:
-			self._diagnostics.record("connectionInstanceBindError", error=str(error))
 			ui.message(_("The selected Neovim connection no longer exists"))
+			return
+		self._ensureTerminalLifecycleSweep()
+		self._gate.bound_terminal = identity
+		result.client.send_control("requestFullState", {})
+		ui.message(_("Neovim connection selected: {name}").format(name=result.instance.label))
 
 	def _offerTemporaryTerminalBinding(self, identity, instance_id):
 		focused = self._gate.focused

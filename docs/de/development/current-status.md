@@ -86,7 +86,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   neuer Instanzen bilden dort ebenfalls einen Übergang; Rückrollen und das
   Stilllegen einer ersetzten Instanz beenden Clients asynchron. NVDA-Meldungen,
   Dialoge, Clientkonstruktion und fokusbezogene Nebenwirkungen behalten ihre
-  bisherigen Hauptthreadgrenzen.
+  bisherigen Hauptthreadgrenzen. Auch die explizite Instanzauswahl und
+  Trennung sind neutrale Dienstübergänge: Auswahlfehler stellen die vorherige
+  Bindung wieder her, Trennung entfernt Runtimezustand und Bindung vor dem
+  asynchronen Clientstopp.
 
 ### Editorausgabe
 
