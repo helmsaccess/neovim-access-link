@@ -95,7 +95,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   bleiben am NVDA-Rand. Der Dienst besitzt außerdem den ausstehenden
   Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
   Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
-  Diagnostik bleiben NVDA-seitig.
+  Diagnostik bleiben NVDA-seitig. Eine injizierte `ManagedClientFactory`
+  konstruiert lokale TCP- und entfernte SSH-Clients mit instanzkorrelierten
+  Callbacks. Der Claimdienst verbindet diese Konstruktion mit seinem
+  transaktionalen Startübergang; Profil, Passwort und übersetzte Ausgabe
+  verbleiben am NVDA-Rand.
 
 ### Editorausgabe
 

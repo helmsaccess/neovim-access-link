@@ -11,6 +11,7 @@ from .core.connection_coordinator import ConnectionCoordinator
 from .core.connection_instances import ConnectionInstance
 from .core.connection_targets import ConnectionTarget
 from .core.gate import TerminalIdentity
+from .managed_clients import ManagedClientFactory
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,7 @@ class ConnectionStartResult:
 	instance: ConnectionInstance | None = None
 	error_type: str = ""
 	error: str = ""
+	replaced_instance_id: str = ""
 	replacement_error_type: str = ""
 	replacement_error: str = ""
 
@@ -213,6 +215,7 @@ class SessionClaimService:
 		local_claim_poll_seconds: float,
 		new_instance_runtime: Callable[[], dict],
 		stop_client_async: Callable[[str, object], None],
+		client_factory: ManagedClientFactory,
 	):
 		self._coordinator = coordinator
 		self._recordDiagnostic = record_diagnostic
@@ -227,6 +230,7 @@ class SessionClaimService:
 		self._localClaimPollSeconds = local_claim_poll_seconds
 		self._newInstanceRuntime = new_instance_runtime
 		self._stopClientAsync = stop_client_async
+		self._clientFactory = client_factory
 		self._gestureGeneration = 0
 		self._pendingObserved: tuple[TerminalIdentity, int] | None = None
 		self._discoveryGeneration = 0
@@ -708,8 +712,67 @@ class SessionClaimService:
 				replacement_error = str(error)
 		return ConnectionStartResult(
 			instance=instance,
+			replaced_instance_id=replace_instance_id,
 			replacement_error_type=replacement_error_type,
 			replacement_error=replacement_error,
+		)
+
+	def start_local_connection(
+		self,
+		identity: TerminalIdentity,
+		session: object,
+		target: ConnectionTarget,
+		label: str,
+		*,
+		context_label: str = "",
+		replace_instance_id: str = "",
+	) -> ConnectionStartResult:
+		"""Construct and start one local client through the shared transition."""
+		try:
+			client = self._clientFactory.create_local(session)
+		except Exception as error:
+			return ConnectionStartResult(error_type=type(error).__name__, error=str(error))
+		return self.start_connection(
+			identity,
+			target,
+			session.identifier,
+			label,
+			client,
+			context_label=context_label,
+			replace_instance_id=replace_instance_id,
+		)
+
+	def start_remote_connection(
+		self,
+		identity: TerminalIdentity,
+		profile: object,
+		session_id: str,
+		target: ConnectionTarget,
+		label: str,
+		*,
+		password: str,
+		askpass_path: str,
+		context_label: str = "",
+		replace_instance_id: str = "",
+	) -> ConnectionStartResult:
+		"""Construct and start one SSH client through the shared transition."""
+		try:
+			client = self._clientFactory.create_remote(
+				profile,
+				session_id,
+				password=password,
+				askpass_path=askpass_path,
+			)
+		except Exception as error:
+			return ConnectionStartResult(error_type=type(error).__name__, error=str(error))
+		return self.start_connection(
+			identity,
+			target,
+			session_id,
+			label,
+			client,
+			context_label=context_label,
+			replace_instance_id=replace_instance_id,
 		)
 
 	def _discard_started_instance(self, instance_id: str) -> None:

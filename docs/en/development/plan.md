@@ -146,8 +146,11 @@ fail-open state teardown. Fail-open activation of a remembered instance and
 the correlated choice between focus context and full state are also owned by
 the service. It additionally owns pending offers for temporary terminal
 bindings and revalidates focus, control, and instance after the modal dialog;
-dialogs, diagnostics, and transport calls remain at the NVDA boundary. A
-later slice moves client construction behind this boundary.
+dialogs, diagnostics, and transport calls remain at the NVDA boundary. An
+injected factory now also encapsulates local and remote client construction
+plus instance-correlated callbacks, and the claim service joins it to the
+existing start transition. A V2-4 completion audit against the defined
+ownership and fail-open criteria remains before the first practical milestone.
 
 ## 3. Broaden practical isolation coverage
 

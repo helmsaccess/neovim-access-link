@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.28+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Eine normale `ManagedClientFactory` kapselt nun die Konstruktion lokaler
+  TCP- und entfernter SSH-Clients sowie deren instanzkorrelierte Ereignis-,
+  Status- und Diagnostikcallbacks.
+- Der `SessionClaimService` erzeugt über diese injizierte Fabrik den Client und
+  führt anschließend denselben transaktionalen Start-, Bindungs- und
+  Auswahlübergang aus. Konstruktionsfehler werden als unveränderliches
+  Ergebnis fail-open an den NVDA-Rand zurückgegeben.
+- Profil- und Passwortauswahl, übersetzte Bezeichnungen, Meldungen und
+  Diagnostik bleiben NVDA-seitig. Dieser interne Schnitt wurde automatisiert,
+  aber noch nicht separat praktisch geprüft.
+
 ## 0.95.0-dev.27+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der `SessionClaimService` besitzt nun auch den ausstehenden Merkvorgang für

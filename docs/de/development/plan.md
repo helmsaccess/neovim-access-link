@@ -163,7 +163,11 @@ korrelierte Entscheidung zwischen Fokuskontext und Vollzustand liegen
 inzwischen ebenfalls im Dienst. Er besitzt auch den ausstehenden Merkvorgang
 temporärer Terminalbindungen und validiert Fokus, Control und Instanz nach dem
 modalen Dialog erneut; Dialog, Diagnostik und Transportaufruf bleiben am
-NVDA-Rand.
+NVDA-Rand. Eine injizierte Fabrik kapselt inzwischen auch die lokale und
+entfernte Clientkonstruktion sowie deren instanzkorrelierte Callbacks; der
+Claimdienst verbindet sie mit seinem Startübergang. Vor dem ersten
+Praxis-Meilenstein folgt noch die V2-4-Abschlussprüfung gegen die definierten
+Eigentums- und Fail-open-Kriterien.
 
 ## 3. Praktische Abschottung verbreitern
 

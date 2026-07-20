@@ -577,6 +577,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
         claim_source = (plugin / "session_claim.py").read_text(encoding="utf-8")
+        client_source = (plugin / "managed_clients.py").read_text(encoding="utf-8")
         facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
 
         self.assertIn("class SessionClaimService", claim_source)
@@ -605,9 +606,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("class ConnectionStartResult", claim_source)
         self.assertIn("self._sessionClaimService.plan_local_connection", global_source)
         self.assertIn("self._sessionClaimService.plan_remote_connection", global_source)
-        self.assertIn("self._sessionClaimService.start_connection", global_source)
         self.assertIn("self._sessionClaimService.select_connection", global_source)
         self.assertIn("self._sessionClaimService.disconnect_connection", global_source)
+        self.assertIn("class ManagedClientFactory", client_source)
+        self.assertIn("self._clientFactory.create_local", claim_source)
+        self.assertIn("self._clientFactory.create_remote", claim_source)
+        self.assertIn("self._sessionClaimService.start_local_connection", global_source)
+        self.assertIn("self._sessionClaimService.start_remote_connection", global_source)
+        self.assertNotIn("self._sessionClaimService.start_connection", global_source)
         self.assertIn("class TemporaryBindingOffer", claim_source)
         self.assertIn("self._sessionClaimService.prepare_temporary_binding_offer", global_source)
         self.assertIn("self._sessionClaimService.remember_temporary_binding", global_source)
@@ -620,6 +626,57 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
         self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
+
+    def test_managed_client_factory_correlates_transport_callbacks_to_instance(self) -> None:
+        from globalPlugins.NeovimAccessLink.managed_clients import ManagedClientFactory
+
+        callbacks = {}
+        events = []
+        states = []
+        diagnostics = []
+
+        class Client:
+            pass
+
+        def local_constructor(host, port, on_event, on_state, **kwargs):
+            callbacks.update(
+                host=host,
+                port=port,
+                on_event=on_event,
+                on_state=on_state,
+                on_diagnostic=kwargs["on_diagnostic"],
+                session_nonce=kwargs["session_nonce"],
+            )
+            return Client()
+
+        factory = ManagedClientFactory(
+            local_client_constructor=local_constructor,
+            ssh_client_constructor=lambda *_args, **_kwargs: Client(),
+            on_event=lambda instance_id, event: events.append((instance_id, event)),
+            on_state=lambda instance_id, state: states.append((instance_id, state)),
+            record_network_diagnostic=lambda category, fields: diagnostics.append((category, fields)),
+        )
+        session = types.SimpleNamespace(
+            host="127.0.0.1",
+            port=45678,
+            session_nonce="a" * 32,
+        )
+
+        client = factory.create_local(session)
+        client.nvim_nvda_instance_id = "connection-7"
+        callbacks["on_event"]({"type": "fullState"})
+        callbacks["on_state"]("connected")
+        callbacks["on_diagnostic"]("transport", {"attempt": 1})
+
+        self.assertEqual("127.0.0.1", callbacks["host"])
+        self.assertEqual(45678, callbacks["port"])
+        self.assertEqual("a" * 32, callbacks["session_nonce"])
+        self.assertEqual([("connection-7", {"type": "fullState"})], events)
+        self.assertEqual([("connection-7", "connected")], states)
+        self.assertEqual(
+            [("transport", {"attempt": 1, "instanceId": "connection-7"})],
+            diagnostics,
+        )
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager

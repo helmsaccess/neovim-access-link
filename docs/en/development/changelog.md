@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.95.0-dev.28+feature.global-plugin-slimming (feature-branch test build)
+
+- A normal `ManagedClientFactory` now encapsulates construction of local TCP
+  and remote SSH clients plus their instance-correlated event, state, and
+  diagnostic callbacks.
+- `SessionClaimService` creates the client through that injected factory and
+  then performs the same transactional start, binding, and selection
+  transition. Construction failures return fail-open to the NVDA boundary as
+  an immutable result.
+- Profile and password selection, translated labels, messages, and diagnostics
+  remain NVDA-side. This internal slice has automated coverage but has not yet
+  received a separate practical check.
+
 ## 0.95.0-dev.27+feature.global-plugin-slimming (feature-branch test build)
 
 - `SessionClaimService` now also owns a pending offer to remember a temporary

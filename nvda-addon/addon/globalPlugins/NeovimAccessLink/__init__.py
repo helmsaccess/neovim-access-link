@@ -102,6 +102,7 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import SettingsService  # noqa: E402
+from .managed_clients import ManagedClientFactory  # noqa: E402
 from .session_claim import (  # noqa: E402
 	ClaimTransitionKind,
 	DiscoverySelectionKind,
@@ -418,6 +419,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
+		managed_client_factory = ManagedClientFactory(
+			local_client_constructor=lambda *args, **kwargs: LocalTcpClient(*args, **kwargs),
+			ssh_client_constructor=lambda *args, **kwargs: SshStdioClient(*args, **kwargs),
+			on_event=self._onManagedEvent,
+			on_state=self._onManagedState,
+			record_network_diagnostic=self._recordNetworkDiagnostic,
+		)
 		self._sessionClaimService = SessionClaimService(
 			self._connectionCoordinator,
 			record_diagnostic=self._diagnostics.record,
@@ -435,6 +443,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				instance_id,
 				client,
 			),
+			client_factory=managed_client_factory,
 		)
 		self._terminalFocusService = TerminalFocusService(
 			self._connectionCoordinator,
@@ -1704,43 +1713,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if not self._instanceManager.list() and self._client is not None:
 			self._stopClient()
-		try:
-			client = LocalTcpClient(
-				session.host,
-				session.port,
-				lambda event: self._onManagedEvent(
-					getattr(client, "nvim_nvda_instance_id", None),
-					event,
-				),
-				lambda state: self._onManagedState(
-					getattr(client, "nvim_nvda_instance_id", None),
-					state,
-				),
-				on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-					category,
-					{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-				),
-				session_nonce=session.session_nonce,
-			)
-			target = local_windows_target(_("This computer - local Neovim"))
-			label = _("Local Neovim, {session}").format(
-				session=session_label or _("Neovim session"),
-			)
-		except Exception as error:
-			self._reportConnectionStartError(
-				error,
-				{"targetKind": LOCAL_WINDOWS_TCP},
-				_("Could not start the local Neovim connection"),
-			)
-			return
-		self._completeManagedConnectionStart(
+		target = local_windows_target(_("This computer - local Neovim"))
+		label = _("Local Neovim, {session}").format(
+			session=session_label or _("Neovim session"),
+		)
+		result = self._sessionClaimService.start_local_connection(
 			identity,
+			session,
 			target,
-			session.identifier,
 			label,
-			client,
 			context_label=_("local"),
 			replace_instance_id=replace_instance_id,
+		)
+		self._completeManagedConnectionStart(
+			result,
 			offer_remember=offer_remember,
 			diagnostic_fields={"targetKind": LOCAL_WINDOWS_TCP},
 			failure_message=_("Could not start the local Neovim connection"),
@@ -1748,27 +1734,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _completeManagedConnectionStart(
 		self,
-		identity,
-		target,
-		session_id,
-		label,
-		client,
+		result,
 		*,
-		context_label="",
-		replace_instance_id="",
 		offer_remember=False,
 		diagnostic_fields=None,
 		failure_message="",
 	):
-		result = self._sessionClaimService.start_connection(
-			identity,
-			target,
-			session_id,
-			label,
-			client,
-			context_label=context_label,
-			replace_instance_id=replace_instance_id,
-		)
 		if result.instance is None:
 			self._reportConnectionStartError(
 				RuntimeError(result.error),
@@ -1783,7 +1754,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if result.replacement_error_type:
 			self._diagnostics.record(
 				"replacedConnectionStopError",
-				instanceId=replace_instance_id,
+				instanceId=result.replaced_instance_id,
 				errorType=result.replacement_error_type,
 				error=result.replacement_error,
 			)
@@ -2155,42 +2126,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if not self._instanceManager.list() and self._client is not None:
 			self._stopClient()
-		try:
-			client = SshStdioClient(
-				profile.ssh_target,
-				lambda event: self._onManagedEvent(
-					getattr(client, "nvim_nvda_instance_id", None),
-					event,
-				),
-				lambda state: self._onManagedState(
-					getattr(client, "nvim_nvda_instance_id", None),
-					state,
-				),
-				on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-					category,
-					{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-				),
-				ssh_port=profile.port,
-				identity_file=profile.identity_file,
-				session_id=session_id,
-				password=password or "",
-				askpass_path=self._askpassPath(),
-			)
-		except Exception as error:
-			self._reportConnectionStartError(
-				error,
-				{"profileId": profile.identifier},
-				_("Could not start the Neovim connection"),
-			)
-			return
-		self._completeManagedConnectionStart(
+		result = self._sessionClaimService.start_remote_connection(
 			identity,
-			remote_ssh_target(profile.identifier, profile.name),
+			profile,
 			session_id,
+			remote_ssh_target(profile.identifier, profile.name),
 			f"{profile.name}, {session_label}" if session_label else profile.name,
-			client,
+			password=password or "",
+			askpass_path=self._askpassPath(),
 			context_label=profile.name,
 			replace_instance_id=replace_instance_id,
+		)
+		self._completeManagedConnectionStart(
+			result,
 			offer_remember=offer_remember,
 			diagnostic_fields={"profileId": profile.identifier},
 			failure_message=_("Could not start the Neovim connection"),

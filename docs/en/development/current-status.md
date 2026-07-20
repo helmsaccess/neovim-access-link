@@ -90,7 +90,11 @@ See `compatibility.md` for complete platform boundaries.
   state. Delay and transport calls remain at the NVDA boundary. The service
   also owns pending offers to remember temporary terminal bindings and
   revalidates focus, control, instance, and selection after the modal question.
-  Dialogs, messages, and diagnostics remain NVDA-side.
+  Dialogs, messages, and diagnostics remain NVDA-side. An injected
+  `ManagedClientFactory` constructs local TCP and remote SSH clients with
+  instance-correlated callbacks. The claim service connects this construction
+  to its transactional start transition; profiles, passwords, and translated
+  output remain at the NVDA boundary.
 
 ### Editor output
 
