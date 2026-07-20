@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.95.0-dev.30+feature.global-plugin-slimming (feature-branch test build)
+
+- Practical V2-4 testing found a regression after the optional question to
+  remember a new terminal binding: modal focus loss could leave the
+  authenticated connection fail-open but without subsequent reactivation.
+- The question now arms exactly one reactivation correlated to the terminal
+  identity and instance. The next matching terminal focus consumes it; a
+  different terminal focus discards it.
+- Consent is safely persisted across the expected modal focus gap. Declining
+  reactivates only the current connection once and does not remember it for
+  later focus changes. Automated coverage protects both paths; the practical
+  focus/F12 test must be repeated.
+
+## 0.95.0-dev.29+feature.global-plugin-slimming (feature-branch test build)
+
+- The V2-4 completion audit removes production-only claim forwarding methods
+  from the Global Plugin. Pending targets, eligible connections, and baselines
+  are now used only through narrow `SessionClaimService` operations; baseline
+  state leaves the service as a copy.
+- Claim, discovery, and connection decisions therefore live in the neutral
+  service. The Global Plugin retains only wiring at NVDA's main-thread,
+  dialog, message, and transport boundaries.
+- An isolation test protects the new operations against accidentally exposed
+  mutable state. This completion is automated; focus, F12, and local/remote
+  connections follow in the combined practical milestone.
+
 ## 0.95.0-dev.28+feature.global-plugin-slimming (feature-branch test build)
 
 - A normal `ManagedClientFactory` now encapsulates construction of local TCP

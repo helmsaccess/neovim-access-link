@@ -34,6 +34,7 @@ class TerminalFocusService:
 		record_diagnostic: Callable[..., None],
 		discard_transient_context: Callable[[], None],
 		activate_remembered_binding: Callable[[TerminalIdentity, str, bool], None],
+		consume_temporary_binding_reactivation: Callable[[TerminalIdentity | None, str | None], bool],
 		handle_pending_full_state: Callable[[str, dict], None],
 		reset_typed_echo: Callable[[], None],
 		cancel_speech: Callable[[], None],
@@ -52,6 +53,7 @@ class TerminalFocusService:
 		self._recordDiagnostic = record_diagnostic
 		self._discardTransientContext = discard_transient_context
 		self._activateRememberedBinding = activate_remembered_binding
+		self._consumeTemporaryBindingReactivation = consume_temporary_binding_reactivation
 		self._handlePendingFullState = handle_pending_full_state
 		self._resetTypedEcho = reset_typed_echo
 		self._cancelSpeech = cancel_speech
@@ -141,7 +143,15 @@ class TerminalFocusService:
 		pending_full_state = (
 			self._coordinator.pending_full_states.get(instance.identifier) if instance is not None else None
 		)
-		if identity in self._coordinator.remembered_terminal_bindings:
+		temporary_reactivation = (
+			self._consumeTemporaryBindingReactivation(
+				identity,
+				instance.identifier if instance is not None else None,
+			)
+			if identity is not None
+			else False
+		)
+		if identity in self._coordinator.remembered_terminal_bindings or temporary_reactivation:
 			if instance is None:
 				self._coordinator.remembered_terminal_bindings.discard(identity)
 			else:

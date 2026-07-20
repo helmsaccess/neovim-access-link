@@ -128,11 +128,13 @@ AppModule and Braille overlay. A dedicated `SettingsService` owns loading,
 normalization, persistence, and profile switching. Presentation and
 `NvdaUiManager` use its snapshots and domain operations; the UI manager knows
 neither the Global Plugin nor its state. A dedicated `TerminalFocusService`
-owns identity, focus correlation, and the lifecycle sweep. Duplicate registration, partial
-failure, invalid configuration, and connection changes have direct coverage.
+owns identity, focus correlation, and the lifecycle sweep. Duplicate
+registration, partial failure, invalid configuration, and connection changes
+have direct coverage.
 Process-wide availability of Settings and Tools is unchanged. No separate
 practical check is planned for these internal phases; it will be combined with
-later user-visible V2 stages. V2-4 has begun: `SessionClaimService` owns F12
+later user-visible V2 stages. V2-4 is complete under automated coverage:
+`SessionClaimService` owns F12
 authorization, inventory state, scanning, candidate evaluation, and the
 immutable transition decision. Discovery lifetime and session-list workers
 plus domain selection of their results also live there. The service now plans
@@ -147,10 +149,12 @@ the correlated choice between focus context and full state are also owned by
 the service. It additionally owns pending offers for temporary terminal
 bindings and revalidates focus, control, and instance after the modal dialog;
 dialogs, diagnostics, and transport calls remain at the NVDA boundary. An
-injected factory now also encapsulates local and remote client construction
-plus instance-correlated callbacks, and the claim service joins it to the
-existing start transition. A V2-4 completion audit against the defined
-ownership and fail-open criteria remains before the first practical milestone.
+injected factory encapsulates local and remote client construction plus
+instance-correlated callbacks, and the claim service joins it to the
+existing start transition. The completion audit removed unnecessary forwarding
+methods and direct production access to mutable claim containers. The
+composition root retains only NVDA's main-thread, dialog, message, and
+transport boundaries. V2-5 begins after the combined practical milestone.
 
 ## 3. Broaden practical isolation coverage
 

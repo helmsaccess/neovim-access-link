@@ -5,6 +5,34 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.30+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Die praktische V2-4-Abnahme fand eine Regression nach der optionalen
+  Rückfrage zum Merken einer neuen Terminalbindung: Der modale Fokusverlust
+  konnte die authentifizierte Verbindung fail-open, aber ohne anschließende
+  Reaktivierung zurücklassen.
+- Für die Rückfrage existiert nun genau eine an Terminalidentität und Instanz
+  gebundene Reaktivierung. Der nächste passende Terminalfokus verbraucht sie;
+  ein anderer Terminalfokus verwirft sie.
+- Eine Zustimmung wird auch während der erwarteten modalen Fokuslücke sicher
+  gespeichert. Eine Ablehnung reaktiviert nur die laufende Verbindung einmal
+  und merkt sie nicht für spätere Fokuswechsel. Beide Pfade sind automatisiert
+  abgedeckt und benötigen erneut den praktischen Fokus-/F12-Test.
+
+## 0.95.0-dev.29+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der V2-4-Abschluss-Audit entfernt produktiv unnötige Claim-Weiterleitungen
+  aus dem Global Plugin. Ausstehende Ziele, erlaubte Verbindungen und
+  Baselines werden nur noch über schmale Operationen des
+  `SessionClaimService` verwendet; Baselines verlassen ihn als Kopie.
+- Fachliche Claim-, Discovery- und Verbindungsentscheidungen liegen damit im
+  neutralen Dienst. Das Global Plugin behält ausschließlich die Verdrahtung
+  an NVDAs Hauptthread-, Dialog-, Meldungs- und Transportgrenzen.
+- Ein Isolationstest schützt die neuen Operationen vor versehentlich
+  freigegebenem schreibbarem Zustand. Dieser Abschluss ist automatisiert;
+  Fokus, F12 und lokale/entfernte Verbindungen folgen im gebündelten
+  Praxis-Meilenstein.
+
 ## 0.95.0-dev.28+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Eine normale `ManagedClientFactory` kapselt nun die Konstruktion lokaler

@@ -72,8 +72,8 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   AppModule-/Adapterkorrelation und den periodischen Lifecycle-Sweep. Unsichere
   UIA-Ergebnisse fallen offen aus; geschlossene, nicht fokussierte Controls
   werden erst nach zwei eindeutigen Negativprüfungen bereinigt.
-- Der erste V2-4-Schnitt übergibt `SessionClaimService` die alleinige
-  Zuständigkeit für einmalige F12-Autorisierung, Claim-Generationen und Claim-
+- Die abgeschlossene V2-4-Extraktion übergibt `SessionClaimService` die
+  alleinige Zuständigkeit für einmalige F12-Autorisierung, Claim-Generationen und Claim-
   Inventarzustand. Lokale und SSH-Inventar- und Sitzungslisten-Worker,
   Discovery-Generation sowie Kandidatenauswertung laufen hinter diesem Dienst.
   Er entscheidet außerdem unveränderlich zwischen lokaler, entfernter und
@@ -85,7 +85,7 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   NVDA-seitigen Fokusbereinigung zurück. Start, Bindung und Runtime-Auswahl
   neuer Instanzen bilden dort ebenfalls einen Übergang; Rückrollen und das
   Stilllegen einer ersetzten Instanz beenden Clients asynchron. NVDA-Meldungen,
-  Dialoge, Clientkonstruktion und fokusbezogene Nebenwirkungen behalten ihre
+  Dialoge und fokusbezogene Nebenwirkungen behalten ihre
   bisherigen Hauptthreadgrenzen. Auch die explizite Instanzauswahl und
   Trennung sind neutrale Dienstübergänge: Auswahlfehler stellen die vorherige
   Bindung wieder her, Trennung entfernt Runtimezustand und Bindung vor dem
@@ -95,11 +95,15 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   bleiben am NVDA-Rand. Der Dienst besitzt außerdem den ausstehenden
   Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
   Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
-  Diagnostik bleiben NVDA-seitig. Eine injizierte `ManagedClientFactory`
+  Diagnostik bleiben NVDA-seitig. Eine einmalige, korrelierte Reaktivierung
+  überbrückt ausschließlich den Fokusverlust dieser Rückfrage; eine Ablehnung
+  erzeugt keine dauerhafte Bindung. Eine injizierte `ManagedClientFactory`
   konstruiert lokale TCP- und entfernte SSH-Clients mit instanzkorrelierten
   Callbacks. Der Claimdienst verbindet diese Konstruktion mit seinem
   transaktionalen Startübergang; Profil, Passwort und übersetzte Ausgabe
-  verbleiben am NVDA-Rand.
+  verbleiben am NVDA-Rand. Das Global Plugin verwendet Claimziele,
+  Berechtigungen und Baselines nur noch über schmale Dienstoperationen;
+  schreibbare Zustandskopien werden nicht geteilt.
 
 ### Editorausgabe
 

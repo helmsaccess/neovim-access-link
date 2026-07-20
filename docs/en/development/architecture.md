@@ -235,8 +235,12 @@ an uncertain UIA failure is not treated as closure.
 `TerminalIntegrationService` also authorizes and cancels physical F12 claims
 directly through `SessionClaimService`. That service owns the mutable claim and
 inventory state, local/SSH inventory workers, and candidate evaluation.
-Selection and connection transitions remain in the composition root
-temporarily while the remaining V2-4 slices move them behind the same boundary.
+It also owns discovery, selection, reuse, connection start, disconnect, and
+remembered bindings. The Global Plugin only joins its immutable results to
+NVDA's main-thread, dialog, message, and transport boundaries; it keeps no
+writable copy of claim state. Focus loss caused by the optional modal remember
+question is bridged by exactly one terminal- and instance-correlated
+reactivation; a different terminal focus discards it.
 
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely

@@ -240,6 +240,7 @@ class SessionClaimService:
 		self._eligibleTargets: set[tuple[str, str]] = set()
 		self._inventoryErrors: dict[tuple[str, str], str] = {}
 		self._pendingTargets: dict[TerminalIdentity, tuple[str, str]] = {}
+		self._pendingBindingReactivation: tuple[TerminalIdentity, str] | None = None
 
 	def authorize(self, identity: TerminalIdentity | None) -> int | None:
 		"""Authorize one physical claim for the exact focused terminal."""
@@ -283,6 +284,21 @@ class SessionClaimService:
 
 	def cancel_pending_authorization(self) -> None:
 		self._pendingObserved = None
+
+	def set_pending_target(
+		self,
+		identity: TerminalIdentity,
+		target_kind: str,
+		target_id: str,
+	) -> None:
+		"""Remember one explicit target without exposing the mutable target map."""
+		self._pendingTargets[identity] = (target_kind, target_id)
+
+	def is_target_eligible(self, target_kind: str, target_id: str) -> bool:
+		return (target_kind, target_id) in self._eligibleTargets
+
+	def baseline_snapshot(self) -> dict[tuple[str, str, str], int]:
+		return dict(self._baselines)
 
 	def consume_transition(self, identity: TerminalIdentity | None) -> ClaimTransition:
 		"""Consume a pending target and decide the next claim action."""
@@ -341,6 +357,7 @@ class SessionClaimService:
 		self._baselines.clear()
 		self._eligibleTargets.clear()
 		self._inventoryErrors.clear()
+		self._pendingBindingReactivation = None
 
 	def begin_discovery(self) -> int:
 		"""Invalidate older session-list callbacks and return the new generation."""
@@ -954,9 +971,48 @@ class SessionClaimService:
 		instance_id: str,
 	) -> TemporaryBindingOffer:
 		"""Validate focus, selection, frontend identity, and instance before UI opens."""
+		return self._validate_temporary_binding_offer(identity, instance_id)
+
+	def arm_temporary_binding_reactivation(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> TemporaryBindingOffer:
+		"""Allow only the next matching terminal focus to resume after the modal offer."""
+		offer = self._validate_temporary_binding_offer(identity, instance_id)
+		if offer.kind == TemporaryBindingOfferKind.OFFER:
+			self._pendingBindingReactivation = (identity, instance_id)
+		return offer
+
+	def consume_temporary_binding_reactivation(
+		self,
+		identity: TerminalIdentity | None,
+		instance_id: str | None,
+	) -> bool:
+		"""Consume the one-shot modal focus allowance, including on a mismatched focus."""
+		pending = self._pendingBindingReactivation
+		self._pendingBindingReactivation = None
+		return pending is not None and pending == (identity, instance_id)
+
+	def _validate_temporary_binding_offer(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+		*,
+		allow_modal_focus_gap: bool = False,
+	) -> TemporaryBindingOffer:
 		focused = self._coordinator.gate.focused
-		selected = self._coordinator.instances.selected_for(focused) if focused else None
-		if focused != identity or selected is None or selected.identifier != instance_id:
+		selected = self._coordinator.instances.selected_for(identity)
+		modal_focus_gap = (
+			allow_modal_focus_gap
+			and focused is None
+			and self._pendingBindingReactivation == (identity, instance_id)
+		)
+		if (
+			(focused != identity and not modal_focus_gap)
+			or selected is None
+			or selected.identifier != instance_id
+		):
 			return TemporaryBindingOffer(TemporaryBindingOfferKind.FOCUS_CHANGED)
 		if identity.frontend_kind != "windowsTerminal" or not identity.runtime_id:
 			return TemporaryBindingOffer(TemporaryBindingOfferKind.UNAVAILABLE)
@@ -973,8 +1029,12 @@ class SessionClaimService:
 		identity: TerminalIdentity,
 		instance_id: str,
 	) -> TemporaryBindingOffer:
-		"""Revalidate and remember the binding after the modal confirmation."""
-		offer = self.prepare_temporary_binding_offer(identity, instance_id)
+		"""Revalidate after the modal confirmation, allowing only its expected focus gap."""
+		offer = self._validate_temporary_binding_offer(
+			identity,
+			instance_id,
+			allow_modal_focus_gap=True,
+		)
 		if offer.kind == TemporaryBindingOfferKind.OFFER:
 			self._coordinator.remembered_terminal_bindings.add(identity)
 		return offer

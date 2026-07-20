@@ -615,12 +615,21 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.start_remote_connection", global_source)
         self.assertNotIn("self._sessionClaimService.start_connection", global_source)
         self.assertIn("class TemporaryBindingOffer", claim_source)
-        self.assertIn("self._sessionClaimService.prepare_temporary_binding_offer", global_source)
+        self.assertIn("def prepare_temporary_binding_offer", claim_source)
+        self.assertNotIn("self._sessionClaimService.prepare_temporary_binding_offer", global_source)
         self.assertIn("self._sessionClaimService.remember_temporary_binding", global_source)
         self.assertIn("self._sessionClaimService.forget_temporary_binding", global_source)
         self.assertIn("self._sessionClaimService.consume_temporary_binding_offer", global_source)
         self.assertIn("self._sessionClaimService.activate_remembered_binding", global_source)
         self.assertIn("self._sessionClaimService.plan_remembered_state_request", global_source)
+        self.assertIn("self._sessionClaimService.arm_temporary_binding_reactivation", global_source)
+        self.assertIn("self._sessionClaimService.consume_temporary_binding_reactivation", global_source)
+        self.assertIn("self._sessionClaimService.set_pending_target", global_source)
+        self.assertIn("self._sessionClaimService.baseline_snapshot", global_source)
+        self.assertNotIn("def _scanAutomaticClaimTargets", global_source)
+        self.assertNotIn("def _scanClaimTargets", global_source)
+        self.assertNotIn("def _pollLocalSessions", global_source)
+        self.assertNotIn("def _claimSequence", global_source)
         self.assertNotIn("self._instanceManager.add_target(", global_source)
         self.assertNotIn("self._instanceManager.remove(", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
@@ -1638,7 +1647,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         plugin._claimInventoryReady = True
         original = plugin._gate.focused
-        generation = plugin._captureObservedSessionClaim(original)
+        generation = plugin._sessionClaimService.authorize(original)
         plugin._gate.focused = TerminalIdentity(
             original.process_id, original.window_handle, original.frontend_kind,
             (42, original.window_handle, 4, 101),
@@ -1654,6 +1663,32 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], scheduled)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertIn("notAuthorizedOrFocusChanged", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_claim_service_target_operations_do_not_expose_baseline_state(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink.session_claim import ClaimTransitionKind
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        service = plugin._sessionClaimService
+        service.eligible_targets = {(LOCAL_WINDOWS_TCP, "")}
+        service.baselines = {(LOCAL_WINDOWS_TCP, "local-windows", "77"): 3}
+        service.set_pending_target(identity, LOCAL_WINDOWS_TCP, "")
+
+        snapshot = service.baseline_snapshot()
+        snapshot[(LOCAL_WINDOWS_TCP, "local-windows", "77")] = 9
+        transition = service.consume_transition(identity)
+
+        self.assertTrue(service.is_target_eligible(LOCAL_WINDOWS_TCP, ""))
+        self.assertFalse(service.is_target_eligible("remoteSsh", "missing"))
+        self.assertEqual(3, service.baselines[(LOCAL_WINDOWS_TCP, "local-windows", "77")])
+        self.assertEqual(ClaimTransitionKind.LOCAL, transition.kind)
+        self.assertTrue(transition.explicit_target)
+        self.assertNotIn(identity, service.pending_targets)
         plugin.terminate()
 
     def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
@@ -1900,9 +1935,11 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", LocalLister), mock.patch.object(
             addon_module, "SshSessionLister", UnexpectedSshLister,
         ):
-            plugin._scanAutomaticClaimTargets(
+            plugin._sessionClaimService.scan_automatic_targets(
                 5, [profile], {}, identity,
                 {("localWindowsTcp", "local-windows", "77"): 1},
+                0,
+                plugin._finishAutomaticClaimResolution,
             )
 
         self.assertEqual(1, len(completed))
@@ -1939,9 +1976,11 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
             addon_module.time, "sleep", lambda _seconds: None,
         ):
-            plugin._scanAutomaticClaimTargets(
+            plugin._sessionClaimService.scan_automatic_targets(
                 6, [], {}, identity,
                 {("localWindowsTcp", "local-windows", "77"): 1},
+                0,
+                plugin._finishAutomaticClaimResolution,
             )
 
         self.assertEqual(2, len(calls))
@@ -2423,7 +2462,7 @@ class BuiltAddonTests(unittest.TestCase):
             binding_offer.kind = TemporaryBindingOfferKind.OFFER
 
     def test_temporary_binding_offer_revalidates_focus_before_remembering(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
         from globalPlugins.NeovimAccessLink.session_claim import TemporaryBindingOfferKind
 
         class Client:
@@ -2458,6 +2497,18 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(instance, offer.instance)
 
         plugin._gate.focused = None
+        unarmed_focus_gap = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, unarmed_focus_gap.kind)
+
+        plugin._gate.focused = TerminalIdentity(
+            identity.process_id,
+            identity.window_handle,
+            identity.frontend_kind,
+            (42, identity.window_handle, 4, 99),
+        )
         stale = plugin._sessionClaimService.remember_temporary_binding(
             identity,
             instance.identifier,
@@ -2475,6 +2526,76 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(plugin._sessionClaimService.forget_temporary_binding(identity))
         self.assertFalse(plugin._sessionClaimService.forget_temporary_binding(identity))
         plugin.terminate()
+
+    def test_temporary_binding_dialog_focus_gap_restores_current_connection(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        for answer, should_remember in ((wx.YES, True), (0, False)):
+            with self.subTest(answer=answer):
+                plugin = GlobalPlugin()
+                identity = plugin._identity(self.focus)
+                client = Client()
+                instance = add_remote_instance(
+                    plugin._instanceManager,
+                    "one",
+                    "1",
+                    "First",
+                    client,
+                )
+                plugin._instanceManager.bind(identity, instance.identifier)
+                plugin._authenticatedInstances.add(instance.identifier)
+                plugin._connectionCoordinator.confirm_foreground_instance(
+                    instance.identifier,
+                    identity,
+                    plugin._newInstanceRuntime,
+                )
+                plugin._gate.manual_enabled = True
+                original_message_box = wx.MessageBox
+
+                def modal_message_box(*_args, **_kwargs):
+                    plugin._gate.disconnect()
+                    plugin._gate.focused = None
+                    return answer
+
+                wx.MessageBox = modal_message_box
+                try:
+                    plugin._offerTemporaryTerminalBinding(identity, instance.identifier)
+                finally:
+                    wx.MessageBox = original_message_box
+
+                self.assertEqual(
+                    should_remember,
+                    plugin._sessionClaimService.is_temporary_binding_remembered(identity),
+                )
+                adapter = self._terminalAdapter()
+                adapter.event_gainFocus(self.focus, lambda: None)
+                self.assertEqual("requestFocusContext", client.controls[-1][0])
+                request_id = client.controls[-1][1]["requestId"]
+                plugin._handleManagedEvent(instance.identifier, {
+                    "type": "focusContext",
+                    "payload": {
+                        "_focusRequestId": request_id,
+                        "bufferName": "/work/returned.lua",
+                        "mode": "normal",
+                    },
+                })
+                self.assertTrue(plugin._gate.suppression_active)
+                if not should_remember:
+                    controls = list(client.controls)
+                    adapter.event_appModule_loseFocus()
+                    adapter.event_gainFocus(self.focus, lambda: None)
+                    self.assertEqual(controls, client.controls)
+                    self.assertFalse(plugin._gate.suppression_active)
+                plugin.terminate()
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin

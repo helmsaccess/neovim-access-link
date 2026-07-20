@@ -453,6 +453,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			record_diagnostic=self._diagnostics.record,
 			discard_transient_context=self._discardTransientFocusContext,
 			activate_remembered_binding=self._activateRememberedBinding,
+			consume_temporary_binding_reactivation=(
+				self._sessionClaimService.consume_temporary_binding_reactivation
+			),
 			handle_pending_full_state=self._handleManagedEvent,
 			reset_typed_echo=self._resetTypedEcho,
 			cancel_speech=speech.cancelSpeech,
@@ -828,15 +831,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		else:
 			ui.message(_("Checking local and saved Neovim connections"))
 
-	def _captureObservedSessionClaim(self, identity):
-		return self._sessionClaimService.authorize(identity)
-
-	def _acceptObservedSessionClaim(self, identity, generation):
-		return self._sessionClaimService.accept(identity, generation)
-
-	def _cancelObservedSessionClaim(self, identity, generation):
-		return self._sessionClaimService.cancel(identity, generation)
-
 	def _promptForSessionClaim(self, profile, identity):
 		self._diagnostics.record(
 			"sessionClaimRequested",
@@ -889,32 +883,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		profiles = [
 			profile
 			for profile in self._automaticClaimProfiles()
-			if ("remoteSsh", profile.identifier) in self._claimEligibleTargets
+			if self._sessionClaimService.is_target_eligible("remoteSsh", profile.identifier)
 		]
 		passwords = {
 			profile.identifier: self._sessionPasswords.get(profile.identifier, "") for profile in profiles
 		}
-		baseline = dict(self._claimBaselines)
+		baseline = self._sessionClaimService.baseline_snapshot()
 		self._sessionClaimService.start_resolution(
-			profiles,
-			passwords,
-			identity,
-			baseline,
-			local_claim_not_before_ns,
-			self._finishAutomaticClaimResolution,
-		)
-
-	def _scanAutomaticClaimTargets(
-		self,
-		generation,
-		profiles,
-		passwords,
-		identity,
-		baseline,
-		local_claim_not_before_ns=0,
-	):
-		self._sessionClaimService.scan_automatic_targets(
-			generation,
 			profiles,
 			passwords,
 			identity,
@@ -943,22 +918,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			password=password,
 			askpass_path=self._askpassPath(),
 		)
-
-	def _pollLocalSessions(self, predicate):
-		return self._sessionClaimService.poll_local_sessions(predicate)
-
-	def _scanClaimTargets(self, generation, profiles, passwords, inventory, identity):
-		self._sessionClaimService.scan_targets(
-			generation,
-			profiles,
-			passwords,
-			identity,
-			self._finishClaimInventory if inventory else self._finishAutomaticClaimResolution,
-		)
-
-	@staticmethod
-	def _claimSequence(session):
-		return SessionClaimService.claim_sequence(session)
 
 	def _finishClaimInventory(self, generation, results, _identity=None):
 		summary = self._sessionClaimService.finish_inventory(generation, results)
@@ -1397,7 +1356,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				ui.message(_("The selected connection profile is unavailable"))
 				return
 			if selection == 0:
-				self._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
+				self._sessionClaimService.set_pending_target(identity, LOCAL_WINDOWS_TCP, "")
 				self._diagnostics.record(
 					"connectionTargetDialogClosed",
 					accepted=True,
@@ -1424,7 +1383,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				password = self._passwordForProfile(parsed_profile)
 				if password is None:
 					return
-			self._pendingClaimTargets[identity] = ("remoteSsh", parsed_profile.identifier)
+			self._sessionClaimService.set_pending_target(
+				identity,
+				"remoteSsh",
+				parsed_profile.identifier,
+			)
 			self._promptForSessionClaim(parsed_profile, identity)
 
 		# NVDA's helper schedules the modal dialog for a fresh GUI-loop turn and
@@ -1444,8 +1407,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if expected_identity is None:
 			expected_identity = identity
 		if claim_generation is None:
-			claim_generation = self._captureObservedSessionClaim(expected_identity)
-		if claim_generation is None or not self._acceptObservedSessionClaim(
+			claim_generation = self._sessionClaimService.authorize(expected_identity)
+		if claim_generation is None or not self._sessionClaimService.accept(
 			expected_identity,
 			claim_generation,
 		):
@@ -2164,7 +2127,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Neovim connection selected: {name}").format(name=result.instance.label))
 
 	def _offerTemporaryTerminalBinding(self, identity, instance_id):
-		offer = self._sessionClaimService.prepare_temporary_binding_offer(identity, instance_id)
+		offer = self._sessionClaimService.arm_temporary_binding_reactivation(identity, instance_id)
 		if offer.kind == TemporaryBindingOfferKind.FOCUS_CHANGED:
 			self._diagnostics.record(
 				"temporaryTerminalBindingOfferIgnored",
@@ -2192,6 +2155,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			wx.YES_NO | wx.ICON_QUESTION,
 			gui.mainFrame,
 		)
+		focused = self._gate.focused
+		if focused is not None:
+			selected = self._instanceManager.selected_for(focused)
+			self._sessionClaimService.consume_temporary_binding_reactivation(
+				focused,
+				selected.identifier if selected is not None else None,
+			)
 		if answer != wx.YES:
 			self._diagnostics.record(
 				"temporaryTerminalBindingDeclined",

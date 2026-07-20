@@ -70,8 +70,8 @@ See `compatibility.md` for complete platform boundaries.
   AppModule/adapter correlation, and the periodic lifecycle sweep. Uncertain
   UIA results fail open; closed, unfocused controls are disposed only after two
   conclusive negative checks.
-- The first V2-4 slice gives `SessionClaimService` sole ownership of one-shot
-  F12 authorization, claim generations, and claim inventory state. Local and
+- The completed V2-4 extraction gives `SessionClaimService` sole ownership of
+  one-shot F12 authorization, claim generations, and claim inventory state. Local and
   SSH inventory and session-list workers, discovery generation, and candidate
   evaluation run behind that service. It also returns an immutable decision
   between local, remote, and automatic resolution and for each session-list
@@ -80,8 +80,8 @@ See `compatibility.md` for complete platform boundaries.
   plan to instance bindings and returns displaced terminal identities for
   separate NVDA-side focus cleanup. Starting, binding, and runtime selection
   of new instances form another service transition; rollback and replacement
-  stop clients asynchronously. NVDA messages, dialogs, client construction,
-  and focus-related side effects retain their established main-thread
+  stop clients asynchronously. NVDA messages, dialogs, and focus-related side
+  effects retain their established main-thread
   boundaries. Explicit instance selection and disconnect are neutral service
   transitions as well: failed selection restores the previous binding, while
   disconnect removes runtime state and bindings before asynchronous client
@@ -90,11 +90,15 @@ See `compatibility.md` for complete platform boundaries.
   state. Delay and transport calls remain at the NVDA boundary. The service
   also owns pending offers to remember temporary terminal bindings and
   revalidates focus, control, instance, and selection after the modal question.
-  Dialogs, messages, and diagnostics remain NVDA-side. An injected
+  Dialogs, messages, and diagnostics remain NVDA-side. A one-shot correlated
+  reactivation bridges only this question's focus loss; declining does not
+  create a persistent binding. An injected
   `ManagedClientFactory` constructs local TCP and remote SSH clients with
   instance-correlated callbacks. The claim service connects this construction
   to its transactional start transition; profiles, passwords, and translated
-  output remain at the NVDA boundary.
+  output remain at the NVDA boundary. The Global Plugin now uses claim targets,
+  eligibility, and baselines only through narrow service operations; no
+  writable state copy is shared.
 
 ### Editor output
 

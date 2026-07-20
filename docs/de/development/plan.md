@@ -139,35 +139,35 @@ Normalisierung, Speichern und Profilwechsel. Präsentation und
 `NvdaUiManager` verwenden dessen Snapshots und fachliche Operationen; der
 UI-Manager kennt weder das Global Plugin noch dessen Zustand. Ein eigener
 `TerminalFocusService` besitzt Identität, Fokuskorrelation und Lifecycle-Sweep.
-Doppelte
-Registrierung, Teilfehler, ungültige Konfiguration und Verbindungsänderungen
+Doppelte Registrierung, Teilfehler, ungültige Konfiguration und Verbindungsänderungen
 sind direkt geprüft. Die prozessweite Verfügbarkeit von Einstellungen und
 Werkzeugen bleibt unverändert. Eine praktische Zwischenprüfung ist für diese
 internen Phasen nicht vorgesehen; sie wird mit späteren nutzerwirksamen
-V2-Schritten gebündelt. V2-4 hat begonnen: `SessionClaimService` besitzt F12-
+V2-Schritten gebündelt. V2-4 ist automatisiert abgeschlossen:
+`SessionClaimService` besitzt F12-
 Autorisierung, Inventarzustand, Scans, Kandidatenauswertung und die
 unveränderliche Übergangsentscheidung. Discovery-Lebensdauer und
 Sitzungslisten-Worker sowie die fachliche Ergebnisauswahl liegen ebenfalls
-dort. Der Dienst plant inzwischen außerdem Wiederverwendung oder Start einer
-lokalen beziehungsweise entfernten Instanz, ohne selbst Clients oder Bindungen
-zu starten. Einen aktuellen Wiederverwendungsplan setzt er auf den neutralen
+dort. Der Dienst plant Wiederverwendung oder Start einer lokalen
+beziehungsweise entfernten Instanz und setzt einen aktuellen Plan auf den
+neutralen
 Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
 zurück. Start, Bindung und Runtime-Auswahl neuer Instanzen liegen ebenfalls in
 diesem Dienst; Rückrollen und ersetzte Clients werden ohne blockierenden Stopp
-auf dem NVDA-Hauptthread abgewickelt. Weitere Schnitte verschieben
-die Clientkonstruktion hinter diese Grenze. Explizite Auswahl und Trennung
-laufen bereits als transaktionale
-Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
+auf dem NVDA-Hauptthread abgewickelt. Explizite Auswahl und Trennung laufen als
+transaktionale Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
 asynchron ausgeführt. Die fail-open Aktivierung einer gemerkten Instanz und die
 korrelierte Entscheidung zwischen Fokuskontext und Vollzustand liegen
 inzwischen ebenfalls im Dienst. Er besitzt auch den ausstehenden Merkvorgang
 temporärer Terminalbindungen und validiert Fokus, Control und Instanz nach dem
 modalen Dialog erneut; Dialog, Diagnostik und Transportaufruf bleiben am
-NVDA-Rand. Eine injizierte Fabrik kapselt inzwischen auch die lokale und
-entfernte Clientkonstruktion sowie deren instanzkorrelierte Callbacks; der
-Claimdienst verbindet sie mit seinem Startübergang. Vor dem ersten
-Praxis-Meilenstein folgt noch die V2-4-Abschlussprüfung gegen die definierten
-Eigentums- und Fail-open-Kriterien.
+NVDA-Rand. Eine injizierte Fabrik kapselt die lokale und entfernte
+Clientkonstruktion sowie deren instanzkorrelierte Callbacks; der
+Claimdienst verbindet sie mit seinem Startübergang. Der Abschluss-Audit
+entfernte unnötige Weiterleitungen und direkte produktive Zugriffe auf
+veränderliche Claim-Container. Die Kompositionswurzel behält nur NVDAs
+Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Nach dem gebündelten
+Praxis-Meilenstein beginnt V2-5.
 
 ## 3. Praktische Abschottung verbreitern
 

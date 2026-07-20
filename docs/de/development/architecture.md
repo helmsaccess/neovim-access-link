@@ -246,9 +246,13 @@ Negativprüfungen entfernt; unklare UIA-Fehler gelten nicht als Schließung.
 Der `TerminalIntegrationService` autorisiert und verwirft physische F12-Claims
 außerdem direkt über `SessionClaimService`. Dieser Dienst besitzt den
 veränderlichen Claim- und Inventarzustand, lokale/SSH-Inventarworker und die
-Kandidatenauswertung. Auswahl und Verbindungsübergänge verbleiben vorübergehend
-in der Kompositionswurzel, bis weitere V2-4-Schnitte sie hinter dieselbe Grenze
-verschieben.
+Kandidatenauswertung. Er besitzt außerdem Discovery, Auswahl,
+Wiederverwendung, Verbindungsstart, Trennung und gemerkte Bindungen. Das Global
+Plugin verbindet seine unveränderlichen Ergebnisse nur mit NVDAs
+Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Es hält keine
+schreibbare Kopie des Claimzustands. Der Fokusverlust der optionalen modalen
+Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
+Reaktivierung überbrückt; ein abweichender Terminalfokus verwirft sie.
 
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei
