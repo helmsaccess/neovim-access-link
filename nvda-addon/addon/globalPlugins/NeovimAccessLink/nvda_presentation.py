@@ -11,6 +11,7 @@ from logHandler import log
 from speech.priorities import SpeechPriority as NvdaSpeechPriority
 
 from .core.speech import Priority
+from .editor_session import mode_sound_kind as editor_mode_sound_kind
 from .suggestion_sounds import EditorSoundCache, SpellingSoundCache, SuggestionSoundCache
 
 addonHandler.initTranslation()
@@ -60,13 +61,7 @@ class NvdaPresentation:
 
 	@staticmethod
 	def mode_sound_kind(mode):
-		if mode in {"insert", "terminal"}:
-			return "insert"
-		if mode in {"normal", "terminalNormal"}:
-			return "normal"
-		if mode == "commandLine":
-			return "commandLine"
-		return None
+		return editor_mode_sound_kind(mode)
 
 	def play_mode_sound(self, mode, *, focus_context=False):
 		sound_kind = self.mode_sound_kind(mode)

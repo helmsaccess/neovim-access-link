@@ -26,36 +26,41 @@ class NvdaUiManager:
 
 	def __init__(
 		self,
-		plugin,
+		settings_service,
 		*,
+		record_diagnostic,
+		password_for_profile,
+		askpass_path,
 		product_name,
 		package_dir,
 		feedback_defaults,
 		focus_announcement_default,
 	):
-		self._plugin = plugin
+		self._settingsService = settings_service
+		self._recordDiagnostic = record_diagnostic
+		self._passwordForProfile = password_for_profile
+		self._askpassPath = askpass_path
 		self._productName = product_name
 		self._packageDir = package_dir
 		self._feedbackDefaults = feedback_defaults
 		self._focusAnnouncementDefault = focus_announcement_default
 		self._menuItems = []
 		self._settingsPanelClass = None
-
-	@property
-	def _settings(self):
-		return self._plugin._settings
-
-	@property
-	def _diagnostics(self):
-		return self._plugin._diagnostics
+		self._registered = False
 
 	def register(self):
 		"""Register independent NVDA UI entry points."""
+		if self._registered:
+			return
+		self._registered = True
 		self._installMenus()
 		self._registerSettingsPanel()
 
 	def unregister(self):
 		"""Remove every NVDA UI entry point registered by this manager."""
+		if not self._registered:
+			return
+		self._registered = False
 		self._removeMenus()
 		self._unregisterSettingsPanel()
 
@@ -89,7 +94,7 @@ class NvdaUiManager:
 			try:
 				return parse_profile(candidate).as_dict()
 			except ValueError as error:
-				self._diagnostics.record("connectionProfileValidationError", error=str(error))
+				self._recordDiagnostic("connectionProfileValidationError", error=str(error))
 				ui.message(_("The connection settings are invalid: {error}").format(error=str(error)))
 
 	@staticmethod
@@ -212,8 +217,8 @@ class NvdaUiManager:
 			from gui import guiHelper
 			from gui.settingsDialogs import NVDASettingsDialog, SettingsPanel
 
-			plugin = self._plugin
 			ui_manager = self
+			settings_service = self._settingsService
 			product_name = self._productName
 			feedback_defaults = self._feedbackDefaults
 			focus_announcement_default = self._focusAnnouncementDefault
@@ -233,6 +238,7 @@ class NvdaUiManager:
 				title = product_name
 
 				def makeSettings(self, sizer):
+					settings = settings_service.snapshot()
 					helper = guiHelper.BoxSizerHelper(self, sizer=sizer)
 					self.settingsNotebook = wx.Notebook(self)
 					helper.addItem(self.settingsNotebook)
@@ -265,7 +271,7 @@ class NvdaUiManager:
 					global_group = guiHelper.BoxSizerHelper(general_page, sizer=global_sizer)
 					choices = [_("Off"), _("Speech"), _("Tones"), _("Both Speech and Tones")]
 					self.feedbackControls = {}
-					feedback = plugin._settings.get("feedback", feedback_defaults)
+					feedback = settings.get("feedback", feedback_defaults)
 					key, label = labels[0]
 					control = global_group.addLabeledControl(label, wx.Choice, choices=choices)
 					control.SetSelection(int(feedback.get(key, feedback_defaults[key])))
@@ -289,7 +295,7 @@ class NvdaUiManager:
 					)
 					self.focusAnnouncement.SetSelection(
 						int(
-							plugin._settings.get(
+							settings.get(
 								"focusAnnouncement",
 								focus_announcement_default,
 							)
@@ -325,7 +331,7 @@ class NvdaUiManager:
 						connections_page,
 						sizer=connection_sizer,
 					)
-					self.connectionProfiles = list(plugin._settings.get("connections", []))
+					self.connectionProfiles = list(settings.get("connections", []))
 					self.connectionChoice = connection_group.addLabeledControl(
 						_("Saved &connections:"),
 						wx.Choice,
@@ -416,22 +422,22 @@ class NvdaUiManager:
 					self._refreshConnections()
 
 				def onSave(self):
-					previous_connections = plugin._settings.get("connections", [])
-					plugin._settings["focusAnnouncement"] = self.focusAnnouncement.GetSelection()
-					plugin._settings["feedback"] = {
-						key: control.GetSelection() for key, control in self.feedbackControls.items()
-					}
-					plugin._settings["connections"] = list(self.connectionProfiles)
-					plugin._saveSettings()
-					connection_changed = previous_connections != plugin._settings["connections"]
-					if connection_changed and plugin._gate.manual_enabled:
-						plugin._beginClaimInventory()
+					change = settings_service.update(
+						{
+							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
+							"feedback": {
+								key: control.GetSelection() for key, control in self.feedbackControls.items()
+							},
+							"connections": list(self.connectionProfiles),
+						}
+					)
+					if change.claim_inventory_started:
 						ui.message(_("Saved connections changed; checking Neovim connections again"))
 
 			NVDASettingsDialog.categoryClasses.append(NeovimAccessLinkSettingsPanel)
 			self._settingsPanelClass = NeovimAccessLinkSettingsPanel
 		except Exception as error:
-			self._diagnostics.record(
+			self._recordDiagnostic(
 				"settingsPanelUnavailable",
 				errorType=type(error).__name__,
 				error=str(error),
@@ -448,7 +454,7 @@ class NvdaUiManager:
 			if panel in NVDASettingsDialog.categoryClasses:
 				NVDASettingsDialog.categoryClasses.remove(panel)
 		except Exception as error:
-			self._diagnostics.record(
+			self._recordDiagnostic(
 				"settingsPanelRemoveError",
 				errorType=type(error).__name__,
 				error=str(error),
@@ -476,7 +482,7 @@ class NvdaUiManager:
 			tray.Bind(wx.EVT_MENU, remove_handler, remove_item)
 			self._menuItems.append((tray, menu, remove_item, remove_handler, wx))
 		except Exception as error:
-			self._diagnostics.record(
+			self._recordDiagnostic(
 				"menuUnavailable",
 				errorType=type(error).__name__,
 				error=str(error),
@@ -526,9 +532,9 @@ class NvdaUiManager:
 		from gui.nvdaControls import CustomCheckListBox
 
 		try:
-			profiles = parse_profiles(self._settings.get("connections", []))
+			profiles = parse_profiles(self._settingsService.snapshot().get("connections", []))
 		except ValueError as error:
-			self._diagnostics.record("installProfileListError", error=str(error))
+			self._recordDiagnostic("installProfileListError", error=str(error))
 			ui.message(_("The saved Linux connections are invalid; correct them in settings first"))
 			return None
 		targets = [local_windows_target(_("This computer - local Neovim")), *profiles]
@@ -618,7 +624,7 @@ class NvdaUiManager:
 			if isinstance(profile, ConnectionTarget) and profile.kind == LOCAL_WINDOWS_TCP:
 				jobs.append((profile, ""))
 				continue
-			password = self._plugin._passwordForProfile(profile)
+			password = self._passwordForProfile(profile)
 			if profile.authentication == "password" and password is None:
 				immediate_results.append(
 					(
@@ -658,7 +664,7 @@ class NvdaUiManager:
 						profile.port,
 						profile.identity_file,
 						password,
-						self._plugin._askpassPath(),
+						self._askpassPath(),
 					)
 			except Exception as error:
 				result = InstallResult(
@@ -667,7 +673,7 @@ class NvdaUiManager:
 					"{kind}: {message}".format(kind=type(error).__name__, message=error),
 				)
 			results.append((profile, result))
-			self._diagnostics.record(
+			self._recordDiagnostic(
 				"componentInstall",
 				targetId=profile.identifier,
 				targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),
@@ -737,7 +743,7 @@ class NvdaUiManager:
 		successful = len([result for _profile, result in results if result.success])
 		failed = len(results) - successful
 		if successful:
-			self._plugin._saveSettings()
+			self._settingsService.save()
 		ui.message(
 			_("Neovim component update completed: {successful} successful, {failed} failed").format(
 				successful=successful, failed=failed
@@ -760,7 +766,7 @@ class NvdaUiManager:
 			if isinstance(profile, ConnectionTarget) and profile.kind == LOCAL_WINDOWS_TCP:
 				jobs.append((profile, ""))
 				continue
-			password = self._plugin._passwordForProfile(profile)
+			password = self._passwordForProfile(profile)
 			if profile.authentication == "password" and password is None:
 				immediate_results.append(
 					(
@@ -796,7 +802,7 @@ class NvdaUiManager:
 						profile.port,
 						profile.identity_file,
 						password,
-						self._plugin._askpassPath(),
+						self._askpassPath(),
 					)
 			except Exception as error:
 				result = InstallResult(
@@ -805,7 +811,7 @@ class NvdaUiManager:
 					"{kind}: {message}".format(kind=type(error).__name__, message=error),
 				)
 			results.append((profile, result))
-			self._diagnostics.record(
+			self._recordDiagnostic(
 				"componentRemoval",
 				targetId=profile.identifier,
 				targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),

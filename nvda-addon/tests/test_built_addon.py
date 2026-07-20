@@ -76,7 +76,21 @@ class BuiltAddonTests(unittest.TestCase):
     def _focusPlugin(self, plugin, obj=None) -> None:
         obj = obj or self.focus
         plugin._gate.focused = plugin._identity(obj)
-        plugin._focusedTerminalObject = obj
+        plugin._terminalFocusService.focused_terminal_object = obj
+
+    @staticmethod
+    def _settingsSnapshot(plugin) -> dict:
+        return plugin._settingsService.snapshot()
+
+    @classmethod
+    def _updateSettings(cls, plugin, updates: dict) -> None:
+        values = cls._settingsSnapshot(plugin)
+        for key, value in updates.items():
+            if isinstance(value, dict) and isinstance(values.get(key), dict):
+                values[key].update(value)
+            else:
+                values[key] = value
+        plugin._settingsService.update(values)
 
     def _terminalAdapter(self):
         from appModules.windowsterminal import AppModule
@@ -520,10 +534,23 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
         global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
         ui_source = (plugin / "nvda_ui.py").read_text(encoding="utf-8")
+        settings_source = (plugin / "settings_service.py").read_text(encoding="utf-8")
+        runtime_source = (plugin / "addon_runtime.py").read_text(encoding="utf-8")
 
         self.assertIn("class NvdaUiManager", ui_source)
-        self.assertIn("self._nvdaUi.register()", global_source)
-        self.assertIn("self._nvdaUi.unregister()", global_source)
+        self.assertIn("class SettingsService", settings_source)
+        self.assertNotIn("self._plugin", ui_source)
+        self.assertNotIn("GlobalPlugin", ui_source)
+        self.assertNotIn("self._nvdaUi.register()", global_source)
+        self.assertNotIn("self._nvdaUi.unregister()", global_source)
+        self.assertIn("self._uiManager.register()", runtime_source)
+        self.assertIn("self._uiManager.unregister", runtime_source)
+        self.assertIn("self._addonRuntime.start()", global_source)
+        self.assertIn("self._addonRuntime.close()", global_source)
+        self.assertNotIn("self._stopConnections", runtime_source)
+        self.assertNotIn("self._instanceManager", runtime_source)
+        self.assertNotIn("self._editorSession", runtime_source)
+        self.assertNotIn("active_client", runtime_source)
         for implementation in (
             "def _registerSettingsPanel", "def _installMenus",
             "def _promptConnectionProfile", "def _showConnectionProfileDialog",
@@ -531,6 +558,727 @@ class BuiltAddonTests(unittest.TestCase):
         ):
             self.assertNotIn(implementation, global_source)
             self.assertIn(implementation, ui_source)
+
+    def test_terminal_focus_state_has_one_non_global_owner(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        focus_source = (plugin / "terminal_focus.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
+
+        self.assertIn("class TerminalFocusService", focus_source)
+        self.assertNotIn("GlobalPlugin", focus_source)
+        for field in (
+            "self._focusedTerminalObject =",
+            "self._focusedAppModule =",
+            "self._focusedAdapterToken =",
+            "self._terminalFocusGeneration =",
+            "self._terminalIdentityElements =",
+            "self._terminalLifecycleCall =",
+            "self._terminalLifecycleMisses =",
+        ):
+            self.assertNotIn(field, global_source)
+        self.assertIn("self._focusService.prepare_focus", facade_source)
+        self.assertIn("self._focusService.finish_focus", facade_source)
+        self.assertIn("self._focusService.lose_focus", facade_source)
+        self.assertNotIn("self._runtime._prepareTerminalFocus", facade_source)
+        self.assertNotIn("self._runtime", facade_source)
+        self.assertNotIn("GlobalPlugin", facade_source)
+
+    def test_session_claim_authorization_has_one_non_global_owner(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        claim_source = (plugin / "session_claim.py").read_text(encoding="utf-8")
+        client_source = (plugin / "managed_clients.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
+
+        self.assertIn("class SessionClaimService", claim_source)
+        self.assertNotIn("GlobalPlugin", claim_source)
+        self.assertNotIn("self._claimGestureGeneration =", global_source)
+        self.assertNotIn("self._pendingObservedClaim = None", global_source)
+        self.assertIn("self._claimService.authorize", facade_source)
+        self.assertIn("self._claimService.cancel", facade_source)
+        self.assertNotIn("self._runtime._captureObservedSessionClaim", facade_source)
+        self.assertNotIn("self._runtime._cancelObservedSessionClaim", facade_source)
+        self.assertIn("ThreadPoolExecutor", claim_source)
+        self.assertIn("self._startWorker", claim_source)
+        self.assertIn("self._queueMainThread", claim_source)
+        self.assertIn("class ClaimTransition", claim_source)
+        self.assertIn("self._sessionClaimService.consume_transition", global_source)
+        self.assertNotIn("pairing_selected =", global_source)
+        self.assertNotIn("self._sessionDiscoveryGeneration =", global_source)
+        self.assertIn("def begin_discovery", claim_source)
+        self.assertIn("self._sessionClaimService.is_discovery_current", global_source)
+        self.assertIn("self._sessionClaimService.start_local_discovery", global_source)
+        self.assertIn("self._sessionClaimService.start_remote_discovery", global_source)
+        self.assertIn("class DiscoverySelection", claim_source)
+        self.assertIn("self._sessionClaimService.resolve_local_discovery", global_source)
+        self.assertIn("self._sessionClaimService.resolve_remote_discovery", global_source)
+        self.assertIn("class ConnectionPlan", claim_source)
+        self.assertIn("class ConnectionStartResult", claim_source)
+        self.assertIn("self._sessionClaimService.plan_local_connection", global_source)
+        self.assertIn("self._sessionClaimService.plan_remote_connection", global_source)
+        self.assertIn("self._sessionClaimService.select_connection", global_source)
+        self.assertIn("self._sessionClaimService.disconnect_connection", global_source)
+        self.assertIn("class ManagedClientFactory", client_source)
+        self.assertIn("self._clientFactory.create_local", claim_source)
+        self.assertIn("self._clientFactory.create_remote", claim_source)
+        self.assertIn("self._sessionClaimService.start_local_connection", global_source)
+        self.assertIn("self._sessionClaimService.start_remote_connection", global_source)
+        self.assertNotIn("self._sessionClaimService.start_connection", global_source)
+        self.assertIn("class TemporaryBindingOffer", claim_source)
+        self.assertIn("def prepare_temporary_binding_offer", claim_source)
+        self.assertNotIn("self._sessionClaimService.prepare_temporary_binding_offer", global_source)
+        self.assertIn("self._sessionClaimService.remember_temporary_binding", global_source)
+        self.assertIn("self._sessionClaimService.forget_temporary_binding", global_source)
+        self.assertIn("self._sessionClaimService.consume_temporary_binding_offer", global_source)
+        self.assertIn("self._sessionClaimService.activate_remembered_binding", global_source)
+        self.assertIn("self._sessionClaimService.plan_remembered_state_request", global_source)
+        self.assertIn("self._sessionClaimService.arm_temporary_binding_reactivation", global_source)
+        self.assertIn("self._sessionClaimService.consume_temporary_binding_reactivation", global_source)
+        self.assertIn("self._sessionClaimService.set_pending_target", global_source)
+        self.assertIn("self._sessionClaimService.baseline_snapshot", global_source)
+        self.assertNotIn("def _scanAutomaticClaimTargets", global_source)
+        self.assertNotIn("def _scanClaimTargets", global_source)
+        self.assertNotIn("def _pollLocalSessions", global_source)
+        self.assertNotIn("def _claimSequence", global_source)
+        self.assertNotIn("self._instanceManager.add_target(", global_source)
+        self.assertNotIn("self._instanceManager.remove(", global_source)
+        self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
+        self.assertNotIn('name="nvim-nvda-session-list"', global_source)
+        self.assertNotIn("ThreadPoolExecutor", global_source)
+
+    def test_managed_client_factory_correlates_transport_callbacks_to_instance(self) -> None:
+        from globalPlugins.NeovimAccessLink.managed_clients import ManagedClientFactory
+
+        callbacks = {}
+        events = []
+        states = []
+        diagnostics = []
+
+        class Client:
+            pass
+
+        def local_constructor(host, port, on_event, on_state, **kwargs):
+            callbacks.update(
+                host=host,
+                port=port,
+                on_event=on_event,
+                on_state=on_state,
+                on_diagnostic=kwargs["on_diagnostic"],
+                session_nonce=kwargs["session_nonce"],
+            )
+            return Client()
+
+        factory = ManagedClientFactory(
+            local_client_constructor=local_constructor,
+            ssh_client_constructor=lambda *_args, **_kwargs: Client(),
+            on_event=lambda instance_id, event: events.append((instance_id, event)),
+            on_state=lambda instance_id, state: states.append((instance_id, state)),
+            record_network_diagnostic=lambda category, fields: diagnostics.append((category, fields)),
+        )
+        session = types.SimpleNamespace(
+            host="127.0.0.1",
+            port=45678,
+            session_nonce="a" * 32,
+        )
+
+        client = factory.create_local(session)
+        client.nvim_nvda_instance_id = "connection-7"
+        callbacks["on_event"]({"type": "fullState"})
+        callbacks["on_state"]("connected")
+        callbacks["on_diagnostic"]("transport", {"attempt": 1})
+
+        self.assertEqual("127.0.0.1", callbacks["host"])
+        self.assertEqual(45678, callbacks["port"])
+        self.assertEqual("a" * 32, callbacks["session_nonce"])
+        self.assertEqual([("connection-7", {"type": "fullState"})], events)
+        self.assertEqual([("connection-7", "connected")], states)
+        self.assertEqual(
+            [("transport", {"attempt": 1, "instanceId": "connection-7"})],
+            diagnostics,
+        )
+
+    def test_editor_session_controller_owns_runtime_mutation_and_isolation(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        self.assertTrue(controller.switch_instance("first"))
+        coordinator.typed_word = ["pending"]
+        coordinator.typed_position = ((1, 1), 3)
+
+        transition = controller.apply_event({
+            "type": "fullState",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "",
+                "_transport": {"capabilities": ["resync", 4, "clipboardTransfer"]},
+            },
+        })
+
+        self.assertEqual("fullState", transition.event_type)
+        self.assertIsNone(transition.previous_mode)
+        self.assertEqual("insert", transition.mode)
+        self.assertTrue(transition.reset_typed_echo)
+        self.assertEqual([], coordinator.typed_word)
+        self.assertIsNone(coordinator.typed_position)
+        self.assertEqual(frozenset({"resync", "clipboardTransfer"}), coordinator.transport_capabilities)
+        self.assertTrue(coordinator.connected)
+        self.assertEqual("connected", coordinator.last_connection_state)
+
+        actions = controller.plan_structured_typing(
+            "é",
+            {"bufferId": 1, "cursor": {"line": 1, "byteColumn": 2}},
+            command_line=False,
+            speak_characters=True,
+            speak_words=True,
+        )
+        self.assertEqual([("é", True)], [(action.text, action.spelling) for action in actions])
+        actions = controller.plan_structured_typing(
+            "é ",
+            {"bufferId": 1, "cursor": {"line": 1, "byteColumn": 3}},
+            command_line=False,
+            speak_characters=True,
+            speak_words=True,
+        )
+        self.assertEqual(
+            [("é", False), (" ", True)],
+            [(action.text, action.spelling) for action in actions],
+        )
+
+        controller.apply_event({
+            "type": "menuSelectionChanged",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "terminal",
+                "item": {"documentation": "first documentation"},
+            },
+        })
+        coordinator.typed_word = ["first"]
+        self.assertTrue(controller.switch_instance("second"))
+        self.assertEqual({}, coordinator.current_state)
+        self.assertEqual([], coordinator.typed_word)
+        self.assertEqual("", coordinator.menu_documentation)
+
+        controller.apply_event({
+            "type": "modeChanged",
+            "payload": {"bufferId": 2, "mode": "normal", "buftype": ""},
+        })
+        self.assertTrue(controller.switch_instance("first"))
+        self.assertEqual(1, coordinator.current_state["bufferId"])
+        self.assertEqual("insert", coordinator.last_mode)
+        self.assertEqual(["first"], coordinator.typed_word)
+        self.assertEqual("first documentation", coordinator.menu_documentation)
+
+        connection = controller.apply_connection_state("disconnected", reset_runtime=True)
+        self.assertEqual("connected", connection.previous)
+        self.assertTrue(connection.connection_lost)
+        self.assertEqual([], coordinator.typed_word)
+        controller.mark_disconnected()
+        self.assertFalse(coordinator.connected)
+
+        transition = controller.apply_event({
+            "type": "modeChanged",
+            "payload": {"bufferId": 1, "mode": "normal", "buftype": "terminal"},
+        })
+        self.assertEqual("terminal", transition.previous_buftype)
+        self.assertEqual(1, transition.previous_buffer_id)
+        self.assertEqual(1, transition.buffer_id)
+        self.assertTrue(transition.reset_typed_echo)
+
+        planner = mock.Mock()
+        coordinator.planner = planner
+        coordinator.typed_word = ["pending"]
+        coordinator.typed_position = ((1, 1), 7)
+        coordinator.menu_documentation = "Current completion details"
+        self.assertEqual("Current completion details", controller.completion_documentation())
+        controller.reset_planning_state()
+        planner.reset.assert_called_once_with()
+        self.assertEqual([], coordinator.typed_word)
+        self.assertIsNone(coordinator.typed_position)
+
+        self.assertTrue(controller.drop_instance("first"))
+        self.assertIsNone(coordinator.active_instance_id)
+        self.assertEqual({}, coordinator.current_state)
+
+    def test_editor_session_controller_correlates_and_sanitizes_control_replies(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            ControlReplyKind,
+            EditorSessionController,
+        )
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(
+            coordinator,
+            new_planner=SpeechPlanner,
+            max_pending_clipboard_requests=2,
+            max_pending_terminal_control_requests=2,
+        )
+        identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 6))
+        other_identity = TerminalIdentity(100, 201, "windowsTerminal", (42, 201, 4, 7))
+
+        first = controller.remember_clipboard_request("instance-1", identity, "copyTextRequest")
+        second = controller.remember_clipboard_request("instance-1", identity, "pasteTextRequest")
+        third = controller.remember_clipboard_request("instance-1", identity, "setRegisterRequest")
+        self.assertEqual((first.request_id,), third.discarded_request_ids)
+        self.assertEqual(2, len(coordinator.pending_clipboard_requests))
+
+        invalid = controller.consume_clipboard_reply(
+            "instance-1",
+            identity,
+            {"type": "pasteTextResult", "payload": {"requestId": "not-an-id"}},
+        )
+        self.assertEqual(ControlReplyKind.INVALID_REQUEST_ID, invalid.kind)
+        self.assertIn(second.request_id, coordinator.pending_clipboard_requests)
+
+        stale = controller.consume_clipboard_reply(
+            "instance-1",
+            other_identity,
+            {
+                "type": "pasteTextResult",
+                "payload": {
+                    "requestId": second.request_id,
+                    "ok": True,
+                    "resultCode": "pasted",
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.STALE_OR_UNBOUND, stale.kind)
+        self.assertNotIn(second.request_id, coordinator.pending_clipboard_requests)
+
+        copy = controller.remember_clipboard_request("instance-1", identity, "copyTextRequest")
+        reply = controller.consume_clipboard_reply(
+            "instance-1",
+            identity,
+            {
+                "type": "copyTextResult",
+                "payload": {
+                    "requestId": copy.request_id,
+                    "ok": True,
+                    "resultCode": "copied",
+                    "clipboardText": "private selection",
+                    "text": "must also remain private",
+                    "bufferId": 7,
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.ACCEPTED, reply.kind)
+        self.assertTrue(reply.requires_clipboard_write)
+        self.assertEqual("private selection", reply.clipboard_text)
+        self.assertNotIn("clipboardText", reply.safe_payload)
+        self.assertNotIn("text", reply.safe_payload)
+        self.assertEqual({"bufferId": 7}, reply.safe_event["payload"])
+        failed = controller.finish_clipboard_reply(reply, clipboard_written=False)
+        self.assertFalse(failed.ok)
+        self.assertEqual("clipboardWriteFailed", failed.result_code)
+
+        terminal = controller.remember_terminal_control_request(
+            "instance-1",
+            identity,
+            "leaveTerminalInputRequest",
+        )
+        terminal_reply = controller.consume_terminal_control_reply(
+            "instance-1",
+            identity,
+            {
+                "type": "leaveTerminalInputResult",
+                "payload": {
+                    "requestId": terminal.request_id,
+                    "ok": True,
+                    "resultCode": "ok",
+                    "bufferId": 9,
+                    "modeRaw": "nt",
+                },
+            },
+        )
+        self.assertEqual(ControlReplyKind.ACCEPTED, terminal_reply.kind)
+        self.assertTrue(terminal_reply.ok)
+        self.assertEqual(
+            {"bufferId": 9, "modeRaw": "nt"},
+            terminal_reply.safe_event["payload"],
+        )
+
+    def test_editor_session_controller_validates_outbound_control_plans(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            ControlRequestRejection,
+            EditorSessionController,
+        )
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        identity = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 6))
+        coordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 2,
+            "tabpageId": 3,
+            "changedtick": 4,
+            "mode": "normal",
+            "modeRaw": "n",
+            "modeBlocking": False,
+            "buftype": "",
+            "modifiable": True,
+            "readonly": False,
+            "fileManager": None,
+        }
+
+        missing_capability = controller.plan_clipboard_request(
+            "instance-1", identity, "setRegisterRequest",
+        )
+        self.assertEqual(ControlRequestRejection.CAPABILITY_MISSING, missing_capability.rejection)
+        self.assertEqual({}, coordinator.pending_clipboard_requests)
+
+        coordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        incomplete_state = dict(coordinator.current_state)
+        incomplete_state.pop("changedtick")
+        coordinator.current_state = incomplete_state
+        incomplete = controller.plan_clipboard_request(
+            "instance-1", identity, "setRegisterRequest",
+        )
+        self.assertEqual(ControlRequestRejection.INCOMPLETE_STATE, incomplete.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "changedtick": 4,
+            "mode": "visualCharacter",
+        }
+        visual = controller.plan_clipboard_request(
+            "instance-1",
+            identity,
+            "copyTextRequest",
+            source="visualSelection",
+        )
+        self.assertEqual(ControlRequestRejection.VISUAL_SELECTION_REQUIRED, visual.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "commandLine",
+            "modeRaw": "c",
+        }
+        paste_mode = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertEqual(ControlRequestRejection.PASTE_MODE_UNAVAILABLE, paste_mode.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "normal",
+            "modeRaw": "n",
+            "readonly": True,
+        }
+        read_only = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertEqual(ControlRequestRejection.BUFFER_NOT_EDITABLE, read_only.rejection)
+
+        coordinator.current_state = {**coordinator.current_state, "readonly": False}
+        paste = controller.plan_clipboard_request(
+            "instance-1", identity, "pasteTextRequest",
+        )
+        self.assertTrue(paste.ready)
+        self.assertEqual("pasteTextRequest", paste.control)
+        self.assertEqual("n", paste.payload["modeRaw"])
+        self.assertEqual(paste.request_id, paste.payload["requestId"])
+        with self.assertRaises(TypeError):
+            paste.payload["modeRaw"] = "i"
+
+        no_terminal_capability = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(
+            ControlRequestRejection.CAPABILITY_MISSING,
+            no_terminal_capability.rejection,
+        )
+        coordinator.transport_capabilities = frozenset({"clipboardTransfer", "terminalControl"})
+        not_terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(ControlRequestRejection.NOT_DIRECT_TERMINAL, not_terminal.rejection)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "terminal",
+            "modeRaw": "t",
+            "buftype": "terminal",
+            "windowId": None,
+        }
+        incomplete_terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertEqual(ControlRequestRejection.INCOMPLETE_STATE, incomplete_terminal.rejection)
+        coordinator.current_state["windowId"] = 2
+        terminal = controller.plan_leave_terminal_input_request("instance-1", identity)
+        self.assertTrue(terminal.ready)
+        self.assertEqual("leaveTerminalInputRequest", terminal.control)
+        self.assertNotIn("changedtick", terminal.payload)
+        self.assertEqual(terminal.request_id, terminal.payload["requestId"])
+
+    def test_editor_session_controller_plans_mode_cues_speech_and_terminal_passthrough(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+
+        initial = controller.plan_event(
+            {
+                "type": "fullState",
+                "payload": {
+                    "bufferId": 1,
+                    "mode": "normal",
+                    "modeRaw": "n",
+                    "buftype": "",
+                    "lineText": "first",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=True,
+            allow_focus_context_cue=True,
+        )
+        self.assertIsNone(initial.mode_cue)
+        self.assertFalse(initial.terminal_passthrough)
+
+        insert = controller.plan_event(
+            {
+                "type": "modeChanged",
+                "payload": {
+                    "bufferId": 1,
+                    "mode": "insert",
+                    "modeRaw": "i",
+                    "buftype": "",
+                    "lineText": "first",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=True,
+            allow_focus_context_cue=True,
+        )
+        self.assertEqual("insert", insert.mode_cue.mode)
+        self.assertFalse(insert.mode_cue.focus_context)
+        self.assertTrue(any(action.text == "insert mode" for action in insert.speech_actions))
+
+        entered_terminal = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertEqual("terminalNormal", entered_terminal.mode_cue.mode)
+
+        direct_terminal = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminal",
+                    "modeRaw": "t",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertTrue(direct_terminal.terminal_passthrough)
+        self.assertTrue(coordinator.terminal_passthrough["instance-1"])
+        self.assertEqual("terminal", direct_terminal.mode_cue.mode)
+        self.assertEqual((), direct_terminal.speech_actions)
+
+        terminal_normal = controller.plan_event(
+            {
+                "type": "modeChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                    "lineText": "prompt",
+                    "cursor": {"line": 4, "byteColumn": 6},
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertFalse(terminal_normal.terminal_passthrough)
+        self.assertFalse(coordinator.terminal_passthrough["instance-1"])
+        self.assertEqual("terminalNormal", terminal_normal.mode_cue.mode)
+
+        duplicate = controller.plan_event(
+            {
+                "type": "contextChanged",
+                "payload": {
+                    "bufferId": 2,
+                    "mode": "terminalNormal",
+                    "modeRaw": "nt",
+                    "buftype": "terminal",
+                },
+            },
+            focus_announcement="context",
+            plan_speech=False,
+            allow_focus_context_cue=True,
+        )
+        self.assertIsNone(duplicate.mode_cue)
+
+        focus_event = {
+            "type": "focusContext",
+            "payload": {
+                "bufferId": 2,
+                "mode": "terminalNormal",
+                "modeRaw": "nt",
+                "buftype": "terminal",
+            },
+        }
+        focus = controller.plan_event(
+            focus_event,
+            focus_announcement="none",
+            plan_speech=True,
+            allow_focus_context_cue=False,
+            connection_label="Remote example",
+        )
+        self.assertIsNone(focus.mode_cue)
+        self.assertEqual((), focus.speech_actions)
+        self.assertNotIn("_connectionLabel", focus_event["payload"])
+        self.assertEqual("Remote example", coordinator.current_state["_connectionLabel"])
+
+    def test_editor_session_controller_plans_braille_snapshot_and_validated_route(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+        coordinator.current_state = {
+            "bufferId": 7,
+            "windowId": 11,
+            "changedtick": 13,
+            "lineText": "\t界z",
+            "tabstop": 4,
+            "cursor": {"line": 3, "byteColumn": 1},
+            "_transport": {"capabilities": ["cursorRouting"]},
+        }
+        coordinator.active_client = object()
+
+        session_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("\t界z", session_plan.source_line)
+        coordinator.current_state["lineText"] = "changed later"
+        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("\t界z", session_plan.source_line)
+
+        route = controller.plan_braille_route(1)
+        self.assertTrue(route.ready)
+        self.assertEqual({
+            "bufferId": 7,
+            "windowId": 11,
+            "line": 3,
+            "byteColumn": 1,
+            "changedtick": 13,
+        }, route.payload())
+
+        rejected_column = controller.plan_braille_route(-1)
+        self.assertFalse(rejected_column.ready)
+        self.assertEqual("incompleteState", rejected_column.rejection_reason)
+        coordinator.active_client = None
+        rejected_client = controller.plan_braille_route(1)
+        self.assertFalse(rejected_client.ready)
+        self.assertEqual("incompleteState", rejected_client.rejection_reason)
+        coordinator.current_state.pop("_transport")
+        coordinator.transport_capabilities = frozenset()
+        rejected_capability = controller.plan_braille_route(1)
+        self.assertFalse(rejected_capability.ready)
+        self.assertEqual("capabilityMissing", rejected_capability.rejection_reason)
+
+    def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
+        plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
+        global_source = (plugin / "__init__.py").read_text(encoding="utf-8")
+        editor_source = (plugin / "editor_session.py").read_text(encoding="utf-8")
+        facade_source = (plugin / "terminal_integration.py").read_text(encoding="utf-8")
+
+        self.assertIn("class EditorSessionController", editor_source)
+        self.assertNotIn("GlobalPlugin", editor_source)
+        self.assertIn("self._editorSessionController.plan_event(", global_source)
+        self.assertNotIn("self._planner.plan(", global_source)
+        self.assertNotIn("self._currentState = payload", global_source)
+        self.assertNotIn("self._lastMode = mode", global_source)
+        self.assertNotIn("self._menuDocumentation = documentation", global_source)
+        self.assertNotIn('next_request_id("clipboard")', global_source)
+        self.assertNotIn('remember_pending_request("clipboard"', global_source)
+        self.assertNotIn("PendingControlRequest", global_source)
+        self.assertIn("self._editorSession.plan_braille(", facade_source)
+        self.assertIn("self._editorSession.plan_braille_route(", facade_source)
+        self.assertNotIn("self._runtime._currentState", facade_source)
+        self.assertNotIn("self._runtime._routeBrailleCursor", facade_source)
+        self.assertNotIn('payload["_connectionLabel"]', global_source)
+        self.assertNotIn("self._instanceTerminalPassthrough[instance_id] =", global_source)
+        self.assertIn("plan_clipboard_request(", editor_source)
+        self.assertIn("plan_leave_terminal_input_request(", editor_source)
+        self.assertNotIn('state.get("mode") not in {"normal", "insert"}', global_source)
+        self.assertNotIn('state.get("buftype") != "terminal"', global_source)
+        self.assertNotIn("self._planner.reset()", global_source)
+        self.assertNotIn("if self._menuDocumentation:", global_source)
+
+    def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
+        from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager
+
+        class FakeSettings:
+            def snapshot(inner_self):
+                return {"connections": [], "feedback": {}, "focusAnnouncement": 2}
+
+            def update(inner_self, _values):
+                return types.SimpleNamespace(claim_inventory_started=False)
+
+            def save(inner_self):
+                pass
+
+        settings = FakeSettings()
+        diagnostics = []
+        password = lambda _profile: ""
+        askpass = lambda: "askpass.cmd"
+        manager = NvdaUiManager(
+            settings,
+            record_diagnostic=lambda *args, **kwargs: diagnostics.append((args, kwargs)),
+            password_for_profile=password,
+            askpass_path=askpass,
+            product_name=buildVars.manifest()["summary"],
+            package_dir="package",
+            feedback_defaults={"global": 3},
+            focus_announcement_default=2,
+        )
+
+        self.assertIs(settings, manager._settingsService)
+        self.assertIs(password, manager._passwordForProfile)
+        self.assertIs(askpass, manager._askpassPath)
+        self.assertFalse(hasattr(manager, "_plugin"))
+
+        manager.register()
+        manager.register()
+        self.assertEqual(2, len(manager._menuItems))
+        self.assertEqual(1, len(self.settingsCategoryClasses))
+        manager.unregister()
+        manager.unregister()
+        self.assertEqual([], manager._menuItems)
+        self.assertEqual([], self.settingsCategoryClasses)
 
     def test_nvda_presentation_delivery_is_separate_from_global_plugin(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
@@ -555,11 +1303,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsInstance(plugin._connectionCoordinator, ConnectionCoordinator)
         self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
         self.assertIs(plugin._gate, plugin._connectionCoordinator.gate)
-        self.assertIs(plugin._planner, plugin._connectionCoordinator.planner)
-        self.assertIs(plugin._currentState, plugin._connectionCoordinator.current_state)
-        self.assertIs(plugin._typedWord, plugin._connectionCoordinator.typed_word)
         self.assertIs(
-            plugin._rememberedTerminalBindings,
+            plugin._connectionCoordinator.remembered_terminal_bindings,
             plugin._connectionCoordinator.remembered_terminal_bindings,
         )
         for legacy_field in (
@@ -574,23 +1319,584 @@ class BuiltAddonTests(unittest.TestCase):
             "_menuDocumentation",
         ):
             self.assertNotIn(legacy_field, vars(plugin))
+        global_source = (
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "__init__.py"
+        ).read_text(encoding="utf-8")
+        for removed_editor_view in (
+            "_planner", "_currentState", "_lastMode", "_typedWord",
+            "_typedPosition", "_menuDocumentation", "_transportCapabilities",
+        ):
+            self.assertNotIn(f"def {removed_editor_view}(self)", global_source)
+        for removed_claim_view in (
+            "_pendingClaimTargets", "_pendingObservedClaim", "_claimInventoryGeneration",
+            "_claimInventoryReady", "_claimBaselines", "_claimEligibleTargets",
+            "_claimInventoryErrors", "_sessionDiscoveryGeneration",
+        ):
+            self.assertNotIn(f"def {removed_claim_view}(self)", global_source)
+        for removed_passive_view in (
+            "_suggestionSounds", "_spellingSound", "_editorSounds",
+            "_rememberedTerminalBindings", "_rememberOfferInstances",
+            "_instanceRuntimeStates", "_pendingFocusContexts", "_pendingClipboardRequests",
+            "_pendingTerminalControlRequests", "_focusedAppModule", "_focusedAdapterToken",
+            "_focusedTerminalObject", "_terminalLifecycleScheduledAt",
+            "_client", "_lastConnectionState", "_connected", "_authenticatedInstances",
+            "_instanceTerminalPassthrough", "_activeInstanceId", "_pendingInstanceFullStates",
+        ):
+            self.assertNotIn(f"def {removed_passive_view}(self)", global_source)
+        self.assertNotIn("def _newInstanceRuntime(self)", global_source)
+
+        for module_name in (
+            "addon_runtime.py",
+            "editor_session.py",
+            "nvda_braille.py",
+            "nvda_ui.py",
+            "service_registry.py",
+            "session_claim.py",
+            "terminal_focus.py",
+            "terminal_integration.py",
+        ):
+            source = (
+                self.extract_path / "globalPlugins" / "NeovimAccessLink" / module_name
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("GlobalPlugin", source, module_name)
+
+        for app_event_entry in (
+            "def chooseNVDAObjectOverlayClasses(",
+            "def event_gainFocus(",
+            "def event_loseFocus(",
+            "def event_textChange(",
+            "def event_typedCharacter(",
+            "def event_UIA_notification(",
+            "def event_liveRegionChange(",
+            "def event_valueChange(",
+            "def event_nameChange(",
+            "def event_descriptionChange(",
+        ):
+            self.assertNotIn(app_event_entry, global_source)
 
         plugin.terminate()
 
     def test_service_registration_survives_stale_plugin_termination(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin, getActivePlugin
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalIntegrationService
 
         first = GlobalPlugin()
-        self.assertIs(first, getActivePlugin())
+        first_service = getTerminalIntegrationService()
+        self.assertIsInstance(first_service, TerminalIntegrationService)
+        self.assertIsNot(first, first_service)
 
         second = GlobalPlugin()
-        self.assertIs(second, getActivePlugin())
+        second_service = getTerminalIntegrationService()
+        self.assertIsInstance(second_service, TerminalIntegrationService)
+        self.assertIsNot(second, second_service)
+        self.assertIsNot(first_service, second_service)
 
         first.terminate()
-        self.assertIs(second, getActivePlugin())
+        self.assertIs(second_service, getTerminalIntegrationService())
 
         second.terminate()
-        self.assertIsNone(getActivePlugin())
+        self.assertIsNone(getTerminalIntegrationService())
+
+    def test_service_is_published_only_after_process_wide_ui_and_config_registration(self) -> None:
+        import config
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        observed = []
+        original_publish = addon_module._serviceRegistrar.publish
+
+        def publish(service):
+            observed.append({
+                "service": service,
+                "menus": len(self.toolsMenuLabels),
+                "settingsPanels": len(self.settingsCategoryClasses),
+                "profileHandlers": len(config.post_configProfileSwitch.handlers),
+            })
+            return original_publish(service)
+
+        with mock.patch.object(addon_module._serviceRegistrar, "publish", side_effect=publish):
+            plugin = GlobalPlugin()
+
+        self.assertEqual(1, len(observed))
+        self.assertIs(plugin._terminalIntegrationService, observed[0]["service"])
+        self.assertIsNot(plugin, observed[0]["service"])
+        self.assertEqual(2, observed[0]["menus"])
+        self.assertEqual(1, observed[0]["settingsPanels"])
+        self.assertEqual(1, observed[0]["profileHandlers"])
+        plugin.terminate()
+
+    def test_global_teardown_unpublishes_before_opening_gate_and_shared_cleanup(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        add_remote_instance(plugin._instanceManager, "work", "88", "Work", Client())
+        order = []
+        original_unpublish = addon_module._serviceRegistrar.unpublish
+        original_service_close = plugin._terminalIntegrationService.close
+        original_disable = plugin._gate.disable
+        original_stop_connections = plugin._instanceManager.stop_all
+        original_unregister = plugin._nvdaUi.unregister
+        original_close = plugin._presentation.close
+
+        with (
+            mock.patch.object(
+                addon_module._serviceRegistrar,
+                "unpublish",
+                side_effect=lambda *args: order.append("unpublish") or original_unpublish(*args),
+            ),
+            mock.patch.object(
+                plugin._terminalIntegrationService,
+                "close",
+                side_effect=lambda: order.append("terminalService") or original_service_close(),
+            ),
+            mock.patch.object(
+                plugin._gate,
+                "disable",
+                side_effect=lambda: order.append("gate") or original_disable(),
+            ),
+            mock.patch.object(
+                plugin._instanceManager,
+                "stop_all",
+                side_effect=lambda: order.append("connections") or original_stop_connections(),
+            ),
+            mock.patch.object(
+                plugin._nvdaUi,
+                "unregister",
+                side_effect=lambda: order.append("ui") or original_unregister(),
+            ),
+            mock.patch.object(
+                plugin._presentation,
+                "close",
+                side_effect=lambda: order.append("presentation") or original_close(),
+            ),
+        ):
+            plugin.terminate()
+
+        self.assertEqual(
+            ["unpublish", "terminalService", "gate", "connections", "ui", "presentation"],
+            order,
+        )
+
+    def test_addon_runtime_publishes_late_and_closes_once_in_fixed_order(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        order = []
+        service = mock.Mock()
+        service.close.side_effect = lambda: order.append("terminalService")
+        token = object()
+        registrar = mock.Mock()
+        registrar.publish.side_effect = lambda value: order.append("publish") or token
+        registrar.unpublish.side_effect = (
+            lambda value, registration: order.append("unpublish") or True
+        )
+        pending = mock.Mock()
+        pending.Stop.side_effect = lambda: order.append("mainThread")
+        gate = mock.Mock()
+        gate.disable.side_effect = lambda: order.append("gate")
+        profile_switch = mock.Mock()
+        profile_switch.register.side_effect = lambda _handler: order.append("profileRegister")
+        profile_switch.unregister.side_effect = lambda _handler: order.append("profileSwitch")
+        profile_handler = mock.Mock()
+        coordinator = mock.Mock()
+        coordinator.instances.list.return_value = [object()]
+        coordinator.instances.stop_all.side_effect = lambda: order.append("connections")
+        coordinator.clear_runtime_tracking.side_effect = lambda: order.append("runtimeTracking")
+        focus = mock.Mock()
+        focus.clear.side_effect = lambda: order.append("terminalFocus")
+        claim = mock.Mock()
+        claim.invalidate_connection_state.side_effect = lambda: order.append("connectionClaims")
+        ui_manager = mock.Mock()
+        ui_manager.register.side_effect = lambda: order.append("uiRegister")
+        ui_manager.unregister.side_effect = lambda: order.append("ui")
+        presentation = mock.Mock()
+        presentation.close.side_effect = lambda: order.append("presentation")
+        diagnostics = mock.Mock()
+
+        runtime = AddonRuntime(
+            registrar=registrar,
+            integration_service=service,
+            pending_main_thread_calls={pending},
+            gate=gate,
+            profile_switch_action=profile_switch,
+            profile_switch_handler=profile_handler,
+            clear_session_passwords=lambda: order.append("passwords"),
+            coordinator=coordinator,
+            focus_service=focus,
+            claim_service=claim,
+            ui_manager=ui_manager,
+            presentation=presentation,
+            diagnostics=diagnostics,
+        )
+        self.assertTrue(runtime.start())
+        self.assertFalse(runtime.start())
+        self.assertTrue(runtime.close())
+        self.assertFalse(runtime.close())
+
+        self.assertEqual(
+            [
+                "profileRegister",
+                "uiRegister",
+                "publish",
+                "unpublish",
+                "terminalService",
+                "mainThread",
+                "gate",
+                "profileSwitch",
+                "passwords",
+                "connectionClaims",
+                "terminalFocus",
+                "connections",
+                "runtimeTracking",
+                "ui",
+                "presentation",
+            ],
+            order,
+        )
+        registrar.publish.assert_called_once_with(service)
+        registrar.unpublish.assert_called_once_with(service, token)
+        profile_switch.register.assert_called_once_with(profile_handler)
+        profile_switch.unregister.assert_called_once_with(profile_handler)
+        diagnostics.record.assert_any_call("addonStop")
+
+    def test_addon_runtime_continues_teardown_after_a_step_failure(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        registrar = mock.Mock()
+        diagnostics = mock.Mock()
+        ui_manager = mock.Mock()
+        presentation = mock.Mock()
+        coordinator = mock.Mock()
+        coordinator.instances.list.return_value = [object()]
+        coordinator.instances.stop_all.side_effect = RuntimeError("stop failed")
+        runtime = AddonRuntime(
+            registrar=registrar,
+            integration_service=mock.Mock(),
+            pending_main_thread_calls=set(),
+            gate=mock.Mock(),
+            profile_switch_action=mock.Mock(),
+            profile_switch_handler=mock.Mock(),
+            clear_session_passwords=mock.Mock(),
+            coordinator=coordinator,
+            focus_service=mock.Mock(),
+            claim_service=mock.Mock(),
+            ui_manager=ui_manager,
+            presentation=presentation,
+            diagnostics=diagnostics,
+        )
+
+        self.assertTrue(runtime.close())
+
+        ui_manager.unregister.assert_called_once_with()
+        presentation.close.assert_called_once_with()
+        diagnostics.record.assert_any_call(
+            "runtimeCloseStepError",
+            step="connections",
+            errorType="RuntimeError",
+            error="stop failed",
+        )
+        diagnostics.record.assert_any_call("addonStop")
+
+    def test_global_teardown_stops_managed_clients_without_global_forwarder(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self):
+                inner_self.stop_count = 0
+
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                inner_self.stop_count += 1
+
+        plugin = GlobalPlugin()
+        client = Client()
+        add_remote_instance(plugin._instanceManager, "work", "88", "Work", client)
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.pending_focus_contexts["connection-1"] = object()
+        plugin._connectionCoordinator.pending_clipboard_requests[1] = object()
+        plugin._sessionClaimService.inventory_ready = True
+
+        with mock.patch.object(plugin, "_stopClient") as legacy_stop:
+            plugin.terminate()
+
+        legacy_stop.assert_not_called()
+        self.assertEqual(1, client.stop_count)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_focus_contexts)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
+        self.assertFalse(plugin._sessionClaimService.inventory_ready)
+
+    def test_addon_runtime_start_rolls_back_each_partial_activation(self) -> None:
+        from globalPlugins.NeovimAccessLink.addon_runtime import AddonRuntime
+
+        for failure_step in ("profile", "ui", "publish"):
+            with self.subTest(failureStep=failure_step):
+                registrar = mock.Mock()
+                integration_service = mock.Mock()
+                profile_switch = mock.Mock()
+                profile_handler = mock.Mock()
+                ui_manager = mock.Mock()
+                presentation = mock.Mock()
+                if failure_step == "profile":
+                    profile_switch.register.side_effect = RuntimeError("profile failed")
+                elif failure_step == "ui":
+                    ui_manager.register.side_effect = RuntimeError("ui failed")
+                else:
+                    registrar.publish.side_effect = RuntimeError("publish failed")
+                runtime = AddonRuntime(
+                    registrar=registrar,
+                    integration_service=integration_service,
+                    pending_main_thread_calls=set(),
+                    gate=mock.Mock(),
+                    profile_switch_action=profile_switch,
+                    profile_switch_handler=profile_handler,
+                    clear_session_passwords=mock.Mock(),
+                    coordinator=mock.Mock(),
+                    focus_service=mock.Mock(),
+                    claim_service=mock.Mock(),
+                    ui_manager=ui_manager,
+                    presentation=presentation,
+                    diagnostics=mock.Mock(),
+                )
+
+                with self.assertRaisesRegex(RuntimeError, rf"{failure_step} failed"):
+                    runtime.start()
+
+                self.assertTrue(runtime.closed)
+                integration_service.close.assert_called_once_with()
+                ui_manager.unregister.assert_called_once_with()
+                presentation.close.assert_called_once_with()
+                registrar.unpublish.assert_not_called()
+                if failure_step == "profile":
+                    profile_switch.unregister.assert_not_called()
+                    ui_manager.register.assert_not_called()
+                    registrar.publish.assert_not_called()
+                else:
+                    profile_switch.unregister.assert_called_once_with(profile_handler)
+                    ui_manager.register.assert_called_once_with()
+                    if failure_step == "ui":
+                        registrar.publish.assert_not_called()
+                    else:
+                        registrar.publish.assert_called_once_with(integration_service)
+                with self.assertRaisesRegex(RuntimeError, "runtime is closed"):
+                    runtime.start()
+
+    def test_unpublished_terminal_service_is_closed_and_fails_open(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
+
+        plugin = GlobalPlugin()
+        service = plugin._terminalIntegrationService
+        app_module = self.focus.appModule
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        plugin._sessionClaimService.inventory_ready = True
+        authorization = service.authorize_session_claim(self.focus, app_module)
+        self.assertIsNotNone(authorization)
+
+        plugin.terminate()
+        report_after_terminate = plugin._diagnostics.report()
+
+        self.assertTrue(service.closed)
+        self.assertFalse(service.close())
+        self.assertFalse(service.supports_braille_overlay(self.focus))
+        self.assertIsNone(service.prepare_focus(self.focus, object(), app_module))
+        service.finish_focus(object())
+        service.abandon_focus(object())
+        service.lose_focus(object())
+        self.assertTrue(service.should_use_native_event(self.focus, "typedCharacter"))
+        self.assertFalse(
+            service.dispatch_command(
+                TerminalCommand.TOGGLE_ACCESSIBILITY,
+                object(),
+                self.focus,
+                app_module,
+                object(),
+            )
+        )
+        service.copy_diagnostic_report(object())
+        self.assertIsNone(service.authorize_session_claim(self.focus, app_module))
+        self.assertFalse(
+            service.complete_session_claim(
+                authorization,
+                self.focus,
+                app_module,
+                object(),
+            )
+        )
+        self.assertFalse(service.cancel_session_claim(authorization))
+        self.assertFalse(service.should_suppress_braille(self.focus))
+        self.assertIsNone(service.braille_plan(self.focus, report_spelling=False))
+        self.assertFalse(service.suppress_terminal_live_text(self.focus, 1))
+        service.record_braille_route_rejection("closed", 0)
+        self.assertFalse(service.route_braille_cursor(self.focus, 0))
+        self.assertEqual(report_after_terminate, plugin._diagnostics.report())
+
+    def test_terminal_integration_requires_a_complete_narrow_action_contract(self) -> None:
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        actions = {command: mock.Mock() for command in TerminalCommand}
+        dependencies = {
+            "focus_service": mock.Mock(),
+            "claim_service": mock.Mock(),
+            "editor_session": mock.Mock(),
+            "command_actions": actions,
+            "copy_diagnostic_report": mock.Mock(),
+            "claim_focused_session": mock.Mock(),
+            "send_braille_route": mock.Mock(),
+            "record_diagnostic": mock.Mock(),
+            "fail_open_event": mock.Mock(),
+        }
+
+        service = TerminalIntegrationService(**dependencies)
+        self.assertFalse(service.closed)
+
+        incomplete = dict(actions)
+        incomplete.pop(TerminalCommand.TOGGLE_ACCESSIBILITY)
+        with self.assertRaisesRegex(ValueError, "every terminal command"):
+            TerminalIntegrationService(**{**dependencies, "command_actions": incomplete})
+        with self.assertRaisesRegex(ValueError, "callbacks are required"):
+            TerminalIntegrationService(**{**dependencies, "send_braille_route": None})
+
+    def test_queued_runtime_callbacks_are_inert_after_unpublish(self) -> None:
+        import queueHandler
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        queued = []
+        executed = []
+        original_queue_function = queueHandler.queueFunction
+        queueHandler.queueFunction = lambda _queue, function, *args, **kwargs: queued.append(
+            (function, args, kwargs)
+        )
+        try:
+            self.assertTrue(plugin._queueRuntimeCallback(executed.append, "queued"))
+            self.assertEqual(1, len(queued))
+            plugin.terminate()
+
+            queued[0][0](*queued[0][1])
+            self.assertFalse(plugin._queueRuntimeCallback(executed.append, "future"))
+            plugin._onManagedEvent("connection-1", {"type": "fullState"})
+            plugin._onManagedState("connection-1", "connected")
+            plugin._onNetworkEvent({"type": "modeChanged"})
+            plugin._onNetworkState("connected")
+            plugin._queueBrailleRefresh(rebuild=True)
+            plugin._queueClaimResult(executed.append, "claim")
+        finally:
+            queueHandler.queueFunction = original_queue_function
+
+        self.assertEqual([], executed)
+        self.assertEqual(1, len(queued))
+
+    def test_delayed_runtime_callback_race_is_inert_after_teardown(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        import wx
+
+        class PendingCall:
+            def __init__(inner_self, callback):
+                inner_self.callback = callback
+                inner_self.stopped = False
+
+            def Stop(inner_self):
+                inner_self.stopped = True
+
+        pending = []
+        original_call_later = wx.CallLater
+        wx.CallLater = lambda _delay, callback: pending.append(PendingCall(callback)) or pending[-1]
+        try:
+            plugin = GlobalPlugin()
+            executed = []
+            call = plugin._scheduleMainThreadCall(100, executed.append, "late")
+            plugin.terminate()
+            call.callback()
+        finally:
+            wx.CallLater = original_call_later
+
+        self.assertTrue(call.stopped)
+        self.assertEqual([], executed)
+
+    def test_global_initialization_failure_rolls_back_before_publication(self) -> None:
+        import config
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        with (
+            mock.patch.object(addon_module.NvdaPresentation, "close") as close_presentation,
+            mock.patch.object(
+                addon_module._serviceRegistrar,
+                "publish",
+                side_effect=RuntimeError("publication failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "publication failed"),
+        ):
+            GlobalPlugin()
+
+        self.assertIsNone(getTerminalIntegrationService())
+        self.assertEqual([], self.settingsCategoryClasses)
+        self.assertEqual([], config.post_configProfileSwitch.handlers)
+        close_presentation.assert_called_once_with()
+
+    def test_global_partial_ui_registration_failure_rolls_back_runtime(self) -> None:
+        import config
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        with (
+            mock.patch.object(
+                addon_module.NvdaUiManager,
+                "_registerSettingsPanel",
+                side_effect=RuntimeError("settings panel failed"),
+            ),
+            mock.patch.object(addon_module.NvdaPresentation, "close") as close_presentation,
+            self.assertRaisesRegex(RuntimeError, "settings panel failed"),
+        ):
+            GlobalPlugin()
+
+        self.assertIsNone(getTerminalIntegrationService())
+        self.assertEqual([], self.settingsCategoryClasses)
+        self.assertEqual([], config.post_configProfileSwitch.handlers)
+        close_presentation.assert_called_once_with()
+
+    def test_service_replacement_during_native_focus_keeps_new_service_current_and_open(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        first = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        replacement = []
+        native = []
+
+        def replace_during_native_focus():
+            native.append(True)
+            replacement.append(GlobalPlugin())
+
+        adapter.event_gainFocus(self.focus, replace_during_native_focus)
+
+        second = replacement[0]
+        self.assertEqual([True], native)
+        self.assertIs(second._terminalIntegrationService, getTerminalIntegrationService())
+        self.assertIsNone(second._gate.focused)
+        self.assertFalse(second._gate.suppression_active)
+        self.assertFalse(first._gate.suppression_active)
+        first.terminate()
+        self.assertIs(second._terminalIntegrationService, getTerminalIntegrationService())
+        adapter.terminate()
+        second.terminate()
 
     def test_nvda_window_identity_adapter_is_conclusive_only_for_matching_live_window(self) -> None:
         from globalPlugins.NeovimAccessLink import nvda_windows
@@ -873,7 +2179,7 @@ class BuiltAddonTests(unittest.TestCase):
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
         )
         for cue in cues:
-            self.assertTrue(plugin._editorSounds.play(cue), cue)
+            self.assertTrue(plugin._presentation.editor_sounds.play(cue), cue)
         self.assertEqual(len(cues), len(self.soundFeeds))
         plugin.terminate()
 
@@ -982,6 +2288,7 @@ class BuiltAddonTests(unittest.TestCase):
     def test_configured_app_module_gesture_uses_only_exact_focused_adapter(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
 
         plugin = GlobalPlugin()
         first = AppModule()
@@ -989,7 +2296,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = first
         self._focusPlugin(plugin)
         handled = []
-        plugin.action_toggleNeovimMode = lambda gesture: handled.append(gesture)
+        plugin._terminalIntegrationService._commandActions[
+            TerminalCommand.TOGGLE_ACCESSIBILITY
+        ] = lambda gesture: handled.append(gesture)
         forwarded = []
         gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
 
@@ -1002,26 +2311,41 @@ class BuiltAddonTests(unittest.TestCase):
         second.terminate()
         plugin.terminate()
 
+    def test_app_module_termination_removes_the_shared_claim_observer_only_once(self) -> None:
+        from appModules.windowsterminal import AppModule
+
+        adapter = AppModule()
+        self.assertEqual(1, len(self.inputDecider.handlers))
+
+        adapter.terminate()
+        adapter.terminate()
+
+        self.assertEqual([], self.inputDecider.handlers)
+
     def test_every_configurable_app_module_script_dispatches_its_action(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.terminal_integration import TerminalCommand
 
         scripts_and_actions = (
-            ("script_toggleNeovimMode", "action_toggleNeovimMode"),
-            ("script_readCompletionDocumentation", "action_readCompletionDocumentation"),
-            ("script_copyNeovimSelection", "action_copyNeovimSelection"),
-            ("script_copyLastNeovimYank", "action_copyLastNeovimYank"),
-            ("script_pasteWindowsClipboard", "action_pasteWindowsClipboard"),
+            ("script_toggleNeovimMode", TerminalCommand.TOGGLE_ACCESSIBILITY),
+            (
+                "script_readCompletionDocumentation",
+                TerminalCommand.READ_COMPLETION_DOCUMENTATION,
+            ),
+            ("script_copyNeovimSelection", TerminalCommand.COPY_VISUAL_SELECTION),
+            ("script_copyLastNeovimYank", TerminalCommand.COPY_LAST_YANK),
+            ("script_pasteWindowsClipboard", TerminalCommand.PASTE_WINDOWS_CLIPBOARD),
             (
                 "script_setNeovimRegisterFromWindowsClipboard",
-                "action_setNeovimRegisterFromWindowsClipboard",
+                TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD,
             ),
-            ("script_leaveDirectTerminalInput", "action_leaveDirectTerminalInput"),
-            ("script_startConnectionInstance", "action_startConnectionInstance"),
-            ("script_disconnectConnectionInstance", "action_disconnectConnectionInstance"),
+            ("script_leaveDirectTerminalInput", TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT),
+            ("script_startConnectionInstance", TerminalCommand.START_CONNECTION),
+            ("script_disconnectConnectionInstance", TerminalCommand.DISCONNECT_CONNECTION),
             (
                 "script_forgetTemporaryTerminalBinding",
-                "action_forgetTemporaryTerminalBinding",
+                TerminalCommand.FORGET_TEMPORARY_BINDING,
             ),
         )
         plugin = GlobalPlugin()
@@ -1029,19 +2353,16 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = adapter
         handled = []
         marker = object()
-        for _script_name, action_name in scripts_and_actions:
-            setattr(
-                plugin, action_name,
-                lambda gesture, action_name=action_name: handled.append(
-                    (action_name, gesture),
-                ),
+        for _script_name, command in scripts_and_actions:
+            plugin._terminalIntegrationService._commandActions[command] = (
+                lambda gesture, command=command: handled.append((command, gesture))
             )
 
-        for script_name, _action_name in scripts_and_actions:
+        for script_name, _command in scripts_and_actions:
             getattr(adapter, script_name)(marker)
 
         self.assertEqual(
-            [(action_name, marker) for _script_name, action_name in scripts_and_actions],
+            [(command, marker) for _script_name, command in scripts_and_actions],
             handled,
         )
         adapter.terminate()
@@ -1061,7 +2382,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [{
                 "id": "work", "name": "Work", "host": "host", "user": "remote",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
@@ -1071,15 +2392,22 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = AppModule()
         self.focus.appModule = adapter
         adapter.event_gainFocus(self.focus, lambda: None)
-        plugin._claimInventoryReady = True
-        adapter._prepareTerminalAction = lambda current: order.append(("focus", current))
+        plugin._sessionClaimService.inventory_ready = True
+        original_refresh = plugin._terminalFocusService.refresh_for_action
+
+        def refresh(*args, **kwargs):
+            order.append(("focus", args))
+            return original_refresh(*args, **kwargs)
+
+        plugin._terminalFocusService.refresh_for_action = refresh
         gesture = types.SimpleNamespace(
             normalizedIdentifiers=("kb:f12",),
             send=lambda: order.append(("send", gesture)),
         )
-        plugin.action_claimFocusedNeovimSession = lambda current, forward_gesture=True, **kwargs: (
+        def claim(current, forward_gesture=True, **kwargs):
             order.append(("claim", plugin, current, forward_gesture, kwargs))
-        )
+
+        plugin._terminalIntegrationService._claimFocusedSession = claim
 
         allowed = adapter._decideExecuteGesture(gesture)
 
@@ -1096,7 +2424,6 @@ class BuiltAddonTests(unittest.TestCase):
         from appModules.windowsterminal import AppModule
 
         adapter = AppModule()
-        adapter._plugin = lambda: None
         self.focus.appModule = adapter
         gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
 
@@ -1133,11 +2460,13 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         handled = []
-        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+        plugin._terminalIntegrationService._claimFocusedSession = (
+            lambda *_args, **kwargs: handled.append(kwargs)
+        )
 
         allowed = adapter._decideExecuteGesture(
             types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
@@ -1158,7 +2487,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         first_identity = plugin._gate.focused
         other = TerminalIdentity(
             first_identity.process_id + 1, first_identity.window_handle + 1,
@@ -1169,7 +2498,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(self.inputDecider.handlers))
         gesture = types.SimpleNamespace(normalizedIdentifiers=("kb:f12",))
         handled = []
-        plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
+        plugin._terminalIntegrationService._claimFocusedSession = (
+            lambda *_args, **kwargs: handled.append(kwargs)
+        )
 
         self.focus.appModule = first
         self.assertTrue(self.inputDecider.handlers[0](gesture))
@@ -1226,7 +2557,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         handled = []
         plugin.action_claimFocusedNeovimSession = lambda *_args, **kwargs: handled.append(kwargs)
@@ -1238,7 +2569,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(allowed)
         self.assertEqual([], handled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -1249,7 +2580,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         self.focus.UIAElement = types.SimpleNamespace(
@@ -1264,7 +2595,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(allowed)
         self.assertEqual([], scheduled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -1276,7 +2607,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         adapter = AppModule()
         self.focus.appModule = adapter
         queued = []
@@ -1300,7 +2631,7 @@ class BuiltAddonTests(unittest.TestCase):
             queueHandler.queueFunction = original_queue_function
 
         self.assertEqual([], scheduled)
-        self.assertIsNone(plugin._pendingObservedClaim)
+        self.assertIsNone(plugin._sessionClaimService.pending_observed)
         adapter.terminate()
         plugin.terminate()
 
@@ -1310,7 +2641,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryGeneration = 4
+        plugin._sessionClaimService.inventory_generation = 4
         before = list(self.messages)
 
         plugin._finishAutomaticClaimResolution(
@@ -1328,9 +2659,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         original = plugin._gate.focused
-        generation = plugin._captureObservedSessionClaim(original)
+        generation = plugin._sessionClaimService.authorize(original)
         plugin._gate.focused = TerminalIdentity(
             original.process_id, original.window_handle, original.frontend_kind,
             (42, original.window_handle, 4, 101),
@@ -1346,6 +2677,32 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], scheduled)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertIn("notAuthorizedOrFocusChanged", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_claim_service_target_operations_do_not_expose_baseline_state(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import LOCAL_WINDOWS_TCP
+        from globalPlugins.NeovimAccessLink.session_claim import ClaimTransitionKind
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        service = plugin._sessionClaimService
+        service.eligible_targets = {(LOCAL_WINDOWS_TCP, "")}
+        service.baselines = {(LOCAL_WINDOWS_TCP, "local-windows", "77"): 3}
+        service.set_pending_target(identity, LOCAL_WINDOWS_TCP, "")
+
+        snapshot = service.baseline_snapshot()
+        snapshot[(LOCAL_WINDOWS_TCP, "local-windows", "77")] = 9
+        transition = service.consume_transition(identity)
+
+        self.assertTrue(service.is_target_eligible(LOCAL_WINDOWS_TCP, ""))
+        self.assertFalse(service.is_target_eligible("remoteSsh", "missing"))
+        self.assertEqual(3, service.baselines[(LOCAL_WINDOWS_TCP, "local-windows", "77")])
+        self.assertEqual(ClaimTransitionKind.LOCAL, transition.kind)
+        self.assertTrue(transition.explicit_target)
+        self.assertNotIn(identity, service.pending_targets)
         plugin.terminate()
 
     def test_delayed_claim_callback_is_retained_until_execution(self) -> None:
@@ -1382,7 +2739,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
             (delay, callback, args)
@@ -1399,7 +2756,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = False
+        plugin._sessionClaimService.inventory_ready = False
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(True)
         sent = []
@@ -1409,7 +2766,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], inventories)
         self.assertEqual([True], sent)
         self.assertTrue(plugin._gate.manual_enabled)
-        self.assertFalse(plugin._claimInventoryReady)
+        self.assertFalse(plugin._sessionClaimService.inventory_ready)
         plugin.terminate()
 
     def test_explicit_local_discovery_can_fall_back_to_a_selected_ssh_profile(self) -> None:
@@ -1426,12 +2783,61 @@ class BuiltAddonTests(unittest.TestCase):
         })
         fallbacks = []
         plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
-        plugin._sessionDiscoveryGeneration = 4
+        plugin._sessionClaimService.discovery_generation = 4
         plugin._finishLocalSessionDiscovery(
             4, identity, [], None, True, True, True, profile,
         )
         self.assertEqual((profile, identity, True, True, True), fallbacks[0])
         self.assertFalse(any("No local" in message for message in self.messages))
+        plugin.terminate()
+
+    def test_claim_service_resolves_local_and_remote_discovery_outcomes(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.local_sessions import LocalWindowsSession
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink.session_claim import DiscoverySelectionKind
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._gate.focused
+        plugin._sessionClaimService.discovery_generation = 9
+        stale = LocalWindowsSession(
+            "1", "Stale", "C:/one", "127.0.0.1", 41001, 1,
+            claim_age_ms=10, claimed_monotonic_ns=4_000,
+        )
+        fresh = LocalWindowsSession(
+            "2", "Fresh", "C:/two", "127.0.0.1", 41002, 2,
+            claim_age_ms=20, claimed_monotonic_ns=6_000,
+        )
+
+        stale_result = plugin._sessionClaimService.resolve_local_discovery(
+            8, identity, [fresh], None,
+            require_recent_claim=True, has_fallback=False, claim_not_before_ns=5_000,
+        )
+        local_result = plugin._sessionClaimService.resolve_local_discovery(
+            9, identity, [stale, fresh], None,
+            require_recent_claim=True, has_fallback=False, claim_not_before_ns=5_000,
+        )
+        fallback_result = plugin._sessionClaimService.resolve_local_discovery(
+            9, identity, [], None,
+            require_recent_claim=False, has_fallback=True, claim_not_before_ns=0,
+        )
+        remote_sessions = [
+            RemoteSession("one", "One", "/one"),
+            RemoteSession("two", "Two", "/two"),
+        ]
+        remote_result = plugin._sessionClaimService.resolve_remote_discovery(
+            9, identity, remote_sessions, None,
+            require_recent_claim=False, preserve_dialog_identity=False,
+        )
+
+        self.assertEqual(DiscoverySelectionKind.STALE, stale_result.kind)
+        self.assertEqual(DiscoverySelectionKind.SELECT, local_result.kind)
+        self.assertEqual("2", local_result.session.identifier)
+        self.assertEqual(DiscoverySelectionKind.FALLBACK, fallback_result.kind)
+        self.assertEqual(DiscoverySelectionKind.CHOOSE, remote_result.kind)
+        self.assertEqual(("one", "two"), tuple(item.identifier for item in remote_result.sessions))
         plugin.terminate()
 
     def test_inventory_baselines_local_and_every_reachable_ssh_profile(self) -> None:
@@ -1451,20 +2857,20 @@ class BuiltAddonTests(unittest.TestCase):
             "77", "Local", "C:/work", "127.0.0.1", 45678, 77, claim_sequence=2,
         )
         remote = RemoteSession("88", "Remote", "/work", claim_sequence=7)
-        plugin._claimInventoryGeneration = 3
+        plugin._sessionClaimService.inventory_generation = 3
         plugin._finishClaimInventory(3, [
             ("localWindowsTcp", "local-windows", None, [local], None),
             ("remoteSsh", "work", profile, [remote], None),
             ("remoteSsh", "offline", None, [], RuntimeError("offline")),
         ])
-        self.assertTrue(plugin._claimInventoryReady)
-        self.assertEqual(2, plugin._claimBaselines[(
+        self.assertTrue(plugin._sessionClaimService.inventory_ready)
+        self.assertEqual(2, plugin._sessionClaimService.baselines[(
             "localWindowsTcp", "local-windows", "77",
         )])
-        self.assertEqual(7, plugin._claimBaselines[("remoteSsh", "work", "88")])
+        self.assertEqual(7, plugin._sessionClaimService.baselines[("remoteSsh", "work", "88")])
         self.assertEqual({
             ("localWindowsTcp", "local-windows"), ("remoteSsh", "work"),
-        }, plugin._claimEligibleTargets)
+        }, plugin._sessionClaimService.eligible_targets)
         self.assertIn("could not be checked", self.messages[-1])
         plugin.terminate()
 
@@ -1486,12 +2892,12 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "two", "name": "Two", "host": "two", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 2,
             ("remoteSsh", "one", "88"): 4,
             ("remoteSsh", "two", "99"): 6,
         }
-        plugin._claimInventoryGeneration = 9
+        plugin._sessionClaimService.inventory_generation = 9
         connected = []
         plugin._connectAutomaticClaim = lambda terminal, candidate: connected.append(
             (terminal, candidate)
@@ -1509,7 +2915,7 @@ class BuiltAddonTests(unittest.TestCase):
         ], identity)
         self.assertEqual("one", connected[0][1][1].identifier)
         self.assertEqual("88", connected[0][1][2].identifier)
-        self.assertEqual(5, plugin._claimBaselines[("remoteSsh", "one", "88")])
+        self.assertEqual(5, plugin._sessionClaimService.baselines[("remoteSsh", "one", "88")])
         plugin.terminate()
 
     def test_local_f12_claim_does_not_wait_for_ssh_scans(self) -> None:
@@ -1543,9 +2949,11 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", LocalLister), mock.patch.object(
             addon_module, "SshSessionLister", UnexpectedSshLister,
         ):
-            plugin._scanAutomaticClaimTargets(
+            plugin._sessionClaimService.scan_automatic_targets(
                 5, [profile], {}, identity,
                 {("localWindowsTcp", "local-windows", "77"): 1},
+                0,
+                plugin._finishAutomaticClaimResolution,
             )
 
         self.assertEqual(1, len(completed))
@@ -1582,9 +2990,11 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
             addon_module.time, "sleep", lambda _seconds: None,
         ):
-            plugin._scanAutomaticClaimTargets(
+            plugin._sessionClaimService.scan_automatic_targets(
                 6, [], {}, identity,
                 {("localWindowsTcp", "local-windows", "77"): 1},
+                0,
+                plugin._finishAutomaticClaimResolution,
             )
 
         self.assertEqual(2, len(calls))
@@ -1600,8 +3010,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._claimInventoryGeneration = 7
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.inventory_generation = 7
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 2,
         }
         session = LocalWindowsSession(
@@ -1654,8 +3064,9 @@ class BuiltAddonTests(unittest.TestCase):
         with mock.patch.object(addon_module, "LocalSessionLister", DelayedLocalLister), mock.patch.object(
             addon_module.time, "sleep", lambda _seconds: None,
         ):
-            plugin._discoverLocalSessions(
+            plugin._sessionClaimService.discover_local_sessions(
                 7, identity, True, True, True, None, 5_000,
+                plugin._finishLocalSessionDiscovery,
             )
 
         self.assertEqual(2, len(calls))
@@ -1677,11 +3088,11 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._claimBaselines = {
+        plugin._sessionClaimService.baselines = {
             ("localWindowsTcp", "local-windows", "77"): 1,
             ("remoteSsh", "work", "88"): 3,
         }
-        plugin._claimInventoryGeneration = 12
+        plugin._sessionClaimService.inventory_generation = 12
         choices = []
         plugin._showAutomaticClaimChoice = lambda *args: choices.append(args)
         plugin._finishAutomaticClaimResolution(12, [
@@ -1709,7 +3120,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [{
                 "id": "work", "name": "editor@example-host", "host": "example-host", "user": "editor",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
@@ -1730,7 +3141,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         stale = TerminalIdentity(100, 200, "windowsTerminal", (42, 200, 4, 53))
         plugin._gate.focused = stale
-        plugin._focusedTerminalObject = None
+        plugin._terminalFocusService.focused_terminal_object = None
         inventories = []
         plugin._beginClaimInventory = lambda: inventories.append(plugin._gate.focused)
         adapter = AppModule()
@@ -1740,7 +3151,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         expected = plugin._identity(self.focus)
         self.assertEqual(expected, plugin._gate.focused)
-        self.assertIs(self.focus, plugin._focusedTerminalObject)
+        self.assertIs(self.focus, plugin._terminalFocusService.focused_terminal_object)
         self.assertEqual([expected], inventories)
         self.assertIn('"category": "terminalActionFocusRefreshed"', plugin._diagnostics.report())
         adapter.terminate()
@@ -1761,7 +3172,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "work", "one", "Work", client)
         plugin._instanceManager.bind(first_identity, instance.identifier)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         plugin._gate.focused = TerminalIdentity(
             first_identity.process_id, first_identity.window_handle,
             first_identity.frontend_kind, (42, 200, 4, 12),
@@ -1804,13 +3215,40 @@ class BuiltAddonTests(unittest.TestCase):
             global_source = archive.read(
                 "globalPlugins/NeovimAccessLink/__init__.py"
             ).decode("utf-8")
+            service_source = archive.read(
+                "globalPlugins/NeovimAccessLink/terminal_integration.py"
+            ).decode("utf-8")
+            braille_source = archive.read(
+                "globalPlugins/NeovimAccessLink/nvda_braille.py"
+            ).decode("utf-8")
+            registry_source = archive.read(
+                "globalPlugins/NeovimAccessLink/service_registry.py"
+            ).decode("utf-8")
             app_module_source = archive.read(
                 "appModules/windowsterminal.py"
             ).decode("utf-8")
         self.assertIn("appModules/windowsterminal.py", names)
+        self.assertIn(
+            "globalPlugins/NeovimAccessLink/terminal_integration.py",
+            names,
+        )
+        self.assertIn("globalPlugins/NeovimAccessLink/nvda_braille.py", names)
+        self.assertIn("globalPlugins/NeovimAccessLink/service_registry.py", names)
         self.assertNotIn("_dispatchConfiguredTerminalScript", global_source)
         self.assertIn("_dispatchConfiguredTerminalScript", app_module_source)
         self.assertIn("getFocusObject", app_module_source)
+        self.assertIn("getTerminalIntegrationService", app_module_source)
+        self.assertNotIn("getActivePlugin", global_source)
+        self.assertNotIn("getActivePlugin", app_module_source)
+        self.assertIn("class TerminalIntegrationService", service_source)
+        self.assertIn("class TerminalCommand(Enum)", service_source)
+        self.assertIn("class StructuredLineRegion", braille_source)
+        self.assertIn("class StructuredTerminalBrailleOverlay", braille_source)
+        self.assertNotIn("class StructuredLineRegion", global_source)
+        self.assertNotIn("class StructuredTerminalBrailleOverlay", global_source)
+        self.assertNotIn("GlobalPlugin", braille_source)
+        self.assertNotIn("GlobalPlugin", registry_source)
+        self.assertNotIn("getattr(plugin, action_name)", app_module_source)
         self.assertIn("import controlTypes", app_module_source)
         self.assertNotIn("NeovimAccessLink.controlTypes", app_module_source)
         from appModules.windowsterminal import AppModule
@@ -1853,6 +3291,598 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
 
+    def test_app_module_uses_only_the_public_terminal_service_contract(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        order = []
+        focus_decision = object()
+
+        class StrictService:
+            def prepare_focus(inner_self, obj, token, app_module):
+                order.append(("prepare", obj, token, app_module))
+                return focus_decision
+
+            def finish_focus(inner_self, decision):
+                order.append(("finish", decision))
+
+            def abandon_focus(inner_self, decision):
+                raise AssertionError(f"unexpected abandoned focus: {decision!r}")
+
+            def lose_focus(inner_self, token):
+                order.append(("lose", token))
+
+            def should_use_native_event(inner_self, obj, event_name):
+                order.append(("native", obj, event_name))
+                return False
+
+            def supports_braille_overlay(inner_self, obj):
+                order.append(("overlay", obj))
+                return True
+
+            def dispatch_command(inner_self, command, gesture, obj, app_module, token):
+                order.append(("command", command, gesture, obj, app_module, token))
+                return True
+
+            def copy_diagnostic_report(inner_self, gesture):
+                order.append(("diagnostics", gesture))
+
+        service = StrictService()
+        original_getter = addon_module.getTerminalIntegrationService
+        addon_module.getTerminalIntegrationService = lambda: service
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        native_focus = []
+        native_text = []
+        classes = [object]
+        gesture = object()
+        try:
+            adapter.event_gainFocus(self.focus, lambda: native_focus.append(True))
+            adapter.event_textChange(self.focus, lambda: native_text.append(True))
+            adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+            adapter.script_toggleNeovimMode(gesture)
+            adapter.script_copyDiagnosticReport(gesture)
+            adapter.event_appModule_loseFocus()
+        finally:
+            adapter.terminate()
+            addon_module.getTerminalIntegrationService = original_getter
+
+        self.assertEqual([True], native_focus)
+        self.assertEqual([], native_text)
+        self.assertIs(addon_module.StructuredTerminalBrailleOverlay, classes[0])
+        self.assertEqual(
+            ["prepare", "finish", "native", "overlay", "command", "diagnostics", "lose"],
+            [item[0] for item in order],
+        )
+        self.assertIs(
+            addon_module.TerminalCommand.TOGGLE_ACCESSIBILITY,
+            next(item for item in order if item[0] == "command")[1],
+        )
+
+    def test_unknown_terminal_command_fails_open_and_forwards_gesture_once(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        forwarded = []
+        gesture = types.SimpleNamespace(send=lambda: forwarded.append(True))
+
+        adapter._dispatchConfiguredTerminalScript(gesture, "action_notAllowed")
+
+        self.assertEqual([True], forwarded)
+        self.assertIn('"action": "unknown"', plugin._diagnostics.report())
+        adapter.terminate()
+        plugin.terminate()
+
+    def test_partially_initialized_terminal_service_fails_open_in_app_module(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        class BrokenService:
+            def __getattr__(inner_self, name):
+                raise RuntimeError(f"broken service operation: {name}")
+
+        original_getter = addon_module.getTerminalIntegrationService
+        addon_module.getTerminalIntegrationService = lambda: BrokenService()
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        focus_native = []
+        text_native = []
+        forwarded = []
+        classes = [object]
+        gesture = types.SimpleNamespace(
+            normalizedIdentifiers=("kb:f12",),
+            send=lambda: forwarded.append(True),
+        )
+        try:
+            adapter.event_gainFocus(self.focus, lambda: focus_native.append(True))
+            adapter.event_textChange(self.focus, lambda: text_native.append(True))
+            adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+            adapter.script_toggleNeovimMode(gesture)
+            adapter.script_copyDiagnosticReport(gesture)
+            self.assertTrue(adapter._decideExecuteGesture(gesture, focus_obj=self.focus))
+            adapter.event_appModule_loseFocus()
+        finally:
+            adapter.terminate()
+            addon_module.getTerminalIntegrationService = original_getter
+
+        self.assertEqual([True], focus_native)
+        self.assertEqual([True], text_native)
+        self.assertEqual([True], forwarded)
+        self.assertEqual([object], classes)
+
+    def test_partially_initialized_terminal_service_fails_open_in_braille_overlay(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from globalPlugins.NeovimAccessLink import nvda_braille
+
+        class BrokenService:
+            def should_suppress_braille(inner_self, _obj):
+                raise RuntimeError("broken Braille service")
+
+        original_getter = nvda_braille.getTerminalIntegrationService
+        nvda_braille.getTerminalIntegrationService = lambda: BrokenService()
+        overlay = addon_module.StructuredTerminalBrailleOverlay()
+        try:
+            with self.assertRaises(NotImplementedError):
+                overlay.getBrailleRegions()
+        finally:
+            nvda_braille.getTerminalIntegrationService = original_getter
+
+    def test_terminal_focus_and_claim_results_are_immutable(self) -> None:
+        from dataclasses import FrozenInstanceError
+        from globalPlugins.NeovimAccessLink import SessionClaimAuthorization, TerminalFocusDecision
+        from globalPlugins.NeovimAccessLink.session_claim import (
+            ClaimTransition,
+            ClaimTransitionKind,
+            ConnectionPlan,
+            ConnectionPlanKind,
+            ConnectionDisconnectResult,
+            ConnectionReuseResult,
+            ConnectionSelectionResult,
+            ConnectionStartResult,
+            DiscoverySelection,
+            DiscoverySelectionKind,
+            RememberedBindingActivation,
+            RememberedBindingActivationKind,
+            RememberedStateRequest,
+            RememberedStateRequestKind,
+            TemporaryBindingOffer,
+            TemporaryBindingOfferKind,
+        )
+
+        focus = TerminalFocusDecision(object(), 1, None, None, None, False)
+        claim = SessionClaimAuthorization(object(), 1, object())
+        transition = ClaimTransition(ClaimTransitionKind.AUTOMATIC, object())
+        selection = DiscoverySelection(DiscoverySelectionKind.EMPTY)
+        plan = ConnectionPlan(ConnectionPlanKind.START)
+        reuse = ConnectionReuseResult(object())
+        start = ConnectionStartResult()
+        connection_selection = ConnectionSelectionResult()
+        disconnect = ConnectionDisconnectResult()
+        activation = RememberedBindingActivation(RememberedBindingActivationKind.STALE)
+        state_request = RememberedStateRequest(RememberedStateRequestKind.SKIP)
+        binding_offer = TemporaryBindingOffer(TemporaryBindingOfferKind.STALE)
+
+        with self.assertRaises(FrozenInstanceError):
+            focus.generation = 2
+        with self.assertRaises(FrozenInstanceError):
+            claim.generation = 2
+        with self.assertRaises(FrozenInstanceError):
+            transition.target_id = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            selection.kind = DiscoverySelectionKind.SELECT
+        with self.assertRaises(FrozenInstanceError):
+            plan.replace_instance_id = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            reuse.displaced_identities = ()
+        with self.assertRaises(FrozenInstanceError):
+            start.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            connection_selection.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            disconnect.error = "changed"
+        with self.assertRaises(FrozenInstanceError):
+            activation.kind = RememberedBindingActivationKind.ACTIVATE
+        with self.assertRaises(FrozenInstanceError):
+            state_request.request_id = 1
+        with self.assertRaises(FrozenInstanceError):
+            binding_offer.kind = TemporaryBindingOfferKind.OFFER
+
+    def test_temporary_binding_offer_revalidates_focus_before_remembering(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, TerminalIdentity
+        from globalPlugins.NeovimAccessLink.session_claim import TemporaryBindingOfferKind
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        instance = add_remote_instance(
+            plugin._instanceManager,
+            "work",
+            "22",
+            "Work",
+            Client(),
+        )
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.focused = identity
+
+        self.assertTrue(plugin._sessionClaimService.request_temporary_binding_offer(instance.identifier))
+        self.assertTrue(plugin._sessionClaimService.has_temporary_binding_offer(instance.identifier))
+        self.assertTrue(plugin._sessionClaimService.consume_temporary_binding_offer(instance.identifier))
+        self.assertFalse(plugin._sessionClaimService.consume_temporary_binding_offer(instance.identifier))
+        self.assertFalse(plugin._sessionClaimService.request_temporary_binding_offer("missing"))
+        offer = plugin._sessionClaimService.prepare_temporary_binding_offer(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, offer.kind)
+        self.assertEqual(instance, offer.instance)
+
+        plugin._gate.focused = None
+        unarmed_focus_gap = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, unarmed_focus_gap.kind)
+
+        plugin._gate.focused = TerminalIdentity(
+            identity.process_id,
+            identity.window_handle,
+            identity.frontend_kind,
+            (42, identity.window_handle, 4, 99),
+        )
+        stale = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, stale.kind)
+        self.assertFalse(plugin._sessionClaimService.is_temporary_binding_remembered(identity))
+
+        plugin._gate.focused = identity
+        remembered = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, remembered.kind)
+        self.assertTrue(plugin._sessionClaimService.is_temporary_binding_remembered(identity))
+        self.assertTrue(plugin._sessionClaimService.forget_temporary_binding(identity))
+        self.assertFalse(plugin._sessionClaimService.forget_temporary_binding(identity))
+        plugin.terminate()
+
+    def test_temporary_binding_dialog_focus_gap_restores_current_connection(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        for answer, should_remember in ((wx.YES, True), (0, False)):
+            with self.subTest(answer=answer):
+                plugin = GlobalPlugin()
+                identity = plugin._identity(self.focus)
+                client = Client()
+                instance = add_remote_instance(
+                    plugin._instanceManager,
+                    "one",
+                    "1",
+                    "First",
+                    client,
+                )
+                plugin._instanceManager.bind(identity, instance.identifier)
+                plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+                plugin._connectionCoordinator.confirm_foreground_instance(
+                    instance.identifier,
+                    identity,
+                    plugin._editorSessionController.new_runtime,
+                )
+                plugin._gate.manual_enabled = True
+                original_message_box = wx.MessageBox
+
+                def modal_message_box(*_args, **_kwargs):
+                    plugin._gate.disconnect()
+                    plugin._gate.focused = None
+                    return answer
+
+                wx.MessageBox = modal_message_box
+                try:
+                    plugin._offerTemporaryTerminalBinding(identity, instance.identifier)
+                finally:
+                    wx.MessageBox = original_message_box
+
+                self.assertEqual(
+                    should_remember,
+                    plugin._sessionClaimService.is_temporary_binding_remembered(identity),
+                )
+                adapter = self._terminalAdapter()
+                adapter.event_gainFocus(self.focus, lambda: None)
+                self.assertEqual("requestFocusContext", client.controls[-1][0])
+                request_id = client.controls[-1][1]["requestId"]
+                plugin._handleManagedEvent(instance.identifier, {
+                    "type": "focusContext",
+                    "payload": {
+                        "_focusRequestId": request_id,
+                        "bufferName": "/work/returned.lua",
+                        "mode": "normal",
+                    },
+                })
+                self.assertTrue(plugin._gate.suppression_active)
+                if not should_remember:
+                    controls = list(client.controls)
+                    adapter.event_appModule_loseFocus()
+                    adapter.event_gainFocus(self.focus, lambda: None)
+                    self.assertEqual(controls, client.controls)
+                    self.assertFalse(plugin._gate.suppression_active)
+                plugin.terminate()
+
+    def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.ssh_sessions import RemoteSession
+        from globalPlugins.NeovimAccessLink.session_claim import ConnectionPlanKind
+
+        events = []
+
+        class Client:
+            def __init__(inner_self, name):
+                inner_self.name = name
+
+            def start(inner_self):
+                events.append(f"start-{inner_self.name}")
+
+            def stop(inner_self):
+                events.append(f"stop-{inner_self.name}")
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        first = add_remote_instance(
+            plugin._instanceManager, "work", "22", "First", Client("first"),
+        )
+        second = add_remote_instance(
+            plugin._instanceManager, "work", "22", "Second", Client("second"),
+        )
+        plugin._instanceManager.bind(identity, second.identifier)
+        displaced_identity = type(identity)(
+            process_id=identity.process_id,
+            window_handle=identity.window_handle,
+            frontend_kind=identity.frontend_kind,
+            runtime_id=(42, identity.window_handle, 4, 53),
+        )
+        plugin._instanceManager.bind(displaced_identity, second.identifier)
+        session = RemoteSession("22", "project", "/work")
+
+        reuse = plugin._sessionClaimService.plan_remote_connection(
+            identity,
+            "work",
+            session,
+            allow_reuse=True,
+            replace_existing=False,
+        )
+        replacement = plugin._sessionClaimService.plan_remote_connection(
+            identity,
+            "work",
+            session,
+            allow_reuse=False,
+            replace_existing=True,
+        )
+        applied = plugin._sessionClaimService.apply_connection_reuse(identity, reuse)
+
+        self.assertEqual(ConnectionPlanKind.REUSE, reuse.kind)
+        self.assertEqual(second, reuse.instance)
+        self.assertEqual(second, applied.instance)
+        self.assertEqual((displaced_identity,), applied.displaced_identities)
+        self.assertIsNone(plugin._instanceManager.selected_for(displaced_identity))
+        self.assertEqual(second, plugin._instanceManager.selected_for(identity))
+        self.assertEqual(ConnectionPlanKind.START, replacement.kind)
+        self.assertEqual(second.identifier, replacement.replace_instance_id)
+        self.assertEqual(["start-first", "start-second"], events)
+        self.assertEqual([first, second], plugin._instanceManager.list())
+        plugin.terminate()
+
+    def test_session_claim_service_rolls_back_a_client_that_cannot_be_selected(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import remote_ssh_target
+
+        events = []
+
+        class Client:
+            def start(inner_self):
+                events.append("start")
+
+            def stop(inner_self):
+                events.append("stop")
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
+        with mock.patch.object(
+            plugin._connectionCoordinator,
+            "select_instance",
+            side_effect=RuntimeError("cannot select"),
+        ):
+            result = plugin._sessionClaimService.start_connection(
+                identity,
+                remote_ssh_target("work", "Work"),
+                "22",
+                "Work, project",
+                Client(),
+            )
+
+        self.assertIsNone(result.instance)
+        self.assertEqual("RuntimeError", result.error_type)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertEqual(["start", "stop"], events)
+        plugin.terminate()
+
+    def test_session_claim_service_restores_previous_binding_after_selection_failure(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        first = add_remote_instance(plugin._instanceManager, "one", "11", "First", Client())
+        second = add_remote_instance(plugin._instanceManager, "two", "22", "Second", Client())
+        plugin._instanceManager.bind(identity, first.identifier)
+        original_select = plugin._connectionCoordinator.select_instance
+        original_select(first.identifier, identity, plugin._editorSessionController.new_runtime)
+
+        def select(instance_id, terminal, create_runtime):
+            if instance_id == second.identifier:
+                raise RuntimeError("cannot select")
+            return original_select(instance_id, terminal, create_runtime)
+
+        with mock.patch.object(plugin._connectionCoordinator, "select_instance", side_effect=select):
+            result = plugin._sessionClaimService.select_connection(identity, second.identifier)
+
+        self.assertIsNone(result.instance)
+        self.assertEqual("RuntimeError", result.error_type)
+        self.assertEqual(first, plugin._instanceManager.selected_for(identity))
+        self.assertIs(
+            plugin._instanceManager.client_for(first.identifier),
+            plugin._connectionCoordinator.active_client,
+        )
+        plugin.terminate()
+
+    def test_disconnect_connection_instance_stops_client_asynchronously_and_fails_open(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        events = []
+
+        class Client:
+            def start(inner_self):
+                events.append("start")
+
+            def stop(inner_self):
+                events.append("stop")
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._connectionCoordinator.select_instance(
+            instance.identifier,
+            identity,
+            plugin._editorSessionController.new_runtime,
+        )
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
+        plugin._gate.bound_terminal = identity
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._stopManagedClientAsync = lambda _instance_id, selected_client: selected_client.stop()
+
+        plugin.action_disconnectConnectionInstance(None)
+
+        self.assertEqual(["start", "stop"], events)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertNotIn(identity, plugin._connectionCoordinator.remembered_terminal_bindings)
+        self.assertIn("Neovim connection disconnected", self.messages[-1])
+        plugin.terminate()
+
+    def test_remembered_binding_service_prepares_fail_open_correlated_context_request(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.session_claim import (
+            RememberedBindingActivationKind,
+            RememberedStateRequestKind,
+        )
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._gate.focused = identity
+        plugin._gate.manual_enabled = True
+
+        activation = plugin._sessionClaimService.activate_remembered_binding(
+            identity,
+            instance.identifier,
+            focus_regained=True,
+        )
+        request = plugin._sessionClaimService.plan_remembered_state_request(
+            identity,
+            instance.identifier,
+        )
+
+        self.assertEqual(RememberedBindingActivationKind.ACTIVATE, activation.kind)
+        self.assertEqual(instance, activation.instance)
+        self.assertIs(client, activation.client)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIsNone(plugin._gate.bound_terminal)
+        self.assertEqual(RememberedStateRequestKind.FOCUS_CONTEXT, request.kind)
+        self.assertIs(client, request.client)
+        self.assertTrue(
+            plugin._connectionCoordinator.matches_focus_context(
+                instance.identifier,
+                request.request_id,
+                identity,
+            )
+        )
+        plugin.terminate()
+
+    def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
+        import queueHandler
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, getTerminalIntegrationService
+
+        first = GlobalPlugin()
+        self._focusPlugin(first)
+        first._gate.manual_enabled = True
+        first._sessionClaimService.inventory_ready = True
+        adapter = AppModule()
+        self.focus.appModule = adapter
+        queued = []
+        original_queue_function = queueHandler.queueFunction
+        queueHandler.queueFunction = lambda _queue, function, *args, **_kwargs: queued.append(
+            (function, args)
+        )
+        try:
+            adapter._decideExecuteGesture(
+                types.SimpleNamespace(normalizedIdentifiers=("kb:f12",)),
+            )
+            self.assertEqual(1, len(queued))
+            second = GlobalPlugin()
+            queued[0][0](*queued[0][1])
+        finally:
+            queueHandler.queueFunction = original_queue_function
+
+        self.assertIsNone(first._sessionClaimService.pending_observed)
+        self.assertIs(second._terminalIntegrationService, getTerminalIntegrationService())
+        self.assertIsNone(second._sessionClaimService.pending_observed)
+        self.assertIn("frontendScopeChanged", first._diagnostics.report())
+        first.terminate()
+        adapter.terminate()
+        second.terminate()
+
     def test_windows_terminal_overlay_hook_inserts_only_for_a_terminal_control(self) -> None:
         import controlTypes
         from appModules.windowsterminal import AppModule
@@ -1885,7 +3915,9 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._identity(self.focus)
         plugin._gate.bound_terminal = plugin._gate.focused
-        plugin._identity = lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
+        plugin._terminalFocusService._identityForObject = (
+            lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
+        )
         classes = []
 
         adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
@@ -1914,7 +3946,7 @@ class BuiltAddonTests(unittest.TestCase):
         def broken(_obj):
             raise RuntimeError("frontend failed")
 
-        plugin._shouldUseNativeTerminalEvent = broken
+        plugin._terminalFocusService.should_suppress = broken
         adapter.event_textChange(self.focus, lambda: native.append("native"))
 
         self.assertEqual(["native"], native)
@@ -1936,11 +3968,38 @@ class BuiltAddonTests(unittest.TestCase):
         def broken_after_delegation(_decision):
             raise RuntimeError("late frontend failure")
 
-        plugin._finishTerminalFocus = broken_after_delegation
-        with self.assertRaisesRegex(RuntimeError, "late frontend failure"):
-            adapter.event_gainFocus(self.focus, lambda: native.append("native"))
+        plugin._terminalFocusService.finish_focus = broken_after_delegation
+        adapter.event_gainFocus(self.focus, lambda: native.append("native"))
         self.assertEqual(["native"], native)
         self.assertFalse(plugin._gate.suppression_active)
+        self.assertIn("gainFocusCompletion", plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_early_focus_failure_calls_native_once_when_diagnostics_also_fail(self) -> None:
+        from appModules.windowsterminal import AppModule
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        adapter = AppModule()
+        identity = plugin._identity(self.focus)
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        plugin._connectionCoordinator.active_client = object()
+        plugin._terminalFocusService.prepare_focus = mock.Mock(side_effect=RuntimeError("focus failed"))
+        original_record = plugin._diagnostics.record
+        plugin._diagnostics.record = mock.Mock(side_effect=RuntimeError("diagnostics failed"))
+        native = []
+        try:
+            adapter.event_gainFocus(self.focus, lambda: native.append(True))
+        finally:
+            plugin._diagnostics.record = original_record
+
+        self.assertEqual([True], native)
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertIsNone(plugin._connectionCoordinator.active_client)
+        adapter.terminate()
         plugin.terminate()
 
     def test_global_service_does_not_inspect_focus_and_app_module_clears_scope(self) -> None:
@@ -1989,7 +4048,7 @@ class BuiltAddonTests(unittest.TestCase):
         # NVDA may deliver this after the second WT has already gained focus.
         first_adapter.event_appModule_loseFocus()
         self.assertEqual(second_identity, plugin._gate.focused)
-        self.assertIs(second_focus, plugin._focusedTerminalObject)
+        self.assertIs(second_focus, plugin._terminalFocusService.focused_terminal_object)
         second_adapter.event_appModule_loseFocus()
         self.assertIsNone(plugin._gate.focused)
         plugin.terminate()
@@ -2021,7 +4080,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "cursor": {"line": 1, "byteColumn": 0},
             },
         }
-        plugin._pendingInstanceFullStates[instance.identifier] = pending
+        plugin._connectionCoordinator.pending_full_states[instance.identifier] = pending
         first_adapter = AppModule()
         second_adapter = AppModule()
         native = []
@@ -2037,7 +4096,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual(["first", "second"], native)
         self.assertEqual(plugin._identity(second_focus), plugin._gate.focused)
-        self.assertIs(pending, plugin._pendingInstanceFullStates[instance.identifier])
+        self.assertIs(pending, plugin._connectionCoordinator.pending_full_states[instance.identifier])
         self.assertEqual(cancellations_before, self.speechCancellations)
         self.assertIn(
             '"category": "staleTerminalFocusCompletionIgnored"',
@@ -2050,7 +4109,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [
                 {"id": "one", "name": "One", "host": "one", "user": "u", "port": 22,
                  "identityFile": "", "authentication": "openSsh"},
@@ -2061,7 +4120,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["one", "two"], [
             profile.identifier for profile in plugin._automaticClaimProfiles()
         ])
-        self.assertNotIn("activeConnection", plugin._settings)
+        self.assertNotIn("activeConnection", self._settingsSnapshot(plugin))
         plugin.terminate()
 
     def test_parallel_identical_instances_speak_only_when_explicitly_bound(self) -> None:
@@ -2082,7 +4141,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [{
                 "id": "same", "name": "Same target", "host": "example-host", "user": "editor",
                 "port": 22, "identityFile": "", "authentication": "openSsh",
@@ -2123,7 +4182,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work server", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 7
+        plugin._sessionClaimService.discovery_generation = 7
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(
             (profile_id, session_id, kwargs)
         )
@@ -2151,7 +4210,7 @@ class BuiltAddonTests(unittest.TestCase):
         ]
         started = []
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
-        plugin._sessionDiscoveryGeneration = 4
+        plugin._sessionClaimService.discovery_generation = 4
         plugin._finishSessionDiscovery(3, profile, plugin._identity(self.focus), sessions, None)
         self.assertEqual([], started)
         self.singleChoiceSelections.append(1)
@@ -2181,7 +4240,7 @@ class BuiltAddonTests(unittest.TestCase):
         ]
         started = []
         plugin._startManagedInstance = lambda profile_id, session_id, **kwargs: started.append(session_id)
-        plugin._sessionDiscoveryGeneration = 5
+        plugin._sessionClaimService.discovery_generation = 5
         plugin._finishSessionDiscovery(
             5, profile, plugin._identity(self.focus), sessions, None,
             require_recent_claim=True,
@@ -2202,7 +4261,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 6
+        plugin._sessionClaimService.discovery_generation = 6
         plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must not connect")
         plugin._finishSessionDiscovery(
             6, profile, plugin._identity(self.focus), [
@@ -2237,8 +4296,8 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work, project", client)
         identity = plugin._identity(self.focus)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._sessionDiscoveryGeneration = 8
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._sessionClaimService.discovery_generation = 8
         plugin._startManagedInstance = lambda *args, **kwargs: self.fail("must reuse transport")
         plugin._finishSessionDiscovery(
             8, profile, identity,
@@ -2286,7 +4345,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_closed_terminal_prunes_binding_and_stops_client_off_main_thread(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         stopped = threading.Event()
@@ -2303,23 +4361,22 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(self.focus)
         instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = True
         plugin._gate.focused = None
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
             self.assertEqual({instance.identifier}, plugin._pruneClosedTerminalBindings())
         self.assertTrue(stopped.wait(1))
         self.assertEqual([], plugin._instanceManager.list())
         self.assertIsNone(plugin._gate.focused)
         self.assertFalse(plugin._gate.suppression_active)
-        self.assertEqual(["nvim-nvda-closed-terminal-stop"], stop_threads)
+        self.assertEqual(["nvim-nvda-managed-client-stop"], stop_threads)
         plugin.terminate()
 
     def test_closed_terminal_pruning_preserves_other_window_and_client(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
@@ -2337,7 +4394,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(dead, dead_instance.identifier)
         plugin._instanceManager.bind(live, live_instance.identifier)
         with mock.patch.object(
-            addon_module, "_terminalIdentityExists",
+            plugin._terminalFocusService, "_identityExists",
             side_effect=lambda identity, _element=None: identity == live,
         ):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
@@ -2348,7 +4405,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_whole_closed_window_prunes_all_its_tabs_but_not_other_window(self) -> None:
-        import globalPlugins.NeovimAccessLink as addon_module
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
 
@@ -2367,7 +4423,7 @@ class BuiltAddonTests(unittest.TestCase):
         survivor = add_remote_instance(plugin._instanceManager, "other", "live", "Live", Client())
         plugin._instanceManager.bind(survivor_identity, survivor.identifier)
         with mock.patch.object(
-            addon_module, "_terminalIdentityExists",
+            plugin._terminalFocusService, "_identityExists",
             side_effect=lambda identity, _element=None: identity.window_handle == 201,
         ):
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
@@ -2395,17 +4451,21 @@ class BuiltAddonTests(unittest.TestCase):
             scheduled.append((delay, callback, args))
             return object()
 
-        plugin._scheduleMainThreadCall = schedule
+        plugin._terminalFocusService._scheduleMainThreadCall = schedule
         plugin._ensureTerminalLifecycleSweep()
         self.assertEqual(1, len(scheduled))
         self.assertEqual(addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS, scheduled[0][0])
         plugin._gate.focused = None
-        plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False):
+        plugin._terminalFocusService.lifecycle_scheduled_at -= (
+            addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+        )
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False):
             scheduled[0][1](*scheduled[0][2])
             self.assertEqual([instance], plugin._instanceManager.list())
             self.assertEqual(2, len(scheduled))
-            plugin._terminalLifecycleScheduledAt -= addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+            plugin._terminalFocusService.lifecycle_scheduled_at -= (
+                addon_module._TERMINAL_LIFECYCLE_INTERVAL_MS / 1_000
+            )
             scheduled[1][1](*scheduled[1][2])
         self.assertEqual([], plugin._instanceManager.list())
         plugin.terminate()
@@ -2423,7 +4483,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._gate.focused
         instance = add_remote_instance(plugin._instanceManager, "local", "1", "Focused local", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        with mock.patch.object(addon_module, "_terminalIdentityExists", return_value=False) as exists:
+        with mock.patch.object(plugin._terminalFocusService, "_identityExists", return_value=False) as exists:
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
             self.assertEqual(set(), plugin._pruneClosedTerminalBindings())
         exists.assert_not_called()
@@ -2462,8 +4522,12 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.bound_terminal = identity
         self.assertTrue(plugin._gate.suppression_active)
         scheduled = []
-        plugin._scheduleMainThreadCall = lambda *args: scheduled.append(args) or object()
-        plugin._pruneClosedTerminalBindings = mock.Mock(side_effect=RuntimeError("broken UIA"))
+        plugin._terminalFocusService._scheduleMainThreadCall = (
+            lambda *args: scheduled.append(args) or object()
+        )
+        plugin._terminalFocusService.prune_closed_bindings = mock.Mock(
+            side_effect=RuntimeError("broken UIA"),
+        )
 
         plugin._runTerminalLifecycleSweep()
 
@@ -2481,12 +4545,12 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._settings["connections"] = [
+        self._updateSettings(plugin, {"connections": [
             {"id": "internal-one", "name": "editor@example-host", "host": "example-host", "user": "editor",
              "port": 22, "identityFile": "", "authentication": "openSsh"},
             {"id": "internal-two", "name": "admin@example-host-2", "host": "example-host-2", "user": "admin",
              "port": 22, "identityFile": "", "authentication": "openSsh"},
-        ]
+        ]})
         self.singleChoiceSelections.append(2)
         identity = plugin._gate.focused
         plugin.action_startConnectionInstance(None)
@@ -2494,7 +4558,10 @@ class BuiltAddonTests(unittest.TestCase):
             "This computer - local Neovim", "editor@example-host", "admin@example-host-2",
         ], self.singleChoiceDialogs[-1].choices)
         self.assertNotIn("internal-two", self.singleChoiceDialogs[-1].choices)
-        self.assertEqual(("remoteSsh", "internal-two"), plugin._pendingClaimTargets[identity])
+        self.assertEqual(
+            ("remoteSsh", "internal-two"),
+            plugin._sessionClaimService.pending_targets[identity],
+        )
         self.assertTrue(any("press F12" in message for message in self.messages))
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
@@ -2520,7 +4587,10 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._gate.focused
         self.singleChoiceSelections.append(0)
         plugin.action_startConnectionInstance(None)
-        self.assertEqual((LOCAL_WINDOWS_TCP, ""), plugin._pendingClaimTargets[identity])
+        self.assertEqual(
+            (LOCAL_WINDOWS_TCP, ""),
+            plugin._sessionClaimService.pending_targets[identity],
+        )
         self.assertTrue(any("press F12" in message for message in self.messages))
         self.assertFalse(any("local-windows" in message for message in self.messages))
         plugin.terminate()
@@ -2534,7 +4604,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
         identity = plugin._gate.focused
-        plugin._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
+        plugin._sessionClaimService.pending_targets[identity] = (LOCAL_WINDOWS_TCP, "")
         selections = []
         plugin._beginLocalSessionSelection = lambda *args: selections.append(args)
         sent = []
@@ -2550,7 +4620,7 @@ class BuiltAddonTests(unittest.TestCase):
         fresh = LocalWindowsSession("2", "fresh", "C:/two", "127.0.0.1", 41002, 2,
                                     claim_age_ms=120)
         started = []
-        plugin._sessionDiscoveryGeneration = 8
+        plugin._sessionClaimService.discovery_generation = 8
         plugin._startLocalSession = lambda terminal, session, **kwargs: started.append(
             (terminal, session, kwargs)
         )
@@ -2580,7 +4650,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         fallbacks = []
         plugin._beginSessionSelection = lambda *args: fallbacks.append(args)
-        plugin._sessionDiscoveryGeneration = 5
+        plugin._sessionClaimService.discovery_generation = 5
         plugin._finishLocalSessionDiscovery(
             5, identity, [previous_claim], None, True, True, True, profile, 5_000,
         )
@@ -2627,7 +4697,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(2, len(instances))
         local_instance = plugin._instanceManager.selected_for(local_identity)
         self.assertEqual(LOCAL_WINDOWS_TCP, local_instance.transport_kind)
-        plugin._authenticatedInstances.add(local_instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(local_instance.identifier)
         self.assertFalse(hasattr(local_instance, "profile_id"))
         self.assertEqual(("127.0.0.1", 45678, 1), (
             Client.created[0].host, Client.created[0].port, Client.created[0].starts,
@@ -2656,13 +4726,13 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._claimInventoryReady = True
+        plugin._sessionClaimService.inventory_ready = True
         identity = plugin._gate.focused
         instance = plugin._instanceManager.add_target(
             local_windows_target("Local"), "old-local", "Local", Client(),
         )
         plugin._instanceManager.bind(identity, instance.identifier)
-        self.assertNotIn(instance.identifier, plugin._authenticatedInstances)
+        self.assertNotIn(instance.identifier, plugin._connectionCoordinator.authenticated_instances)
         scheduled = []
         plugin._scheduleMainThreadCall = lambda delay, callback, *args: scheduled.append(
             (delay, callback, args)
@@ -2756,7 +4826,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         # A modal wx dialog moves focus away from the Windows Terminal AppModule.
         plugin._gate.focused = None
-        plugin._sessionDiscoveryGeneration = 3
+        plugin._sessionClaimService.discovery_generation = 3
         plugin._finishSessionDiscovery(
             3, profile, identity, [RemoteSession("session", "root", "/root")], None,
             replace_existing=True, offer_remember=True, preserve_dialog_identity=True,
@@ -2879,13 +4949,13 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._rememberOfferInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remember_offer_instances.add(instance.identifier)
         plugin._handleManagedEvent(instance.identifier, {
             "type": "fullState", "payload": {
                 "mode": "normal", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
             },
         })
-        self.assertIn(identity, plugin._rememberedTerminalBindings)
+        self.assertIn(identity, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertTrue(plugin._gate.suppression_active)
         self.assertEqual([], client.controls)
         self.assertTrue(any("remembered" in message.lower() for message in self.messages))
@@ -2913,7 +4983,7 @@ class BuiltAddonTests(unittest.TestCase):
         identity = plugin._identity(terminal)
         instance = add_remote_instance(plugin._instanceManager, "work", "42", "editor@example-host", Client())
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberOfferInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remember_offer_instances.add(instance.identifier)
 
         self.focus = dialog
         plugin._handleManagedEvent(instance.identifier, {
@@ -2922,8 +4992,8 @@ class BuiltAddonTests(unittest.TestCase):
                 "cursor": {"line": 1, "byteColumn": 0},
             },
         })
-        self.assertIn(instance.identifier, plugin._pendingInstanceFullStates)
-        self.assertIn(instance.identifier, plugin._rememberOfferInstances)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.pending_full_states)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.remember_offer_instances)
         self.assertFalse(plugin._gate.suppression_active)
 
         self.focus = terminal
@@ -2931,8 +5001,8 @@ class BuiltAddonTests(unittest.TestCase):
         adapter = self._terminalAdapter()
         adapter.event_gainFocus(terminal, lambda: native_focus.append(True))
         self.assertEqual([True], native_focus)
-        self.assertNotIn(instance.identifier, plugin._pendingInstanceFullStates)
-        self.assertIn(instance.identifier, plugin._authenticatedInstances)
+        self.assertNotIn(instance.identifier, plugin._connectionCoordinator.pending_full_states)
+        self.assertIn(instance.identifier, plugin._connectionCoordinator.authenticated_instances)
         self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("ready", self.spoken)
         plugin.terminate()
@@ -2964,8 +5034,8 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._instanceManager, "legacy", "session", "editor@example-host", client)
         wrong_id, active_id = plugin._identity(wrong_obj), plugin._identity(active_obj)
         plugin._instanceManager.bind(wrong_id, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._rememberedTerminalBindings.add(wrong_id)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(wrong_id)
 
         self.focus = active_obj
         plugin._handleManagedEvent(instance.identifier, {"type": "characterMoved", "payload": {
@@ -2977,8 +5047,8 @@ class BuiltAddonTests(unittest.TestCase):
             plugin._instanceManager.selected_for(wrong_id).identifier,
         )
         self.assertIsNone(plugin._instanceManager.selected_for(active_id))
-        self.assertIn(wrong_id, plugin._rememberedTerminalBindings)
-        self.assertNotIn(active_id, plugin._rememberedTerminalBindings)
+        self.assertIn(wrong_id, plugin._connectionCoordinator.remembered_terminal_bindings)
+        self.assertNotIn(active_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         self.assertFalse(plugin._gate.suppression_active)
         self.assertEqual([], client.controls)
         self.assertFalse(any("move" in message.lower() for message in self.messages))
@@ -3012,11 +5082,11 @@ class BuiltAddonTests(unittest.TestCase):
         second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
-        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
+        plugin._connectionCoordinator.authenticated_instances.update((first.identifier, second.identifier))
         plugin._gate.focused = plugin._gate.bound_terminal = first_id
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._client = first_client
+        plugin._connectionCoordinator.active_client = first_client
         adapter = self._terminalAdapter()
         self.focus = second_obj
         native_focus_announcements = []
@@ -3074,12 +5144,12 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberedTerminalBindings.add(identity)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
 
         adapter = self._terminalAdapter()
         adapter.event_appModule_loseFocus()
@@ -3119,8 +5189,8 @@ class BuiltAddonTests(unittest.TestCase):
         )
         for setting, expected_speech, expected_braille in cases:
             with self.subTest(focusAnnouncement=setting):
-                plugin._settings["focusAnnouncement"] = setting
-                plugin._planner.reset()
+                self._updateSettings(plugin, {"focusAnnouncement": setting})
+                plugin._connectionCoordinator.planner.reset()
                 self.spoken.clear()
                 self.brailleMessages.clear()
                 self.soundFeeds.clear()
@@ -3135,8 +5205,7 @@ class BuiltAddonTests(unittest.TestCase):
                 )
                 self.assertEqual(1, len(self.soundFeeds))
 
-        plugin._settings["focusAnnouncement"] = 0
-        plugin._settings["feedback"]["mode"] = 1
+        self._updateSettings(plugin, {"focusAnnouncement": 0, "feedback": {"mode": 1}})
         self.spoken.clear()
         self.soundFeeds.clear()
         plugin._handleEvent({"type": "focusContext", "payload": {**payload, "mode": "normal"}})
@@ -3157,11 +5226,11 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
         plugin._handleManagedEvent(instance.identifier, {
             "type": "fullState", "payload": {
                 "bufferId": 1, "windowId": 10, "tabpageId": 20,
@@ -3172,7 +5241,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.spoken.clear()
         self.brailleMessages.clear()
-        plugin._settings["focusAnnouncement"] = 0
+        self._updateSettings(plugin, {"focusAnnouncement": 0})
         plugin._handleManagedEvent(instance.identifier, {
             "type": "contextChanged", "payload": {
                 "bufferId": 2, "windowId": 10, "tabpageId": 20,
@@ -3183,7 +5252,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], self.spoken)
         self.assertEqual([], self.brailleMessages)
 
-        plugin._settings["focusAnnouncement"] = 1
+        self._updateSettings(plugin, {"focusAnnouncement": 1})
         plugin._handleManagedEvent(instance.identifier, {
             "type": "textChanged", "payload": {
                 "bufferId": 3, "windowId": 10, "tabpageId": 20,
@@ -3224,7 +5293,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.spoken.clear()
         self.brailleMessages.clear()
-        plugin._settings["focusAnnouncement"] = 2
+        self._updateSettings(plugin, {"focusAnnouncement": 2})
         plugin._handleManagedEvent(instance.identifier, {
             "type": "contextChanged", "payload": {
                 "bufferId": 4, "windowId": 10, "tabpageId": 20,
@@ -3241,7 +5310,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["focusAnnouncement"] = 2
+        self._updateSettings(plugin, {"focusAnnouncement": 2})
         text_window = {
             "bufferId": 1, "windowId": 10, "tabpageId": 20,
             "windowIndex": 1, "windowCount": 2,
@@ -3292,14 +5361,14 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "Example", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
-        plugin._settings["focusAnnouncement"] = 0
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
+        self._updateSettings(plugin, {"focusAnnouncement": 0})
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         source = {
             "bufferId": 2, "windowId": 10, "tabpageId": 20,
             "bufferName": "term://shell", "buftype": "terminal",
@@ -3356,9 +5425,9 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["focusAnnouncement"] = 0
+        self._updateSettings(plugin, {"focusAnnouncement": 0})
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         source = {
             "bufferId": 1, "windowId": 10, "tabpageId": 20,
             "bufferName": "/work/source.txt", "buftype": "",
@@ -3429,7 +5498,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["focusAnnouncement"] = 2
+        self._updateSettings(plugin, {"focusAnnouncement": 2})
         source = {
             "bufferId": 1, "windowId": 10, "tabpageId": 20,
             "bufferName": "/work/source.txt", "buftype": "",
@@ -3491,8 +5560,8 @@ class BuiltAddonTests(unittest.TestCase):
         client = Client()
         instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
         plugin._instanceManager.bind(identity, instance.identifier)
-        plugin._rememberedTerminalBindings.add(identity)
-        plugin._authenticatedInstances.add(instance.identifier)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
         plugin._gate.manual_enabled = True
         plugin._gate.focused = None
 
@@ -3534,8 +5603,8 @@ class BuiltAddonTests(unittest.TestCase):
         second = add_remote_instance(plugin._instanceManager, "two", "2", "Second", second_client)
         plugin._instanceManager.bind(first_id, first.identifier)
         plugin._instanceManager.bind(second_id, second.identifier)
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
-        plugin._authenticatedInstances.update((first.identifier, second.identifier))
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
+        plugin._connectionCoordinator.authenticated_instances.update((first.identifier, second.identifier))
         plugin._gate.manual_enabled = True
 
         adapters = {
@@ -3599,8 +5668,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "insert", "bufferId": 1, "lineText": "first",
             "cursor": {"line": 1, "byteColumn": 5},
         }})
-        first_planner = plugin._planner
-        plugin._typedWord = ["firstPending"]
+        first_planner = plugin._connectionCoordinator.planner
+        plugin._connectionCoordinator.typed_word = ["firstPending"]
 
         self.focus = second_obj
         self._focusPlugin(plugin, second_obj)
@@ -3608,10 +5677,10 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal", "bufferId": 1, "lineText": "second",
             "cursor": {"line": 1, "byteColumn": 0},
         }})
-        second_planner = plugin._planner
+        second_planner = plugin._connectionCoordinator.planner
         self.assertIsNot(first_planner, second_planner)
-        plugin._typedWord = ["secondPending"]
-        plugin._rememberedTerminalBindings.update((first_id, second_id))
+        plugin._connectionCoordinator.typed_word = ["secondPending"]
+        plugin._connectionCoordinator.remembered_terminal_bindings.update((first_id, second_id))
         adapter = self._terminalAdapter()
 
         self.focus = first_obj
@@ -3625,8 +5694,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "insert", "bufferId": 1, "lineText": "first",
             "cursor": {"line": 1, "byteColumn": 4},
         }})
-        self.assertIs(first_planner, plugin._planner)
-        self.assertEqual(["firstPending"], plugin._typedWord)
+        self.assertIs(first_planner, plugin._connectionCoordinator.planner)
+        self.assertEqual(["firstPending"], plugin._connectionCoordinator.typed_word)
 
         self.focus = second_obj
         adapter.event_gainFocus(second_obj, lambda: None)
@@ -3639,8 +5708,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal", "bufferId": 1, "lineText": "second",
             "cursor": {"line": 1, "byteColumn": 1},
         }})
-        self.assertIs(second_planner, plugin._planner)
-        self.assertEqual(["secondPending"], plugin._typedWord)
+        self.assertIs(second_planner, plugin._connectionCoordinator.planner)
+        self.assertEqual(["secondPending"], plugin._connectionCoordinator.typed_word)
         plugin.terminate()
 
     def test_declined_or_stale_tab_binding_never_auto_reconnects(self) -> None:
@@ -3669,7 +5738,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(first_id, instance.identifier)
         self.messageBoxAnswers.append(0)
         plugin._offerTemporaryTerminalBinding(first_id, instance.identifier)
-        self.assertNotIn(first_id, plugin._rememberedTerminalBindings)
+        self.assertNotIn(first_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         adapter = self._terminalAdapter()
         plugin._gate.focused = first_id
         adapter.event_gainFocus(second_obj, lambda: None)
@@ -3680,10 +5749,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(instance.identifier, plugin._instanceManager.selected_for(first_id).identifier)
 
         stale_id = plugin._identity(second_obj)
-        plugin._rememberedTerminalBindings.add(stale_id)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(stale_id)
         plugin._gate.focused = TerminalIdentity(1, 2)
         adapter.event_gainFocus(second_obj, lambda: None)
-        self.assertNotIn(stale_id, plugin._rememberedTerminalBindings)
+        self.assertNotIn(stale_id, plugin._connectionCoordinator.remembered_terminal_bindings)
         plugin.terminate()
 
     def test_explicit_session_replacement_starts_new_before_stopping_old_client(self) -> None:
@@ -3706,14 +5775,15 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         }
-        plugin._settings["connections"] = [profile_value]
+        self._updateSettings(plugin, {"connections": [profile_value]})
         identity = plugin._identity(self.focus)
         old = Client()
         old.instance = "old"
         old_instance = add_remote_instance(plugin._instanceManager, "work", "1", "old", old)
         plugin._instanceManager.bind(identity, old_instance.identifier)
-        plugin._client = old
-        plugin._sessionDiscoveryGeneration = 9
+        plugin._connectionCoordinator.active_client = old
+        plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
+        plugin._sessionClaimService.discovery_generation = 9
         with mock.patch.object(addon_module, "SshStdioClient", Client):
             plugin._finishSessionDiscovery(
                 9, parse_profile(profile_value), identity,
@@ -3734,7 +5804,7 @@ class BuiltAddonTests(unittest.TestCase):
             "id": "work", "name": "Work", "host": "host", "user": "remote",
             "port": 22, "identityFile": "", "authentication": "openSsh",
         })
-        plugin._sessionDiscoveryGeneration = 2
+        plugin._sessionClaimService.discovery_generation = 2
         plugin._startManagedInstance = lambda *_args, **_kwargs: self.fail("must not start")
         plugin._finishSessionDiscovery(2, profile, plugin._identity(self.focus), [], None)
         self.assertIn("No active Neovim session", self.messages[-1])
@@ -3761,12 +5831,12 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = True
-        plugin._settings["connections"] = [
+        self._updateSettings(plugin, {"connections": [
             {"id": "v4", "name": "IPv4 host", "host": "127.0.0.1", "user": "editor",
              "port": 22, "identityFile": "", "authentication": "openSsh"},
             {"id": "v6", "name": "IPv6 host", "host": "::1", "user": "editor",
              "port": 22, "identityFile": "", "authentication": "openSsh"},
-        ]
+        ]})
         with mock.patch.object(addon_module, "SshStdioClient", FakeStdioClient):
             plugin._startManagedInstance("v4", "101")
             self.focus.windowHandle = 201
@@ -3818,13 +5888,37 @@ class BuiltAddonTests(unittest.TestCase):
         panel.focusAnnouncement.SetSelection(1)
         panel.feedbackControls["delete"].SetSelection(2)
         panel.onSave()
-        self.assertEqual(1, plugin._settings["focusAnnouncement"])
+        self.assertEqual(1, self._settingsSnapshot(plugin)["focusAnnouncement"])
         self.assertEqual(1, __import__("config").conf["NeovimAccessLink"]["focusAnnouncement"])
-        self.assertEqual(2, plugin._settings["feedback"]["delete"])
+        self.assertEqual(2, self._settingsSnapshot(plugin)["feedback"]["delete"])
         self.assertEqual(2, __import__("config").conf["NeovimAccessLink"]["feedback"]["delete"])
         self.assertIn("NeovimAccessLink", __import__("config").conf.spec)
         self.assertFalse((self.config_path / "NeovimAccessLink.json").exists())
         plugin.terminate()
+
+    def test_ui_keeps_tools_when_settings_registration_fails_and_cleanup_is_idempotent(self) -> None:
+        from gui.settingsDialogs import NVDASettingsDialog
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class RejectingCategories(list):
+            def append(self, _value):
+                raise RuntimeError("settings unavailable")
+
+        original_categories = NVDASettingsDialog.categoryClasses
+        NVDASettingsDialog.categoryClasses = RejectingCategories()
+        try:
+            plugin = GlobalPlugin()
+            self.assertEqual(2, len(plugin._nvdaUi._menuItems))
+            self.assertIsNone(plugin._nvdaUi._settingsPanelClass)
+            self.assertIn("settingsPanelUnavailable", plugin._diagnostics.report())
+
+            plugin._nvdaUi.unregister()
+            plugin._nvdaUi.unregister()
+
+            self.assertEqual([], plugin._nvdaUi._menuItems)
+            plugin.terminate()
+        finally:
+            NVDASettingsDialog.categoryClasses = original_categories
 
     def test_german_tools_menu_is_distinct_and_both_handlers_open_their_forms(self) -> None:
         mo_path = self.extract_path / "locale" / "de" / "LC_MESSAGES" / "nvda.mo"
@@ -3871,6 +5965,8 @@ class BuiltAddonTests(unittest.TestCase):
         import config
 
         plugin = GlobalPlugin()
+        inventories = []
+        plugin._beginClaimInventory = lambda: inventories.append(True)
         config.conf["NeovimAccessLink"] = {
             "focusAnnouncement": 0,
             "connections": json.dumps([{
@@ -3884,9 +5980,16 @@ class BuiltAddonTests(unittest.TestCase):
             },
         }
         config.post_configProfileSwitch.notify()
-        self.assertEqual(0, plugin._settings["focusAnnouncement"])
-        self.assertEqual(0, plugin._settings["feedback"]["mode"])
+        self.assertEqual(0, self._settingsSnapshot(plugin)["focusAnnouncement"])
+        self.assertEqual(0, self._settingsSnapshot(plugin)["feedback"]["mode"])
+        self.assertEqual(0, plugin._feedbackMode("mode"))
         self.assertEqual("user@host", plugin._connectionProfileById("quiet").ssh_target)
+        self.assertEqual([], inventories)
+
+        plugin._gate.manual_enabled = True
+        config.conf["NeovimAccessLink"]["connections"] = "[]"
+        config.post_configProfileSwitch.notify()
+        self.assertEqual([True], inventories)
         self.assertEqual(1, len(config.post_configProfileSwitch.handlers))
         plugin.terminate()
         self.assertEqual(0, len(config.post_configProfileSwitch.handlers))
@@ -3909,10 +6012,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
         base = {
             "bufferId": 1, "windowId": 1000, "tabpageId": 1, "changedtick": 9,
             "mode": "visualCharacter", "modeRaw": "v", "modeBlocking": False,
@@ -3920,7 +6023,7 @@ class BuiltAddonTests(unittest.TestCase):
             "fileManager": None, "lineText": "selected",
             "cursor": {"line": 1, "byteColumn": 7},
         }
-        plugin._currentState = base
+        plugin._connectionCoordinator.current_state = base
 
         plugin.action_copyNeovimSelection(None)
         kind, request = client.controls[-1]
@@ -3938,14 +6041,15 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("private selection", plugin._diagnostics.report())
 
         self.clipboard = "Windows text 😀\nsecond line"
-        plugin._currentState = {**base, "mode": "normal", "modeRaw": "n"}
+        plugin._connectionCoordinator.current_state = {**base, "mode": "normal", "modeRaw": "n"}
         plugin.action_pasteWindowsClipboard(None)
         kind, request = client.controls[-1]
         self.assertEqual("pasteTextRequest", kind)
         self.assertEqual(self.clipboard, request["text"])
         plugin._handleManagedEvent(instance.identifier, {
             "type": "pasteTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "pasted", "insertedBytes": 29, "insertedLines": 2,
             },
         })
@@ -3959,13 +6063,21 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(self.clipboard, request["text"])
         plugin._handleManagedEvent(instance.identifier, {
             "type": "setRegisterResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "registerStored", "registerType": "V",
                 "storedBytes": 21, "storedLineCount": 1,
             },
         })
         self.assertTrue(any("unnamed register" in item for item in self.spoken))
         self.assertNotIn("new unnamed register", plugin._diagnostics.report())
+
+        control_count = len(client.controls)
+        self.clipboard = ""
+        plugin.action_setNeovimRegisterFromWindowsClipboard(None)
+        self.assertEqual(control_count, len(client.controls))
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
+        self.assertIn("The Windows clipboard does not contain supported text", self.messages)
         plugin.terminate()
 
     def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:
@@ -3982,11 +6094,11 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
             "mode": "normal", "modeRaw": "n", "modeBlocking": False,
             "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
@@ -3997,7 +6109,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "copyTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "copied", "clipboardText": "must not escape",
             },
         })
@@ -4020,11 +6133,11 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._gate.terminal_passthrough = True
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
-        plugin._transportCapabilities = frozenset({"terminalControl"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"terminalControl"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3,
             "mode": "terminal", "modeRaw": "t", "modeBlocking": False,
             "buftype": "terminal",
@@ -4036,14 +6149,19 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("changedtick", request)
         plugin._handleManagedEvent(instance.identifier, {
             "type": "leaveTerminalInputResult", "payload": {
-                **plugin._currentState, "mode": "terminalNormal", "modeRaw": "nt",
+                **plugin._connectionCoordinator.current_state,
+                "mode": "terminalNormal", "modeRaw": "nt",
                 "requestId": request["requestId"], "ok": True, "resultCode": "ok",
             },
         })
-        self.assertEqual({}, plugin._pendingTerminalControlRequests)
-        self.assertNotIn("requestId", plugin._currentState)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_terminal_control_requests)
+        self.assertNotIn("requestId", plugin._connectionCoordinator.current_state)
 
-        plugin._currentState = {**plugin._currentState, "mode": "normal", "modeRaw": "n"}
+        plugin._connectionCoordinator.current_state = {
+            **plugin._connectionCoordinator.current_state,
+            "mode": "normal",
+            "modeRaw": "n",
+        }
         plugin.action_leaveDirectTerminalInput(None)
         self.assertIn("Neovim is not in direct terminal input", self.messages)
         self.assertEqual(1, len(controls))
@@ -4054,15 +6172,20 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         identity = plugin._identity(self.focus)
-        for request_id in range(40):
-            plugin._rememberClipboardRequest(
-                request_id,
-                ("instance", identity, "copyTextRequest"),
+        discarded = []
+        for _request in range(40):
+            plan = plugin._editorSessionController.remember_clipboard_request(
+                "instance",
+                identity,
+                "copyTextRequest",
             )
+            discarded.extend(plan.discarded_request_ids)
+            plugin._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
 
-        self.assertEqual(32, len(plugin._pendingClipboardRequests))
-        self.assertNotIn(0, plugin._pendingClipboardRequests)
-        self.assertIn(39, plugin._pendingClipboardRequests)
+        self.assertEqual(32, len(plugin._connectionCoordinator.pending_clipboard_requests))
+        self.assertEqual(list(range(1, 9)), discarded)
+        self.assertNotIn(1, plugin._connectionCoordinator.pending_clipboard_requests)
+        self.assertIn(40, plugin._connectionCoordinator.pending_clipboard_requests)
         self.assertIn('"reason": "queueLimit"', plugin._diagnostics.report())
         plugin.terminate()
 
@@ -4080,11 +6203,11 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._instanceManager.bind(identity, instance.identifier)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._authenticatedInstances.add(instance.identifier)
-        plugin._activeInstanceId = instance.identifier
-        plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.active_instance_id = instance.identifier
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
             "mode": "normal", "modeRaw": "n", "modeBlocking": False,
             "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
@@ -4097,13 +6220,14 @@ class BuiltAddonTests(unittest.TestCase):
         self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "pasteTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "pasted", "insertedBytes": 20, "insertedLines": 1,
             },
         })
 
         self.assertNotIn("Pasted into Neovim", self.spoken[spoken_before:])
-        self.assertEqual({}, plugin._pendingClipboardRequests)
+        self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
         plugin.terminate()
 
     def test_nvda_profile_switch_does_not_interrupt_an_active_connection(self) -> None:
@@ -4112,21 +6236,23 @@ class BuiltAddonTests(unittest.TestCase):
 
         class Client:
             def __init__(inner_self): inner_self.stops = 0
+            def start(inner_self): pass
             def stop(inner_self): inner_self.stops += 1
 
         plugin = GlobalPlugin()
         client = Client()
-        plugin._client = client
-        plugin._connected = True
+        add_remote_instance(plugin._instanceManager, "work", "active", "Work", client)
+        plugin._connectionCoordinator.active_client = client
+        plugin._connectionCoordinator.connected = True
         plugin._gate.manual_enabled = True
         config.conf["NeovimAccessLink"]["feedback"]["global"] = 0
 
         config.post_configProfileSwitch.notify()
 
-        self.assertIs(client, plugin._client)
+        self.assertIs(client, plugin._connectionCoordinator.active_client)
         self.assertEqual(0, client.stops)
-        self.assertTrue(plugin._connected)
-        self.assertEqual(0, plugin._settings["feedback"]["global"])
+        self.assertTrue(plugin._connectionCoordinator.connected)
+        self.assertEqual(0, self._settingsSnapshot(plugin)["feedback"]["global"])
         plugin.terminate()
         self.assertEqual(1, client.stops)
 
@@ -4166,7 +6292,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = True
         plugin._beginClaimInventory = lambda: inventories.append(True)
         panel.onSave()
-        self.assertNotIn("activeConnection", plugin._settings)
+        self.assertNotIn("activeConnection", self._settingsSnapshot(plugin))
         self.assertEqual([True], inventories)
         plugin.terminate()
 
@@ -4215,15 +6341,15 @@ class BuiltAddonTests(unittest.TestCase):
         panel.makeSettings(object())
         panel.onSave()
         self.assertEqual([], panel.connectionProfiles)
-        self.assertNotIn("activeConnection", plugin._settings)
-        self.assertNotIn("activeTargetKind", plugin._settings)
+        self.assertNotIn("activeConnection", self._settingsSnapshot(plugin))
+        self.assertNotIn("activeTargetKind", self._settingsSnapshot(plugin))
         plugin.terminate()
 
     def test_linux_installation_selects_multiple_saved_profiles_with_accessible_labels(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [
                 {"id": "key", "name": "Production", "host": "prod", "user": "alice", "port": 22,
                  "identityFile": r"C:\keys\prod", "authentication": "openSsh"},
@@ -4247,7 +6373,9 @@ class BuiltAddonTests(unittest.TestCase):
 
         calls = []
         plugin._nvdaUi._chooseInstallProfiles = lambda: selected
-        plugin._passwordForProfile = lambda profile: "temporary password" if profile.identifier == "pw" else ""
+        plugin._nvdaUi._passwordForProfile = (
+            lambda profile: "temporary password" if profile.identifier == "pw" else ""
+        )
         plugin._nvdaUi._runServerInstalls = lambda *args: calls.append(args)
         class ImmediateThread:
             def __init__(inner_self, target, args, daemon):
@@ -4268,12 +6396,12 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings["connections"] = [
+        self._updateSettings(plugin, {"connections": [
             {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
             {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
-        ]
+        ]})
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
         original_show = sys.modules["wx"].Dialog.ShowModal
         def select_all_then_show(dialog):
@@ -4290,12 +6418,12 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings["connections"] = [
+        self._updateSettings(plugin, {"connections": [
             {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
             {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
-        ]
+        ]})
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
         synchronized = []
         original_show = sys.modules["wx"].Dialog.ShowModal
@@ -4327,10 +6455,10 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings["connections"] = [{
+        self._updateSettings(plugin, {"connections": [{
             "id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
             "identityFile": "", "authentication": "openSsh",
-        }]
+        }]})
         self.modalDialogResults.extend((sys.modules["wx"].ID_OK, sys.modules["wx"].ID_CANCEL))
         self.assertIsNone(plugin._nvdaUi._chooseInstallProfiles())
         self.assertTrue(self.messageBoxes)
@@ -4398,7 +6526,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
                 return_value=installer,
         ), \
-                mock.patch.object(plugin._diagnostics, "record") as record:
+                mock.patch.object(plugin._nvdaUi, "_recordDiagnostic") as record:
             plugin._nvdaUi._runServerInstalls(
                 [(profiles[0], ""), (profiles[1], "temporary password")], "/tmp/package.tar.gz",
             )
@@ -4416,12 +6544,12 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings["connections"] = [
+        self._updateSettings(plugin, {"connections": [
             {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
              "identityFile": "", "authentication": "openSsh"},
             {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 2222,
              "identityFile": "", "authentication": "password"},
-        ]
+        ]})
         self.checkListSelections.append([0, 2])
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
 
@@ -4450,7 +6578,7 @@ class BuiltAddonTests(unittest.TestCase):
         }])[0]
         local = local_windows_target("This computer")
         plugin._nvdaUi._chooseUninstallProfiles = lambda: [local, remote]
-        plugin._passwordForProfile = lambda _profile: "temporary password"
+        plugin._nvdaUi._passwordForProfile = lambda _profile: "temporary password"
         calls = []
         run_removals = plugin._nvdaUi._runComponentRemovals
         plugin._nvdaUi._runComponentRemovals = lambda *args: calls.append(args)
@@ -4478,7 +6606,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
                 return_value=ssh_installer,
         ), \
-                mock.patch.object(plugin._diagnostics, "record") as record:
+                mock.patch.object(plugin._nvdaUi, "_recordDiagnostic") as record:
             plugin._nvdaUi._runComponentRemovals([(local, ""), (remote, "temporary password")])
         local_installer.uninstall.assert_called_once_with()
         ssh_installer.uninstall.assert_called_once_with(
@@ -4504,7 +6632,7 @@ class BuiltAddonTests(unittest.TestCase):
             (profiles[0], InstallResult(True, "removed")),
             (profiles[1], InstallResult(False, "permission denied")),
         ]
-        before = list(plugin._settings["connections"])
+        before = list(self._settingsSnapshot(plugin)["connections"])
 
         summary = plugin._nvdaUi._componentRemovalResultSummary(results)
         plugin._nvdaUi._finishComponentRemovals(results)
@@ -4515,14 +6643,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("Production (admin@prod): permission denied", summary)
         self.assertEqual("Neovim component removal results", self.messageDialogs[-1].title)
         self.assertTrue(self.messageDialogs[-1].shown)
-        self.assertEqual(before, plugin._settings["connections"])
+        self.assertEqual(before, self._settingsSnapshot(plugin)["connections"])
         plugin.terminate()
 
     def test_password_is_prompted_once_per_activation_and_never_persisted(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        plugin._settings.update({
+        self._updateSettings(plugin, {
             "connections": [{
                 "id": "password-host", "name": "Password host", "host": "host",
                 "user": "remote", "port": 22, "identityFile": "", "authentication": "password",
@@ -4538,7 +6666,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["password-host"], [
             item.identifier for item in plugin._automaticClaimProfiles()
         ])
-        plugin._saveSettings()
+        plugin._settingsService.save()
         saved = __import__("config").conf["NeovimAccessLink"]["connections"]
         self.assertNotIn("not-saved secret", saved)
         plugin._clearSessionPasswords()
@@ -4607,7 +6735,7 @@ class BuiltAddonTests(unittest.TestCase):
             "normal", "insert", "visualCharacter", "visualLine", "visualBlock",
             "operatorPending", "commandLine", "replace",
         ):
-            plugin._currentState["mode"] = mode
+            plugin._connectionCoordinator.current_state["mode"] = mode
             adapter.event_gainFocus(self.focus, lambda: called.append(True))
             adapter.event_textChange(self.focus, lambda: called.append(True))
             adapter.event_typedCharacter(self.focus, lambda: called.append(True), "x")
@@ -4679,7 +6807,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         played: list[tuple[str, bool]] = []
-        plugin._editorSounds.play = lambda cue: played.append(
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(
             (cue, plugin._gate.terminal_passthrough)
         ) or True
         self.assertTrue(plugin._gate.suppression_active)
@@ -4706,7 +6834,7 @@ class BuiltAddonTests(unittest.TestCase):
         report = plugin._diagnostics.report()
         self.assertIn('"mode": "terminal"', report)
         self.assertIn('"category": "normalModeSound"', report)
-        plugin._settings["feedback"]["mode"] = 1
+        self._updateSettings(plugin, {"feedback": {"mode": 1}})
         sounds_before_speech_only = len(played)
         plugin._handleEvent({"type": "modeChanged", "payload": {
             "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
@@ -4724,7 +6852,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["feedback"]["mode"] = 0
+        self._updateSettings(plugin, {"feedback": {"mode": 0}})
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "normal", "modeRaw": "n", "lineText": "",
             "cursor": {"line": 1, "byteColumn": 0},
@@ -4762,7 +6890,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "terminalNormal", "modeRaw": "nt", "buftype": "terminal",
             "bufferId": 2, "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
@@ -4798,9 +6926,9 @@ class BuiltAddonTests(unittest.TestCase):
             with self.subTest(focusAnnouncement=setting):
                 plugin = GlobalPlugin()
                 plugin._gate.manual_enabled = True
-                plugin._settings["focusAnnouncement"] = setting
+                self._updateSettings(plugin, {"focusAnnouncement": setting})
                 played: list[str] = []
-                plugin._editorSounds.play = lambda cue: played.append(cue) or True
+                plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
                 base = {
                     "bufferId": 1, "windowId": 10, "tabpageId": 20,
                     "bufferName": "/work/draft.md", "buftype": "",
@@ -4835,7 +6963,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         played: list[str] = []
-        plugin._editorSounds.play = lambda cue: played.append(cue) or True
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "normal", "modeRaw": "n", "buftype": "", "bufferId": 1,
             "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
@@ -4875,7 +7003,10 @@ class BuiltAddonTests(unittest.TestCase):
         from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
-        plugin._currentState = {
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = plugin._gate.focused
+        plugin._connectionCoordinator.current_state = {
             "lineText": "\t界🙂z",
             "tabstop": 4,
             "cursor": {"byteColumn": 8},
@@ -4892,14 +7023,14 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
-        plugin._client = types.SimpleNamespace(
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 1000, "changedtick": 9,
             "lineText": "   café/", "cursor": {"line": 3, "byteColumn": 8},
             "fileManager": {"name": "tree", "entry": {
@@ -4940,7 +7071,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         for text, expected in (("?", "? selected"), (" ", "space selected")):
-            plugin._planner.reset()
+            plugin._connectionCoordinator.planner.reset()
             plugin._handleEvent({"type": "selectionChanged", "payload": {
                 "mode": "visualCharacter", "lineText": text,
                 "cursor": {"line": 1, "byteColumn": len(text.encode("utf-8"))},
@@ -4969,6 +7100,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
+        self._focusPlugin(plugin)
         state = {
             "mode": "normal", "lineText": "mispelled word", "tabstop": 4,
             "cursor": {"line": 1, "byteColumn": 1, "characterColumn": 1},
@@ -4998,6 +7130,7 @@ class BuiltAddonTests(unittest.TestCase):
         config.conf["documentFormatting"]["reportSpellingErrors2"] = 0
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
+        self._focusPlugin(plugin)
         state = {
             "mode": "normal", "lineText": "mispelled", "cursor": {"line": 1, "byteColumn": 1},
             "spellingError": {"kind": "spelling", "startByteColumn": 0, "endByteColumn": 9},
@@ -5184,8 +7317,8 @@ class BuiltAddonTests(unittest.TestCase):
         }})
         self.assertEqual("?", self.spoken[-1])
         config.conf["keyboard"] = {"speakTypedCharacters": 0, "speakTypedWords": 2}
-        plugin._planner.reset()
-        plugin._typedWord = []
+        plugin._connectionCoordinator.planner.reset()
+        plugin._connectionCoordinator.typed_word = []
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "insert", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
         }})
@@ -5271,7 +7404,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._handleEvent({"type": "textChanged", "payload": {
             **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
         }})
-        plugin._lastConnectionState = "connected"
+        plugin._connectionCoordinator.last_connection_state = "connected"
         plugin._handleConnectionState("disconnected")
         plugin._handleEvent({"type": "fullState", "payload": {
             **base, "lineText": "word old", "cursor": {"line": 1, "byteColumn": 8},
@@ -5288,10 +7421,10 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["feedback"] = {
+        self._updateSettings(plugin, {"feedback": {
             "global": 3, "mode": 2, "delete": 1, "replace": 3,
             "lineBoundary": 2, "fileBoundary": 3, "lineCrossed": 2, "matchingError": 3,
-        }
+        }})
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "normal", "lineText": "ab", "cursor": {"line": 1, "byteColumn": 0},
         }})
@@ -5303,8 +7436,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("deleted b", self.spoken[-1])
         self.assertEqual([], self.soundFeeds)
 
-        plugin._planner.reset()
-        plugin._lastMode = "normal"
+        plugin._connectionCoordinator.planner.reset()
+        plugin._connectionCoordinator.last_mode = "normal"
         self.spoken.clear()
         plugin._handleEvent({"type": "modeChanged", "payload": {
             "mode": "insert", "modeRaw": "i", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
@@ -5314,7 +7447,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         # Completion sounds remain governed by NVDA's own suggestion setting,
         # even when all Add-on-owned feedback is globally disabled.
-        plugin._settings["feedback"]["global"] = 0
+        self._updateSettings(plugin, {"feedback": {"global": 0}})
         plugin._handleEvent({"type": "menuOpened", "payload": {
             "mode": "insert", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
         }})
@@ -5327,7 +7460,10 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         for global_mode in range(4):
             for local_mode in range(4):
-                plugin._settings["feedback"] = {"global": global_mode, "delete": local_mode}
+                self._updateSettings(
+                    plugin,
+                    {"feedback": {"global": global_mode, "delete": local_mode}},
+                )
                 self.assertEqual(global_mode & local_mode, plugin._feedbackMode("delete"))
         plugin.terminate()
 
@@ -5371,11 +7507,11 @@ class BuiltAddonTests(unittest.TestCase):
                 with self.subTest(setting=key, outputMode=output_mode):
                     plugin = GlobalPlugin()
                     plugin._gate.manual_enabled = True
-                    plugin._settings["feedback"] = {**{
+                    self._updateSettings(plugin, {"feedback": {**{
                         "global": 3, "mode": 3, "delete": 3, "replace": 3,
                         "lineBoundary": 2, "fileBoundary": 3,
                         "lineCrossed": 2, "matchingError": 3,
-                    }, key: output_mode}
+                    }, key: output_mode}})
                     plugin._handleEvent(initial)
                     self.spoken.clear()
                     self.soundFeeds.clear()
@@ -5388,11 +7524,11 @@ class BuiltAddonTests(unittest.TestCase):
             with self.subTest(setting="lineCrossed", outputMode=output_mode):
                 plugin = GlobalPlugin()
                 plugin._gate.manual_enabled = True
-                plugin._settings["feedback"] = {**{
+                self._updateSettings(plugin, {"feedback": {**{
                     "global": 3, "mode": 3, "delete": 3, "replace": 3,
                     "lineBoundary": 2, "fileBoundary": 3,
                     "lineCrossed": output_mode, "matchingError": 3,
-                }}
+                }}})
                 plugin._handleEvent({"type": "fullState", "payload": {
                     "mode": "normal", "lineText": "a", "character": "a",
                     "cursor": {"line": 1, "byteColumn": 0},
@@ -5410,7 +7546,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
-        plugin._settings["feedback"] = {"global": 3, "mode": 0}
+        self._updateSettings(plugin, {"feedback": {"global": 3, "mode": 0}})
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "normal", "lineText": "x", "cursor": {"line": 1, "byteColumn": 0},
         }})
@@ -5446,9 +7582,10 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
 
-        self.assertEqual([], plugin._settings["connections"])
-        self.assertEqual(3, plugin._settings["feedback"]["global"])
-        self.assertEqual(2, plugin._settings["focusAnnouncement"])
+        settings = self._settingsSnapshot(plugin)
+        self.assertEqual([], settings["connections"])
+        self.assertEqual(3, settings["feedback"]["global"])
+        self.assertEqual(2, settings["focusAnnouncement"])
         self.assertEqual(0, self.configSaves)
         self.assertTrue(path.exists())
         self.assertIs(old_section, config.conf["nvimNvdaAccess"])
@@ -5470,24 +7607,158 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         section = AggregatedSectionLike()
         config.conf["NeovimAccessLink"] = section
-        plugin._writeSettingsToNvda(plugin._settings)
+        plugin._settingsService.save()
         self.assertNotIn("schemaVersion", section.values)
         self.assertEqual(2, section.values["focusAnnouncement"])
         self.assertIsInstance(section.values["connections"], str)
-        self.assertEqual(set(plugin._settings["feedback"]), set(section.values["feedback"]))
+        self.assertEqual(
+            set(self._settingsSnapshot(plugin)["feedback"]),
+            set(section.values["feedback"]),
+        )
         plugin.terminate()
 
     def test_invalid_focus_announcement_falls_back_to_existing_context(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
-        normalized = plugin._normalizeSettings({
+        normalized = plugin._settingsService.normalize({
             "connections": [], "feedback": {}, "focusAnnouncement": 99,
         })
 
         self.assertEqual(2, normalized["focusAnnouncement"])
         self.assertIn('"option": "focusAnnouncement"', plugin._diagnostics.report())
         plugin.terminate()
+
+    def test_settings_service_snapshots_and_connection_notifications_are_transactional(self) -> None:
+        from dataclasses import FrozenInstanceError
+        from globalPlugins.NeovimAccessLink.settings_service import SettingsService
+
+        section = {
+            "connections": "[]",
+            "focusAnnouncement": 2,
+            "feedback": {"global": 3, "mode": 3},
+        }
+        notifications = []
+        service = SettingsService(
+            {"NeovimAccessLink": section},
+            section_name="NeovimAccessLink",
+            feedback_defaults={"global": 3, "mode": 3},
+            focus_announcement_values=("none", "line", "context"),
+            focus_announcement_default=2,
+            record_diagnostic=lambda *_args, **_kwargs: None,
+            on_connections_changed=lambda: notifications.append(True) or True,
+        )
+        detached = service.snapshot()
+        detached["feedback"]["global"] = 0
+        self.assertEqual(3, service.snapshot()["feedback"]["global"])
+
+        unchanged = service.update(service.snapshot())
+        self.assertFalse(unchanged.connections_changed)
+        self.assertEqual([], notifications)
+        values = service.snapshot()
+        values["connections"] = [{
+            "id": "work", "name": "Work", "host": "host", "user": "user",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        }]
+        changed = service.update(values)
+        self.assertTrue(changed.connections_changed)
+        self.assertTrue(changed.claim_inventory_started)
+        self.assertEqual([True], notifications)
+        with self.assertRaises(FrozenInstanceError):
+            changed.connections_changed = False
+
+    def test_settings_service_normalizes_missing_incomplete_and_invalid_configuration(self) -> None:
+        from globalPlugins.NeovimAccessLink.settings_service import SettingsService
+
+        diagnostics = []
+        service = SettingsService(
+            {},
+            section_name="NeovimAccessLink",
+            feedback_defaults={"global": 3, "mode": 3},
+            focus_announcement_values=("none", "line", "context"),
+            focus_announcement_default=2,
+            record_diagnostic=lambda *args, **kwargs: diagnostics.append((args, kwargs)),
+            on_connections_changed=lambda: False,
+        )
+        self.assertEqual({
+            "connections": [],
+            "feedback": {"global": 3, "mode": 3},
+            "focusAnnouncement": 2,
+        }, service.snapshot())
+        self.assertTrue(diagnostics)
+
+        normalized = service.normalize({
+            "connections": [{"id": "incomplete"}],
+            "feedback": {"global": 7},
+            "focusAnnouncement": "line",
+        })
+        self.assertEqual([], normalized["connections"])
+        self.assertEqual({"global": 3, "mode": 3}, normalized["feedback"])
+        self.assertEqual(2, normalized["focusAnnouncement"])
+
+    def test_profile_switch_notifies_only_for_changed_connections(self) -> None:
+        from globalPlugins.NeovimAccessLink.settings_service import SettingsService
+
+        root = {"NeovimAccessLink": {
+            "connections": "[]",
+            "focusAnnouncement": 2,
+            "feedback": {"global": 3},
+        }}
+        notifications = []
+        service = SettingsService(
+            root,
+            section_name="NeovimAccessLink",
+            feedback_defaults={"global": 3},
+            focus_announcement_values=("none", "line", "context"),
+            focus_announcement_default=2,
+            record_diagnostic=lambda *_args, **_kwargs: None,
+            on_connections_changed=lambda: notifications.append(True) or True,
+        )
+
+        unchanged = service.reload()
+        self.assertFalse(unchanged.connections_changed)
+        root["NeovimAccessLink"]["connections"] = json.dumps([{
+            "id": "work", "name": "Work", "host": "host", "user": "user",
+            "port": 22, "identityFile": "", "authentication": "openSsh",
+        }])
+        changed = service.reload()
+
+        self.assertTrue(changed.connections_changed)
+        self.assertTrue(changed.claim_inventory_started)
+        self.assertEqual([True], notifications)
+
+    def test_settings_service_keeps_current_snapshot_when_persistence_fails(self) -> None:
+        from globalPlugins.NeovimAccessLink.settings_service import SettingsService
+
+        class FailingSection(dict):
+            fail_writes = False
+
+            def __setitem__(inner_self, key, value):
+                if inner_self.fail_writes and key == "connections":
+                    raise OSError("configuration unavailable")
+                super().__setitem__(key, value)
+
+        section = FailingSection(
+            connections="[]",
+            focusAnnouncement=2,
+            feedback={"global": 3},
+        )
+        service = SettingsService(
+            {"NeovimAccessLink": section},
+            section_name="NeovimAccessLink",
+            feedback_defaults={"global": 3},
+            focus_announcement_values=("none", "line", "context"),
+            focus_announcement_default=2,
+            record_diagnostic=lambda *_args, **_kwargs: None,
+            on_connections_changed=lambda: True,
+        )
+        before = service.snapshot()
+        section.fail_writes = True
+
+        with self.assertRaisesRegex(OSError, "configuration unavailable"):
+            service.update({**before, "focusAnnouncement": 0})
+
+        self.assertEqual(before, service.snapshot())
 
     def test_settings_read_uses_aggregated_section_items(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -5512,10 +7783,11 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
 
-        self.assertEqual(1, plugin._settings["feedback"]["global"])
-        self.assertEqual(2, plugin._settings["feedback"]["mode"])
-        self.assertEqual(1, plugin._settings["focusAnnouncement"])
-        self.assertEqual([], plugin._settings["connections"])
+        settings = self._settingsSnapshot(plugin)
+        self.assertEqual(1, settings["feedback"]["global"])
+        self.assertEqual(2, settings["feedback"]["mode"])
+        self.assertEqual(1, settings["focusAnnouncement"])
+        self.assertEqual([], settings["connections"])
         plugin.terminate()
 
     def test_braille_routing_sends_only_validated_cursor_control(self) -> None:
@@ -5523,14 +7795,14 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
-        plugin._client = types.SimpleNamespace(
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1,
             "windowId": 1000,
             "changedtick": 9,
@@ -5544,6 +7816,35 @@ class BuiltAddonTests(unittest.TestCase):
         region.routeTo(4)
         self.assertEqual("routeCursor", controls[0][0])
         self.assertEqual(1, controls[0][1]["byteColumn"])
+        plugin._connectionCoordinator.current_state["_transport"] = {"capabilities": []}
+        region.routeTo(4)
+        self.assertEqual(1, len(controls))
+        self.assertIn('"reason": "capabilityMissing"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_braille_routing_ignores_valid_state_without_confirmed_terminal_gate(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        controls: list[tuple[str, dict]] = []
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
+            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+            stop=lambda: None,
+        )
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "changedtick": 9,
+            "lineText": "safe",
+            "cursor": {"line": 1, "byteColumn": 0},
+            "_transport": {"capabilities": ["cursorRouting"]},
+        }
+        region = StructuredLineRegion(self.focus)
+        region.update()
+
+        region.routeTo(0)
+
+        self.assertEqual([], controls)
         plugin.terminate()
 
 

@@ -202,17 +202,148 @@ must not close output again before state is confirmed.
 | Bridge | Unix RPC connection, stdio framing, bounded forwarding | Arbitrary RPC or command execution, presentation |
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
-| `ConnectionCoordinator` | Instance manager, active client, gate and active speech planner, authentication, bindings, correlated requests, isolated runtime states, and instance selection, focus confirmation, and state disposal | NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
-| `ServiceRegistrar` | Identity-checked publication of the fully initialized process-wide service | Lifecycle decisions or terminal events |
+| `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
+| `service_registry.py` / `ServiceRegistrar` | Identity-checked process-wide publication of the fully initialized `TerminalIntegrationService` | A Global Plugin object, lifecycle decisions, or terminal events |
+| `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
+| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
+| `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
+| `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard/terminal-control plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
+| `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
-| Global Plugin | NVDA-process lifetime plus shared-service composition and teardown | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, and presentation delivery |
-| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | Terminal events, focus binding, and suppression |
+| `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
+| Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
+| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable terminal commands, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
+
+`AddonRuntime.start()` first registers the profile callback, then Settings and
+Tools, and publishes the terminal service last. If any step fails, the runtime
+immediately uses its complete idempotent teardown: unpublish, close the
+published service, cancel delayed main-thread calls, open the gate, unregister
+the profile callback, stop connections exactly once through their coordinator
+owner, clear its runtime/focus/request state exactly once, then close UI and
+presentation. Claim and terminal-focus generations are invalidated before
+clients stop. Each step fails independently so one cleanup error cannot leave
+later resources active. The callback that clears session passwords held only
+by the Global Plugin remains as a narrow ownership-specific shutdown boundary.
+
+A closed `TerminalIntegrationService` is a fail-open fence for retained
+references: it suppresses no native event or Braille output, authorizes no
+gesture, and produces no diagnostic effect. Claim, managed-connection,
+network, Braille, and delayed main-thread callbacks additionally pass through
+a runtime check that covers unpublication between queueing and execution.
+
+The Global Plugin no longer exposes compatibility properties for editor
+planner, canonical state, mode, structured typing state, completion
+documentation, or transport capabilities. Tests and internal consumers use
+the explicit `EditorSessionController` and `ConnectionCoordinator` ownership
+boundary. This avoids maintaining a second writable editor-state interface.
+
+It also no longer exposes compatibility properties for pending claims,
+inventory state, baselines, eligible targets, inventory errors, or discovery
+generation. Tests use `SessionClaimService` directly, so claim state has one
+writable owner and one explicit inspection boundary.
+
+Passive compatibility views for presentation sound caches, remembered
+bindings and offers, runtime and request containers, and AppModule/adapter
+focus data have also been removed. Their tests inspect `NvdaPresentation`,
+`ConnectionCoordinator`, or `TerminalFocusService` directly. This does not
+move active NVDA effects or terminal-event ownership into those tests.
+
+The focused terminal object and lifecycle sweep timestamp likewise have no
+Global Plugin compatibility view. Braille refresh and lifecycle tests use the
+owning `TerminalFocusService`; focus decisions and UIA lifetime handling remain
+encapsulated there.
+
+Active client and instance state, connection status, authenticated-instance
+tracking, per-instance terminal passthrough, and deferred full states also
+have no Global Plugin compatibility properties. The Global Plugin joins
+effects at the NVDA boundary through `ConnectionCoordinator` directly; that
+coordinator remains the sole writable owner of these fields.
+
+The AppModule and Braille overlay receive only the
+`TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
+that contract. Terminal commands use a fixed enum instead of freely resolved
+method names, while focus decisions and F12 authorizations are immutable
+values. If the service is absent, has been replaced during add-on reload, or
+violates the contract, the AppModule passes the original gesture or native
+NVDA event through fail-open.
+
+The process-wide service instance lives in neutral `service_registry.py`. The
+Global Plugin publishes and removes the service through the same
+identity-checked `ServiceRegistrar` that the AppModule and Braille module only
+read. `nvda_braille.py` owns the region and overlay and imports no Global
+Plugin; `__init__.py` merely re-exports their class names for the Windows
+Terminal AppModule.
+
+The service holds no broad `_runtime` reference. The composition root supplies
+exactly one handler for every `TerminalCommand` plus separate callbacks for
+diagnostics, fail-open handling, F12 completion, and Braille routing. The
+constructor copies the command map and rejects missing, additional, or
+non-callable entries. The public service therefore cannot reach other Global
+Plugin methods or state.
+
+`TerminalIntegrationService` delegates focus operations directly to
+`TerminalFocusService`. Identity construction, UIA lifetime validation, the
+main-thread scheduler, and a few domain callbacks are injected explicitly. A
+closed, unfocused control is removed only after two conclusive negative checks;
+an uncertain UIA failure is not treated as closure.
+
+`TerminalIntegrationService` also authorizes and cancels physical F12 claims
+directly through `SessionClaimService`. That service owns the mutable claim and
+inventory state, local/SSH inventory workers, and candidate evaluation.
+It also owns discovery, selection, reuse, connection start, disconnect, and
+remembered bindings. The Global Plugin only joins its immutable results to
+NVDA's main-thread, dialog, message, and transport boundaries; it keeps no
+writable copy of claim state. Focus loss caused by the optional modal remember
+question is bridged by exactly one terminal- and instance-correlated
+reactivation; a different terminal focus discards it.
+
+The V2-5 `EditorSessionController` uses the active runtime managed by
+`ConnectionCoordinator` but is solely responsible for its domain mutation. It
+owns state and mode transitions, transport capabilities, menu documentation,
+connection state, per-instance terminal passthrough, and isolated typing echo.
+For an already validated focus/context event, it adds the saved connection
+label to a copy before state and speech planning; it does not decide whether
+that event belongs to the focused terminal. Its ordered neutral typing actions
+become speech only at the NVDA boundary. Protocol-envelope
+validation and network callbacks remain separate. For each validated event,
+an immutable plan combines the state transition, domain terminal passthrough,
+at most one mode cue, and the ordered neutral speech actions. The Global
+Plugin applies passthrough to the gate and hands the cue and speech plan to
+`NvdaPresentation`. The controller also
+allocates bounded request IDs for clipboard,
+register, and terminal control, binds them to an instance and
+`TerminalIdentity`, and rejects foreign or late replies. One-shot clipboard
+text is exposed only as a validated result to the NVDA boundary and is removed
+from the safe follow-up event. Before sending, the same controller validates
+the negotiated capability and canonical buffer/mode state and returns either
+an immutable allowlisted outbound plan or one bounded rejection reason. It
+allocates a pending request only for a valid action. Exact focus/gate
+validation, transport calls, the Windows clipboard, diagnostics, and concrete
+presentation remain separate. Semantic planner reset and access to the active
+instance's completion documentation use the same controller boundary. NVDA's
+own typed-word buffer and speech delivery remain at the NVDA boundary.
+
+For Braille, the controller copies the active canonical state into a
+`BrailleSessionPlan`; later editor events cannot mutate that plan. A
+`BrailleRoutePlan` contains either a fully validated fixed `routeCursor`
+payload or one bounded rejection reason. The public terminal service first
+confirms the concrete terminal and records the result. The overlay only maps
+NVDA's translated Braille position to the semantic byte column; the transport
+call remains in the Global Plugin.
+
+The settings panel, presentation adapter, and profile-switch path use snapshots
+or domain operations supplied by `SettingsService`; no dialog mutates a freely
+accessible plugin dictionary. `NvdaUiManager` receives only that service, a
+diagnostic recorder, and the small password and component-operation callbacks
+it needs. Its Tools entries and Settings category nevertheless remain registered
+exactly once for the Global Plugin's process lifetime.
 
 ## The fail-open gate
 

@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 19. Juli 2026. Produktversion im Quellstand: 0.95.0.
+Stand: 21. Juli 2026. Produktversion im Quellstand: 0.95.0.
 
 Der Quellstand ist für Version 0.95.0 vorbereitet. Der zugehörige
 GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
@@ -60,6 +60,153 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   gültige `fullState` begrenzen und authentifizieren den dauerhaften Pfad.
 - Fokusverlust, Deaktivierung, Protokollfehler und Transportende geben native
   Terminalausgabe fail-open wieder frei.
+- Das Windows-Terminal-AppModule und das strukturierte Braille-Overlay greifen
+  über einen schmalen `TerminalIntegrationService` auf den gemeinsamen Dienst
+  zu. Feste Befehlswerte und unveränderliche Fokus- und Claim-Ergebnisse
+  verhindern private oder dynamische Aufrufe über die AppModule-Grenze.
+- Ein eigener `SettingsService` besitzt Laden, Normalisierung, Speichern und
+  NVDA-Profilwechsel. Präsentation und Werkzeugdialoge erhalten nur Snapshots
+  oder schmale Operationen; der `NvdaUiManager` kennt keine Global-Plugin-
+  Instanz.
+- Ein `TerminalFocusService` besitzt Terminalidentität, Fokusgeneration,
+  AppModule-/Adapterkorrelation und den periodischen Lifecycle-Sweep. Unsichere
+  UIA-Ergebnisse fallen offen aus; geschlossene, nicht fokussierte Controls
+  werden erst nach zwei eindeutigen Negativprüfungen bereinigt.
+- Die abgeschlossene V2-4-Extraktion übergibt `SessionClaimService` die
+  alleinige Zuständigkeit für einmalige F12-Autorisierung, Claim-Generationen und Claim-
+  Inventarzustand. Lokale und SSH-Inventar- und Sitzungslisten-Worker,
+  Discovery-Generation sowie Kandidatenauswertung laufen hinter diesem Dienst.
+  Er entscheidet außerdem unveränderlich zwischen lokaler, entfernter und
+  automatischer Auflösung sowie den Ergebnissen einer Sitzungssuche. Aus dem
+  gemeinsamen Instanzzustand plant er jetzt auch Wiederverwendung oder Start
+  lokaler und entfernter Sitzungen einschließlich einer gegebenenfalls zu
+  ersetzenden Instanz. Einen aktuellen Wiederverwendungsplan wendet er auf die
+  Instanzbindungen an und liefert verdrängte Terminalidentitäten zur
+  NVDA-seitigen Fokusbereinigung zurück. Start, Bindung und Runtime-Auswahl
+  neuer Instanzen bilden dort ebenfalls einen Übergang; Rückrollen und das
+  Stilllegen einer ersetzten Instanz beenden Clients asynchron. NVDA-Meldungen,
+  Dialoge und fokusbezogene Nebenwirkungen behalten ihre
+  bisherigen Hauptthreadgrenzen. Auch die explizite Instanzauswahl und
+  Trennung sind neutrale Dienstübergänge: Auswahlfehler stellen die vorherige
+  Bindung wieder her, Trennung entfernt Runtimezustand und Bindung vor dem
+  asynchronen Clientstopp. Die Wiederherstellung gemerkter Bindungen wird dort
+  fail-open vorbereitet und erzeugt je nach Authentifizierung eine korrelierte
+  Fokuskontext- oder Vollzustandsanforderung. Verzögerung und Transportaufruf
+  bleiben am NVDA-Rand. Der Dienst besitzt außerdem den ausstehenden
+  Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
+  Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
+  Diagnostik bleiben NVDA-seitig. Eine einmalige, korrelierte Reaktivierung
+  überbrückt ausschließlich den Fokusverlust dieser Rückfrage; eine Ablehnung
+  erzeugt keine dauerhafte Bindung. Eine injizierte `ManagedClientFactory`
+  konstruiert lokale TCP- und entfernte SSH-Clients mit instanzkorrelierten
+  Callbacks. Der Claimdienst verbindet diese Konstruktion mit seinem
+  transaktionalen Startübergang; Profil, Passwort und übersetzte Ausgabe
+  verbleiben am NVDA-Rand. Das Global Plugin verwendet Claimziele,
+  Berechtigungen und Baselines nur noch über schmale Dienstoperationen;
+  schreibbare Zustandskopien werden nicht geteilt.
+- Der anschließende Praxis-Meilenstein ist mit mehreren Fenstern, Tabs und
+  Panes, gemischten lokalen und entfernten Sitzungen sowie den
+  Zwischenablagepfaden abgeschlossen. V2-5 hat daraufhin begonnen: Ein
+  `EditorSessionController` mutiert den aktiven instanzgetrennten
+  Editorzustand, wechselt dessen Runtime, verarbeitet Modus-, Menü-,
+  Transport- und Verbindungszustand und erzeugt geordnete neutrale Aktionen
+  für strukturiertes Tippecho. Er besitzt außerdem die begrenzten
+  Zwischenablage-, Register- und Terminalsteuerungsanfragen, korreliert ihre
+  Antworten mit Instanz und Terminalidentität und entfernt einmaligen
+  Zwischenablagetext vor der weiteren Zustandsverarbeitung. Transportaufruf,
+  Fokus-/Gate-Prüfung, Windows-Zwischenablage und konkrete Ausgabe bleiben am
+  NVDA-Rand. Der Controller bündelt Zustandsübergang, Terminal-Passthrough,
+  Modusklangentscheidung und neutrale Sprachaktionen in einem
+  unveränderlichen Ereignisplan. Er speichert außerdem den entstehenden
+  Passthroughzustand für die aktive Instanz und ergänzt den gespeicherten
+  Verbindungsnamen in einer getrennten Kopie eines bereits validierten Fokus-
+  oder Kontextereignisses. Das Global Plugin wendet die Gate-Entscheidung an
+  und liefert den Plan über `NvdaPresentation` aus. Der Braillepfad erhält vom
+  Controller einen isolierten Zeilenplan; semantisches Cursor-Routing wird
+  dort gegen Capability, aktiven Client und vollständigen Editorzustand
+  validiert. Terminalbestätigung, Instanzauthentifizierung, NVDA-Overlay und
+  konkreter Transport bleiben außerhalb. Zwischenablage-, Register- und
+  eingebettete Terminalaktionen erhalten ebenfalls erst nach Capability-,
+  Modus-, Buffer- und kanonischer Zustandsprüfung einen unveränderlichen
+  ausgehenden Allowlist-Plan. Eine Ablehnung erzeugt keinen ausstehenden
+  Request; exakte Terminalprüfung, Windows-Zwischenablage, Rückmeldung und
+  Senden verbleiben am NVDA-Rand. Der abschließende Audit führt auch das
+  Zurücksetzen des semantischen Planers und den Zugriff auf instanzbezogene
+  Completion-Dokumentation durch den Controller. V2-5 ist automatisiert
+  abgeschlossen. Seine sieben vorübergehenden
+  Global-Plugin-Kompatibilitätseigenschaften wurden inzwischen in V2-6
+  entfernt.
+- V2-6 ist abgeschlossen und begann mit einem normalen `AddonRuntime`. Er
+  veröffentlicht den
+  vollständigen Terminaldienst erst nach der prozessweiten Registrierung und
+  besitzt eine feste, wiederholbare Abbaureihenfolge. Entfernen des Dienstes
+  und fail-open Gate-Öffnung geschehen vor Verbindungs- und
+  Zustandsbereinigung; UI und Präsentation schließen zuletzt. Einzelne
+  Bereinigungsfehler werden diagnostiziert, ohne spätere Schritte zu stoppen;
+  ein später Initialisierungsfehler rollt Registrierungen zurück.
+- Der zweite V2-6-Schnitt entfernt die früheren Global-Plugin-Sichten auf
+  Editorplaner, Zustand, Modus, Tippecho, Completion-Dokumentation und
+  Transport-Capabilities. Tests verwenden nun die tatsächliche Besitzgrenze
+  von Coordinator und Controller.
+- Der dritte V2-6-Schnitt entfernt entsprechend die früheren
+  Global-Plugin-Sichten auf ausstehende Claims, Inventargeneration und
+  -bereitschaft, Baselines, zulässige Ziele, Inventarfehler und
+  Discovery-Generation. Tests verwenden nun den besitzenden
+  `SessionClaimService`; verbliebene Kompatibilitätssichten betreffen spätere
+  Verbindungs- oder Fokusmigration und werden vor einer Entfernung separat
+  geprüft.
+- Der vierte V2-6-Schnitt entfernt elf weitere passive Sichten ohne
+  Produktivaufrufer. Sound-Cache-Tests verwenden `NvdaPresentation`;
+  Bindungs-, Runtime- und Requesttests den `ConnectionCoordinator`;
+  AppModule- und Adapterfokusdaten verbleiben im `TerminalFocusService`.
+  Aktive Verbindungs-, Gate-, Fokusobjekt- und Lifecyclesichten benötigen
+  weiterhin einen getrennten Produktivaudit.
+- Der fünfte V2-6-Schnitt schließt die Bereinigung der
+  Fokus-/Lifecycle-Kompatibilität ab. Die Brailleaktualisierung liest das
+  fokussierte Terminalobjekt aus `TerminalFocusService`; Lifecycletests ändern
+  den Zeitwert direkt an diesem Dienst. Aktive Verbindungs- und Gatesichten
+  verbleiben für ihren eigenen Audit.
+- Der sechste V2-6-Schnitt entfernt sieben Sichten auf aktiven Client- und
+  Verbindungszustand. Produktion und Tests verwenden den
+  `ConnectionCoordinator` nun direkt für aktiven Client und aktive Instanz,
+  Verbindungsstatus, authentifizierte Instanzen, Terminal-Passthrough und
+  zurückgestellte Full-States.
+- Der siebte V2-6-Schnitt schließt den öffentlichen Terminaldienst unmittelbar
+  nach dem Unpublish und sichert eingereihte Runtimecallbacks nochmals beim
+  Aufruf ab. Veraltete Dienstreferenzen und verspätete Claim-, Netzwerk-,
+  Braille- oder Scheduleraufrufe bleiben dadurch wirkungslos und fail-open.
+  Gate und Instanzmanager bleiben nach getrenntem Audit als häufig verwendete
+  Kompositionsabhängigkeiten bestehen; eine weitere Indirektion würde keine
+  klarere Besitzgrenze schaffen.
+- Der achte V2-6-Schnitt bündelt auch die Aktivierung in `AddonRuntime`.
+  Profilcallback, UI und Veröffentlichung erfolgen genau einmal in dieser
+  Reihenfolge; Fehler an jeder Grenze lösen denselben vollständigen Teardown
+  aus. Das Global Plugin markiert Registrierung und Publish nicht mehr über
+  getrennte Übergangsaufrufe.
+- Der neunte V2-6-Schnitt beseitigt die doppelte Verbindungsbereinigung im
+  Teardown. `AddonRuntime` invalidiert Claim und Fokus, stoppt Clients einmal
+  über den Coordinator-Eigentümer und löscht dessen Laufzeitstand danach
+  einmal. `_stopClient()` bleibt ausschließlich für aktive Nutzer- und
+  Profilwechselpfade erhalten.
+- Der zehnte V2-6-Schnitt entfernt die breite Global-Plugin-Rückreferenz aus
+  dem öffentlichen `TerminalIntegrationService`. Eine vollständige feste
+  Befehlszuordnung und schmale Callbacks ersetzen den freien Zugriff auf die
+  Kompositionswurzel; Fokus-, F12- und Brailledienste bleiben getrennt.
+- Der elfte V2-6-Schnitt verschiebt Brailleregion und Terminaloverlay in
+  `nvda_braille.py`. Die neutrale `service_registry.py` besitzt die
+  prozessweite Dienstveröffentlichung; weder dieser Registry-Baustein noch das
+  Braillemodul importiert das Global Plugin.
+- Der abschließende V2-6-Strukturaudit entfernt die letzte nur von Tests
+  verwendete Runtimefabrik und ergänzt Abhängigkeitsprüfungen am Paket. Die
+  Kompositionswurzel umfasst 2.499 Zeilen mit 112 Methoden und genau zwei
+  Eigenschaften: die häufig verwendeten Kompositionssichten auf Gate und
+  Instanzmanager. Dort verbleibt kein AppModule-Ereigniseinstieg, und keiner
+  der ausgelagerten Runtime- oder NVDA-Randdienste hängt von der
+  `GlobalPlugin`-Klasse ab. Weitere Auslagerungen werden bewusst gestoppt,
+  solange kein zusätzlicher Gewinn bei Besitz, Zuverlässigkeit oder
+  Testbarkeit belegt ist. V2-6 und Praxis-Meilenstein 2 sind ohne neu
+  gemeldeten Fehler abgeschlossen. Praktische Braillehardware bleibt nicht
+  verfügbar.
 
 ### Editorausgabe
 

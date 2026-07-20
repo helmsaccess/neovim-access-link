@@ -51,11 +51,12 @@ developer_sources=(
   docs/de/development/accessibility.md
   docs/de/development/release-and-build.md
   docs/de/development/nvda-2026.1-api-notes.md
-  docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/licensing-and-contributions.md
   nvda-addon/DEPENDENCIES.md
   docs/de/development/plan.md
   docs/de/development/changelog.md
+  docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
+  docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
 )
 
 quick_en_sources=(
@@ -95,11 +96,12 @@ developer_en_sources=(
   docs/en/development/accessibility.md
   docs/en/development/release-and-build.md
   docs/en/development/nvda-2026.1-api-notes.md
-  docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/licensing-and-contributions.md
   docs/en/development/dependencies.md
   docs/en/development/plan.md
   docs/en/development/changelog.md
+  docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
+  docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
 )
 
 command -v pandoc >/dev/null || {

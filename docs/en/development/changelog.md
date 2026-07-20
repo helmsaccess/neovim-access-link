@@ -1,5 +1,423 @@
 # Changelog
 
+## 0.95.0-dev.49+feature.global-plugin-slimming (feature-branch test build)
+
+- The final V2-6 structural audit removes the last test-only Global Plugin
+  runtime factory; tests now request new editor state from its owning
+  `EditorSessionController`.
+- Structural package tests enforce that application events stay in the
+  Windows Terminal AppModule and that runtime, UI, focus, claim, editor,
+  Braille, registry, and terminal-service modules do not depend on the
+  `GlobalPlugin` class.
+- The audit retains only the gate and instance-manager composition views. Both
+  are extensively used at the NVDA boundary; another forwarding layer would
+  not narrow ownership or state.
+- Practical milestone 2 was completed without a reported error across the
+  current local and SSH, window/tab/pane, focus, mode, terminal, clipboard,
+  file-manager, and reload variants. Practical Braille hardware remains the
+  documented exception.
+
+## 0.95.0-dev.48+feature.global-plugin-slimming (feature-branch test build)
+
+- The eleventh V2-6 slice moves `StructuredLineRegion` and
+  `StructuredTerminalBrailleOverlay` out of the composition root into the
+  dedicated NVDA-edge module `nvda_braille.py`.
+- A neutral `service_registry.py` owns process-wide publication of the narrow
+  terminal service. The AppModule and Braille module use the same
+  identity-checked service without importing the Global Plugin.
+- The existing importable Braille class names remain available to the Windows
+  Terminal AppModule; routing and native fail-open output do not change.
+
+## 0.95.0-dev.47+feature.global-plugin-slimming (feature-branch test build)
+
+- The tenth V2-6 slice removes the broad `_runtime` back-reference from
+  `TerminalIntegrationService`.
+- The service instead receives one complete fixed command map and narrow
+  callbacks for diagnostics, fail-open handling, F12 completion, and Braille
+  routing. Missing or additional commands are rejected during composition.
+- The AppModule, Braille overlay, F12 generations, and closed fail-open fence
+  retain their existing public contract.
+
+## 0.95.0-dev.46+feature.global-plugin-slimming (feature-branch test build)
+
+- The ninth V2-6 slice removes the injected `_stopClient()` forwarding path
+  and separate instance-manager and editor-request shutdown paths from
+  `AddonRuntime`.
+- Teardown invalidates claim and focus state, stops every managed client
+  exactly once, then clears all coordinator runtime tracking exactly once.
+  Unmanaged clients from the earlier internal architecture are no longer
+  supported.
+- Manual deactivation, error recovery, and profile switching retain
+  `_stopClient()`; user behavior outside add-on teardown does not change.
+
+## 0.95.0-dev.45+feature.global-plugin-slimming (feature-branch test build)
+
+- The eighth V2-6 slice gives `AddonRuntime` one symmetrical activation
+  sequence: register the profile callback, register the NVDA UI, and only then
+  publish the terminal service.
+- Failure at any of these three steps immediately uses the same idempotent
+  teardown. No partial menus, Settings entry, profile callback, service
+  reference, or presentation resource remains.
+- `mark_profile_switch_registered`, the separate publish call, and an injected
+  unregister callback are removed from the composition root.
+
+## 0.95.0-dev.44+feature.global-plugin-slimming (feature-branch test build)
+
+- The seventh V2-6 slice closes the published terminal service immediately
+  after unpublication. Retained service references then return focus,
+  gestures, F12, and Braille to NVDA without producing effects.
+- Already queued claim, connection, Braille, and delayed main-thread callbacks
+  recheck the runtime when they actually execute. They cannot change state or
+  output after teardown.
+- The audit deliberately retains the gate and instance manager as frequently
+  used composition dependencies; indirect access would create neither a
+  narrower contract nor a new owner.
+
+## 0.95.0-dev.43+feature.global-plugin-slimming (feature-branch test build)
+
+- The sixth V2-6 slice removes seven Global Plugin compatibility properties
+  for active client/instance state, connection status, authenticated
+  instances, terminal passthrough, and deferred full states.
+- Production and tests now use the owning `ConnectionCoordinator` directly;
+  no connection transition, authentication rule, transport call, or request
+  correlation changes.
+- Structural and behavioral tests cover selection rollback, fail-open focus,
+  reentrant focus, mixed local/SSH instances, deferred authentication, tab
+  reactivation, clipboard, profile switches, reconnection, and Braille routing.
+
+## 0.95.0-dev.42+feature.global-plugin-slimming (feature-branch test build)
+
+- The fifth V2-6 slice removes the last two Global Plugin focus/lifecycle
+  compatibility properties: the focused terminal object and lifecycle sweep
+  timestamp.
+- Braille refresh and integration tests now use the owning
+  `TerminalFocusService` directly. No focus decision, UIA lifetime rule,
+  scheduler, or AppModule event path changes.
+- Structural and behavioral tests cover action-time focus refresh, stale focus
+  loss across windows, repeated lifecycle pruning, and semantic Braille state.
+
+## 0.95.0-dev.41+feature.global-plugin-slimming (feature-branch test build)
+
+- The fourth V2-6 slice removes eleven passive Global Plugin compatibility
+  properties that had no production callers: sound caches, remembered-binding
+  collections, runtime/request containers, and AppModule/adapter focus views.
+- Tests now inspect `NvdaPresentation`, `ConnectionCoordinator`, and
+  `TerminalFocusService` directly. Active connection, gate, and focus
+  operations remain unchanged.
+- Structural and behavioral tests cover sound playback, remembered tab and
+  pane bindings, bounded clipboard and terminal requests, focus isolation,
+  disconnection, and native terminal passthrough.
+
+## 0.95.0-dev.40+feature.global-plugin-slimming (feature-branch test build)
+
+- The third V2-6 slice removes all eight Global Plugin compatibility
+  properties for pending claims, claim inventory, baselines, eligible targets,
+  inventory errors, and discovery generation.
+- Production already used `SessionClaimService`; integration tests now arrange
+  and inspect claim state through that owner instead of a second writable
+  Global Plugin surface.
+- Structural and behavioral tests cover one-shot F12 authorization, local and
+  SSH inventory, discovery generations, target isolation, and fail-open paths.
+
+## 0.95.0-dev.39+feature.global-plugin-slimming (feature-branch test build)
+
+- The second V2-6 slice removes all seven Global Plugin compatibility
+  properties for editor planner, canonical state, mode, typing state,
+  completion documentation, and transport capabilities.
+- Production already used `EditorSessionController`; older integration tests
+  now arrange and inspect state through its owning `ConnectionCoordinator`
+  instead of preserving a second Global Plugin API.
+- Structural and behavioral tests cover the removed surface, isolated tab and
+  window runtimes, clipboard and terminal controls, mode feedback, and
+  semantic Braille routing.
+
+## 0.95.0-dev.38+feature.global-plugin-slimming (feature-branch test build)
+
+- V2-6 starts with a normal `AddonRuntime` that owns late publication and one
+  fixed, idempotent teardown sequence for the composed process-wide services.
+- The public terminal service is unpublished before pending main-thread calls
+  are cancelled and the gate is opened. Connections, runtime tracking, focus,
+  requests, UI, and presentation are then closed in explicit order.
+- A failed teardown step is diagnosed without preventing later cleanup. A
+  publication failure rolls back profile and UI registration; direct tests
+  cover exact ordering, double close, failure continuation, and rollback.
+
+## 0.95.0-dev.37+feature.global-plugin-slimming (feature-branch test build)
+
+- The final V2-5 audit moves semantic planner reset and per-instance
+  completion-documentation access behind `EditorSessionController`.
+- The Global Plugin retains only concrete NVDA effects: clearing NVDA's typed
+  word buffer and speaking the returned documentation.
+- V2-5 is complete under automated coverage. The remaining editor-state
+  compatibility properties are isolated migration wrappers scheduled for
+  removal with the runtime and teardown cleanup in V2-6.
+
+## 0.95.0-dev.36+feature.global-plugin-slimming (feature-branch test build)
+
+- The sixth V2-5 slice moves capability, canonical-state, mode, and buffer
+  validation for clipboard, register, and embedded-terminal controls into
+  `EditorSessionController`.
+- Valid actions produce immutable, allowlisted outbound plans with a bounded
+  correlation ID; rejected actions produce one bounded reason and allocate no
+  pending request.
+- Exact terminal/gate checks, Windows clipboard access, translated feedback,
+  diagnostics, and the concrete transport call remain at the NVDA boundary.
+
+## 0.95.0-dev.35+feature.global-plugin-slimming (feature-branch test build)
+
+- The fifth V2-5 slice makes `EditorSessionController` normalize the saved
+  connection label for already validated focus/context events without
+  mutating the received event.
+- The controller now also records each active instance's terminal-passthrough
+  decision together with its editor event plan. The Global Plugin no longer
+  duplicates either editor-state rule.
+- Terminal focus, instance selection, authentication, diagnostics, concrete
+  output, and transport remain at their existing fail-open boundaries.
+
+## 0.95.0-dev.34+feature.global-plugin-slimming (feature-branch test build)
+
+- The fourth V2-5 slice moves isolated Braille planning and semantic
+  cursor-routing payload validation into `EditorSessionController`.
+- The public terminal service still confirms the concrete terminal; the NVDA
+  overlay translates Braille positions, and only the Global Plugin sends the
+  fixed `routeCursor` command. Incomplete state, a missing capability, or
+  unconfirmed focus remain fail-open.
+- Direct and built-add-on tests cover snapshot isolation, tabs, Unicode,
+  file-manager lines, valid routing, and all rejection paths.
+
+## 0.95.0-dev.33+feature.global-plugin-slimming (feature-branch test build)
+
+- The third V2-5 slice makes `EditorSessionController` return an immutable
+  plan containing the state transition, terminal passthrough, mode-cue
+  decision, and neutral speech actions.
+- The Global Plugin no longer plans mode cues or speech itself. It only
+  applies passthrough to the gate and delivers cue and speech actions through
+  `NvdaPresentation`; concrete NVDA APIs stay out of the controller.
+- Direct and built-add-on tests cover the mode-cue matrix, focus-announcement
+  choices, command-line return, and embedded terminal modes.
+
+## 0.95.0-dev.32+feature.global-plugin-slimming (feature-branch test build)
+
+- The second V2-5 slice moves bounded clipboard, register, and terminal-control
+  requests plus instance/terminal correlation into `EditorSessionController`.
+- Foreign, late, and invalid replies are rejected there; one-shot clipboard
+  text is validated and removed from safe follow-up events. The Windows
+  clipboard, transport, focus/gate validation, diagnostics, and translated
+  feedback remain at the NVDA boundary.
+- Direct controller and built-add-on tests cover queue bounds, focus loss,
+  wrong terminal identity, reply sanitization, and local/remote
+  copy/paste/register paths.
+
+## 0.95.0-dev.31+feature.global-plugin-slimming (feature-branch test build)
+
+- The practical milestone after V2-4 is complete across multiple Windows
+  Terminal windows, tabs, and panes, local and remote sessions, and clipboard
+  paths. The corrected remember question exposed no further errors.
+- V2-5 starts with a normal `EditorSessionController`. It now owns domain
+  mutation of the active per-instance editor state, runtime switching, mode
+  and menu state, transport capabilities, connection transitions, and
+  structured typing echo.
+- The Global Plugin continues to deliver the ordered typing actions and other
+  plans through NVDA. Direct mutation of these editor fields was removed from
+  its production path; isolation and UTF-8 overlap have direct coverage in
+  addition to the existing event matrix.
+
+## 0.95.0-dev.30+feature.global-plugin-slimming (feature-branch test build)
+
+- Practical V2-4 testing found a regression after the optional question to
+  remember a new terminal binding: modal focus loss could leave the
+  authenticated connection fail-open but without subsequent reactivation.
+- The question now arms exactly one reactivation correlated to the terminal
+  identity and instance. The next matching terminal focus consumes it; a
+  different terminal focus discards it.
+- Consent is safely persisted across the expected modal focus gap. Declining
+  reactivates only the current connection once and does not remember it for
+  later focus changes. Automated coverage protects both paths; the practical
+  focus/F12 test must be repeated.
+
+## 0.95.0-dev.29+feature.global-plugin-slimming (feature-branch test build)
+
+- The V2-4 completion audit removes production-only claim forwarding methods
+  from the Global Plugin. Pending targets, eligible connections, and baselines
+  are now used only through narrow `SessionClaimService` operations; baseline
+  state leaves the service as a copy.
+- Claim, discovery, and connection decisions therefore live in the neutral
+  service. The Global Plugin retains only wiring at NVDA's main-thread,
+  dialog, message, and transport boundaries.
+- An isolation test protects the new operations against accidentally exposed
+  mutable state. This completion is automated; focus, F12, and local/remote
+  connections follow in the combined practical milestone.
+
+## 0.95.0-dev.28+feature.global-plugin-slimming (feature-branch test build)
+
+- A normal `ManagedClientFactory` now encapsulates construction of local TCP
+  and remote SSH clients plus their instance-correlated event, state, and
+  diagnostic callbacks.
+- `SessionClaimService` creates the client through that injected factory and
+  then performs the same transactional start, binding, and selection
+  transition. Construction failures return fail-open to the NVDA boundary as
+  an immutable result.
+- Profile and password selection, translated labels, messages, and diagnostics
+  remain NVDA-side. This internal slice has automated coverage but has not yet
+  received a separate practical check.
+
+## 0.95.0-dev.27+feature.global-plugin-slimming (feature-branch test build)
+
+- `SessionClaimService` now also owns a pending offer to remember a temporary
+  terminal binding, its consumption after `fullState`, and remembering,
+  querying, and forgetting that binding.
+- Focus, exact `TermControl` identity, instance binding, and availability are
+  validated before and after the modal question. A focus or session change
+  while the dialog is open can therefore no longer persist a stale binding.
+- The translated NVDA dialog, messages, diagnostics, and triggering after the
+  authenticated full state remain at the NVDA boundary. This internal slice
+  has automated coverage but has not yet received a separate practical check.
+
+## 0.95.0-dev.26+feature.global-plugin-slimming (feature-branch test build)
+
+- The neutral service now prepares restoration of a remembered terminal
+  binding fail-open. A known instance is selected but remains unconfirmed until
+  Neovim semantically confirms the still-focused tab or pane.
+- For an authenticated instance, the service plans a correlated `focusContext`
+  request; otherwise the NVDA boundary continues to request a full state.
+  Focus delay, transport calls, and diagnostics remain outside the neutral
+  service.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.25+feature.global-plugin-slimming (feature-branch test build)
+
+- `SessionClaimService` now also owns the neutral transitions for selecting and
+  disconnecting a managed instance. A failed selection restores the previous
+  terminal binding; if even restoration fails, the gate remains open.
+- Disconnect immediately removes the terminal binding and isolated runtime
+  state. The client is then stopped outside NVDA's main thread. Focus cleanup,
+  state requests, messages, and diagnostics remain at the NVDA boundary.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.24+feature.global-plugin-slimming (feature-branch test build)
+
+- Starting, binding, and selecting the runtime for local and remote clients now
+  form one connection transition in `SessionClaimService`. If selection fails
+  after a client has started, the new instance is rolled back and its client is
+  stopped outside NVDA's main thread.
+- Explicit replacement still fully starts and selects the new instance first.
+  Only then is the old instance detached and its potentially blocking client
+  stop scheduled asynchronously.
+- Selection from the multiple-remote-session dialog now uses the same neutral
+  planning and start path. NVDA messages, client construction, and lifecycle
+  scheduling remain at the NVDA boundary.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.23+feature.global-plugin-slimming (feature-branch test build)
+
+- The claim service now also applies a current reuse plan to the shared
+  instance bindings. It binds the destination identity and immutably reports
+  which other terminal identities were displaced back to the NVDA boundary.
+- Focus cleanup, lifecycle scheduling, state requests, diagnostics, and
+  announcements remain NVDA-side. A stale or incomplete plan fails open
+  without changing a binding or client.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.22+feature.global-plugin-slimming (feature-branch test build)
+
+- The neutral `SessionClaimService` now decides from the shared instance state
+  whether a local or remote session reuses an existing connection or starts a
+  new one. For explicit replacement, the plan identifies the currently
+  selected instance without changing clients or terminal bindings itself.
+- The established safety order remains intact: a new connection is fully
+  started before the old instance is removed. NVDA main-thread effects,
+  concrete client starts, and binding changes retain their existing boundaries
+  in this slice.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.21+feature.global-plugin-slimming (feature-branch test build)
+
+- Local and remote discovery results are now evaluated in the neutral
+  `SessionClaimService`. Immutable results distinguish stale continuations,
+  errors, empty listings, SSH fallback, missing fresh claims, direct selection,
+  and a required selection dialog.
+- NVDA messages and modal dialogs remain on the main thread in the Global
+  Plugin; reuse and concrete connection starts follow in later V2-4 slices.
+- This internal slice has not yet received a separate practical check.
+
+## 0.95.0-dev.20+feature.global-plugin-slimming (feature-branch test build)
+
+- The final local and remote discovery methods that only delegated work have
+  been removed from the Global Plugin. Tests now address the neutral claim
+  service directly; selection UI and connection starts deliberately retain
+  their established NVDA main-thread boundaries.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.19+feature.global-plugin-slimming (feature-branch test build)
+
+- The next V2-4 slice moves the domain decision after an authorized F12 claim
+  into the neutral `SessionClaimService`. An immutable result distinguishes
+  local, remote, and automatic resolution from inventory that is not ready.
+- The Global Plugin retains NVDA messages, dialogs, main-thread scheduling,
+  and concrete connection starts. Discovery generation plus local and SSH
+  session-list workers now also belong to the claim service. Pending target
+  choices are still consumed exactly once, and unauthenticated stale bindings
+  are not reused.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
+## 0.95.0-dev.18+feature.global-plugin-slimming (feature-branch test build)
+
+- The first V2-4 slice introduces `SessionClaimService` as the sole owner of
+  one-shot F12 authorization, claim generations, and claim inventory state.
+  The public terminal facade now authorizes and cancels claims directly
+  through that neutral service.
+- Local/SSH inventory workers and the pure evaluation of inventory and fresh
+  candidates now run behind the service with injected NVDA queue and adapter
+  boundaries. Selection and connection transitions retain their existing
+  behavior while later V2-4 slices move their orchestration.
+- This internal slice has not yet received a separate practical check.
+
+## 0.95.0-dev.17+feature.global-plugin-slimming (feature-branch test build)
+
+- The new `TerminalFocusService` owns terminal identity, focus generation,
+  AppModule/adapter correlation, focus completion, and the lifecycle sweep.
+  The public terminal facade delegates focus operations directly to it.
+- Closed controls still require two conclusive negative checks; focused
+  controls and uncertain UIA results are retained. Client shutdown after
+  disposal remains off the main thread.
+- This internal phase has not yet received a separate practical check.
+
+## 0.95.0-dev.16+feature.global-plugin-slimming (feature-branch test build)
+
+- The first V2-3 slice moved the focused object, identity cache,
+  AppModule/adapter correlation, and focus generation into
+  `TerminalFocusService`; the lifecycle sweep followed in `dev.17`.
+
+## 0.95.0-dev.15+feature.global-plugin-slimming (feature-branch test build)
+
+- A dedicated `SettingsService` now owns loading, normalization, persistence,
+  and NVDA profile switching. The Settings panel and presentation adapter use
+  detached snapshots or domain updates instead of a freely mutable plugin
+  dictionary.
+- `NvdaUiManager` no longer receives a Global Plugin instance. Its narrow
+  dependencies, idempotent registration, partial failures, cancellation
+  paths, and background operations have automated coverage; Settings and Tools
+  remain available process-wide.
+- This internal phase has not yet received a separate practical check.
+
+## 0.95.0-dev.14+feature.global-plugin-slimming (feature-branch test build)
+
+- A new public `TerminalIntegrationService` hides the concrete Global Plugin
+  from the Windows Terminal AppModule and Braille overlay. A fixed command
+  type replaces dynamic method names; focus decisions and F12 authorizations
+  are immutable.
+- Failure, partial initialization, add-on reload, late focus errors, a broken
+  Braille contract, and stale F12 authorization paths have automated fail-open
+  coverage. This internal phase has not yet received a separate practical
+  check.
+
 ## 0.95.0 (beta)
 
 - The product version was advanced to `0.95.0` at the user's explicit

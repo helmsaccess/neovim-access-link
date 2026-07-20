@@ -1,7 +1,9 @@
-# Quality review of Global Plugin slimming
+# Appendix A: Quality review of Global Plugin slimming
 
-Review date: July 19, 2026  
-Comparison: `feature/global-plugin-slimming` against `main`  
+Review date: July 19, 2026, 20:04:03 CEST (UTC+02:00)
+
+Comparison: `feature/global-plugin-slimming` against `main`
+
 Product state of the reviewed test build: `0.94.2-dev.13`
 
 ## Why this report exists

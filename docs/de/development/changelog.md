@@ -5,6 +5,452 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.49+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der abschließende V2-6-Strukturaudit entfernt die letzte ausschließlich von
+  Tests verwendete Global-Plugin-Fabrik für neue Editorruntimes. Tests fordern
+  neuen Editorzustand nun beim besitzenden `EditorSessionController` an.
+- Strukturtests am gebauten Paket sichern ab, dass Anwendungsevents im
+  Windows-Terminal-AppModule bleiben und Runtime, UI, Fokus, Claim, Editor,
+  Braille, Registry sowie Terminaldienst nicht von der `GlobalPlugin`-Klasse
+  abhängen.
+- Der Audit behält nur die Kompositionssichten auf Gate und Instanzmanager.
+  Beide werden am NVDA-Rand umfangreich verwendet; eine weitere Weiterleitung
+  würde Besitz und Zustand nicht enger begrenzen.
+- Praxis-Meilenstein 2 wurde ohne gemeldeten Fehler mit den aktuellen lokalen
+  und SSH-, Fenster-/Tab-/Pane-, Fokus-, Modus-, Terminal-, Zwischenablage-,
+  Dateimanager- und Reloadvarianten abgeschlossen. Praktische Braillehardware
+  bleibt die dokumentierte Ausnahme.
+
+## 0.95.0-dev.48+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der elfte V2-6-Schnitt verschiebt `StructuredLineRegion` und
+  `StructuredTerminalBrailleOverlay` aus der Kompositionswurzel in den eigenen
+  NVDA-Randbaustein `nvda_braille.py`.
+- Ein neutrales `service_registry.py` besitzt die prozessweite Veröffentlichung
+  des schmalen Terminaldienstes. AppModule und Braillemodul verwenden denselben
+  identitätsgeprüften Dienst, ohne das Global Plugin zu importieren.
+- Die bisherigen importierbaren Brailleklassennamen bleiben für das
+  Windows-Terminal-AppModule erhalten; Routing und native Fail-open-Ausgabe
+  ändern sich nicht.
+
+## 0.95.0-dev.47+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der zehnte V2-6-Schnitt entfernt die breite `_runtime`-Rückreferenz aus
+  `TerminalIntegrationService`.
+- Der Dienst erhält stattdessen eine vollständige feste Befehlszuordnung und
+  schmale Callbacks für Diagnose, Fail-open, F12-Abschluss und Braille-Routing.
+  Fehlende oder zusätzliche Befehle werden beim Aufbau abgelehnt.
+- AppModule, Braille-Overlay, F12-Generationen und die geschlossene
+  Fail-open-Schranke behalten ihren bisherigen öffentlichen Vertrag.
+
+## 0.95.0-dev.46+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neunte V2-6-Schnitt entfernt die injizierte `_stopClient()`-Weiterleitung
+  sowie separate Instanzmanager- und Editorrequest-Abbaupfade aus
+  `AddonRuntime`.
+- Der Teardown invalidiert Claim- und Fokuszustand, stoppt jeden verwalteten
+  Client genau einmal und löscht anschließend den gesamten
+  Coordinator-Laufzeitstand genau einmal. Nicht verwaltete Clients aus der
+  früheren internen Architektur werden nicht weiter unterstützt.
+- Der manuelle Abschalt-, Fehler- und Profilwechselpfad behält `_stopClient()`;
+  das Nutzerverhalten außerhalb des Add-on-Teardowns ändert sich nicht.
+
+## 0.95.0-dev.45+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der achte V2-6-Schnitt gibt `AddonRuntime` eine symmetrische
+  Aktivierungssequenz: Profilcallback registrieren, NVDA-UI registrieren und
+  erst danach den Terminaldienst veröffentlichen.
+- Fehler in jedem dieser drei Schritte verwenden unmittelbar denselben
+  idempotenten Teardown. Teilweise angelegte Menüs, Einstellungen,
+  Profilcallbacks, Dienstreferenzen und Präsentationsressourcen bleiben nicht
+  zurück.
+- `mark_profile_switch_registered`, der separate Publish-Aufruf und ein
+  injizierter Unregister-Callback entfallen aus der Kompositionswurzel.
+
+## 0.95.0-dev.44+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der siebte V2-6-Schnitt schließt den veröffentlichten Terminaldienst direkt
+  nach dem Unpublish. Zurückgehaltene Dienstreferenzen geben danach Fokus,
+  Gesten, F12 und Braille stets an NVDA zurück und erzeugen keine Wirkung.
+- Bereits eingereihte Claim-, Verbindungs-, Braille- und verzögerte
+  Hauptthreadcallbacks prüfen die Runtime beim tatsächlichen Aufruf erneut.
+  Sie können nach dem Teardown weder Zustand noch Ausgabe verändern.
+- Der Audit behält Gate und Instanzmanager bewusst als häufig verwendete
+  Kompositionsabhängigkeiten; indirektere Zugriffe hätten keinen engeren
+  Vertrag oder eigenen neuen Besitzer geschaffen.
+
+## 0.95.0-dev.43+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der sechste V2-6-Schnitt entfernt sieben
+  Global-Plugin-Kompatibilitätseigenschaften für aktiven Client-/Instanzzustand,
+  Verbindungsstatus, authentifizierte Instanzen, Terminal-Passthrough und
+  zurückgestellte Full-States.
+- Produktion und Tests verwenden nun direkt den besitzenden
+  `ConnectionCoordinator`; Verbindungsübergang, Authentifizierungsregel,
+  Transportaufruf und Requestkorrelation ändern sich nicht.
+- Struktur- und Verhaltenstests decken Auswahl-Rollback, Fail-open-Fokus,
+  wiedereintretenden Fokus, gemischte lokale/SSH-Instanzen, zurückgestellte
+  Authentifizierung, Tab-Reaktivierung, Zwischenablage, Profilwechsel,
+  Wiederverbindung und Braille-Routing ab.
+
+## 0.95.0-dev.42+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der fünfte V2-6-Schnitt entfernt die letzten zwei
+  Global-Plugin-Kompatibilitätseigenschaften für Fokus/Lifecycle: fokussiertes
+  Terminalobjekt und Zeitwert des Lifecycle-Sweeps.
+- Brailleaktualisierung und Integrationstests verwenden nun direkt den
+  besitzenden `TerminalFocusService`. Fokusentscheidung, UIA-Lebensregel,
+  Scheduler und AppModule-Ereignispfad ändern sich nicht.
+- Struktur- und Verhaltenstests decken Fokusaktualisierung bei Aktionen,
+  veralteten Fokusverlust zwischen Fenstern, wiederholte Lifecycle-Bereinigung
+  und semantischen Braillezustand ab.
+
+## 0.95.0-dev.41+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der vierte V2-6-Schnitt entfernt elf passive
+  Global-Plugin-Kompatibilitätseigenschaften ohne Produktivaufrufer:
+  Sound-Caches, Sammlungen gemerkter Bindungen, Runtime-/Request-Container und
+  AppModule-/Adapter-Fokussichten.
+- Tests prüfen nun `NvdaPresentation`, `ConnectionCoordinator` und
+  `TerminalFocusService` direkt. Aktive Verbindungs-, Gate- und
+  Fokusoperationen bleiben unverändert.
+- Struktur- und Verhaltenstests decken Soundwiedergabe, gemerkte Tab- und
+  Pane-Bindungen, begrenzte Zwischenablage- und Terminalrequests,
+  Fokustrennung, Verbindungsabbau und nativen Terminal-Passthrough ab.
+
+## 0.95.0-dev.40+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der dritte V2-6-Schnitt entfernt alle acht
+  Global-Plugin-Kompatibilitätseigenschaften für ausstehende Claims,
+  Claim-Inventar, Baselines, zulässige Ziele, Inventarfehler und
+  Discovery-Generation.
+- Der Produktivpfad verwendete bereits `SessionClaimService`; Integrationstests
+  richten Claimzustand nun über diesen Eigentümer ein und prüfen ihn dort,
+  statt eine zweite schreibbare Global-Plugin-Oberfläche zu erhalten.
+- Struktur- und Verhaltenstests decken einmalige F12-Autorisierung, lokales und
+  SSH-Inventar, Discovery-Generationen, Zieltrennung und Fail-open-Pfade ab.
+
+## 0.95.0-dev.39+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der zweite V2-6-Schnitt entfernt alle sieben
+  Global-Plugin-Kompatibilitätseigenschaften für Editorplaner, kanonischen
+  Zustand, Modus, Tippechozustand, Completion-Dokumentation und
+  Transport-Capabilities.
+- Der Produktivpfad verwendete bereits den `EditorSessionController`; ältere
+  Integrationstests richten Zustand nun über dessen besitzenden
+  `ConnectionCoordinator` ein und prüfen ihn dort, statt eine zweite
+  Global-Plugin-API zu erhalten.
+- Struktur- und Verhaltenstests decken die entfernte Oberfläche, getrennte
+  Tab-/Fenster-Runtimes, Zwischenablage- und Terminalsteuerung,
+  Modusrückmeldung und semantisches Braille-Routing ab.
+
+## 0.95.0-dev.38+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- V2-6 beginnt mit einem normalen `AddonRuntime`, der die späte
+  Veröffentlichung und eine feste, wiederholbare Abbaureihenfolge der
+  zusammengesetzten prozessweiten Dienste besitzt.
+- Der öffentliche Terminaldienst wird vor dem Abbruch ausstehender
+  Hauptthreadaufrufe und vor dem Öffnen des Gates entfernt. Danach folgen
+  Verbindungen, Runtimezustand, Fokus, Requests, UI und Präsentation in
+  ausdrücklicher Reihenfolge.
+- Ein fehlerhafter Abbauschritt wird diagnostiziert, ohne die weitere
+  Bereinigung zu verhindern. Ein Publikationsfehler rollt Profil- und
+  UI-Registrierung zurück; direkte Tests decken Reihenfolge, doppeltes
+  Schließen, Fehlerfortsetzung und Rückrollen ab.
+
+## 0.95.0-dev.37+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der abschließende V2-5-Audit verschiebt das Zurücksetzen des semantischen
+  Planers und den Zugriff auf die instanzbezogene Completion-Dokumentation
+  hinter den `EditorSessionController`.
+- Das Global Plugin behält nur konkrete NVDA-Wirkungen: NVDAs Wortpuffer für
+  Tippecho leeren und die zurückgegebene Dokumentation sprechen.
+- V2-5 ist automatisiert abgeschlossen. Die verbliebenen
+  Kompatibilitätseigenschaften für Editorzustand sind getrennte
+  Migrationshüllen, die mit der Runtime- und Teardown-Bereinigung in V2-6
+  entfernt werden.
+
+## 0.95.0-dev.36+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der sechste V2-5-Schnitt verschiebt Capability-, Zustands-, Modus- und
+  Bufferprüfung für Zwischenablage, Register und eingebettete
+  Terminalsteuerung in den `EditorSessionController`.
+- Gültige Aktionen erzeugen unveränderliche ausgehende Pläne mit festem
+  Allowlist-Befehl und begrenzter Korrelations-ID; abgelehnte Aktionen liefern
+  genau einen begrenzten Grund und erzeugen keinen ausstehenden Request.
+- Prüfung von Terminal und Gate, Zugriff auf die Windows-Zwischenablage,
+  übersetzte Rückmeldung, Diagnostik und konkreter Transportaufruf verbleiben
+  am NVDA-Rand.
+
+## 0.95.0-dev.35+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der fünfte V2-5-Schnitt lässt den `EditorSessionController` den gespeicherten
+  Verbindungsnamen für bereits validierte Fokus-/Kontextereignisse
+  normalisieren, ohne das empfangene Ereignis zu verändern.
+- Der Controller speichert nun außerdem die Terminal-Passthrough-Entscheidung
+  jeder aktiven Instanz zusammen mit ihrem Editorereignisplan. Das Global
+  Plugin dupliziert keine der beiden Editorzustandsregeln mehr.
+- Terminalfokus, Instanzauswahl, Authentifizierung, Diagnostik, konkrete
+  Ausgabe und Transport verbleiben an ihren bestehenden Fail-open-Grenzen.
+
+## 0.95.0-dev.34+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der vierte V2-5-Schnitt verschiebt die isolierte Brailleplanung und die
+  Validierung semantischer Cursor-Routing-Payloads in den
+  `EditorSessionController`.
+- Das öffentliche Terminalservice bestätigt weiterhin das konkrete Terminal;
+  das NVDA-Overlay übersetzt Braillepositionen, und nur das Global Plugin
+  sendet den festen `routeCursor`-Befehl. Unvollständiger Zustand, fehlende
+  Capability oder unbestätigter Fokus bleiben fail-open.
+- Direkte und gebaute Add-on-Tests decken Snapshot-Isolation, Tabs, Unicode,
+  Dateimanagerzeilen, gültiges Routing und alle Ablehnungswege ab.
+
+## 0.95.0-dev.33+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der dritte V2-5-Schnitt erzeugt im `EditorSessionController` einen
+  unveränderlichen Plan aus Zustandsübergang, Terminal-Passthrough,
+  Modusklangentscheidung und neutralen Sprachaktionen.
+- Das Global Plugin plant Modusklänge und Sprache nicht mehr selbst. Es wendet
+  nur den Passthrough am Gate an und liefert Klang- und Sprachaktionen über
+  `NvdaPresentation` aus; konkrete NVDA-APIs bleiben aus dem Controller fern.
+- Direkte und gebaute Add-on-Tests decken die Modusklangmatrix,
+  Fokusansageoptionen, Kommandozeilenrückkehr und eingebettete Terminalmodi ab.
+
+## 0.95.0-dev.32+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der zweite V2-5-Schnitt verschiebt begrenzte Zwischenablage-, Register- und
+  Terminalsteuerungsanfragen samt Instanz-/Terminalkorrelation in den
+  `EditorSessionController`.
+- Fremde, verspätete und ungültige Antworten werden dort verworfen;
+  einmaliger Zwischenablagetext wird validiert und aus sicheren
+  Folgeereignissen entfernt. Windows-Zwischenablage, Transport, Fokus/Gate,
+  Diagnostik und übersetzte Rückmeldung bleiben am NVDA-Rand.
+- Direkte Controller- und gebaute Add-on-Tests decken Queuebegrenzung,
+  Fokusverlust, falsche Terminalidentität, Antwortbereinigung sowie lokale und
+  entfernte Copy-/Paste-/Registerpfade ab.
+
+## 0.95.0-dev.31+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der Praxis-Meilenstein nach V2-4 ist mit mehreren Windows-Terminal-Fenstern,
+  Tabs und Panes, lokalen und entfernten Sitzungen sowie Zwischenablagepfaden
+  abgeschlossen. Die korrigierte Merkabfrage zeigte keine weiteren Fehler.
+- V2-5 beginnt mit einem normalen `EditorSessionController`. Er besitzt nun
+  die fachliche Mutation des aktiven, instanzgetrennten Editorzustands,
+  Runtimewechsel, Modus- und Menüzustand, Transportfähigkeiten,
+  Verbindungsübergänge und strukturiertes Tippecho.
+- Das Global Plugin liefert weiterhin nur die geordneten Tippechoaktionen und
+  andere Pläne über NVDA aus. Direkte Mutation dieser Editorzustände wurde aus
+  seinem Produktionspfad entfernt; Isolation und UTF-8-Überlappung sind direkt
+  und über die bestehende Ereignismatrix geprüft.
+
+## 0.95.0-dev.30+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Die praktische V2-4-Abnahme fand eine Regression nach der optionalen
+  Rückfrage zum Merken einer neuen Terminalbindung: Der modale Fokusverlust
+  konnte die authentifizierte Verbindung fail-open, aber ohne anschließende
+  Reaktivierung zurücklassen.
+- Für die Rückfrage existiert nun genau eine an Terminalidentität und Instanz
+  gebundene Reaktivierung. Der nächste passende Terminalfokus verbraucht sie;
+  ein anderer Terminalfokus verwirft sie.
+- Eine Zustimmung wird auch während der erwarteten modalen Fokuslücke sicher
+  gespeichert. Eine Ablehnung reaktiviert nur die laufende Verbindung einmal
+  und merkt sie nicht für spätere Fokuswechsel. Beide Pfade sind automatisiert
+  abgedeckt und benötigen erneut den praktischen Fokus-/F12-Test.
+
+## 0.95.0-dev.29+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der V2-4-Abschluss-Audit entfernt produktiv unnötige Claim-Weiterleitungen
+  aus dem Global Plugin. Ausstehende Ziele, erlaubte Verbindungen und
+  Baselines werden nur noch über schmale Operationen des
+  `SessionClaimService` verwendet; Baselines verlassen ihn als Kopie.
+- Fachliche Claim-, Discovery- und Verbindungsentscheidungen liegen damit im
+  neutralen Dienst. Das Global Plugin behält ausschließlich die Verdrahtung
+  an NVDAs Hauptthread-, Dialog-, Meldungs- und Transportgrenzen.
+- Ein Isolationstest schützt die neuen Operationen vor versehentlich
+  freigegebenem schreibbarem Zustand. Dieser Abschluss ist automatisiert;
+  Fokus, F12 und lokale/entfernte Verbindungen folgen im gebündelten
+  Praxis-Meilenstein.
+
+## 0.95.0-dev.28+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Eine normale `ManagedClientFactory` kapselt nun die Konstruktion lokaler
+  TCP- und entfernter SSH-Clients sowie deren instanzkorrelierte Ereignis-,
+  Status- und Diagnostikcallbacks.
+- Der `SessionClaimService` erzeugt über diese injizierte Fabrik den Client und
+  führt anschließend denselben transaktionalen Start-, Bindungs- und
+  Auswahlübergang aus. Konstruktionsfehler werden als unveränderliches
+  Ergebnis fail-open an den NVDA-Rand zurückgegeben.
+- Profil- und Passwortauswahl, übersetzte Bezeichnungen, Meldungen und
+  Diagnostik bleiben NVDA-seitig. Dieser interne Schnitt wurde automatisiert,
+  aber noch nicht separat praktisch geprüft.
+
+## 0.95.0-dev.27+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der `SessionClaimService` besitzt nun auch den ausstehenden Merkvorgang für
+  eine temporäre Terminalbindung, dessen Verbrauch nach `fullState` sowie
+  Merken, Nachschlagen und Vergessen der Zuordnung.
+- Vor und nach der modalen Rückfrage werden Fokus, konkrete `TermControl`-
+  Identität, Instanzbindung und Verfügbarkeit erneut geprüft. Ein Fokus- oder
+  Sitzungswechsel während des Dialogs kann dadurch keine veraltete Zuordnung
+  speichern.
+- Der übersetzte NVDA-Dialog, Meldungen, Diagnostik und das Auslösen nach dem
+  authentifizierten Vollzustand bleiben am NVDA-Rand. Dieser interne Schnitt
+  wurde automatisiert, aber noch nicht separat praktisch geprüft.
+
+## 0.95.0-dev.26+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neutrale Dienst bereitet die Wiederherstellung einer gemerkten
+  Terminalbindung nun fail-open vor. Eine bekannte Instanz wird ausgewählt,
+  bleibt aber unbestätigt, bis Neovim den weiterhin fokussierten Tab oder das
+  Pane semantisch bestätigt.
+- Für bereits authentifizierte Instanzen plant der Dienst eine korrelierte
+  `focusContext`-Anforderung; andernfalls fordert der NVDA-Rand weiterhin einen
+  vollständigen Zustand an. Fokusverzögerung, Transportaufruf und Diagnostik
+  bleiben außerhalb des neutralen Dienstes.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.25+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der `SessionClaimService` besitzt nun auch die neutralen Übergänge zur
+  Auswahl und Trennung einer verwalteten Instanz. Scheitert eine Auswahl, wird
+  die vorherige Terminalbindung wiederhergestellt; gelingt auch das nicht,
+  bleibt das Gate offen.
+- Beim Trennen werden Terminalbindung und isolierter Runtimezustand sofort
+  entfernt. Der Client wird anschließend außerhalb des NVDA-Hauptthreads
+  beendet. Fokusbereinigung, Zustandsanforderung, Meldungen und Diagnostik
+  bleiben am NVDA-Rand.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.24+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Start, Instanzbindung und Runtime-Auswahl lokaler und entfernter Clients
+  werden nun vom `SessionClaimService` als ein Verbindungsübergang
+  durchgeführt. Schlägt die Auswahl nach einem erfolgreichen Clientstart fehl,
+  wird die neue Instanz zurückgerollt und ihr Client außerhalb des NVDA-
+  Hauptthreads beendet.
+- Bei einer ausdrücklichen Ersetzung wird weiterhin zuerst die neue Instanz
+  vollständig gestartet und ausgewählt. Erst danach wird die alte Instanz
+  abgetrennt und ihr potentiell blockierender Clientstopp asynchron ausgeführt.
+- Auch eine Auswahl aus dem Dialog für mehrere entfernte Sitzungen verwendet
+  jetzt denselben neutralen Plan- und Startpfad. NVDA-Meldungen,
+  Clientkonstruktion und Lifecycle-Zeitplanung bleiben am NVDA-Rand.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.23+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der Claimdienst wendet einen aktuellen Wiederverwendungsplan nun auch auf
+  die gemeinsam verwalteten Instanzbindungen an. Er bindet die Zielidentität
+  und gibt unveränderlich an den NVDA-Rand zurück, welche anderen
+  Terminalidentitäten dabei verdrängt wurden.
+- Fokusbereinigung, Lifecycle-Zeitplanung, Zustandsanforderung, Diagnostik und
+  Ansage bleiben NVDA-seitig. Ein veralteter oder unvollständiger Plan fällt
+  ohne Bindungs- oder Clientänderung offen aus.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.22+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neutrale `SessionClaimService` entscheidet nun anhand der gemeinsam
+  verwalteten Instanzen, ob eine lokale oder entfernte Sitzung eine bestehende
+  Verbindung wiederverwendet oder eine neue Verbindung startet. Bei einer
+  ausdrücklichen Ersetzung benennt der Plan die bisher gewählte Instanz, ohne
+  selbst Clients oder Terminalbindungen zu verändern.
+- Die bestehende Sicherheitsreihenfolge bleibt erhalten: Eine neue Verbindung
+  wird vollständig gestartet, bevor die alte Instanz entfernt wird. NVDA-
+  Hauptthreadeffekte, konkrete Clientstarts und Bindungswechsel bleiben in
+  diesem Schnitt an ihren bisherigen Grenzen.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.21+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Lokale und entfernte Discovery-Ergebnisse werden nun im neutralen
+  `SessionClaimService` ausgewertet. Unveränderliche Ergebnisse unterscheiden
+  veraltete Fortsetzungen, Fehler, leere Listen, SSH-Fallback, fehlende frische
+  Claims, Einzelauswahl und erforderliche Auswahldialoge.
+- NVDA-Meldungen und modale Dialoge bleiben auf dem Hauptthread im Global
+  Plugin; Wiederverwendung und konkrete Verbindungsstarts folgen in den
+  nächsten V2-4-Schnitten.
+- Dieser interne Schnitt wurde noch nicht separat praktisch geprüft.
+
+## 0.95.0-dev.20+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Die letzten nur delegierenden lokalen und entfernten Discovery-Methoden
+  wurden aus dem Global Plugin entfernt. Tests sprechen den neutralen
+  Claimdienst nun direkt an; Auswahl-UI und Verbindungsstarts bleiben bewusst
+  an ihren bisherigen NVDA-Hauptthreadgrenzen.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.19+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der nächste V2-4-Schnitt verschiebt die fachliche Entscheidung nach einem
+  autorisierten F12-Claim in den neutralen `SessionClaimService`. Ein
+  unveränderliches Ergebnis unterscheidet lokale, entfernte und automatische
+  Auflösung sowie noch nicht bereites Inventar.
+- Das Global Plugin behält NVDA-Meldungen, Dialoge, Hauptthread-Zeitsteuerung
+  und konkrete Verbindungsstarts. Discovery-Generation sowie lokale und SSH-
+  Sitzungslisten-Worker liegen nun ebenfalls im Claimdienst. Ausstehende
+  Zielwahlen werden weiterhin genau einmal verbraucht; nicht authentifizierte
+  alte Bindungen werden nicht wiederverwendet.
+- Dieser interne Schnitt wurde automatisiert, aber noch nicht separat praktisch
+  geprüft.
+
+## 0.95.0-dev.18+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der erste V2-4-Schnitt führt `SessionClaimService` als alleinigen Eigentümer
+  von einmaliger F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand
+  ein. Die öffentliche Terminalfassade autorisiert und verwirft Claims nun
+  direkt über diesen neutralen Dienst.
+- Lokale/SSH-Inventarworker und die rein fachliche Auswertung von Inventar und
+  frischen Kandidaten laufen nun hinter dem Dienst; NVDA-Queue und Adapter sind
+  injiziert. Auswahl und Verbindungsübergänge behalten ihr Verhalten, bis
+  spätere V2-4-Schnitte ihre Orchestrierung verschieben.
+- Dieser interne Schnitt wurde noch nicht separat praktisch abgenommen.
+
+## 0.95.0-dev.17+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der neue `TerminalFocusService` besitzt Terminalidentität, Fokusgeneration,
+  AppModule-/Adapterkorrelation, Fokusabschluss und Lifecycle-Sweep. Die
+  öffentliche Terminalfassade delegiert Fokusoperationen direkt an ihn.
+- Geschlossene Controls benötigen weiterhin zwei eindeutige Negativprüfungen;
+  fokussierte Controls und unsichere UIA-Ergebnisse bleiben erhalten. Client-
+  Stoppen läuft nach der Bereinigung weiter außerhalb des Hauptthreads.
+- Diese interne Phase wurde noch nicht separat praktisch abgenommen.
+
+## 0.95.0-dev.16+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der erste V2-3-Schnitt verschob Fokusobjekt, Identitätscache,
+  AppModule-/Adapterkorrelation und Fokusgeneration in den
+  `TerminalFocusService`; der Lifecycle-Sweep folgte in `dev.17`.
+
+## 0.95.0-dev.15+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Ein eigener `SettingsService` besitzt nun Laden, Normalisierung, Speichern
+  und NVDA-Profilwechsel. Einstellungsdialog und Präsentation arbeiten mit
+  getrennten Snapshots beziehungsweise fachlichen Updates statt mit einem
+  frei veränderlichen Plugin-Dictionary.
+- Der `NvdaUiManager` erhält keine Global-Plugin-Instanz mehr. Seine schmalen
+  Abhängigkeiten, idempotente Registrierung, Teilfehler, Abbruchpfade und
+  Hintergrundoperationen sind automatisiert geprüft; Einstellungen und
+  Werkzeuge bleiben prozessweit verfügbar.
+- Diese interne Phase wurde noch nicht separat praktisch abgenommen.
+
+## 0.95.0-dev.14+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Ein neuer öffentlicher `TerminalIntegrationService` verbirgt das konkrete
+  Global Plugin vor Windows-Terminal-AppModule und Braille-Overlay. Ein fester
+  Befehlstyp ersetzt dynamische Methodennamen; Fokusentscheidungen und
+  F12-Autorisierungen sind unveränderlich.
+- Ausfall, unvollständige Initialisierung, Add-on-Neuladen, späte Fokusfehler,
+  ein defekter Braillevertrag und veraltete F12-Autorisierungen sind fail-open
+  automatisiert geprüft. Diese interne Phase wurde noch nicht separat
+  praktisch abgenommen.
+
 ## 0.95.0 (Beta)
 
 - Die Produktversion wurde auf ausdrückliche Vorgabe auf `0.95.0` angehoben.

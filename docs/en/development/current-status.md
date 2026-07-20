@@ -1,6 +1,6 @@
 # Current status
 
-Status date: July 19, 2026. Product version in the source tree: 0.95.0.
+Status date: July 21, 2026. Product version in the source tree: 0.95.0.
 
 The source tree is prepared for version 0.95.0. Its corresponding GitHub
 release link is kept prominently in `README.md`. Project-defined maturity
@@ -58,6 +58,134 @@ See `compatibility.md` for complete platform boundaries.
   valid `fullState` constrain and authenticate the persistent path.
 - Focus loss, deactivation, protocol errors, and transport loss restore native
   terminal output fail-open.
+- The Windows Terminal AppModule and structured Braille overlay reach the
+  shared service through a narrow `TerminalIntegrationService`. Fixed command
+  values and immutable focus and claim results prevent private or dynamic
+  calls across the AppModule boundary.
+- A dedicated `SettingsService` owns loading, normalization, persistence, and
+  NVDA profile switching. Presentation and Tools dialogs receive only
+  snapshots or narrow operations; `NvdaUiManager` has no Global Plugin
+  instance.
+- `TerminalFocusService` owns terminal identity, focus generation,
+  AppModule/adapter correlation, and the periodic lifecycle sweep. Uncertain
+  UIA results fail open; closed, unfocused controls are disposed only after two
+  conclusive negative checks.
+- The completed V2-4 extraction gives `SessionClaimService` sole ownership of
+  one-shot F12 authorization, claim generations, and claim inventory state. Local and
+  SSH inventory and session-list workers, discovery generation, and candidate
+  evaluation run behind that service. It also returns an immutable decision
+  between local, remote, and automatic resolution and for each session-list
+  result. It plans reuse or start of local and remote sessions, including an
+  instance that may need replacement. The service applies a current reuse
+  plan to instance bindings and returns displaced terminal identities for
+  separate NVDA-side focus cleanup. Starting, binding, and runtime selection
+  of new instances form another service transition; rollback and replacement
+  stop clients asynchronously. NVDA messages, dialogs, and focus-related side
+  effects retain their established main-thread
+  boundaries. Explicit instance selection and disconnect are neutral service
+  transitions as well: failed selection restores the previous binding, while
+  disconnect removes runtime state and bindings before asynchronous client
+  stop. Restoration of remembered bindings is prepared fail-open and creates
+  a correlated focus-context or full-state request according to authentication
+  state. Delay and transport calls remain at the NVDA boundary. The service
+  also owns pending offers to remember temporary terminal bindings and
+  revalidates focus, control, instance, and selection after the modal question.
+  Dialogs, messages, and diagnostics remain NVDA-side. A one-shot correlated
+  reactivation bridges only this question's focus loss; declining does not
+  create a persistent binding. An injected
+  `ManagedClientFactory` constructs local TCP and remote SSH clients with
+  instance-correlated callbacks. The claim service connects this construction
+  to its transactional start transition; profiles, passwords, and translated
+  output remain at the NVDA boundary. The Global Plugin now uses claim targets,
+  eligibility, and baselines only through narrow service operations; no
+  writable state copy is shared.
+- The following practical milestone is complete across multiple windows,
+  tabs, and panes, mixed local and remote sessions, and the clipboard paths.
+  V2-5 has therefore started: `EditorSessionController` mutates the active
+  isolated per-instance editor state, switches its runtime, processes mode,
+  menu, transport, and connection state, and creates ordered neutral actions
+  for structured typing echo. It also owns the bounded clipboard, register,
+  and terminal-control requests, correlates their replies to instance and
+  terminal identity, and removes one-shot clipboard text before further state
+  processing. Transport calls, focus/gate validation, the Windows clipboard,
+  and concrete output remain at the NVDA boundary. The controller combines
+  state transition, terminal passthrough, mode-cue decision, and neutral
+  speech actions in one immutable event plan. It also records the resulting
+  passthrough state for the active instance and adds the saved connection
+  label to an isolated copy of an already validated focus/context event. The
+  Global Plugin applies the gate decision and delivers the plan through
+  `NvdaPresentation`. The Braille path receives an isolated line plan from the
+  controller; semantic cursor routing is validated there against capability,
+  active client, and complete editor state. Terminal confirmation, instance
+  authentication, the NVDA overlay, and concrete transport remain outside.
+  Clipboard, register, and embedded-terminal actions likewise receive an
+  immutable allowlisted outbound plan only after capability, mode, buffer, and
+  canonical state validation. Rejection allocates no pending request; exact
+  terminal checks, Windows clipboard access, feedback, and sending stay at the
+  NVDA boundary. The final audit also routes semantic planner reset and
+  per-instance completion-documentation access through the controller. V2-5
+  is complete under automated coverage. Its seven temporary Global Plugin
+  compatibility properties have since been removed in V2-6.
+- V2-6 is complete and began with a normal `AddonRuntime`. It publishes the
+  completed terminal service only after process-wide registration and owns one fixed,
+  idempotent shutdown sequence. Unpublication and fail-open gate reset precede
+  connection and state cleanup; UI and presentation close last. Individual
+  cleanup failures are diagnosed without stopping later steps, and a late
+  initialization failure rolls registrations back.
+- The second V2-6 slice removes the former Global Plugin views of editor
+  planner, state, mode, typing, completion documentation, and transport
+  capabilities. Tests now use the actual coordinator/controller ownership
+  boundary.
+- The third V2-6 slice likewise removes the former Global Plugin views of
+  pending claims, inventory generation and readiness, baselines, eligible
+  targets, inventory errors, and discovery generation. Tests now use the
+  owning `SessionClaimService`; remaining compatibility views concern later
+  connection or focus migration and are audited separately before removal.
+- The fourth V2-6 slice removes eleven more passive views with no production
+  callers. Sound-cache tests use `NvdaPresentation`; binding, runtime, and
+  request tests use `ConnectionCoordinator`; AppModule and adapter focus data
+  remain owned by `TerminalFocusService`. Active connection, gate, focused
+  object, and lifecycle views still require a separate production audit.
+- The fifth V2-6 slice completes the focus/lifecycle compatibility cleanup.
+  Braille refresh reads the focused terminal object from
+  `TerminalFocusService`, and lifecycle tests adjust that service's timestamp
+  directly. Active connection and gate views remain for their own audit.
+- The sixth V2-6 slice removes seven active-client and connection-state views.
+  Production and tests now use `ConnectionCoordinator` directly for the active
+  client and instance, connection status, authenticated instances, terminal
+  passthrough, and deferred full states.
+- The seventh V2-6 slice closes the public terminal service immediately after
+  unpublication and rechecks queued runtime callbacks when they execute. Stale
+  service references and late claim, network, Braille, or scheduler calls are
+  therefore inert and fail open. The gate and instance manager remain after a
+  separate audit as frequently used composition dependencies; another layer
+  of indirection would not create a clearer ownership boundary.
+- The eighth V2-6 slice also centralizes activation in `AddonRuntime`. The
+  profile callback, UI, and publication run exactly once in that order;
+  failure at each boundary triggers the same complete teardown. The Global
+  Plugin no longer marks registration and publication through separate
+  transitional calls.
+- The ninth V2-6 slice removes duplicate connection cleanup from teardown.
+  `AddonRuntime` invalidates claim and focus state, stops clients once through
+  the coordinator owner, and then clears its runtime tracking once.
+  `_stopClient()` remains only for active user and profile-switch paths.
+- The tenth V2-6 slice removes the public `TerminalIntegrationService`'s broad
+  Global Plugin back-reference. A complete fixed command map and narrow
+  callbacks replace unrestricted access to the composition root; focus, F12,
+  and Braille services remain separate.
+- The eleventh V2-6 slice moves the Braille region and terminal overlay into
+  `nvda_braille.py`. Neutral `service_registry.py` owns process-wide service
+  publication; neither that registry module nor the Braille module imports the
+  Global Plugin.
+- The final V2-6 structural audit removes the remaining test-only runtime
+  factory and adds package-level dependency checks. The composition root is
+  2,499 lines with 112 methods and exactly two properties: the frequently used
+  gate and instance-manager composition views. No AppModule event entry point
+  remains there, and none of the extracted runtime or NVDA-edge services
+  depends on the `GlobalPlugin` class. Further extraction is deliberately
+  stopped without a demonstrated ownership, reliability, or testability gain.
+  Automated V2-6 work and practical milestone 2 are complete without a newly
+  reported error. Practical Braille hardware remains unavailable.
 
 ### Editor output
 

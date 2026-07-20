@@ -5,10 +5,7 @@ import os
 import sys
 import threading
 import time
-import unicodedata
 import array
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
 
 import addonHandler
 import api
@@ -74,18 +71,14 @@ from .core.stdio_client import SshStdioClient  # noqa: E402
 from .core.local_client import LocalTcpClient  # noqa: E402
 from .core.clipboard import (  # noqa: E402
 	MAX_CLIPBOARD_TEXT_BYTES,
-	clipboard_result_state,
 	valid_clipboard_text,
-	valid_request_id,
 )
-from .core.terminal_control import terminal_control_result_state  # noqa: E402
-from .core.braille import plan_braille, source_offset_for_expanded  # noqa: E402
 from .core.diagnostics import DiagnosticBuffer  # noqa: E402
 from .core.connection_profiles import (  # noqa: E402
 	parse_profile,
 	parse_profiles,
 )
-from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest  # noqa: E402
+from .core.connection_coordinator import ConnectionCoordinator  # noqa: E402
 from .core.connection_targets import (  # noqa: E402
 	LOCAL_WINDOWS_TCP,
 	local_windows_target,
@@ -96,26 +89,46 @@ from .core.gate import SessionGate, TerminalIdentity  # noqa: E402
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
-from .core.service_registrar import ServiceRegistrar  # noqa: E402
 from .nvda_windows import processAlive  # noqa: E402
+from .terminal_integration import (  # noqa: E402
+	SessionClaimAuthorization as SessionClaimAuthorization,
+	TerminalCommand as TerminalCommand,
+	TerminalIntegrationService,
+)
+from .settings_service import SettingsService  # noqa: E402
+from .managed_clients import ManagedClientFactory  # noqa: E402
+from .addon_runtime import AddonRuntime  # noqa: E402
+from .editor_session import (  # noqa: E402
+	ControlReplyKind,
+	ControlRequestRejection,
+	EditorSessionController,
+)
+from .session_claim import (  # noqa: E402
+	ClaimTransitionKind,
+	DiscoverySelectionKind,
+	RememberedBindingActivationKind,
+	RememberedStateRequestKind,
+	SessionClaimService,
+	TemporaryBindingOfferKind,
+)
+from .terminal_focus import (  # noqa: E402
+	TerminalFocusDecision as TerminalFocusDecision,
+	TerminalFocusService,
+)
+from .service_registry import (  # noqa: E402
+	getTerminalIntegrationService as getTerminalIntegrationService,
+	serviceRegistrar as _serviceRegistrar,
+)
+from .nvda_braille import (  # noqa: E402
+	StructuredLineRegion as StructuredLineRegion,
+	StructuredTerminalBrailleOverlay as StructuredTerminalBrailleOverlay,
+)
 
 addonHandler.initTranslation()
 
 # These modules contain translated class text and must follow translation setup.
 from .nvda_ui import NvdaUiManager  # noqa: E402
 from .nvda_presentation import NvdaPresentation  # noqa: E402
-
-
-@dataclass(frozen=True)
-class TerminalFocusDecision:
-	"""Immutable result of preparing one Windows Terminal focus event."""
-
-	adapter_token: object
-	generation: int
-	identity: TerminalIdentity | None
-	instance_id: str | None
-	pending_full_state: dict | None
-	suppress_native_speech: bool
 
 
 _CODE_ADDON = addonHandler.getCodeAddon()
@@ -126,13 +139,6 @@ try:
 	from .build_info import ARTIFACT_VERSION as _ADDON_VERSION
 except ImportError:
 	_ADDON_VERSION = _ADDON_MANIFEST["version"]
-
-_serviceRegistrar = ServiceRegistrar()
-
-
-def getActivePlugin():
-	"""Return the add-on service instance for application-specific adapters."""
-	return _serviceRegistrar.current
 
 
 def _localSessionLister():
@@ -198,6 +204,78 @@ def _frontendPolicy():
 
 _FRONTEND_POLICY = _frontendPolicy()
 
+
+def _identityForObject(obj):
+	process_id = getattr(obj, "processID", None)
+	window_handle = getattr(obj, "windowHandle", None)
+	if not isinstance(process_id, int) or not isinstance(window_handle, int) or not window_handle:
+		return None
+	descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
+	if descriptor is None or not descriptor.enabled:
+		return None
+	candidate = obj
+	for _depth in range(8):
+		element = getattr(candidate, "UIAElement", None)
+		if element is not None:
+			try:
+				class_name = str(element.cachedClassName or "")
+				if class_name in descriptor.uia_class_names:
+					runtime_id = tuple(int(value) for value in element.getRuntimeId())
+					if runtime_id or not descriptor.requires_runtime_id:
+						candidate_process = getattr(candidate, "processID", process_id)
+						candidate_window = getattr(candidate, "windowHandle", window_handle)
+						if not isinstance(candidate_process, int) or not isinstance(candidate_window, int):
+							break
+						return TerminalIdentity(
+							candidate_process,
+							candidate_window,
+							"windowsTerminal",
+							runtime_id,
+						)
+			except Exception:
+				pass
+		try:
+			candidate = candidate.parent
+		except Exception:
+			break
+		if candidate is None:
+			break
+	return None
+
+
+def _identityElementForObject(obj, identity):
+	candidate = obj
+	for _depth in range(8):
+		element = getattr(candidate, "UIAElement", None)
+		if element is not None:
+			try:
+				runtime_id = tuple(int(value) for value in element.getRuntimeId())
+				if runtime_id == identity.runtime_id:
+					return element
+			except Exception:
+				pass
+		try:
+			candidate = candidate.parent
+		except Exception:
+			break
+		if candidate is None:
+			break
+	return None
+
+
+def _terminalIdentityFields(identity):
+	return (
+		None
+		if identity is None
+		else {
+			"processId": identity.process_id,
+			"windowHandle": identity.window_handle,
+			"frontendKind": identity.frontend_kind,
+			"runtimeId": list(identity.runtime_id),
+		}
+	)
+
+
 _FEEDBACK_DEFAULTS = {
 	"global": 3,
 	"mode": 3,
@@ -235,86 +313,24 @@ def _registerNvdaConfigSpec():
 		config.conf.spec[_NVDA_CONFIG_SECTION] = _NVDA_CONFIG_SPEC
 
 
-class StructuredLineRegion(nvdaBraille.Region):
-	"""Let NVDA translate and decorate one structured Neovim line."""
-
-	def __init__(self, obj):
-		super().__init__()
-		self.obj = obj
-		self.focusToHardLeft = True
-
-	def update(self):
-		plugin = getActivePlugin()
-		state = dict(plugin._currentState) if plugin is not None else {}
-		formatting = config.conf.get("documentFormatting", {})
-		state["reportSpellingBraille"] = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
-		plan = plan_braille(state)
-		self._plan = plan
-		self.rawText = plan.text
-		self.cursorPos = plan.cursor
-		self.selectionStart = plan.selection_start
-		self.selectionEnd = plan.selection_end
-		self.brailleSelectionStart = None
-		self.brailleSelectionEnd = None
-		super().update()
-
-	def routeTo(self, braillePos):
-		plugin = getActivePlugin()
-		if plugin is None or not plugin._shouldSuppress(self.obj):
-			return
-		if not 0 <= braillePos < len(self.brailleToRawPos):
-			plugin._diagnostics.record("brailleRouteRejected", reason="outOfRange", braillePos=braillePos)
-			return
-		expanded_offset = self.brailleToRawPos[braillePos]
-		if self._plan.routing_byte_columns is not None:
-			if not 0 <= expanded_offset < len(self._plan.routing_byte_columns):
-				plugin._diagnostics.record(
-					"brailleRouteRejected",
-					reason="semanticOutOfRange",
-					braillePos=braillePos,
-				)
-				return
-			byte_column = self._plan.routing_byte_columns[expanded_offset]
-			if byte_column is None:
-				plugin._diagnostics.record(
-					"brailleRouteRejected",
-					reason="semanticStatus",
-					braillePos=braillePos,
-				)
-				return
-		else:
-			source_offset = source_offset_for_expanded(self._plan, expanded_offset)
-			line = plugin._currentState.get("lineText", "")
-			byte_column = len(line[:source_offset].encode("utf-8"))
-		plugin._routeBrailleCursor(byte_column)
-
-
-class StructuredTerminalBrailleOverlay:
-	def _reportNewLines(self, lines):
-		plugin = getActivePlugin()
-		if plugin is not None and plugin._shouldSuppress(self):
-			plugin._diagnostics.record("terminalLiveTextSuppressed", lineCount=len(lines))
-			return
-		return super()._reportNewLines(lines)
-
-	def getBrailleRegions(self, review=False):
-		plugin = getActivePlugin()
-		if review or plugin is None or not plugin._shouldSuppress(self):
-			raise NotImplementedError
-		# Return a concrete iterable. A yield would turn this into a generator
-		# and defer NotImplementedError until outside NVDA's fallback try block.
-		return (StructuredLineRegion(self),)
-
-
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super().__init__()
-		self._serviceRegistrationToken = None
 		self._diagnostics = DiagnosticBuffer()
+		_registerNvdaConfigSpec()
+		self._settingsService = SettingsService(
+			config.conf,
+			section_name=_NVDA_CONFIG_SECTION,
+			feedback_defaults=_FEEDBACK_DEFAULTS,
+			focus_announcement_values=_FOCUS_ANNOUNCEMENT_VALUES,
+			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
+			record_diagnostic=self._diagnostics.record,
+			on_connections_changed=self._onSettingsConnectionsChanged,
+		)
 		self._presentation = NvdaPresentation(
 			os.path.join(globalVars.appDir, "waves"),
 			os.path.join(_PACKAGE_DIR, "resources", "sounds"),
-			lambda: self._settings,
+			self._settingsService.snapshot,
 			_FEEDBACK_DEFAULTS,
 			_FEEDBACK_FOR_SOUND,
 			self._diagnostics.record,
@@ -323,223 +339,159 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			gate=SessionGate(_FRONTEND_POLICY.enabled_kinds),
 			planner=SpeechPlanner(translate=_),
 		)
+		self._editorSessionController = EditorSessionController(
+			self._connectionCoordinator,
+			new_planner=lambda: SpeechPlanner(translate=_),
+			max_pending_clipboard_requests=_MAX_PENDING_CLIPBOARD_REQUESTS,
+			max_pending_terminal_control_requests=_MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
+		)
 		self._sessionPasswords = {}
-		self._sessionDiscoveryGeneration = 0
-		self._pendingClaimTargets = {}
-		self._claimGestureGeneration = 0
-		self._pendingObservedClaim = None
-		self._claimInventoryGeneration = 0
-		self._claimInventoryReady = False
-		self._claimBaselines = {}
-		self._claimEligibleTargets = set()
-		self._claimInventoryErrors = {}
 		self._pendingMainThreadCalls = set()
-		self._terminalLifecycleCall = None
-		self._terminalLifecycleScheduledAt = 0.0
-		self._terminalLifecycleMisses = {}
-		self._focusedTerminalObject = None
-		self._terminalIdentityElements = {}
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
-		self._terminalFocusGeneration = 0
-		_registerNvdaConfigSpec()
-		settings = self._loadSettings()
-		self._settings = settings
+		managed_client_factory = ManagedClientFactory(
+			local_client_constructor=lambda *args, **kwargs: LocalTcpClient(*args, **kwargs),
+			ssh_client_constructor=lambda *args, **kwargs: SshStdioClient(*args, **kwargs),
+			on_event=self._onManagedEvent,
+			on_state=self._onManagedState,
+			record_network_diagnostic=self._recordNetworkDiagnostic,
+		)
+		self._sessionClaimService = SessionClaimService(
+			self._connectionCoordinator,
+			record_diagnostic=self._diagnostics.record,
+			identity_fields=_terminalIdentityFields,
+			list_local_sessions=self._listLocalClaimSessions,
+			list_remote_sessions=self._listRemoteClaimSessions,
+			queue_main_thread=self._queueClaimResult,
+			start_worker=self._startClaimWorker,
+			monotonic=time.monotonic,
+			sleep=time.sleep,
+			local_claim_wait_seconds=_LOCAL_CLAIM_WAIT_SECONDS,
+			local_claim_poll_seconds=_LOCAL_CLAIM_POLL_SECONDS,
+			new_instance_runtime=self._editorSessionController.new_runtime,
+			stop_client_async=lambda instance_id, client: self._stopManagedClientAsync(
+				instance_id,
+				client,
+			),
+			client_factory=managed_client_factory,
+		)
+		self._terminalFocusService = TerminalFocusService(
+			self._connectionCoordinator,
+			identity_for_object=_identityForObject,
+			identity_element=_identityElementForObject,
+			identity_fields=_terminalIdentityFields,
+			record_diagnostic=self._diagnostics.record,
+			discard_transient_context=self._discardTransientFocusContext,
+			activate_remembered_binding=self._activateRememberedBinding,
+			consume_temporary_binding_reactivation=(
+				self._sessionClaimService.consume_temporary_binding_reactivation
+			),
+			handle_pending_full_state=self._handleManagedEvent,
+			reset_typed_echo=self._resetTypedEcho,
+			cancel_speech=speech.cancelSpeech,
+			schedule_main_thread_call=self._scheduleMainThreadCall,
+			identity_exists=_terminalIdentityExists,
+			monotonic=time.monotonic,
+			lifecycle_interval_ms=_TERMINAL_LIFECYCLE_INTERVAL_MS,
+			new_instance_runtime=self._editorSessionController.new_runtime,
+			stop_client_async=self._stopManagedClientAsync,
+			log_lifecycle_failure=self._logTerminalLifecycleFailure,
+		)
 		self._nvdaUi = NvdaUiManager(
-			self,
+			self._settingsService,
+			record_diagnostic=self._diagnostics.record,
+			password_for_profile=self._passwordForProfile,
+			askpass_path=self._askpassPath,
 			product_name=_PRODUCT_NAME,
 			package_dir=_PACKAGE_DIR,
 			feedback_defaults=_FEEDBACK_DEFAULTS,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 		)
-		config.post_configProfileSwitch.register(self._onNvdaConfigProfileSwitch)
-		self._diagnostics.record(
-			"addonStart",
-			nvdaVersion=getattr(buildVersion, "version", "unknown"),
-			configured=bool(settings.get("connections")),
+		self._terminalIntegrationService = TerminalIntegrationService(
+			self._terminalFocusService,
+			self._sessionClaimService,
+			self._editorSessionController,
+			command_actions={
+				TerminalCommand.TOGGLE_ACCESSIBILITY: self.action_toggleNeovimMode,
+				TerminalCommand.READ_COMPLETION_DOCUMENTATION: self.action_readCompletionDocumentation,
+				TerminalCommand.COPY_VISUAL_SELECTION: self.action_copyNeovimSelection,
+				TerminalCommand.COPY_LAST_YANK: self.action_copyLastNeovimYank,
+				TerminalCommand.PASTE_WINDOWS_CLIPBOARD: self.action_pasteWindowsClipboard,
+				TerminalCommand.SET_REGISTER_FROM_WINDOWS_CLIPBOARD: (
+					self.action_setNeovimRegisterFromWindowsClipboard
+				),
+				TerminalCommand.LEAVE_DIRECT_TERMINAL_INPUT: self.action_leaveDirectTerminalInput,
+				TerminalCommand.START_CONNECTION: self.action_startConnectionInstance,
+				TerminalCommand.DISCONNECT_CONNECTION: self.action_disconnectConnectionInstance,
+				TerminalCommand.FORGET_TEMPORARY_BINDING: self.action_forgetTemporaryTerminalBinding,
+			},
+			copy_diagnostic_report=self.action_copyDiagnosticReport,
+			claim_focused_session=self.action_claimFocusedNeovimSession,
+			send_braille_route=self._sendBrailleRoute,
+			record_diagnostic=self._diagnostics.record,
+			fail_open_event=self._failOpenTerminalEvent,
 		)
-		log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
-		self._nvdaUi.register()
-		self._serviceRegistrationToken = _serviceRegistrar.publish(self)
+		self._addonRuntime = AddonRuntime(
+			registrar=_serviceRegistrar,
+			integration_service=self._terminalIntegrationService,
+			pending_main_thread_calls=self._pendingMainThreadCalls,
+			gate=self._gate,
+			profile_switch_action=config.post_configProfileSwitch,
+			profile_switch_handler=self._settingsService.handle_profile_switch,
+			clear_session_passwords=self._clearSessionPasswords,
+			coordinator=self._connectionCoordinator,
+			focus_service=self._terminalFocusService,
+			claim_service=self._sessionClaimService,
+			ui_manager=self._nvdaUi,
+			presentation=self._presentation,
+			diagnostics=self._diagnostics,
+		)
+		try:
+			settings = self._settingsService.snapshot()
+			self._diagnostics.record(
+				"addonStart",
+				nvdaVersion=getattr(buildVersion, "version", "unknown"),
+				configured=bool(settings.get("connections")),
+			)
+			log.info("%s %s initialized", _ADDON_ID, _ADDON_VERSION)
+			self._addonRuntime.start()
+		except Exception:
+			self._addonRuntime.close()
+			raise
 
 	@property
 	def _instanceManager(self):
-		"""Compatibility view while connection behavior moves into its coordinator."""
+		"""Return the instance owner used while composing NVDA-edge operations."""
 		return self._connectionCoordinator.instances
 
 	@property
 	def _gate(self):
+		"""Return the suppression gate used across NVDA-edge operations."""
 		return self._connectionCoordinator.gate
 
-	@property
-	def _suggestionSounds(self):
-		return self._presentation.suggestion_sounds
-
-	@property
-	def _spellingSound(self):
-		return self._presentation.spelling_sound
-
-	@property
-	def _editorSounds(self):
-		return self._presentation.editor_sounds
-
-	@property
-	def _planner(self):
-		return self._connectionCoordinator.planner
-
-	@_planner.setter
-	def _planner(self, value):
-		self._connectionCoordinator.planner = value
-
-	@property
-	def _currentState(self):
-		return self._connectionCoordinator.current_state
-
-	@_currentState.setter
-	def _currentState(self, value):
-		self._connectionCoordinator.current_state = value
-
-	@property
-	def _lastMode(self):
-		return self._connectionCoordinator.last_mode
-
-	@_lastMode.setter
-	def _lastMode(self, value):
-		self._connectionCoordinator.last_mode = value
-
-	@property
-	def _typedWord(self):
-		return self._connectionCoordinator.typed_word
-
-	@_typedWord.setter
-	def _typedWord(self, value):
-		self._connectionCoordinator.typed_word = value
-
-	@property
-	def _typedPosition(self):
-		return self._connectionCoordinator.typed_position
-
-	@_typedPosition.setter
-	def _typedPosition(self, value):
-		self._connectionCoordinator.typed_position = value
-
-	@property
-	def _menuDocumentation(self):
-		return self._connectionCoordinator.menu_documentation
-
-	@_menuDocumentation.setter
-	def _menuDocumentation(self, value):
-		self._connectionCoordinator.menu_documentation = value
-
-	@property
-	def _client(self):
-		return self._connectionCoordinator.active_client
-
-	@_client.setter
-	def _client(self, value):
-		self._connectionCoordinator.active_client = value
-
-	@property
-	def _lastConnectionState(self):
-		return self._connectionCoordinator.last_connection_state
-
-	@_lastConnectionState.setter
-	def _lastConnectionState(self, value):
-		self._connectionCoordinator.last_connection_state = value
-
-	@property
-	def _connected(self):
-		return self._connectionCoordinator.connected
-
-	@_connected.setter
-	def _connected(self, value):
-		self._connectionCoordinator.connected = value
-
-	@property
-	def _rememberedTerminalBindings(self):
-		return self._connectionCoordinator.remembered_terminal_bindings
-
-	@property
-	def _rememberOfferInstances(self):
-		return self._connectionCoordinator.remember_offer_instances
-
-	@property
-	def _authenticatedInstances(self):
-		return self._connectionCoordinator.authenticated_instances
-
-	@property
-	def _instanceTerminalPassthrough(self):
-		return self._connectionCoordinator.terminal_passthrough
-
-	@property
-	def _activeInstanceId(self):
-		return self._connectionCoordinator.active_instance_id
-
-	@_activeInstanceId.setter
-	def _activeInstanceId(self, value):
-		self._connectionCoordinator.active_instance_id = value
-
-	@property
-	def _instanceRuntimeStates(self):
-		return self._connectionCoordinator.runtime_states
-
-	@property
-	def _pendingInstanceFullStates(self):
-		return self._connectionCoordinator.pending_full_states
-
-	@property
-	def _pendingFocusContexts(self):
-		return self._connectionCoordinator.pending_focus_contexts
-
-	@property
-	def _pendingClipboardRequests(self):
-		return self._connectionCoordinator.pending_clipboard_requests
-
-	@property
-	def _pendingTerminalControlRequests(self):
-		return self._connectionCoordinator.pending_terminal_control_requests
-
-	@property
-	def _transportCapabilities(self):
-		return self._connectionCoordinator.transport_capabilities
-
-	@_transportCapabilities.setter
-	def _transportCapabilities(self, value):
-		self._connectionCoordinator.transport_capabilities = value
-
 	def terminate(self):
-		_serviceRegistrar.unpublish(self, self._serviceRegistrationToken)
-		self._serviceRegistrationToken = None
-		for pending in tuple(self._pendingMainThreadCalls):
-			try:
-				pending.Stop()
-			except Exception:
-				pass
-		self._pendingMainThreadCalls.clear()
-		self._terminalLifecycleCall = None
-		self._terminalLifecycleMisses.clear()
-		self._gate.disable()
-		config.post_configProfileSwitch.unregister(self._onNvdaConfigProfileSwitch)
-		self._clearSessionPasswords()
-		self._stopClient()
-		try:
-			self._instanceManager.stop_all()
-		except Exception as error:
-			self._diagnostics.record("connectionInstancesStopError", error=str(error))
-		self._connectionCoordinator.clear_runtime_tracking()
-		self._terminalIdentityElements.clear()
-		self._connectionCoordinator.discard_focus_context()
-		self._discardClipboardRequests()
-		self._discardTerminalControlRequests()
-		self._pendingObservedClaim = None
-		self._focusedTerminalObject = None
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
-		self._nvdaUi.unregister()
-		self._presentation.close()
-		self._diagnostics.record("addonStop")
+		self._addonRuntime.close()
 		log.info("%s %s terminated", _ADDON_ID, _ADDON_VERSION)
 		super().terminate()
+
+	def _runtimeClosed(self):
+		runtime = getattr(self, "_addonRuntime", None)
+		return runtime is not None and runtime.closed
+
+	def _runRuntimeCallback(self, callback, *args):
+		if self._runtimeClosed():
+			return
+		callback(*args)
+
+	def _queueRuntimeCallback(self, callback, *args, immediate=False):
+		if self._runtimeClosed():
+			return False
+		queueHandler.queueFunction(
+			queueHandler.eventQueue,
+			self._runRuntimeCallback,
+			callback,
+			*args,
+			_immediate=immediate,
+		)
+		return True
 
 	def _scheduleMainThreadCall(self, delay_ms, callback, *args):
 		"""Keep wx.CallLater alive until it runs or the add-on terminates."""
@@ -551,6 +503,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			pending = holder[0]
 			if pending is not None:
 				self._pendingMainThreadCalls.discard(pending)
+			if self._runtimeClosed():
+				return
 			self._diagnostics.record(
 				"delayedActionStarted",
 				action=getattr(callback, "__name__", "unknown"),
@@ -569,35 +523,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return pending
 
 	def _ensureTerminalLifecycleSweep(self):
-		"""Periodically notice closed WT tabs even when Neovim is otherwise idle."""
-		if self._terminalLifecycleCall is not None or not self._instanceManager.list():
-			return
-		self._terminalLifecycleScheduledAt = time.monotonic()
-		self._terminalLifecycleCall = self._scheduleMainThreadCall(
-			_TERMINAL_LIFECYCLE_INTERVAL_MS,
-			self._runTerminalLifecycleSweep,
-		)
+		self._terminalFocusService.ensure_lifecycle_sweep()
 
 	def _runTerminalLifecycleSweep(self):
-		self._terminalLifecycleCall = None
-		# Some unit-test wx shims execute CallLater synchronously. Avoid a
-		# recursive reschedule while retaining the real delayed behavior.
-		elapsed_ms = (time.monotonic() - self._terminalLifecycleScheduledAt) * 1_000
-		try:
-			self._pruneClosedTerminalBindings()
-		except Exception as error:
-			# This maintenance task must never retain suppression or become a
-			# repeating source of failures on NVDA's main thread.
-			self._gate.disconnect()
-			self._client = None
-			self._diagnostics.record(
-				"terminalLifecycleFailedOpen",
-				errorType=type(error).__name__,
-			)
-			log.exception("terminal lifecycle sweep failed open")
-			return
-		if elapsed_ms >= _TERMINAL_LIFECYCLE_INTERVAL_MS / 2:
-			self._ensureTerminalLifecycleSweep()
+		self._terminalFocusService.run_lifecycle_sweep()
 
 	def action_toggleNeovimMode(self, gesture):
 		try:
@@ -612,11 +541,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _toggleNeovimMode(self):
 		identity = self._gate.focused
 		if self._gate.manual_enabled:
-			self._sessionDiscoveryGeneration += 1
-			self._pendingObservedClaim = None
+			self._sessionClaimService.cancel_pending_authorization()
 			self._gate.disable()
-			self._planner.reset()
-			self._resetTypedEcho()
+			self._resetEditorPlanning()
 			self._clearSessionPasswords()
 			self._stopClient()
 			ui.message(_("Neovim accessibility off"))
@@ -628,13 +555,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Neovim accessibility unavailable in this window"))
 			return
 		self._gate.manual_enabled = True
-		self._planner.reset()
-		self._resetTypedEcho()
+		self._resetEditorPlanning()
 		self._diagnostics.record("manualMode", enabled=True, terminal=self._identityFields(identity))
 		log.info("NeovimAccessLink manual mode requested")
 		self._gate.focused = identity
 		self._beginClaimInventory()
-		if self._connected:
+		if self._connectionCoordinator.connected:
 			self._gate.authenticated = True
 			self._gate.nvim_active = True
 			self._gate.bound_terminal = identity
@@ -642,35 +568,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._queueBrailleRefresh(rebuild=True)
 		else:
 			ui.message(_("Checking local and saved Neovim connections"))
-
-	def _captureObservedSessionClaim(self, identity):
-		"""Authorize this physical F12 for exactly the focused WT control."""
-		if (
-			not self._gate.manual_enabled
-			or identity is None
-			or identity.frontend_kind != "windowsTerminal"
-			or (
-				not self._claimInventoryReady
-				and identity not in self._pendingClaimTargets
-				and self._instanceManager.selected_for(identity) is None
-			)
-		):
-			return None
-		self._claimGestureGeneration += 1
-		generation = self._claimGestureGeneration
-		self._pendingObservedClaim = (identity, generation)
-		self._diagnostics.record(
-			"sessionClaimAuthorized",
-			generation=generation,
-			terminal=self._identityFields(identity),
-		)
-		return generation
-
-	def _acceptObservedSessionClaim(self, identity, generation):
-		if self._pendingObservedClaim != (identity, generation):
-			return False
-		self._pendingObservedClaim = None
-		return self._gate.manual_enabled and self._gate.focused == identity
 
 	def _promptForSessionClaim(self, profile, identity):
 		self._diagnostics.record(
@@ -688,7 +585,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _automaticClaimProfiles(self):
 		"""Return profiles that can be inspected without opening a password dialog."""
 		try:
-			profiles = parse_profiles(self._settings.get("connections", []))
+			profiles = parse_profiles(self._settingsService.snapshot().get("connections", []))
 		except ValueError as error:
 			self._diagnostics.record("claimInventoryConfigError", error=str(error))
 			return []
@@ -710,257 +607,86 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return result
 
 	def _beginClaimInventory(self):
-		self._claimInventoryGeneration += 1
-		generation = self._claimInventoryGeneration
-		self._claimInventoryReady = False
 		profiles = self._automaticClaimProfiles()
 		passwords = {
 			profile.identifier: self._sessionPasswords.get(profile.identifier, "") for profile in profiles
 		}
-		threading.Thread(
-			target=self._scanClaimTargets,
-			args=(generation, profiles, passwords, True, None),
-			name="nvim-nvda-claim-inventory",
-			daemon=True,
-		).start()
+		self._sessionClaimService.start_inventory(
+			profiles,
+			passwords,
+			self._finishClaimInventory,
+		)
 
 	def _beginAutomaticClaimResolution(self, identity, local_claim_not_before_ns=0):
-		self._claimInventoryGeneration += 1
-		generation = self._claimInventoryGeneration
 		profiles = [
 			profile
 			for profile in self._automaticClaimProfiles()
-			if ("remoteSsh", profile.identifier) in self._claimEligibleTargets
+			if self._sessionClaimService.is_target_eligible("remoteSsh", profile.identifier)
 		]
 		passwords = {
 			profile.identifier: self._sessionPasswords.get(profile.identifier, "") for profile in profiles
 		}
-		baseline = dict(self._claimBaselines)
-		threading.Thread(
-			target=self._scanAutomaticClaimTargets,
-			args=(
-				generation,
-				profiles,
-				passwords,
-				identity,
-				baseline,
-				local_claim_not_before_ns,
-			),
-			name="nvim-nvda-claim-resolution",
-			daemon=True,
-		).start()
-
-	def _scanAutomaticClaimTargets(
-		self,
-		generation,
-		profiles,
-		passwords,
-		identity,
-		baseline,
-		local_claim_not_before_ns=0,
-	):
-		"""Resolve a local claim without waiting for unrelated SSH probes.
-
-		F12 reaches only the focused terminal.  Therefore a newly incremented
-		local claim is already conclusive; scanning remote hosts afterwards
-		would add latency and can make a second key press invalidate the first
-		scan generation.  When no local claim changed, retain the existing
-		parallel SSH resolution path.
-		"""
-
-		def changed(sessions):
-			return any(
-				self._claimSequence(session)
-				> baseline.get(
-					("localWindowsTcp", "local-windows", session.identifier),
-					0,
-				)
-				or (
-					local_claim_not_before_ns > 0
-					and 0 <= session.claim_age_ms <= 15_000
-					and session.claimed_monotonic_ns >= local_claim_not_before_ns
-				)
-				for session in sessions
-			)
-
-		local_sessions, local_error, local_attempts = self._pollLocalSessions(changed)
-		local_changed = local_error is None and changed(local_sessions)
-		self._diagnostics.record(
-			"automaticLocalClaimChecked",
-			attempts=local_attempts,
-			sessions=len(local_sessions),
-			changed=local_changed,
-			errorType=type(local_error).__name__ if local_error is not None else "",
-		)
-		local_result = (
-			"localWindowsTcp",
-			"local-windows",
-			None,
-			local_sessions,
-			local_error,
-		)
-		if local_changed:
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
-				self._finishAutomaticClaimResolution,
-				generation,
-				[local_result],
-				identity,
-				local_claim_not_before_ns,
-			)
-			return
-
-		jobs = [("remoteSsh", profile.identifier, profile) for profile in profiles]
-
-		def scan(profile):
-			return SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=passwords.get(profile.identifier, ""),
-				askpass_path=self._askpassPath(),
-			)
-
-		results = [local_result]
-		if jobs:
-			workers = max(1, min(4, len(jobs)))
-			with ThreadPoolExecutor(
-				max_workers=workers,
-				thread_name_prefix="nvim-nvda-claim-remote",
-			) as pool:
-				futures = {
-					pool.submit(scan, profile): (kind, target_id, profile)
-					for kind, target_id, profile in jobs
-				}
-				for future in as_completed(futures):
-					kind, target_id, profile = futures[future]
-					try:
-						results.append((kind, target_id, profile, future.result(), None))
-					except Exception as error:
-						results.append((kind, target_id, profile, [], error))
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
+		baseline = self._sessionClaimService.baseline_snapshot()
+		self._sessionClaimService.start_resolution(
+			profiles,
+			passwords,
+			identity,
+			baseline,
+			local_claim_not_before_ns,
 			self._finishAutomaticClaimResolution,
-			generation,
-			results,
-			identity,
 		)
 
 	@staticmethod
-	def _pollLocalSessions(predicate):
-		"""Wait briefly for Neovim's atomic registry update on a worker thread."""
-		deadline = time.monotonic() + _LOCAL_CLAIM_WAIT_SECONDS
-		attempts = 0
-		sessions = []
-		while True:
-			attempts += 1
-			try:
-				sessions = _localSessionLister().list()
-			except Exception as error:
-				return [], error, attempts
-			if predicate(sessions) or time.monotonic() >= deadline:
-				return sessions, None, attempts
-			time.sleep(_LOCAL_CLAIM_POLL_SECONDS)
+	def _startClaimWorker(name, target, args):
+		threading.Thread(target=target, args=args, name=name, daemon=True).start()
 
-	def _scanClaimTargets(self, generation, profiles, passwords, inventory, identity):
-		jobs = [("localWindowsTcp", "local-windows", None)]
-		jobs.extend(("remoteSsh", profile.identifier, profile) for profile in profiles)
-
-		def scan(kind, _target_id, profile):
-			if kind == "localWindowsTcp":
-				return _localSessionLister().list()
-			return SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=passwords.get(profile.identifier, ""),
-				askpass_path=self._askpassPath(),
-			)
-
-		results = []
-		workers = max(1, min(4, len(jobs)))
-		with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="nvim-nvda-scan") as pool:
-			futures = {
-				pool.submit(scan, kind, target_id, profile): (kind, target_id, profile)
-				for kind, target_id, profile in jobs
-			}
-			for future in as_completed(futures):
-				kind, target_id, profile = futures[future]
-				try:
-					results.append((kind, target_id, profile, future.result(), None))
-				except Exception as error:
-					results.append((kind, target_id, profile, [], error))
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishClaimInventory if inventory else self._finishAutomaticClaimResolution,
-			generation,
-			results,
-			identity,
-		)
+	def _queueClaimResult(self, callback, *args):
+		self._queueRuntimeCallback(callback, *args)
 
 	@staticmethod
-	def _claimSequence(session):
-		value = getattr(session, "claim_sequence", 0)
-		return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+	def _listLocalClaimSessions():
+		return _localSessionLister().list()
+
+	def _listRemoteClaimSessions(self, profile, password):
+		return SshSessionLister().list(
+			profile.ssh_target,
+			profile.port,
+			profile.identity_file,
+			password=password,
+			askpass_path=self._askpassPath(),
+		)
 
 	def _finishClaimInventory(self, generation, results, _identity=None):
-		if generation != self._claimInventoryGeneration or not self._gate.manual_enabled:
-			self._diagnostics.record("claimInventoryIgnored")
+		summary = self._sessionClaimService.finish_inventory(generation, results)
+		if summary is None:
 			return
-		baselines = {}
-		eligible = set()
-		errors = {}
-		for kind, target_id, _profile, sessions, error in results:
-			target = (kind, target_id)
-			if error is not None:
-				errors[target] = str(error)
-				continue
-			eligible.add(target)
-			for session in sessions:
-				baselines[(kind, target_id, session.identifier)] = self._claimSequence(session)
-		self._claimBaselines = baselines
-		self._claimEligibleTargets = eligible
-		self._claimInventoryErrors = errors
-		self._claimInventoryReady = True
-		configured = len(self._settings.get("connections", []))
-		scanned_remote = len([item for item in results if item[0] == "remoteSsh"])
-		automatic = len([target for target in eligible if target[0] == "remoteSsh"])
-		local_sessions = sum(
-			len(sessions)
-			for kind, _target_id, _profile, sessions, error in results
-			if kind == "localWindowsTcp" and error is None
-		)
-		remote_sessions = sum(
-			len(sessions)
-			for kind, _target_id, _profile, sessions, error in results
-			if kind == "remoteSsh" and error is None
-		)
+		configured = len(self._settingsService.snapshot().get("connections", []))
 		self._diagnostics.record(
 			"claimInventoryReady",
-			eligibleTargets=len(eligible),
-			errors=len(errors),
-			eligibleSessions=len(baselines),
-			localSessions=local_sessions,
-			remoteSessions=remote_sessions,
-			automaticSshProfiles=automatic,
-			scannedSshProfiles=scanned_remote,
+			eligibleTargets=summary.eligible_targets,
+			errors=summary.errors,
+			eligibleSessions=summary.eligible_sessions,
+			localSessions=summary.local_sessions,
+			remoteSessions=summary.remote_sessions,
+			automaticSshProfiles=summary.automatic_ssh_profiles,
+			scannedSshProfiles=summary.scanned_ssh_profiles,
 			configuredSshProfiles=configured,
 		)
-		if errors and configured > scanned_remote:
+		if summary.errors and configured > summary.scanned_ssh_profiles:
 			ui.message(
 				_(
 					"Neovim connections ready. Some saved connections could not be checked, "
 					"and password connections require manual selection. Focus Neovim and press {key}"
 				).format(key=_SESSION_CLAIM_KEY_NAME)
 			)
-		elif errors:
+		elif summary.errors:
 			ui.message(
 				_(
 					"Neovim connections ready. Some saved connections could not be checked. "
 					"Focus Neovim and press {key}, or choose a connection manually"
 				).format(key=_SESSION_CLAIM_KEY_NAME)
 			)
-		elif configured > scanned_remote:
+		elif configured > summary.scanned_ssh_profiles:
 			ui.message(
 				_(
 					"Neovim connections ready. Password connections require manual selection. "
@@ -981,48 +707,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity,
 		local_claim_not_before_ns=0,
 	):
-		if (
-			generation != self._claimInventoryGeneration
-			or not self._gate.manual_enabled
-			or self._gate.focused != identity
-		):
-			self._diagnostics.record("automaticClaimResolutionIgnored")
+		resolution = self._sessionClaimService.finish_resolution(
+			generation,
+			results,
+			identity,
+			local_claim_not_before_ns,
+		)
+		if resolution is None:
 			return
-		candidates = []
-		new_baselines = dict(self._claimBaselines)
-		for kind, target_id, profile, sessions, error in results:
-			if error is not None:
-				self._diagnostics.record(
-					"automaticClaimTargetError",
-					targetKind=kind,
-					targetId=target_id,
-					errorType=type(error).__name__,
-					error=str(error),
-				)
-				continue
-			current_keys = set()
-			for session in sessions:
-				key = (kind, target_id, session.identifier)
-				current_keys.add(key)
-				sequence = self._claimSequence(session)
-				previous = self._claimBaselines.get(key, 0)
-				fresh_local_claim = (
-					kind == "localWindowsTcp"
-					and local_claim_not_before_ns > 0
-					and 0 <= session.claim_age_ms <= 15_000
-					and session.claimed_monotonic_ns >= local_claim_not_before_ns
-				)
-				if sequence > previous or fresh_local_claim:
-					candidates.append((kind, profile, session))
-				new_baselines[key] = sequence
-			for key in list(new_baselines):
-				if key[:2] == (kind, target_id) and key not in current_keys:
-					del new_baselines[key]
-		self._claimBaselines = new_baselines
+		for target_error in resolution.errors:
+			self._diagnostics.record(
+				"automaticClaimTargetError",
+				targetKind=target_error.target_kind,
+				targetId=target_error.target_id,
+				errorType=target_error.error_type,
+				error=target_error.error,
+			)
+		candidates = resolution.candidates
 		self._diagnostics.record(
 			"automaticClaimResolutionCompleted",
 			candidates=len(candidates),
-			targets=len(results),
+			targets=resolution.targets,
 		)
 		if not candidates:
 			return
@@ -1063,12 +768,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Multiple Neovim sessions confirmed F12; opening session selection"))
 
 		def finish(result):
-			if (
-				result != wx.ID_OK
-				or generation != self._claimInventoryGeneration
-				or not self._gate.manual_enabled
-				or self._gate.focused != identity
-			):
+			if result != wx.ID_OK or not self._sessionClaimService.is_current(generation, identity):
 				return
 			selection = dialog.GetSelection()
 			if 0 <= selection < len(candidates):
@@ -1083,7 +783,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				"nvdaVersion": getattr(buildVersion, "version", "unknown"),
 				"manualEnabled": self._gate.manual_enabled,
 				"suppressionActive": self._gate.suppression_active,
-				"connected": self._connected,
+				"connected": self._connectionCoordinator.connected,
 			},
 			product_name=_PRODUCT_NAME,
 		)
@@ -1102,38 +802,31 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, state, expected = context
-		if state.get("mode") not in {"normal", "insert"} or state.get("modeBlocking") is True:
-			self._clipboardFailure(_("Paste is available only in Normal or Insert mode"))
-			return
-		if (
-			state.get("buftype", "") != ""
-			or state.get("modifiable") is not True
-			or state.get("readonly") is True
-			or state.get("fileManager")
-		):
-			self._clipboardFailure(_("The current Neovim buffer cannot be edited by this command"))
+		identity, instance_id, client = context
+		rejection = self._editorSessionController.validate_clipboard_request("pasteTextRequest")
+		if rejection is not None:
+			self._reportClipboardRequestRejection(rejection)
 			return
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "text": text}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"pasteTextRequest",
-			),
+		plan = self._editorSessionController.plan_clipboard_request(
+			instance_id,
+			identity,
+			"pasteTextRequest",
 		)
-		accepted = client.send_control("pasteTextRequest", payload)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		accepted = client.send_control(plan.control, {**plan.payload, "text": text})
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a paste request.
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardPasteRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
 			bytes=len(text.encode("utf-8")),
 		)
@@ -1142,102 +835,60 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, _state, expected = context
+		identity, instance_id, client = context
+		rejection = self._editorSessionController.validate_clipboard_request("setRegisterRequest")
+		if rejection is not None:
+			self._reportClipboardRequestRejection(rejection)
+			return
 		text = self._readWindowsClipboardText()
 		if text is None:
 			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "text": text}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"setRegisterRequest",
-			),
+		plan = self._editorSessionController.plan_clipboard_request(
+			instance_id,
+			identity,
+			"setRegisterRequest",
 		)
-		accepted = client.send_control("setRegisterRequest", payload)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		accepted = client.send_control(plan.control, {**plan.payload, "text": text})
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a register update request.
 			self._clipboardFailure(_("Could not send text to the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardRegisterRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
 			bytes=len(text.encode("utf-8")),
 		)
 
 	def action_leaveDirectTerminalInput(self, gesture):
-		identity = self._gate.focused
-		selected = self._instanceManager.selected_for(identity) if identity else None
-		if (
-			identity is None
-			or selected is None
-			or self._client is None
-			or selected.identifier != self._activeInstanceId
-			or not self._gate.manual_enabled
-			or not self._gate.authenticated
-			or not self._gate.nvim_active
-			or self._gate.bound_terminal != identity
-		):
+		context = self._boundControlContext()
+		if context is None:
+			# Translators: Reported when no Neovim session owns the focused terminal.
 			ui.message(_("No active Neovim session is bound to this terminal"))
 			return
-		if "terminalControl" not in self._transportCapabilities:
-			ui.message(_("The connected Neovim components do not support terminal control"))
-			return
-		state = self._currentState
-		if (
-			state.get("buftype") != "terminal"
-			or state.get("mode") != "terminal"
-			or state.get("modeRaw") != "t"
-			or state.get("modeBlocking") is True
-		):
-			ui.message(_("Neovim is not in direct terminal input"))
-			return
-		expected = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"tabpageId": state.get("tabpageId"),
-			"modeRaw": state.get("modeRaw"),
-		}
-		if any(
-			not isinstance(expected[name], int) or isinstance(expected[name], bool)
-			for name in ("bufferId", "windowId", "tabpageId")
-		):
-			ui.message(_("The active Neovim state is incomplete; try again"))
-			return
-		request_id = self._connectionCoordinator.next_request_id("terminalControl")
-		discarded_request_ids = self._connectionCoordinator.remember_pending_request(
-			"terminalControl",
-			request_id,
-			PendingControlRequest(
-				selected.identifier,
-				identity,
-				"leaveTerminalInputRequest",
-			),
-			_MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
+		identity, instance_id, client = context
+		plan = self._editorSessionController.plan_leave_terminal_input_request(
+			instance_id,
+			identity,
 		)
-		for discarded_id in discarded_request_ids:
-			self._diagnostics.record(
-				"terminalControlRequestDiscarded",
-				requestId=discarded_id,
-				reason="queueLimit",
-			)
-		accepted = self._client.send_control(
-			"leaveTerminalInputRequest",
-			{**expected, "requestId": request_id},
-		)
+		if not plan.ready:
+			self._reportTerminalControlRequestRejection(plan.rejection)
+			return
+		self._recordDiscardedControlRequests("terminalControl", plan.discarded_request_ids)
+		accepted = client.send_control(plan.control, dict(plan.payload))
 		if not accepted:
-			self._connectionCoordinator.take_pending_request(
-				"terminalControl",
-				request_id,
-			)
+			self._editorSessionController.cancel_terminal_control_request(plan.request_id)
+			# Translators: Reported when Neovim rejects leaving direct terminal input.
 			ui.message(_("Could not ask Neovim to leave direct terminal input"))
 		self._diagnostics.record(
 			"leaveTerminalInputRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			accepted=accepted,
-			instanceId=selected.identifier,
+			instanceId=instance_id,
 		)
 
 	def _readWindowsClipboardText(self):
@@ -1265,75 +916,91 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		context = self._clipboardControlContext()
 		if context is None:
 			return
-		identity, instance_id, client, state, expected = context
-		if source == "visualSelection" and state.get("modeRaw") not in {"v", "V", "\x16"}:
-			self._clipboardFailure(_("Select text in Neovim Visual mode before copying"))
-			return
-		request_id = self._nextClipboardRequestId()
-		payload = {**expected, "requestId": request_id, "source": source}
-		self._rememberClipboardRequest(
-			request_id,
-			(
-				instance_id,
-				identity,
-				"copyTextRequest",
-			),
+		identity, instance_id, client = context
+		plan = self._editorSessionController.plan_clipboard_request(
+			instance_id,
+			identity,
+			"copyTextRequest",
+			source=source,
 		)
-		accepted = client.send_control("copyTextRequest", payload)
+		if not plan.ready:
+			self._reportClipboardRequestRejection(plan.rejection)
+			return
+		self._recordDiscardedControlRequests("clipboard", plan.discarded_request_ids)
+		accepted = client.send_control(plan.control, dict(plan.payload))
 		if not accepted:
-			self._connectionCoordinator.take_pending_request("clipboard", request_id)
+			self._editorSessionController.cancel_clipboard_request(plan.request_id)
+			# Translators: Reported when Neovim rejects a copy request.
 			self._clipboardFailure(_("Could not request text from the active Neovim session"))
 		self._diagnostics.record(
 			"clipboardCopyRequested",
-			requestId=request_id,
+			requestId=plan.request_id,
 			source=source,
 			accepted=accepted,
 		)
 
 	def _clipboardControlContext(self):
+		context = self._boundControlContext()
+		if context is None or not self._gate.suppression_active:
+			# Translators: Reported when no Neovim session owns the focused terminal.
+			self._clipboardFailure(_("No active Neovim session is bound to this terminal"))
+			return None
+		return context
+
+	def _boundControlContext(self):
 		identity = self._gate.focused
 		selected = self._instanceManager.selected_for(identity) if identity else None
 		if (
 			identity is None
 			or selected is None
-			or self._client is None
-			or selected.identifier != self._activeInstanceId
-			or not self._gate.suppression_active
+			or self._connectionCoordinator.active_client is None
+			or selected.identifier != self._connectionCoordinator.active_instance_id
+			or not self._gate.manual_enabled
+			or not self._gate.authenticated
+			or not self._gate.nvim_active
+			or self._gate.bound_terminal != identity
 		):
-			self._clipboardFailure(_("No active Neovim session is bound to this terminal"))
 			return None
-		if "clipboardTransfer" not in self._transportCapabilities:
-			self._clipboardFailure(_("The connected Neovim components do not support copy and paste"))
-			return None
-		state = self._currentState
-		expected = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"tabpageId": state.get("tabpageId"),
-			"changedtick": state.get("changedtick"),
-			"modeRaw": state.get("modeRaw"),
-		}
-		if any(
-			not isinstance(expected[name], int) or isinstance(expected[name], bool)
-			for name in ("bufferId", "windowId", "tabpageId", "changedtick")
-		) or not isinstance(expected["modeRaw"], str):
-			self._clipboardFailure(_("The active Neovim state is incomplete; try again"))
-			return None
-		return identity, selected.identifier, self._client, state, expected
+		return identity, selected.identifier, self._connectionCoordinator.active_client
 
-	def _nextClipboardRequestId(self):
-		return self._connectionCoordinator.next_request_id("clipboard")
+	def _reportClipboardRequestRejection(self, rejection):
+		if rejection == ControlRequestRejection.CAPABILITY_MISSING:
+			# Translators: Reported when installed Neovim components are too old for clipboard transfer.
+			message = _("The connected Neovim components do not support copy and paste")
+		elif rejection == ControlRequestRejection.VISUAL_SELECTION_REQUIRED:
+			# Translators: Reported when the copy-selection command is used outside Visual mode.
+			message = _("Select text in Neovim Visual mode before copying")
+		elif rejection == ControlRequestRejection.PASTE_MODE_UNAVAILABLE:
+			# Translators: Reported when paste is requested in an unsupported Neovim mode.
+			message = _("Paste is available only in Normal or Insert mode")
+		elif rejection == ControlRequestRejection.BUFFER_NOT_EDITABLE:
+			# Translators: Reported when the current Neovim buffer cannot receive pasted text.
+			message = _("The current Neovim buffer cannot be edited by this command")
+		else:
+			# Translators: Reported when semantic editor state is missing for a control request.
+			message = _("The active Neovim state is incomplete; try again")
+		self._clipboardFailure(message)
 
-	def _rememberClipboardRequest(self, request_id, request):
-		discarded_request_ids = self._connectionCoordinator.remember_pending_request(
-			"clipboard",
-			request_id,
-			PendingControlRequest(*request),
-			_MAX_PENDING_CLIPBOARD_REQUESTS,
+	@staticmethod
+	def _reportTerminalControlRequestRejection(rejection):
+		if rejection == ControlRequestRejection.CAPABILITY_MISSING:
+			# Translators: Reported when installed Neovim components are too old for terminal control.
+			message = _("The connected Neovim components do not support terminal control")
+		elif rejection == ControlRequestRejection.NOT_DIRECT_TERMINAL:
+			# Translators: Reported when Neovim is not accepting direct terminal input.
+			message = _("Neovim is not in direct terminal input")
+		else:
+			# Translators: Reported when semantic editor state is missing for a control request.
+			message = _("The active Neovim state is incomplete; try again")
+		ui.message(message)
+
+	def _recordDiscardedControlRequests(self, channel, request_ids):
+		category = (
+			"clipboardRequestDiscarded" if channel == "clipboard" else "terminalControlRequestDiscarded"
 		)
-		for discarded_id in discarded_request_ids:
+		for discarded_id in request_ids:
 			self._diagnostics.record(
-				"clipboardRequestDiscarded",
+				category,
 				requestId=discarded_id,
 				reason="queueLimit",
 			)
@@ -1352,8 +1019,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(message)
 
 	def action_readCompletionDocumentation(self, gesture):
-		if self._menuDocumentation:
-			speech.speakText(self._menuDocumentation, priority=NvdaSpeechPriority.NOW)
+		documentation = self._editorSessionController.completion_documentation()
+		if documentation:
+			speech.speakText(documentation, priority=NvdaSpeechPriority.NOW)
 		else:
 			ui.message(_("No completion documentation available"))
 
@@ -1367,7 +1035,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self._gate.manual_enabled:
 			ui.message(_("Activate Neovim accessibility before connecting a terminal"))
 			return
-		profiles = self._settings.get("connections", [])
+		profiles = self._settingsService.snapshot().get("connections", [])
 		choices = [_("This computer - local Neovim")]
 		choices.extend(profile.get("name", "") for profile in profiles)
 		profile_dialog = wx.SingleChoiceDialog(
@@ -1393,7 +1061,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				ui.message(_("The selected connection profile is unavailable"))
 				return
 			if selection == 0:
-				self._pendingClaimTargets[identity] = (LOCAL_WINDOWS_TCP, "")
+				self._sessionClaimService.set_pending_target(identity, LOCAL_WINDOWS_TCP, "")
 				self._diagnostics.record(
 					"connectionTargetDialogClosed",
 					accepted=True,
@@ -1420,7 +1088,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				password = self._passwordForProfile(parsed_profile)
 				if password is None:
 					return
-			self._pendingClaimTargets[identity] = ("remoteSsh", parsed_profile.identifier)
+			self._sessionClaimService.set_pending_target(
+				identity,
+				"remoteSsh",
+				parsed_profile.identifier,
+			)
 			self._promptForSessionClaim(parsed_profile, identity)
 
 		# NVDA's helper schedules the modal dialog for a fresh GUI-loop turn and
@@ -1440,8 +1112,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if expected_identity is None:
 			expected_identity = identity
 		if claim_generation is None:
-			claim_generation = self._captureObservedSessionClaim(expected_identity)
-		if claim_generation is None or not self._acceptObservedSessionClaim(
+			claim_generation = self._sessionClaimService.authorize(expected_identity)
+		if claim_generation is None or not self._sessionClaimService.accept(
 			expected_identity,
 			claim_generation,
 		):
@@ -1449,34 +1121,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if forward_gesture and gesture is not None:
 				gesture.send()
 			return
-		identity = expected_identity
-		selected = self._instanceManager.selected_for(identity) if identity is not None else None
-		selected_authenticated = selected is not None and selected.identifier in self._authenticatedInstances
-		pairing_selected = selected if selected_authenticated else None
-		self._diagnostics.record(
-			"sessionClaimGestureReceived",
-			terminal=self._identityFields(identity),
-			inventoryReady=self._claimInventoryReady,
-			selected=selected is not None,
-			selectedAuthenticated=selected_authenticated,
-		)
-		profile = (
-			self._connectionProfileById(pairing_selected.target_id)
-			if pairing_selected is not None and pairing_selected.transport_kind == "remoteSsh"
-			else None
-		)
-		pending_target = self._pendingClaimTargets.pop(identity, None) if identity is not None else None
-		if (
-			not pending_target
-			and pairing_selected is not None
-			and pairing_selected.transport_kind == LOCAL_WINDOWS_TCP
-		):
-			pending_target = (LOCAL_WINDOWS_TCP, "")
-		if identity is None or identity.frontend_kind != "windowsTerminal":
+		transition = self._sessionClaimService.consume_transition(expected_identity)
+		identity = transition.identity
+		if transition.kind == ClaimTransitionKind.PASS_THROUGH:
 			if forward_gesture and gesture is not None:
 				gesture.send()
 			return
-		if pairing_selected is None and not pending_target and not self._claimInventoryReady:
+		if transition.kind == ClaimTransitionKind.INVENTORY_PENDING:
 			ui.message(
 				_(
 					"Neovim connections are still being checked. Press {key} again after the ready message"
@@ -1486,17 +1137,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		local_claim_not_before_ns = time.monotonic_ns()
 		if forward_gesture and gesture is not None:
 			gesture.send()
-		if pending_target and pending_target[0] == LOCAL_WINDOWS_TCP:
-			if not self._gate.manual_enabled:
-				self._gate.manual_enabled = True
-				self._planner.reset()
-				self._resetTypedEcho()
-				self._gate.focused = identity
-				self._diagnostics.record(
-					"manualMode",
-					enabled=True,
-					terminal=self._identityFields(identity),
-				)
+		if not self._gate.manual_enabled:
+			self._gate.manual_enabled = True
+			self._resetEditorPlanning()
+			self._gate.focused = identity
+			self._diagnostics.record(
+				"manualMode",
+				enabled=True,
+				terminal=self._identityFields(identity),
+			)
+		if transition.kind == ClaimTransitionKind.LOCAL:
 			ui.message(_("Connecting the focused local Neovim session"))
 			self._scheduleMainThreadCall(
 				250,
@@ -1509,33 +1159,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				local_claim_not_before_ns,
 			)
 			return
-		if pending_target:
-			pending_profile = self._connectionProfileById(pending_target[1])
-			if pending_profile is None:
-				ui.message(_("The selected connection profile is unavailable"))
-				return
-			ui.message(_("Connecting the focused Neovim session"))
-			self._scheduleMainThreadCall(
-				250,
-				self._beginSessionSelection,
-				pending_profile,
-				identity,
-				True,
-				True,
-				True,
-			)
-			return
-		if pairing_selected is None:
-			if not self._gate.manual_enabled:
-				self._gate.manual_enabled = True
-				self._planner.reset()
-				self._resetTypedEcho()
-				self._gate.focused = identity
-				self._diagnostics.record(
-					"manualMode",
-					enabled=True,
-					terminal=self._identityFields(identity),
-				)
+		if transition.kind == ClaimTransitionKind.AUTOMATIC:
 			ui.message(_("Connecting the focused Neovim session"))
 			self._scheduleMainThreadCall(
 				250,
@@ -1544,23 +1168,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				local_claim_not_before_ns,
 			)
 			return
+		profile = self._connectionProfileById(transition.target_id)
 		if profile is None:
-			ui.message(
-				_("Configure a Neovim connection before using {key} pairing").format(
-					key=_SESSION_CLAIM_KEY_NAME,
+			if transition.explicit_target:
+				ui.message(_("The selected connection profile is unavailable"))
+			else:
+				ui.message(
+					_("Configure a Neovim connection before using {key} pairing").format(
+						key=_SESSION_CLAIM_KEY_NAME,
+					)
 				)
-			)
 			return
-		if not self._gate.manual_enabled:
-			self._gate.manual_enabled = True
-			self._planner.reset()
-			self._resetTypedEcho()
-			self._gate.focused = identity
-			self._diagnostics.record(
-				"manualMode",
-				enabled=True,
-				terminal=self._identityFields(identity),
-			)
 		ui.message(_("Connecting the focused Neovim session"))
 		self._scheduleMainThreadCall(
 			250,
@@ -1581,70 +1199,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fallback_profile=None,
 		claim_not_before_ns=0,
 	):
-		self._sessionDiscoveryGeneration += 1
-		generation = self._sessionDiscoveryGeneration
 		if not require_recent_claim:
 			ui.message(_("Looking for local Neovim sessions"))
-		threading.Thread(
-			target=self._discoverLocalSessions,
-			args=(
-				generation,
-				identity,
-				replace_existing,
-				offer_remember,
-				require_recent_claim,
-				fallback_profile,
-				claim_not_before_ns,
-			),
-			name="nvim-nvda-local-session-list",
-			daemon=True,
-		).start()
-
-	def _discoverLocalSessions(
-		self,
-		generation,
-		identity,
-		replace_existing,
-		offer_remember,
-		require_recent_claim,
-		fallback_profile,
-		claim_not_before_ns,
-	):
-		if require_recent_claim:
-
-			def fresh(sessions):
-				return any(
-					0 <= session.claim_age_ms <= 15_000
-					and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
-					for session in sessions
-				)
-
-			sessions, error, attempts = self._pollLocalSessions(fresh)
-			self._diagnostics.record(
-				"localClaimWaitCompleted",
-				attempts=attempts,
-				sessions=len(sessions),
-				matched=error is None and fresh(sessions),
-				errorType=type(error).__name__ if error is not None else "",
-			)
-		else:
-			attempts = 1
-			try:
-				sessions, error = _localSessionLister().list(), None
-			except Exception as caught:
-				sessions, error = [], caught
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishLocalSessionDiscovery,
-			generation,
+		self._sessionClaimService.start_local_discovery(
 			identity,
-			sessions,
-			error,
 			replace_existing,
 			offer_remember,
 			require_recent_claim,
 			fallback_profile,
 			claim_not_before_ns,
+			self._finishLocalSessionDiscovery,
 		)
 
 	def _finishLocalSessionDiscovery(
@@ -1659,40 +1223,36 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fallback_profile=None,
 		claim_not_before_ns=0,
 	):
-		if (
-			generation != self._sessionDiscoveryGeneration
-			or not self._gate.manual_enabled
-			or self._gate.focused != identity
-		):
+		selection = self._sessionClaimService.resolve_local_discovery(
+			generation,
+			identity,
+			sessions,
+			error,
+			require_recent_claim=require_recent_claim,
+			has_fallback=fallback_profile is not None,
+			claim_not_before_ns=claim_not_before_ns,
+		)
+		if selection.kind == DiscoverySelectionKind.STALE:
 			self._diagnostics.record("localSessionDiscoveryIgnored")
 			return
-		if error is not None:
+		if selection.kind == DiscoverySelectionKind.ERROR:
 			self._diagnostics.record(
 				"localSessionDiscoveryError",
-				errorType=type(error).__name__,
-				error=str(error),
+				errorType=selection.error_type,
+				error=selection.error,
 			)
-			if fallback_profile is not None:
-				self._beginSessionSelection(
-					fallback_profile,
-					identity,
-					replace_existing,
-					offer_remember,
-					require_recent_claim,
-				)
-				return
 			ui.message(_("Could not list local Neovim sessions"))
 			return
-		if not sessions:
-			if fallback_profile is not None:
-				self._beginSessionSelection(
-					fallback_profile,
-					identity,
-					replace_existing,
-					offer_remember,
-					require_recent_claim,
-				)
-				return
+		if selection.kind == DiscoverySelectionKind.FALLBACK:
+			self._beginSessionSelection(
+				fallback_profile,
+				identity,
+				replace_existing,
+				offer_remember,
+				require_recent_claim,
+			)
+			return
+		if selection.kind == DiscoverySelectionKind.EMPTY:
 			ui.message(
 				_(
 					"No local Neovim accessibility session was found. Install the local components "
@@ -1700,72 +1260,53 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				)
 			)
 			return
-		if require_recent_claim:
-			claimed = [
-				session
-				for session in sessions
-				if 0 <= session.claim_age_ms <= 15_000
-				and (not claim_not_before_ns or session.claimed_monotonic_ns >= claim_not_before_ns)
-			]
-			if not claimed:
-				if fallback_profile is not None:
-					self._beginSessionSelection(
-						fallback_profile,
-						identity,
-						replace_existing,
-						offer_remember,
-						require_recent_claim,
-					)
-					return
-				ui.message(_("The focused local Neovim did not confirm F12 pairing; try again"))
-				return
-			session = min(claimed, key=lambda item: item.claim_age_ms)
-			if self._reuseLocalSession(identity, session, offer_remember):
-				return
-			self._startLocalSession(
-				identity,
-				session,
-				replace_existing=replace_existing,
-				offer_remember=offer_remember,
-			)
+		if selection.kind == DiscoverySelectionKind.CLAIM_MISSING:
+			ui.message(_("The focused local Neovim did not confirm F12 pairing; try again"))
 			return
-		if len(sessions) > 1:
+		if selection.kind == DiscoverySelectionKind.CHOOSE:
 			self._showLocalSessionChoice(
 				generation,
 				identity,
-				sessions,
+				selection.sessions,
 				replace_existing,
 				offer_remember,
 			)
 			return
+		session = selection.session
+		if require_recent_claim:
+			if self._reuseLocalSession(identity, session, offer_remember):
+				return
 		self._startLocalSession(
 			identity,
-			sessions[0],
+			session,
 			replace_existing=replace_existing,
 			offer_remember=offer_remember,
 		)
 
 	def _reuseLocalSession(self, identity, session, offer_remember=False):
-		matches = [
-			instance
-			for instance in self._instanceManager.list()
-			if instance.transport_kind == LOCAL_WINDOWS_TCP and instance.session_id == session.identifier
-		]
-		if not matches:
+		plan = self._sessionClaimService.plan_local_connection(
+			identity,
+			session,
+			allow_reuse=True,
+			replace_existing=False,
+		)
+		instance = self._applyConnectionReuse(identity, plan, offer_remember)
+		if instance is None:
 			return False
-		instance = matches[0]
-		for terminal in self._instanceManager.bound_terminals_for(instance.identifier):
-			if terminal != identity:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
-		self._instanceManager.bind(identity, instance.identifier)
-		self._ensureTerminalLifecycleSweep()
-		if offer_remember and identity not in self._rememberedTerminalBindings:
-			self._rememberOfferInstances.add(instance.identifier)
 		self._activateRememberedBinding(identity, instance.identifier)
 		ui.message(_("Neovim connection selected: {name}").format(name=instance.label))
 		return True
+
+	def _applyConnectionReuse(self, identity, plan, offer_remember=False):
+		result = self._sessionClaimService.apply_connection_reuse(identity, plan)
+		if result is None:
+			return None
+		for terminal in result.displaced_identities:
+			self._terminalFocusService.forget_identity(terminal)
+		self._ensureTerminalLifecycleSweep()
+		if offer_remember and not self._sessionClaimService.is_temporary_binding_remembered(identity):
+			self._sessionClaimService.request_temporary_binding_offer(result.instance.identifier)
+		return result.instance
 
 	def _startLocalSession(
 		self,
@@ -1774,12 +1315,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		replace_existing=False,
 		offer_remember=False,
 	):
-		existing = self._instanceManager.selected_for(identity) if replace_existing else None
+		plan = self._sessionClaimService.plan_local_connection(
+			identity,
+			session,
+			allow_reuse=False,
+			replace_existing=replace_existing,
+		)
 		self._startLocalManagedInstance(
 			session,
 			identity,
 			self._remoteSessionLabel(session),
-			existing.identifier if existing is not None else "",
+			plan.replace_instance_id,
 			offer_remember,
 		)
 
@@ -1804,11 +1350,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Multiple local Neovim sessions found; opening session selection"))
 
 		def finish(result):
-			if (
-				generation != self._sessionDiscoveryGeneration
-				or not self._gate.manual_enabled
-				or self._gate.focused != identity
-			):
+			if not self._sessionClaimService.is_discovery_current(generation, identity):
 				return
 			if result != wx.ID_OK:
 				return
@@ -1836,101 +1378,101 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if identity is None:
 			ui.message(_("Starting a connection instance requires a focused terminal"))
 			return
-		if not self._instanceManager.list() and self._client is not None:
-			self._stopClient()
-		client = LocalTcpClient(
-			session.host,
-			session.port,
-			lambda event: self._onManagedEvent(
-				getattr(client, "nvim_nvda_instance_id", None),
-				event,
-			),
-			lambda state: self._onManagedState(
-				getattr(client, "nvim_nvda_instance_id", None),
-				state,
-			),
-			on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-				category,
-				{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-			),
-			session_nonce=session.session_nonce,
+		target = local_windows_target(_("This computer - local Neovim"))
+		label = _("Local Neovim, {session}").format(
+			session=session_label or _("Neovim session"),
 		)
-		try:
-			target = local_windows_target(_("This computer - local Neovim"))
-			label = _("Local Neovim, {session}").format(
-				session=session_label or _("Neovim session"),
-			)
-			instance = self._instanceManager.add_target(
-				target,
-				session.identifier,
-				label,
-				client,
-				context_label=_("local"),
-			)
-			self._instanceManager.bind(identity, instance.identifier)
-			self._ensureTerminalLifecycleSweep()
-			self._connectionCoordinator.select_instance(
-				instance.identifier,
-				identity,
-				self._newInstanceRuntime,
-			)
-			if offer_remember:
-				self._rememberOfferInstances.add(instance.identifier)
-			if replace_instance_id and replace_instance_id != instance.identifier:
-				self._removeReplacedInstance(replace_instance_id)
-			ui.message(_("Neovim connection started: {name}").format(name=instance.label))
-		except Exception as error:
-			self._diagnostics.record(
-				"connectionInstanceStartError",
-				targetKind=LOCAL_WINDOWS_TCP,
-				errorType=type(error).__name__,
-				error=str(error),
-			)
-			ui.message(_("Could not start the local Neovim connection"))
+		result = self._sessionClaimService.start_local_connection(
+			identity,
+			session,
+			target,
+			label,
+			context_label=_("local"),
+			replace_instance_id=replace_instance_id,
+		)
+		self._completeManagedConnectionStart(
+			result,
+			offer_remember=offer_remember,
+			diagnostic_fields={"targetKind": LOCAL_WINDOWS_TCP},
+			failure_message=_("Could not start the local Neovim connection"),
+		)
 
-	def _removeReplacedInstance(self, instance_id):
-		try:
-			self._instanceManager.remove(instance_id)
-			self._connectionCoordinator.discard_instance_tracking(
-				instance_id,
-				self._newInstanceRuntime,
+	def _completeManagedConnectionStart(
+		self,
+		result,
+		*,
+		offer_remember=False,
+		diagnostic_fields=None,
+		failure_message="",
+	):
+		if result.instance is None:
+			self._reportConnectionStartError(
+				RuntimeError(result.error),
+				diagnostic_fields,
+				failure_message,
+				error_type=result.error_type,
 			)
-		except Exception as error:
+			return None
+		self._ensureTerminalLifecycleSweep()
+		if offer_remember:
+			self._sessionClaimService.request_temporary_binding_offer(result.instance.identifier)
+		if result.replacement_error_type:
 			self._diagnostics.record(
 				"replacedConnectionStopError",
-				instanceId=instance_id,
-				errorType=type(error).__name__,
-				error=str(error),
+				instanceId=result.replaced_instance_id,
+				errorType=result.replacement_error_type,
+				error=result.replacement_error,
 			)
+		ui.message(_("Neovim connection started: {name}").format(name=result.instance.label))
+		return result.instance
+
+	def _reportConnectionStartError(
+		self,
+		error,
+		diagnostic_fields,
+		failure_message,
+		*,
+		error_type="",
+	):
+		self._diagnostics.record(
+			"connectionInstanceStartError",
+			**(diagnostic_fields or {}),
+			errorType=error_type or type(error).__name__,
+			error=str(error),
+		)
+		ui.message(failure_message)
 
 	def action_disconnectConnectionInstance(self, gesture):
 		identity = self._gate.focused
 		if identity is None:
 			return
-		instance = self._instanceManager.selected_for(identity) if identity else None
-		if instance is None:
+		result = self._sessionClaimService.disconnect_connection(identity)
+		if result.instance is None:
+			if result.error_type:
+				self._diagnostics.record(
+					"connectionInstanceDisconnectError",
+					errorType=result.error_type,
+					error=result.error,
+				)
 			ui.message(_("No Neovim connection instance is selected for this terminal"))
 			return
-		self._rememberedTerminalBindings.discard(identity)
-		self._terminalIdentityElements.pop(identity, None)
-		self._instanceManager.remove(instance.identifier)
-		self._connectionCoordinator.discard_instance_tracking(
-			instance.identifier,
-			self._newInstanceRuntime,
-		)
-		if self._client is not None:
-			self._client = None
-		self._gate.disconnect()
-		ui.message(_("Neovim connection disconnected: {name}").format(name=instance.label))
+		self._terminalFocusService.forget_identity(identity)
+		if result.error_type:
+			self._diagnostics.record(
+				"connectionInstanceDisconnectError",
+				instanceId=result.instance.identifier,
+				errorType=result.error_type,
+				error=result.error,
+			)
+		ui.message(_("Neovim connection disconnected: {name}").format(name=result.instance.label))
 
 	def action_forgetTemporaryTerminalBinding(self, gesture):
 		identity = self._gate.focused
 		if identity is None:
 			return
-		if identity not in self._rememberedTerminalBindings:
+		if not self._sessionClaimService.forget_temporary_binding(identity):
 			ui.message(_("No temporary Neovim connection is remembered for this terminal"))
 			return
-		self._rememberedTerminalBindings.discard(identity)
 		self._diagnostics.record("temporaryTerminalBindingForgotten", terminal=self._identityFields(identity))
 		ui.message(_("Temporary Neovim connection forgotten"))
 
@@ -1981,8 +1523,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		password = self._passwordForProfile(profile)
 		if profile.authentication == "password" and password is None:
 			return
-		self._sessionDiscoveryGeneration += 1
-		generation = self._sessionDiscoveryGeneration
 		self._diagnostics.record(
 			"remoteSessionDiscoveryStarted",
 			profileId=profile.identifier,
@@ -1991,56 +1531,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		if not require_recent_claim:
 			ui.message(_("Looking for Neovim sessions on {name}").format(name=profile.name))
-		threading.Thread(
-			target=self._discoverRemoteSessions,
-			args=(
-				generation,
-				profile,
-				identity,
-				password or "",
-				replace_existing,
-				offer_remember,
-				require_recent_claim,
-				preserve_dialog_identity,
-			),
-			name="nvim-nvda-session-list",
-			daemon=True,
-		).start()
-
-	def _discoverRemoteSessions(
-		self,
-		generation,
-		profile,
-		identity,
-		password,
-		replace_existing,
-		offer_remember,
-		require_recent_claim,
-		preserve_dialog_identity,
-	):
-		try:
-			sessions = SshSessionLister().list(
-				profile.ssh_target,
-				profile.port,
-				profile.identity_file,
-				password=password,
-				askpass_path=self._askpassPath(),
-			)
-			error = None
-		except Exception as caught:
-			sessions, error = [], caught
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
-			self._finishSessionDiscovery,
-			generation,
+		self._sessionClaimService.start_remote_discovery(
 			profile,
 			identity,
-			sessions,
-			error,
+			password or "",
 			replace_existing,
 			offer_remember,
 			require_recent_claim,
 			preserve_dialog_identity,
+			self._finishSessionDiscovery,
 		)
 
 	def _finishSessionDiscovery(
@@ -2055,36 +1554,50 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		require_recent_claim=False,
 		preserve_dialog_identity=False,
 	):
-		if (
-			generation != self._sessionDiscoveryGeneration
-			or not self._gate.manual_enabled
-			or (not preserve_dialog_identity and self._gate.focused != identity)
-		):
+		selection = self._sessionClaimService.resolve_remote_discovery(
+			generation,
+			identity,
+			sessions,
+			error,
+			require_recent_claim=require_recent_claim,
+			preserve_dialog_identity=preserve_dialog_identity,
+		)
+		if selection.kind == DiscoverySelectionKind.STALE:
 			self._diagnostics.record("sessionDiscoveryIgnored", profileId=profile.identifier)
 			return
-		if error is not None:
+		if selection.kind == DiscoverySelectionKind.ERROR:
 			self._diagnostics.record(
 				"sessionDiscoveryError",
 				profileId=profile.identifier,
-				errorType=type(error).__name__,
-				error=str(error),
+				errorType=selection.error_type,
+				error=selection.error,
 			)
 			ui.message(_("Could not list Neovim sessions on {name}").format(name=profile.name))
 			return
-		if not sessions:
+		if selection.kind == DiscoverySelectionKind.EMPTY:
 			ui.message(_("No active Neovim session was found on {name}").format(name=profile.name))
 			return
+		if selection.kind == DiscoverySelectionKind.CLAIM_MISSING:
+			self._diagnostics.record(
+				"freshSessionClaimMissing",
+				profileId=profile.identifier,
+				sessionCount=len(sessions),
+			)
+			ui.message(_("The focused Neovim did not confirm F12 pairing; try again"))
+			return
+		if selection.kind == DiscoverySelectionKind.CHOOSE:
+			self._showRemoteSessionChoice(
+				generation,
+				profile,
+				identity,
+				selection.sessions,
+				replace_existing,
+				offer_remember,
+				preserve_dialog_identity,
+			)
+			return
+		session = selection.session
 		if require_recent_claim:
-			claimed = [session for session in sessions if 0 <= session.claim_age_ms <= 15_000]
-			if not claimed:
-				self._diagnostics.record(
-					"freshSessionClaimMissing",
-					profileId=profile.identifier,
-					sessionCount=len(sessions),
-				)
-				ui.message(_("The focused Neovim did not confirm F12 pairing; try again"))
-				return
-			session = min(claimed, key=lambda item: item.claim_age_ms)
 			self._diagnostics.record(
 				"freshSessionClaimSelected",
 				profileId=profile.identifier,
@@ -2106,58 +1619,36 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				offer_remember,
 			)
 			return
-		if len(sessions) > 1:
-			self._showRemoteSessionChoice(
-				generation,
-				profile,
-				identity,
-				sessions,
-				replace_existing,
-				offer_remember,
-				preserve_dialog_identity,
-			)
-			return
 		self._startDiscoveredSession(
 			profile,
 			identity,
-			sessions[0],
+			session,
 			replace_existing,
 			offer_remember,
 		)
 
 	def _reuseClaimedSession(self, profile, identity, session, offer_remember=False):
 		"""Move or refresh an existing transport instead of duplicating it."""
-		matches = [
-			instance
-			for instance in self._instanceManager.list()
-			if instance.target_id == profile.identifier and instance.session_id == session.identifier
-		]
-		if not matches:
-			return False
-		selected = self._instanceManager.selected_for(identity)
-		instance = next(
-			(item for item in matches if selected and item.identifier == selected.identifier),
-			matches[0],
+		plan = self._sessionClaimService.plan_remote_connection(
+			identity,
+			profile.identifier,
+			session,
+			allow_reuse=True,
+			replace_existing=False,
 		)
-		for terminal in self._instanceManager.bound_terminals_for(instance.identifier):
-			if terminal != identity:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
-		self._instanceManager.bind(identity, instance.identifier)
-		self._ensureTerminalLifecycleSweep()
-		if offer_remember and identity not in self._rememberedTerminalBindings:
-			self._rememberOfferInstances.add(instance.identifier)
+		instance = self._applyConnectionReuse(identity, plan, offer_remember)
+		if instance is None:
+			return False
 		client = self._instanceManager.client_for(instance.identifier)
 		already_active = (
 			self._gate.bound_terminal == identity
-			and self._client is client
+			and self._connectionCoordinator.active_client is client
 			and self._gate.authenticated
 			and self._gate.nvim_active
-			and self._activeInstanceId == instance.identifier
+			and self._connectionCoordinator.active_instance_id == instance.identifier
 		)
 		self._activateRememberedBinding(identity, instance.identifier)
-		if already_active and instance.identifier in self._rememberOfferInstances:
+		if already_active and self._sessionClaimService.has_temporary_binding_offer(instance.identifier):
 			client.send_control("requestFullState", {})
 		self._diagnostics.record(
 			"claimedSessionTransportReused",
@@ -2176,14 +1667,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		session,
 		replace_existing=False,
 		offer_remember=False,
+		session_label="",
 	):
-		existing = self._instanceManager.selected_for(identity) if replace_existing else None
+		plan = self._sessionClaimService.plan_remote_connection(
+			identity,
+			profile.identifier,
+			session,
+			allow_reuse=False,
+			replace_existing=replace_existing,
+		)
 		self._startManagedInstance(
 			profile.identifier,
 			session.identifier,
 			identity=identity,
-			session_label=self._remoteSessionLabel(session),
-			replace_instance_id=existing.identifier if existing is not None else "",
+			session_label=session_label or self._remoteSessionLabel(session),
+			replace_instance_id=plan.replace_instance_id,
 			offer_remember=offer_remember,
 		)
 
@@ -2219,10 +1717,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 		def finish_session_selection(result):
-			if (
-				generation != self._sessionDiscoveryGeneration
-				or not self._gate.manual_enabled
-				or (not preserve_dialog_identity and self._gate.focused != identity)
+			if not self._sessionClaimService.is_discovery_current(
+				generation,
+				identity,
+				preserve_dialog_identity=preserve_dialog_identity,
 			):
 				self._diagnostics.record(
 					"remoteSessionDialogIgnored",
@@ -2252,14 +1750,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				sessions,
 				include_connection_status=False,
 			)
-			existing = self._instanceManager.selected_for(identity) if replace_existing else None
-			self._startManagedInstance(
-				profile.identifier,
-				session.identifier,
-				identity=identity,
-				session_label=labels[selection],
-				replace_instance_id=existing.identifier if existing is not None else "",
-				offer_remember=offer_remember,
+			self._startDiscoveredSession(
+				profile,
+				identity,
+				session,
+				replace_existing,
+				offer_remember,
+				labels[selection],
 			)
 
 		# Session discovery completes on NVDA's event queue. Schedule the modal
@@ -2278,7 +1775,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		try:
 			profile = next(
 				item
-				for item in parse_profiles(self._settings.get("connections", []))
+				for item in parse_profiles(self._settingsService.snapshot().get("connections", []))
 				if item.identifier == profile_id
 			)
 		except (StopIteration, ValueError) as error:
@@ -2292,90 +1789,59 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		password = self._passwordForProfile(profile)
 		if profile.authentication == "password" and password is None:
 			return
-		if not self._instanceManager.list() and self._client is not None:
-			self._stopClient()
-		client = SshStdioClient(
-			profile.ssh_target,
-			lambda event: self._onManagedEvent(getattr(client, "nvim_nvda_instance_id", None), event),
-			lambda state: self._onManagedState(getattr(client, "nvim_nvda_instance_id", None), state),
-			on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-				category,
-				{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-			),
-			ssh_port=profile.port,
-			identity_file=profile.identity_file,
-			session_id=session_id,
+		result = self._sessionClaimService.start_remote_connection(
+			identity,
+			profile,
+			session_id,
+			remote_ssh_target(profile.identifier, profile.name),
+			f"{profile.name}, {session_label}" if session_label else profile.name,
 			password=password or "",
 			askpass_path=self._askpassPath(),
+			context_label=profile.name,
+			replace_instance_id=replace_instance_id,
 		)
-		try:
-			instance = self._instanceManager.add_target(
-				remote_ssh_target(profile.identifier, profile.name),
-				session_id,
-				f"{profile.name}, {session_label}" if session_label else profile.name,
-				client,
-				context_label=profile.name,
-			)
-			self._instanceManager.bind(identity, instance.identifier)
-			self._ensureTerminalLifecycleSweep()
-			self._connectionCoordinator.select_instance(
-				instance.identifier,
-				identity,
-				self._newInstanceRuntime,
-			)
-			if offer_remember:
-				self._rememberOfferInstances.add(instance.identifier)
-			if replace_instance_id and replace_instance_id != instance.identifier:
-				self._removeReplacedInstance(replace_instance_id)
-			ui.message(_("Neovim connection started: {name}").format(name=instance.label))
-		except Exception as error:
-			self._diagnostics.record(
-				"connectionInstanceStartError",
-				profileId=profile.identifier,
-				errorType=type(error).__name__,
-				error=str(error),
-			)
-			ui.message(_("Could not start the Neovim connection"))
+		self._completeManagedConnectionStart(
+			result,
+			offer_remember=offer_remember,
+			diagnostic_fields={"profileId": profile.identifier},
+			failure_message=_("Could not start the Neovim connection"),
+		)
 
 	def _bindManagedInstance(self, instance_id):
 		identity = self._gate.focused
 		if identity is None:
 			ui.message(_("Connection selection requires a focused terminal"))
 			return
-		try:
-			instance = self._instanceManager.bind(identity, instance_id)
-			self._ensureTerminalLifecycleSweep()
-			client = self._connectionCoordinator.select_instance(
-				instance_id,
-				identity,
-				self._newInstanceRuntime,
+		result = self._sessionClaimService.select_connection(identity, instance_id)
+		if result.instance is None or result.client is None:
+			self._diagnostics.record(
+				"connectionInstanceBindError",
+				errorType=result.error_type,
+				error=result.error,
 			)
-			self._gate.bound_terminal = identity
-			client.send_control("requestFullState", {})
-			ui.message(_("Neovim connection selected: {name}").format(name=instance.label))
-		except ValueError as error:
-			self._diagnostics.record("connectionInstanceBindError", error=str(error))
 			ui.message(_("The selected Neovim connection no longer exists"))
+			return
+		self._ensureTerminalLifecycleSweep()
+		self._gate.bound_terminal = identity
+		result.client.send_control("requestFullState", {})
+		ui.message(_("Neovim connection selected: {name}").format(name=result.instance.label))
 
 	def _offerTemporaryTerminalBinding(self, identity, instance_id):
-		focused = self._gate.focused
-		selected = self._instanceManager.selected_for(focused) if focused else None
-		if focused != identity or selected is None or selected.identifier != instance_id:
+		offer = self._sessionClaimService.arm_temporary_binding_reactivation(identity, instance_id)
+		if offer.kind == TemporaryBindingOfferKind.FOCUS_CHANGED:
 			self._diagnostics.record(
 				"temporaryTerminalBindingOfferIgnored",
 				instanceId=instance_id,
 				reason="focusChanged",
 			)
 			return
-		if identity.frontend_kind != "windowsTerminal" or not identity.runtime_id:
+		if offer.kind == TemporaryBindingOfferKind.UNAVAILABLE:
 			self._diagnostics.record(
 				"temporaryTerminalBindingUnavailable",
 				terminal=self._identityFields(identity),
 			)
 			return
-		try:
-			instance = next(item for item in self._instanceManager.list() if item.identifier == instance_id)
-		except StopIteration:
+		if offer.kind != TemporaryBindingOfferKind.OFFER or offer.instance is None:
 			return
 		import gui
 		import wx
@@ -2384,11 +1850,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			_(
 				"Remember this connection for this Windows Terminal tab until NVDA or "
 				"Windows Terminal closes?\n\n{connection}"
-			).format(connection=instance.label),
+			).format(connection=offer.instance.label),
 			_("Remember temporary terminal connection"),
 			wx.YES_NO | wx.ICON_QUESTION,
 			gui.mainFrame,
 		)
+		focused = self._gate.focused
+		if focused is not None:
+			selected = self._instanceManager.selected_for(focused)
+			self._sessionClaimService.consume_temporary_binding_reactivation(
+				focused,
+				selected.identifier if selected is not None else None,
+			)
 		if answer != wx.YES:
 			self._diagnostics.record(
 				"temporaryTerminalBindingDeclined",
@@ -2396,119 +1869,84 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				terminal=self._identityFields(identity),
 			)
 			return
-		self._rememberedTerminalBindings.add(identity)
+		remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
+		if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+			self._diagnostics.record(
+				"temporaryTerminalBindingOfferIgnored",
+				instanceId=instance_id,
+				reason=remembered.kind.value,
+			)
+			return
 		self._diagnostics.record(
 			"temporaryTerminalBindingRemembered",
 			instanceId=instance_id,
-			transportKind=instance.transport_kind,
+			transportKind=remembered.instance.transport_kind,
 			terminal=self._identityFields(identity),
 		)
 		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
 
-	@staticmethod
-	def _newInstanceRuntime():
-		return {
-			"planner": SpeechPlanner(translate=_),
-			"currentState": {},
-			"lastMode": None,
-			"typedWord": [],
-			"typedPosition": None,
-			"menuDocumentation": "",
-			"connected": False,
-			"lastConnectionState": None,
-			"transportCapabilities": frozenset(),
-		}
-
 	def _switchInstanceRuntime(self, instance_id):
-		self._connectionCoordinator.switch_runtime(
-			instance_id,
-			self._newInstanceRuntime,
-		)
+		self._editorSessionController.switch_instance(instance_id)
 
 	def _dropInstanceRuntime(self, instance_id):
-		self._connectionCoordinator.drop_runtime(
-			instance_id,
-			self._newInstanceRuntime,
-		)
+		self._editorSessionController.drop_instance(instance_id)
 
 	def _activateRememberedBinding(self, identity, instance_id, focus_regained=False):
-		try:
-			client = self._instanceManager.client_for(instance_id)
-			if (
-				self._gate.bound_terminal == identity
-				and self._client is client
-				and self._gate.authenticated
-				and self._gate.nvim_active
-				and self._activeInstanceId == instance_id
-				and not focus_regained
-			):
-				return
-			trusted = instance_id in self._authenticatedInstances
-			# A live authenticated client proves session identity, not that
-			# Neovim is still visible in this WT control. Keep the transport
-			# selected but fail open until the focus-correlated context reply.
-			self._connectionCoordinator.prepare_unconfirmed_instance(
-				instance_id,
-				identity,
-				self._newInstanceRuntime,
-				trusted=trusted,
-			)
-			# Focus events for Windows Terminal tabs can be followed by transient
-			# child-focus events. Let focus settle before accepting a new fullState.
-			self._scheduleMainThreadCall(
-				100,
-				self._requestRememberedBindingState,
-				identity,
-				instance_id,
-			)
-			self._diagnostics.record(
-				"temporaryTerminalBindingActivated",
-				instanceId=instance_id,
-				terminal=self._identityFields(identity),
-				suppressionImmediate=False,
-			)
-		except ValueError:
-			self._rememberedTerminalBindings.discard(identity)
+		activation = self._sessionClaimService.activate_remembered_binding(
+			identity,
+			instance_id,
+			focus_regained=focus_regained,
+		)
+		if activation.kind != RememberedBindingActivationKind.ACTIVATE:
+			return
+		# Focus events for Windows Terminal tabs can be followed by transient
+		# child-focus events. Let focus settle before accepting a new fullState.
+		self._scheduleMainThreadCall(
+			100,
+			self._requestRememberedBindingState,
+			identity,
+			instance_id,
+		)
+		self._diagnostics.record(
+			"temporaryTerminalBindingActivated",
+			instanceId=instance_id,
+			terminal=self._identityFields(identity),
+			suppressionImmediate=False,
+		)
 
 	def _requestRememberedBindingState(self, identity, instance_id):
-		focused = self._gate.focused
-		selected = self._instanceManager.selected_for(identity)
-		if focused != identity or selected is None or selected.identifier != instance_id:
+		request = self._sessionClaimService.plan_remembered_state_request(identity, instance_id)
+		if request.kind == RememberedStateRequestKind.SKIP:
 			self._diagnostics.record(
 				"temporaryTerminalBindingStateSkipped",
 				instanceId=instance_id,
 				reason="focusChanged",
 			)
 			return
-		try:
-			client = self._instanceManager.client_for(instance_id)
-			if instance_id in self._authenticatedInstances:
-				request_id = self._connectionCoordinator.next_request_id("focusContext")
-				self._connectionCoordinator.remember_focus_context(
-					instance_id,
-					request_id,
-					identity,
-				)
-				sent = client.send_control("requestFocusContext", {"requestId": request_id})
-				if not sent:
-					self._connectionCoordinator.discard_focus_context(instance_id)
-				self._diagnostics.record(
-					"temporaryTerminalFocusContextRequested",
-					instanceId=instance_id,
-					requestId=request_id,
-					sent=sent,
-				)
-				return
-			client.send_control("requestFullState", {})
-			self._diagnostics.record(
-				"temporaryTerminalBindingStateRequested",
-				instanceId=instance_id,
+		if request.kind == RememberedStateRequestKind.STALE or request.client is None:
+			return
+		if request.kind == RememberedStateRequestKind.FOCUS_CONTEXT:
+			sent = request.client.send_control(
+				"requestFocusContext",
+				{"requestId": request.request_id},
 			)
-		except ValueError:
-			self._rememberedTerminalBindings.discard(identity)
+			if not sent:
+				self._connectionCoordinator.discard_focus_context(instance_id)
+			self._diagnostics.record(
+				"temporaryTerminalFocusContextRequested",
+				instanceId=instance_id,
+				requestId=request.request_id,
+				sent=sent,
+			)
+			return
+		request.client.send_control("requestFullState", {})
+		self._diagnostics.record(
+			"temporaryTerminalBindingStateRequested",
+			instanceId=instance_id,
+		)
 
 	def _onManagedEvent(self, instance_id, event):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedEvent, instance_id, event)
+		self._queueRuntimeCallback(self._handleManagedEvent, instance_id, event)
 
 	def _handleManagedEvent(self, instance_id, event):
 		identity = self._gate.focused
@@ -2524,7 +1962,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				)
 				or selected is None
 				or selected.identifier != instance_id
-				or instance_id not in self._authenticatedInstances
+				or instance_id not in self._connectionCoordinator.authenticated_instances
 			):
 				self._diagnostics.record(
 					"focusContextIgnored",
@@ -2536,7 +1974,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._connectionCoordinator.confirm_foreground_instance(
 				instance_id,
 				identity,
-				self._newInstanceRuntime,
+				self._editorSessionController.new_runtime,
 			)
 			self._diagnostics.record(
 				"temporaryTerminalForegroundConfirmed",
@@ -2553,7 +1991,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					self._instanceManager.client_for(instance_id)
 				except ValueError:
 					return
-				self._pendingInstanceFullStates[instance_id] = event
+				self._connectionCoordinator.pending_full_states[instance_id] = event
 				self._diagnostics.record(
 					"instanceFullStateDeferred",
 					instanceId=instance_id,
@@ -2563,13 +2001,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._diagnostics.record("instanceEventIgnored", instanceId=instance_id, reason="notSelected")
 			return
 		if (
-			instance_id in self._authenticatedInstances
+			instance_id in self._connectionCoordinator.authenticated_instances
 			and event.get("type") != "focusContext"
 			and not (
 				self._gate.authenticated
 				and self._gate.nvim_active
 				and self._gate.bound_terminal == identity
-				and self._activeInstanceId == instance_id
+				and self._connectionCoordinator.active_instance_id == instance_id
 			)
 		):
 			self._diagnostics.record(
@@ -2581,7 +2019,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._connectionCoordinator.select_instance(
 			instance_id,
 			identity,
-			self._newInstanceRuntime,
+			self._editorSessionController.new_runtime,
 		)
 		if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
 			event = self._handleClipboardResult(instance_id, identity, event)
@@ -2591,111 +2029,88 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			event = self._handleTerminalControlResult(instance_id, identity, event)
 			if event is None:
 				return
-		payload = event.get("payload")
 		if event.get("type") == "fullState":
-			self._authenticatedInstances.add(instance_id)
-		if isinstance(payload, dict):
-			if event.get("type") in {"focusContext", "contextChanged"}:
-				payload = dict(payload)
-				payload["_connectionLabel"] = selected.context_label
-				event = {**event, "payload": payload}
-			self._instanceTerminalPassthrough[instance_id] = (
-				payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
-			)
-		self._handleEvent(event)
-		if event.get("type") == "fullState" and instance_id in self._rememberOfferInstances:
-			self._rememberOfferInstances.discard(instance_id)
+			self._connectionCoordinator.authenticated_instances.add(instance_id)
+		self._handleEvent(event, connection_label=selected.context_label)
+		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
+			instance_id
+		):
 			# Activate the authenticated state immediately. Only the optional
 			# remember question is deferred out of NVDA's event queue; its answer
 			# must never control whether native terminal output is suppressed.
 			import wx
 
-			wx.CallAfter(self._offerTemporaryTerminalBinding, identity, instance_id)
+			wx.CallAfter(
+				self._runRuntimeCallback,
+				self._offerTemporaryTerminalBinding,
+				identity,
+				instance_id,
+			)
 			return
 
 	def _handleClipboardResult(self, instance_id, identity, event):
-		payload = event.get("payload")
-		event_type = event.get("type")
-		request_id = payload.get("requestId") if isinstance(payload, dict) else None
-		if not valid_request_id(request_id):
+		reply = self._editorSessionController.consume_clipboard_reply(instance_id, identity, event)
+		if reply.kind == ControlReplyKind.INVALID_REQUEST_ID:
 			self._diagnostics.record(
 				"clipboardResultIgnored",
 				instanceId=instance_id,
 				reason="invalidRequestId",
 			)
 			return None
-		pending = self._connectionCoordinator.take_pending_request(
-			"clipboard",
-			request_id,
-		)
-		expected_control = {
-			"copyTextResult": "copyTextRequest",
-			"pasteTextResult": "pasteTextRequest",
-			"setRegisterResult": "setRegisterRequest",
-		}.get(event_type)
-		if pending != PendingControlRequest(instance_id, identity, expected_control):
+		if reply.kind == ControlReplyKind.STALE_OR_UNBOUND:
 			self._diagnostics.record(
 				"clipboardResultIgnored",
 				instanceId=instance_id,
-				requestId=request_id,
+				requestId=reply.request_id,
 				reason="staleOrUnbound",
 			)
 			return None
-		safe_payload = dict(payload)
-		text = safe_payload.pop("clipboardText", None)
-		safe_payload.pop("text", None)
-		ok = payload.get("ok") is True
-		result_code = payload.get("resultCode")
-		if not isinstance(result_code, str) or len(result_code) > 64:
-			ok = False
-			result_code = "invalidResult"
-		if event_type == "copyTextResult" and ok:
-			if not valid_clipboard_text(text):
-				ok = False
-				result_code = "invalidText"
-			else:
-				try:
-					copied = bool(api.copyToClip(text))
-				except Exception as error:
-					copied = False
-					self._diagnostics.record(
-						"clipboardWriteFailed",
-						errorType=type(error).__name__,
-					)
-				if copied:
-					self._clipboardSuccess(_("Copied from Neovim"))
-				else:
-					ok = False
-					result_code = "clipboardWriteFailed"
-		elif event_type == "pasteTextResult" and ok:
+		clipboard_written = True
+		if reply.requires_clipboard_write:
+			try:
+				clipboard_written = bool(api.copyToClip(reply.clipboard_text))
+			except Exception as error:
+				clipboard_written = False
+				self._diagnostics.record(
+					"clipboardWriteFailed",
+					errorType=type(error).__name__,
+				)
+		reply = self._editorSessionController.finish_clipboard_reply(
+			reply,
+			clipboard_written=clipboard_written,
+		)
+		if reply.event_type == "copyTextResult" and reply.ok:
+			self._clipboardSuccess(_("Copied from Neovim"))
+		elif reply.event_type == "pasteTextResult" and reply.ok:
 			self._clipboardSuccess(_("Pasted into Neovim"))
-		elif event_type == "setRegisterResult" and ok:
+		elif reply.event_type == "setRegisterResult" and reply.ok:
 			self._clipboardSuccess(_("Stored the Windows clipboard in Neovim's unnamed register"))
-		if not ok:
-			if result_code == "staleState":
+		if not reply.ok:
+			if reply.result_code == "staleState":
 				message = _("Neovim changed before the copy or paste completed; try again")
-			elif result_code in {"visualSelectionRequired", "selectionUnavailable"}:
+			elif reply.result_code in {"visualSelectionRequired", "selectionUnavailable"}:
 				message = _("The Neovim Visual selection is no longer available")
-			elif result_code in {"bufferNotEditable", "unsupportedContext", "unsupportedMode"}:
+			elif reply.result_code in {"bufferNotEditable", "unsupportedContext", "unsupportedMode"}:
 				message = _("The current Neovim context does not accept this paste")
-			elif result_code == "textTooLarge":
+			elif reply.result_code == "textTooLarge":
 				message = _("The selected Neovim text is too large to copy")
-			elif result_code == "emptyText":
+			elif reply.result_code == "emptyText":
 				message = _("There is no Neovim text to copy")
-			elif result_code == "clipboardWriteFailed":
+			elif reply.result_code == "clipboardWriteFailed":
 				message = _("Could not write text to the Windows clipboard")
-			elif result_code == "registerRejected":
+			elif reply.result_code == "registerRejected":
 				message = _("Neovim could not replace its unnamed register")
 			else:
 				message = _("Neovim could not complete the copy or paste command")
 			self._clipboardFailure(message)
+		safe_payload = reply.safe_payload or {}
 		self._diagnostics.record(
 			"clipboardResult",
 			instanceId=instance_id,
-			requestId=request_id,
-			type=event_type,
-			ok=ok,
-			resultCode=result_code,
+			requestId=reply.request_id,
+			type=reply.event_type,
+			ok=reply.ok,
+			resultCode=reply.result_code,
 			copiedCharacterCount=safe_payload.get("copiedCharacterCount"),
 			copiedLineCount=safe_payload.get("copiedLineCount"),
 			insertedBytes=safe_payload.get("insertedBytes"),
@@ -2703,47 +2118,34 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			storedBytes=safe_payload.get("storedBytes"),
 			storedLineCount=safe_payload.get("storedLineCount"),
 		)
-		return {**event, "payload": clipboard_result_state(safe_payload)}
+		return dict(reply.safe_event) if reply.safe_event is not None else None
 
 	def _discardClipboardRequests(self, *, instance_id=None):
-		self._connectionCoordinator.discard_pending_requests(
-			"clipboard",
-			instance_id,
-		)
+		self._editorSessionController.discard_clipboard_requests(instance_id)
 
 	def _handleTerminalControlResult(self, instance_id, identity, event):
-		payload = event.get("payload")
-		request_id = payload.get("requestId") if isinstance(payload, dict) else None
-		if not valid_request_id(request_id):
+		reply = self._editorSessionController.consume_terminal_control_reply(
+			instance_id,
+			identity,
+			event,
+		)
+		if reply.kind == ControlReplyKind.INVALID_REQUEST_ID:
 			self._diagnostics.record(
 				"terminalControlResultIgnored",
 				instanceId=instance_id,
 				reason="invalidRequestId",
 			)
 			return None
-		pending = self._connectionCoordinator.take_pending_request(
-			"terminalControl",
-			request_id,
-		)
-		if pending != PendingControlRequest(
-			instance_id,
-			identity,
-			"leaveTerminalInputRequest",
-		):
+		if reply.kind == ControlReplyKind.STALE_OR_UNBOUND:
 			self._diagnostics.record(
 				"terminalControlResultIgnored",
 				instanceId=instance_id,
-				requestId=request_id,
+				requestId=reply.request_id,
 				reason="staleOrUnbound",
 			)
 			return None
-		ok = payload.get("ok") is True
-		result_code = payload.get("resultCode")
-		if not isinstance(result_code, str) or len(result_code) > 64:
-			ok = False
-			result_code = "invalidResult"
-		if not ok:
-			if result_code == "staleState":
+		if not reply.ok:
+			if reply.result_code == "staleState":
 				message = _("Neovim changed before terminal input could be left; try again")
 			else:
 				message = _("Neovim could not leave direct terminal input")
@@ -2751,26 +2153,28 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._diagnostics.record(
 			"terminalControlResult",
 			instanceId=instance_id,
-			requestId=request_id,
-			ok=ok,
-			resultCode=result_code,
+			requestId=reply.request_id,
+			ok=reply.ok,
+			resultCode=reply.result_code,
 		)
-		return {**event, "payload": terminal_control_result_state(payload)}
+		return dict(reply.safe_event) if reply.safe_event is not None else None
 
 	def _discardTerminalControlRequests(self, *, instance_id=None):
-		self._connectionCoordinator.discard_pending_requests(
-			"terminalControl",
-			instance_id,
-		)
+		self._editorSessionController.discard_terminal_control_requests(instance_id)
+
+	def _discardTransientFocusContext(self):
+		self._connectionCoordinator.discard_focus_context()
+		self._discardClipboardRequests()
+		self._discardTerminalControlRequests()
 
 	def _onManagedState(self, instance_id, state):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleManagedState, instance_id, state)
+		self._queueRuntimeCallback(self._handleManagedState, instance_id, state)
 
 	def _handleManagedState(self, instance_id, state):
 		if state == "disconnected":
-			self._authenticatedInstances.discard(instance_id)
-			self._instanceTerminalPassthrough.pop(instance_id, None)
-			self._pendingInstanceFullStates.pop(instance_id, None)
+			self._connectionCoordinator.authenticated_instances.discard(instance_id)
+			self._connectionCoordinator.terminal_passthrough.pop(instance_id, None)
+			self._connectionCoordinator.pending_full_states.pop(instance_id, None)
 			self._connectionCoordinator.discard_focus_context(instance_id)
 			self._discardClipboardRequests(instance_id=instance_id)
 			self._discardTerminalControlRequests(instance_id=instance_id)
@@ -2781,95 +2185,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._handleConnectionState(state)
 
 	def _prepareTerminalFocus(self, obj, adapter_token, app_module=None):
-		"""Prepare shared state before the AppModule runs native focus handling."""
-		if adapter_token is None:
-			raise ValueError("adapter token is required")
-		previous = self._gate.focused
-		identity = self._identity(obj)
-		if previous != identity:
-			self._connectionCoordinator.discard_focus_context()
-			self._discardClipboardRequests()
-			self._discardTerminalControlRequests()
-			self._gate.disconnect()
-			self._diagnostics.record(
-				"terminalFocusIdentityChanged",
-				previous=self._identityFields(previous),
-				current=self._identityFields(identity),
-			)
-		self._gate.focused = identity
-		if identity is not None:
-			element = self._identityElement(obj, identity)
-			if element is not None:
-				self._terminalIdentityElements[identity] = element
-		self._focusedTerminalObject = obj if identity is not None else None
-		self._focusedAppModule = app_module
-		self._focusedAdapterToken = adapter_token
-		self._terminalFocusGeneration += 1
-		generation = self._terminalFocusGeneration
-		instance = self._instanceManager.selected_for(identity) if identity else None
-		pending_full_state = (
-			self._pendingInstanceFullStates.get(instance.identifier) if instance is not None else None
-		)
-		if identity in self._rememberedTerminalBindings:
-			if instance is None:
-				self._rememberedTerminalBindings.discard(identity)
-			else:
-				self._activateRememberedBinding(
-					identity,
-					instance.identifier,
-					focus_regained=previous != identity,
-				)
-		return TerminalFocusDecision(
-			adapter_token=adapter_token,
-			generation=generation,
-			identity=identity,
-			instance_id=instance.identifier if instance is not None else None,
-			pending_full_state=pending_full_state,
-			suppress_native_speech=(self._shouldSuppress(obj) or pending_full_state is not None),
-		)
+		return self._terminalFocusService.prepare_focus(obj, adapter_token, app_module)
 
 	def _finishTerminalFocus(self, decision):
-		"""Complete prepared focus after the AppModule initialized native LiveText."""
-		if not isinstance(decision, TerminalFocusDecision):
-			raise ValueError("terminal focus decision is required")
-		if (
-			decision.adapter_token is not self._focusedAdapterToken
-			or decision.generation != self._terminalFocusGeneration
-			or decision.identity != self._gate.focused
-		):
-			self._diagnostics.record("staleTerminalFocusCompletionIgnored")
-			return
-		if decision.suppress_native_speech:
-			# Terminal.event_gainFocus must run: it starts LiveText monitoring
-			# and initializes editable-text selection tracking.  Cancelling the
-			# synchronous native focus report afterwards keeps that machinery
-			# intact while structured fullState remains authoritative.
-			speech.cancelSpeech()
-			self._diagnostics.record(
-				"terminalFocusAnnouncementSuppressed",
-				terminal=self._identityFields(decision.identity),
-			)
-		if decision.pending_full_state is not None and decision.instance_id is not None:
-			if self._pendingInstanceFullStates.get(decision.instance_id) is not decision.pending_full_state:
-				self._diagnostics.record(
-					"terminalFocusPendingStateChanged",
-					instanceId=decision.instance_id,
-				)
-				return
-			self._pendingInstanceFullStates.pop(decision.instance_id, None)
-			self._diagnostics.record(
-				"instanceFullStateResumed",
-				instanceId=decision.instance_id,
-			)
-			self._handleManagedEvent(
-				decision.instance_id,
-				decision.pending_full_state,
-			)
+		self._terminalFocusService.finish_focus(decision)
 
 	def _failOpenTerminalEvent(self, event_name, error):
 		"""Drop suppression after a frontend event failure."""
 		self._gate.disconnect()
-		self._client = None
+		self._connectionCoordinator.active_client = None
 		self._diagnostics.record(
 			"terminalEventFailedOpen",
 			event=event_name,
@@ -2882,131 +2206,46 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		app_module=None,
 		adapter_token=None,
 	):
-		"""Refresh focus when an action does not receive a new gainFocus event."""
-		identity = self._identity(obj)
-		previous = self._gate.focused
-		self._gate.focused = identity
-		if identity is not None:
-			element = self._identityElement(obj, identity)
-			if element is not None:
-				self._terminalIdentityElements[identity] = element
-		self._focusedTerminalObject = obj if identity is not None else None
-		self._focusedAppModule = app_module if identity is not None else None
-		self._focusedAdapterToken = adapter_token if identity is not None else None
-		self._diagnostics.record(
-			"terminalActionFocusRefreshed",
-			previous=self._identityFields(previous),
-			current=self._identityFields(identity),
-		)
-		return identity
+		return self._terminalFocusService.refresh_for_action(obj, app_module, adapter_token)
 
 	def _pruneClosedTerminalBindings(self):
-		removed = set()
-		for instance in list(self._instanceManager.list()):
-			try:
-				terminals = self._instanceManager.bound_terminals_for(instance.identifier)
-			except ValueError:
-				continue
-			invalid = []
-			for terminal in terminals:
-				# A focused terminal is direct positive evidence of life. UIA
-				# tree searches can transiently miss an otherwise active WT
-				# tab while focus or accessibility objects are being rebuilt.
-				if terminal == self._gate.focused:
-					self._terminalLifecycleMisses.pop(terminal, None)
-					continue
-				exists = _terminalIdentityExists(
-					terminal,
-					self._terminalIdentityElements.get(terminal),
-				)
-				if exists:
-					self._terminalLifecycleMisses.pop(terminal, None)
-					continue
-				misses = self._terminalLifecycleMisses.get(terminal, 0) + 1
-				self._terminalLifecycleMisses[terminal] = misses
-				# Never destroy a binding on one negative UIA observation.
-				if misses >= 2:
-					invalid.append(terminal)
-			if not invalid:
-				continue
-			for terminal in invalid:
-				self._instanceManager.unbind(terminal)
-				self._rememberedTerminalBindings.discard(terminal)
-				self._terminalIdentityElements.pop(terminal, None)
-				self._terminalLifecycleMisses.pop(terminal, None)
-				if self._gate.focused == terminal:
-					self._gate.focused = None
-					self._gate.disconnect()
-					self._client = None
-			if self._instanceManager.bound_terminals_for(instance.identifier):
-				continue
-			try:
-				_detached, client = self._instanceManager.detach(instance.identifier)
-			except ValueError:
-				continue
-			removed.add(instance.identifier)
-			self._connectionCoordinator.discard_instance_tracking(
-				instance.identifier,
-				self._newInstanceRuntime,
-			)
-			threading.Thread(
-				target=self._stopPrunedClient,
-				args=(instance.identifier, client),
-				name="nvim-nvda-closed-terminal-stop",
-				daemon=True,
-			).start()
-			self._diagnostics.record(
-				"closedTerminalBindingPruned",
-				instanceId=instance.identifier,
-				terminals=[self._identityFields(terminal) for terminal in invalid],
-			)
-		return removed
+		return self._terminalFocusService.prune_closed_bindings()
 
-	def _stopPrunedClient(self, instance_id, client):
+	def _stopManagedClientAsync(self, instance_id, client):
+		threading.Thread(
+			target=self._stopManagedClient,
+			args=(instance_id, client),
+			name="nvim-nvda-managed-client-stop",
+			daemon=True,
+		).start()
+
+	@staticmethod
+	def _logTerminalLifecycleFailure():
+		log.exception("terminal lifecycle sweep failed open")
+
+	def _stopManagedClient(self, instance_id, client):
 		try:
 			client.stop()
 		except Exception as error:
 			self._diagnostics.record(
-				"closedTerminalClientStopError",
+				"managedClientStopError",
 				instanceId=instance_id,
 				errorType=type(error).__name__,
 				error=str(error),
 			)
 
 	def _terminalApplicationLostFocus(self, adapter_token):
-		if (
-			adapter_token is not None
-			and self._focusedAdapterToken is not None
-			and adapter_token is not self._focusedAdapterToken
-		):
-			self._diagnostics.record("staleAppModuleLoseFocusIgnored")
-			return
-		previous = self._gate.focused
-		self._gate.disconnect()
-		self._gate.focused = None
-		self._connectionCoordinator.discard_focus_context()
-		self._discardClipboardRequests()
-		self._discardTerminalControlRequests()
-		self._focusedTerminalObject = None
-		self._focusedAppModule = None
-		self._focusedAdapterToken = None
-		self._resetTypedEcho()
-		if previous is not None:
-			self._diagnostics.record(
-				"terminalApplicationLostFocus",
-				previous=self._identityFields(previous),
-			)
+		self._terminalFocusService.lose_focus(adapter_token)
 
 	def _shouldUseNativeTerminalEvent(self, obj):
 		"""Return whether the AppModule must continue native event handling."""
 		return not self._shouldSuppress(obj)
 
 	def _onNetworkEvent(self, event):
-		queueHandler.queueFunction(
-			queueHandler.eventQueue,
+		self._queueRuntimeCallback(
 			self._handleScopedNetworkEvent,
 			event,
-			_immediate=event.get("type") == "modeChanged",
+			immediate=event.get("type") == "modeChanged",
 		)
 
 	def _handleScopedNetworkEvent(self, event):
@@ -3020,42 +2259,45 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._handleEvent(event)
 
 	def _onNetworkState(self, state):
+		if self._runtimeClosed():
+			return
 		# Fail open immediately in the network thread. Speech/UI stays on main.
 		if state == "disconnected":
 			self._gate.disconnect()
-			self._connected = False
-		queueHandler.queueFunction(queueHandler.eventQueue, self._handleConnectionState, state)
+			self._editorSessionController.mark_disconnected()
+		self._queueRuntimeCallback(self._handleConnectionState, state)
 
 	def _recordNetworkDiagnostic(self, category, fields):
 		self._diagnostics.record(category, **fields)
 		log.debug("NeovimAccessLink %s %r", category, fields)
 
 	def _handleConnectionState(self, state):
-		previous = self._lastConnectionState
-		self._lastConnectionState = state
-		self._diagnostics.record("connectionState", previous=previous, state=state)
-		if state == "disconnected" and previous == "connected" and self._gate.focused is not None:
-			self._planner.reset()
-			self._resetTypedEcho()
+		transition = self._editorSessionController.apply_connection_state(
+			state,
+			reset_runtime=self._gate.focused is not None,
+		)
+		self._diagnostics.record("connectionState", previous=transition.previous, state=state)
+		if transition.connection_lost and self._gate.focused is not None:
+			speech.clearTypedWordBuffer()
 			ui.message(_("Neovim connection lost; normal terminal output restored"))
 			self._refreshBraille(rebuild=True)
 
-	def _handleEvent(self, event):
+	def _handleEvent(self, event, *, connection_label=None):
 		activated = False
 		payload = event.get("payload")
-		previous_state = self._currentState
+		plan = self._editorSessionController.plan_event(
+			event,
+			focus_announcement=self._focusAnnouncement(),
+			plan_speech=self._gate.manual_enabled,
+			allow_focus_context_cue=self._gate.manual_enabled,
+			connection_label=connection_label,
+		)
+		transition = plan.transition
 		keyObserverDiagnostics = (
 			payload.get("keyObserverDiagnostics", {}) if isinstance(payload, dict) else {}
 		)
 		if not isinstance(keyObserverDiagnostics, dict):
 			keyObserverDiagnostics = {}
-		if isinstance(payload, dict):
-			self._currentState = payload
-			transport = payload.get("_transport")
-			if isinstance(transport, dict) and isinstance(transport.get("capabilities"), list):
-				self._transportCapabilities = frozenset(
-					value for value in transport["capabilities"] if isinstance(value, str)
-				)
 		self._diagnostics.record(
 			"eventDispatch",
 			type=event.get("type"),
@@ -3089,22 +2331,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			keyPromptClass=keyObserverDiagnostics.get("promptClass"),
 			keyPromptLength=keyObserverDiagnostics.get("promptLength"),
 		)
-		mode = payload.get("mode") if isinstance(payload, dict) else None
-		previous_mode = self._lastMode
-		previous_buffer_id = previous_state.get("bufferId") if isinstance(previous_state, dict) else None
-		buffer_id = payload.get("bufferId") if isinstance(payload, dict) else None
-		if event.get("type") == "menuSelectionChanged" and isinstance(payload, dict):
-			item = payload.get("item", {})
-			documentation = item.get("documentation", "") if isinstance(item, dict) else ""
-			self._menuDocumentation = documentation if isinstance(documentation, str) else ""
-		elif event.get("type") == "menuClosed":
-			self._menuDocumentation = ""
-		event_type = event.get("type")
-		terminal_passthrough = (
-			isinstance(payload, dict)
-			and payload.get("buftype") == "terminal"
-			and payload.get("mode") == "terminal"
-		)
+		mode = transition.mode
+		previous_mode = transition.previous_mode
+		event_type = transition.event_type
+		terminal_passthrough = plan.terminal_passthrough
 		if terminal_passthrough != self._gate.terminal_passthrough:
 			# Direct terminal input must fail open before any optional sound or
 			# speech is produced for the mode transition.
@@ -3114,63 +2344,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				enabled=terminal_passthrough,
 				bufferId=payload.get("bufferId") if isinstance(payload, dict) else None,
 			)
-		mode_sound = self._modeSoundKind(mode)
-		previous_mode_sound = self._modeSoundKind(previous_mode)
-		if event_type == "focusContext" and self._gate.manual_enabled and mode_sound is not None:
-			self._playModeSound(mode, focus_context=True)
-		elif (
-			event_type == "messageReceived"
-			and isinstance(payload, dict)
-			and payload.get("commandLineReturn") is True
-			and mode_sound is not None
-		):
-			# A message-producing Ex command has already returned to its
-			# previous editor mode. Play that mode cue immediately before the
-			# structured command result and configured return presentation.
-			self._playModeSound(mode)
-		elif (
-			event_type in {"commandLineChanged", "modeChanged"}
-			and mode_sound == "commandLine"
-			and previous_mode != "commandLine"
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode_sound == "insert"
-			and previous_mode_sound != "insert"
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode_sound == "normal"
-			and (
-				previous_mode_sound == "insert"
-				or (
-					previous_mode == "commandLine"
-					and isinstance(previous_state, dict)
-					and previous_state.get("buftype") == "terminal"
-				)
+		if plan.mode_cue is not None:
+			self._presentation.play_mode_sound(
+				plan.mode_cue.mode,
+				focus_context=plan.mode_cue.focus_context,
 			)
-		):
-			self._playModeSound(mode)
-		elif (
-			event_type in {"modeChanged", "contextChanged"}
-			and mode == "terminalNormal"
-			and (previous_mode != "terminalNormal" or previous_buffer_id != buffer_id)
-		):
-			# :terminal enters raw mode "nt" before direct terminal input.
-			# Announce that distinct state once, while duplicate TermOpen /
-			# context events for the same buffer remain silent.
-			self._playModeSound(mode)
-		if event.get("type") == "fullState" or (
-			event.get("type") == "modeChanged" and mode != self._lastMode
-		):
-			self._resetTypedEcho()
-		if mode is not None:
-			self._lastMode = mode
-		if event.get("type") == "fullState":
-			self._connected = True
-			self._lastConnectionState = "connected"
+		if transition.reset_typed_echo:
+			speech.clearTypedWordBuffer()
+		if event_type == "fullState":
 			if self._gate.manual_enabled and self._gate.focused is not None:
 				self._gate.authenticated = True
 				self._gate.nvim_active = True
@@ -3179,10 +2360,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self._gate.manual_enabled:
 			return
 		self._presentation.deliver_actions(
-			self._planner.plan(
-				event,
-				focus_announcement=self._focusAnnouncement(),
-			),
+			plan.speech_actions,
 			event_type=event.get("type"),
 			mode=mode,
 			previous_mode=previous_mode,
@@ -3199,55 +2377,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		keyboard = config.conf["keyboard"]
 		speak_characters = int(keyboard["speakTypedCharacters"]) != 0
 		speak_words = int(keyboard["speakTypedWords"]) != 0
-		cursor = state.get("cursor", {}) if isinstance(state, dict) else {}
-		line = cursor.get("line") if isinstance(cursor, dict) else None
-		byte_column = (
-			state.get("commandLinePosition")
-			if command_line and isinstance(state, dict)
-			else cursor.get("byteColumn")
-			if isinstance(cursor, dict)
-			else None
+		actions = self._editorSessionController.plan_structured_typing(
+			text,
+			state if isinstance(state, dict) else None,
+			command_line=command_line,
+			speak_characters=speak_characters,
+			speak_words=speak_words,
 		)
-		buffer_id = state.get("bufferId") if isinstance(state, dict) else None
-		byte_length = len(text.encode("utf-8")) if "\n" not in text else None
-		start = (
-			byte_column - byte_length if isinstance(byte_column, int) and byte_length is not None else None
-		)
-		identity = ("commandLine", buffer_id) if command_line else (buffer_id, line)
-		if self._typedPosition is not None and isinstance(start, int) and isinstance(byte_column, int):
-			previous_identity, previous_end = self._typedPosition
-			if previous_identity == identity and start < previous_end <= byte_column:
-				overlap = previous_end - start
-				encoded = text.encode("utf-8")
-				try:
-					text = encoded[overlap:].decode("utf-8")
-					start = previous_end
-				except UnicodeDecodeError:
-					# A malformed overlap must never cause older text to be guessed.
-					self._typedWord = []
-		if self._typedPosition is not None:
-			previous_identity, previous_end = self._typedPosition
-			if identity != previous_identity or start != previous_end:
-				self._typedWord = []
-		for character in text:
-			if unicodedata.category(character)[:1] in {"L", "M", "N"}:
-				self._typedWord.append(character)
+		for action in actions:
+			if action.spelling:
+				speech.speakSpelling(action.text)
 			else:
-				if self._typedWord and speak_words:
-					speech.speakText("".join(self._typedWord))
-				self._typedWord = []
-			if speak_characters:
-				speech.speakSpelling(character)
-		self._typedPosition = (identity, byte_column) if isinstance(byte_column, int) else None
+				speech.speakText(action.text)
+
+	def _resetEditorPlanning(self):
+		self._editorSessionController.reset_planning_state()
+		speech.clearTypedWordBuffer()
 
 	def _resetTypedEcho(self):
-		self._typedWord = []
-		self._typedPosition = None
+		self._editorSessionController.reset_typed_echo()
 		speech.clearTypedWordBuffer()
 
 	def _refreshBraille(self, rebuild):
 		try:
-			focus = self._focusedTerminalObject
+			focus = self._terminalFocusService.focused_terminal_object
 			if focus is None:
 				return
 			if rebuild:
@@ -3259,215 +2412,41 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			log.exception("NeovimAccessLink braille failure")
 
 	def _queueBrailleRefresh(self, rebuild):
-		queueHandler.queueFunction(queueHandler.eventQueue, self._refreshBraille, rebuild)
+		self._queueRuntimeCallback(self._refreshBraille, rebuild)
 
 	def _shouldSuppress(self, obj):
 		identity = self._identity(obj)
 		return identity is not None and self._gate.should_suppress(identity)
 
-	def _routeBrailleCursor(self, byte_column):
-		state = self._currentState
-		capabilities = state.get("_transport", {}).get("capabilities", [])
-		if "cursorRouting" not in capabilities:
-			self._diagnostics.record("brailleRouteRejected", reason="capabilityMissing")
-			return
-		cursor = state.get("cursor", {})
-		payload = {
-			"bufferId": state.get("bufferId"),
-			"windowId": state.get("windowId"),
-			"line": cursor.get("line"),
-			"byteColumn": byte_column,
-			"changedtick": state.get("changedtick"),
-		}
-		if self._client is None or not all(isinstance(value, int) for value in payload.values()):
-			self._diagnostics.record("brailleRouteRejected", reason="incompleteState", byteColumn=byte_column)
-			return
-		accepted = self._client.send_control("routeCursor", payload)
-		self._diagnostics.record("brailleRoute", accepted=accepted, **payload)
+	def _sendBrailleRoute(self, payload):
+		client = self._connectionCoordinator.active_client
+		return client is not None and bool(client.send_control("routeCursor", payload))
 
 	@staticmethod
 	def _identity(obj):
-		process_id = getattr(obj, "processID", None)
-		window_handle = getattr(obj, "windowHandle", None)
-		if not isinstance(process_id, int) or not isinstance(window_handle, int) or not window_handle:
-			return None
-		descriptor = _FRONTEND_POLICY.descriptor("windowsTerminal")
-		if descriptor is None or not descriptor.enabled:
-			return None
-		candidate = obj
-		for _depth in range(8):
-			element = getattr(candidate, "UIAElement", None)
-			if element is not None:
-				try:
-					class_name = str(element.cachedClassName or "")
-					if class_name in descriptor.uia_class_names:
-						runtime_id = tuple(int(value) for value in element.getRuntimeId())
-						if runtime_id or not descriptor.requires_runtime_id:
-							candidate_process = getattr(candidate, "processID", process_id)
-							candidate_window = getattr(candidate, "windowHandle", window_handle)
-							if not isinstance(candidate_process, int) or not isinstance(
-								candidate_window, int
-							):
-								break
-							return TerminalIdentity(
-								candidate_process,
-								candidate_window,
-								"windowsTerminal",
-								runtime_id,
-							)
-				except Exception:
-					pass
-			try:
-				candidate = candidate.parent
-			except Exception:
-				break
-			if candidate is None:
-				break
-		return None
+		return _identityForObject(obj)
 
-	@staticmethod
-	def _identityElement(obj, identity):
-		candidate = obj
-		for _depth in range(8):
-			element = getattr(candidate, "UIAElement", None)
-			if element is not None:
-				try:
-					runtime_id = tuple(int(value) for value in element.getRuntimeId())
-					if runtime_id == identity.runtime_id:
-						return element
-				except Exception:
-					pass
-			try:
-				candidate = candidate.parent
-			except Exception:
-				break
-			if candidate is None:
-				break
-		return None
-
-	@staticmethod
-	def _identityFields(identity):
-		return (
-			None
-			if identity is None
-			else {
-				"processId": identity.process_id,
-				"windowHandle": identity.window_handle,
-				"frontendKind": identity.frontend_kind,
-				"runtimeId": list(identity.runtime_id),
-			}
-		)
+	def _identityFields(self, identity):
+		return self._terminalFocusService.identity_fields(identity)
 
 	def _feedbackMode(self, key):
 		return self._presentation.feedback_mode(key)
 
 	def _focusAnnouncement(self):
-		value = self._settings.get("focusAnnouncement", _FOCUS_ANNOUNCEMENT_DEFAULT)
-		if isinstance(value, int) and 0 <= value < len(_FOCUS_ANNOUNCEMENT_VALUES):
-			return _FOCUS_ANNOUNCEMENT_VALUES[value]
-		return _FOCUS_ANNOUNCEMENT_VALUES[_FOCUS_ANNOUNCEMENT_DEFAULT]
-
-	@staticmethod
-	def _modeSoundKind(mode):
-		return NvdaPresentation.mode_sound_kind(mode)
-
-	def _playModeSound(self, mode, *, focus_context=False):
-		self._presentation.play_mode_sound(mode, focus_context=focus_context)
+		return self._settingsService.focus_announcement()
 
 	def _actionSpeechAllowed(self, event_type, feedback_key):
 		return self._presentation.action_speech_allowed(event_type, feedback_key)
 
-	def _loadSettings(self):
-		try:
-			section = config.conf[_NVDA_CONFIG_SECTION]
-			connections_value = section.get("connections", "[]")
-			if not isinstance(connections_value, str):
-				raise ValueError("connections must be a JSON string")
-			feedback_section = section.get("feedback", {})
-			if not hasattr(feedback_section, "items"):
-				raise ValueError("feedback must be an object")
-			settings = {
-				"connections": json.loads(connections_value),
-				"focusAnnouncement": section.get(
-					"focusAnnouncement",
-					_FOCUS_ANNOUNCEMENT_DEFAULT,
-				),
-				# NVDA exposes nested configuration through AggregatedSection.
-				# Iterating that object does not have normal mapping semantics,
-				# while its public items() method does.
-				"feedback": dict(feedback_section.items()),
-			}
-		except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
-			self._diagnostics.record(
-				"configError",
-				errorType=type(error).__name__,
-				error=str(error),
-				source="nvdaConfig",
-			)
-			settings = {}
-		return self._normalizeSettings(settings)
-
-	def _normalizeSettings(self, settings):
-		raw_feedback = settings.get("feedback", {})
-		raw_connections = settings.get("connections")
-		if not isinstance(raw_feedback, dict):
-			self._diagnostics.record("configError", error="feedback must be an object")
-			raw_feedback = {}
-		feedback = dict(_FEEDBACK_DEFAULTS)
-		for key in feedback:
-			value = raw_feedback.get(key, feedback[key])
-			if isinstance(value, int) and 0 <= value <= 3:
-				feedback[key] = value
-			else:
-				self._diagnostics.record("configError", error="invalid feedback mode", option=key)
-		try:
-			connections = parse_profiles(raw_connections)
-		except ValueError as error:
-			self._diagnostics.record("configError", error=str(error), option="connections")
-			connections = []
-		focus_announcement = settings.get(
-			"focusAnnouncement",
-			_FOCUS_ANNOUNCEMENT_DEFAULT,
-		)
-		if not (
-			isinstance(focus_announcement, int) and 0 <= focus_announcement < len(_FOCUS_ANNOUNCEMENT_VALUES)
-		):
-			self._diagnostics.record(
-				"configError",
-				error="invalid focus announcement",
-				option="focusAnnouncement",
-			)
-			focus_announcement = _FOCUS_ANNOUNCEMENT_DEFAULT
-		return {
-			"feedback": feedback,
-			"focusAnnouncement": focus_announcement,
-			"connections": [profile.as_dict() for profile in connections],
-		}
-
-	def _onNvdaConfigProfileSwitch(self, **_kwargs):
-		previous = self._settings
-		self._settings = self._loadSettings()
-		connections_changed = previous.get("connections") != self._settings.get("connections")
-		self._diagnostics.record(
-			"nvdaConfigProfileSettingsReloaded",
-			feedbackChanged=previous.get("feedback") != self._settings.get("feedback"),
-			focusAnnouncementChanged=(
-				previous.get("focusAnnouncement") != self._settings.get("focusAnnouncement")
-			),
-			connectionsChanged=connections_changed,
-		)
-		if connections_changed and self._gate.manual_enabled:
-			self._beginClaimInventory()
+	def _onSettingsConnectionsChanged(self):
+		"""Refresh claim discovery only while manual support is active."""
+		if not self._gate.manual_enabled:
+			return False
+		self._beginClaimInventory()
+		return True
 
 	def _connectionProfileById(self, identifier):
-		try:
-			return next(
-				profile
-				for profile in parse_profiles(self._settings.get("connections", []))
-				if profile.identifier == identifier
-			)
-		except (StopIteration, ValueError):
-			return None
+		return self._settingsService.connection_profile_by_id(identifier)
 
 	def _passwordForProfile(self, profile):
 		if profile is None or profile.authentication != "password":
@@ -3506,53 +2485,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._sessionPasswords.clear()
 
 	def _stopClient(self):
-		self._pendingClaimTargets.clear()
-		self._pendingObservedClaim = None
-		self._claimInventoryGeneration += 1
-		self._claimInventoryReady = False
-		self._claimBaselines.clear()
-		self._claimEligibleTargets.clear()
-		self._claimInventoryErrors.clear()
+		self._sessionClaimService.invalidate_connection_state()
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
-		if hasattr(self, "_instanceManager") and self._instanceManager.list():
+		if self._instanceManager.list():
 			try:
 				self._instanceManager.stop_all()
 			finally:
 				self._connectionCoordinator.clear_runtime_tracking()
 			self._diagnostics.record("clientInstancesStopped")
 			return
-		client = self._client
-		self._client = None
-		if client is None:
-			return
-		try:
-			client.stop()
-		except Exception as error:
-			self._diagnostics.record("clientStopError", errorType=type(error).__name__, error=str(error))
-			log.exception("NeovimAccessLink client shutdown failed")
-		self._connected = False
-		self._diagnostics.record("clientStopped")
-
-	@staticmethod
-	def _writeSettingsToNvda(settings):
-		section = config.conf[_NVDA_CONFIG_SECTION]
-		section["focusAnnouncement"] = int(
-			settings.get(
-				"focusAnnouncement",
-				_FOCUS_ANNOUNCEMENT_DEFAULT,
-			)
-		)
-		section["connections"] = json.dumps(
-			settings.get("connections", []),
-			ensure_ascii=False,
-			separators=(",", ":"),
-		)
-		feedback = section["feedback"]
-		values = settings.get("feedback", {})
-		for key, default in _FEEDBACK_DEFAULTS.items():
-			feedback[key] = int(values.get(key, default))
-
-	def _saveSettings(self):
-		self._writeSettingsToNvda(self._settings)
+		self._connectionCoordinator.clear_runtime_tracking()
