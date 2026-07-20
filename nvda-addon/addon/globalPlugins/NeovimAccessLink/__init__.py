@@ -427,6 +427,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			sleep=time.sleep,
 			local_claim_wait_seconds=_LOCAL_CLAIM_WAIT_SECONDS,
 			local_claim_poll_seconds=_LOCAL_CLAIM_POLL_SECONDS,
+			new_instance_runtime=self._newInstanceRuntime,
+			stop_client_async=lambda instance_id, client: self._stopManagedClientAsync(
+				instance_id,
+				client,
+			),
 		)
 		self._terminalFocusService = TerminalFocusService(
 			self._connectionCoordinator,
@@ -444,7 +449,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			monotonic=time.monotonic,
 			lifecycle_interval_ms=_TERMINAL_LIFECYCLE_INTERVAL_MS,
 			new_instance_runtime=self._newInstanceRuntime,
-			stop_client_async=self._stopPrunedClientAsync,
+			stop_client_async=self._stopManagedClientAsync,
 			log_lifecycle_failure=self._logTerminalLifecycleFailure,
 		)
 		self._nvdaUi = NvdaUiManager(
@@ -1697,70 +1702,107 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if not self._instanceManager.list() and self._client is not None:
 			self._stopClient()
-		client = LocalTcpClient(
-			session.host,
-			session.port,
-			lambda event: self._onManagedEvent(
-				getattr(client, "nvim_nvda_instance_id", None),
-				event,
-			),
-			lambda state: self._onManagedState(
-				getattr(client, "nvim_nvda_instance_id", None),
-				state,
-			),
-			on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-				category,
-				{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-			),
-			session_nonce=session.session_nonce,
-		)
 		try:
+			client = LocalTcpClient(
+				session.host,
+				session.port,
+				lambda event: self._onManagedEvent(
+					getattr(client, "nvim_nvda_instance_id", None),
+					event,
+				),
+				lambda state: self._onManagedState(
+					getattr(client, "nvim_nvda_instance_id", None),
+					state,
+				),
+				on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
+					category,
+					{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
+				),
+				session_nonce=session.session_nonce,
+			)
 			target = local_windows_target(_("This computer - local Neovim"))
 			label = _("Local Neovim, {session}").format(
 				session=session_label or _("Neovim session"),
 			)
-			instance = self._instanceManager.add_target(
-				target,
-				session.identifier,
-				label,
-				client,
-				context_label=_("local"),
-			)
-			self._instanceManager.bind(identity, instance.identifier)
-			self._ensureTerminalLifecycleSweep()
-			self._connectionCoordinator.select_instance(
-				instance.identifier,
-				identity,
-				self._newInstanceRuntime,
-			)
-			if offer_remember:
-				self._rememberOfferInstances.add(instance.identifier)
-			if replace_instance_id and replace_instance_id != instance.identifier:
-				self._removeReplacedInstance(replace_instance_id)
-			ui.message(_("Neovim connection started: {name}").format(name=instance.label))
 		except Exception as error:
-			self._diagnostics.record(
-				"connectionInstanceStartError",
-				targetKind=LOCAL_WINDOWS_TCP,
-				errorType=type(error).__name__,
-				error=str(error),
+			self._reportConnectionStartError(
+				error,
+				{"targetKind": LOCAL_WINDOWS_TCP},
+				_("Could not start the local Neovim connection"),
 			)
-			ui.message(_("Could not start the local Neovim connection"))
+			return
+		self._completeManagedConnectionStart(
+			identity,
+			target,
+			session.identifier,
+			label,
+			client,
+			context_label=_("local"),
+			replace_instance_id=replace_instance_id,
+			offer_remember=offer_remember,
+			diagnostic_fields={"targetKind": LOCAL_WINDOWS_TCP},
+			failure_message=_("Could not start the local Neovim connection"),
+		)
 
-	def _removeReplacedInstance(self, instance_id):
-		try:
-			self._instanceManager.remove(instance_id)
-			self._connectionCoordinator.discard_instance_tracking(
-				instance_id,
-				self._newInstanceRuntime,
+	def _completeManagedConnectionStart(
+		self,
+		identity,
+		target,
+		session_id,
+		label,
+		client,
+		*,
+		context_label="",
+		replace_instance_id="",
+		offer_remember=False,
+		diagnostic_fields=None,
+		failure_message="",
+	):
+		result = self._sessionClaimService.start_connection(
+			identity,
+			target,
+			session_id,
+			label,
+			client,
+			context_label=context_label,
+			replace_instance_id=replace_instance_id,
+		)
+		if result.instance is None:
+			self._reportConnectionStartError(
+				RuntimeError(result.error),
+				diagnostic_fields,
+				failure_message,
+				error_type=result.error_type,
 			)
-		except Exception as error:
+			return None
+		self._ensureTerminalLifecycleSweep()
+		if offer_remember:
+			self._rememberOfferInstances.add(result.instance.identifier)
+		if result.replacement_error_type:
 			self._diagnostics.record(
 				"replacedConnectionStopError",
-				instanceId=instance_id,
-				errorType=type(error).__name__,
-				error=str(error),
+				instanceId=replace_instance_id,
+				errorType=result.replacement_error_type,
+				error=result.replacement_error,
 			)
+		ui.message(_("Neovim connection started: {name}").format(name=result.instance.label))
+		return result.instance
+
+	def _reportConnectionStartError(
+		self,
+		error,
+		diagnostic_fields,
+		failure_message,
+		*,
+		error_type="",
+	):
+		self._diagnostics.record(
+			"connectionInstanceStartError",
+			**(diagnostic_fields or {}),
+			errorType=error_type or type(error).__name__,
+			error=str(error),
+		)
+		ui.message(failure_message)
 
 	def action_disconnectConnectionInstance(self, gesture):
 		identity = self._gate.focused
@@ -1984,6 +2026,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		session,
 		replace_existing=False,
 		offer_remember=False,
+		session_label="",
 	):
 		plan = self._sessionClaimService.plan_remote_connection(
 			identity,
@@ -1996,7 +2039,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			profile.identifier,
 			session.identifier,
 			identity=identity,
-			session_label=self._remoteSessionLabel(session),
+			session_label=session_label or self._remoteSessionLabel(session),
 			replace_instance_id=plan.replace_instance_id,
 			offer_remember=offer_remember,
 		)
@@ -2066,14 +2109,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				sessions,
 				include_connection_status=False,
 			)
-			existing = self._instanceManager.selected_for(identity) if replace_existing else None
-			self._startManagedInstance(
-				profile.identifier,
-				session.identifier,
-				identity=identity,
-				session_label=labels[selection],
-				replace_instance_id=existing.identifier if existing is not None else "",
-				offer_remember=offer_remember,
+			self._startDiscoveredSession(
+				profile,
+				identity,
+				session,
+				replace_existing,
+				offer_remember,
+				labels[selection],
 			)
 
 		# Session discovery completes on NVDA's event queue. Schedule the modal
@@ -2108,48 +2150,46 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if not self._instanceManager.list() and self._client is not None:
 			self._stopClient()
-		client = SshStdioClient(
-			profile.ssh_target,
-			lambda event: self._onManagedEvent(getattr(client, "nvim_nvda_instance_id", None), event),
-			lambda state: self._onManagedState(getattr(client, "nvim_nvda_instance_id", None), state),
-			on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
-				category,
-				{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
-			),
-			ssh_port=profile.port,
-			identity_file=profile.identity_file,
-			session_id=session_id,
-			password=password or "",
-			askpass_path=self._askpassPath(),
-		)
 		try:
-			instance = self._instanceManager.add_target(
-				remote_ssh_target(profile.identifier, profile.name),
-				session_id,
-				f"{profile.name}, {session_label}" if session_label else profile.name,
-				client,
-				context_label=profile.name,
+			client = SshStdioClient(
+				profile.ssh_target,
+				lambda event: self._onManagedEvent(
+					getattr(client, "nvim_nvda_instance_id", None),
+					event,
+				),
+				lambda state: self._onManagedState(
+					getattr(client, "nvim_nvda_instance_id", None),
+					state,
+				),
+				on_diagnostic=lambda category, fields: self._recordNetworkDiagnostic(
+					category,
+					{**fields, "instanceId": getattr(client, "nvim_nvda_instance_id", None)},
+				),
+				ssh_port=profile.port,
+				identity_file=profile.identity_file,
+				session_id=session_id,
+				password=password or "",
+				askpass_path=self._askpassPath(),
 			)
-			self._instanceManager.bind(identity, instance.identifier)
-			self._ensureTerminalLifecycleSweep()
-			self._connectionCoordinator.select_instance(
-				instance.identifier,
-				identity,
-				self._newInstanceRuntime,
-			)
-			if offer_remember:
-				self._rememberOfferInstances.add(instance.identifier)
-			if replace_instance_id and replace_instance_id != instance.identifier:
-				self._removeReplacedInstance(replace_instance_id)
-			ui.message(_("Neovim connection started: {name}").format(name=instance.label))
 		except Exception as error:
-			self._diagnostics.record(
-				"connectionInstanceStartError",
-				profileId=profile.identifier,
-				errorType=type(error).__name__,
-				error=str(error),
+			self._reportConnectionStartError(
+				error,
+				{"profileId": profile.identifier},
+				_("Could not start the Neovim connection"),
 			)
-			ui.message(_("Could not start the Neovim connection"))
+			return
+		self._completeManagedConnectionStart(
+			identity,
+			remote_ssh_target(profile.identifier, profile.name),
+			session_id,
+			f"{profile.name}, {session_label}" if session_label else profile.name,
+			client,
+			context_label=profile.name,
+			replace_instance_id=replace_instance_id,
+			offer_remember=offer_remember,
+			diagnostic_fields={"profileId": profile.identifier},
+			failure_message=_("Could not start the Neovim connection"),
+		)
 
 	def _bindManagedInstance(self, instance_id):
 		identity = self._gate.focused
@@ -2626,11 +2666,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _pruneClosedTerminalBindings(self):
 		return self._terminalFocusService.prune_closed_bindings()
 
-	def _stopPrunedClientAsync(self, instance_id, client):
+	def _stopManagedClientAsync(self, instance_id, client):
 		threading.Thread(
-			target=self._stopPrunedClient,
+			target=self._stopManagedClient,
 			args=(instance_id, client),
-			name="nvim-nvda-closed-terminal-stop",
+			name="nvim-nvda-managed-client-stop",
 			daemon=True,
 		).start()
 
@@ -2638,12 +2678,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _logTerminalLifecycleFailure():
 		log.exception("terminal lifecycle sweep failed open")
 
-	def _stopPrunedClient(self, instance_id, client):
+	def _stopManagedClient(self, instance_id, client):
 		try:
 			client.stop()
 		except Exception as error:
 			self._diagnostics.record(
-				"closedTerminalClientStopError",
+				"managedClientStopError",
 				instanceId=instance_id,
 				errorType=type(error).__name__,
 				error=str(error),

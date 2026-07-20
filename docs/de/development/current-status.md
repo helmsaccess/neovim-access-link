@@ -82,9 +82,11 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   lokaler und entfernter Sitzungen einschließlich einer gegebenenfalls zu
   ersetzenden Instanz. Einen aktuellen Wiederverwendungsplan wendet er auf die
   Instanzbindungen an und liefert verdrängte Terminalidentitäten zur
-  NVDA-seitigen Fokusbereinigung zurück. NVDA-Meldungen, Dialoge, konkrete
-  Clientstarts und fokusbezogene Nebenwirkungen behalten ihre bisherigen
-  Hauptthreadgrenzen.
+  NVDA-seitigen Fokusbereinigung zurück. Start, Bindung und Runtime-Auswahl
+  neuer Instanzen bilden dort ebenfalls einen Übergang; Rückrollen und das
+  Stilllegen einer ersetzten Instanz beenden Clients asynchron. NVDA-Meldungen,
+  Dialoge, Clientkonstruktion und fokusbezogene Nebenwirkungen behalten ihre
+  bisherigen Hauptthreadgrenzen.
 
 ### Editorausgabe
 

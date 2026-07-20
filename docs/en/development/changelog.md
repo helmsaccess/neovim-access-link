@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.95.0-dev.24+feature.global-plugin-slimming (feature-branch test build)
+
+- Starting, binding, and selecting the runtime for local and remote clients now
+  form one connection transition in `SessionClaimService`. If selection fails
+  after a client has started, the new instance is rolled back and its client is
+  stopped outside NVDA's main thread.
+- Explicit replacement still fully starts and selects the new instance first.
+  Only then is the old instance detached and its potentially blocking client
+  stop scheduled asynchronously.
+- Selection from the multiple-remote-session dialog now uses the same neutral
+  planning and start path. NVDA messages, client construction, and lifecycle
+  scheduling remain at the NVDA boundary.
+- This internal slice has automated coverage but has not yet received a
+  separate practical check.
+
 ## 0.95.0-dev.23+feature.global-plugin-slimming (feature-branch test build)
 
 - The claim service now also applies a current reuse plan to the shared

@@ -152,8 +152,11 @@ dort. Der Dienst plant inzwischen außerdem Wiederverwendung oder Start einer
 lokalen beziehungsweise entfernten Instanz, ohne selbst Clients oder Bindungen
 zu starten. Einen aktuellen Wiederverwendungsplan setzt er auf den neutralen
 Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
-zurück. Weitere Schnitte verschieben die konkreten Verbindungsstarts und die
-Wiederherstellung gemerkter Bindungen hinter diese Grenze.
+zurück. Start, Bindung und Runtime-Auswahl neuer Instanzen liegen ebenfalls in
+diesem Dienst; Rückrollen und ersetzte Clients werden ohne blockierenden Stopp
+auf dem NVDA-Hauptthread abgewickelt. Weitere Schnitte verschieben
+Clientkonstruktion, Verbindungsbefehle und die Wiederherstellung gemerkter
+Bindungen hinter diese Grenze.
 
 ## 3. Praktische Abschottung verbreitern
 

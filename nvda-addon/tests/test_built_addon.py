@@ -602,8 +602,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.resolve_local_discovery", global_source)
         self.assertIn("self._sessionClaimService.resolve_remote_discovery", global_source)
         self.assertIn("class ConnectionPlan", claim_source)
+        self.assertIn("class ConnectionStartResult", claim_source)
         self.assertIn("self._sessionClaimService.plan_local_connection", global_source)
         self.assertIn("self._sessionClaimService.plan_remote_connection", global_source)
+        self.assertIn("self._sessionClaimService.start_connection", global_source)
+        self.assertNotIn("self._instanceManager.add_target(", global_source)
         self.assertNotIn('name="nvim-nvda-local-session-list"', global_source)
         self.assertNotIn('name="nvim-nvda-session-list"', global_source)
         self.assertNotIn("ThreadPoolExecutor", global_source)
@@ -2301,6 +2304,7 @@ class BuiltAddonTests(unittest.TestCase):
             ConnectionPlan,
             ConnectionPlanKind,
             ConnectionReuseResult,
+            ConnectionStartResult,
             DiscoverySelection,
             DiscoverySelectionKind,
         )
@@ -2311,6 +2315,7 @@ class BuiltAddonTests(unittest.TestCase):
         selection = DiscoverySelection(DiscoverySelectionKind.EMPTY)
         plan = ConnectionPlan(ConnectionPlanKind.START)
         reuse = ConnectionReuseResult(object())
+        start = ConnectionStartResult()
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2324,6 +2329,8 @@ class BuiltAddonTests(unittest.TestCase):
             plan.replace_instance_id = "changed"
         with self.assertRaises(FrozenInstanceError):
             reuse.displaced_identities = ()
+        with self.assertRaises(FrozenInstanceError):
+            start.error = "changed"
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2386,6 +2393,41 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(second.identifier, replacement.replace_instance_id)
         self.assertEqual(["start-first", "start-second"], events)
         self.assertEqual([first, second], plugin._instanceManager.list())
+        plugin.terminate()
+
+    def test_session_claim_service_rolls_back_a_client_that_cannot_be_selected(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_targets import remote_ssh_target
+
+        events = []
+
+        class Client:
+            def start(inner_self):
+                events.append("start")
+
+            def stop(inner_self):
+                events.append("stop")
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
+        with mock.patch.object(
+            plugin._connectionCoordinator,
+            "select_instance",
+            side_effect=RuntimeError("cannot select"),
+        ):
+            result = plugin._sessionClaimService.start_connection(
+                identity,
+                remote_ssh_target("work", "Work"),
+                "22",
+                "Work, project",
+                Client(),
+            )
+
+        self.assertIsNone(result.instance)
+        self.assertEqual("RuntimeError", result.error_type)
+        self.assertEqual([], plugin._instanceManager.list())
+        self.assertEqual(["start", "stop"], events)
         plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
@@ -2912,7 +2954,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], plugin._instanceManager.list())
         self.assertIsNone(plugin._gate.focused)
         self.assertFalse(plugin._gate.suppression_active)
-        self.assertEqual(["nvim-nvda-closed-terminal-stop"], stop_threads)
+        self.assertEqual(["nvim-nvda-managed-client-stop"], stop_threads)
         plugin.terminate()
 
     def test_closed_terminal_pruning_preserves_other_window_and_client(self) -> None:
@@ -4311,6 +4353,7 @@ class BuiltAddonTests(unittest.TestCase):
         old_instance = add_remote_instance(plugin._instanceManager, "work", "1", "old", old)
         plugin._instanceManager.bind(identity, old_instance.identifier)
         plugin._client = old
+        plugin._stopManagedClientAsync = lambda _instance_id, client: client.stop()
         plugin._sessionDiscoveryGeneration = 9
         with mock.patch.object(addon_module, "SshStdioClient", Client):
             plugin._finishSessionDiscovery(

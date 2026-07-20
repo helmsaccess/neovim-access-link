@@ -9,6 +9,7 @@ from enum import Enum
 
 from .core.connection_coordinator import ConnectionCoordinator
 from .core.connection_instances import ConnectionInstance
+from .core.connection_targets import ConnectionTarget
 from .core.gate import TerminalIdentity
 
 
@@ -111,6 +112,17 @@ class ConnectionReuseResult:
 	displaced_identities: tuple[TerminalIdentity, ...] = ()
 
 
+@dataclass(frozen=True)
+class ConnectionStartResult:
+	"""Result of starting and selecting one managed connection instance."""
+
+	instance: ConnectionInstance | None = None
+	error_type: str = ""
+	error: str = ""
+	replacement_error_type: str = ""
+	replacement_error: str = ""
+
+
 class SessionClaimService:
 	"""Own claim authorization and inventory state without NVDA dependencies."""
 
@@ -128,6 +140,8 @@ class SessionClaimService:
 		sleep: Callable[[float], None],
 		local_claim_wait_seconds: float,
 		local_claim_poll_seconds: float,
+		new_instance_runtime: Callable[[], dict],
+		stop_client_async: Callable[[str, object], None],
 	):
 		self._coordinator = coordinator
 		self._recordDiagnostic = record_diagnostic
@@ -140,6 +154,8 @@ class SessionClaimService:
 		self._sleep = sleep
 		self._localClaimWaitSeconds = local_claim_wait_seconds
 		self._localClaimPollSeconds = local_claim_poll_seconds
+		self._newInstanceRuntime = new_instance_runtime
+		self._stopClientAsync = stop_client_async
 		self._gestureGeneration = 0
 		self._pendingObserved: tuple[TerminalIdentity, int] | None = None
 		self._discoveryGeneration = 0
@@ -569,6 +585,69 @@ class SessionClaimService:
 		except ValueError:
 			return None
 		return ConnectionReuseResult(instance, displaced)
+
+	def start_connection(
+		self,
+		identity: TerminalIdentity,
+		target: ConnectionTarget,
+		session_id: str,
+		label: str,
+		client: object,
+		*,
+		context_label: str = "",
+		replace_instance_id: str = "",
+	) -> ConnectionStartResult:
+		"""Start and select a client before asynchronously retiring its replacement."""
+		if not isinstance(identity, TerminalIdentity):
+			return ConnectionStartResult(error_type="ValueError", error="terminal identity is required")
+		manager = self._coordinator.instances
+		try:
+			instance = manager.add_target(
+				target,
+				session_id,
+				label,
+				client,
+				context_label=context_label,
+			)
+		except Exception as error:
+			return ConnectionStartResult(error_type=type(error).__name__, error=str(error))
+		try:
+			manager.bind(identity, instance.identifier)
+			self._coordinator.select_instance(
+				instance.identifier,
+				identity,
+				self._newInstanceRuntime,
+			)
+		except Exception as error:
+			self._discard_started_instance(instance.identifier)
+			return ConnectionStartResult(error_type=type(error).__name__, error=str(error))
+		replacement_error_type = ""
+		replacement_error = ""
+		if replace_instance_id and replace_instance_id != instance.identifier:
+			try:
+				_detached, replaced_client = manager.detach(replace_instance_id)
+				self._coordinator.discard_instance_tracking(
+					replace_instance_id,
+					self._newInstanceRuntime,
+				)
+				self._stopClientAsync(replace_instance_id, replaced_client)
+			except Exception as error:
+				replacement_error_type = type(error).__name__
+				replacement_error = str(error)
+		return ConnectionStartResult(
+			instance=instance,
+			replacement_error_type=replacement_error_type,
+			replacement_error=replacement_error,
+		)
+
+	def _discard_started_instance(self, instance_id: str) -> None:
+		"""Roll back a client that started but could not be selected."""
+		try:
+			_detached, client = self._coordinator.instances.detach(instance_id)
+		except ValueError:
+			return
+		self._coordinator.discard_instance_tracking(instance_id, self._newInstanceRuntime)
+		self._stopClientAsync(instance_id, client)
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1
