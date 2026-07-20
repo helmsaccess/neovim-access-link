@@ -229,6 +229,12 @@ fails independently so one cleanup error cannot leave later resources active.
 Some narrowly injected shutdown callbacks remain transitional until the
 remaining V2-6 ownership cleanup is complete.
 
+The Global Plugin no longer exposes compatibility properties for editor
+planner, canonical state, mode, structured typing state, completion
+documentation, or transport capabilities. Tests and internal consumers use
+the explicit `EditorSessionController` and `ConnectionCoordinator` ownership
+boundary. This avoids maintaining a second writable editor-state interface.
+
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
 that contract. Terminal commands use a fixed enum instead of freely resolved

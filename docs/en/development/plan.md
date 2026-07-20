@@ -187,6 +187,11 @@ The remaining V2-6 work moves composition ownership further into this runtime,
 removes migration properties and narrow transitional callbacks, and completes
 partial-initialization and stale-callback coverage before practical
 acceptance.
+The first migration cleanup is complete: all seven editor-runtime
+compatibility properties have been removed from the Global Plugin, and tests
+now use the controller/coordinator contract directly. Connection-, claim-, and
+focus-related compatibility views are removed only after the same production
+usage audit.
 
 ## 3. Broaden practical isolation coverage
 

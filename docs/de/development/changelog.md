@@ -5,6 +5,20 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.39+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der zweite V2-6-Schnitt entfernt alle sieben
+  Global-Plugin-Kompatibilitätseigenschaften für Editorplaner, kanonischen
+  Zustand, Modus, Tippechozustand, Completion-Dokumentation und
+  Transport-Capabilities.
+- Der Produktivpfad verwendete bereits den `EditorSessionController`; ältere
+  Integrationstests richten Zustand nun über dessen besitzenden
+  `ConnectionCoordinator` ein und prüfen ihn dort, statt eine zweite
+  Global-Plugin-API zu erhalten.
+- Struktur- und Verhaltenstests decken die entfernte Oberfläche, getrennte
+  Tab-/Fenster-Runtimes, Zwischenablage- und Terminalsteuerung,
+  Modusrückmeldung und semantisches Braille-Routing ab.
+
 ## 0.95.0-dev.38+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - V2-6 beginnt mit einem normalen `AddonRuntime`, der die späte

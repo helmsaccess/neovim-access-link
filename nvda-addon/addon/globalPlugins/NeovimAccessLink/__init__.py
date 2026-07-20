@@ -616,54 +616,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return self._presentation.editor_sounds
 
 	@property
-	def _planner(self):
-		return self._connectionCoordinator.planner
-
-	@_planner.setter
-	def _planner(self, value):
-		self._connectionCoordinator.planner = value
-
-	@property
-	def _currentState(self):
-		return self._connectionCoordinator.current_state
-
-	@_currentState.setter
-	def _currentState(self, value):
-		self._connectionCoordinator.current_state = value
-
-	@property
-	def _lastMode(self):
-		return self._connectionCoordinator.last_mode
-
-	@_lastMode.setter
-	def _lastMode(self, value):
-		self._connectionCoordinator.last_mode = value
-
-	@property
-	def _typedWord(self):
-		return self._connectionCoordinator.typed_word
-
-	@_typedWord.setter
-	def _typedWord(self, value):
-		self._connectionCoordinator.typed_word = value
-
-	@property
-	def _typedPosition(self):
-		return self._connectionCoordinator.typed_position
-
-	@_typedPosition.setter
-	def _typedPosition(self, value):
-		self._connectionCoordinator.typed_position = value
-
-	@property
-	def _menuDocumentation(self):
-		return self._connectionCoordinator.menu_documentation
-
-	@_menuDocumentation.setter
-	def _menuDocumentation(self, value):
-		self._connectionCoordinator.menu_documentation = value
-
-	@property
 	def _client(self):
 		return self._connectionCoordinator.active_client
 
@@ -730,14 +682,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@property
 	def _pendingTerminalControlRequests(self):
 		return self._connectionCoordinator.pending_terminal_control_requests
-
-	@property
-	def _transportCapabilities(self):
-		return self._connectionCoordinator.transport_capabilities
-
-	@_transportCapabilities.setter
-	def _transportCapabilities(self, value):
-		self._connectionCoordinator.transport_capabilities = value
 
 	@property
 	def _focusedTerminalObject(self):

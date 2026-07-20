@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.39+feature.global-plugin-slimming (feature-branch test build)
+
+- The second V2-6 slice removes all seven Global Plugin compatibility
+  properties for editor planner, canonical state, mode, typing state,
+  completion documentation, and transport capabilities.
+- Production already used `EditorSessionController`; older integration tests
+  now arrange and inspect state through its owning `ConnectionCoordinator`
+  instead of preserving a second Global Plugin API.
+- Structural and behavioral tests cover the removed surface, isolated tab and
+  window runtimes, clipboard and terminal controls, mode feedback, and
+  semantic Braille routing.
+
 ## 0.95.0-dev.38+feature.global-plugin-slimming (feature-branch test build)
 
 - V2-6 starts with a normal `AddonRuntime` that owns late publication and one

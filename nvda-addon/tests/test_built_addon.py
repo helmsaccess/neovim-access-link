@@ -1295,9 +1295,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsInstance(plugin._connectionCoordinator, ConnectionCoordinator)
         self.assertIs(plugin._instanceManager, plugin._connectionCoordinator.instances)
         self.assertIs(plugin._gate, plugin._connectionCoordinator.gate)
-        self.assertIs(plugin._planner, plugin._connectionCoordinator.planner)
-        self.assertIs(plugin._currentState, plugin._connectionCoordinator.current_state)
-        self.assertIs(plugin._typedWord, plugin._connectionCoordinator.typed_word)
         self.assertIs(
             plugin._rememberedTerminalBindings,
             plugin._connectionCoordinator.remembered_terminal_bindings,
@@ -1314,6 +1311,14 @@ class BuiltAddonTests(unittest.TestCase):
             "_menuDocumentation",
         ):
             self.assertNotIn(legacy_field, vars(plugin))
+        global_source = (
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "__init__.py"
+        ).read_text(encoding="utf-8")
+        for removed_editor_view in (
+            "_planner", "_currentState", "_lastMode", "_typedWord",
+            "_typedPosition", "_menuDocumentation", "_transportCapabilities",
+        ):
+            self.assertNotIn(f"def {removed_editor_view}(self)", global_source)
 
         plugin.terminate()
 
@@ -4829,7 +4834,7 @@ class BuiltAddonTests(unittest.TestCase):
         for setting, expected_speech, expected_braille in cases:
             with self.subTest(focusAnnouncement=setting):
                 self._updateSettings(plugin, {"focusAnnouncement": setting})
-                plugin._planner.reset()
+                plugin._connectionCoordinator.planner.reset()
                 self.spoken.clear()
                 self.brailleMessages.clear()
                 self.soundFeeds.clear()
@@ -5307,8 +5312,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "insert", "bufferId": 1, "lineText": "first",
             "cursor": {"line": 1, "byteColumn": 5},
         }})
-        first_planner = plugin._planner
-        plugin._typedWord = ["firstPending"]
+        first_planner = plugin._connectionCoordinator.planner
+        plugin._connectionCoordinator.typed_word = ["firstPending"]
 
         self.focus = second_obj
         self._focusPlugin(plugin, second_obj)
@@ -5316,9 +5321,9 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal", "bufferId": 1, "lineText": "second",
             "cursor": {"line": 1, "byteColumn": 0},
         }})
-        second_planner = plugin._planner
+        second_planner = plugin._connectionCoordinator.planner
         self.assertIsNot(first_planner, second_planner)
-        plugin._typedWord = ["secondPending"]
+        plugin._connectionCoordinator.typed_word = ["secondPending"]
         plugin._rememberedTerminalBindings.update((first_id, second_id))
         adapter = self._terminalAdapter()
 
@@ -5333,8 +5338,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "insert", "bufferId": 1, "lineText": "first",
             "cursor": {"line": 1, "byteColumn": 4},
         }})
-        self.assertIs(first_planner, plugin._planner)
-        self.assertEqual(["firstPending"], plugin._typedWord)
+        self.assertIs(first_planner, plugin._connectionCoordinator.planner)
+        self.assertEqual(["firstPending"], plugin._connectionCoordinator.typed_word)
 
         self.focus = second_obj
         adapter.event_gainFocus(second_obj, lambda: None)
@@ -5347,8 +5352,8 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "normal", "bufferId": 1, "lineText": "second",
             "cursor": {"line": 1, "byteColumn": 1},
         }})
-        self.assertIs(second_planner, plugin._planner)
-        self.assertEqual(["secondPending"], plugin._typedWord)
+        self.assertIs(second_planner, plugin._connectionCoordinator.planner)
+        self.assertEqual(["secondPending"], plugin._connectionCoordinator.typed_word)
         plugin.terminate()
 
     def test_declined_or_stale_tab_binding_never_auto_reconnects(self) -> None:
@@ -5654,7 +5659,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._activeInstanceId = instance.identifier
         plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
         base = {
             "bufferId": 1, "windowId": 1000, "tabpageId": 1, "changedtick": 9,
             "mode": "visualCharacter", "modeRaw": "v", "modeBlocking": False,
@@ -5662,7 +5667,7 @@ class BuiltAddonTests(unittest.TestCase):
             "fileManager": None, "lineText": "selected",
             "cursor": {"line": 1, "byteColumn": 7},
         }
-        plugin._currentState = base
+        plugin._connectionCoordinator.current_state = base
 
         plugin.action_copyNeovimSelection(None)
         kind, request = client.controls[-1]
@@ -5680,14 +5685,15 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("private selection", plugin._diagnostics.report())
 
         self.clipboard = "Windows text 😀\nsecond line"
-        plugin._currentState = {**base, "mode": "normal", "modeRaw": "n"}
+        plugin._connectionCoordinator.current_state = {**base, "mode": "normal", "modeRaw": "n"}
         plugin.action_pasteWindowsClipboard(None)
         kind, request = client.controls[-1]
         self.assertEqual("pasteTextRequest", kind)
         self.assertEqual(self.clipboard, request["text"])
         plugin._handleManagedEvent(instance.identifier, {
             "type": "pasteTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "pasted", "insertedBytes": 29, "insertedLines": 2,
             },
         })
@@ -5701,7 +5707,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(self.clipboard, request["text"])
         plugin._handleManagedEvent(instance.identifier, {
             "type": "setRegisterResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "registerStored", "registerType": "V",
                 "storedBytes": 21, "storedLineCount": 1,
             },
@@ -5734,8 +5741,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._activeInstanceId = instance.identifier
         plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
             "mode": "normal", "modeRaw": "n", "modeBlocking": False,
             "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
@@ -5746,7 +5753,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "copyTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "copied", "clipboardText": "must not escape",
             },
         })
@@ -5772,8 +5780,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._activeInstanceId = instance.identifier
         plugin._client = client
-        plugin._transportCapabilities = frozenset({"terminalControl"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"terminalControl"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3,
             "mode": "terminal", "modeRaw": "t", "modeBlocking": False,
             "buftype": "terminal",
@@ -5785,14 +5793,19 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("changedtick", request)
         plugin._handleManagedEvent(instance.identifier, {
             "type": "leaveTerminalInputResult", "payload": {
-                **plugin._currentState, "mode": "terminalNormal", "modeRaw": "nt",
+                **plugin._connectionCoordinator.current_state,
+                "mode": "terminalNormal", "modeRaw": "nt",
                 "requestId": request["requestId"], "ok": True, "resultCode": "ok",
             },
         })
         self.assertEqual({}, plugin._pendingTerminalControlRequests)
-        self.assertNotIn("requestId", plugin._currentState)
+        self.assertNotIn("requestId", plugin._connectionCoordinator.current_state)
 
-        plugin._currentState = {**plugin._currentState, "mode": "normal", "modeRaw": "n"}
+        plugin._connectionCoordinator.current_state = {
+            **plugin._connectionCoordinator.current_state,
+            "mode": "normal",
+            "modeRaw": "n",
+        }
         plugin.action_leaveDirectTerminalInput(None)
         self.assertIn("Neovim is not in direct terminal input", self.messages)
         self.assertEqual(1, len(controls))
@@ -5837,8 +5850,8 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._authenticatedInstances.add(instance.identifier)
         plugin._activeInstanceId = instance.identifier
         plugin._client = client
-        plugin._transportCapabilities = frozenset({"clipboardTransfer"})
-        plugin._currentState = {
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"clipboardTransfer"})
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 2, "tabpageId": 3, "changedtick": 4,
             "mode": "normal", "modeRaw": "n", "modeBlocking": False,
             "buftype": "", "modifiable": True, "readonly": False, "fileManager": None,
@@ -5851,7 +5864,8 @@ class BuiltAddonTests(unittest.TestCase):
         self._terminalAdapter().event_appModule_loseFocus()
         plugin._handleManagedEvent(instance.identifier, {
             "type": "pasteTextResult", "payload": {
-                **plugin._currentState, "requestId": request["requestId"], "ok": True,
+                **plugin._connectionCoordinator.current_state,
+                "requestId": request["requestId"], "ok": True,
                 "resultCode": "pasted", "insertedBytes": 20, "insertedLines": 1,
             },
         })
@@ -6363,7 +6377,7 @@ class BuiltAddonTests(unittest.TestCase):
             "normal", "insert", "visualCharacter", "visualLine", "visualBlock",
             "operatorPending", "commandLine", "replace",
         ):
-            plugin._currentState["mode"] = mode
+            plugin._connectionCoordinator.current_state["mode"] = mode
             adapter.event_gainFocus(self.focus, lambda: called.append(True))
             adapter.event_textChange(self.focus, lambda: called.append(True))
             adapter.event_typedCharacter(self.focus, lambda: called.append(True), "x")
@@ -6634,7 +6648,7 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         plugin._gate.bound_terminal = plugin._gate.focused
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "lineText": "\t界🙂z",
             "tabstop": 4,
             "cursor": {"byteColumn": 8},
@@ -6658,7 +6672,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 1000, "changedtick": 9,
             "lineText": "   café/", "cursor": {"line": 3, "byteColumn": 8},
             "fileManager": {"name": "tree", "entry": {
@@ -6699,7 +6713,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         plugin._gate.manual_enabled = True
         for text, expected in (("?", "? selected"), (" ", "space selected")):
-            plugin._planner.reset()
+            plugin._connectionCoordinator.planner.reset()
             plugin._handleEvent({"type": "selectionChanged", "payload": {
                 "mode": "visualCharacter", "lineText": text,
                 "cursor": {"line": 1, "byteColumn": len(text.encode("utf-8"))},
@@ -6945,8 +6959,8 @@ class BuiltAddonTests(unittest.TestCase):
         }})
         self.assertEqual("?", self.spoken[-1])
         config.conf["keyboard"] = {"speakTypedCharacters": 0, "speakTypedWords": 2}
-        plugin._planner.reset()
-        plugin._typedWord = []
+        plugin._connectionCoordinator.planner.reset()
+        plugin._connectionCoordinator.typed_word = []
         plugin._handleEvent({"type": "fullState", "payload": {
             "mode": "insert", "lineText": "", "cursor": {"line": 1, "byteColumn": 0},
         }})
@@ -7064,8 +7078,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("deleted b", self.spoken[-1])
         self.assertEqual([], self.soundFeeds)
 
-        plugin._planner.reset()
-        plugin._lastMode = "normal"
+        plugin._connectionCoordinator.planner.reset()
+        plugin._connectionCoordinator.last_mode = "normal"
         self.spoken.clear()
         plugin._handleEvent({"type": "modeChanged", "payload": {
             "mode": "insert", "modeRaw": "i", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
@@ -7430,7 +7444,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1,
             "windowId": 1000,
             "changedtick": 9,
@@ -7444,7 +7458,7 @@ class BuiltAddonTests(unittest.TestCase):
         region.routeTo(4)
         self.assertEqual("routeCursor", controls[0][0])
         self.assertEqual(1, controls[0][1]["byteColumn"])
-        plugin._currentState["_transport"] = {"capabilities": []}
+        plugin._connectionCoordinator.current_state["_transport"] = {"capabilities": []}
         region.routeTo(4)
         self.assertEqual(1, len(controls))
         self.assertIn('"reason": "capabilityMissing"', plugin._diagnostics.report())
@@ -7459,7 +7473,7 @@ class BuiltAddonTests(unittest.TestCase):
             send_control=lambda kind, payload: controls.append((kind, payload)) or True,
             stop=lambda: None,
         )
-        plugin._currentState = {
+        plugin._connectionCoordinator.current_state = {
             "bufferId": 1,
             "windowId": 1000,
             "changedtick": 9,

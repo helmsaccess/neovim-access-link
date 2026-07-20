@@ -241,6 +241,13 @@ ein Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Einige schmal
 injizierte Abbaucallbacks bleiben bis zur weiteren V2-6-Besitzbereinigung
 vorübergehend bestehen.
 
+Das Global Plugin bietet keine Kompatibilitätseigenschaften für Editorplaner,
+kanonischen Zustand, Modus, strukturierten Tippechozustand,
+Completion-Dokumentation oder Transport-Capabilities mehr an. Tests und
+interne Aufrufer verwenden die ausdrückliche Besitzgrenze von
+`EditorSessionController` und `ConnectionCoordinator`. Dadurch bleibt keine
+zweite schreibbare Editorzustandsschnittstelle erhalten.
+
 Das AppModule und das Braille-Overlay erhalten ausschließlich den
 `TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem
 Vertrag verborgen. Terminalbefehle verwenden eine feste Enum statt frei

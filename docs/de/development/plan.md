@@ -205,6 +205,11 @@ weitere V2-6-Arbeit verschiebt Zusammensetzungsbesitz tiefer in diese Runtime,
 entfernt Migrationseigenschaften und schmale Übergangscallbacks und schließt
 vor der Praxisabnahme die Abdeckung für Teilinitialisierung und verspätete
 Callbacks ab.
+Die erste Migrationsbereinigung ist abgeschlossen: Alle sieben
+Kompatibilitätseigenschaften für die Editorruntime wurden aus dem Global
+Plugin entfernt; Tests verwenden den Controller-/Coordinatorvertrag direkt.
+Verbindungs-, Claim- und Fokus-Kompatibilitätssichten werden erst nach
+demselben Produktivnutzungs-Audit entfernt.
 
 ## 3. Praktische Abschottung verbreitern
 

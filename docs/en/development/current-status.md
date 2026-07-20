@@ -124,14 +124,19 @@ See `compatibility.md` for complete platform boundaries.
   terminal checks, Windows clipboard access, feedback, and sending stay at the
   NVDA boundary. The final audit also routes semantic planner reset and
   per-instance completion-documentation access through the controller. V2-5
-  is complete under automated coverage; compatibility properties remain only
-  as isolated migration wrappers for removal in V2-6.
+  is complete under automated coverage. Its seven temporary Global Plugin
+  compatibility properties have since been removed in V2-6.
 - V2-6 has started with a normal `AddonRuntime`. It publishes the completed
   terminal service only after process-wide registration and owns one fixed,
   idempotent shutdown sequence. Unpublication and fail-open gate reset precede
   connection and state cleanup; UI and presentation close last. Individual
   cleanup failures are diagnosed without stopping later steps, and a late
   initialization failure rolls registrations back.
+- The second V2-6 slice removes the former Global Plugin views of editor
+  planner, state, mode, typing, completion documentation, and transport
+  capabilities. Tests now use the actual coordinator/controller ownership
+  boundary. Remaining compatibility views concern later connection, claim,
+  or focus migration and are audited separately before removal.
 
 ### Editor output
 

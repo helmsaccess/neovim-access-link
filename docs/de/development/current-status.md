@@ -133,8 +133,9 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Senden verbleiben am NVDA-Rand. Der abschließende Audit führt auch das
   Zurücksetzen des semantischen Planers und den Zugriff auf instanzbezogene
   Completion-Dokumentation durch den Controller. V2-5 ist automatisiert
-  abgeschlossen; Kompatibilitätseigenschaften bleiben nur als getrennte
-  Migrationshüllen für ihre Entfernung in V2-6.
+  abgeschlossen. Seine sieben vorübergehenden
+  Global-Plugin-Kompatibilitätseigenschaften wurden inzwischen in V2-6
+  entfernt.
 - V2-6 hat mit einem normalen `AddonRuntime` begonnen. Er veröffentlicht den
   vollständigen Terminaldienst erst nach der prozessweiten Registrierung und
   besitzt eine feste, wiederholbare Abbaureihenfolge. Entfernen des Dienstes
@@ -142,6 +143,12 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Zustandsbereinigung; UI und Präsentation schließen zuletzt. Einzelne
   Bereinigungsfehler werden diagnostiziert, ohne spätere Schritte zu stoppen;
   ein später Initialisierungsfehler rollt Registrierungen zurück.
+- Der zweite V2-6-Schnitt entfernt die früheren Global-Plugin-Sichten auf
+  Editorplaner, Zustand, Modus, Tippecho, Completion-Dokumentation und
+  Transport-Capabilities. Tests verwenden nun die tatsächliche Besitzgrenze
+  von Coordinator und Controller. Verbliebene Kompatibilitätssichten betreffen
+  spätere Verbindungs-, Claim- oder Fokusmigration und werden vor einer
+  Entfernung separat geprüft.
 
 ### Editorausgabe
 
