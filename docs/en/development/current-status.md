@@ -75,8 +75,22 @@ See `compatibility.md` for complete platform boundaries.
   SSH inventory and session-list workers, discovery generation, and candidate
   evaluation run behind that service. It also returns an immutable decision
   between local, remote, and automatic resolution and for each session-list
-  result; NVDA messages, dialogs, and concrete connection starts retain their
-  established main-thread boundaries.
+  result. It plans reuse or start of local and remote sessions, including an
+  instance that may need replacement. The service applies a current reuse
+  plan to instance bindings and returns displaced terminal identities for
+  separate NVDA-side focus cleanup. Starting, binding, and runtime selection
+  of new instances form another service transition; rollback and replacement
+  stop clients asynchronously. NVDA messages, dialogs, client construction,
+  and focus-related side effects retain their established main-thread
+  boundaries. Explicit instance selection and disconnect are neutral service
+  transitions as well: failed selection restores the previous binding, while
+  disconnect removes runtime state and bindings before asynchronous client
+  stop. Restoration of remembered bindings is prepared fail-open and creates
+  a correlated focus-context or full-state request according to authentication
+  state. Delay and transport calls remain at the NVDA boundary. The service
+  also owns pending offers to remember temporary terminal bindings and
+  revalidates focus, control, instance, and selection after the modal question.
+  Dialogs, messages, and diagnostics remain NVDA-side.
 
 ### Editor output
 

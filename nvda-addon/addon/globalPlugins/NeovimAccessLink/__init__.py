@@ -108,6 +108,7 @@ from .session_claim import (  # noqa: E402
 	RememberedBindingActivationKind,
 	RememberedStateRequestKind,
 	SessionClaimService,
+	TemporaryBindingOfferKind,
 )
 from .terminal_focus import (  # noqa: E402
 	TerminalFocusDecision as TerminalFocusDecision,
@@ -1625,11 +1626,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if result is None:
 			return None
 		for terminal in result.displaced_identities:
-			self._rememberedTerminalBindings.discard(terminal)
 			self._terminalFocusService.forget_identity(terminal)
 		self._ensureTerminalLifecycleSweep()
-		if offer_remember and identity not in self._rememberedTerminalBindings:
-			self._rememberOfferInstances.add(result.instance.identifier)
+		if offer_remember and not self._sessionClaimService.is_temporary_binding_remembered(identity):
+			self._sessionClaimService.request_temporary_binding_offer(result.instance.identifier)
 		return result.instance
 
 	def _startLocalSession(
@@ -1779,7 +1779,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return None
 		self._ensureTerminalLifecycleSweep()
 		if offer_remember:
-			self._rememberOfferInstances.add(result.instance.identifier)
+			self._sessionClaimService.request_temporary_binding_offer(result.instance.identifier)
 		if result.replacement_error_type:
 			self._diagnostics.record(
 				"replacedConnectionStopError",
@@ -1834,10 +1834,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		identity = self._gate.focused
 		if identity is None:
 			return
-		if identity not in self._rememberedTerminalBindings:
+		if not self._sessionClaimService.forget_temporary_binding(identity):
 			ui.message(_("No temporary Neovim connection is remembered for this terminal"))
 			return
-		self._rememberedTerminalBindings.discard(identity)
 		self._diagnostics.record("temporaryTerminalBindingForgotten", terminal=self._identityFields(identity))
 		ui.message(_("Temporary Neovim connection forgotten"))
 
@@ -2013,7 +2012,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			and self._activeInstanceId == instance.identifier
 		)
 		self._activateRememberedBinding(identity, instance.identifier)
-		if already_active and instance.identifier in self._rememberOfferInstances:
+		if already_active and self._sessionClaimService.has_temporary_binding_offer(instance.identifier):
 			client.send_control("requestFullState", {})
 		self._diagnostics.record(
 			"claimedSessionTransportReused",
@@ -2217,24 +2216,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		ui.message(_("Neovim connection selected: {name}").format(name=result.instance.label))
 
 	def _offerTemporaryTerminalBinding(self, identity, instance_id):
-		focused = self._gate.focused
-		selected = self._instanceManager.selected_for(focused) if focused else None
-		if focused != identity or selected is None or selected.identifier != instance_id:
+		offer = self._sessionClaimService.prepare_temporary_binding_offer(identity, instance_id)
+		if offer.kind == TemporaryBindingOfferKind.FOCUS_CHANGED:
 			self._diagnostics.record(
 				"temporaryTerminalBindingOfferIgnored",
 				instanceId=instance_id,
 				reason="focusChanged",
 			)
 			return
-		if identity.frontend_kind != "windowsTerminal" or not identity.runtime_id:
+		if offer.kind == TemporaryBindingOfferKind.UNAVAILABLE:
 			self._diagnostics.record(
 				"temporaryTerminalBindingUnavailable",
 				terminal=self._identityFields(identity),
 			)
 			return
-		try:
-			instance = next(item for item in self._instanceManager.list() if item.identifier == instance_id)
-		except StopIteration:
+		if offer.kind != TemporaryBindingOfferKind.OFFER or offer.instance is None:
 			return
 		import gui
 		import wx
@@ -2243,7 +2239,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			_(
 				"Remember this connection for this Windows Terminal tab until NVDA or "
 				"Windows Terminal closes?\n\n{connection}"
-			).format(connection=instance.label),
+			).format(connection=offer.instance.label),
 			_("Remember temporary terminal connection"),
 			wx.YES_NO | wx.ICON_QUESTION,
 			gui.mainFrame,
@@ -2255,11 +2251,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				terminal=self._identityFields(identity),
 			)
 			return
-		self._rememberedTerminalBindings.add(identity)
+		remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
+		if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+			self._diagnostics.record(
+				"temporaryTerminalBindingOfferIgnored",
+				instanceId=instance_id,
+				reason=remembered.kind.value,
+			)
+			return
 		self._diagnostics.record(
 			"temporaryTerminalBindingRemembered",
 			instanceId=instance_id,
-			transportKind=instance.transport_kind,
+			transportKind=remembered.instance.transport_kind,
 			terminal=self._identityFields(identity),
 		)
 		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
@@ -2440,8 +2443,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
 			)
 		self._handleEvent(event)
-		if event.get("type") == "fullState" and instance_id in self._rememberOfferInstances:
-			self._rememberOfferInstances.discard(instance_id)
+		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
+			instance_id
+		):
 			# Activate the authenticated state immediately. Only the optional
 			# remember question is deferred out of NVDA's event queue; its answer
 			# must never control whether native terminal output is suppressed.

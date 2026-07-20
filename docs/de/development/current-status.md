@@ -92,7 +92,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   asynchronen Clientstopp. Die Wiederherstellung gemerkter Bindungen wird dort
   fail-open vorbereitet und erzeugt je nach Authentifizierung eine korrelierte
   Fokuskontext- oder Vollzustandsanforderung. Verzögerung und Transportaufruf
-  bleiben am NVDA-Rand.
+  bleiben am NVDA-Rand. Der Dienst besitzt außerdem den ausstehenden
+  Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
+  Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
+  Diagnostik bleiben NVDA-seitig.
 
 ### Editorausgabe
 

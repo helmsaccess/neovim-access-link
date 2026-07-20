@@ -608,6 +608,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._sessionClaimService.start_connection", global_source)
         self.assertIn("self._sessionClaimService.select_connection", global_source)
         self.assertIn("self._sessionClaimService.disconnect_connection", global_source)
+        self.assertIn("class TemporaryBindingOffer", claim_source)
+        self.assertIn("self._sessionClaimService.prepare_temporary_binding_offer", global_source)
+        self.assertIn("self._sessionClaimService.remember_temporary_binding", global_source)
+        self.assertIn("self._sessionClaimService.forget_temporary_binding", global_source)
+        self.assertIn("self._sessionClaimService.consume_temporary_binding_offer", global_source)
         self.assertIn("self._sessionClaimService.activate_remembered_binding", global_source)
         self.assertIn("self._sessionClaimService.plan_remembered_state_request", global_source)
         self.assertNotIn("self._instanceManager.add_target(", global_source)
@@ -2318,6 +2323,8 @@ class BuiltAddonTests(unittest.TestCase):
             RememberedBindingActivationKind,
             RememberedStateRequest,
             RememberedStateRequestKind,
+            TemporaryBindingOffer,
+            TemporaryBindingOfferKind,
         )
 
         focus = TerminalFocusDecision(object(), 1, None, None, None, False)
@@ -2331,6 +2338,7 @@ class BuiltAddonTests(unittest.TestCase):
         disconnect = ConnectionDisconnectResult()
         activation = RememberedBindingActivation(RememberedBindingActivationKind.STALE)
         state_request = RememberedStateRequest(RememberedStateRequestKind.SKIP)
+        binding_offer = TemporaryBindingOffer(TemporaryBindingOfferKind.STALE)
 
         with self.assertRaises(FrozenInstanceError):
             focus.generation = 2
@@ -2354,6 +2362,62 @@ class BuiltAddonTests(unittest.TestCase):
             activation.kind = RememberedBindingActivationKind.ACTIVATE
         with self.assertRaises(FrozenInstanceError):
             state_request.request_id = 1
+        with self.assertRaises(FrozenInstanceError):
+            binding_offer.kind = TemporaryBindingOfferKind.OFFER
+
+    def test_temporary_binding_offer_revalidates_focus_before_remembering(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.session_claim import TemporaryBindingOfferKind
+
+        class Client:
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        instance = add_remote_instance(
+            plugin._instanceManager,
+            "work",
+            "22",
+            "Work",
+            Client(),
+        )
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._gate.focused = identity
+
+        self.assertTrue(plugin._sessionClaimService.request_temporary_binding_offer(instance.identifier))
+        self.assertTrue(plugin._sessionClaimService.has_temporary_binding_offer(instance.identifier))
+        self.assertTrue(plugin._sessionClaimService.consume_temporary_binding_offer(instance.identifier))
+        self.assertFalse(plugin._sessionClaimService.consume_temporary_binding_offer(instance.identifier))
+        self.assertFalse(plugin._sessionClaimService.request_temporary_binding_offer("missing"))
+        offer = plugin._sessionClaimService.prepare_temporary_binding_offer(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, offer.kind)
+        self.assertEqual(instance, offer.instance)
+
+        plugin._gate.focused = None
+        stale = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, stale.kind)
+        self.assertFalse(plugin._sessionClaimService.is_temporary_binding_remembered(identity))
+
+        plugin._gate.focused = identity
+        remembered = plugin._sessionClaimService.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, remembered.kind)
+        self.assertTrue(plugin._sessionClaimService.is_temporary_binding_remembered(identity))
+        self.assertTrue(plugin._sessionClaimService.forget_temporary_binding(identity))
+        self.assertFalse(plugin._sessionClaimService.forget_temporary_binding(identity))
+        plugin.terminate()
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin

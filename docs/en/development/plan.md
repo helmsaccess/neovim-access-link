@@ -135,8 +135,19 @@ practical check is planned for these internal phases; it will be combined with
 later user-visible V2 stages. V2-4 has begun: `SessionClaimService` owns F12
 authorization, inventory state, scanning, candidate evaluation, and the
 immutable transition decision. Discovery lifetime and session-list workers
-plus domain selection of their results also live there; later slices move
-reuse and connection starts behind it.
+plus domain selection of their results also live there. The service now plans
+reuse or start of a local or remote instance, applies a current reuse plan to
+neutral bindings, and reports displaced terminal identities to the NVDA
+boundary. Start, binding, and runtime selection of new instances are also
+service transitions; rollback and replaced clients are handled without a
+blocking stop on NVDA's main thread. Explicit selection and disconnect are
+transactional service transitions, with client stops scheduled only after
+fail-open state teardown. Fail-open activation of a remembered instance and
+the correlated choice between focus context and full state are also owned by
+the service. It additionally owns pending offers for temporary terminal
+bindings and revalidates focus, control, and instance after the modal dialog;
+dialogs, diagnostics, and transport calls remain at the NVDA boundary. A
+later slice moves client construction behind this boundary.
 
 ## 3. Broaden practical isolation coverage
 

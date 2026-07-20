@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0-dev.27+feature.global-plugin-slimming (feature-branch test build)
+
+- `SessionClaimService` now also owns a pending offer to remember a temporary
+  terminal binding, its consumption after `fullState`, and remembering,
+  querying, and forgetting that binding.
+- Focus, exact `TermControl` identity, instance binding, and availability are
+  validated before and after the modal question. A focus or session change
+  while the dialog is open can therefore no longer persist a stale binding.
+- The translated NVDA dialog, messages, diagnostics, and triggering after the
+  authenticated full state remain at the NVDA boundary. This internal slice
+  has automated coverage but has not yet received a separate practical check.
+
 ## 0.95.0-dev.26+feature.global-plugin-slimming (feature-branch test build)
 
 - The neutral service now prepares restoration of a remembered terminal

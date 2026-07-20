@@ -91,6 +91,15 @@ class RememberedStateRequestKind(Enum):
 	FULL_STATE = "fullState"
 
 
+class TemporaryBindingOfferKind(Enum):
+	"""Eligibility outcome for remembering a terminal-to-instance binding."""
+
+	FOCUS_CHANGED = "focusChanged"
+	UNAVAILABLE = "unavailable"
+	STALE = "stale"
+	OFFER = "offer"
+
+
 @dataclass(frozen=True)
 class ClaimTransition:
 	"""Immutable routing decision without NVDA UI or client side effects."""
@@ -175,6 +184,14 @@ class RememberedStateRequest:
 	kind: RememberedStateRequestKind
 	client: object | None = None
 	request_id: int = 0
+
+
+@dataclass(frozen=True)
+class TemporaryBindingOffer:
+	"""Validated instance for a still-current temporary binding offer."""
+
+	kind: TemporaryBindingOfferKind
+	instance: ConnectionInstance | None = None
 
 
 class SessionClaimService:
@@ -635,6 +652,7 @@ class SessionClaimService:
 			)
 			for terminal in displaced:
 				manager.unbind(terminal)
+				self._coordinator.remembered_terminal_bindings.discard(terminal)
 			manager.bind(identity, instance.identifier)
 		except ValueError:
 			return None
@@ -847,6 +865,62 @@ class SessionClaimService:
 			client,
 			request_id,
 		)
+
+	def request_temporary_binding_offer(self, instance_id: str) -> bool:
+		"""Remember that one live instance should offer persistence after fullState."""
+		if not any(item.identifier == instance_id for item in self._coordinator.instances.list()):
+			return False
+		self._coordinator.remember_offer_instances.add(instance_id)
+		return True
+
+	def is_temporary_binding_remembered(self, identity: TerminalIdentity) -> bool:
+		return identity in self._coordinator.remembered_terminal_bindings
+
+	def has_temporary_binding_offer(self, instance_id: str) -> bool:
+		return instance_id in self._coordinator.remember_offer_instances
+
+	def consume_temporary_binding_offer(self, instance_id: str) -> bool:
+		if instance_id not in self._coordinator.remember_offer_instances:
+			return False
+		self._coordinator.remember_offer_instances.discard(instance_id)
+		return True
+
+	def prepare_temporary_binding_offer(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> TemporaryBindingOffer:
+		"""Validate focus, selection, frontend identity, and instance before UI opens."""
+		focused = self._coordinator.gate.focused
+		selected = self._coordinator.instances.selected_for(focused) if focused else None
+		if focused != identity or selected is None or selected.identifier != instance_id:
+			return TemporaryBindingOffer(TemporaryBindingOfferKind.FOCUS_CHANGED)
+		if identity.frontend_kind != "windowsTerminal" or not identity.runtime_id:
+			return TemporaryBindingOffer(TemporaryBindingOfferKind.UNAVAILABLE)
+		instance = next(
+			(item for item in self._coordinator.instances.list() if item.identifier == instance_id),
+			None,
+		)
+		if instance is None:
+			return TemporaryBindingOffer(TemporaryBindingOfferKind.STALE)
+		return TemporaryBindingOffer(TemporaryBindingOfferKind.OFFER, instance)
+
+	def remember_temporary_binding(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> TemporaryBindingOffer:
+		"""Revalidate and remember the binding after the modal confirmation."""
+		offer = self.prepare_temporary_binding_offer(identity, instance_id)
+		if offer.kind == TemporaryBindingOfferKind.OFFER:
+			self._coordinator.remembered_terminal_bindings.add(identity)
+		return offer
+
+	def forget_temporary_binding(self, identity: TerminalIdentity) -> bool:
+		if identity not in self._coordinator.remembered_terminal_bindings:
+			return False
+		self._coordinator.remembered_terminal_bindings.discard(identity)
+		return True
 
 	def begin_inventory(self) -> int:
 		self._inventoryGeneration += 1

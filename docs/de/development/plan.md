@@ -155,12 +155,14 @@ Instanzbindungen um und gibt verdrängte Terminalidentitäten an den NVDA-Rand
 zurück. Start, Bindung und Runtime-Auswahl neuer Instanzen liegen ebenfalls in
 diesem Dienst; Rückrollen und ersetzte Clients werden ohne blockierenden Stopp
 auf dem NVDA-Hauptthread abgewickelt. Weitere Schnitte verschieben
-Clientkonstruktion und die Wiederherstellung gemerkter Bindungen hinter diese
-Grenze. Explizite Auswahl und Trennung laufen bereits als transaktionale
+die Clientkonstruktion hinter diese Grenze. Explizite Auswahl und Trennung
+laufen bereits als transaktionale
 Dienstübergänge; Clientstopps werden erst nach dem fail-open Zustandsabbau
 asynchron ausgeführt. Die fail-open Aktivierung einer gemerkten Instanz und die
 korrelierte Entscheidung zwischen Fokuskontext und Vollzustand liegen
-inzwischen ebenfalls im Dienst; UI-Angebot und Transportaufruf bleiben am
+inzwischen ebenfalls im Dienst. Er besitzt auch den ausstehenden Merkvorgang
+temporärer Terminalbindungen und validiert Fokus, Control und Instanz nach dem
+modalen Dialog erneut; Dialog, Diagnostik und Transportaufruf bleiben am
 NVDA-Rand.
 
 ## 3. Praktische Abschottung verbreitern

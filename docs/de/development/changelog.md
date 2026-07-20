@@ -5,6 +5,19 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.27+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der `SessionClaimService` besitzt nun auch den ausstehenden Merkvorgang für
+  eine temporäre Terminalbindung, dessen Verbrauch nach `fullState` sowie
+  Merken, Nachschlagen und Vergessen der Zuordnung.
+- Vor und nach der modalen Rückfrage werden Fokus, konkrete `TermControl`-
+  Identität, Instanzbindung und Verfügbarkeit erneut geprüft. Ein Fokus- oder
+  Sitzungswechsel während des Dialogs kann dadurch keine veraltete Zuordnung
+  speichern.
+- Der übersetzte NVDA-Dialog, Meldungen, Diagnostik und das Auslösen nach dem
+  authentifizierten Vollzustand bleiben am NVDA-Rand. Dieser interne Schnitt
+  wurde automatisiert, aber noch nicht separat praktisch geprüft.
+
 ## 0.95.0-dev.26+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der neutrale Dienst bereitet die Wiederherstellung einer gemerkten
