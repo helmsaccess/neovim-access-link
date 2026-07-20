@@ -218,7 +218,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
-| `EditorSessionController` | fachliche Mutation des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transportzustand, Verbindungsübergänge, neutrale Tippechoaktionen sowie begrenzte Zwischenablage-/Terminalsteuerungsanfragen und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
+| `EditorSessionController` | fachliche Mutation des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie begrenzte Zwischenablage-/Terminalsteuerungsanfragen und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -258,9 +258,13 @@ Reaktivierung überbrückt; ein abweichender Terminalfokus verwirft sie.
 Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
 `ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren
 fachliche Mutation zuständig. Er übernimmt Zustands- und Modusübergänge,
-Transportfähigkeiten, Menü-Dokumentation, Verbindungszustand und das
-instanzgetrennte Tippecho. Seine geordneten neutralen Tippechoaktionen werden
-erst am NVDA-Rand als Sprache ausgegeben. Für jedes validierte Ereignis bündelt
+Transportfähigkeiten, Menü-Dokumentation, Verbindungszustand,
+instanzgetrennten Terminal-Passthrough und Tippecho. Bei einem bereits
+validierten Fokus-/Kontextereignis ergänzt er den gespeicherten
+Verbindungsnamen vor Zustands- und Sprachplanung in einer Kopie; er entscheidet
+nicht, ob das Ereignis zum fokussierten Terminal gehört. Seine geordneten
+neutralen Tippechoaktionen werden erst am NVDA-Rand als Sprache ausgegeben. Für
+jedes validierte Ereignis bündelt
 ein unveränderlicher Plan den Zustandsübergang, den fachlichen
 Terminal-Passthrough, höchstens einen Modusklang und die geordneten neutralen
 Sprachaktionen. Das Global Plugin wendet den Passthrough am Gate an und reicht

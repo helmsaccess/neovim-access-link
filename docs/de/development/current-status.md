@@ -115,14 +115,17 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Antworten mit Instanz und Terminalidentität und entfernt einmaligen
   Zwischenablagetext vor der weiteren Zustandsverarbeitung. Transportaufruf,
   Fokus-/Gate-Prüfung, Windows-Zwischenablage und konkrete Ausgabe bleiben am
-  NVDA-Rand. Der nächste Schnitt bündelt Zustandsübergang,
-  Terminal-Passthrough, Modusklangentscheidung und neutrale Sprachaktionen in
-  einem unveränderlichen Ereignisplan. Das Global Plugin wendet nur noch die
-  Gate-Entscheidung an und liefert den Plan über `NvdaPresentation` aus. Der
-  Braillepfad erhält vom Controller einen isolierten Zeilenplan; semantisches
-  Cursor-Routing wird dort gegen Capability, aktiven Client und vollständigen
-  Editorzustand validiert. Terminalbestätigung, NVDA-Overlay und der konkrete
-  Transportaufruf bleiben außerhalb.
+  NVDA-Rand. Der Controller bündelt Zustandsübergang, Terminal-Passthrough,
+  Modusklangentscheidung und neutrale Sprachaktionen in einem
+  unveränderlichen Ereignisplan. Er speichert außerdem den entstehenden
+  Passthroughzustand für die aktive Instanz und ergänzt den gespeicherten
+  Verbindungsnamen in einer getrennten Kopie eines bereits validierten Fokus-
+  oder Kontextereignisses. Das Global Plugin wendet die Gate-Entscheidung an
+  und liefert den Plan über `NvdaPresentation` aus. Der Braillepfad erhält vom
+  Controller einen isolierten Zeilenplan; semantisches Cursor-Routing wird
+  dort gegen Capability, aktiven Client und vollständigen Editorzustand
+  validiert. Terminalbestätigung, Instanzauthentifizierung, NVDA-Overlay und
+  konkreter Transport bleiben außerhalb.
 
 ### Editorausgabe
 

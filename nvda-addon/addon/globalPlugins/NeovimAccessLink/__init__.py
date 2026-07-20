@@ -2311,18 +2311,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			event = self._handleTerminalControlResult(instance_id, identity, event)
 			if event is None:
 				return
-		payload = event.get("payload")
 		if event.get("type") == "fullState":
 			self._authenticatedInstances.add(instance_id)
-		if isinstance(payload, dict):
-			if event.get("type") in {"focusContext", "contextChanged"}:
-				payload = dict(payload)
-				payload["_connectionLabel"] = selected.context_label
-				event = {**event, "payload": payload}
-			self._instanceTerminalPassthrough[instance_id] = (
-				payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
-			)
-		self._handleEvent(event)
+		self._handleEvent(event, connection_label=selected.context_label)
 		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
 			instance_id
 		):
@@ -2567,7 +2558,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Neovim connection lost; normal terminal output restored"))
 			self._refreshBraille(rebuild=True)
 
-	def _handleEvent(self, event):
+	def _handleEvent(self, event, *, connection_label=None):
 		activated = False
 		payload = event.get("payload")
 		plan = self._editorSessionController.plan_event(
@@ -2575,6 +2566,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			focus_announcement=self._focusAnnouncement(),
 			plan_speech=self._gate.manual_enabled,
 			allow_focus_context_cue=self._gate.manual_enabled,
+			connection_label=connection_label,
 		)
 		transition = plan.transition
 		keyObserverDiagnostics = (

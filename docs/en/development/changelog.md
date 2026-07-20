@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.95.0-dev.35+feature.global-plugin-slimming (feature-branch test build)
+
+- The fifth V2-5 slice makes `EditorSessionController` normalize the saved
+  connection label for already validated focus/context events without
+  mutating the received event.
+- The controller now also records each active instance's terminal-passthrough
+  decision together with its editor event plan. The Global Plugin no longer
+  duplicates either editor-state rule.
+- Terminal focus, instance selection, authentication, diagnostics, concrete
+  output, and transport remain at their existing fail-open boundaries.
+
 ## 0.95.0-dev.34+feature.global-plugin-slimming (feature-branch test build)
 
 - The fourth V2-5 slice moves isolated Braille planning and semantic

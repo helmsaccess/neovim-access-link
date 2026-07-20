@@ -108,14 +108,16 @@ See `compatibility.md` for complete platform boundaries.
   and terminal-control requests, correlates their replies to instance and
   terminal identity, and removes one-shot clipboard text before further state
   processing. Transport calls, focus/gate validation, the Windows clipboard,
-  and concrete output remain at the NVDA boundary. The next slice combines the
+  and concrete output remain at the NVDA boundary. The controller combines
   state transition, terminal passthrough, mode-cue decision, and neutral
-  speech actions in one immutable event plan. The Global Plugin only applies
-  the gate decision and delivers the plan through `NvdaPresentation`. The
-  Braille path receives an isolated line plan from the controller; semantic
-  cursor routing is validated there against capability, active client, and
-  complete editor state. Terminal confirmation, the NVDA overlay, and the
-  concrete transport call remain outside.
+  speech actions in one immutable event plan. It also records the resulting
+  passthrough state for the active instance and adds the saved connection
+  label to an isolated copy of an already validated focus/context event. The
+  Global Plugin applies the gate decision and delivers the plan through
+  `NvdaPresentation`. The Braille path receives an isolated line plan from the
+  controller; semantic cursor routing is validated there against capability,
+  active client, and complete editor state. Terminal confirmation, instance
+  authentication, the NVDA overlay, and concrete transport remain outside.
 
 ### Editor output
 

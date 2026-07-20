@@ -169,7 +169,9 @@ immutable event plan. The Global Plugin no longer plans editor events itself;
 it only delivers through NVDA and applies gate transitions. The fourth slice
 adds isolated Braille plans and validated semantic routing plans. The overlay
 remains NVDA-specific, and only the NVDA boundary performs the fixed
-`routeCursor` transport call.
+`routeCursor` transport call. The fifth slice moves connection-label
+normalization and active-instance passthrough tracking into the controller.
+Focus correlation, authentication, and transport deliberately remain outside.
 
 ## 3. Broaden practical isolation coverage
 

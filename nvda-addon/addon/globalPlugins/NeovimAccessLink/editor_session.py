@@ -235,14 +235,20 @@ class EditorSessionController:
 		focus_announcement: str,
 		plan_speech: bool,
 		allow_focus_context_cue: bool,
+		connection_label: str | None = None,
 	) -> EditorEventPlan:
 		"""Apply one event and return NVDA-neutral presentation decisions."""
-		transition = self.apply_event(event)
-		payload_value = event.get("payload")
+		planned_event = self._with_connection_label(event, connection_label)
+		transition = self.apply_event(planned_event)
+		payload_value = planned_event.get("payload")
 		payload = payload_value if isinstance(payload_value, dict) else None
 		terminal_passthrough = bool(
 			payload is not None and payload.get("buftype") == "terminal" and payload.get("mode") == "terminal"
 		)
+		if payload is not None and self._coordinator.active_instance_id is not None:
+			self._coordinator.terminal_passthrough[self._coordinator.active_instance_id] = (
+				terminal_passthrough
+			)
 		mode_cue = self._plan_mode_cue(
 			transition,
 			payload,
@@ -251,7 +257,7 @@ class EditorSessionController:
 		speech_actions = (
 			tuple(
 				self._coordinator.planner.plan(
-					dict(event),
+					dict(planned_event),
 					focus_announcement=focus_announcement,
 				)
 			)
@@ -264,6 +270,24 @@ class EditorSessionController:
 			mode_cue=mode_cue,
 			speech_actions=speech_actions,
 		)
+
+	@staticmethod
+	def _with_connection_label(
+		event: Mapping[str, Any],
+		connection_label: str | None,
+	) -> Mapping[str, Any]:
+		if event.get("type") not in {"focusContext", "contextChanged"}:
+			return event
+		payload = event.get("payload")
+		if not isinstance(payload, dict) or connection_label is None:
+			return event
+		return {
+			**event,
+			"payload": {
+				**payload,
+				"_connectionLabel": connection_label,
+			},
+		}
 
 	def reset_typed_echo(self) -> None:
 		self._coordinator.typed_word = []

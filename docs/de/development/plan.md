@@ -184,7 +184,10 @@ das Global Plugin Editorereignisse nicht mehr selbst, sondern liefert nur
 über NVDA aus und wendet Gate-Übergänge an. Der vierte Schnitt ergänzt
 isolierte Braillepläne und validierte semantische Routingpläne. Das Overlay
 bleibt NVDA-spezifisch, und nur der NVDA-Rand führt den festen
-`routeCursor`-Transportaufruf aus.
+`routeCursor`-Transportaufruf aus. Der fünfte Schnitt verschiebt die
+Normalisierung des Verbindungsnamens und die Passthroughverfolgung der aktiven
+Instanz in den Controller. Fokuskorrelation, Authentifizierung und Transport
+bleiben bewusst außerhalb.
 
 ## 3. Praktische Abschottung verbreitern
 

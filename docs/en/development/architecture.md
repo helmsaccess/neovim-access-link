@@ -207,7 +207,7 @@ must not close output again before state is confirmed.
 | `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | Application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
-| `EditorSessionController` | Domain mutation of the active isolated per-instance editor state, runtime switching, mode/menu/transport state, connection transitions, neutral typing actions, and bounded clipboard/terminal-control requests with reply correlation | Concrete NVDA output, focus binding, the Windows clipboard, network I/O, or instance lifetime |
+| `EditorSessionController` | Domain mutation of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, connection-label normalization, neutral typing actions, and bounded clipboard/terminal-control requests with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -246,8 +246,11 @@ reactivation; a different terminal focus discards it.
 The V2-5 `EditorSessionController` uses the active runtime managed by
 `ConnectionCoordinator` but is solely responsible for its domain mutation. It
 owns state and mode transitions, transport capabilities, menu documentation,
-connection state, and isolated per-instance typing echo. Its ordered neutral
-typing actions become speech only at the NVDA boundary. Protocol-envelope
+connection state, per-instance terminal passthrough, and isolated typing echo.
+For an already validated focus/context event, it adds the saved connection
+label to a copy before state and speech planning; it does not decide whether
+that event belongs to the focused terminal. Its ordered neutral typing actions
+become speech only at the NVDA boundary. Protocol-envelope
 validation and network callbacks remain separate. For each validated event,
 an immutable plan combines the state transition, domain terminal passthrough,
 at most one mode cue, and the ordered neutral speech actions. The Global

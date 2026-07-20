@@ -965,6 +965,7 @@ class BuiltAddonTests(unittest.TestCase):
             allow_focus_context_cue=True,
         )
         self.assertTrue(direct_terminal.terminal_passthrough)
+        self.assertTrue(coordinator.terminal_passthrough["instance-1"])
         self.assertEqual("terminal", direct_terminal.mode_cue.mode)
         self.assertEqual((), direct_terminal.speech_actions)
 
@@ -985,6 +986,7 @@ class BuiltAddonTests(unittest.TestCase):
             allow_focus_context_cue=True,
         )
         self.assertFalse(terminal_normal.terminal_passthrough)
+        self.assertFalse(coordinator.terminal_passthrough["instance-1"])
         self.assertEqual("terminalNormal", terminal_normal.mode_cue.mode)
 
         duplicate = controller.plan_event(
@@ -1003,22 +1005,26 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertIsNone(duplicate.mode_cue)
 
-        focus = controller.plan_event(
-            {
-                "type": "focusContext",
-                "payload": {
-                    "bufferId": 2,
-                    "mode": "terminalNormal",
-                    "modeRaw": "nt",
-                    "buftype": "terminal",
-                },
+        focus_event = {
+            "type": "focusContext",
+            "payload": {
+                "bufferId": 2,
+                "mode": "terminalNormal",
+                "modeRaw": "nt",
+                "buftype": "terminal",
             },
+        }
+        focus = controller.plan_event(
+            focus_event,
             focus_announcement="none",
             plan_speech=True,
             allow_focus_context_cue=False,
+            connection_label="Remote example",
         )
         self.assertIsNone(focus.mode_cue)
         self.assertEqual((), focus.speech_actions)
+        self.assertNotIn("_connectionLabel", focus_event["payload"])
+        self.assertEqual("Remote example", coordinator.current_state["_connectionLabel"])
 
     def test_editor_session_controller_plans_braille_snapshot_and_validated_route(self) -> None:
         from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
@@ -1089,6 +1095,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("self._editorSession.plan_braille_route(", facade_source)
         self.assertNotIn("self._runtime._currentState", facade_source)
         self.assertNotIn("self._runtime._routeBrailleCursor", facade_source)
+        self.assertNotIn('payload["_connectionLabel"]', global_source)
+        self.assertNotIn("self._instanceTerminalPassthrough[instance_id] =", global_source)
 
     def test_nvda_ui_manager_accepts_only_narrow_dependencies(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_ui import NvdaUiManager

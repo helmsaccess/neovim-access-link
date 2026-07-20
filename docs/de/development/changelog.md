@@ -5,6 +5,17 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.0-dev.35+feature.global-plugin-slimming (Featurebranch-Testbuild)
+
+- Der fünfte V2-5-Schnitt lässt den `EditorSessionController` den gespeicherten
+  Verbindungsnamen für bereits validierte Fokus-/Kontextereignisse
+  normalisieren, ohne das empfangene Ereignis zu verändern.
+- Der Controller speichert nun außerdem die Terminal-Passthrough-Entscheidung
+  jeder aktiven Instanz zusammen mit ihrem Editorereignisplan. Das Global
+  Plugin dupliziert keine der beiden Editorzustandsregeln mehr.
+- Terminalfokus, Instanzauswahl, Authentifizierung, Diagnostik, konkrete
+  Ausgabe und Transport verbleiben an ihren bestehenden Fail-open-Grenzen.
+
 ## 0.95.0-dev.34+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der vierte V2-5-Schnitt verschiebt die isolierte Brailleplanung und die
