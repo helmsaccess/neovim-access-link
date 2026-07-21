@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.95.1
+
+- The Global Plugin is now a narrower process-lifetime composition root.
+  Windows Terminal application events and overlays remain owned by the
+  AppModule, while dedicated services own terminal focus, session claims,
+  editor state, managed clients, settings, Braille integration, and runtime
+  coordination.
+- Process-wide service publication uses a small neutral registry rather than
+  AppModule or Braille code importing the Global Plugin. Explicit ownership
+  boundaries and fail-open behavior are protected by structural package tests.
+- The refactoring preserves local and SSH sessions across multiple Windows
+  Terminal windows, tabs, and panes, including focus changes, mode reporting,
+  clipboard transfer, file-manager workflows, component updates, and NVDA
+  reloads. The F12 claim path was corrected so an accepted local claim remains
+  associated when the remember prompt temporarily changes focus.
+- Built-add-on tests now exercise the extracted services directly and enforce
+  their dependency direction. The developer documentation includes dated
+  architecture and code-quality reviews comparing this result with version
+  0.94.2 and recording the remaining practical test limits.
+
 ## 0.95.0-dev.49+feature.global-plugin-slimming (feature-branch test build)
 
 - The final V2-6 structural audit removes the last test-only Global Plugin

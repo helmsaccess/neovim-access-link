@@ -1,8 +1,8 @@
 # Current status
 
-Status date: July 21, 2026. Product version in the source tree: 0.95.0.
+Status date: July 21, 2026. Product version in the source tree: 0.95.1.
 
-The source tree is prepared for version 0.95.0. Its corresponding GitHub
+The source tree is prepared for version 0.95.1. Its corresponding GitHub
 release link is kept prominently in `README.md`. Project-defined maturity
 remains between alpha and beta. This documentation does not infer a higher
 stability classification from test coverage, version number, or feature count.

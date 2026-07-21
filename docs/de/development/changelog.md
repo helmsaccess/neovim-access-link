@@ -5,6 +5,27 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.1
+
+- Das Global Plugin ist nun eine schmalere Kompositionswurzel mit
+  prozessweiter Lebensdauer. Anwendungsevents und Overlays von Windows Terminal
+  bleiben im AppModule; eigene Dienste besitzen Terminalfokus,
+  Sitzungszuordnung, Editorzustand, verwaltete Clients, Einstellungen,
+  Brailleintegration und Laufzeitkoordination.
+- Ein kleines neutrales Register veröffentlicht den prozessweiten Dienst,
+  statt dass AppModule oder Braillecode das Global Plugin importieren.
+  Strukturtests am gebauten Add-on sichern die Besitzgrenzen,
+  Abhängigkeitsrichtung und das Fail-open-Verhalten ab.
+- Die Umstrukturierung erhält lokale und SSH-Sitzungen über mehrere
+  Windows-Terminal-Fenster, Tabs und Panes hinweg, einschließlich Fokuswechsel,
+  Modusausgabe, Zwischenablage, Dateimanagerabläufen, Komponentenupdates und
+  NVDA-Neuladen. Der F12-Zuordnungspfad behält eine angenommene lokale
+  Zuordnung nun auch dann bei, wenn die Merken-Abfrage den Fokus kurz ändert.
+- Tests des gebauten Add-ons prüfen die ausgelagerten Dienste direkt und
+  erzwingen ihre Abhängigkeitsgrenzen. Die Entwicklerdokumentation enthält
+  datierte Architektur- und Codequalitätsreviews, die das Ergebnis mit Version
+  0.94.2 vergleichen und verbleibende praktische Testgrenzen festhalten.
+
 ## 0.95.0-dev.49+feature.global-plugin-slimming (Featurebranch-Testbuild)
 
 - Der abschließende V2-6-Strukturaudit entfernt die letzte ausschließlich von
