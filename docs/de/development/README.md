@@ -10,13 +10,15 @@ oder Tests belegt sind. Die Bedienung des fertigen Add-ons steht im
 Wer das Projekt noch nicht kennt, liest diese Seiten in der folgenden
 Reihenfolge:
 
-1. [Architektur](architecture.md) – mentales Modell, Begriffe, Komponenten und
-   der vollständige Weg eines Ereignisses von Neovim bis NVDA.
-2. [Repository-Struktur](repository-layout.md) – wo die zugehörigen Quellen und
+1. [Überblick für neue Entwickler](overview.md) – Grundidee, Datenfluss und
+   Aufgabenteilung ohne Implementierungsdetails.
+2. [Architektur](architecture.md) – Prozesse, Begriffe, Zuständigkeiten und der
+   vollständige Lebenszyklus einer Verbindung.
+3. [Repository-Struktur](repository-layout.md) – wo die zugehörigen Quellen und
    Tests liegen.
-3. [Einstieg für Entwicklung und Tests](getting-started.md) – Voraussetzungen,
+4. [Einstieg für Entwicklung und Tests](getting-started.md) – Voraussetzungen,
    erste Befehle und passende Prüfungen für typische Änderungen.
-4. [Aktueller Status](current-status.md) – bestätigte Plattformen, Reifegrad
+5. [Aktueller Status](current-status.md) – bestätigte Plattformen, Reifegrad
    und bekannte Grenzen des gegenwärtigen Stands.
 
 Die ersten drei Dokumente erklären dauerhaft gültige Zusammenhänge. Der
@@ -62,6 +64,8 @@ Code.
 
 ## Welche Seite ist wofür maßgeblich?
 
+- `overview.md` vermittelt das vereinfachte Grundmodell; für konkrete interne
+  Grenzen ist die Architektur maßgeblich.
 - `architecture.md` beschreibt aktuelle Komponenten, Verantwortlichkeiten und
   Abhängigkeitsgrenzen.
 - `protocol.md` ist die Referenz für Nachrichten, Validierung und Steuerbefehle.

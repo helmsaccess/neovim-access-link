@@ -1,9 +1,11 @@
 # Architektur
 
-Dieses Kapitel erklärt zuerst das Gesamtbild und folgt danach einer Verbindung
-von ihrem Start bis zur Ausgabe. Spezialfälle stehen bewusst am Ende. Wer das
-Projekt zum ersten Mal liest, sollte dieses Kapitel vor dem Protokoll und den
-einzelnen ADRs lesen.
+Dieses Kapitel vertieft den [Überblick für neue Entwickler](overview.md). Es
+setzt dessen Grundmodell voraus und folgt derselben Reihenfolge: beteiligte
+Prozesse und Datenwege, Begriffe und Verbindungslebenszyklus, Zuständigkeiten
+im Add-on sowie spezialisierte Teilsysteme. Wer das Projekt zum ersten Mal
+liest, sollte deshalb mit dem Überblick beginnen und dieses Kapitel danach vor
+dem Protokoll und den einzelnen ADRs lesen.
 
 ## Ziel und Grundprinzipien
 
@@ -180,9 +182,10 @@ Bridge begrenzen und validieren sie, bevor ein kanonischer Zustands-Cache
 aktualisiert wird. Der `SpeechPlanner` und der dauerhafte Brailleplan erhalten
 diesen Zustand; sie führen keine Netzwerk- oder Neovim-Aufrufe aus.
 
-Empfangsthreads rufen NVDA nicht direkt auf. Sie stellen fertige Ergebnisse
-mit `queueHandler` in NVDAs Ereigniswarteschlange. Nur dort werden Sprache,
-Klänge, Braille und UI aktualisiert.
+Empfangsthreads rufen NVDA nicht direkt auf. Sie stellen geprüfte Ereignisse
+mit `queueHandler` in NVDAs Ereigniswarteschlange. Nur dort werden
+Editorzustand und Ausgabeplan aktualisiert sowie Sprache, Klänge, Braille und
+UI angesteuert.
 
 ### 6. Fokuswechsel fordert einen bestätigten Kontext an
 

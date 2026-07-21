@@ -1,8 +1,10 @@
 # Development and test onboarding
 
-This page takes a new checkout to its first meaningful verification. Read
-[Architecture](architecture.md) before changing an architectural boundary. See
-the [user manual](../manual/README.md) for operation of the installed add-on.
+This page takes a new checkout to its first meaningful verification. Begin
+with the [overview](overview.md) if the project is new to you, and read
+[architecture](architecture.md) before changing an architectural boundary.
+See the [user manual](../manual/README.md) for operation of the installed
+add-on.
 
 ## What actually runs
 

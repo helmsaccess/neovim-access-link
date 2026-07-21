@@ -1,9 +1,11 @@
 # Architecture
 
-This chapter starts with the overall model and then follows a connection from
-startup to output. Special cases deliberately come last. New contributors
-should read this chapter before the protocol reference and the individual
-ADRs.
+This chapter expands the [overview for new developers](overview.md). It assumes
+that basic model and follows the same order: participating processes and data
+paths, terminology and connection lifecycle, responsibilities inside the
+add-on, and specialized subsystems. New contributors should therefore begin
+with the overview and then read this chapter before the protocol reference and
+individual ADRs.
 
 ## Goals and design principles
 
@@ -171,9 +173,9 @@ and validate them before updating a canonical state cache. `SpeechPlanner` and
 the persistent Braille plan consume that state without making network or
 Neovim calls.
 
-Receiver threads never call NVDA directly. They queue completed results onto
-NVDA's event queue with `queueHandler`; speech, sounds, Braille, and UI are
-updated there.
+Receiver threads never call NVDA directly. They queue validated events onto
+NVDA's event queue with `queueHandler`; editor state and output plans are
+updated there before speech, sounds, Braille, and UI are invoked.
 
 ### 6. Focus changes request confirmed context
 

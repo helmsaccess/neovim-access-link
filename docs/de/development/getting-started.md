@@ -1,9 +1,10 @@
 # Einstieg für Entwicklung und Tests
 
 Dieses Dokument führt von einem neuen Checkout zur ersten sinnvollen Prüfung.
-Vor einer Architekturänderung sollte zuerst die [Architektur](architecture.md)
-gelesen werden. Die Bedienung des installierten Add-ons steht im
-[Anwenderhandbuch](../manual/README.md).
+Wer das Projekt noch nicht kennt, beginnt mit dem
+[Überblick](overview.md). Vor einer Architekturänderung sollte außerdem die
+[Architektur](architecture.md) gelesen werden. Die Bedienung des installierten
+Add-ons steht im [Anwenderhandbuch](../manual/README.md).
 
 ## Was tatsächlich läuft
 

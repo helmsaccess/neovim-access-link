@@ -1,6 +1,8 @@
 # Repository-Struktur
 
-Die Verzeichnisse folgen Laufzeit- und Vertrauensgrenzen. Sie sind nicht alle
+Diese Seite ordnet die Bausteine aus [Überblick](overview.md) und
+[Architektur](architecture.md) konkreten Quellpfaden zu. Die Verzeichnisse
+folgen Laufzeit- und Vertrauensgrenzen. Sie sind nicht alle
 eigene Programme: Zur Laufzeit existieren ein Neovim-Prozess, bei SSH zusätzlich
 ein Bridge-Prozess und unter Windows der NVDA-Prozess. `protocol/python/` und
 `nvda-addon/core/` sind gemeinsam verwendete Bibliotheksschichten.

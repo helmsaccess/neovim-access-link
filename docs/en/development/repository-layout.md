@@ -1,6 +1,8 @@
 # Repository layout
 
-Directories follow runtime and trust boundaries. They are not all separate
+This page maps the building blocks from the [overview](overview.md) and
+[architecture](architecture.md) to concrete source paths. Directories follow
+runtime and trust boundaries. They are not all separate
 programs: runtime consists of a Neovim process, an additional bridge process
 for SSH, and the NVDA process on Windows. `protocol/python/` and
 `nvda-addon/core/` are shared library layers.

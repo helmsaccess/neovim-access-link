@@ -1,6 +1,7 @@
 -- Rewrite links between the ordered German developer sources to their scoped
 -- H1 targets. Links into the separately built handbook stay external.
 local targets = {
+  ["overview.md"] = "#docs__de__development__overviewmd__überblick-für-neue-entwickler",
   ["getting-started.md"] = "#docs__de__development__getting-startedmd__einstieg-für-entwicklung-und-tests",
   ["current-status.md"] = "#docs__de__development__current-statusmd__aktueller-status",
   ["compatibility.md"] = "#docs__de__development__compatibilitymd__kompatibilität",

@@ -8,6 +8,7 @@ local targets = {
   ["braille.md"] = "#docs__en__manual__braillemd__braille-support",
   ["troubleshooting.md"] = "#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-report",
 
+  ["overview.md"] = "#docs__en__development__overviewmd__overview-for-new-developers",
   ["getting-started.md"] = "#docs__en__development__getting-startedmd__development-and-test-onboarding",
   ["current-status.md"] = "#docs__en__development__current-statusmd__current-status",
   ["compatibility.md"] = "#docs__en__development__compatibilitymd__compatibility",

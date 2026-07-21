@@ -27,8 +27,9 @@ the repository.
   path to a first local or remote connection
 - [User manual](docs/en/manual/README.md) — operation, settings, connections,
   Braille, and troubleshooting
-- [Developer documentation](docs/en/development/README.md) — architecture,
-  protocol, security, compatibility, tests, and release process
+- [Developer documentation](docs/en/development/README.md) — beginner
+  overview, architecture, protocol, security, compatibility, tests, and
+  release process
 
 ### German
 
@@ -37,8 +38,9 @@ the repository.
   shortest path to a first local or remote connection
 - [German user manual](docs/de/manual/README.md) — operation, settings,
   connections, Braille, and troubleshooting
-- [German developer documentation](docs/de/development/README.md) —
-  architecture, protocol, security, compatibility, tests, and release process
+- [German developer documentation](docs/de/development/README.md) — beginner
+  overview, architecture, protocol, security, compatibility, tests, and
+  release process
 
 ## Contributing and security
 

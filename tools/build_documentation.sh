@@ -32,6 +32,7 @@ handbook_sources=(
 
 developer_sources=(
   docs/de/development/README.md
+  docs/de/development/overview.md
   docs/de/development/architecture.md
   docs/de/development/repository-layout.md
   docs/de/development/getting-started.md
@@ -77,6 +78,7 @@ handbook_en_sources=(
 
 developer_en_sources=(
   docs/en/development/README.md
+  docs/en/development/overview.md
   docs/en/development/architecture.md
   docs/en/development/repository-layout.md
   docs/en/development/getting-started.md

@@ -8,13 +8,15 @@ the [user manual](../manual/README.md) for operation of the installed add-on.
 
 New contributors should read these pages in order:
 
-1. [Architecture](architecture.md) — mental model, terminology, components,
-   and the complete path of one event from Neovim to NVDA.
-2. [Repository layout](repository-layout.md) — where the corresponding sources
+1. [Overview for new developers](overview.md) — the basic idea, data flow, and
+   division of work without implementation detail.
+2. [Architecture](architecture.md) — processes, terminology, responsibilities,
+   and the complete connection lifecycle.
+3. [Repository layout](repository-layout.md) — where the corresponding sources
    and tests live.
-3. [Development and test onboarding](getting-started.md) — prerequisites,
+4. [Development and test onboarding](getting-started.md) — prerequisites,
    first commands, and checks for common kinds of changes.
-4. [Current status](current-status.md) — confirmed platforms, maturity, and
+5. [Current status](current-status.md) — confirmed platforms, maturity, and
    known limitations of the current revision.
 
 The first three documents explain durable relationships. Current status is a
@@ -58,6 +60,8 @@ are neither user instructions nor substitutes for the current code.
 
 ## Which page is authoritative for what?
 
+- `overview.md` provides the simplified basic model; architecture governs
+  concrete internal boundaries.
 - `architecture.md` describes current components, responsibilities, and
   dependency boundaries.
 - `protocol.md` is the reference for messages, validation, and controls.
