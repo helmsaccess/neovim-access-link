@@ -300,9 +300,9 @@ Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
   Zeichen und Emoji bleiben stabil;
 - die rückwärtige Wortexploration hält am vorherigen Wort einer anderen
   Zeile und verbindet Schlüsselwortzeichen nie über einen Zeilenumbruch hinweg;
-- zeichenweises Entfernen und Zurückkehren zur echten Cursorposition spielt
-  genau einen kurzen Doppelton; Verbleiben an dieser Position sowie Zeilen-
-  und Wortexploration wiederholen ihn nicht;
+- Entfernen und Zurückkehren zum ursprünglichen Zeichen, Wort oder zur
+  ursprünglichen Zeile spielt genau einen kurzen Doppelton; Verbleiben an
+  dieser Einheit wiederholt ihn nicht;
 - lokales und SSH-Neovim funktionieren auch in gemischten Tabs, Split-Panes
   und Fenstern;
 - dieselben Kombinationen behalten in jeder ungebundenen Shell, einem fremden

@@ -164,6 +164,7 @@ class NvimBridgeTests(unittest.TestCase):
 			"byteColumn": 6,
 			"characterColumn": 6,
 			"virtualColumn": 6,
+			"atOrigin": False,
 		}
 		bridge._on_nvim_event("exploreTextResult", result)
 		self.assertEqual("beta", transport.events[-1]["payload"]["text"])

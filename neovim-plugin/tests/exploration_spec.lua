@@ -71,6 +71,7 @@ local right = exploration.step(request("characterRight"))
 equal({ "l", 1, 1, 1 }, {
   right.text, right.line, right.byteColumn, right.characterColumn,
 }, "character navigation uses a virtual cursor")
+truth(not right.atOrigin, "character movement leaves the origin")
 right = exploration.step(request("characterRight", { count = 3 }))
 equal({ "a", 4 }, { right.text, right.byteColumn }, "bounded repeat is applied in Lua")
 right = exploration.step(request("characterRight", { count = 6 }))
@@ -79,6 +80,12 @@ local character_boundary = exploration.step(request("characterRight"))
 equal({ "boundary", "a", 10 }, {
   character_boundary.resultCode, character_boundary.text, character_boundary.byteColumn,
 }, "character movement does not cross a line")
+
+begin()
+local away_character = exploration.step(request("characterRight"))
+truth(not away_character.atOrigin, "character movement leaves the original character")
+local origin_character = exploration.step(request("characterLeft"))
+truth(origin_character.atOrigin, "character movement recognizes the original character")
 
 begin()
 local next_word = exploration.step(request("wordNext"))
@@ -106,6 +113,13 @@ down = exploration.step(request("lineDown"))
 equal({ "", 4, 0 }, { down.text, down.line, down.byteColumn }, "empty lines are represented exactly")
 local up = exploration.step(request("lineUp"))
 equal({ "\t界🙂 word", 3 }, { up.text, up.line }, "line movement is reversible")
+
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+begin()
+local away_line = exploration.step(request("lineDown"))
+truth(not away_line.atOrigin, "line movement leaves the original line")
+local origin_line = exploration.step(request("lineUp"))
+truth(origin_line.atOrigin, "line movement recognizes the original line")
 
 vim.api.nvim_win_set_cursor(0, { 3, 1 })
 begin()
@@ -152,6 +166,15 @@ within_previous = exploration.step(request("wordPrevious"))
 equal({ ",", 5 }, {
   within_previous.text, within_previous.byteColumn,
 }, "previous word then reaches adjacent punctuation")
+
+vim.api.nvim_win_set_cursor(0, { 1, 9 })
+begin()
+local away_word = exploration.step(request("wordNext"))
+truth(not away_word.atOrigin, "word movement leaves the word containing the real cursor")
+local origin_word = exploration.step(request("wordPrevious"))
+equal({ "beta", 7, true }, {
+  origin_word.text, origin_word.byteColumn, origin_word.atOrigin,
+}, "word movement recognizes an origin in the middle of a keyword")
 
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 begin()

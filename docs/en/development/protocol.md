@@ -230,8 +230,10 @@ mode transition remains event-driven through `ModeChanged` or `TermLeave`.
 
 `exploreTextResult` correlates request, exploration, action index, and fixed
 action. A successful result contains exactly a character, word, or line unit,
-a bounded virtual position, and at most 16 KiB of text. One word scan reads at
-most 256 lines or 64 KiB. The Lua engine uses no cursor, feedkeys, Normal,
+a bounded virtual position, a Boolean `atOrigin`, and at most 16 KiB of text.
+The origin flag uses the requested unit: exact character, containing word, or
+line. This keeps Neovim's word rules on the Neovim side. One word scan reads
+at most 256 lines or 64 KiB. The Lua engine uses no cursor, feedkeys, Normal,
 search, or buffer-mutation operation. The receiver rejects a result after any
 focus, binding, context, or identifier change.
 

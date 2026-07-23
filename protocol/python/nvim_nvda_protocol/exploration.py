@@ -23,7 +23,7 @@ _NONNEGATIVE_REQUEST_FIELDS = (
 )
 _RESULT_ONLY_FIELDS = frozenset({
     "requestId", "explorationId", "actionIndex", "action", "unit", "ok", "resultCode", "text",
-    "line", "byteColumn", "characterColumn", "virtualColumn",
+    "line", "byteColumn", "characterColumn", "virtualColumn", "atOrigin",
 })
 _SUCCESS_CODES = frozenset({"moved", "boundary"})
 _FAILURE_CODES = frozenset({
@@ -92,6 +92,7 @@ def valid_explore_text_result(payload: Any) -> bool:
     return (
         result_code in _SUCCESS_CODES
         and payload.get("unit") in EXPLORATION_UNITS
+        and isinstance(payload.get("atOrigin"), bool)
         and _valid_text(payload.get("text"))
         and _positive_integer(payload.get("line"))
         and all(_nonnegative_integer(payload.get(field)) for field in (

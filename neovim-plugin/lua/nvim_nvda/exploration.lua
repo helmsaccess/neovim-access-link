@@ -118,6 +118,20 @@ local function word_at(buffer, line_number, byte_column)
   return line:sub(first + 1, finish)
 end
 
+local function word_anchor(buffer, line_number, byte_column)
+  local line = current_line(buffer, line_number)
+  local character = character_at(line, byte_column)
+  if character == "" or whitespace_character(character) then return nil end
+  if not keyword_character(character) then return byte_column end
+  local first = byte_column
+  while first > 0 do
+    local candidate = previous_character_start(line, first)
+    if not keyword_character(character_at(line, candidate)) then break end
+    first = candidate
+  end
+  return first
+end
+
 local function result(payload, ok, code, extra)
   local value = {
     requestId = type(payload) == "table" and safe_integer(payload.requestId) or -1,
@@ -190,6 +204,11 @@ local function initialize(payload)
     cursorLine = payload.cursorLine,
     cursorByteColumn = payload.cursorByteColumn,
     cursorVirtualColumn = payload.cursorVirtualColumn,
+    originWordByteColumn = word_anchor(
+      payload.bufferId,
+      payload.cursorLine,
+      payload.cursorByteColumn
+    ),
     line = payload.cursorLine,
     byteColumn = payload.cursorByteColumn,
     desiredVirtualColumn = payload.cursorVirtualColumn,
@@ -363,6 +382,17 @@ local function selected_text(state, unit)
   return word_at(state.bufferId, state.line, state.byteColumn)
 end
 
+local function at_origin(state, unit)
+  if unit == "line" then return state.line == state.cursorLine end
+  if unit == "character" then
+    return state.line == state.cursorLine and state.byteColumn == state.cursorByteColumn
+  end
+  local anchor = word_anchor(state.bufferId, state.line, state.byteColumn)
+  return state.line == state.cursorLine
+    and anchor ~= nil
+    and anchor == state.originWordByteColumn
+end
+
 function M.step(payload)
   if not valid_request(payload) or not current_context_matches(payload) then
     active = nil
@@ -409,6 +439,7 @@ function M.step(payload)
     byteColumn = active.byteColumn,
     characterColumn = character_column(current_line(active.bufferId, active.line), active.byteColumn),
     virtualColumn = virtual_column(active.windowId, active.line, active.byteColumn),
+    atOrigin = at_origin(active, definition.unit),
   })
 end
 

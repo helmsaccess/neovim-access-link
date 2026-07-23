@@ -180,8 +180,9 @@ flüchtige Leseposition. Buffer, Modus, Fensteransicht und echter Cursor bleiben
 unverändert. Beim Loslassen der NVDA-Taste spricht das Add-on am echten Cursor
 noch einmal die zuletzt verwendete Einheit: Zeichen, Wort oder Zeile. Bei der
 zeichenweisen Exploration kennzeichnet ein kurzer Doppelton die Rückkehr zur
-echten Cursorposition. Er folgt der konfigurierten Klangausgabe für
-Zeilengrenzen.
+echten Cursorposition. Derselbe Ton kennzeichnet bei der Wort- oder
+Zeilenexploration die Rückkehr zum ursprünglichen Wort beziehungsweise zur
+ursprünglichen Zeile. Er folgt der konfigurierten Klangausgabe für Zeilengrenzen.
 
 Die Belegung gilt in Neovims Normal-, Insert-, Visual-, Kommandozeilen- und
 eingebetteten Terminalkontexten, aber nur für die exakt fokussierte,

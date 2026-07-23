@@ -72,6 +72,7 @@ class ExplorationControllerTests(unittest.TestCase):
 			"byteColumn": 1,
 			"characterColumn": 1,
 			"virtualColumn": 1,
+			"atOrigin": False,
 		}
 		value.update(changes)
 		return value
@@ -239,6 +240,23 @@ class ExplorationControllerTests(unittest.TestCase):
 		self.assertEqual(ExplorationRejection.STALE_OR_UNBOUND, result.rejection)
 		self.assertFalse(self.controller.active)
 
+	def test_inconsistent_character_origin_marker_is_rejected(self) -> None:
+		plan = self.controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.CHARACTER_RIGHT,
+			capabilities={"exploration"},
+		)
+		result = self.controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(plan, text="b", atOrigin=True),
+			},
+		)
+		self.assertEqual(ExplorationRejection.INVALID_RESULT, result.rejection)
+		self.assertFalse(self.controller.active)
+
 	def test_boundary_result_reuses_directional_sound(self) -> None:
 		plan = self.controller.plan_step(
 			self.context,
@@ -250,7 +268,12 @@ class ExplorationControllerTests(unittest.TestCase):
 			self.context,
 			{
 				"type": "exploreTextResult",
-				"payload": self.result_payload(plan, resultCode="boundary", text=""),
+				"payload": self.result_payload(
+					plan,
+					resultCode="boundary",
+					text="",
+					atOrigin=True,
+				),
 			},
 		)
 		self.assertTrue(result.accepted)
@@ -262,103 +285,96 @@ class ExplorationControllerTests(unittest.TestCase):
 			),
 		)
 
-	def test_character_return_to_real_origin_plays_once_per_return(self) -> None:
-		away = self.controller.plan_step(
-			self.context,
-			editor_state(),
-			ExplorationAction.CHARACTER_RIGHT,
-			capabilities={"exploration"},
+	def test_each_unit_return_to_origin_plays_once_per_return(self) -> None:
+		cases = (
+			(
+				ExplorationAction.CHARACTER_RIGHT,
+				ExplorationAction.CHARACTER_LEFT,
+				{"text": "b", "line": 5, "byteColumn": 1},
+				{"text": "a", "line": 5, "byteColumn": 0},
+				"lineStart",
+			),
+			(
+				ExplorationAction.LINE_DOWN,
+				ExplorationAction.LINE_UP,
+				{"text": "next line", "line": 6, "byteColumn": 0},
+				{"text": "alpha beta", "line": 5, "byteColumn": 0},
+				"fileStart",
+			),
+			(
+				ExplorationAction.WORD_NEXT,
+				ExplorationAction.WORD_PREVIOUS,
+				{"text": "beta", "line": 5, "byteColumn": 6},
+				{"text": "alpha", "line": 5, "byteColumn": 0},
+				"fileStart",
+			),
 		)
-		away_result = self.controller.consume_result(
-			self.context,
-			{
-				"type": "exploreTextResult",
-				"payload": self.result_payload(away, text="b"),
-			},
-		)
-		self.assertIsNone(away_result.speech_action.sound)
+		for away_action, return_action, away_changes, return_changes, boundary_sound in cases:
+			with self.subTest(unit=away_action):
+				controller = ExplorationController(RequestIds(), max_pending_requests=2)
+				away = controller.plan_step(
+					self.context,
+					editor_state(),
+					away_action,
+					capabilities={"exploration"},
+				)
+				away_result = controller.consume_result(
+					self.context,
+					{
+						"type": "exploreTextResult",
+						"payload": self.result_payload(
+							away,
+							**away_changes,
+							characterColumn=away_changes["byteColumn"],
+							virtualColumn=away_changes["byteColumn"],
+							atOrigin=False,
+						),
+					},
+				)
+				self.assertIsNone(away_result.speech_action.sound)
 
-		returned = self.controller.plan_step(
-			self.context,
-			editor_state(),
-			ExplorationAction.CHARACTER_LEFT,
-			capabilities={"exploration"},
-		)
-		returned_result = self.controller.consume_result(
-			self.context,
-			{
-				"type": "exploreTextResult",
-				"payload": self.result_payload(
-					returned,
-					text="a",
-					line=5,
-					byteColumn=0,
-					characterColumn=0,
-					virtualColumn=0,
-				),
-			},
-		)
-		self.assertEqual("explorationOrigin", returned_result.speech_action.sound)
+				returned = controller.plan_step(
+					self.context,
+					editor_state(),
+					return_action,
+					capabilities={"exploration"},
+				)
+				returned_result = controller.consume_result(
+					self.context,
+					{
+						"type": "exploreTextResult",
+						"payload": self.result_payload(
+							returned,
+							**return_changes,
+							characterColumn=return_changes["byteColumn"],
+							virtualColumn=return_changes["byteColumn"],
+							atOrigin=True,
+						),
+					},
+				)
+				self.assertEqual("explorationOrigin", returned_result.speech_action.sound)
 
-		boundary = self.controller.plan_step(
-			self.context,
-			editor_state(),
-			ExplorationAction.CHARACTER_LEFT,
-			capabilities={"exploration"},
-		)
-		boundary_result = self.controller.consume_result(
-			self.context,
-			{
-				"type": "exploreTextResult",
-				"payload": self.result_payload(
-					boundary,
-					resultCode="boundary",
-					text="a",
-					line=5,
-					byteColumn=0,
-					characterColumn=0,
-					virtualColumn=0,
-				),
-			},
-		)
-		self.assertEqual("lineStart", boundary_result.speech_action.sound)
-
-	def test_non_character_result_at_origin_never_plays_origin_tone(self) -> None:
-		away = self.controller.plan_step(
-			self.context,
-			editor_state(),
-			ExplorationAction.CHARACTER_RIGHT,
-			capabilities={"exploration"},
-		)
-		self.controller.consume_result(
-			self.context,
-			{
-				"type": "exploreTextResult",
-				"payload": self.result_payload(away, text="b"),
-			},
-		)
-		line = self.controller.plan_step(
-			self.context,
-			editor_state(),
-			ExplorationAction.LINE_UP,
-			capabilities={"exploration"},
-		)
-		result = self.controller.consume_result(
-			self.context,
-			{
-				"type": "exploreTextResult",
-				"payload": self.result_payload(
-					line,
-					unit="line",
-					text="alpha beta",
-					line=5,
-					byteColumn=0,
-					characterColumn=0,
-					virtualColumn=0,
-				),
-			},
-		)
-		self.assertIsNone(result.speech_action.sound)
+				boundary = controller.plan_step(
+					self.context,
+					editor_state(),
+					return_action,
+					capabilities={"exploration"},
+				)
+				boundary_result = controller.consume_result(
+					self.context,
+					{
+						"type": "exploreTextResult",
+						"payload": self.result_payload(
+							boundary,
+							**return_changes,
+							resultCode="boundary",
+							characterColumn=return_changes["byteColumn"],
+							virtualColumn=return_changes["byteColumn"],
+							atOrigin=True,
+						),
+					},
+				)
+				self.assertEqual(boundary_sound, boundary_result.speech_action.sound)
 
 	def test_release_uses_last_unit_at_real_cursor_and_drops_late_results(self) -> None:
 		word = self.controller.plan_step(

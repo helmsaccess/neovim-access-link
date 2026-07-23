@@ -62,11 +62,13 @@ class ExplorationProtocolTests(unittest.TestCase):
             "byteColumn": 9,
             "characterColumn": 9,
             "virtualColumn": 9,
+            "atOrigin": False,
             "mode": "normal",
         }
         self.assertTrue(valid_explore_text_result(result))
         self.assertFalse(valid_explore_text_result({**result, "text": "x" * (16 * 1024 + 1)}))
         self.assertFalse(valid_explore_text_result({**result, "ok": 1}))
+        self.assertFalse(valid_explore_text_result({**result, "atOrigin": 0}))
         self.assertTrue(valid_explore_text_result({
             **result,
             "ok": False,

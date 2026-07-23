@@ -296,11 +296,14 @@ tatsächliche Moduswechsel folgt weiterhin ereignisgetrieben über
 
 `exploreTextResult` korreliert Anfrage, Exploration, Aktionsnummer und feste
 Aktion. Erfolgreiche Ergebnisse enthalten genau die Einheit Zeichen, Wort
-oder Zeile, eine begrenzte virtuelle Position und höchstens 16 KiB Text. Die
-Lua-Engine liest höchstens 256 Zeilen beziehungsweise 64 KiB pro Wortsuche und
-liefert nur feste Erfolgs-, Grenz- oder Fehlercodes. Sie ruft keine Cursor-,
-Feedkeys-, Normal-, Such- oder Bufferänderungsoperation auf. Der Empfänger
-verwirft Antworten nach Fokus-, Bindungs-, Kontext- oder ID-Wechsel.
+oder Zeile, eine begrenzte virtuelle Position, den booleschen Wert `atOrigin`
+und höchstens 16 KiB Text. Die Ursprungsmarkierung richtet sich nach der
+angeforderten Einheit: genaues Zeichen, enthaltendes Wort oder Zeile. Damit
+bleiben Neovims Wortregeln auf der Neovim-Seite. Die Lua-Engine liest höchstens
+256 Zeilen beziehungsweise 64 KiB pro Wortsuche und liefert nur feste
+Erfolgs-, Grenz- oder Fehlercodes. Sie ruft keine Cursor-, Feedkeys-, Normal-,
+Such- oder Bufferänderungsoperation auf. Der Empfänger verwirft Antworten nach
+Fokus-, Bindungs-, Kontext- oder ID-Wechsel.
 
 ## Sicherheitsgrenze
 

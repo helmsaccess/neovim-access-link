@@ -283,9 +283,8 @@ holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
   and emoji remain stable;
 - backward word exploration stops at the preceding word on another line and
   never merges keyword characters across a newline;
-- moving away character by character and returning to the real cursor position
-  plays one short two-note cue; remaining there, line, and word exploration do
-  not repeat it;
+- moving away and returning to the original character, word, or line plays
+  exactly one short two-note cue; remaining at that unit does not repeat it;
 - local and SSH Neovim work across mixed tabs, split panes, and windows;
 - the same chords retain normal NVDA behavior in every unbound shell, foreign
   pane/tab, and other application;

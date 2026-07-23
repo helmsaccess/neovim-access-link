@@ -303,9 +303,11 @@ class ExplorationController:
 			payload.get("characterColumn"),
 			payload.get("virtualColumn"),
 		)
+		position_at_origin = payload.get("atOrigin")
 		if (
 			payload.get("ok") is not True
 			or result_code not in {"moved", "boundary"}
+			or not isinstance(position_at_origin, bool)
 			or not self._valid_result_text(text)
 			or not self._valid_positive_integer(position_values[0])
 			or not all(self._valid_nonnegative_integer(value) for value in position_values[1:])
@@ -318,13 +320,24 @@ class ExplorationController:
 				action_index=action_index,
 			)
 		active = self._active
-		position_at_origin = (
-			position_values[0] == active.origin.cursor_line
-			and position_values[1] == active.origin.cursor_byte_column
-		)
+		known_position_at_origin = None
+		if pending.unit == ExplorationUnit.CHARACTER:
+			known_position_at_origin = (
+				position_values[0] == active.origin.cursor_line
+				and position_values[1] == active.origin.cursor_byte_column
+			)
+		elif pending.unit == ExplorationUnit.LINE:
+			known_position_at_origin = position_values[0] == active.origin.cursor_line
+		if known_position_at_origin is not None and position_at_origin != known_position_at_origin:
+			self.invalidate()
+			return ExplorationResultPlan(
+				ExplorationRejection.INVALID_RESULT,
+				request_id=request_id,
+				exploration_id=exploration_id,
+				action_index=action_index,
+			)
 		returned_to_origin = (
-			pending.unit == ExplorationUnit.CHARACTER
-			and not active.virtual_position_at_origin
+			not active.virtual_position_at_origin
 			and position_at_origin
 		)
 		active.virtual_position_at_origin = position_at_origin

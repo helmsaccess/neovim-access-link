@@ -93,8 +93,9 @@ The first command starts at the real cursor. Further commands move only an
 ephemeral reading position; the buffer, mode, view, and real cursor do not
 change. Releasing NVDA reads the last-used unit—character, word, or line—at the
 real cursor. During character exploration, a short two-note cue marks a return
-to the real cursor position. It follows the configured line-boundary sound
-feedback.
+to the real cursor position. The same cue marks a return to the original word
+or line during word or line exploration. It follows the configured
+line-boundary sound feedback.
 
 The commands apply in Neovim's Normal, Insert, Visual, command-line, and
 embedded-terminal contexts, but only in the exact focused, authenticated

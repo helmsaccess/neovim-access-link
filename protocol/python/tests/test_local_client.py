@@ -297,6 +297,7 @@ class LocalTcpClientTests(unittest.TestCase):
 			"byteColumn": 1,
 			"characterColumn": 1,
 			"virtualColumn": 1,
+			"atOrigin": False,
 		}
 		source.on_event("exploreTextResult", result)
 		self.assertEqual("b", events[-1]["payload"]["text"])
