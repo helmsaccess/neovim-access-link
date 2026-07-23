@@ -6,7 +6,7 @@ development build number, and NVDA compatibility values.
 
 `store_version()` supplies only the normal numeric `MAJOR.MINOR.PATCH` product
 version to the NVDA manifest and Store. `development_version()` adds a SemVer
-pre-release identifier such as `0.95.1-dev.1` plus branch/commit metadata when
+pre-release identifier such as `0.95.2-dev.1` plus branch/commit metadata when
 available. `artifact_version()` uses that traceable identifier for archive
 names, embedded components, runtime diagnostics, and logs. The Store therefore
 sees no internal build number.
@@ -20,7 +20,7 @@ The visible product is “Neovim Access Link”, author Emanuel Helms
 from the former `nvimNvdaAccess` ID is an intentional clean break: uninstall
 the old add-on and restart NVDA before testing a new build. Settings, profiles,
 and gesture assignments stored under the old ID are not imported. The
-user-chosen product version is 0.95.1 and the configured release channel is
+user-chosen product version is 0.95.2 and the configured release channel is
 `beta`; overall product maturity remains between alpha and beta. Only explicit
 user direction may change the version, channel, prerelease status, or
 stability classification.
