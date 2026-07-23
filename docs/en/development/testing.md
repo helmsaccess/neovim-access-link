@@ -273,8 +273,8 @@ holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
 
 - characters, lines, and words follow only the virtual position; the real
   cursor, buffer, mode, changed tick, and view stay unchanged;
-- after mixed movements, release reads exactly the last-used unit at the real
-  cursor;
+- after mixed movements, release reads the character, or the word/line plus
+  cursor character, at the real cursor according to the last-used unit;
 - rapid release, autorepeat, and releasing NVDA before the direction key send
   no bare `h/j/k/l` to Neovim;
 - Normal, Insert, Visual, command line, Terminal-Normal, and direct terminal

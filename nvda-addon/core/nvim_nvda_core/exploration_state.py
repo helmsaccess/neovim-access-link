@@ -10,7 +10,12 @@ from types import MappingProxyType
 from typing import Any
 
 from .gate import TerminalIdentity
-from .speech import Priority, SpeechAction
+from .speech import (
+	Priority,
+	SpeechAction,
+	indentation_quarter_tones,
+	navigation_speech_action,
+)
 
 
 MAX_EXPLORATION_TEXT_BYTES = 16 * 1024
@@ -494,30 +499,23 @@ class ExplorationController:
 		unit: ExplorationUnit,
 		state: Mapping[str, Any],
 	) -> SpeechAction | None:
-		if unit == ExplorationUnit.LINE:
-			line = state.get("lineText")
-			if not isinstance(line, str):
-				return None
-			return SpeechAction(
-				line if line else self._translate("blank"),
-				Priority.NAVIGATION,
-				interrupt=True,
-			)
+		line = state.get("lineText")
+		if unit == ExplorationUnit.LINE and not isinstance(line, str):
+			return None
+		line = line if isinstance(line, str) else ""
 		character = state.get("character")
 		character = character if isinstance(character, str) else ""
-		if unit == ExplorationUnit.CHARACTER:
-			return SpeechAction(
-				character,
-				Priority.NAVIGATION,
-				interrupt=True,
-				sound=None if character else "lineEnd",
-				spelling=bool(character),
-			)
 		word = state.get("word")
-		text = word if isinstance(word, str) and word else character
-		return SpeechAction(
-			text,
-			Priority.NAVIGATION,
-			interrupt=True,
-			force_symbols=True,
+		word = word if isinstance(word, str) else ""
+		return navigation_speech_action(
+			unit.value,
+			line=line,
+			word=word,
+			character=character,
+			translate=self._translate,
+			indentation_tones=(
+				indentation_quarter_tones(line)
+				if unit == ExplorationUnit.LINE
+				else None
+			),
 		)

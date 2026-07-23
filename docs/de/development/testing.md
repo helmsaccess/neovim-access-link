@@ -290,8 +290,9 @@ Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
 
 - Zeichen, Zeilen und Wörter folgen nur der virtuellen Position; echter
   Cursor, Buffer, Modus, `changedtick` und Ansicht bleiben unverändert;
-- nach gemischten Bewegungen spricht das Loslassen genau die zuletzt genutzte
-  Einheit am echten Cursor;
+- nach gemischten Bewegungen spricht das Loslassen am echten Cursor je nach
+  zuletzt genutzter Einheit das Zeichen beziehungsweise Wort/Zeile plus
+  Cursorzeichen;
 - schnelles Loslassen, Autorepeat und Loslassen von NVDA vor der Richtungstaste
   geben kein nacktes `h/j/k/l` an Neovim weiter;
 - Normal, Insert, Visual, Kommandozeile, Terminal-Normal und direkte

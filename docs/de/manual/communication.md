@@ -177,12 +177,14 @@ gedrückt:
 
 Die erste Bewegung beginnt am echten Cursor, danach bewegt sich nur eine
 flüchtige Leseposition. Buffer, Modus, Fensteransicht und echter Cursor bleiben
-unverändert. Beim Loslassen der NVDA-Taste spricht das Add-on am echten Cursor
-noch einmal die zuletzt verwendete Einheit: Zeichen, Wort oder Zeile. Bei der
-zeichenweisen Exploration kennzeichnet ein kurzer Doppelton die Rückkehr zur
-echten Cursorposition. Derselbe Ton kennzeichnet bei der Wort- oder
-Zeilenexploration die Rückkehr zum ursprünglichen Wort beziehungsweise zur
-ursprünglichen Zeile. Er folgt der konfigurierten Klangausgabe für Zeilengrenzen.
+unverändert. Beim Loslassen der NVDA-Taste spricht das Add-on je nach zuletzt
+verwendeter Einheit das aktuelle Zeichen beziehungsweise das aktuelle Wort
+oder die aktuelle Zeile mit anschließendem Cursorzeichen. Das entspricht der
+normalen Navigationsausgabe. Bei der zeichenweisen Exploration kennzeichnet
+ein kurzer Doppelton die Rückkehr zur echten Cursorposition. Derselbe Ton
+kennzeichnet bei der Wort- oder Zeilenexploration die Rückkehr zum
+ursprünglichen Wort beziehungsweise zur ursprünglichen Zeile. Er folgt der
+konfigurierten Klangausgabe für Zeilengrenzen.
 
 Die Belegung gilt in Neovims Normal-, Insert-, Visual-, Kommandozeilen- und
 eingebetteten Terminalkontexten, aber nur für die exakt fokussierte,

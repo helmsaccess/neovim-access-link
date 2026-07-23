@@ -8,6 +8,7 @@ from nvim_nvda_core import (
 	ExplorationController,
 	ExplorationRejection,
 	ExplorationUnit,
+	SpeechPlanner,
 	TerminalIdentity,
 )
 
@@ -385,10 +386,18 @@ class ExplorationControllerTests(unittest.TestCase):
 		)
 		release = self.controller.release(self.context, editor_state())
 		self.assertTrue(release.ready)
+		planner = SpeechPlanner()
+		planner.plan({"type": "fullState", "payload": editor_state()})
+		normal_word = planner.plan({"type": "wordMoved", "payload": editor_state()})[0]
 		self.assertEqual(
-			("alpha", True),
+			(
+				normal_word.text,
+				normal_word.character_suffix,
+				normal_word.force_symbols,
+			),
 			(
 				release.speech_action.text,
+				release.speech_action.character_suffix,
 				release.speech_action.force_symbols,
 			),
 		)
@@ -412,6 +421,61 @@ class ExplorationControllerTests(unittest.TestCase):
 			},
 		)
 		self.assertEqual(ExplorationRejection.STALE_OR_UNBOUND, late.rejection)
+
+	def test_release_matches_normal_character_and_line_navigation_presentation(self) -> None:
+		character_controller = ExplorationController(RequestIds())
+		character_controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.CHARACTER_RIGHT,
+			capabilities={"exploration"},
+		)
+		character = character_controller.release(self.context, editor_state()).speech_action
+		self.assertEqual(
+			("a", True, None),
+			(character.text, character.spelling, character.character_suffix),
+		)
+
+		line_controller = ExplorationController(RequestIds())
+		line_state = editor_state(
+			lineText="\talpha beta",
+			character="a",
+			cursor={
+				"line": 5,
+				"byteColumn": 1,
+				"characterColumn": 1,
+				"virtualColumn": 4,
+			},
+		)
+		line_controller.plan_step(
+			self.context,
+			line_state,
+			ExplorationAction.LINE_DOWN,
+			capabilities={"exploration"},
+		)
+		line = line_controller.release(self.context, line_state).speech_action
+		planner = SpeechPlanner()
+		planner.plan({
+			"type": "fullState",
+			"payload": editor_state(
+				lineText="old",
+				cursor={
+					"line": 4,
+					"byteColumn": 1,
+					"characterColumn": 1,
+					"virtualColumn": 1,
+				},
+			),
+		})
+		normal_line = planner.plan({"type": "lineChanged", "payload": line_state})[0]
+		self.assertEqual(
+			(
+				normal_line.text,
+				normal_line.character_suffix,
+				normal_line.indentation_tones,
+			),
+			(line.text, line.character_suffix, line.indentation_tones),
+		)
 
 	def test_release_character_at_line_end_uses_sound_without_guessing_text(self) -> None:
 		self.controller.plan_step(

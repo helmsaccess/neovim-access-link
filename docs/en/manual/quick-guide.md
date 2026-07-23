@@ -119,9 +119,10 @@ Windows Terminal control.
 
 To explore without moving Neovim's cursor, hold NVDA and use `h/l` for
 characters, `k/j` for lines, or `Shift+h/l` for words. Releasing NVDA reads
-the same unit at the real cursor. These fixed commands apply only in the exact
-connected Neovim pane; NVDA remains unchanged in shells and other tabs or
-panes.
+the current character, or the current word or line followed by its cursor
+character, matching normal navigation feedback. These fixed commands apply
+only in the exact connected Neovim pane; NVDA remains unchanged in shells and
+other tabs or panes.
 
 ## First safety check
 

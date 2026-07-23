@@ -13,9 +13,10 @@ Contextual exploration uses six fixed Windows Terminal AppModule chords to
 read characters, lines, or words through an ephemeral Lua position. Exact
 control binding, authenticated instance, capability, editor origin, and reply
 correlation are required. The real cursor, buffer, mode, changed tick, and
-view remain unchanged; releasing NVDA reads the last-used unit at the real
-cursor. Protocol, Lua, controller, dispatcher, and built-package tests cover
-the path; practical NVDA acceptance is still open.
+view remain unchanged; releasing NVDA reads the character or the word/line
+plus cursor character at the real cursor. Protocol, Lua, controller,
+dispatcher, and built-package tests cover the path; practical NVDA acceptance
+is ongoing.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real

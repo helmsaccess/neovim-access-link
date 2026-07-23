@@ -223,9 +223,11 @@ Deaktivierung fällt NVDA automatisch auf die normale Terminalausgabe zurück.
 
 Text lässt sich ohne Cursorbewegung erkunden: NVDA gedrückt halten und mit
 `h/l` zeichenweise, mit `k/j` zeilenweise oder mit `Umschalt+h/l` wortweise
-lesen. Beim Loslassen spricht das Add-on dieselbe Einheit am echten Cursor.
-Diese festen Kombinationen gelten nur in der exakt verbundenen Neovim-Pane;
-in Shells und anderen Tabs oder Panes arbeitet NVDA unverändert.
+lesen. Beim Loslassen spricht das Add-on das aktuelle Zeichen beziehungsweise
+das aktuelle Wort oder die aktuelle Zeile mit anschließendem Cursorzeichen,
+wie bei der normalen Navigation. Diese festen Kombinationen gelten nur in der
+exakt verbundenen Neovim-Pane; in Shells und anderen Tabs oder Panes arbeitet
+NVDA unverändert.
 
 ## 10. Wenn keine Verbindung entsteht
 
