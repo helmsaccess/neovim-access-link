@@ -43,6 +43,7 @@ class SpeechAction:
     braille_message: str | None = None
     format_error: str | None = None
     typed_format_error: bool = False
+    word_suffix: str | None = None
 
 
 def indentation_quarter_tones(line: str) -> int:
@@ -67,6 +68,8 @@ def navigation_speech_action(
     translate: Callable[[str], str] | None = None,
     sound: str | None = None,
     indentation_tones: int | None = None,
+    include_word: bool = False,
+    include_character: bool = True,
 ) -> SpeechAction:
     """Plan the shared character, word, or line navigation presentation."""
     translate = translate or _identity
@@ -85,7 +88,11 @@ def navigation_speech_action(
         return SpeechAction("", Priority.NAVIGATION, sound="lineEnd")
     if unit == "word":
         text = word if word else character
-        suffix = character if character and character != text else None
+        suffix = (
+            character
+            if include_character and character and character != text
+            else None
+        )
         return SpeechAction(
             text,
             Priority.NAVIGATION,
@@ -101,8 +108,9 @@ def navigation_speech_action(
             Priority.NAVIGATION,
             interrupt=True,
             sound=sound,
-            character_suffix=character or None,
+            character_suffix=(character or None) if include_character else None,
             indentation_tones=indentation_tones,
+            word_suffix=(word or None) if include_word else None,
         )
     raise ValueError(f"unsupported navigation unit: {unit!r}")
 
@@ -172,7 +180,13 @@ class SpeechPlanner:
         self._terminal_entry_suppress_updates = False
 
     def plan(
-        self, event: dict[str, Any], *, focus_announcement: str = "context",
+        self,
+        event: dict[str, Any],
+        *,
+        focus_announcement: str = "context",
+        word_character: bool = True,
+        line_word: bool = False,
+        line_character: bool = True,
     ) -> list[SpeechAction]:
         kind = event["type"]
         state = event.get("payload", {})
@@ -336,7 +350,14 @@ class SpeechPlanner:
             action = self._navigation(state, announce_full=kind == "fullState")
             if action is not None:
                 if kind != "cursorMoved" and kind != "fullState":
-                    action = self._semantic_navigation(kind, state, action)
+                    action = self._semantic_navigation(
+                        kind,
+                        state,
+                        action,
+                        word_character=word_character,
+                        line_word=line_word,
+                        line_character=line_character,
+                    )
                 elif kind == "cursorMoved" and self._line_changed(state):
                     action = SpeechAction(
                         action.text, action.priority, action.interrupt, "lineCrossed",
@@ -1287,7 +1308,14 @@ class SpeechPlanner:
         return None
 
     def _semantic_navigation(
-        self, kind: str, state: dict[str, Any], fallback: SpeechAction
+        self,
+        kind: str,
+        state: dict[str, Any],
+        fallback: SpeechAction,
+        *,
+        word_character: bool,
+        line_word: bool,
+        line_character: bool,
     ) -> SpeechAction:
         line = state.get("lineText", "")
         cursor = state.get("cursor", {})
@@ -1319,6 +1347,7 @@ class SpeechPlanner:
                 character=spoken_character,
                 sound=sound,
                 indentation_tones=indentation,
+                include_character=word_character,
             )
         if kind == "lineStart":
             byte_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
@@ -1353,10 +1382,13 @@ class SpeechPlanner:
             return navigation_speech_action(
                 "line",
                 line=line,
+                word=state.get("word", ""),
                 character=spoken_character,
                 translate=self._translate,
                 sound=sound,
                 indentation_tones=indentation_quarter_tones(line),
+                include_word=line_word,
+                include_character=line_character,
             )
         if kind == "matchingPairMoved":
             line_number = cursor.get("line") if isinstance(cursor, dict) else None

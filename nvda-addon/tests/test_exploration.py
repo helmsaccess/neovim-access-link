@@ -477,6 +477,61 @@ class ExplorationControllerTests(unittest.TestCase):
 			(line.text, line.character_suffix, line.indentation_tones),
 		)
 
+	def test_release_word_character_is_configurable(self) -> None:
+		for include_character in (False, True):
+			with self.subTest(includeCharacter=include_character):
+				controller = ExplorationController(RequestIds())
+				state = editor_state(word="alpha", character="a")
+				controller.plan_step(
+					self.context,
+					state,
+					ExplorationAction.WORD_NEXT,
+					capabilities={"exploration"},
+				)
+				action = controller.release(
+					self.context,
+					state,
+					word_character=include_character,
+				).speech_action
+				self.assertEqual(
+					"a" if include_character else None,
+					action.character_suffix,
+				)
+
+	def test_release_line_supports_every_detail_combination(self) -> None:
+		for line_word, line_character, expected in (
+			(False, False, (None, None)),
+			(True, False, ("beta", None)),
+			(False, True, (None, "b")),
+			(True, True, ("beta", "b")),
+		):
+			with self.subTest(
+				lineWord=line_word,
+				lineCharacter=line_character,
+			):
+				controller = ExplorationController(RequestIds())
+				state = editor_state(
+					lineText="alpha beta",
+					word="beta",
+					character="b",
+				)
+				controller.plan_step(
+					self.context,
+					state,
+					ExplorationAction.LINE_DOWN,
+					capabilities={"exploration"},
+				)
+				action = controller.release(
+					self.context,
+					state,
+					line_word=line_word,
+					line_character=line_character,
+				).speech_action
+				self.assertEqual(expected, (
+					action.word_suffix,
+					action.character_suffix,
+				))
+
 	def test_release_character_at_line_end_uses_sound_without_guessing_text(self) -> None:
 		self.controller.plan_step(
 			self.context,

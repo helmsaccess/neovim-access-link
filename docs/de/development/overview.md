@@ -46,6 +46,9 @@ Neovim-Plugin
 Die Hauptrichtung verläuft von Neovim zu NVDA. Für wenige ausdrücklich
 erlaubte Funktionen, etwa Zwischenablage- und Terminalsteuerung, gibt es einen
 kleinen geprüften Rückkanal. Er ist keine frei zugängliche Neovim-RPC-Konsole.
+Auch die Exploration verwendet diesen engen Rückweg: Das AppModule sendet nur
+eine von sechs festen Lesebewegungen, und das Plugin liefert das Ergebnis einer
+flüchtigen Position zurück, ohne den echten Editorcursor zu verändern.
 
 ## Lokal und entfernt unterscheiden sich nur auf dem Transportstück
 

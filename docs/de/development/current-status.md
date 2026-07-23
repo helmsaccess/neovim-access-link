@@ -1,11 +1,14 @@
 # Aktueller Status
 
-Stand: 21. Juli 2026. Produktversion im Quellstand: 0.95.1.
+Stand: 23. Juli 2026. Basisversion: 0.95.1. Aktueller Featurebranch-Testbuild:
+0.95.1-dev.7+feature.exploration-mode.
 
-Der Quellstand ist für Version 0.95.1 vorbereitet. Der zugehörige
-GitHub-Veröffentlichungslink steht prominent in `README.md`. Die vom Projekt
-festgelegte Reife bleibt zwischen Alpha und Beta. Diese Dokumentation leitet
-aus Testumfang, Versionsnummer oder Funktionsmenge keine höhere
+Dieser Quellstand liegt in einem Featurebranch und ist noch keine neue
+Veröffentlichung. Der prominente GitHub-Link in `README.md` verweist deshalb
+weiterhin auf die veröffentlichte Version 0.95.1; der aktuelle
+Explorationsstand ist im Changelog als Testbuild gekennzeichnet. Die vom
+Projekt festgelegte Reife bleibt zwischen Alpha und Beta. Diese Dokumentation
+leitet aus Testumfang, Versionsnummer oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
 
 Der Prüfansatz ist risikoorientiert und nach bestem Wissen, nicht vollständig.
@@ -225,7 +228,12 @@ Im Featurezweig ist zusätzlich der kontextbezogene Explorationsmodus
 implementiert: `NVDA+h/j/k/l` und `Umschalt+NVDA+h/l` lesen Zeichen, Zeilen
 oder Wörter an einer flüchtigen Position, ohne den echten Cursor zu bewegen.
 AppModule-, Protokoll-, Controller-, Dispatcher- und Lua-Tests sind vorhanden;
-die praktische Abnahme unter NVDA steht noch aus.
+Zeichen-, Wort- und Zeilenexploration, Abschlussansage, Ursprungsklang und
+rückwärtige Wortbewegung wurden unter NVDA praktisch bestätigt. Auch die
+profilfähige, getrennte Detailauswahl für normale Wort-/Zeilennavigation und
+den Explorationsabschluss wurde praktisch ohne festgestellte Fehler geprüft.
+Dieser Nachweis bestätigt den getesteten Grundpfad, nicht jede denkbare
+Tastaturbelegung, Sprache oder Plugin-Kombination.
 
 Die Funktionstabelle und bekannte Unterschiede stehen in
 `accessibility.md`.

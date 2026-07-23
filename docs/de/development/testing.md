@@ -291,12 +291,16 @@ Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
 - Zeichen, Zeilen und Wörter folgen nur der virtuellen Position; echter
   Cursor, Buffer, Modus, `changedtick` und Ansicht bleiben unverändert;
 - nach gemischten Bewegungen spricht das Loslassen am echten Cursor je nach
-  zuletzt genutzter Einheit das Zeichen beziehungsweise Wort/Zeile plus
-  Cursorzeichen;
+  zuletzt genutzter Einheit das Zeichen beziehungsweise die konfigurierten
+  Wort-/Zeilendetails;
+- auf der Registerkarte „Navigation“ werden nur Wort gegenüber Wort plus
+  Cursorzeichen und alle vier Zeilenkombinationen getrennt für normale
+  Navigation und Explorationsabschluss geprüft; gemeinsam aktiv ist die
+  Reihenfolge Zeile, aktuelles Wort, Cursorzeichen;
 - schnelles Loslassen, Autorepeat und Loslassen von NVDA vor der Richtungstaste
   geben kein nacktes `h/j/k/l` an Neovim weiter;
-- Normal, Insert, Visual, Kommandozeile, Terminal-Normal und direkte
-  Terminaleingabe bleiben lesbar;
+- Normal, Insert, Replace, Visual, Operator-Pending, Kommandozeile,
+  Terminal-Normal und direkte Terminaleingabe bleiben lesbar;
 - Grenzen, leere und kurze Zeilen, Tabs, Umlaute, kombinierende Zeichen, breite
   Zeichen und Emoji bleiben stabil;
 - die rückwärtige Wortexploration hält am vorherigen Wort einer anderen
@@ -310,6 +314,14 @@ Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
   Pane/Tab und anderen Anwendungen ihr normales NVDA-Verhalten;
 - Fokuswechsel, Disconnect oder Neovim-Kontextwechsel beenden die Exploration
   still und können keine verspätete Ausgabe in der neuen Sitzung erzeugen.
+
+Am 23. Juli 2026 wurde dieser Grundpfad unter Windows/NVDA praktisch geprüft.
+Zeichen-, Wort- und Zeilenexploration, rückwärtige Wortbewegung,
+Ursprungsdoppelton, Abschlussansage sowie die getrennten Wort- und
+Zeilenoptionen für normale Navigation und Exploration zeigten dabei keinen
+festgestellten Fehler. Dieser Nachweis ergänzt die automatisierte Matrix; er
+ersetzt keine weiteren Prüfungen mit anderen Tastaturlayouts, Sprachen,
+GlobalPlugins oder physischer Braillehardware.
 
 ### Fokusausgabe, Buffer und Terminal
 

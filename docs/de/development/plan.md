@@ -14,15 +14,6 @@ die Prüfung jeder denkbaren Kombination noch feste Reaktions- oder
 Behebungszeiten. Reproduzierbare Fehler werden nach Möglichkeit zeitnah
 untersucht; Sicherheits-, Isolations- und Datenverlustrisiken haben Vorrang.
 
-## Explorationsmodus praktisch abnehmen
-
-Die rein lesende Navigation mit `NVDA+h/j/k/l` und
-`Umschalt+NVDA+h/l` ist implementiert und automatisiert geprüft. Vor einer
-Übernahme sind die in `testing.md` beschriebenen Praxisfälle lokal und über
-SSH in gemischten Windows-Terminal-Tabs, -Panes und -Fenstern zu bestätigen.
-Besonders wichtig sind unveränderter echter Cursor, schnelles Loslassen,
-Autorepeat und vollständig natives NVDA-Verhalten in ungebundenen Controls.
-
 ## 1. Dokumentation verständlich und überprüfbar halten
 
 Laufend:

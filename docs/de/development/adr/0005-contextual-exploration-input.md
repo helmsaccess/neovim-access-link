@@ -2,8 +2,9 @@
 
 ## Status
 
-Umgesetzt. Automatisierte Bestätigung liegt vor; die praktische Abnahme steht
-noch aus.
+Umgesetzt und angenommen. Automatisierte Abdeckung sowie praktische
+Windows/NVDA-Prüfungen des Grundpfads einschließlich Ursprungsklang,
+rückwärtiger Wortbewegung und konfigurierbarer Abschlussansage liegen vor.
 
 ## Kontext
 
@@ -87,5 +88,7 @@ und Fail-open-Verhalten benötigen Struktur- und Laufzeittests.
 
 Fokuswechsel, Disconnect, Resync, veralteter Zustand oder eine verspätete
 Antwort beenden die Exploration ohne geratenen Text und ohne
-Editoroperation. Eine praktische Übernahme erfolgt erst nach Tests mit
-gemischten lokalen, SSH-, Neovim- und Nicht-Neovim-Panes.
+Editoroperation. Praktische Prüfungen mit lokalen und entfernten
+Neovim-Sitzungen sowie gemischten Neovim- und Nicht-Neovim-Panes bestätigten
+die control-spezifische Abschottung. Daraus folgt keine Aussage über jede
+denkbare Tastaturbelegung oder fremde Global-Plugin-Kombination.

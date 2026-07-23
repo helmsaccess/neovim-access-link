@@ -256,8 +256,21 @@ class EditorSessionController:
 	) -> ExplorationResultPlan:
 		return self._exploration.consume_result(context, event)
 
-	def release_exploration(self, context: ExplorationContext) -> ExplorationReleasePlan:
-		return self._exploration.release(context, self._coordinator.current_state)
+	def release_exploration(
+		self,
+		context: ExplorationContext,
+		*,
+		word_character: bool,
+		line_word: bool,
+		line_character: bool,
+	) -> ExplorationReleasePlan:
+		return self._exploration.release(
+			context,
+			self._coordinator.current_state,
+			word_character=word_character,
+			line_word=line_word,
+			line_character=line_character,
+		)
 
 	def invalidate_exploration(self) -> None:
 		self._exploration.invalidate()
@@ -337,6 +350,9 @@ class EditorSessionController:
 		plan_speech: bool,
 		allow_focus_context_cue: bool,
 		connection_label: str | None = None,
+		word_character: bool = True,
+		line_word: bool = False,
+		line_character: bool = True,
 	) -> EditorEventPlan:
 		"""Apply one event and return NVDA-neutral presentation decisions."""
 		planned_event = self._with_connection_label(event, connection_label)
@@ -360,6 +376,9 @@ class EditorSessionController:
 				self._coordinator.planner.plan(
 					dict(planned_event),
 					focus_announcement=focus_announcement,
+					word_character=word_character,
+					line_word=line_word,
+					line_character=line_character,
 				)
 			)
 			if plan_speech

@@ -34,6 +34,7 @@ class NvdaUiManager:
 		product_name,
 		package_dir,
 		feedback_defaults,
+		navigation_details_defaults,
 		focus_announcement_default,
 	):
 		self._settingsService = settings_service
@@ -43,6 +44,7 @@ class NvdaUiManager:
 		self._productName = product_name
 		self._packageDir = package_dir
 		self._feedbackDefaults = feedback_defaults
+		self._navigationDetailsDefaults = navigation_details_defaults
 		self._focusAnnouncementDefault = focus_announcement_default
 		self._menuItems = []
 		self._settingsPanelClass = None
@@ -221,6 +223,7 @@ class NvdaUiManager:
 			settings_service = self._settingsService
 			product_name = self._productName
 			feedback_defaults = self._feedbackDefaults
+			navigation_details_defaults = self._navigationDetailsDefaults
 			focus_announcement_default = self._focusAnnouncementDefault
 			labels = (
 				("global", _("&Global action feedback:")),
@@ -244,19 +247,36 @@ class NvdaUiManager:
 					helper.addItem(self.settingsNotebook)
 					general_page = wx.Panel(self.settingsNotebook)
 					feedback_page = wx.Panel(self.settingsNotebook)
+					navigation_page = wx.Panel(self.settingsNotebook)
 					connections_page = wx.Panel(self.settingsNotebook)
 					general_sizer = wx.BoxSizer(wx.VERTICAL)
 					feedback_sizer = wx.BoxSizer(wx.VERTICAL)
+					navigation_sizer = wx.BoxSizer(wx.VERTICAL)
 					connections_sizer = wx.BoxSizer(wx.VERTICAL)
 					general_page.SetSizer(general_sizer)
 					feedback_page.SetSizer(feedback_sizer)
+					navigation_page.SetSizer(navigation_sizer)
 					connections_page.SetSizer(connections_sizer)
+					# Translators: Name of the general settings tab.
 					self.settingsNotebook.AddPage(general_page, _("General"))
+					# Translators: Name of the sound and speech feedback settings tab.
 					self.settingsNotebook.AddPage(feedback_page, _("Feedback"))
+					# Translators: Name of the navigation-detail settings tab.
+					self.settingsNotebook.AddPage(navigation_page, _("Navigation"))
+					# Translators: Name of the connection settings tab.
 					self.settingsNotebook.AddPage(connections_page, _("Connections"))
-					self.settingsTabLabels = (_("General"), _("Feedback"), _("Connections"))
+					self.settingsTabLabels = (
+						_("General"),
+						_("Feedback"),
+						_("Navigation"),
+						_("Connections"),
+					)
 					general_helper = guiHelper.BoxSizerHelper(general_page, sizer=general_sizer)
 					feedback_helper = guiHelper.BoxSizerHelper(feedback_page, sizer=feedback_sizer)
+					navigation_helper = guiHelper.BoxSizerHelper(
+						navigation_page,
+						sizer=navigation_sizer,
+					)
 					connections_helper = guiHelper.BoxSizerHelper(
 						connections_page,
 						sizer=connections_sizer,
@@ -320,6 +340,107 @@ class NvdaUiManager:
 						),
 					)
 					actions_group.addItem(note)
+
+					navigation_details = settings.get(
+						"navigationDetails",
+						navigation_details_defaults,
+					)
+					# Translators: Group for feedback after ordinary Neovim cursor movement.
+					normal_navigation_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						navigation_page,
+						label=_("Normal navigation"),
+					)
+					navigation_helper.addItem(normal_navigation_sizer)
+					normal_navigation_group = guiHelper.BoxSizerHelper(
+						navigation_page,
+						sizer=normal_navigation_sizer,
+					)
+					# Translators: Choices for details spoken after word navigation.
+					word_detail_choices = [
+						_("Word only"),
+						_("Word and cursor character"),
+					]
+					# Translators: Choices for details spoken after line navigation.
+					line_detail_choices = [
+						_("Line only"),
+						_("Line and current word"),
+						_("Line and cursor character"),
+						_("Line, current word and cursor character"),
+					]
+					self.navigationDetailControls = {}
+					# Translators: Label for details spoken after normal word navigation.
+					control = normal_navigation_group.addLabeledControl(
+						_("&Word navigation:"),
+						wx.Choice,
+						choices=word_detail_choices,
+					)
+					control.SetSelection(
+						int(
+							navigation_details.get(
+								"navigationWord",
+								navigation_details_defaults["navigationWord"],
+							)
+						)
+					)
+					self.navigationDetailControls["navigationWord"] = control
+					# Translators: Label for details spoken after normal line navigation.
+					control = normal_navigation_group.addLabeledControl(
+						_("&Line navigation:"),
+						wx.Choice,
+						choices=line_detail_choices,
+					)
+					control.SetSelection(
+						int(
+							navigation_details.get(
+								"navigationLine",
+								navigation_details_defaults["navigationLine"],
+							)
+						)
+					)
+					self.navigationDetailControls["navigationLine"] = control
+
+					# Translators: Group for feedback when the NVDA key ends exploration.
+					exploration_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						navigation_page,
+						label=_("Exploration release"),
+					)
+					navigation_helper.addItem(exploration_sizer)
+					exploration_group = guiHelper.BoxSizerHelper(
+						navigation_page,
+						sizer=exploration_sizer,
+					)
+					# Translators: Label for details spoken after word exploration.
+					control = exploration_group.addLabeledControl(
+						_("After &word exploration:"),
+						wx.Choice,
+						choices=word_detail_choices,
+					)
+					control.SetSelection(
+						int(
+							navigation_details.get(
+								"explorationWord",
+								navigation_details_defaults["explorationWord"],
+							)
+						)
+					)
+					self.navigationDetailControls["explorationWord"] = control
+					# Translators: Label for details spoken after line exploration.
+					control = exploration_group.addLabeledControl(
+						_("After &line exploration:"),
+						wx.Choice,
+						choices=line_detail_choices,
+					)
+					control.SetSelection(
+						int(
+							navigation_details.get(
+								"explorationLine",
+								navigation_details_defaults["explorationLine"],
+							)
+						)
+					)
+					self.navigationDetailControls["explorationLine"] = control
 
 					connection_sizer = wx.StaticBoxSizer(
 						wx.VERTICAL,
@@ -427,6 +548,10 @@ class NvdaUiManager:
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
 							"feedback": {
 								key: control.GetSelection() for key, control in self.feedbackControls.items()
+							},
+							"navigationDetails": {
+								key: control.GetSelection()
+								for key, control in self.navigationDetailControls.items()
 							},
 							"connections": list(self.connectionProfiles),
 						}

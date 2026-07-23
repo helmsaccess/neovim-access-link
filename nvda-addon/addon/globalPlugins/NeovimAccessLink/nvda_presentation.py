@@ -167,6 +167,12 @@ class NvdaPresentation:
 					if getattr(action, "force_symbols", False):
 						kwargs["symbolLevel"] = 300
 					speech.speakText(action.text, **kwargs)
+				if speech_allowed and getattr(action, "word_suffix", None):
+					speech.speakText(
+						action.word_suffix,
+						priority=priority,
+						symbolLevel=300,
+					)
 				if speech_allowed and getattr(action, "character_suffix", None):
 					speech.speakSpelling(action.character_suffix, priority=priority)
 				if getattr(action, "braille_message", None):

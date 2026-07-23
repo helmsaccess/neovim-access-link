@@ -51,6 +51,7 @@ class TerminalIntegrationService:
 		send_braille_route: Callable[[dict[str, Any]], bool],
 		control_dispatcher: Any,
 		present_exploration: Callable[[object, str | None, Mapping[str, Any]], None],
+		exploration_details: Callable[[], tuple[bool, bool, bool]],
 		record_diagnostic: Callable[..., None],
 		fail_open_event: Callable[[str, Exception], None],
 	):
@@ -65,6 +66,7 @@ class TerminalIntegrationService:
 			claim_focused_session,
 			send_braille_route,
 			present_exploration,
+			exploration_details,
 			record_diagnostic,
 			fail_open_event,
 		)
@@ -83,6 +85,7 @@ class TerminalIntegrationService:
 		self._sendBrailleRoute = send_braille_route
 		self._controlDispatcher = control_dispatcher
 		self._presentExploration = present_exploration
+		self._explorationDetails = exploration_details
 		self._recordDiagnostic = record_diagnostic
 		self._failOpenEvent = fail_open_event
 		self._generation = object()
@@ -163,7 +166,13 @@ class TerminalIntegrationService:
 		if selected is None or selected[0] != context.instance_id:
 			self.cancel_exploration(adapter_token)
 			return False
-		plan = self._editorSession.release_exploration(context)
+		word_character, line_word, line_character = self._explorationDetails()
+		plan = self._editorSession.release_exploration(
+			context,
+			word_character=word_character,
+			line_word=line_word,
+			line_character=line_character,
+		)
 		if not plan.ready:
 			return False
 		if plan.speech_action is not None:

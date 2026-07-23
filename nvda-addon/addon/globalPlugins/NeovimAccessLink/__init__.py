@@ -303,11 +303,21 @@ _FEEDBACK_FOR_SOUND = {
 }
 _FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
 _FOCUS_ANNOUNCEMENT_DEFAULT = 2
+_NAVIGATION_DETAILS_DEFAULTS = {
+	"navigationWord": 1,
+	"navigationLine": 2,
+	"explorationWord": 1,
+	"explorationLine": 2,
+}
 _NVDA_CONFIG_SECTION = "NeovimAccessLink"
 _NVDA_CONFIG_SPEC = {
 	"connections": 'string(default="[]")',
 	"focusAnnouncement": f"integer(default={_FOCUS_ANNOUNCEMENT_DEFAULT}, min=0, max=2)",
 	"feedback": {key: f"integer(default={value}, min=0, max=3)" for key, value in _FEEDBACK_DEFAULTS.items()},
+	"navigationDetails": {
+		key: f"integer(default={value}, min=0, max={1 if key.endswith('Word') else 3})"
+		for key, value in _NAVIGATION_DETAILS_DEFAULTS.items()
+	},
 }
 
 
@@ -326,6 +336,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			config.conf,
 			section_name=_NVDA_CONFIG_SECTION,
 			feedback_defaults=_FEEDBACK_DEFAULTS,
+			navigation_details_defaults=_NAVIGATION_DETAILS_DEFAULTS,
 			focus_announcement_values=_FOCUS_ANNOUNCEMENT_VALUES,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 			record_diagnostic=self._diagnostics.record,
@@ -412,6 +423,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			product_name=_PRODUCT_NAME,
 			package_dir=_PACKAGE_DIR,
 			feedback_defaults=_FEEDBACK_DEFAULTS,
+			navigation_details_defaults=_NAVIGATION_DETAILS_DEFAULTS,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,
 		)
 		self._terminalIntegrationService = TerminalIntegrationService(
@@ -437,6 +449,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			send_braille_route=self._sendBrailleRoute,
 			control_dispatcher=self._controlDispatcher,
 			present_exploration=self._presentExploration,
+			exploration_details=lambda: self._settingsService.navigation_details(
+				exploration=True
+			),
 			record_diagnostic=self._diagnostics.record,
 			fail_open_event=self._failOpenTerminalEvent,
 		)
@@ -2329,12 +2344,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _handleEvent(self, event, *, connection_label=None):
 		activated = False
 		payload = event.get("payload")
+		word_character, line_word, line_character = self._settingsService.navigation_details(
+			exploration=False
+		)
 		plan = self._editorSessionController.plan_event(
 			event,
 			focus_announcement=self._focusAnnouncement(),
 			plan_speech=self._gate.manual_enabled,
 			allow_focus_context_cue=self._gate.manual_enabled,
 			connection_label=connection_label,
+			word_character=word_character,
+			line_word=line_word,
+			line_character=line_character,
 		)
 		transition = plan.transition
 		keyObserverDiagnostics = (

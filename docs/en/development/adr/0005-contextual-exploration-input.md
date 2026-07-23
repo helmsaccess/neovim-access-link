@@ -2,8 +2,9 @@
 
 ## Status
 
-Implemented. Automated confirmation is complete; practical acceptance is
-still pending.
+Implemented and accepted. Automated coverage and practical Windows/NVDA tests
+of the core path include the origin cue, backward word movement, and
+configurable release feedback.
 
 ## Context
 
@@ -79,5 +80,7 @@ fast return, constant `True`, symmetric reload, exact pane isolation, and
 fail-open behavior.
 
 Focus changes, disconnect, resync, stale state, or a late reply end
-exploration without guessed text or editor operations. Practical acceptance
-follows tests with mixed local, SSH, Neovim, and non-Neovim panes.
+exploration without guessed text or editor operations. Practical tests with
+local and remote Neovim sessions and mixed Neovim/non-Neovim panes confirmed
+control-specific isolation. This is not a claim about every possible keyboard
+assignment or third-party Global Plugin combination.

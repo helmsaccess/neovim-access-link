@@ -365,6 +365,10 @@ class ExplorationController:
 		self,
 		context: ExplorationContext,
 		state: Mapping[str, Any],
+		*,
+		word_character: bool = True,
+		line_word: bool = False,
+		line_character: bool = True,
 	) -> ExplorationReleasePlan:
 		active = self._active
 		if active is None:
@@ -376,7 +380,13 @@ class ExplorationController:
 		if unit is None:
 			self.invalidate()
 			return ExplorationReleasePlan(ExplorationRejection.NO_ACTIVE_EXPLORATION)
-		speech_action = self._release_speech(unit, state)
+		speech_action = self._release_speech(
+			unit,
+			state,
+			word_character=word_character,
+			line_word=line_word,
+			line_character=line_character,
+		)
 		request_id = self._nextRequestId()
 		if not self._valid_positive_integer(request_id):
 			self.invalidate()
@@ -498,6 +508,10 @@ class ExplorationController:
 		self,
 		unit: ExplorationUnit,
 		state: Mapping[str, Any],
+		*,
+		word_character: bool,
+		line_word: bool,
+		line_character: bool,
 	) -> SpeechAction | None:
 		line = state.get("lineText")
 		if unit == ExplorationUnit.LINE and not isinstance(line, str):
@@ -517,5 +531,11 @@ class ExplorationController:
 				indentation_quarter_tones(line)
 				if unit == ExplorationUnit.LINE
 				else None
+			),
+			include_word=unit == ExplorationUnit.LINE and line_word,
+			include_character=(
+				word_character
+				if unit == ExplorationUnit.WORD
+				else line_character
 			),
 		)

@@ -370,6 +370,13 @@ zugängliches Plugin-Dictionary. Der `NvdaUiManager` erhält nur diesen Dienst,
 einen Diagnose-Recorder und die wenigen Callbacks für Passwort- und
 Komponentenabläufe. Menü und Einstellungskategorie bleiben trotzdem genau
 einmal im Prozesslebenszyklus des Global Plugins registriert.
+Der Dienst löst die Indizes für Navigationsdetails in boolesche Werte auf,
+bevor sie die Editor- oder Explorationsschnittstelle überschreiten. Der
+gemeinsame Sprachplaner bleibt dadurch von NVDAs Konfiguration unabhängig und
+erzeugt für normale Navigation und Explorationsabschluss dieselbe Reihenfolge
+Zeile, Wort, Zeichen. Die Werte für den Explorationsabschluss beeinflussen nur
+die Ausgabe am echten Cursor beim Loslassen der NVDA-Taste; die virtuellen
+Explorationsschritte und die Zeichenexploration bleiben davon unabhängig.
 
 ## Das Fail-open-Gate
 

@@ -347,6 +347,13 @@ accessible plugin dictionary. `NvdaUiManager` receives only that service, a
 diagnostic recorder, and the small password and component-operation callbacks
 it needs. Its Tools entries and Settings category nevertheless remain registered
 exactly once for the Global Plugin's process lifetime.
+Navigation-detail indices are resolved by the service into booleans before
+they cross the editor or exploration interfaces. The shared speech planner
+therefore remains independent of NVDA configuration and produces the same
+line-word-character ordering for normal navigation and exploration release.
+The exploration-release values affect only output at the real cursor when
+NVDA is released; virtual exploration steps and character exploration remain
+independent of them.
 
 ## The fail-open gate
 

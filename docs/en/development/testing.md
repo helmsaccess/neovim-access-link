@@ -273,12 +273,16 @@ holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
 
 - characters, lines, and words follow only the virtual position; the real
   cursor, buffer, mode, changed tick, and view stay unchanged;
-- after mixed movements, release reads the character, or the word/line plus
-  cursor character, at the real cursor according to the last-used unit;
+- after mixed movements, release reads the character or the configured
+  word/line details at the real cursor according to the last-used unit;
+- on the Navigation settings tab, check word only versus word plus cursor
+  character and all four line combinations independently for normal
+  navigation and exploration release; when enabled together, the order is
+  line, current word, cursor character;
 - rapid release, autorepeat, and releasing NVDA before the direction key send
   no bare `h/j/k/l` to Neovim;
-- Normal, Insert, Visual, command line, Terminal-Normal, and direct terminal
-  input remain readable;
+- Normal, Insert, Replace, Visual, Operator-pending, command line,
+  Terminal-Normal, and direct terminal input remain readable;
 - boundaries, empty and short lines, tabs, combining marks, wide characters,
   and emoji remain stable;
 - backward word exploration stops at the preceding word on another line and
@@ -290,6 +294,14 @@ holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
   pane/tab, and other application;
 - focus, disconnect, or Neovim-context changes end exploration silently and a
   late result cannot appear in the new session.
+
+On July 23, 2026, this core path was exercised practically under Windows and
+NVDA. Character, word, and line exploration, backward word movement, the
+two-note origin cue, release feedback, and the independent word and line
+choices for normal navigation and exploration produced no observed defect.
+This evidence complements the automated matrix; it does not replace testing
+with other keyboard layouts, languages, GlobalPlugins, or physical Braille
+hardware.
 
 ### Focus presentation, buffers, and terminal
 
