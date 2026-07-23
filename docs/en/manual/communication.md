@@ -78,6 +78,31 @@ Disconnect, timeout, invalid sequence, deactivation, or loss of focus clears
 the gate and restores normal terminal output. The add-on never suppresses an
 unknown application or an unbound tab.
 
+## Explore text without moving Neovim's cursor
+
+In a connected and confirmed Neovim control, hold the NVDA key and use these
+fixed reading commands:
+
+| Key | Virtual reading movement |
+|---|---|
+| `NVDA+h` / `NVDA+l` | previous / next character |
+| `NVDA+k` / `NVDA+j` | previous / next line |
+| `Shift+NVDA+h` / `Shift+NVDA+l` | previous / next word |
+
+The first command starts at the real cursor. Further commands move only an
+ephemeral reading position; the buffer, mode, view, and real cursor do not
+change. Releasing NVDA reads the last-used unit—character, word, or line—at the
+real cursor. During character exploration, a short two-note cue marks a return
+to the real cursor position. It follows the configured line-boundary sound
+feedback.
+
+The commands apply in Neovim's Normal, Insert, Visual, command-line, and
+embedded-terminal contexts, but only in the exact focused, authenticated
+Neovim pane. The same keys retain normal NVDA behavior in a shell, an unbound
+pane, another tab, or another application. After installing a build that adds
+this feature, update the Neovim components and restart running Neovim
+instances.
+
 ## Manual selection
 
 Focus Windows Terminal, then assign “Choose a server and connect this terminal

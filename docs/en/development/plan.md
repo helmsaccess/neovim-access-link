@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 21, 2026.
+Status date: July 23, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -12,6 +12,14 @@ that are actually reported. The plan promises neither coverage of every
 possible combination nor fixed response or resolution times. Reproducible
 defects are investigated as promptly as possible; security, isolation, and
 data-loss risks take priority.
+
+## Accept exploration mode practically
+
+Read-only navigation with `NVDA+h/j/k/l` and `Shift+NVDA+h/l` is implemented
+and covered automatically. Before integration, complete the practical cases
+in `testing.md` locally and over SSH across mixed Windows Terminal tabs,
+panes, and windows. The unchanged real cursor, rapid release, autorepeat, and
+fully native NVDA behavior in unbound controls are the critical checks.
 
 ## 1. Keep documentation understandable and verifiable
 

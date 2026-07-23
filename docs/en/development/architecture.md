@@ -200,17 +200,18 @@ must not close output again before state is confirmed.
 
 | Layer | Owns | Explicitly does not own |
 |---|---|---|
-| Neovim plugin | Editor semantics, buffer/window/tab identity, UTF-8 byte columns, menus, messages, file-manager state | Windows focus, speech, SSH lifecycle |
+| Neovim plugin | Editor semantics, buffer/window/tab identity, UTF-8 byte columns, menus, messages, file-manager state, and ephemeral read-only exploration position | Windows focus, speech, SSH lifecycle, or moving the real cursor for exploration |
 | Bridge | Unix RPC connection, stdio framing, bounded forwarding | Arbitrary RPC or command execution, presentation |
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `service_registry.py` / `ServiceRegistrar` | Identity-checked process-wide publication of the fully initialized `TerminalIntegrationService` | A Global Plugin object, lifecycle decisions, or terminal events |
 | `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
-| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, contextual exploration, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
-| `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard/terminal-control plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
+| `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard, terminal, and exploration plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
+| `ControlDispatcher` | Bounded asynchronous sending of prepared control payloads | NVDA events, focus decisions, payload construction, or an unbounded queue |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -218,7 +219,7 @@ must not close output again before state is confirmed.
 | `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
 | Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
-| Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable terminal commands, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection or transport |
+| Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable commands, contextual exploration gestures and their physical-key lifecycle, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection, separate gesture resolution, or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
@@ -387,6 +388,8 @@ The reverse channel is a fixed allowlist, not general remote control:
 - `copyTextRequest`, `pasteTextRequest`, and `setRegisterRequest` mediate
   explicit clipboard actions;
 - `leaveTerminalInputRequest` performs only Neovim's fixed `stopinsert`.
+- `exploreTextRequest` moves only an ephemeral reading position, while
+  `endExplorationRequest` discards it; neither moves the real cursor.
 
 State-changing requests carry the expected session, buffer, window, tab, mode,
 and, where needed, `changedtick` identity. Text is never executed as Lua or Ex

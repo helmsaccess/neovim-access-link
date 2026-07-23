@@ -55,6 +55,7 @@ are neither user instructions nor substitutes for the current code.
 - [ADR-0002: NVDA API boundaries](adr/0002-nvda-api-boundaries.md)
 - [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA lifetime and application-event ownership](adr/0004-nvda-lifetime-and-event-ownership.md)
+- [ADR-0005: Contextual input for exploration mode](adr/0005-contextual-exploration-input.md)
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
 

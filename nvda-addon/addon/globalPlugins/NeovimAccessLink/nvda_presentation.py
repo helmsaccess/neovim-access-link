@@ -193,6 +193,10 @@ class NvdaPresentation:
 		elif sound == "lineEnd" and mode == "normal":
 			if enabled and not self.editor_sounds.play("lineEnd"):
 				tones.beep(360, 18)
+		elif sound == "explorationOrigin":
+			if enabled:
+				tones.beep(660, 12)
+				tones.beep(880, 12)
 		elif sound == "fileStart":
 			if enabled and not self.editor_sounds.play("fileStart"):
 				tones.beep(520, 35)

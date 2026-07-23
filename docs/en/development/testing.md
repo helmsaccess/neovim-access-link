@@ -85,6 +85,10 @@ Required cases include:
 - nonce validation on the persistent RPC channel before `setup()`;
 - fixed control allowlist with field, size, and state validation;
 - no retry of an already dispatched state-changing action.
+- strict exploration actions, identifiers, origin, text bounds, and rejection
+  of foreign or late results;
+- end-to-end plugin capability confirmation: an older installed or still
+  running plugin must not expose or receive exploration controls.
 
 ### Session registry, claim, and binding
 
@@ -144,6 +148,11 @@ Important cases are:
 - exact focused-AppModule and control validation, with one pass-through of the
   original gesture if focus changes before execution;
 - separate AppModule instances never execute one another's command.
+- only NVDA's normal script resolution for the six fixed exploration chords,
+  exact-pane authorization, a passive always-`True` raw-key callback, rapid
+  release handling, and a bounded autorepeat barrier;
+- virtual character, line, and word movement without changing the real
+  cursor, buffer, changed tick, mode, or view;
 - built-package structure checks keep all application-event entry points out
   of the Global Plugin and reject Global Plugin dependencies from extracted
   runtime, UI, focus, claim, editor, Braille, registry, and terminal-service
@@ -256,6 +265,32 @@ Move among all controls slowly and rapidly. Expected behavior:
 
 Record the UIA class and complete runtime ID in redacted form so tabs, panes,
 and windows are not confused.
+
+### Exploration mode
+
+Update components and restart every running Neovim instance. While physically
+holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
+
+- characters, lines, and words follow only the virtual position; the real
+  cursor, buffer, mode, changed tick, and view stay unchanged;
+- after mixed movements, release reads exactly the last-used unit at the real
+  cursor;
+- rapid release, autorepeat, and releasing NVDA before the direction key send
+  no bare `h/j/k/l` to Neovim;
+- Normal, Insert, Visual, command line, Terminal-Normal, and direct terminal
+  input remain readable;
+- boundaries, empty and short lines, tabs, combining marks, wide characters,
+  and emoji remain stable;
+- backward word exploration stops at the preceding word on another line and
+  never merges keyword characters across a newline;
+- moving away character by character and returning to the real cursor position
+  plays one short two-note cue; remaining there, line, and word exploration do
+  not repeat it;
+- local and SSH Neovim work across mixed tabs, split panes, and windows;
+- the same chords retain normal NVDA behavior in every unbound shell, foreign
+  pane/tab, and other application;
+- focus, disconnect, or Neovim-context changes end exploration silently and a
+  late result cannot appear in the new session.
 
 ### Focus presentation, buffers, and terminal
 

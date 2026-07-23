@@ -12,6 +12,14 @@ from typing import Any
 from .core.braille import BraillePlan, plan_braille as build_braille_plan
 from .core.clipboard import clipboard_result_state, valid_clipboard_text, valid_request_id
 from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
+from .core.exploration_state import (
+	ExplorationAction,
+	ExplorationContext,
+	ExplorationController,
+	ExplorationReleasePlan,
+	ExplorationRequestPlan,
+	ExplorationResultPlan,
+)
 from .core.gate import TerminalIdentity
 from .core.speech import SpeechAction, SpeechPlanner
 from .core.terminal_control import terminal_control_result_state
@@ -176,11 +184,17 @@ class EditorSessionController:
 		new_planner: Callable[[], SpeechPlanner],
 		max_pending_clipboard_requests: int = 32,
 		max_pending_terminal_control_requests: int = 16,
+		translate: Callable[[str], str] | None = None,
 	) -> None:
 		self._coordinator = coordinator
 		self._newPlanner = new_planner
 		self._maxPendingClipboardRequests = max_pending_clipboard_requests
 		self._maxPendingTerminalControlRequests = max_pending_terminal_control_requests
+		self._explorationRequestId = 0
+		self._exploration = ExplorationController(
+			self._next_exploration_request_id,
+			translate=translate,
+		)
 
 	def new_runtime(self) -> dict[str, Any]:
 		"""Return one isolated runtime in the coordinator's stable storage format."""
@@ -197,10 +211,74 @@ class EditorSessionController:
 		}
 
 	def switch_instance(self, instance_id: str) -> bool:
-		return self._coordinator.switch_runtime(instance_id, self.new_runtime)
+		changed = self._coordinator.switch_runtime(instance_id, self.new_runtime)
+		if changed:
+			self._exploration.invalidate()
+		return changed
 
 	def drop_instance(self, instance_id: str) -> bool:
-		return self._coordinator.drop_runtime(instance_id, self.new_runtime)
+		changed = self._coordinator.drop_runtime(instance_id, self.new_runtime)
+		if changed:
+			self._exploration.invalidate()
+		return changed
+
+	def exploration_available(self) -> bool:
+		"""Return whether the selected authenticated runtime advertises exploration."""
+		return (
+			self._coordinator.active_client is not None
+			and self._coordinator.active_instance_id is not None
+			and self._coordinator.connected
+			and "exploration" in self._coordinator.transport_capabilities
+		)
+
+	def exploration_instance(self) -> tuple[str, object] | None:
+		"""Return the selected instance and client without performing transport I/O."""
+		if not self.exploration_available():
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def plan_exploration_step(
+		self,
+		context: ExplorationContext,
+		action: ExplorationAction,
+	) -> ExplorationRequestPlan:
+		return self._exploration.plan_step(
+			context,
+			self._coordinator.current_state,
+			action,
+			capabilities=self._coordinator.transport_capabilities,
+		)
+
+	def consume_exploration_result(
+		self,
+		context: ExplorationContext,
+		event: Mapping[str, Any],
+	) -> ExplorationResultPlan:
+		return self._exploration.consume_result(context, event)
+
+	def release_exploration(self, context: ExplorationContext) -> ExplorationReleasePlan:
+		return self._exploration.release(context, self._coordinator.current_state)
+
+	def invalidate_exploration(self) -> None:
+		self._exploration.invalidate()
+
+	def fail_exploration_request(self, request_id: int) -> bool:
+		return self._exploration.fail_request(request_id)
+
+	def active_exploration_context(self) -> ExplorationContext | None:
+		return self._exploration.active_context
+
+	def exploration_mode(self) -> str | None:
+		return self._string_field(self._coordinator.current_state, "mode")
+
+	def exploration_state(self) -> Mapping[str, Any]:
+		return MappingProxyType(dict(self._coordinator.current_state))
+
+	def _next_exploration_request_id(self) -> int:
+		self._explorationRequestId = (
+			1 if self._explorationRequestId >= 2_147_483_647 else self._explorationRequestId + 1
+		)
+		return self._explorationRequestId
 
 	def apply_event(self, event: Mapping[str, Any]) -> EditorEventTransition:
 		"""Apply canonical state changes and return presentation-relevant facts."""
@@ -327,6 +405,7 @@ class EditorSessionController:
 
 	def mark_disconnected(self) -> None:
 		"""Open connection state immediately when called by a network callback."""
+		self._exploration.invalidate()
 		self._coordinator.connected = False
 
 	def apply_connection_state(
@@ -339,6 +418,7 @@ class EditorSessionController:
 		self._coordinator.last_connection_state = state
 		connection_lost = state == "disconnected" and previous == "connected"
 		if connection_lost and reset_runtime:
+			self._exploration.invalidate()
 			self._coordinator.planner.reset()
 			self.reset_typed_echo()
 		return ConnectionStateTransition(previous, state, connection_lost)

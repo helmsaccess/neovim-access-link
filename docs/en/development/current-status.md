@@ -200,6 +200,12 @@ The semantic path covers, among other features:
   mode and saved connection name;
 - separate speech, sound, and persistent Braille planning.
 
+The feature branch also implements contextual exploration:
+`NVDA+h/j/k/l` and `Shift+NVDA+h/l` read characters, lines, or words at an
+ephemeral position without moving the real cursor. AppModule, protocol,
+controller, dispatcher, and Lua tests cover the path; practical NVDA
+acceptance is still pending.
+
 See `accessibility.md` for the feature matrix and known differences.
 
 ### Terminal and file-manager paths

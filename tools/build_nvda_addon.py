@@ -23,13 +23,13 @@ import buildVars
 from tools.gettext_catalog import compile_catalogs
 
 PROTOCOL_MODULES = (
-    "clipboard.py", "codec.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
+    "clipboard.py", "codec.py", "exploration.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
     "session.py", "stdio_client.py", "terminal_control.py", "text.py",
 )
 CORE_MODULES = (
     "__init__.py", "braille.py", "connection_coordinator.py", "connection_instances.py",
     "connection_profiles.py",
-    "connection_targets.py", "diagnostics.py",
+    "connection_targets.py", "diagnostics.py", "exploration_state.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",
     "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )

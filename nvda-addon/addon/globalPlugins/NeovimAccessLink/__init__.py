@@ -86,6 +86,7 @@ from .core.connection_targets import (  # noqa: E402
 )
 from .core.frontend_policy import FrontendPolicy  # noqa: E402
 from .core.gate import SessionGate, TerminalIdentity  # noqa: E402
+from .core.exploration_state import ExplorationAction as ExplorationAction  # noqa: E402
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
@@ -98,6 +99,7 @@ from .terminal_integration import (  # noqa: E402
 from .settings_service import SettingsService  # noqa: E402
 from .managed_clients import ManagedClientFactory  # noqa: E402
 from .addon_runtime import AddonRuntime  # noqa: E402
+from .control_dispatcher import ControlDispatcher  # noqa: E402
 from .editor_session import (  # noqa: E402
 	ControlReplyKind,
 	ControlRequestRejection,
@@ -178,6 +180,7 @@ _SESSION_CLAIM_KEY_NAME = _LINUX_COMPONENT_CONFIG["sessionClaim"]["neovimKey"].s
 _LOCAL_CLAIM_WAIT_SECONDS = 1.5
 _LOCAL_CLAIM_POLL_SECONDS = 0.05
 _MAX_PENDING_CLIPBOARD_REQUESTS = 32
+_MAX_PENDING_EXPLORATION_CONTROLS = 64
 _MAX_PENDING_TERMINAL_CONTROL_REQUESTS = 16
 
 
@@ -292,6 +295,7 @@ _FEEDBACK_FOR_SOUND = {
 	"replace": "replace",
 	"lineStart": "lineBoundary",
 	"lineEnd": "lineBoundary",
+	"explorationOrigin": "lineBoundary",
 	"fileStart": "fileBoundary",
 	"fileEnd": "fileBoundary",
 	"lineCrossed": "lineCrossed",
@@ -344,6 +348,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			new_planner=lambda: SpeechPlanner(translate=_),
 			max_pending_clipboard_requests=_MAX_PENDING_CLIPBOARD_REQUESTS,
 			max_pending_terminal_control_requests=_MAX_PENDING_TERMINAL_CONTROL_REQUESTS,
+			translate=_,
+		)
+		self._controlDispatcher = ControlDispatcher(
+			on_result=self._onExplorationControlDispatched,
+			max_pending=_MAX_PENDING_EXPLORATION_CONTROLS,
 		)
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
@@ -426,6 +435,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			copy_diagnostic_report=self.action_copyDiagnosticReport,
 			claim_focused_session=self.action_claimFocusedNeovimSession,
 			send_braille_route=self._sendBrailleRoute,
+			control_dispatcher=self._controlDispatcher,
+			present_exploration=self._presentExploration,
 			record_diagnostic=self._diagnostics.record,
 			fail_open_event=self._failOpenTerminalEvent,
 		)
@@ -475,6 +486,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _runtimeClosed(self):
 		runtime = getattr(self, "_addonRuntime", None)
 		return runtime is not None and runtime.closed
+
+	def _onExplorationControlDispatched(self, kind, request_id, accepted, error_type):
+		self._queueRuntimeCallback(
+			self._handleExplorationControlDispatched,
+			kind,
+			request_id,
+			accepted,
+			error_type,
+		)
+
+	def _handleExplorationControlDispatched(self, kind, request_id, accepted, error_type):
+		self._diagnostics.record(
+			"explorationControlDispatched",
+			type=kind,
+			requestId=request_id,
+			accepted=accepted,
+			errorType=error_type,
+		)
+		if not accepted and kind == "exploreTextRequest" and isinstance(request_id, int):
+			self._editorSessionController.fail_exploration_request(request_id)
 
 	def _runRuntimeCallback(self, callback, *args):
 		if self._runtimeClosed():
@@ -2021,6 +2052,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			identity,
 			self._editorSessionController.new_runtime,
 		)
+		if event.get("type") == "exploreTextResult":
+			if not self._terminalIntegrationService.handle_exploration_result(
+				instance_id,
+				identity,
+				event,
+			):
+				self._diagnostics.record(
+					"explorationResultIgnored",
+					instanceId=instance_id,
+					reason="staleOrUnbound",
+				)
+			return
 		if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
 			event = self._handleClipboardResult(instance_id, identity, event)
 			if event is None:
@@ -2163,6 +2206,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._editorSessionController.discard_terminal_control_requests(instance_id)
 
 	def _discardTransientFocusContext(self):
+		self._terminalIntegrationService.cancel_exploration()
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
@@ -2410,6 +2454,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		except Exception as error:
 			self._diagnostics.record("brailleError", errorType=type(error).__name__, error=str(error))
 			log.exception("NeovimAccessLink braille failure")
+
+	def _presentExploration(self, action, mode, state):
+		self._presentation.deliver_actions(
+			(action,),
+			event_type="exploreTextResult",
+			mode=mode,
+			previous_mode=mode,
+			payload=state,
+			speak_structured_typing=self._speakStructuredTyping,
+		)
 
 	def _queueBrailleRefresh(self, rebuild):
 		self._queueRuntimeCallback(self._refreshBraille, rebuild)

@@ -154,7 +154,10 @@ den tatsächlich gestarteten v2-Transport:
 ```
 
 Lokal lautet `kind` `windows-loopback-tcp`; die Fähigkeiten entsprechen der
-Liste ohne `heartbeat`.
+Liste ohne `heartbeat`. `exploration` wird nur ergänzt, wenn das verbundene
+Neovim-Plugin diese feste Fähigkeit in `pluginCapabilities` bestätigt. So
+fängt ein aktualisiertes Add-on keine Explorationstasten ab, solange noch ein
+älteres Plugin installiert ist oder läuft.
 
 ## Dateibasierte Sitzungsregistrierung und ausdrückliche Zuordnung
 
@@ -211,7 +214,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
-`leaveTerminalInputResult` und
+`leaveTerminalInputResult`, `exploreTextResult` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
 `commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
@@ -252,6 +255,12 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `leaveTerminalInputRequest` mit korrelierter `requestId`, Buffer-, Fenster-
   und Tabidentität sowie exakt `modeRaw=t`. Die feste Zieloperation ist
   ausschließlich `stopinsert`; Lua- oder Ex-Text wird nicht übertragen.
+- `exploreTextRequest` mit positiven Anfrage-, Explorations- und
+  Aktionsnummern, einer der sechs festen Bewegungen, Wiederholungszahl 1 bis
+  64 sowie exakter Buffer-/Fenster-/Tab-/`changedtick`-/Modus- und
+  Echtcursoridentität;
+- `endExplorationRequest` mit Anfrage- und Explorations-ID zum Verwerfen des
+  flüchtigen Lua-Zustands.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
@@ -284,6 +293,14 @@ fokussierte Control-/Instanzbindung und den aktuellen Terminalbuffer. Ein
 asynchron, während `stopinsert` weder Buffertext liest noch verändert. Der
 tatsächliche Moduswechsel folgt weiterhin ereignisgetrieben über
 `ModeChanged`/`TermLeave`; es gibt kein Polling.
+
+`exploreTextResult` korreliert Anfrage, Exploration, Aktionsnummer und feste
+Aktion. Erfolgreiche Ergebnisse enthalten genau die Einheit Zeichen, Wort
+oder Zeile, eine begrenzte virtuelle Position und höchstens 16 KiB Text. Die
+Lua-Engine liest höchstens 256 Zeilen beziehungsweise 64 KiB pro Wortsuche und
+liefert nur feste Erfolgs-, Grenz- oder Fehlercodes. Sie ruft keine Cursor-,
+Feedkeys-, Normal-, Such- oder Bufferänderungsoperation auf. Der Empfänger
+verwirft Antworten nach Fokus-, Bindungs-, Kontext- oder ID-Wechsel.
 
 ## Sicherheitsgrenze
 

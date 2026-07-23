@@ -11,35 +11,84 @@ import addonHandler
 import appModuleHandler
 import controlTypes
 import inputCore
+import keyboardHandler
 import queueHandler
 import scriptHandler
+import types
 
 from globalPlugins import NeovimAccessLink
 
 addonHandler.initTranslation()
 
 
+# Translators: Input Help description for reading Neovim text without moving its real cursor.
+@scriptHandler.script(description=_("Explore Neovim text without moving the cursor"))
+def script_exploreText(app_module, gesture):
+	app_module._executeExploration(gesture)
+
+
+@scriptHandler.script()
+def script_suppressExplorationRepeat(app_module, gesture):
+	pass
+
+
 class AppModule(appModuleHandler.AppModule):
 	scriptCategory = NeovimAccessLink._PRODUCT_NAME
 	_observerAdapters = []
 	_observerCallback = None
+	_rawKeyCallback = None
+
+	_EXPLORATION_ACTIONS = {
+		(frozenset({"nvda"}), "h"): NeovimAccessLink.ExplorationAction.CHARACTER_LEFT,
+		(frozenset({"nvda"}), "l"): NeovimAccessLink.ExplorationAction.CHARACTER_RIGHT,
+		(frozenset({"nvda"}), "k"): NeovimAccessLink.ExplorationAction.LINE_UP,
+		(frozenset({"nvda"}), "j"): NeovimAccessLink.ExplorationAction.LINE_DOWN,
+		(frozenset({"nvda", "shift"}), "h"): NeovimAccessLink.ExplorationAction.WORD_PREVIOUS,
+		(frozenset({"nvda", "shift"}), "l"): NeovimAccessLink.ExplorationAction.WORD_NEXT,
+	}
+	_EXPLORATION_VK_CODES = frozenset({72, 74, 75, 76})
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._eventToken = object()
+		self._explorationActive = False
+		self._explorationHeldKeys = {}
+		self._heldNvdaModifiers = set()
+		self._physicallyHeldExplorationKeys = set()
+		self._explorationScript = types.MethodType(script_exploreText, self)
+		self._suppressExplorationRepeatScript = types.MethodType(
+			script_suppressExplorationRepeat,
+			self,
+		)
 		cls = type(self)
 		cls._observerAdapters.append(self)
 		if cls._observerCallback is None:
 			cls._observerCallback = cls._dispatchClaimGesture
 			inputCore.decide_executeGesture.register(cls._observerCallback)
+		if cls._rawKeyCallback is None:
+			cls._rawKeyCallback = cls._dispatchRawKey
+			inputCore.decide_handleRawKey.register(cls._rawKeyCallback)
 
 	def terminate(self):
+		service = self._service()
+		if service is not None:
+			try:
+				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
+		self._explorationActive = False
+		self._explorationHeldKeys.clear()
+		self._heldNvdaModifiers.clear()
+		self._physicallyHeldExplorationKeys.clear()
 		cls = type(self)
 		if self in cls._observerAdapters:
 			cls._observerAdapters.remove(self)
 		if not cls._observerAdapters and cls._observerCallback is not None:
 			inputCore.decide_executeGesture.unregister(cls._observerCallback)
 			cls._observerCallback = None
+		if not cls._observerAdapters and cls._rawKeyCallback is not None:
+			inputCore.decide_handleRawKey.unregister(cls._rawKeyCallback)
+			cls._rawKeyCallback = None
 		super().terminate()
 
 	@classmethod
@@ -55,6 +104,16 @@ class AppModule(appModuleHandler.AppModule):
 			return True
 		return adapter._decideExecuteGesture(gesture, focus_obj=focus_obj)
 
+	@classmethod
+	def _dispatchRawKey(cls, vkCode, scanCode, extended, pressed):
+		"""Observe only key lifecycle facts; never consume or dispatch a gesture here."""
+		for adapter in tuple(cls._observerAdapters):
+			try:
+				adapter._observeRawKey(vkCode, extended, pressed)
+			except Exception:
+				pass
+		return True
+
 	@staticmethod
 	def _isClaimGesture(gesture):
 		return NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() in (
@@ -63,6 +122,120 @@ class AppModule(appModuleHandler.AppModule):
 
 	def _service(self):
 		return NeovimAccessLink.getTerminalIntegrationService()
+
+	@staticmethod
+	def _physicalKey(gesture):
+		vk_code = getattr(gesture, "vkCode", None)
+		if not isinstance(vk_code, int):
+			return None
+		return vk_code, bool(getattr(gesture, "isExtended", False))
+
+	@classmethod
+	def _explorationAction(cls, gesture):
+		main_key = getattr(gesture, "mainKeyName", "")
+		if not isinstance(main_key, str):
+			return None
+		modifiers = getattr(gesture, "modifierNames", ())
+		try:
+			modifier_names = frozenset(name.lower() for name in modifiers if isinstance(name, str))
+		except TypeError:
+			return None
+		return cls._EXPLORATION_ACTIONS.get((modifier_names, main_key.lower()))
+
+	@staticmethod
+	def _superScript(instance, gesture):
+		return super(AppModule, instance).getScript(gesture)
+
+	def _focusedExplorationContextAvailable(self, service, focus_obj, expected_identity=None):
+		if getattr(focus_obj, "appModule", None) is not self:
+			return False
+		try:
+			return bool(
+				service.exploration_script_available(
+					focus_obj,
+					self,
+					self._eventToken,
+					expected_identity,
+				)
+			)
+		except Exception:
+			return False
+
+	def getScript(self, gesture):
+		"""Select contextual scripts through NVDA's standard gesture resolution."""
+		action = self._explorationAction(gesture)
+		physical_key = self._physicalKey(gesture)
+		bare_repeat = (
+			action is None
+			and physical_key in self._explorationHeldKeys
+			and not tuple(getattr(gesture, "modifierNames", ()))
+		)
+		if action is None and not bare_repeat:
+			return self._superScript(self, gesture)
+		if action is not None and not self._heldNvdaModifiers:
+			return self._superScript(self, gesture)
+		service = self._service()
+		if service is None:
+			return self._superScript(self, gesture)
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			return self._superScript(self, gesture)
+		expected_identity = self._explorationHeldKeys.get(physical_key) if bare_repeat else None
+		if not self._focusedExplorationContextAvailable(service, focus_obj, expected_identity):
+			return self._superScript(self, gesture)
+		return self._suppressExplorationRepeatScript if bare_repeat else self._explorationScript
+
+	def _observeRawKey(self, vk_code, extended, pressed):
+		key = (vk_code, bool(extended))
+		if keyboardHandler.isNVDAModifierKey(vk_code, bool(extended)):
+			if pressed:
+				self._heldNvdaModifiers.add(key)
+				return
+			self._heldNvdaModifiers.discard(key)
+			if self._explorationActive and not self._heldNvdaModifiers:
+				self._explorationActive = False
+				service = self._service()
+				if service is not None:
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._handleExplorationModifierRelease,
+						service,
+					)
+			return
+		if vk_code in self._EXPLORATION_VK_CODES:
+			if pressed:
+				self._physicallyHeldExplorationKeys.add(key)
+			else:
+				self._physicallyHeldExplorationKeys.discard(key)
+		if not pressed:
+			self._explorationHeldKeys.pop(key, None)
+
+	def _handleExplorationModifierRelease(self, originating_service):
+		service = self._service()
+		if service is not originating_service:
+			try:
+				originating_service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			focus_obj = None
+		if focus_obj is None or not self._focusedExplorationContextAvailable(service, focus_obj):
+			try:
+				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
+			return
+		try:
+			service.release_exploration(focus_obj, self, self._eventToken)
+		except Exception:
+			try:
+				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
 
 	@staticmethod
 	def _passThroughConfiguredTerminalScript(gesture):
@@ -137,8 +310,16 @@ class AppModule(appModuleHandler.AppModule):
 			pass
 
 	def event_appModule_loseFocus(self):
+		self._explorationActive = False
+		self._explorationHeldKeys.clear()
+		self._physicallyHeldExplorationKeys.clear()
+		self._heldNvdaModifiers.clear()
 		service = self._service()
 		if service is not None:
+			try:
+				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
 			try:
 				service.lose_focus(self._eventToken)
 			except Exception:
@@ -291,6 +472,37 @@ class AppModule(appModuleHandler.AppModule):
 				service.copy_diagnostic_report(gesture)
 			except Exception:
 				pass
+
+	def _executeExploration(self, gesture):
+		action = self._explorationAction(gesture)
+		service = self._service()
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			focus_obj = None
+		context_identity = None
+		if action is not None and service is not None and focus_obj is not None:
+			try:
+				context_identity = service.explore_text(action, focus_obj, self, self._eventToken)
+			except Exception:
+				context_identity = None
+		if context_identity is not None:
+			physical_key = self._physicalKey(gesture)
+			if physical_key in self._physicallyHeldExplorationKeys:
+				self._explorationHeldKeys[physical_key] = context_identity
+			self._explorationActive = bool(self._heldNvdaModifiers)
+			if not self._explorationActive:
+				try:
+					service.release_exploration(focus_obj, self, self._eventToken)
+				except Exception:
+					try:
+						service.cancel_exploration(self._eventToken)
+					except Exception:
+						pass
+			return
+		# This script was already selected for a confirmed Neovim pane. If the
+		# context changed before execution, consuming the chord is safer than
+		# forwarding a bare motion key that could move the real editor cursor.
 
 	def _decideExecuteGesture(self, gesture, focus_obj=None):
 		if not self._isClaimGesture(gesture):

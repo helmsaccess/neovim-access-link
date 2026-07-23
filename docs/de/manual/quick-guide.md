@@ -221,6 +221,12 @@ F12 ist kein Ein-/Ausschalter. Zum Beenden der Unterstützung wird erneut die
 selbst festgelegte Aktivierungstaste verwendet. Bei Verbindungsverlust oder
 Deaktivierung fällt NVDA automatisch auf die normale Terminalausgabe zurück.
 
+Text lässt sich ohne Cursorbewegung erkunden: NVDA gedrückt halten und mit
+`h/l` zeichenweise, mit `k/j` zeilenweise oder mit `Umschalt+h/l` wortweise
+lesen. Beim Loslassen spricht das Add-on dieselbe Einheit am echten Cursor.
+Diese festen Kombinationen gelten nur in der exakt verbundenen Neovim-Pane;
+in Shells und anderen Tabs oder Panes arbeitet NVDA unverändert.
+
 ## 10. Wenn keine Verbindung entsteht
 
 In dieser Reihenfolge prüfen:

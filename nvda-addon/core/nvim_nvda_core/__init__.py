@@ -13,6 +13,11 @@ from .connection_targets import (
 )
 from .diagnostics import DiagnosticBuffer
 from .frontend_policy import AVAILABLE_ADAPTERS, FrontendDescriptor, FrontendPolicy
+from .exploration_state import (
+    ExplorationAction, ExplorationContext, ExplorationController,
+    ExplorationRejection, ExplorationReleasePlan, ExplorationRequestPlan,
+    ExplorationResultPlan, ExplorationUnit,
+)
 from .gate import SessionGate, TerminalIdentity
 from .local_sessions import LocalSessionLister, LocalWindowsSession, local_registry_directory
 from .local_install import LocalPluginInstaller, default_local_plugin_directory
@@ -24,7 +29,10 @@ from .ssh_sessions import RemoteSession, SshSessionLister
 __all__ = [
     "BraillePlan", "ConnectionCoordinator", "ConnectionInstance", "ConnectionInstanceManager",
     "ConnectionTarget", "LOCAL_WINDOWS_TARGET_ID", "LOCAL_WINDOWS_TCP", "REMOTE_SSH",
-    "AVAILABLE_ADAPTERS", "DiagnosticBuffer", "FrontendDescriptor", "FrontendPolicy",
+    "AVAILABLE_ADAPTERS", "DiagnosticBuffer", "ExplorationAction", "ExplorationContext",
+    "ExplorationController", "ExplorationRejection", "ExplorationReleasePlan",
+    "ExplorationRequestPlan", "ExplorationResultPlan", "ExplorationUnit",
+    "FrontendDescriptor", "FrontendPolicy",
     "LocalPluginInstaller", "LocalSessionLister", "LocalWindowsSession", "PendingControlRequest",
     "PendingFocusContext", "Priority", "SessionGate",
     "ServiceRegistrar", "SpeechAction", "SpeechPlanner",

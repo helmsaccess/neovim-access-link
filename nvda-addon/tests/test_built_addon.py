@@ -199,9 +199,15 @@ class BuiltAddonTests(unittest.TestCase):
 
         app_module_handler = types.ModuleType("appModuleHandler")
         class AppModuleBase:
+            def getScript(inner_self, gesture):
+                return getattr(gesture, "fallbackScript", None)
             def terminate(inner_self): pass
         app_module_handler.AppModule = AppModuleBase
         sys.modules["appModuleHandler"] = app_module_handler
+
+        keyboard_handler = types.ModuleType("keyboardHandler")
+        keyboard_handler.isNVDAModifierKey = lambda vkCode, extended: vkCode == 45
+        sys.modules["keyboardHandler"] = keyboard_handler
 
         input_core = types.ModuleType("inputCore")
         class Decider:
@@ -1758,6 +1764,8 @@ class BuiltAddonTests(unittest.TestCase):
             "copy_diagnostic_report": mock.Mock(),
             "claim_focused_session": mock.Mock(),
             "send_braille_route": mock.Mock(),
+            "control_dispatcher": mock.Mock(),
+            "present_exploration": mock.Mock(),
             "record_diagnostic": mock.Mock(),
             "fail_open_event": mock.Mock(),
         }
@@ -1771,6 +1779,73 @@ class BuiltAddonTests(unittest.TestCase):
             TerminalIntegrationService(**{**dependencies, "command_actions": incomplete})
         with self.assertRaisesRegex(ValueError, "callbacks are required"):
             TerminalIntegrationService(**{**dependencies, "send_braille_route": None})
+
+    def test_terminal_integration_exploration_requires_the_exact_focused_adapter(self) -> None:
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        app_module = object()
+        adapter_token = object()
+        identity = object()
+        focus = types.SimpleNamespace(appModule=app_module)
+        focus_service = mock.Mock()
+        focus_service.focused_terminal_object = focus
+        focus_service.focused_app_module = app_module
+        focus_service.focused_adapter_token = adapter_token
+        focus_service.identity.return_value = identity
+        focus_service.is_active_neovim_context.return_value = True
+        editor_session = mock.Mock()
+        editor_session.exploration_instance.return_value = ("connection-1", object())
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            send_braille_route=mock.Mock(),
+            control_dispatcher=mock.Mock(),
+            present_exploration=mock.Mock(),
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+
+        self.assertTrue(
+            service.exploration_script_available(focus, app_module, adapter_token),
+        )
+        self.assertTrue(
+            service.exploration_script_available(focus, app_module, adapter_token, identity),
+        )
+        self.assertFalse(
+            service.exploration_script_available(focus, app_module, adapter_token, object()),
+        )
+        self.assertFalse(
+            service.exploration_script_available(
+                types.SimpleNamespace(appModule=object()),
+                app_module,
+                adapter_token,
+            ),
+        )
+        self.assertFalse(service.exploration_script_available(focus, object(), adapter_token))
+        self.assertFalse(service.exploration_script_available(focus, app_module, object()))
+
+    def test_direct_neovim_terminal_input_remains_an_active_exploration_context(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.terminal_passthrough = True
+        plugin._gate.focused = identity
+        plugin._gate.bound_terminal = identity
+
+        self.assertTrue(plugin._terminalFocusService.is_active_neovim_context(self.focus))
+        self.assertFalse(plugin._terminalFocusService.should_suppress(self.focus))
+        plugin.terminate()
 
     def test_queued_runtime_callbacks_are_inert_after_unpublish(self) -> None:
         import queueHandler
@@ -2316,11 +2391,220 @@ class BuiltAddonTests(unittest.TestCase):
 
         adapter = AppModule()
         self.assertEqual(1, len(self.inputDecider.handlers))
+        self.assertEqual(1, len(self.rawKeyDecider.handlers))
 
         adapter.terminate()
         adapter.terminate()
 
         self.assertEqual([], self.inputDecider.handlers)
+        self.assertEqual([], self.rawKeyDecider.handlers)
+
+    def test_exploration_raw_key_observer_always_fails_open(self) -> None:
+        from appModules.windowsterminal import AppModule
+
+        adapter = AppModule()
+        raw_observer = self.rawKeyDecider.handlers[0]
+        with mock.patch.object(adapter, "_observeRawKey", side_effect=RuntimeError("broken")):
+            self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True))
+            self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False))
+        adapter.terminate()
+
+    def test_exploration_uses_standard_contextual_script_resolution_and_release(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import (
+            AppModule,
+            script_exploreText,
+            script_suppressExplorationRepeat,
+        )
+
+        service = mock.Mock()
+        service.exploration_script_available.return_value = True
+        service.explore_text.return_value = self.focus
+        service.release_exploration.return_value = True
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=True, pressed=True))
+            self.assertTrue(raw_observer(vkCode=72, scanCode=0, extended=False, pressed=True))
+            forwarded = []
+            gesture = types.SimpleNamespace(
+                mainKeyName="h",
+                modifierNames=("NVDA",),
+                vkCode=72,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+h",),
+                send=lambda: forwarded.append(True),
+            )
+
+            script = adapter.getScript(gesture)
+            self.assertIs(script_exploreText, script.__func__)
+            self.assertEqual(
+                "Explore Neovim text without moving the cursor",
+                script.__func__._test_script_kwargs["description"],
+            )
+            self.assertFalse(hasattr(AppModule, "script_exploreText"))
+            self.assertFalse(hasattr(AppModule, "script_suppressExplorationRepeat"))
+            script(gesture)
+
+            service.explore_text.assert_called_once_with(
+                addon_module.ExplorationAction.CHARACTER_LEFT,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertEqual([], forwarded)
+            self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=True, pressed=False))
+            service.release_exploration.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+
+            bare_repeat = types.SimpleNamespace(
+                mainKeyName="h",
+                modifierNames=(),
+                vkCode=72,
+                isExtended=False,
+                normalizedIdentifiers=("kb:h",),
+            )
+            self.assertIs(
+                script_suppressExplorationRepeat,
+                adapter.getScript(bare_repeat).__func__,
+            )
+            service.exploration_script_available.assert_called_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+                self.focus,
+            )
+            service.exploration_script_available.return_value = False
+            self.assertIsNone(adapter.getScript(bare_repeat))
+            service.exploration_script_available.return_value = True
+            self.assertTrue(raw_observer(vkCode=72, scanCode=0, extended=False, pressed=False))
+            self.assertIsNone(adapter.getScript(bare_repeat))
+            adapter.terminate()
+
+    def test_exploration_drops_a_released_direction_key_and_never_forwards_after_selection(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        service.exploration_script_available.return_value = True
+        service.explore_text.return_value = None
+        gesture = types.SimpleNamespace(
+            mainKeyName="h",
+            modifierNames=("NVDA",),
+            vkCode=72,
+            isExtended=False,
+            normalizedIdentifiers=("kb:NVDA+h",),
+            send=mock.Mock(),
+        )
+        bare_repeat = types.SimpleNamespace(
+            mainKeyName="h",
+            modifierNames=(),
+            vkCode=72,
+            isExtended=False,
+            normalizedIdentifiers=("kb:h",),
+        )
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True)
+            raw_observer(vkCode=72, scanCode=0, extended=False, pressed=True)
+            script = adapter.getScript(gesture)
+            raw_observer(vkCode=72, scanCode=0, extended=False, pressed=False)
+
+            script(gesture)
+
+            gesture.send.assert_not_called()
+            self.assertIsNone(adapter.getScript(bare_repeat))
+            adapter.terminate()
+
+    def test_exploration_never_overrides_a_foreign_pane_or_unheld_nvda_key(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        fallback = object()
+        service = mock.Mock()
+        service.exploration_script_available.return_value = True
+        gesture = types.SimpleNamespace(
+            mainKeyName="j",
+            modifierNames=("NVDA",),
+            vkCode=74,
+            isExtended=False,
+            normalizedIdentifiers=("kb:NVDA+j",),
+            fallbackScript=fallback,
+        )
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            self.assertIs(fallback, adapter.getScript(gesture))
+
+            self.rawKeyDecider.handlers[0](vkCode=45, scanCode=0, extended=False, pressed=True)
+            self.focus.appModule = types.SimpleNamespace(appName="windowsterminal")
+            self.assertIs(fallback, adapter.getScript(gesture))
+            service.exploration_script_available.assert_not_called()
+            adapter.terminate()
+
+    def test_exploration_closes_if_nvda_is_released_before_the_script_runs(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        service.exploration_script_available.return_value = True
+        service.explore_text.return_value = self.focus
+        service.release_exploration.return_value = True
+        gesture = types.SimpleNamespace(
+            mainKeyName="l",
+            modifierNames=("NVDA",),
+            vkCode=76,
+            isExtended=False,
+            normalizedIdentifiers=("kb:NVDA+l",),
+            send=mock.Mock(),
+        )
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True)
+            raw_observer(vkCode=76, scanCode=0, extended=False, pressed=True)
+            script = adapter.getScript(gesture)
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
+
+            script(gesture)
+
+            service.explore_text.assert_called_once()
+            service.release_exploration.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertFalse(adapter._explorationActive)
+            gesture.send.assert_not_called()
+            adapter.terminate()
+
+    def test_exploration_gestures_map_only_the_six_requested_combinations(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        expected = {
+            (("NVDA",), "h"): addon_module.ExplorationAction.CHARACTER_LEFT,
+            (("NVDA",), "l"): addon_module.ExplorationAction.CHARACTER_RIGHT,
+            (("NVDA",), "k"): addon_module.ExplorationAction.LINE_UP,
+            (("NVDA",), "j"): addon_module.ExplorationAction.LINE_DOWN,
+            (("NVDA", "shift"), "h"): addon_module.ExplorationAction.WORD_PREVIOUS,
+            (("NVDA", "shift"), "l"): addon_module.ExplorationAction.WORD_NEXT,
+        }
+        for (modifiers, key), action in expected.items():
+            gesture = types.SimpleNamespace(mainKeyName=key, modifierNames=modifiers)
+            self.assertEqual(action, AppModule._explorationAction(gesture))
+        self.assertIsNone(
+            AppModule._explorationAction(
+                types.SimpleNamespace(mainKeyName="k", modifierNames=("NVDA", "shift")),
+            ),
+        )
 
     def test_every_configurable_app_module_script_dispatches_its_action(self) -> None:
         from appModules.windowsterminal import AppModule
@@ -7452,6 +7736,22 @@ class BuiltAddonTests(unittest.TestCase):
             "mode": "insert", "lineText": "a", "cursor": {"line": 1, "byteColumn": 1},
         }})
         self.assertEqual(2, len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_exploration_origin_uses_short_double_line_boundary_tone(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.speech import Priority, SpeechAction
+
+        plugin = GlobalPlugin()
+        action = SpeechAction("a", Priority.NAVIGATION, sound="explorationOrigin")
+        self._updateSettings(plugin, {"feedback": {"global": 3, "lineBoundary": 2}})
+        self.beeps.clear()
+        plugin._presentExploration(action, "normal", {})
+        self.assertEqual([(660, 12), (880, 12)], self.beeps)
+
+        self._updateSettings(plugin, {"feedback": {"lineBoundary": 1}})
+        plugin._presentExploration(action, "normal", {})
+        self.assertEqual([(660, 12), (880, 12)], self.beeps)
         plugin.terminate()
 
     def test_feedback_mode_uses_complete_nvda_style_bitmask_matrix(self) -> None:

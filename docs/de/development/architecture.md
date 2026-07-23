@@ -212,17 +212,18 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 
 | Schicht | Besitzt | Besitzt ausdrücklich nicht |
 |---|---|---|
-| Neovim-Plugin | Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten, Menüs, Meldungen, Dateimanagerzustand | Windows-Fokus, Sprache, SSH-Lebenszyklus |
+| Neovim-Plugin | Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten, Menüs, Meldungen, Dateimanagerzustand und flüchtige rein lesende Explorationsposition | Windows-Fokus, Sprache, SSH-Lebenszyklus oder Bewegung des echten Cursors für Exploration |
 | Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `service_registry.py` / `ServiceRegistrar` | identitätsgeprüfte prozessweite Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Global-Plugin-Objekt, Lebenszyklusentscheidung oder Terminalereignisse |
 | `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
-| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims, kontextbezogene Exploration und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
-| `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-/Terminalsteuerungspläne und deren Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
+| `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-, Terminal- und Explorationspläne mit Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
+| `ControlDispatcher` | begrenztes asynchrones Senden vorbereiteter Steuerpayloads | NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder unbegrenzte Warteschlange |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -230,7 +231,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `nvda_braille.py` | NVDA-Brailleregion, Terminaloverlay, Übersetzung von Braillepositionen und Abruf des veröffentlichten Terminaldienstes | Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung |
 | Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, prozessweite Registrierung und Aufruf von `AddonRuntime.close()` | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder Abbaureihenfolge |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
-| Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl oder Transport |
+| Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, kontextbezogene Explorationsgesten und deren physischer Tastenlebenszyklus, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl, eigene Gestenauflösung oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
@@ -413,6 +414,8 @@ Der Rückkanal ist eine feste Allowlist und keine allgemeine Remote-Steuerung:
   explizite Zwischenablageaktionen;
 - `leaveTerminalInputRequest` führt ausschließlich das feste Neovim-
   `stopinsert` aus.
+- `exploreTextRequest` bewegt nur eine flüchtige Leseposition, und
+  `endExplorationRequest` verwirft sie; beide verändern den echten Cursor nie.
 
 Zustandsändernde Anfragen tragen die erwartete Sitzungs-, Buffer-, Fenster-,
 Tab-, Modus- und, wo nötig, `changedtick`-Identität. Text wird nie als Lua- oder

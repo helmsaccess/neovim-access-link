@@ -163,6 +163,34 @@ aktiviert Sprache, Braille, Klänge und Unterdrückung wieder. Antworten einer
 anderen oder zuvor fokussierten Verbindung werden verworfen. Ein ungebundenes
 Control bleibt nativ.
 
+## Text erkunden, ohne den Neovim-Cursor zu bewegen
+
+In einem verbundenen und bestätigten Neovim-Control kann Text mit fest
+belegten NVDA-Kombinationen gelesen werden. Die NVDA-Taste bleibt dabei
+gedrückt:
+
+| Taste | Virtuelle Lesebewegung |
+|---|---|
+| `NVDA+h` / `NVDA+l` | vorheriges / nächstes Zeichen |
+| `NVDA+k` / `NVDA+j` | vorherige / nächste Zeile |
+| `Umschalt+NVDA+h` / `Umschalt+NVDA+l` | vorheriges / nächstes Wort |
+
+Die erste Bewegung beginnt am echten Cursor, danach bewegt sich nur eine
+flüchtige Leseposition. Buffer, Modus, Fensteransicht und echter Cursor bleiben
+unverändert. Beim Loslassen der NVDA-Taste spricht das Add-on am echten Cursor
+noch einmal die zuletzt verwendete Einheit: Zeichen, Wort oder Zeile. Bei der
+zeichenweisen Exploration kennzeichnet ein kurzer Doppelton die Rückkehr zur
+echten Cursorposition. Er folgt der konfigurierten Klangausgabe für
+Zeilengrenzen.
+
+Die Belegung gilt in Neovims Normal-, Insert-, Visual-, Kommandozeilen- und
+eingebetteten Terminalkontexten, aber nur für die exakt fokussierte,
+authentifizierte Neovim-Pane. In einer Shell, einem ungebundenen Pane, einem
+anderen Tab oder einer anderen Anwendung behalten dieselben Kombinationen ihr
+normales NVDA-Verhalten. Nach Installation einer Version mit dieser Funktion
+müssen die Neovim-Komponenten aktualisiert und laufende Neovim-Instanzen neu
+gestartet werden.
+
 ## Lokaler Kommunikationsweg unter Windows
 
 Bei einem lokalen `nvim.exe` ist Neovim selbst der lokale Server:

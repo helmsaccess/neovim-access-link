@@ -221,6 +221,12 @@ Der semantische Pfad deckt unter anderem ab:
   Modus und gespeichertem Verbindungsnamen;
 - getrennte Sprach-, Klang- und dauerhafte Brailleplanung.
 
+Im Featurezweig ist zusätzlich der kontextbezogene Explorationsmodus
+implementiert: `NVDA+h/j/k/l` und `Umschalt+NVDA+h/l` lesen Zeichen, Zeilen
+oder Wörter an einer flüchtigen Position, ohne den echten Cursor zu bewegen.
+AppModule-, Protokoll-, Controller-, Dispatcher- und Lua-Tests sind vorhanden;
+die praktische Abnahme unter NVDA steht noch aus.
+
 Die Funktionstabelle und bekannte Unterschiede stehen in
 `accessibility.md`.
 
