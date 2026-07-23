@@ -33,10 +33,15 @@ checked. Untrusted messages cannot request arbitrary code or general Neovim
 RPC. The reverse direction is a fixed allowlist: `requestFullState` and
 `requestFocusContext` request state; validated `routeCursor` performs Braille
 routing; the explicit clipboard requests below perform fixed copy, paste, and
-register operations; and `leaveTerminalInputRequest` can perform only
-`stopinsert`. State-changing controls are correlated with current session,
+register operations; `leaveTerminalInputRequest` can perform only
+`stopinsert`; and exploration controls can perform only six read-only virtual
+movements or discard their ephemeral state. State-changing controls are correlated with current session,
 control, instance, editor identity, and mode as applicable. Diagnostic editor
 text and secrets are redacted.
+
+Exploration validates the complete editor origin and never moves the real
+cursor or mutates a buffer. Result size, repeats, and word scanning are
+bounded; a focus or context change invalidates the ephemeral position.
 
 The clipboard path runs only from explicit, freely assignable NVDA commands.
 It accepts no arbitrary Lua, Ex, or register name: copy reads only the current

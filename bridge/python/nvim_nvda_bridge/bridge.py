@@ -8,6 +8,8 @@ from typing import Any
 from .stdio import StdioTransport
 from nvim_nvda_protocol import (
     NvimRpcEndpoint, NvimRpcSource, clipboard_result_state,
+    exploration_result_state, valid_end_exploration_request,
+    valid_explore_text_request, valid_explore_text_result,
     valid_copy_text_request, valid_paste_text_request,
     terminal_control_result_state, valid_leave_terminal_input_request,
     valid_set_register_request,
@@ -18,6 +20,8 @@ _COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
 _PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
 _SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
 _LEAVE_TERMINAL_INPUT_LUA = "return require('nvim_nvda').request_leave_terminal_input(...)"
+_EXPLORE_TEXT_LUA = "return require('nvim_nvda').request_explore_text(...)"
+_END_EXPLORATION_LUA = "return require('nvim_nvda').request_end_exploration(...)"
 
 
 class Bridge:
@@ -59,12 +63,16 @@ class Bridge:
             return dict(self._state)
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        if event_type == "exploreTextResult" and not valid_explore_text_result(payload):
+            return
         published = dict(payload)
         published["connection"] = {"neovim": "connected"}
         if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
             state = clipboard_result_state(payload)
         elif event_type == "leaveTerminalInputResult":
             state = terminal_control_result_state(payload)
+        elif event_type == "exploreTextResult":
+            state = exploration_result_state(payload)
         else:
             state = dict(payload)
         with self._state_lock:
@@ -94,6 +102,14 @@ class Bridge:
         if kind == "leaveTerminalInputRequest":
             if valid_leave_terminal_input_request(payload):
                 self.nvim.notify("nvim_exec_lua", _LEAVE_TERMINAL_INPUT_LUA, [dict(payload)])
+            return
+        if kind == "exploreTextRequest":
+            if valid_explore_text_request(payload):
+                self.nvim.notify("nvim_exec_lua", _EXPLORE_TEXT_LUA, [dict(payload)])
+            return
+        if kind == "endExplorationRequest":
+            if valid_end_exploration_request(payload):
+                self.nvim.notify("nvim_exec_lua", _END_EXPLORATION_LUA, [dict(payload)])
             return
         if kind != "routeCursor":
             return

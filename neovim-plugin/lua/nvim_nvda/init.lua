@@ -5,6 +5,7 @@ local file_manager = require("nvim_nvda.file_manager")
 local file_manager_events = require("nvim_nvda.file_manager_events")
 local file_manager_prompt = require("nvim_nvda.file_manager_prompt")
 local clipboard = require("nvim_nvda.clipboard")
+local exploration = require("nvim_nvda.exploration")
 local M = {}
 
 local channel
@@ -606,6 +607,7 @@ function M.register_channel(rpc_channel)
   assert(type(rpc_channel) == "number" and rpc_channel > 0, "valid RPC channel required")
   channel = rpc_channel
   sequence = 0
+  exploration.reset()
   -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
   -- Attach only while an authenticated consumer exists, otherwise startup
   -- prompts (notably swap-file recovery) become invisible and violate the
@@ -628,6 +630,7 @@ end
 
 function M.unregister_channel(rpc_channel)
   if channel == rpc_channel then
+    exploration.reset()
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
   end
@@ -685,6 +688,16 @@ function M.request_leave_terminal_input(payload)
   end
   emit("leaveTerminalInputResult", "leaveTerminalInputRequest", result)
   return result.ok
+end
+
+function M.request_explore_text(payload)
+  local result = exploration.step(payload)
+  emit("exploreTextResult", "exploreTextRequest", result)
+  return result.ok
+end
+
+function M.request_end_exploration(payload)
+  return exploration.finish(payload)
 end
 
 function M.setup()

@@ -91,6 +91,10 @@ Pflichtfälle sind:
 - Nonce-Prüfung auf dem danach dauerhaft verwendeten RPC-Kanal vor `setup()`;
 - feste Steuer-Allowlist mit Feld-, Größen- und Zustandsprüfung;
 - keine Wiederholung einer bereits abgesandten zustandsändernden Aktion.
+- streng validierte Explorationsaktionen, IDs, Ursprung, Textgrenzen und
+  Verwerfen fremder oder verspäteter Ergebnisse;
+- Ende-zu-Ende-Bestätigung der Pluginfähigkeit: Ein älteres installiertes oder
+  noch laufendes Plugin darf Exploration weder anbieten noch Befehle erhalten.
 
 ### Session-Registry, Claim und Bindung
 
@@ -150,6 +154,11 @@ Besonders wichtig sind:
 - globale unbelegte Gestenmetadaten, aber Ausführung nur im exakt validierten
   und gebundenen Windows-Terminal-Control;
 - Weitergabe der Originalgeste außerhalb dieses Controls genau einmal.
+- ausschließlich NVDAs normale Skriptauflösung für die sechs festen
+  Explorationskombinationen, exakte Pane-Autorisierung, passiver Raw-Key-
+  Callback mit ständigem `True`, schnelle Freigabe und Autorepeat-Sperre;
+- virtueller Zeichen-, Zeilen- und Wortcursor ohne Änderung von echtem
+  Cursor, Buffer, `changedtick`, Modus oder Fensteransicht;
 - Strukturtests am gebauten Paket halten alle Anwendungseinstiege aus dem
   Global Plugin heraus und verwerfen Global-Plugin-Abhängigkeiten in den
   ausgelagerten Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry-
@@ -272,6 +281,47 @@ Zwischen allen Controls langsam und schnell wechseln. Erwartet wird:
 
 UIA-Klasse und vollständige Runtime-ID müssen im redigierten Testprotokoll
 festgehalten werden, damit Tab, Pane und Fenster nicht verwechselt werden.
+
+### Explorationsmodus
+
+Komponenten aktualisieren und alle laufenden Neovim-Instanzen neu starten.
+Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
+`Umschalt+h/l` prüfen. Erwartet wird:
+
+- Zeichen, Zeilen und Wörter folgen nur der virtuellen Position; echter
+  Cursor, Buffer, Modus, `changedtick` und Ansicht bleiben unverändert;
+- nach gemischten Bewegungen spricht das Loslassen am echten Cursor je nach
+  zuletzt genutzter Einheit das Zeichen beziehungsweise die konfigurierten
+  Wort-/Zeilendetails;
+- auf der Registerkarte „Navigation“ werden nur Wort gegenüber Wort plus
+  Cursorzeichen und alle vier Zeilenkombinationen getrennt für normale
+  Navigation und Explorationsabschluss geprüft; gemeinsam aktiv ist die
+  Reihenfolge Zeile, aktuelles Wort, Cursorzeichen;
+- schnelles Loslassen, Autorepeat und Loslassen von NVDA vor der Richtungstaste
+  geben kein nacktes `h/j/k/l` an Neovim weiter;
+- Normal, Insert, Replace, Visual, Operator-Pending, Kommandozeile,
+  Terminal-Normal und direkte Terminaleingabe bleiben lesbar;
+- Grenzen, leere und kurze Zeilen, Tabs, Umlaute, kombinierende Zeichen, breite
+  Zeichen und Emoji bleiben stabil;
+- die rückwärtige Wortexploration hält am vorherigen Wort einer anderen
+  Zeile und verbindet Schlüsselwortzeichen nie über einen Zeilenumbruch hinweg;
+- Entfernen und Zurückkehren zum ursprünglichen Zeichen, Wort oder zur
+  ursprünglichen Zeile spielt genau einen kurzen Doppelton; Verbleiben an
+  dieser Einheit wiederholt ihn nicht;
+- lokales und SSH-Neovim funktionieren auch in gemischten Tabs, Split-Panes
+  und Fenstern;
+- dieselben Kombinationen behalten in jeder ungebundenen Shell, einem fremden
+  Pane/Tab und anderen Anwendungen ihr normales NVDA-Verhalten;
+- Fokuswechsel, Disconnect oder Neovim-Kontextwechsel beenden die Exploration
+  still und können keine verspätete Ausgabe in der neuen Sitzung erzeugen.
+
+Am 23. Juli 2026 wurde dieser Grundpfad unter Windows/NVDA praktisch geprüft.
+Zeichen-, Wort- und Zeilenexploration, rückwärtige Wortbewegung,
+Ursprungsdoppelton, Abschlussansage sowie die getrennten Wort- und
+Zeilenoptionen für normale Navigation und Exploration zeigten dabei keinen
+festgestellten Fehler. Dieser Nachweis ergänzt die automatisierte Matrix; er
+ersetzt keine weiteren Prüfungen mit anderen Tastaturlayouts, Sprachen,
+GlobalPlugins oder physischer Braillehardware.
 
 ### Fokusausgabe, Buffer und Terminal
 

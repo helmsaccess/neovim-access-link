@@ -4,8 +4,8 @@ Open the category through `NVDA menu → Preferences → Settings... → Neovim
 Access Link`. The add-on deliberately adds no duplicate settings item directly
 to the Preferences submenu.
 
-The category has “General”, “Feedback”, and “Connections” tabs. OK saves and
-closes, Apply saves without closing, and Cancel discards unsaved changes.
+The category has “General”, “Feedback”, “Navigation”, and “Connections” tabs.
+OK saves and closes, Apply saves without closing, and Cancel discards unsaved changes.
 Values use NVDA's normal configuration profiles. Manage those through
 `NVDA menu → Configuration profiles...`; the add-on neither selects nor
 activates a profile itself.
@@ -87,6 +87,28 @@ The separate freely assignable “Leave direct input in the active Neovim
 terminal” command can replace the layout-dependent Neovim sequence
 `Ctrl+\`, `Ctrl+N`. It has no default gesture and is sent only while the exact
 bound terminal buffer is in direct input.
+
+## Navigation
+
+The “Navigation” tab controls supplementary cursor context independently for
+ordinary Neovim navigation and for the announcement when the NVDA key ends
+exploration. It does not disable the basic word or line:
+
+- “Word navigation” and “After word exploration” offer “Word only” or “Word
+  and cursor character”.
+- “Line navigation” and “After line exploration” offer “Line only”, “Line and
+  current word”, “Line and cursor character”, or “Line, current word and
+  cursor character”.
+
+“Word only” and “Line only” therefore turn off all supplementary context, not
+the base announcement.
+
+The default is word plus cursor character and line plus cursor character,
+which preserves the behavior from before these choices were added. When both
+line details are enabled, speech follows the stable order line, current word,
+cursor character. Character navigation and character exploration are
+unchanged. These values follow the active NVDA configuration profile and take
+effect after Apply or OK.
 
 ## Connections
 

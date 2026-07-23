@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 21. Juli 2026.
+Stand: 23. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und

@@ -27,6 +27,12 @@ The Oil confirmation fallback likewise runs only on an existing buffer or
 window event. It reads at most 200 buffer lines and abandons recognition on an
 unknown format; it creates neither a timer nor a periodic check.
 
+An exploration gesture prepares only a bounded control payload on NVDA's main
+thread. A bounded worker sends it, so the gesture script performs no socket or
+SSH I/O. One result contains at most 16 KiB of text; word scanning is limited
+to 256 lines or 64 KiB, and repetition to 64 steps. Modifier release reads
+from existing canonical state and waits for no round trip.
+
 Latency measurements must record platform, versions, transport, workload,
 sample count, percentiles, and failures. Synthetic measurements do not replace
 practical NVDA testing.

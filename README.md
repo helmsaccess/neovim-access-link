@@ -14,12 +14,17 @@ Neovim over SSH can use the same accessible workflow.
 release notes for 0.95.1: [English](docs/en/development/changelog.md#0951) or
 [German](docs/de/development/changelog.md#0951).
 
+The documentation below describes the current source branch. Development
+features can therefore be newer than the linked published release.
+
 ## What it helps with
 
 Practically tested workflows include:
 
 - Normal, Insert, and Visual editing with mode feedback;
-- character, word, and line navigation;
+- character, word, and line navigation with configurable cursor context;
+- read-only character and line exploration with `NVDA+h/j/k/l`, plus word
+  exploration with `Shift+NVDA+h/l`, without moving Neovim's real cursor;
 - selections, editing, messages, built-in completion, and buffer changes;
 - Neovim's command line and embedded terminal;
 - copying Visual selections or register 0 to Windows and sending Windows
@@ -35,7 +40,9 @@ replacement, matching errors, reaching the start or end of a line or file, and
 crossing a line. Completion and spelling cues follow the relevant NVDA
 settings. Indentation feedback also follows NVDA's Document Formatting setting
 and can use speech, tones, both, or no additional output. These sound and
-indentation paths have automated test coverage.
+indentation paths have automated test coverage. Exploration also uses a short
+two-note cue when its virtual reading position returns to its starting
+character, word, or line.
 
 Automated tests cover additional editor behavior. The
 [feature matrix](docs/en/development/accessibility.md) distinguishes automated

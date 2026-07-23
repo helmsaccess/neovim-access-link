@@ -44,6 +44,9 @@ Neovim plugin
 The main direction is from Neovim to NVDA. A small validated return channel
 exists for a few explicitly allowed features, including clipboard and terminal
 control. It is not a general Neovim RPC console.
+Exploration also uses this narrow return path: the AppModule sends only one of
+six fixed reading movements, and the plugin returns the result from an
+ephemeral position without changing the real editor cursor.
 
 ## Local and remote operation differ only in the transport segment
 

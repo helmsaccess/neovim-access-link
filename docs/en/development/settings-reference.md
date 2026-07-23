@@ -6,15 +6,27 @@ dialog and stores validated values in `config.conf` section
 profile writes. `post_configProfileSwitch` reloads effective values without
 stopping an authenticated runtime connection.
 
-Tabs are “General”, “Feedback”, and “Connections”. Feedback values are numeric
-Off, Speech, Tones, or Both Speech and Tones. Existing NVDA Keyboard, Document
-Formatting, and Object Presentation settings remain authoritative for typing
-echo, indentation/spelling, and automatic suggestions.
+Tabs are “General”, “Feedback”, “Navigation”, and “Connections”. Feedback
+values are numeric Off, Speech, Tones, or Both Speech and Tones. Existing NVDA
+Keyboard, Document Formatting, and Object Presentation settings remain
+authoritative for typing echo, indentation/spelling, and automatic suggestions.
 
 General also contains a profile-aware session-focus choice: no announcement,
 current structured line, or the existing file/special context with mode and
 connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
+
+The nested `navigationDetails` section stores four profile-aware choice
+indices: `navigationWord` and `explorationWord` are 0 for the base word only
+or 1 for word plus cursor character. `navigationLine` and `explorationLine`
+are bit-like choice indices: 0 is the base line only, 1 adds the current word,
+2 adds the cursor character, and 3 adds both in word-then-character order.
+Defaults 1, 2, 1, and 2 preserve the behavior predating these controls.
+`SettingsService` resolves the indices to booleans before passing them through
+the neutral editor and exploration planning interfaces; core planners never
+read NVDA configuration directly. Exploration values are resolved from the
+active profile when NVDA is released; they change neither virtual exploration
+steps nor character exploration.
 
 Feedback also contains a profile-aware copy/paste success setting using the
 same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.

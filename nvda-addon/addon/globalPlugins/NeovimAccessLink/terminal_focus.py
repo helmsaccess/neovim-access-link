@@ -247,6 +247,20 @@ class TerminalFocusService:
 		identity = self.identity(obj)
 		return identity is not None and self._coordinator.gate.should_suppress(identity)
 
+	def is_active_neovim_context(self, obj: object) -> bool:
+		"""Confirm the exact authenticated binding, including direct terminal input."""
+		identity = self.identity(obj)
+		gate = self._coordinator.gate
+		return bool(
+			identity is not None
+			and gate.manual_enabled
+			and gate.authenticated
+			and gate.nvim_active
+			and gate.focused == identity
+			and gate.bound_terminal == identity
+			and identity.frontend_kind in gate.enabled_frontends
+		)
+
 	@property
 	def lifecycle_scheduled_at(self) -> float:
 		return self._lifecycleScheduledAt

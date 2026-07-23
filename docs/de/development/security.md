@@ -90,14 +90,18 @@ Resynchronisation verhindern die Ausgabe alter oder ungeordneter Ereignisse.
 Die Rückrichtung ist eine feste Allowlist und keine allgemeine Neovim-RPC-
 Weiterleitung. `requestFullState` und `requestFocusContext` fordern nur Zustand
 an. Zustandsändernd sind ausschließlich validiertes `routeCursor`, die unten
-beschriebenen Zwischenablagebefehle und `leaveTerminalInputRequest` mit der
-festen Operation `stopinsert`.
+beschriebenen Zwischenablagebefehle, `leaveTerminalInputRequest` mit der
+festen Operation `stopinsert` sowie die rein lesenden Explorationsbefehle.
 
 Vor dem Aufruf der Neovim-Cursor-API prüft `routeCursor` Buffer, Fenster,
 `changedtick`, Zeile, UTF-8-Bytespalte und Zeichenrand. Ein veralteter
 Braille-Routingbefehl wird verworfen. `leaveTerminalInputRequest` prüft
 Anfrage-ID, aktive Control-/Instanzbindung, Buffer, Fenster, Tab und den rohen
 Terminalmodus `t`; frei wählbarer Lua- oder Ex-Text wird nicht übertragen.
+`exploreTextRequest` akzeptiert nur sechs feste Bewegungen, korreliert den
+vollständigen Editorursprung und verändert weder Cursor noch Buffer. Ergebnis,
+Wiederholung und Wortsuche sind begrenzt; Fokus- oder Kontextwechsel verwerfen
+den flüchtigen Zustand.
 
 Zusätzlich existiert ein eng begrenzter, ausdrücklich durch frei belegbare
 NVDA-Befehle ausgelöster Zwischenablagepfad. Er akzeptiert keine frei wählbaren

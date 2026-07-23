@@ -3,12 +3,14 @@
 Neovim Access Link provides NVDA with structured state from Neovim instead of
 scraping the changing terminal screen. It can report mode, cursor movement,
 editing, selections, indentation, completion, diagnostics, and other semantic
-editor events.
+editor events. A contextual exploration mode can read characters, words, and
+lines temporarily without moving Neovim's real cursor.
 
 Supported today are local Windows `nvim.exe` and Linux Neovim over SSH in
-Windows Terminal, including multiple tabs, windows, accounts, and tmux
-sessions. PuTTY, graphical Neovim front ends, portable layouts, and automatic
-`NVIM_APPNAME` layouts are not supported.
+Windows Terminal, including multiple windows, tabs, split panes, mixed Neovim
+and ordinary shell panes, accounts, and tmux sessions. PuTTY, graphical Neovim
+front ends, portable layouts, and automatic `NVIM_APPNAME` layouts are not
+supported.
 
 ## Maturity and important Braille warning
 
@@ -73,4 +75,6 @@ terminal output.
 8. [Troubleshooting and diagnostic report](troubleshooting.md)
 
 Begin with the separate [Quick Guide](neovim-access-link-quick-guide-en.html)
-and test in a disposable buffer before important work.
+and test in a disposable buffer before important work. Include character,
+word, and line exploration while holding NVDA and verify that the real cursor
+does not move.

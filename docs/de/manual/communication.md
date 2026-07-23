@@ -163,6 +163,48 @@ aktiviert Sprache, Braille, Klänge und Unterdrückung wieder. Antworten einer
 anderen oder zuvor fokussierten Verbindung werden verworfen. Ein ungebundenes
 Control bleibt nativ.
 
+## Text erkunden, ohne den Neovim-Cursor zu bewegen
+
+In einem verbundenen und bestätigten Neovim-Control kann Text mit fest
+belegten NVDA-Kombinationen gelesen werden. Die NVDA-Taste bleibt dabei
+gedrückt:
+
+| Taste | Virtuelle Lesebewegung |
+|---|---|
+| `NVDA+h` / `NVDA+l` | vorheriges / nächstes Zeichen |
+| `NVDA+k` / `NVDA+j` | vorherige / nächste Zeile |
+| `Umschalt+NVDA+h` / `Umschalt+NVDA+l` | vorheriges / nächstes Wort |
+
+Zu Beginn wird die flüchtige Leseposition aus dem echten Cursor gebildet; die
+angeforderte Bewegung verändert danach nur diese virtuelle Position. Buffer,
+Modus, Fensteransicht und echter Cursor bleiben unverändert. Jede Bewegung
+spricht das Zeichen, Wort oder die Zeile an der virtuellen Position.
+
+Beim Loslassen der NVDA-Taste kehrt die Ausgabe zum unveränderten echten Cursor
+zurück. Nach Zeichenexploration wird dessen Zeichen gesprochen. Nach Wort- oder
+Zeilenexploration gelten die jeweils unter `Einstellungen → Neovim Access Link
+→ Navigation → Abschluss der Exploration` gewählten Details. Wortausgabe kann
+das Cursorzeichen ergänzen; Zeilenausgabe kann das aktuelle Wort, das
+Cursorzeichen, beides in dieser Reihenfolge oder keines von beiden ergänzen.
+Die Grundausgabe des Wortes beziehungsweise der Zeile bleibt immer erhalten.
+Diese beiden Werte sind von den entsprechenden Einstellungen für normale
+Navigation unabhängig.
+
+Bei der zeichenweisen Exploration kennzeichnet ein kurzer Doppelton die
+Rückkehr zur echten Cursorposition. Derselbe Ton kennzeichnet bei der Wort-
+oder Zeilenexploration die Rückkehr zum ursprünglichen Wort beziehungsweise
+zur ursprünglichen Zeile. Er folgt der konfigurierten Klangausgabe für
+Zeilengrenzen.
+
+Die Belegung gilt in allen vom Add-on unterstützten Neovim-Modi, darunter
+Normal, Insert, Replace, Visual, Operator-Pending, Kommandozeile,
+Terminal-Normal und direkte Terminaleingabe. Sie gilt aber nur für die exakt
+fokussierte, authentifizierte Neovim-Pane. In einer Shell, einem ungebundenen
+Pane, einem anderen Tab oder einer anderen Anwendung behalten dieselben
+Kombinationen ihr normales NVDA-Verhalten. Nach Installation einer Version mit
+dieser Funktion müssen die Neovim-Komponenten aktualisiert und laufende
+Neovim-Instanzen neu gestartet werden.
+
 ## Lokaler Kommunikationsweg unter Windows
 
 Bei einem lokalen `nvim.exe` ist Neovim selbst der lokale Server:

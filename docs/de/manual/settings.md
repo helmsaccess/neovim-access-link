@@ -9,11 +9,13 @@ Der Dialog wird über `NVDA-Menü → Optionen → Einstellungen… → Neovim
 Access Link` geöffnet. Das Add-on fügt keinen redundanten direkten
 Einstellungs-Menüpunkt hinzu.
 
-Die Kategorie enthält drei Registerkarten:
+Die Kategorie enthält vier Registerkarten:
 
 - `Allgemein` für die globale Rückmeldungsart und die Ausgabe beim erneuten
   Sitzungsfokus;
 - `Rückmeldung` für Rückmeldungen einzelner Editoraktionen;
+- `Navigation` für zusätzliche Wort- und Cursorinformationen bei normaler
+  Navigation und beim Abschluss der Exploration;
 - `Verbindungen` für Linux-Rechner und Linux-Benutzerkonten.
 
 Mit `OK` werden die Einstellungen gespeichert und der Dialog geschlossen. Mit
@@ -31,7 +33,7 @@ NVDA-Kategorien geerbt. Das Add-on wählt oder aktiviert selbst kein Profil.
 NVDA-Konfigurationsprofile werden über `NVDA-Menü → Konfigurationsprofile verwalten…`
 erstellt, aktiviert und mit Auslösern verbunden. Um eigene Neovim-Werte zu
 speichern, wird zuerst das gewünschte NVDA-Profil aktiviert und anschließend
-dieser Einstellungsdialog geöffnet. Änderungen auf allen drei Registerkarten
+dieser Einstellungsdialog geöffnet. Änderungen auf allen vier Registerkarten
 werden dann von NVDAs normalem Profilmechanismus verwaltet.
 
 Ein Profil kann beispielsweise Add-on-Rückmeldungen zusammen mit Zeichen- und
@@ -248,6 +250,34 @@ Wenn unterschiedliche Werte nur für Neovim gelten sollen, empfiehlt sich ein
 eigenes NVDA-Konfigurationsprofil. Dieses wird mit NVDAs regulärem
 Profilmechanismus aktiviert; anschließend werden die gewünschten Werte im
 Add-on-Dialog gespeichert.
+
+## Registerkarte Navigation
+
+Diese Registerkarte steuert zusätzliche Informationen am Cursor getrennt für
+normale Neovim-Navigation und für die Ansage beim Loslassen der NVDA-Taste nach
+einer Exploration. Die eigentliche Wort- oder Zeilenansage wird dadurch nicht
+abgeschaltet. `Nur Wort` beziehungsweise `Nur Zeile` bedeutet daher, dass alle
+Zusatzinformationen ausgeschaltet sind, nicht die Grundansage.
+
+### Gruppe Normale Navigation
+
+`Wortnavigation` bietet `Nur Wort` und `Wort und Cursorzeichen`.
+`Zeilennavigation` bietet `Nur Zeile`, `Zeile und aktuelles Wort`, `Zeile und
+Cursorzeichen` sowie `Zeile, aktuelles Wort und Cursorzeichen`.
+
+### Gruppe Abschluss der Exploration
+
+`Nach der Wortexploration` und `Nach der Zeilenexploration` verwenden dieselben
+Auswahlwerte für die Ansage am unveränderten echten Cursor, wenn die NVDA-Taste
+losgelassen wird. Die während der Exploration gesprochenen virtuellen Zeichen,
+Wörter und Zeilen ändern sich dadurch nicht.
+
+Standard sind `Wort und Cursorzeichen` sowie `Zeile und Cursorzeichen`; damit
+bleibt das Verhalten vor Einführung dieser Auswahl erhalten. Sind bei einer
+Zeile beide Details aktiv, lautet die feste Reihenfolge Zeile, aktuelles Wort,
+Cursorzeichen. Zeichenweise Navigation und Exploration bleiben unverändert.
+Die Werte folgen dem aktiven NVDA-Konfigurationsprofil und gelten unmittelbar
+nach `Übernehmen` oder `OK`.
 
 ## Registerkarte Verbindungen
 

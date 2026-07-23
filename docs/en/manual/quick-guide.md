@@ -117,6 +117,14 @@ answers the newly focused control's context request.
 The activation gesture turns the shared service on or off from any focused
 Windows Terminal control.
 
+To explore without moving Neovim's cursor, hold NVDA and use `h/l` for
+characters, `k/j` for lines, or `Shift+h/l` for words. Releasing NVDA reads
+the current character or the word/line details selected on the Navigation
+settings tab. These fixed commands apply
+only in the exact connected Neovim pane; NVDA remains unchanged in shells and
+other tabs or panes. A short two-note cue marks when the virtual position
+returns to the character, word, or line where exploration started.
+
 ## First safety check
 
 Use a disposable buffer. Check Insert, Normal, and Visual modes, navigation,

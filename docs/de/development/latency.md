@@ -43,6 +43,13 @@ Buffer-/Fensterereignissen. Er liest höchstens 200 Bufferzeilen und beendet
 die Erkennung beim ersten unbekannten Format; daraus entsteht weder ein Timer
 noch eine periodische Prüfung.
 
+Explorationsgesten planen auf NVDAs Hauptthread nur einen begrenzten
+Steuerpayload. Ein begrenzter Worker sendet ihn; Socket- oder SSH-I/O findet
+nicht im Gestenskript statt. Eine Antwort enthält höchstens 16 KiB Text.
+Wortsuche ist auf 256 Zeilen beziehungsweise 64 KiB und Wiederholung auf 64
+Schritte begrenzt. Die Schlussansage beim Loslassen verwendet den bereits
+vorliegenden kanonischen Zustand und wartet nicht auf einen Roundtrip.
+
 ## Serialisierung
 
 | Format | n | Bytes | Encode Median | Decode Median |

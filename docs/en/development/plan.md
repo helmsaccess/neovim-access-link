@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 21, 2026.
+Status date: July 23, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature

@@ -167,6 +167,12 @@ class NvdaPresentation:
 					if getattr(action, "force_symbols", False):
 						kwargs["symbolLevel"] = 300
 					speech.speakText(action.text, **kwargs)
+				if speech_allowed and getattr(action, "word_suffix", None):
+					speech.speakText(
+						action.word_suffix,
+						priority=priority,
+						symbolLevel=300,
+					)
 				if speech_allowed and getattr(action, "character_suffix", None):
 					speech.speakSpelling(action.character_suffix, priority=priority)
 				if getattr(action, "braille_message", None):
@@ -193,6 +199,10 @@ class NvdaPresentation:
 		elif sound == "lineEnd" and mode == "normal":
 			if enabled and not self.editor_sounds.play("lineEnd"):
 				tones.beep(360, 18)
+		elif sound == "explorationOrigin":
+			if enabled:
+				tones.beep(660, 12)
+				tones.beep(880, 12)
 		elif sound == "fileStart":
 			if enabled and not self.editor_sounds.play("fileStart"):
 				tones.beep(520, 35)

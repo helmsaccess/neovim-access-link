@@ -19,6 +19,7 @@ local targets = {
   ["adr/0002-nvda-api-boundaries.md"] = "#docs__en__development__adr__0002-nvda-api-boundariesmd__adr-0002-nvda-api-boundaries-for-the-first-beta",
   ["adr/0003-oil-confirmation-fallback.md"] = "#docs__en__development__adr__0003-oil-confirmation-fallbackmd__adr-0003-narrow-fallback-for-oil-confirmations",
   ["adr/0004-nvda-lifetime-and-event-ownership.md"] = "#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership",
+  ["adr/0005-contextual-exploration-input.md"] = "#docs__en__development__adr__0005-contextual-exploration-inputmd__adr-0005-contextual-input-for-exploration-mode",
   ["security.md"] = "#docs__en__development__securitymd__security-and-privacy",
   ["latency.md"] = "#docs__en__development__latencymd__latency",
   ["protocol.md"] = "#docs__en__development__protocolmd__protocol-v2",

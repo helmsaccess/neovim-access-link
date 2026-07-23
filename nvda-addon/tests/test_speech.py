@@ -1039,6 +1039,56 @@ class SpeechPlannerTests(unittest.TestCase):
         line = planner.plan(event("lineChanged", line="hallo", row=2, character="h", indentation=0))[0]
         self.assertEqual(("hallo", "h"), (line.text, line.character_suffix))
 
+    def test_word_navigation_cursor_character_is_configurable(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event("fullState", line="old"))
+        without_character = planner.plan(
+            event("wordMoved", line="hallo welt", word="hallo", character="h"),
+            word_character=False,
+        )[0]
+        with_character = planner.plan(
+            event("wordMoved", line="hallo welt", word="welt", character="w"),
+            word_character=True,
+        )[0]
+        self.assertEqual(("hallo", None), (
+            without_character.text,
+            without_character.character_suffix,
+        ))
+        self.assertEqual(("welt", "w"), (
+            with_character.text,
+            with_character.character_suffix,
+        ))
+
+    def test_line_navigation_supports_every_detail_combination(self) -> None:
+        for line_word, line_character, expected in (
+            (False, False, (None, None)),
+            (True, False, ("beta", None)),
+            (False, True, (None, "b")),
+            (True, True, ("beta", "b")),
+        ):
+            with self.subTest(
+                lineWord=line_word,
+                lineCharacter=line_character,
+            ):
+                planner = SpeechPlanner()
+                planner.plan(event("fullState", line="old"))
+                action = planner.plan(
+                    event(
+                        "lineChanged",
+                        line="alpha beta",
+                        row=2,
+                        word="beta",
+                        character="b",
+                    ),
+                    line_word=line_word,
+                    line_character=line_character,
+                )[0]
+                self.assertEqual("alpha beta", action.text)
+                self.assertEqual(expected, (
+                    action.word_suffix,
+                    action.character_suffix,
+                ))
+
     def test_word_navigation_treats_punctuation_as_its_own_target(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState", line="hallo", word="hallo", character="h"))

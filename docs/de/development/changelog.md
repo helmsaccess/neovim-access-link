@@ -5,6 +5,37 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.1-dev.7+feature.exploration-mode (Featurebranch-Testbuild)
+
+- Sechs feste, nur im exakt bestätigten Neovim-Control aufgelöste
+  AppModule-Gesten explorieren mit gedrückter NVDA-Taste Zeichen, Wörter und
+  Zeilen. Eine flüchtige Leseposition bewegt sich, während echter Cursor,
+  Buffer, Modus, `changedtick` und Ansicht unverändert bleiben.
+- `NVDA+h/l`, `NVDA+k/j` und `Umschalt+NVDA+h/l` gelten in den unterstützten
+  Neovim-Modi. Shells, ungebundene Tabs oder Panes und andere Anwendungen
+  behalten NVDAs normale Gestenauflösung. Fokusverlust, Disconnect oder
+  veralteter Zustand beenden die Exploration ohne geratenen Text.
+- Ein kurzer Doppelton kennzeichnet die Rückkehr zum ursprünglichen Zeichen,
+  Wort oder zur ursprünglichen Zeile. Beim Loslassen der NVDA-Taste kehrt die
+  Ausgabe entsprechend der zuletzt verwendeten Einheit zum unveränderten
+  echten Cursor zurück.
+- Die neue Registerkarte „Navigation“ konfiguriert zusätzliche
+  Cursorinformationen getrennt für normale Wort-/Zeilennavigation und den
+  Explorationsabschluss. Wortausgabe kann das Cursorzeichen ergänzen;
+  Zeilenausgabe das aktuelle Wort, das Cursorzeichen, beides in fester
+  Reihenfolge oder keines von beiden.
+- Die Standardwerte erhalten das bisherige Verhalten Wort plus Zeichen und
+  Zeile plus Zeichen. Die Einstellungen verwenden NVDA-Konfigurationsprofile,
+  gelten unmittelbar und verändern weder Zeichennavigation noch die virtuelle
+  Explorationsausgabe.
+- Normale Navigation und Explorationsabschluss verwenden denselben neutralen
+  Sprachplan. Unit-, Paket-, Einstellungs-, Lokalisierungs-, Profil- und
+  Ausgabetests decken jede Auswahl sowie die Reihenfolge Zeile-Wort-Zeichen ab.
+- Die praktische Prüfung unter Windows/NVDA bestätigte normale Navigation und
+  Explorationsabschluss mit den getrennten Auswahlwerten ohne festgestellten
+  Fehler. Dieser Test ist ein Grundpfadnachweis und keine erschöpfende
+  Kompatibilitätszusage.
+
 ## 0.95.1
 
 - Das Global Plugin ist nun eine schmalere Kompositionswurzel mit

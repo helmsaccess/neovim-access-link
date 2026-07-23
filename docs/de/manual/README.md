@@ -4,15 +4,17 @@ Neovim Access Link verbindet Neovim in Windows Terminal mit NVDA. Statt das
 wechselnde Terminalbild auszulesen, erhält das Add-on strukturierte Daten
 direkt von Neovim. Dadurch kann NVDA Editorzustände wie Modus, Cursorposition,
 Textänderungen, Auswahl, Einrückung, Vervollständigung und Diagnosen gezielt
-ausgeben.
+ausgeben. Ein Explorationsmodus liest Zeichen, Wörter und Zeilen vorübergehend,
+ohne den echten Neovim-Cursor zu bewegen.
 
 Das Handbuch beschreibt den aktuellen Alpha- bis Beta-Stand für NVDA 2026.1.x unter
 Windows 11. Unterstützt werden:
 
 - lokales Windows-Neovim als `nvim.exe` in Windows Terminal,
 - Neovim auf Linux über SSH,
-- mehrere Windows-Terminal-Tabs und -Fenster,
+- mehrere Windows-Terminal-Fenster, -Tabs und geteilte Panes,
 - mehrere parallele lokale und entfernte Neovim-Instanzen,
+- gemischte Neovim- und normale Shell-Panes,
 - tmux innerhalb einer SSH-Sitzung.
 
 Noch nicht unterstützt werden andere Terminalprogramme wie PuTTY, grafische
@@ -144,9 +146,11 @@ Datei begonnen werden. Zuerst in einem Testpuffer prüfen:
 
 1. Insert-, Normal- und Visual-Modus wechseln.
 2. Zeichen, Wörter und Zeilen navigieren.
-3. Text einfügen und löschen.
-4. Zwischen zwei verbundenen Tabs wechseln.
-5. Das Add-on deaktivieren und sicherstellen, dass NVDA wieder die normale
+3. Mit gedrückter NVDA-Taste Zeichen, Wörter und Zeilen explorieren und prüfen,
+   dass der echte Cursor stehen bleibt.
+4. Text einfügen und löschen.
+5. Zwischen zwei verbundenen Tabs wechseln.
+6. Das Add-on deaktivieren und sicherstellen, dass NVDA wieder die normale
    Terminalausgabe verwendet.
 
 Bei mehreren Sitzungen muss NVDA stets nur den Inhalt des aktuell fokussierten

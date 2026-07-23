@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from .core.exploration_state import ExplorationAction, ExplorationContext
+from .core.gate import TerminalIdentity
 from .editor_session import BrailleSessionPlan, EditorSessionController
 
 
@@ -47,6 +49,9 @@ class TerminalIntegrationService:
 		copy_diagnostic_report: Callable[[object], None],
 		claim_focused_session: Callable[..., None],
 		send_braille_route: Callable[[dict[str, Any]], bool],
+		control_dispatcher: Any,
+		present_exploration: Callable[[object, str | None, Mapping[str, Any]], None],
+		exploration_details: Callable[[], tuple[bool, bool, bool]],
 		record_diagnostic: Callable[..., None],
 		fail_open_event: Callable[[str, Exception], None],
 	):
@@ -60,11 +65,17 @@ class TerminalIntegrationService:
 			copy_diagnostic_report,
 			claim_focused_session,
 			send_braille_route,
+			present_exploration,
+			exploration_details,
 			record_diagnostic,
 			fail_open_event,
 		)
 		if not all(callable(callback) for callback in callbacks):
 			raise ValueError("terminal integration callbacks are required")
+		if control_dispatcher is None or not all(
+			callable(getattr(control_dispatcher, name, None)) for name in ("submit", "close")
+		):
+			raise ValueError("a bounded control dispatcher is required")
 		self._focusService = focus_service
 		self._claimService = claim_service
 		self._editorSession = editor_session
@@ -72,6 +83,9 @@ class TerminalIntegrationService:
 		self._copyDiagnosticReport = copy_diagnostic_report
 		self._claimFocusedSession = claim_focused_session
 		self._sendBrailleRoute = send_braille_route
+		self._controlDispatcher = control_dispatcher
+		self._presentExploration = present_exploration
+		self._explorationDetails = exploration_details
 		self._recordDiagnostic = record_diagnostic
 		self._failOpenEvent = fail_open_event
 		self._generation = object()
@@ -88,7 +102,157 @@ class TerminalIntegrationService:
 		self._closed = True
 		self._generation = object()
 		self._claimService.cancel_pending_authorization()
+		self._editorSession.invalidate_exploration()
+		self._controlDispatcher.close()
 		return True
+
+	def exploration_script_available(
+		self,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+		expected_identity: TerminalIdentity | None = None,
+	) -> bool:
+		"""Authorize dynamic exploration scripts only for the exact active Neovim pane."""
+		context = self._exploration_context(focus_obj, app_module, adapter_token)
+		return context is not None and (expected_identity is None or context.identity == expected_identity)
+
+	def explore_text(
+		self,
+		action: ExplorationAction,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> TerminalIdentity | None:
+		"""Plan and queue one read-only virtual movement without transport I/O here."""
+		if not isinstance(action, ExplorationAction):
+			return None
+		context = self._exploration_context(focus_obj, app_module, adapter_token)
+		if context is None:
+			self._editorSession.invalidate_exploration()
+			return None
+		selected = self._editorSession.exploration_instance()
+		if selected is None or selected[0] != context.instance_id:
+			self._editorSession.invalidate_exploration()
+			return None
+		plan = self._editorSession.plan_exploration_step(context, action)
+		if not plan.ready or plan.control is None or plan.payload is None:
+			self._record("explorationRequestRejected", reason=plan.rejection.value)
+			return None
+		accepted = self._controlDispatcher.submit(selected[1], plan.control, plan.payload)
+		if not accepted:
+			self._editorSession.invalidate_exploration()
+		self._record(
+			"explorationRequestQueued",
+			accepted=accepted,
+			instanceId=context.instance_id,
+			requestId=plan.request_id,
+			action=action.value,
+		)
+		return context.identity if accepted else None
+
+	def release_exploration(
+		self,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		"""Speak the real cursor unit and queue disposal when the NVDA key is released."""
+		context = self._exploration_context(focus_obj, app_module, adapter_token)
+		if context is None:
+			self.cancel_exploration(adapter_token)
+			return False
+		selected = self._editorSession.exploration_instance()
+		if selected is None or selected[0] != context.instance_id:
+			self.cancel_exploration(adapter_token)
+			return False
+		word_character, line_word, line_character = self._explorationDetails()
+		plan = self._editorSession.release_exploration(
+			context,
+			word_character=word_character,
+			line_word=line_word,
+			line_character=line_character,
+		)
+		if not plan.ready:
+			return False
+		if plan.speech_action is not None:
+			self._presentExploration(
+				plan.speech_action,
+				self._editorSession.exploration_mode(),
+				self._editorSession.exploration_state(),
+			)
+		cleanup = plan.cleanup
+		if cleanup is not None and cleanup.control is not None and cleanup.payload is not None:
+			self._controlDispatcher.submit(selected[1], cleanup.control, cleanup.payload)
+		return True
+
+	def cancel_exploration(self, adapter_token: object | None = None) -> bool:
+		"""Discard ephemeral state, ignoring stale AppModule teardown notifications."""
+		context = self._editorSession.active_exploration_context()
+		if context is None or (adapter_token is not None and context.adapter_token is not adapter_token):
+			return False
+		self._editorSession.invalidate_exploration()
+		return True
+
+	def handle_exploration_result(
+		self,
+		instance_id: str,
+		identity: object,
+		event: Mapping[str, Any],
+	) -> bool:
+		"""Correlate one result and present it only in its still-focused pane."""
+		if self._closed or identity is None:
+			return False
+		focus_obj = self._focusService.focused_terminal_object
+		app_module = self._focusService.focused_app_module
+		adapter_token = self._focusService.focused_adapter_token
+		context = self._exploration_context(focus_obj, app_module, adapter_token)
+		if context is None or context.instance_id != instance_id or context.identity != identity:
+			return False
+		plan = self._editorSession.consume_exploration_result(context, event)
+		if not plan.accepted or plan.speech_action is None:
+			self._record(
+				"explorationResultIgnored",
+				instanceId=instance_id,
+				reason=plan.rejection.value,
+			)
+			return False
+		self._presentExploration(
+			plan.speech_action,
+			self._editorSession.exploration_mode(),
+			self._editorSession.exploration_state(),
+		)
+		return True
+
+	def _exploration_context(
+		self,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> ExplorationContext | None:
+		if (
+			self._closed
+			or focus_obj is None
+			or app_module is None
+			or adapter_token is None
+			or getattr(focus_obj, "appModule", None) is not app_module
+			or self._focusService.focused_app_module is not app_module
+			or self._focusService.focused_adapter_token is not adapter_token
+		):
+			return None
+		try:
+			identity = self._focusService.identity(focus_obj)
+			selected = self._editorSession.exploration_instance()
+			if (
+				identity is None
+				or not self._focusService.is_active_neovim_context(focus_obj)
+				or selected is None
+			):
+				return None
+			return ExplorationContext(selected[0], identity, adapter_token, self._generation)
+		except Exception as error:
+			self._fail_open("explorationAuthorization", error)
+			return None
 
 	def _record(self, category: str, **fields: Any) -> None:
 		if self._closed:

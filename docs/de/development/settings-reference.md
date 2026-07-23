@@ -50,6 +50,19 @@ Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
 0 bis 2. Unbekannte oder ungültige Werte werden verworfen und im redigierten
 Diagnosebericht gemeldet.
 
+Der verschachtelte Abschnitt `navigationDetails` enthält vier profilfähige
+Auswahlindizes. `navigationWord` und `explorationWord` verwenden 0 für nur das
+Grundwort und 1 für Wort plus Cursorzeichen. `navigationLine` und
+`explorationLine` verwenden 0 für nur die Grundzeile, 1 zusätzlich für das
+aktuelle Wort, 2 zusätzlich für das Cursorzeichen und 3 für beides in der
+Reihenfolge Wort, Zeichen. Die Standardwerte 1, 2, 1 und 2 erhalten das
+Verhalten vor Einführung dieser Auswahl. `SettingsService` löst sie in
+boolesche Planungswerte auf; die NVDA-neutralen Sprach- und
+Explorationsplaner lesen nie unmittelbar aus NVDAs Konfiguration. Die
+Explorationswerte werden beim Loslassen der NVDA-Taste neu aus dem aktiven
+Profil aufgelöst; sie verändern weder virtuelle Explorationsschritte noch
+Zeichenexploration.
+
 Die vier Zwischenablagebefehle besitzen keine Standardgesten. Anwender weisen ihnen
 in NVDAs Dialog „Tastenzuordnungen“ eigene Tastenkombinationen zu. Konfiguriert wird nur
 die Erfolgsrückmeldung; Übertragungsrichtung, Register und Zielbuffer werden

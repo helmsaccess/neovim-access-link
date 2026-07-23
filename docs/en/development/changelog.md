@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.95.1-dev.7+feature.exploration-mode (feature-branch test build)
+
+- Six fixed AppModule gestures, resolved only in the exact confirmed Neovim
+  control, explore characters, words, and lines while NVDA is held. An
+  ephemeral reading position moves while the real cursor, buffer, mode,
+  changed tick, and view remain unchanged.
+- `NVDA+h/l`, `NVDA+k/j`, and `Shift+NVDA+h/l` apply throughout the supported
+  Neovim modes. Shells, unbound tabs or panes, and other applications retain
+  NVDA's normal gesture resolution. Focus loss, disconnect, or stale state
+  ends exploration without guessed text.
+- A short two-note cue marks returning to the original character, word, or
+  line. Releasing NVDA returns output to the unchanged real cursor according
+  to the last-used unit.
+- The new Navigation settings tab configures supplementary cursor context
+  independently for normal word/line navigation and exploration release.
+  Word output can add the cursor character; line output can add the current
+  word, cursor character, both in stable order, or neither.
+- Defaults preserve the preceding word-plus-character and
+  line-plus-character behavior. Settings use NVDA configuration profiles and
+  apply immediately without changing character navigation or virtual
+  exploration output.
+- Normal navigation and exploration release share one neutral speech plan.
+  Unit, built-add-on, settings, localization, profile, and presentation tests
+  cover every choice and the line-word-character output order.
+- A practical Windows/NVDA pass confirmed normal navigation and exploration
+  release with the independent choices without an observed defect. This is
+  core-path evidence rather than an exhaustive compatibility claim.
+
 ## 0.95.1
 
 - The Global Plugin is now a narrower process-lifetime composition root.

@@ -1,11 +1,14 @@
 # Current status
 
-Status date: July 21, 2026. Product version in the source tree: 0.95.1.
+Status date: July 23, 2026. Base version: 0.95.1. Current feature-branch test
+build: 0.95.1-dev.7+feature.exploration-mode.
 
-The source tree is prepared for version 0.95.1. Its corresponding GitHub
-release link is kept prominently in `README.md`. Project-defined maturity
-remains between alpha and beta. This documentation does not infer a higher
-stability classification from test coverage, version number, or feature count.
+This source tree is on a feature branch and is not a new release. The prominent
+GitHub link in `README.md` therefore continues to point to published version
+0.95.1; the current exploration state is marked as a test build in the
+changelog. Project-defined maturity remains between alpha and beta. This
+documentation does not infer a higher stability classification from test
+coverage, version number, or feature count.
 
 Verification is risk-based and best-effort, not exhaustive. Automated suites
 and practical reference workflows cannot anticipate every combination of NVDA,
@@ -199,6 +202,17 @@ The semantic path covers, among other features:
 - configurable focus output: no announcement, current line, or context with
   mode and saved connection name;
 - separate speech, sound, and persistent Braille planning.
+
+The feature branch also implements contextual exploration:
+`NVDA+h/j/k/l` and `Shift+NVDA+h/l` read characters, lines, or words at an
+ephemeral position without moving the real cursor. AppModule, protocol,
+controller, dispatcher, and Lua tests cover the path. Character, word, and
+line exploration, release feedback, origin cues, and backward word movement
+have been practically confirmed under NVDA. The profile-aware independent
+detail choices for normal word/line navigation and exploration release were
+also practically exercised without an observed defect. This confirms the
+tested core path, not every possible keyboard assignment, language, or plugin
+combination.
 
 See `accessibility.md` for the feature matrix and known differences.
 

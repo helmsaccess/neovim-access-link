@@ -72,8 +72,9 @@ authentication point.
 
 ## Fixed capabilities
 
-There is no capability-negotiation handshake. `fullState.payload._transport`
-describes the v2 transport that actually started. SSH stdio supports:
+There is no open-ended capability-negotiation handshake.
+`fullState.payload._transport` describes the v2 transport that actually
+started. SSH stdio has these fixed base capabilities:
 
 ```text
 heartbeat, resync, semanticEvents, cursorRouting, accessibleMenus,
@@ -81,6 +82,10 @@ focusContext, clipboardTransfer, terminalControl
 ```
 
 Local `windows-loopback-tcp` supports the same list without `heartbeat`.
+The transport adds `exploration` only when the connected Neovim plugin reports
+it in the fixed `pluginCapabilities` field. This prevents an updated add-on
+from capturing exploration gestures while an older plugin is still installed
+or running.
 Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
 are not supported.
 
@@ -131,7 +136,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `menuSelectionChanged`, `menuClosed`, `signatureChanged`,
 `diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
-`leaveTerminalInputResult`, and `connectionStateChanged`.
+`leaveTerminalInputResult`, `exploreTextResult`, and `connectionStateChanged`.
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
@@ -198,6 +203,11 @@ Only these add-on-to-Neovim controls are permitted:
   0 as backing storage for the unnamed register;
 - `leaveTerminalInputRequest` with correlated request ID, exact
   buffer/window/tab identity, and raw mode `t`, fixed to `stopinsert`.
+- `exploreTextRequest` with positive request, exploration, and action indices;
+  one of six fixed movements; a repeat count from 1 through 64; and exact
+  buffer/window/tab, changed-tick, raw-mode, and real-cursor identity;
+- `endExplorationRequest` with request and exploration IDs to discard
+  ephemeral Lua state.
 
 `requestFocusContext` is sent only to an authenticated instance bound exactly
 to the focused terminal control. A mismatched request ID, instance, binding, or
@@ -217,6 +227,15 @@ actions are not retried.
 code. Changed tick is intentionally absent because a terminal job changes it
 asynchronously while `stopinsert` neither reads nor changes text. The actual
 mode transition remains event-driven through `ModeChanged` or `TermLeave`.
+
+`exploreTextResult` correlates request, exploration, action index, and fixed
+action. A successful result contains exactly a character, word, or line unit,
+a bounded virtual position, a Boolean `atOrigin`, and at most 16 KiB of text.
+The origin flag uses the requested unit: exact character, containing word, or
+line. This keeps Neovim's word rules on the Neovim side. One word scan reads
+at most 256 lines or 64 KiB. The Lua engine uses no cursor, feedkeys, Normal,
+search, or buffer-mutation operation. The receiver rejects a result after any
+focus, binding, context, or identifier change.
 
 No received text is ever executed as Lua or Ex code.
 

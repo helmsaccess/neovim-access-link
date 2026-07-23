@@ -78,6 +78,43 @@ Disconnect, timeout, invalid sequence, deactivation, or loss of focus clears
 the gate and restores normal terminal output. The add-on never suppresses an
 unknown application or an unbound tab.
 
+## Explore text without moving Neovim's cursor
+
+In a connected and confirmed Neovim control, hold the NVDA key and use these
+fixed reading commands:
+
+| Key | Virtual reading movement |
+|---|---|
+| `NVDA+h` / `NVDA+l` | previous / next character |
+| `NVDA+k` / `NVDA+j` | previous / next line |
+| `Shift+NVDA+h` / `Shift+NVDA+l` | previous / next word |
+
+The ephemeral reading position is initialized from the real cursor, and each
+requested movement then changes only that virtual position. The buffer, mode,
+view, and real cursor do not change. Every movement speaks the character,
+word, or line at the virtual position.
+
+Releasing NVDA returns output to the unchanged real cursor. Character
+exploration reads its character. Word and line exploration use the respective
+choices under `Settings → Neovim Access Link → Navigation → Exploration
+release`. Word output may add the cursor character. Line output may add the
+current word, the cursor character, both in that order, or neither. The base
+word or line is never disabled. These two choices are independent of the
+corresponding normal-navigation settings.
+
+During character exploration, a short two-note cue marks a return to the real
+cursor position. The same cue marks a return to the original word or line
+during word or line exploration. It follows the configured line-boundary sound
+feedback.
+
+The commands apply in every Neovim mode supported by the add-on, including
+Normal, Insert, Replace, Visual, Operator-pending, command line,
+Terminal-normal, and direct Terminal input. They apply only in the exact
+focused, authenticated Neovim pane. The same keys retain normal NVDA behavior
+in a shell, an unbound pane, another tab, or another application. After
+installing a build that adds this feature, update the Neovim components and
+restart running Neovim instances.
+
 ## Manual selection
 
 Focus Windows Terminal, then assign “Choose a server and connect this terminal

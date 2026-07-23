@@ -9,6 +9,20 @@ completion and signature help; search, pairs, diagnostics and spelling; folds,
 marks, registers and macros; command line; embedded terminal transitions; and
 adapters for common file managers.
 
+Contextual exploration uses six fixed Windows Terminal AppModule chords to
+read characters, lines, or words through an ephemeral Lua position. Exact
+control binding, authenticated instance, capability, editor origin, and reply
+correlation are required. The real cursor, buffer, mode, changed tick, and
+view remain unchanged; releasing NVDA reads the character or the word/line
+with separately configurable current-word and cursor-character details at the
+real cursor. Ordinary word and line navigation has an independent copy of
+those detail choices. Protocol, Lua, controller, dispatcher, and built-package
+tests cover the path; the base exploration path has been practically confirmed
+under NVDA. Both word-detail choices and all four line-detail choices were also
+practically exercised independently for normal navigation and exploration
+release without an observed defect. This is evidence for the tested Windows
+and NVDA path, not an exhaustive claim across every environment.
+
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real
 same-entry state changes with distinct mark, Copy, Cut, expansion, and clear

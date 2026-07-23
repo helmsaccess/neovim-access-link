@@ -112,6 +112,7 @@ function M.snapshot(reason)
     command_line_position = vim.fn.getcmdpos() - 1
   end
   local result = {
+    pluginCapabilities = { "exploration" },
     reason = reason,
     mode = M.normalize_mode(mode_raw),
     modeRaw = mode_raw,
