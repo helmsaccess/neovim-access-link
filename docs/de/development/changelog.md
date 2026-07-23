@@ -5,6 +5,28 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.95.2
+
+- Der neue Explorationsmodus liest mit `NVDA+h/l`, `NVDA+k/j` und
+  `Umschalt+NVDA+h/l` Zeichen, Zeilen und Wörter an einer flüchtigen Position,
+  ohne den echten Neovim-Cursor, Buffer, Modus oder die Ansicht zu verändern.
+  Die Gesten gelten in allen unterstützten Neovim-Modi ausschließlich im exakt
+  bestätigten Pane; Shells und andere Tabs, Panes oder Anwendungen behalten
+  NVDAs normales Verhalten.
+- Ein kurzer Doppelton meldet die Rückkehr zum ursprünglichen Zeichen, Wort
+  oder zur ursprünglichen Zeile. Beim Loslassen der NVDA-Taste kehrt die
+  Ausgabe entsprechend der zuletzt verwendeten Einheit zum unveränderten
+  echten Cursor zurück.
+- Die neue Registerkarte „Navigation“ konfiguriert zusätzliche Wort- und
+  Cursorinformationen getrennt für normale Navigation und
+  Explorationsabschluss. Die profilfähigen Standardwerte erhalten die bisherige
+  Wort-plus-Zeichen- und Zeile-plus-Zeichen-Ausgabe.
+- Protokoll-, Lua-, Core-, AppModule-, gebauter Add-on-, Einstellungs-,
+  Lokalisierungs- und Ausgabetests decken die Funktion ab. Zeichen-, Wort- und
+  Zeilenexploration, rückwärtige Wortbewegung, Ursprungsklang, Abschlussansage
+  und die getrennten Detailoptionen wurden praktisch unter Windows/NVDA ohne
+  festgestellten Fehler geprüft.
+
 ## 0.95.1-dev.7+feature.exploration-mode (Featurebranch-Testbuild)
 
 - Sechs feste, nur im exakt bestätigten Neovim-Control aufgelöste

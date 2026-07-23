@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.95.2
+
+- The new exploration mode reads characters, lines, and words at an ephemeral
+  position with `NVDA+h/l`, `NVDA+k/j`, and `Shift+NVDA+h/l`, without changing
+  Neovim's real cursor, buffer, mode, or view. The gestures apply throughout
+  supported Neovim modes only in the exact confirmed pane; shells and other
+  tabs, panes, or applications retain normal NVDA behavior.
+- A short two-note cue reports a return to the original character, word, or
+  line. Releasing NVDA returns output to the unchanged real cursor according
+  to the last-used unit.
+- The new Navigation settings tab configures supplementary word and cursor
+  context independently for normal navigation and exploration release.
+  Profile-aware defaults preserve the preceding word-plus-character and
+  line-plus-character output.
+- Protocol, Lua, core, AppModule, built-add-on, settings, localization, and
+  presentation tests cover the feature. Character, word, and line exploration,
+  backward word movement, the origin cue, release feedback, and independent
+  detail choices were practically exercised under Windows/NVDA without an
+  observed defect.
+
 ## 0.95.1-dev.7+feature.exploration-mode (feature-branch test build)
 
 - Six fixed AppModule gestures, resolved only in the exact confirmed Neovim

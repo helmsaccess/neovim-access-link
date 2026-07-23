@@ -10,12 +10,9 @@ The result is focused editor feedback through speech and sounds, with
 experimental Braille support also included. Local Neovim on Windows and
 Neovim over SSH can use the same accessible workflow.
 
-[Current GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.95.1) —
-release notes for 0.95.1: [English](docs/en/development/changelog.md#0951) or
-[German](docs/de/development/changelog.md#0951).
-
-The documentation below describes the current source branch. Development
-features can therefore be newer than the linked published release.
+[Current GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.95.2) —
+release notes for 0.95.2: [English](docs/en/development/changelog.md#0952) or
+[German](docs/de/development/changelog.md#0952).
 
 ## What it helps with
 
