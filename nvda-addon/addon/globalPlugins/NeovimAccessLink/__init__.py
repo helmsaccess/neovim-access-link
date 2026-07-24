@@ -449,9 +449,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			send_braille_route=self._sendBrailleRoute,
 			control_dispatcher=self._controlDispatcher,
 			present_exploration=self._presentExploration,
-			exploration_details=lambda: self._settingsService.navigation_details(
-				exploration=True
-			),
+			exploration_details=lambda: self._settingsService.navigation_details(exploration=True),
 			record_diagnostic=self._diagnostics.record,
 			fail_open_event=self._failOpenTerminalEvent,
 		)

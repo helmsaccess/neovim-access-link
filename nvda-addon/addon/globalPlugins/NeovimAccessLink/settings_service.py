@@ -212,9 +212,7 @@ class SettingsService:
 	def _commit(self, values: dict) -> SettingsChange:
 		previous = self._values
 		feedback_changed = previous.get("feedback") != values.get("feedback")
-		navigation_details_changed = previous.get("navigationDetails") != values.get(
-			"navigationDetails"
-		)
+		navigation_details_changed = previous.get("navigationDetails") != values.get("navigationDetails")
 		focus_changed = previous.get("focusAnnouncement") != values.get("focusAnnouncement")
 		connections_changed = previous.get("connections") != values.get("connections")
 		self._values = values
