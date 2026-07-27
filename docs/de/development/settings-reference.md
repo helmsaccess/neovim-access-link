@@ -9,9 +9,11 @@ Modell wie „Zeileneinrückung ansagen“ unter „Dokument-Formatierungen“:
 - Töne
 - Sprache und Töne
 
-Die Seite verwendet drei zugängliche Registerkarten: „Allgemein“ mit globaler
-Rückmeldung, „Rückmeldung“ mit den Einzelaktionen und „Verbindungen“ mit
-lokalem Windows-Neovim sowie Linux-Verbindungen. Innerhalb der Registerkarten sorgen
+Die Seite verwendet fünf zugängliche Registerkarten: „Allgemein“ mit globaler
+Rückmeldung und Sitzungsfokus, „Rückmeldung“ mit den Einzelaktionen,
+„Navigation“ mit den Detailoptionen, „Braille“ mit Exploration,
+Routingaktionen und Rechtschreibvorschlägen sowie „Verbindungen“ mit lokalem
+Windows-Neovim und Linux-Verbindungen. Innerhalb der Registerkarten sorgen
 beschriftete Gruppen für eine nachvollziehbare Tab-Reihenfolge.
 
 „Allgemein“ enthält außerdem die profilfähige Auswahl für bestätigten
@@ -19,6 +21,40 @@ Sitzungsfokus: keine Ansage, aktuelle strukturierte Zeile oder den bisherigen
 Datei-/Spezialkontext mit Modus und Verbindungsname. Der bisherige Kontext ist
 Standard. Die Auswahl steuert weder Fokuskorrelation noch strukturierte
 Braillezeile oder die vorhandenen Modusklang-Einstellungen.
+
+Der profilfähige Ganzzahlwert `brailleSuggestionStart` ist einsbasiert und
+standardmäßig 1. Er positioniert ausschließlich den vorübergehenden Text einer
+aktiven Rechtschreibauswahl. Der NVDA-Brailleadapter vergleicht ihn mit
+`braille.handler.displaySize`; liegt die Position außerhalb der aktuellen
+Braillezeile, wird sie bei der Ausgabe ignoriert und Modul 1 verwendet.
+Vor dem Einfügen führender Leerzellen übersetzt die Region den unverschobenen
+Vorschlag mit NVDAs aktiver Brailletabelle. Der späteste vollständig passende
+Start begrenzt anschließend den eingestellten Wert nach links; ein längerer
+Vorschlag beginnt auf Modul 1. Sprache und dauerhafte Editor-Brailleplanung
+bleiben unverändert.
+
+Der profilfähige boolesche Wert `brailleFollowSpeechExploration` ist
+standardmäßig `true`. Er erlaubt dem Brailleplan, die validierte virtuelle
+Zeile des Controllers für den Sprachexplorationsmodus anzuzeigen. Der
+kanonische Editorzustand bleibt unverändert. Der getrennte
+Braille-Explorationscontroller besitzt Vorrang. Bei `false` bleibt die
+Brailleplanung während `NVDA+h/j/k/l` und `Umschalt+NVDA+h/l` am kanonischen
+Cursorzustand.
+
+Der verschachtelte profilfähige Abschnitt `brailleRouting` enthält drei
+Auswahlindizes:
+
+- `wordAction`: 0 für nur Routing, 1 für `cw`, 2 für `dw`;
+- `lineAction`: 0 für nur Routing, 1 für `c$`, 2 für `d$`;
+- `lineStart`: 0 für die Routingposition, 1 für das erste
+  Nicht-Leerzeichen, 2 für den absoluten Zeilenanfang.
+
+Alle Standardwerte sind 0. `lineStart` wird nur bei einer aktivierten
+Zeilenaktion ausgewertet. Die Wiederholungsfrist stammt aus NVDAs öffentlicher
+Einstellung `config.conf["keyboard"]["multiPressTimeout"]`; das Add-on besitzt
+dafür keinen zweiten Zeitwert. `SettingsService` validiert die Indizes und
+stellt der Terminalintegration ausschließlich die aufgelösten symbolischen
+Werte bereit.
 
 Der globale Wert wird mit dem Wert der einzelnen Aktion kombiniert. Steht der
 globale Wert beispielsweise auf „Sprache“, kann keine Aktion einen Ton

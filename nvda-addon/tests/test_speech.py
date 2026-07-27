@@ -4,7 +4,7 @@ import unittest
 
 from nvim_nvda_core import (
     DiagnosticBuffer, Priority, SessionGate, SpeechPlanner, TerminalIdentity,
-    plan_braille, source_offset_for_expanded,
+    plan_braille, plan_command_line_braille, source_offset_for_expanded,
 )
 
 
@@ -258,7 +258,15 @@ class SpeechPlannerTests(unittest.TestCase):
             "wordMoved", line="mispelled", word="mispelled", character="m",
             spellingError={"kind": "spelling", "startByteColumn": 0, "endByteColumn": 9},
         ))
+        self.assertEqual(1, len(entered))
+        self.assertEqual("mispelled", entered[0].text)
         self.assertEqual("spelling", entered[0].format_error)
+        repeated = planner.plan(event(
+            "wordMoved", line="mispelled", word="mispelled", character="d",
+            byte_column=8,
+            spellingError={"kind": "spelling", "startByteColumn": 0, "endByteColumn": 9},
+        ))
+        self.assertEqual("spelling", repeated[0].format_error)
         left = planner.plan(event(
             "wordMoved", line="correct", word="correct", character="c",
         ))
@@ -276,8 +284,9 @@ class SpeechPlannerTests(unittest.TestCase):
                 "kind": "spelling", "startByteColumn": 13, "endByteColumn": 22,
             }],
         ))
+        self.assertEqual(1, len(actions))
         self.assertEqual("spelling", actions[0].format_error)
-        self.assertEqual("correct then mispelled", actions[1].text)
+        self.assertEqual("correct then mispelled", actions[0].text)
 
     def test_diagnostic_navigation_speaks_source_severity_code_and_position(self) -> None:
         planner = SpeechPlanner()
@@ -762,9 +771,11 @@ class SpeechPlannerTests(unittest.TestCase):
         }})[0]
         self.assertEqual("src, directory, marked", directory.text)
         self.assertTrue(directory.force_symbols)
-        self.assertEqual(directory.text, directory.braille_message)
+        self.assertIsNone(directory.braille_message)
         self.assertEqual("current, symbolic link, collapsed", link.text)
+        self.assertIsNone(link.braille_message)
         self.assertEqual("notes.txt, file, copied", copied.text)
+        self.assertIsNone(copied.braille_message)
 
     def test_file_manager_same_entry_state_changes_are_explicit(self) -> None:
         planner = SpeechPlanner()
@@ -790,6 +801,8 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("src, cut", cut.text)
         self.assertEqual("src, clipboard cleared", cleared.text)
         self.assertEqual("src, expanded", expanded.text)
+        for action in (initial, marked, unmarked, copied, cut, cleared, expanded):
+            self.assertIsNone(action.braille_message)
 
     def test_file_manager_navigation_preserves_boundary_sounds(self) -> None:
         planner = SpeechPlanner()
@@ -932,8 +945,9 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("terminal mode", terminal_action.text)
         self.assertNotIn("sensitive", terminal_action.text)
         self.assertEqual("netrw, src, directory, expanded, normal mode", manager_action.text)
-        self.assertEqual(manager_action.text, manager_action.braille_message)
+        self.assertIsNone(manager_action.braille_message)
         self.assertEqual("netrw, current, normal mode", empty_manager_action.text)
+        self.assertIsNone(empty_manager_action.braille_message)
         self.assertNotIn("private", empty_manager_action.text)
 
     def test_focus_context_presentation_can_be_silent_or_announce_current_line(self) -> None:
@@ -1332,6 +1346,68 @@ class SessionGateTests(unittest.TestCase):
 
 
 class BraillePlannerTests(unittest.TestCase):
+    def test_command_line_plan_keeps_prompt_visible_and_routes_utf8_content(self) -> None:
+        plan = plan_command_line_braille({
+            "commandLineType": ":",
+            "commandLine": "a界z",
+            "commandLinePosition": 4,
+        })
+        self.assertEqual(":a界z ", plan.text)
+        self.assertEqual(3, plan.cursor)
+        self.assertEqual((None, 0, 1, 4, 5), plan.routing_byte_columns)
+
+    def test_insert_plan_exposes_routable_cell_after_line_end(self) -> None:
+        plan = plan_braille({
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "hallo",
+            "cursor": {"byteColumn": 5},
+        })
+        self.assertEqual("hallo ", plan.text)
+        self.assertEqual(5, plan.cursor)
+        self.assertEqual(5, source_offset_for_expanded(plan, 5))
+
+        empty = plan_braille({
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "",
+            "cursor": {"byteColumn": 0},
+        })
+        self.assertEqual(" ", empty.text)
+        self.assertEqual(0, empty.cursor)
+        self.assertEqual(0, source_offset_for_expanded(empty, 0))
+
+        unicode_tab = plan_braille({
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "\t界",
+            "tabstop": 4,
+            "cursor": {"byteColumn": 4},
+        })
+        self.assertEqual("    界 ", unicode_tab.text)
+        self.assertEqual(5, unicode_tab.cursor)
+        self.assertEqual(2, source_offset_for_expanded(unicode_tab, 5))
+
+    def test_normal_plan_does_not_add_insert_end_cell(self) -> None:
+        plan = plan_braille({
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "hallo",
+            "cursor": {"byteColumn": 4},
+        })
+        self.assertEqual("hallo", plan.text)
+        self.assertEqual(4, plan.cursor)
+
+        empty = plan_braille({
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "",
+            "cursor": {"byteColumn": 0},
+        })
+        self.assertEqual(" ", empty.text)
+        self.assertEqual(0, empty.cursor)
+        self.assertEqual(0, source_offset_for_expanded(empty, 0))
+
     def test_spelling_and_grammar_use_nvda_reference_markers(self) -> None:
         plan = plan_braille({
             "lineText": "bad grammar", "cursor": {"byteColumn": 1},
@@ -1368,6 +1444,13 @@ class BraillePlannerTests(unittest.TestCase):
         self.assertEqual(1, plan.cursor)
         self.assertIsNone(plan.selection_start)
 
+        hidden = plan_braille({
+            "lineText": "virtual line",
+            "cursor": {"byteColumn": 3},
+            "brailleCursorVisible": False,
+        })
+        self.assertIsNone(hidden.cursor)
+
     def test_routing_inside_expanded_tab_maps_to_tab_source(self) -> None:
         plan = plan_braille({"lineText": "\tX", "tabstop": 4, "cursor": {"byteColumn": 0}})
         self.assertEqual(0, source_offset_for_expanded(plan, 3))
@@ -1386,6 +1469,26 @@ class BraillePlannerTests(unittest.TestCase):
         self.assertEqual(2, plan.cursor)
         self.assertEqual((6, 7, 8, 9), plan.routing_byte_columns[:4])
         self.assertIsNone(plan.routing_byte_columns[len("café")])
+
+    def test_file_manager_braille_localizes_semantic_type_and_state(self) -> None:
+        translations = {
+            "directory": "Verzeichnis",
+            "marked": "markiert",
+            "collapsed": "eingeklappt",
+        }
+        plan = plan_braille(
+            {
+                "lineText": "café",
+                "cursor": {"byteColumn": 0},
+                "fileManager": {"name": "oil", "entry": {
+                    "name": "café", "type": "directory",
+                    "selectionState": "marked", "expanded": False,
+                }},
+            },
+            translate=lambda message: translations.get(message, message),
+        )
+
+        self.assertEqual("café, Verzeichnis, markiert, eingeklappt", plan.text)
 
     def test_file_manager_braille_routes_only_an_unambiguous_name(self) -> None:
         duplicate = plan_braille({
@@ -1412,13 +1515,15 @@ class DiagnosticTests(unittest.TestCase):
         diagnostics = DiagnosticBuffer(max_entries=2)
         diagnostics.record(
             "one", password="secret", lineText="private source",
-            registerText="private macro", beforeText="deleted source",
+            commandLine="write private-name", registerText="private macro",
+            beforeText="deleted source",
         )
         diagnostics.record("two", sequence=2)
         diagnostics.record("three", sequence=3)
         report = diagnostics.report({"version": "test"})
         self.assertNotIn("secret", report)
         self.assertNotIn("private source", report)
+        self.assertNotIn("private-name", report)
         self.assertNotIn("private macro", report)
         self.assertNotIn("deleted source", report)
         self.assertNotIn('"category": "one"', report)

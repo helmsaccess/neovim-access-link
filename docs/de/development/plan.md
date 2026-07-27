@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 23. Juli 2026.
+Stand: 27. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -23,6 +23,10 @@ Laufend:
 - dauerhafte Referenz, aktuellen Status, aktiven Plan, Changelog und datierte
   Berichte klar trennen;
 - deutsche und englische Kernkapitel strukturell parallel halten;
+- ältere englische Handbuch- und Entwicklerkapitel, die gegenüber den
+  deutschen Fassungen gekürzt sind, schrittweise inhaltlich angleichen;
+  zuerst Einstellungen, Kommunikation, Komponenteninstallation, SSH/tmux und
+  Sicherheit;
 - Aussagen zu Prozessen, Session-Registry, Zuordnung, Gate, Rückkanälen,
   Polling und Fallbacks gegen den aktuellen Code prüfen;
 - HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen.
@@ -71,17 +75,46 @@ mini.files, nvim-tree und Neo-tree schrittweise lokal und über SSH geprüft:
 Fehlende öffentliche Pluginereignisse werden nicht durch unbeschränktes
 Polling oder allgemeines Popup-Scraping ersetzt.
 
-## 5. Braille an echter Hardware prüfen
+## 5. Braille-Hardwarematrix verbreitern
 
-- Sobald Hardware verfügbar ist, mehr als eine repräsentative Braillezeile
-  beziehungsweise Treiberkombination praktisch prüfen.
+- Über die bereits bestätigte Braillezeile hinaus mehr als eine repräsentative
+  Braillezeile beziehungsweise Treiberkombination praktisch prüfen.
 - Cursor, Auswahl, Unicode, Tabs, Dateimanagersegmente und Routing prüfen.
+- Standardbefehle für horizontales Verschieben sowie Auf/Ab mit
+  Spaltenerhalt auf mehreren Treibern und Zeilenbreiten prüfen.
+- Die optionalen Doppel-/Dreifachaktionen mit allen vier Befehlen, drei
+  Zeilenstarts, Zeitablauf, Positionswechsel und sicherer Nullvoreinstellung
+  praktisch prüfen.
 - Mehrdeutige oder synthetische Zellen müssen ohne erfundenes Routingziel
   bleiben.
 - Gefundene Hardwareunterschiede erst nach reproduzierbarem Nachweis in den
   Planer übernehmen.
 
-## 6. Robustheit und Kompatibilitätsbreite erhöhen
+## 6. Braille-Navigationsmodi praktisch abnehmen
+
+- Den implementierten, frei belegbaren Umschalter zwischen `Cursor` und
+  `Exploration` mit mehreren Braillezeilen und Treibern praktisch prüfen.
+- Bestätigen, dass Auf/Ab im Braille-Explorationsmodus nur die flüchtige Leseposition
+  verändert und Routing anschließend den echten Cursor auf die gewählte Zeile
+  setzt.
+- Unabhängigkeit vom Sprachexplorationsmodus, getrennte Moduswahl für mehrere
+  parallele lokale und entfernte Sitzungen, gezielten Reset nur der getrennten
+  Sitzung sowie die Ablehnung in Befehlszeile und direktem Terminalmodus
+  praktisch prüfen.
+- Nach Bearbeitungen auf der explorierten Zeile praktisch bestätigen, dass
+  virtuelle Zeile und horizontaler Ausschnitt stehen bleiben, der Inhalt
+  vollständig aktualisiert wird und ein erneutes Routing den aktuellen Modus
+  und Bufferstand verwendet. Nach zwischenzeitlichen Änderungen bei einer
+  anderen Echtcursorzeile muss Routing aus einem nicht mehr belegten
+  Zeilenstand abgelehnt werden und nach erneutem Abruf der Zeile wieder
+  funktionieren.
+- Die Moduswahl wird bereits für die Lebensdauer jeder verbundenen Sitzung
+  getrennt gehalten; neue und getrennte Sitzungen beginnen sicher im
+  Cursormodus. Erst nach der Hardwareabnahme über eine zusätzliche
+  profilfähige Speicherung über Verbindungen oder NVDA-Neustarts hinweg
+  entscheiden.
+
+## 7. Robustheit und Kompatibilitätsbreite erhöhen
 
 - Langzeitbetrieb, wiederholte SSH-Abbrüche und Reconnects testen.
 - Große Ereignislast, große Dateien und viele parallele Sitzungen messen.

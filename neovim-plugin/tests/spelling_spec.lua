@@ -1,6 +1,7 @@
 local root = vim.fn.getcwd()
 package.path = root .. "/neovim-plugin/lua/?.lua;" .. root .. "/neovim-plugin/lua/?/init.lua;" .. package.path
 local spelling = require("nvim_nvda.spelling")
+local numbered_choice = require("nvim_nvda.numbered_choice")
 local state = dofile(root .. "/neovim-plugin/lua/nvim_nvda/state.lua")
 
 local function equal(expected, actual, label)
@@ -14,6 +15,53 @@ equal("spelling", spelling.diagnostic_kind({ source = "LTeX", code = "MORFOLOGIK
 equal("grammar", spelling.diagnostic_kind({ user_data = { nvim_nvda_kind = "grammar" } }), "explicit grammar")
 equal("grammar", spelling.diagnostic_kind({ source = "Harper" }), "harper grammar")
 equal(nil, spelling.diagnostic_kind({ source = "pyright", message = "undefined name" }), "ordinary diagnostic")
+local choices = numbered_choice.spell_suggestions(
+  'Change "mispelled" to:\n 1 "misspelled"\n 2 "misapplied"\n'
+)
+equal(2, #choices, "numbered spell choice count")
+equal("misspelled", choices[1], "number removed from first spell choice")
+local detailed_choices = numbered_choice.spell_suggestions(
+  'Change "mispelled" to:\n 1 "misspelled" < "mispelled" (123)\n'
+)
+equal("misspelled", detailed_choices[1], "native replacement and score suffix ignored")
+local numbered_choices = { "Prompt" }
+for index = 1, 12 do
+  numbered_choices[#numbered_choices + 1] = string.format('%d "item %d"', index, index)
+end
+equal(12, #numbered_choice.spell_suggestions(table.concat(numbered_choices, "\n")), "multi-digit choices")
+local legacy_choices = numbered_choice.spell_suggestions(
+  'Change "mispelled" to:\n 1 "misspelled"\n 2 "misapplied"\n'
+    .. "Type number and <Enter> or click with the mouse (q or empty cancels):"
+)
+equal(2, #legacy_choices, "legacy native prompt accepted")
+equal(nil, numbered_choice.spell_suggestions('Prompt\n 1 "first"\n 3 "third"\n'), "gap rejected")
+equal(nil, numbered_choice.spell_suggestions('Prompt\n 1 "first"\nother\n'), "mixed content rejected")
+equal(
+  nil,
+  numbered_choice.spell_suggestions('Prompt\n 1 "first"\nType number and <Enter>\n'),
+  "incomplete native prompt rejected"
+)
+equal(
+  nil,
+  numbered_choice.spell_suggestions(
+    'Prompt\n 1 "first"\nType number and <Enter>:\nType number and <Enter>:\n'
+  ),
+  "duplicate native prompt rejected"
+)
+equal(
+  nil,
+  numbered_choice.spell_suggestions('Prompt\n 1 "' .. string.rep("x", 4097) .. '"\n'),
+  "oversized item rejected"
+)
+local too_many_choices = { "Prompt" }
+for index = 1, 129 do
+  too_many_choices[#too_many_choices + 1] = string.format('%d "item %d"', index, index)
+end
+equal(
+  nil,
+  numbered_choice.spell_suggestions(table.concat(too_many_choices, "\n")),
+  "oversized choice list rejected"
+)
 
 vim.opt.spelllang = "en_us"
 vim.wo.spell = true
@@ -56,5 +104,5 @@ equal("SC2086", shellcheck.code, "shellcheck code")
 equal("Double quote to prevent globbing", shellcheck.message, "shellcheck message")
 vim.diagnostic.reset(namespace, 0)
 
-print("spelling/diagnostic tests: 24 assertions passed")
+print("spelling/diagnostic tests: 32 assertions passed")
 vim.cmd("qa!")

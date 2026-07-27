@@ -4,7 +4,8 @@ Open the category through `NVDA menu → Preferences → Settings... → Neovim
 Access Link`. The add-on deliberately adds no duplicate settings item directly
 to the Preferences submenu.
 
-The category has “General”, “Feedback”, “Navigation”, and “Connections” tabs.
+The category has “General”, “Feedback”, “Navigation”, “Braille”, and
+“Connections” tabs.
 OK saves and closes, Apply saves without closing, and Cancel discards unsaved changes.
 Values use NVDA's normal configuration profiles. Manage those through
 `NVDA menu → Configuration profiles...`; the add-on neither selects nor
@@ -22,8 +23,11 @@ current window, for example after `:bp` or `:bn`:
 - Current context, modified/read-only state, mode, and connection name. This
   remains the default.
 
-The choice affects only the focus/buffer-switch announcement and its transient
-Braille message. Tab and window destination position remains present; Context
+The choice affects only the focus/buffer-switch announcement and normally its
+transient Braille message. When Braille exploration is active in the
+destination session, the focus announcement remains audible but does not
+cover the restored exploration viewport with a transient Braille message.
+Tab and window destination position remains present; Context
 combines it with destination, state, mode, and connection in exactly one
 announcement. A short file name is explicit as `file T`. A terminal reports
 only `terminal mode` or `terminal-normal mode` for its state, never the
@@ -92,13 +96,13 @@ bound terminal buffer is in direct input.
 
 The “Navigation” tab controls supplementary cursor context independently for
 ordinary Neovim navigation and for the announcement when the NVDA key ends
-exploration. It does not disable the basic word or line:
+speech exploration mode. It does not disable the basic word or line:
 
-- “Word navigation” and “After word exploration” offer “Word only” or “Word
+- “Word navigation” and “After word speech exploration” offer “Word only” or
+  “Word and cursor character”.
+- “Line navigation” and “After line speech exploration” offer “Line only”,
+  “Line and current word”, “Line and cursor character”, or “Line, current word
   and cursor character”.
-- “Line navigation” and “After line exploration” offer “Line only”, “Line and
-  current word”, “Line and cursor character”, or “Line, current word and
-  cursor character”.
 
 “Word only” and “Line only” therefore turn off all supplementary context, not
 the base announcement.
@@ -106,9 +110,90 @@ the base announcement.
 The default is word plus cursor character and line plus cursor character,
 which preserves the behavior from before these choices were added. When both
 line details are enabled, speech follows the stable order line, current word,
-cursor character. Character navigation and character exploration are
+cursor character. Character navigation and speech exploration mode are
 unchanged. These values follow the active NVDA configuration profile and take
 effect after Apply or OK.
+
+## Braille
+
+All settings on this tab are profile-aware. They supplement rather than
+replace NVDA's own Braille settings. Translation table, display driver,
+cursor shape, selection indication, and “Speak character when routing cursor
+in text” remain controlled by NVDA's `Braille` category.
+
+### Speech exploration mode
+
+“Braille display follows the speech exploration mode position” is profile-aware
+and enabled by default. During speech exploration with `NVDA+h`, `NVDA+j`,
+`NVDA+k`, `NVDA+l`, and `Shift+NVDA+h/l`, the Braille display then presents
+the reached virtual position without moving the real Neovim cursor. It returns
+to the cursor position when speech exploration mode ends.
+
+When this option is disabled, speech exploration leaves the Braille display
+at the real cursor. It does not change the independent Braille exploration
+mode.
+
+Example: the real cursor is in `example`. `NVDA+l` temporarily explores the next
+character, while `Shift+NVDA+l` explores the next word. With the option
+enabled, the Braille display presents that virtual position and returns to
+`example` when the NVDA key is released.
+
+Speech exploration mode is a speech feature, not a Braille mode. This option
+merely lets the Braille display support it as a second output. See
+[Speech exploration mode](speech-exploration.md) for its complete operation
+and its difference from Braille exploration mode. See
+[Navigating with the display's navigation controls](braille.md#navigating-with-the-displays-navigation-controls)
+for the two Braille navigation modes and typical use cases.
+
+### Routing keys
+
+“Double routing press on a word” controls two quick presses of the same routing
+key at the same text position:
+
+| Choice | Effect |
+| --- | --- |
+| Route only | The second press performs no edit. This is the default. |
+| Change word (`cw`) | Neovim runs `cw` and remains in Insert mode for replacement text. |
+| Delete word (`dw`) | Neovim runs `dw`, which normally also removes the following space. |
+
+“Triple routing press on a line” can remain at the default Route only, change
+to the line end (`c$`), or delete to the line end (`d$`).
+
+“Start triple-press line action at” applies only when a triple action is
+enabled:
+
+| Choice | Effect |
+| --- | --- |
+| Routed position | Start exactly at the pressed routing key. This is the default. |
+| First non-blank character | Preserve line indentation. |
+| Beginning of line | Include indentation in the action. |
+
+The first press always routes immediately. If both double- and triple-press
+actions are configured, the word action waits briefly for a possible third
+press. The interval comes from NVDA's `Keyboard → Multiple key press timeout`
+setting.
+
+Editing actions are available only in Normal and Insert modes. Command-line
+mode, direct terminal input, and read-only speech exploration retain ordinary
+routing.
+
+### Spelling suggestions
+
+“Start spelling suggestions at Braille cell” positions only the transient
+suggestion shown while inspecting Neovim's built-in `z=` list. It is a
+one-based cell number: 1, the default, starts at the first cell; 40 starts at
+cell 40. This can keep the suggestion clear of the hand holding the NVDA key.
+When the left hand holds Caps Lock as the NVDA key, the hand and arm can
+obscure the left part of the display. Starting the suggestion farther right
+makes it considerably more comfortable to read with the right hand.
+
+If the connected display has fewer cells than the configured number, the
+offset is ignored and the suggestion starts at cell 1. Speech, the persistent
+editor line, and every other Braille presentation are unchanged. If the
+fully translated suggestion would not fit from the requested cell, the add-on
+moves it left only as far as needed to fit it right-aligned. A suggestion
+longer than the display starts at cell 1. The value uses NVDA's normal
+configuration profiles.
 
 ## Connections
 

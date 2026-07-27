@@ -53,30 +53,65 @@ Verzeichnisse, Sockets, Prozesse und Testkonten.
 Vom Repository-Wurzelverzeichnis:
 
 ```bash
-export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
 ruff check .
 ruff format --check .
-python3 -m unittest discover -s protocol/python/tests -v
-python3 -m unittest discover -s bridge/python/tests -v
-python3 -m unittest discover -s nvda-addon/tests -v
-tools/test_neovim_plugin.sh
+tools/run_tests.py all-safe
 python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
 
+`tools/run_tests.py` startet unabhängige Dateien beziehungsweise
+Integrationsfälle in getrennten Prozessen. Jeder Prozess erhält ein eigenes
+temporäres Verzeichnis und ein eigenes `XDG_RUNTIME_DIR`; standardmäßig laufen
+bis zu acht Jobs parallel. Die importintensiven Paket-Shards verwenden
+zusätzlich einen eigenen Python-Bytecode-Cache. Kurze Jobs erzeugen keine
+Bytecode-Dateien. `-j N` begrenzt die Parallelität, `--list` zeigt die Auswahl
+ohne Ausführung.
+
+| Gruppe oder Preset | Inhalt |
+|---|---|
+| `unit` | reine und mit Attrappen isolierte Python-Tests |
+| `package` | gebautes Add-on, Paketinhalt und NVDA-Integrationsattrappen in zwei isolierten Prozess-Shards; innerhalb jedes Shards seriell |
+| `lua` | Headless-Neovim-Spezifikationen ohne Listener |
+| `ssh` | separat ausführbare SSH-Kommando-, Askpass- und Fehlerpfade; alle externen Prozesse sind in diesen automatisierten Tests ersetzt |
+| `socket` | echte wegwerfbare Neovim-TUI-, RPC-, TCP- und Unix-Socket-Fälle |
+| `quick` | schnelle Rückmeldung; entspricht `unit` |
+| `safe` | Standard: `quick`, `package` und `lua` |
+| `all-safe` | `safe` plus die ersetzten SSH-Fälle |
+| `all` | alle Gruppen; echte Socket-Fälle folgen in einer eigenen Phase |
+
+Die beiden Paket-Shards bauen und entpacken jeweils genau ein tatsächliches
+Add-on. Normale Tests verwenden diese unveränderte Extraktion gemeinsam; ein
+Fingerabdruck über Namen und Inhalte erkennt unbeabsichtigte Schreibzugriffe.
+Nur die beiden Tests, die Konfiguration beziehungsweise gebündelte Klänge
+absichtlich verändern oder löschen, erhalten eine eigene frische Extraktion.
+
+Der `socket`-Lauf benötigt eine Umgebung, die lokale Listener und Unix-Sockets
+zulässt, und wird deshalb bewusst separat ausgeführt:
+
+```bash
+tools/run_tests.py socket
+```
+
+In eingeschränkten Sandboxes darf sein Fehlschlagen mit `operation not
+permitted` nicht als Produktfehler umgedeutet werden. Ein Lauf außerhalb der
+Sandbox bleibt vor Push oder Release verpflichtend, wenn Socket-, Sitzungs-
+oder TUI-Code betroffen ist. Die Gruppe `ssh` öffnet in der automatisierten
+Suite keine echte SSH-Verbindung; praktische SSH-Prüfungen verwenden weiterhin
+ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
+
 Für die beiden Ruff-Befehle wird wie in NVDA 2026.1 Ruff 0.14.5 verwendet.
 Die Konfiguration in `pyproject.toml` begrenzt die Prüfung auf die direkt von
 NVDA geladenen Python-Module unter `nvda-addon/addon/`; andere Komponenten
 behalten ihren eigenen konsistenten Stil.
 
-`tools/test_neovim_plugin.sh` verwendet die verfügbare unterstützte
-Neovim-Version. Für Änderungen an Versionsgrenzen sollten die Lua- und
-TUI-Suiten zusätzlich mit Neovim 0.10.1 und 0.12.3 laufen. Eine installierte
-Pluginversion darf den Checkout nicht überdecken; die Testskripte isolieren
-deshalb `packpath`.
+`tools/test_neovim_plugin.sh` bleibt der serielle Kompatibilitätslauf mit der
+verfügbaren unterstützten Neovim-Version. Für Änderungen an Versionsgrenzen
+sollten die Lua- und TUI-Suiten zusätzlich mit Neovim 0.10.1 und 0.12.3
+laufen. Eine installierte Pluginversion darf den Checkout nicht überdecken;
+die Testskripte isolieren deshalb `packpath`.
 
 ## Was die automatisierten Suiten belegen
 
@@ -282,7 +317,7 @@ Zwischen allen Controls langsam und schnell wechseln. Erwartet wird:
 UIA-Klasse und vollständige Runtime-ID müssen im redigierten Testprotokoll
 festgehalten werden, damit Tab, Pane und Fenster nicht verwechselt werden.
 
-### Explorationsmodus
+### Sprachexplorationsmodus
 
 Komponenten aktualisieren und alle laufenden Neovim-Instanzen neu starten.
 Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
@@ -312,7 +347,7 @@ Mit gedrückter physischer NVDA-Taste `h/l`, `k/j` und
   und Fenstern;
 - dieselben Kombinationen behalten in jeder ungebundenen Shell, einem fremden
   Pane/Tab und anderen Anwendungen ihr normales NVDA-Verhalten;
-- Fokuswechsel, Disconnect oder Neovim-Kontextwechsel beenden die Exploration
+- Fokuswechsel, Disconnect oder Neovim-Kontextwechsel beenden den Sprachexplorationsmodus
   still und können keine verspätete Ausgabe in der neuen Sitzung erzeugen.
 
 Am 23. Juli 2026 wurde dieser Grundpfad unter Windows/NVDA praktisch geprüft.
@@ -322,6 +357,239 @@ Zeilenoptionen für normale Navigation und Exploration zeigten dabei keinen
 festgestellten Fehler. Dieser Nachweis ergänzt die automatisierte Matrix; er
 ersetzt keine weiteren Prüfungen mit anderen Tastaturlayouts, Sprachen,
 GlobalPlugins oder physischer Braillehardware.
+
+### Eingebaute Rechtschreibvorschläge
+
+Die Neovim-Komponenten aktualisieren, Neovim neu starten und in einem
+Testbuffer `:set spell` aktivieren. Ein falsch geschriebenes Wort fokussieren
+und `z=` drücken. Erwartet wird:
+
+- eine kurze Sprachmeldung kündigt die verfügbare, nicht leere Liste einmalig
+  an;
+- `NVDA+j/k` wählt bei weiterhin gedrückter NVDA-Taste zyklisch Vorschläge;
+  Sprache und Braille enthalten den Vorschlag, aber keine Nummer;
+- im NVDA-Braillemodus „Cursor verfolgen“ wechselt NVDAs vorübergehende
+  Braillemeldung unmittelbar bei jedem Schritt; beim Test sind Braillemeldungen
+  in NVDA aktiviert. Der Modus „Sprachausgabe anzeigen“ folgt stattdessen der
+  gesprochenen Ausgabe und prüft keine feste Modulposition;
+- Braillemodul 1 fügt standardmäßig keinen Abstand ein; ein vorhandenes
+  eingestelltes Modul wie 40 positioniert den vorübergehenden Vorschlag dort,
+  während ein Wert jenseits der angeschlossenen Braillezeile ignoriert wird
+  und auf Modul 1 zurückfällt; passt der mit der aktiven Brailletabelle
+  übersetzte Vorschlag rechts nicht vollständig, wird sein Start bis zur
+  spätesten vollständig passenden Position nach links begrenzt;
+- das Loslassen der letzten NVDA-Taste verwirft nur die lokale Auswahl, stellt
+  die Editor-Braillezeile wieder her und lässt Neovims Abfrage offen;
+- erneutes Erkunden und `NVDA+Eingabe` übernimmt genau den gewählten Vorschlag;
+- `NVDA+Eingabe` ohne lokale Auswahl meldet „Kein Eintrag ausgewählt“ und
+  führt insbesondere keinen eventuell dort belegten Zwischenablagebefehl aus;
+- NVDAs Eingabehilfe beschreibt Gesten, ohne eine Auswahl zu bewegen oder
+  anzunehmen;
+- `Esc` bricht die native Abfrage ab; Fokus-, Modus-, Buffer-, Tab-,
+  Pane- und Verbindungswechsel hinterlassen keine flüchtige Auswahl;
+- außerhalb der belegten `z=`-Abfrage, in einer Shell oder einem anderen
+  Control behalten J, K, Enter und eigene Add-on-Belegungen ihr bisheriges
+  Verhalten.
+
+Zusätzlich mit NVDAs Dokumentformatierung für Rechtschreib- und
+Grammatikfehler auf „Klang“ oder „Sprache und Klang“ prüfen: Normale
+Wortnavigation und `Umschalt+NVDA+h/l`-Wortexploration spielen beim Erreichen
+eines fehlerhaften Worts `textError.wav`. Ein korrektes Wort löst den Klang
+nicht aus.
+
+Automatisierte Parser-, Protokoll-, Transport-, Controller-, AppModule-,
+Braille- und gebaute-Add-on-Tests decken positive und negative Pfade ab. Dazu
+gehören der unmittelbare Nachrichtenpuffer, zellgenaue Positionierung,
+gezieltes Wiederherstellen des Editorpuffers und der Schutz einer inzwischen
+von anderer Stelle ausgegebenen Braillemeldung. Eine
+Regression prüft außerdem, dass die asynchrone `focusContext`-Bestätigung einen
+vollständigen Fokusregionsaufbau auslöst und dessen Diagnose den öffentlichen
+Braillemodus `followCursors` sowie den Tether `focus` enthält. Regionsanforderung
+und Routingeintritt besitzen eigene textfreie Diagnosen. Eine
+echte TUI-/RPC-Matrix prüft außerdem den blockierenden Neovim-0.10-Prompt und
+den eingeplanten Neovim-0.12-Pfad einschließlich Annahme des nativen Indexes.
+Der Vorschlagspfad wurde unter Windows/NVDA mit einer physischen Braillezeile
+erfolgreich praktisch geprüft; eine breitere Hardwarematrix steht aus.
+Davon getrennt blieben physische Cursor-Routingtasten in zwei praktischen
+`dev.10`-Versuchen in Normal- und Insert-Modus ohne Reaktion; die Berichte
+enthielten keinen Routingeintritt. Da beide geänderten Pakete fälschlich
+dieselbe Dev-Kennung trugen, beginnt die eindeutige Nachprüfung mit `dev.11`.
+Dieser Test bestätigte `dev.11` und zeigte `structuredOverlay: false` bei
+ansonsten korrektem NVDA-Braillemodus, Fokus-Tether und Neuaufbau. Die
+Regression für `dev.12` bildet NVDAs Konstruktionsreihenfolge nach: Das
+provisorische Objekt trägt noch keine Terminalrolle, während eine von NVDA
+bereits gewählte Klasse in `clsList` die Terminalrolle bereitstellt. Nur diese
+Klassenliste darf das inaktive Add-on-Overlay einfügen; eine vorläufige
+Objektrolle allein darf es nicht. Die `dev.16`-Regression führt diese
+Komposition ausdrücklich vor Veröffentlichung des gemeinsamen Dienstes aus
+und prüft, dass die erste authentifizierte `fullState` die bereits vorhandene
+Fokusregion über `handleGainFocus(..., shouldAutoTether=False)` neu aufbaut,
+ohne ein neues Fokusobjekt oder einen Fensterwechsel zu benötigen.
+Der praktische `dev.12`-Test bestätigt anschließend Normalmodus-Routing und
+zeigt im Insert-Modus angenommene Anfragen ohne unmittelbares Cursorereignis.
+Die Regression für `dev.13` startet echtes Neovim, setzt eine UTF-8-Position
+im Insert-Modus und erwartet sofort ein `cursorMoved` mit Rohmodus `i`.
+Danach öffnet sie eine strukturierte `:`-Befehlszeile, routet innerhalb ihres
+UTF-8-Inhalts und erwartet unmittelbar `commandLineChanged` mit der neuen
+`commandLinePosition`, ohne den Befehlszeilentext auszuführen.
+Der praktische Test bestätigte die Cursorbewegung, zeigte unter `dev.13` aber
+eine falsche Meldung über gelöschten Befehlszeilentext. `dev.14` verschärft
+deshalb die Regression: Zwischen Routinganfrage und bestätigter Position darf
+kein einziges `commandLineChanged` einen vom ursprünglichen Inhalt
+abweichenden Text tragen. `dev.15` prüft zusätzlich eine virtuelle Endzelle:
+Im Insert-Modus muss der Braillecursor nach Unicode- und Tabinhalt auf einer
+vorhandenen Leerzelle direkt hinter dem letzten Zeichen stehen; ihre
+Routingtaste muss die exakte UTF-8-Bytespalte am Zeilenende senden. Leere
+Insert-Zeilen und die Befehlszeilen-Endposition sind ebenfalls abgedeckt. Der
+echte RPC-Test setzt diese Position mit Neovim 0.10.1 und 0.12.3.
+Der praktische `dev.15`-Test bestätigte diese Normal-, Insert-,
+Befehlszeilen- und Endpositionspfade. Das anschließend beobachtete Verbleiben
+der nativen „PowerShell“-Region direkt nach F12 ist die durch `dev.16`
+abgedeckte Startreihenfolge-Regression. Der praktische Folgetest zeigte einen
+engeren leeren Startfall: Ein striktes NVDA-Modell verwirft eine Region mit
+Cursorposition 0 und null Zellen als `No such position`. Die `dev.18`-
+Regression startet deshalb mit einer leeren Normalmodus-`fullState`, erwartet
+eine einzelne Zelle bei Cursorposition 0 und prüft `focusToHardLeft` sowie
+`hidePreviousRegions`. Der Fokusaufbau darf keine `brailleError`-Diagnose
+erzeugen.
+
+Die Dateimanager-Regression für `dev.19` liefert einen
+`fileManagerEntryChanged`-Zustand für ein Oil-Verzeichnis. Die Navigation muss
+weiter gesprochen werden, darf aber `braille.handler.message` nicht aufrufen.
+Die parallel aktualisierte dauerhafte Region muss Name und lokalisierten Typ
+anzeigen. Ein separater Core-Test injiziert dazu eine Übersetzungsfunktion und
+prüft lokalisierte Typ-, Markierungs- und Baumzustände.
+
+Der Braille-Architekturaudit nach der praktischen Abnahme ergänzt zwei
+Fail-open-Regressionen. Erstens darf `StructuredLineRegion.routeTo` weder den
+lokalen noch den SSH-Client direkt aufrufen; es muss den unveränderlichen
+`routeCursor`-Payload in den begrenzten `ControlDispatcher` legen. Der Test
+verwendet deshalb einen Client, dessen `send_control` bei einem direkten
+Aufruf fehlschlägt, und prüft ausschließlich den Dispatcherauftrag. Zweitens
+darf ein wirkungsloser öffentlicher `braille.handler.message()`-Aufruf keine
+bereits sichtbare fremde Braillemeldung als eigene übernehmen, deren Timer
+stoppen oder sie später schließen. Nur eine nach dem Aufruf neu erzeugte und
+weiterhin identische letzte Nachrichtenregion gilt als Eigentumsnachweis.
+
+Der automatische Cursor-Nachlauf besitzt eine Paketregression: Eine
+semantische Cursoränderung muss den öffentlichen
+`braille.handler.handleCaretMove`-Pfad verwenden, während reine
+Inhaltsaktualisierungen bei `handleUpdate` bleiben. Die strukturierte Region
+muss eine `TextInfoRegion` sein, ihren Neovim-Inhalt jedoch über
+`Region.update()` übersetzen. Dadurch kann NVDAs eigener Puffer den sichtbaren
+Ausschnitt erst wiederherstellen und anschließend nur bei Bedarf zum
+Braillecursor scrollen.
+
+Die Braillezeilennavigation besitzt Abdeckung auf vier Ebenen:
+
+- Protokolltests verwerfen zusätzliche Felder, unbekannte Richtungen,
+  Zielregeln, Befehlszeilen-/Terminalmodi und übergroße virtuelle Spalten;
+- lokale und SSH-Transporte handeln `brailleLineNavigation` nur mit einem
+  entsprechend neuen Plugin aus und leiten ausschließlich den festen
+  `moveBrailleLine`-Einstiegspunkt weiter;
+- der gebaute Add-on-Test ruft NVDAs öffentliche Regionsmethoden
+  `previousLine()` und `nextLine()` auf, unterscheidet direktes Auf/Ab von
+  horizontalen Zeilenübergängen und erwartet Dispatcheraufträge statt
+  Hauptthread-I/O. Die Abwärtsmarkierung ist exakt gebunden, einmalig,
+  input-help-sicher und läuft im nächsten Ereigniszyklus aus;
+- Lua- und echte RPC-Tests bewegen im Normal- und Insert-Modus über eine kurze
+  Zwischenzeile. `curswant` muss die bevorzugte virtuelle Spalte behalten und
+  sie auf der nächsten längeren Zeile wiederherstellen. Horizontale
+  Zeilenübergänge müssen dagegen vorheriges Ende beziehungsweise nächsten
+  Anfang wählen. Leerzeilen, Tabs, UTF-8-/Breitzeichen, Puffergrenzen,
+  veralteter `changedtick` und Normal-/Insert-Zeilenende sind eingeschlossen.
+
+Praktisch sind auf der BRAILLEX EL 80c horizontales Verschieben langer Zeilen,
+Auf/Ab in Normal- und Insert-Modus, kurze Zwischenzeilen sowie Pufferanfang
+und -ende zu prüfen. Diese Hardwareprüfung ist bis zur Rückmeldung nicht als
+bestanden zu dokumentieren.
+
+Der getrennte Braille-Explorationsmodus ergänzt folgende automatisierte
+Ebenen:
+
+- Validatoren akzeptieren nur feste Zeilenaktionen, vollständige
+  Ursprungsidentität, begrenzte gewünschte Spalte, eine der drei festen
+  Zielregeln und korrelierte Ergebnisse;
+- Controllerprüfungen decken Toggle, Grenzen, UTF-8, veraltete oder
+  überholte Antworten, begrenzte Pending-Queues, Dispatchfehler und die
+  unveränderte kanonische Editorposition ab. Sie halten die virtuelle Anzeige
+  bei echten Cursor- und Modusbewegungen sowie Änderungen auf anderen Zeilen
+  fest. Auf der explorierten echten Cursorzeile übernehmen sie den
+  vollständigen neuen zeilenbezogenen Zustand, einschließlich einer
+  anschließenden Rückkehr vom Einfüge- in den Normalmodus, ohne virtuelle
+  Zeile, Lesespalte oder Ausschnitt neu zu verankern. Routing verlangt für
+  angezeigten Inhalt und kanonischen Zustand denselben aktuellen
+  `changedtick`; veralteter Inhalt nach einer Änderung an anderer Stelle
+  bleibt sichtbar, kann aber nicht geroutet werden. Sie schreiben
+  `changedtick` nur im selben Kontext fort und lehnen Navigation im Befehls-
+  und Terminalmodus weiterhin ab;
+- Transporttests prüfen unabhängige Capability-Aushandlung, ausschließlich
+  feste Plugin-Einstiegspunkte und das Entfernen einmaliger Ergebnisse aus
+  Zustands-Caches;
+- Pakettests prüfen das frei belegbare AppModule-Skript, fehlende
+  Standardgeste, Off-Thread-Dispatch, exakte Fokus-/Instanzbindung,
+  unabhängige Modus- und Auswahlcontroller für mehrere gleichzeitig
+  verfolgte Instanzen, Wiederherstellung des sitzungseigenen Modus bei
+  Rückkehr, getrennte virtuelle Zeilen und horizontale NVDA-Ausschnitte,
+  deren Wiederherstellung nach Control- und Anwendungswechsel, Begrenzung
+  eines gespeicherten Ausschnitts bei kürzerem Inhalt, hörbare Fokusansage
+  ohne verdeckende Braillemeldung im Explorationsmodus, gezielten Reset nur
+  der getrennten Runtime und das Verwerfen von Mehrfach-Routing- und
+  Fokusfolgen beim Controlwechsel,
+  Brailleaktualisierung, Routing aus der virtuellen Zeile, das Ausblenden
+  eines scheinbaren virtuellen Cursors, den verbleibenden echten Cursor nach
+  Routing und anschließender Bearbeitung derselben Zeile, das Löschen einer
+  parallel gesetzten Caret-Nachlaufmarkierung nur im
+  Braille-Explorationsmodus sowie das
+  ausschließliche Weiterreichen nativer Caret-Navigationstasten im exakt
+  unterdrückten Neovim-Control;
+- Lua und echter Insert-Modus-RPC prüfen eine kurze und anschließend längere
+  Zeile, das Insert-Zeilenende, einen nachträglich bewegten Echtcursor und
+  Interleaving mit dem getrennten Sprachexplorationsmodus. Die allgemeine
+  Navigationsspezifikation verlangt für eine Pfeiltaste genau ein
+  semantisches Bewegungsereignis.
+
+Die praktische Hardwareabnahme muss zusätzlich Umschalten, eindeutige
+Modusmeldung, Auf/Ab ohne Echtcursorbewegung, Routing aus der virtuellen Zeile,
+getrennte Moduswahl in mehreren lokalen und entfernten Sitzungen, Verlust der
+virtuellen Position nur bei einem Neovim-internen Buffer-, Fenster- oder
+Tabwechsel, Wiederherstellung von Position und horizontalem Ausschnitt nach
+Sitzungs- und Anwendungswechsel, gezielten Reset nur bei Disconnect dieser
+Sitzung und Unabhängigkeit von `NVDA+h/j/k/l` bestätigen.
+
+Für den optionalen Braillenachlauf des Sprachexplorationsmodus prüfen Protokoll- und
+Lua-Tests die begrenzte virtuelle Gesamtzeile. Core- und Pakettests prüfen,
+dass sie nur bei aktiver Option die abgeleitete Brailleansicht ersetzt, beim
+Abschluss wieder verschwindet und niemals den kanonischen Editorzustand
+verändert. Der eigenständige Braille-Explorationsmodus muss Vorrang behalten;
+ungültige, fehlende oder übergroße Zeilen dürfen den Brailleplan nicht
+übernehmen.
+
+Mehrfachbetätigungen derselben Routingtaste besitzen zusätzlich eine eigene
+automatisierte Matrix:
+
+- Der reine Zustandsautomat prüft unverzögerten ersten Druck, sofortige
+  Wortaktion ohne konfigurierte Dreifachaktion, verzögerte Wortaktion mit
+  Dreifachaktion, Ersetzung durch den dritten Druck, Tokenentwertung,
+  Zeitablauf und veränderte Zielsignatur. Der Dienst validiert eine
+  verzögerte Aktion unmittelbar vor dem Versand erneut gegen die aktuelle
+  Instanz und den Editorzustand.
+- Einstellungs- und Pakettests prüfen sichere Nullvoreinstellungen, alle
+  Auswahlwerte, Profilpersistenz, NVDAs Mehrfachbetätigungsfrist sowie
+  ausschließlich geplanten Dispatchertransport.
+- Protokoll- und Transporttests verwerfen zusätzliche Felder, freie Befehle,
+  ungültige Modi, Aktionen und Zeilenstarts, fehlende Capability und
+  veralteten Zustand.
+- Lua-Tests prüfen `dw`, `^d$`, `0d$`, Leerraum, Schreibschutz,
+  UTF-8-Grenzen und `changedtick`. Ein echter Socket-Test prüft eine
+  Wortlöschung mitten in einer Zeile mit Rückkehr in den Insert-Modus sowie
+  `^c$` mit anschließendem Insert-Modus.
+
+Der Referenzablauf für Mehrfachbetätigung wurde auf der BRAILLEX EL 80c
+praktisch bestätigt. Die breitere praktische Matrix muss weiterhin jede
+Kombination der drei Zeilenstarts, `cw`, `dw`, `c$`, `d$`, eine absichtlich
+langsame Doppelbetätigung, einen Wechsel der Routingposition, unverändertes
+Verhalten in der Befehlszeile und mehr als einen Brailletreiber abdecken.
 
 ### Fokusausgabe, Buffer und Terminal
 
@@ -415,9 +683,18 @@ Aktivierung, Fehler, Fokusausgabe, Modi, Zwischenablage und Dateimanager
 vergleichen. Dokumentinhalt und fremde Neovim-Meldungen werden nicht vom Add-on
 übersetzt.
 
-Sobald Hardware verfügbar ist, aktuelle Zeile, Auswahl, Unicode, Tabs,
-Meldungen, Dateimanagersegmente und Routing auf mehreren Braillezeilen prüfen.
-Bis dahin bleibt jede Hardwareaussage ausdrücklich unbestätigt.
+Eine physische Braillezeile bestätigt aktuelle Zeile, Unicode, Tabs, leere
+Zeile, virtuelle Endposition, Startregions-Neuaufbau, Meldungen und Routing in
+Normal-, Insert- und Befehlszeilenmodus. Auswahl, Dateimanagersegmente,
+unterschiedliche Übersetzungstabellen, Treiber und weitere Braillezeilen
+bleiben Teil der breiteren Matrix.
+Beim Routing NVDAs Einstellung „Zeichen beim Cursor-Routing in Text sprechen“
+jeweils ein- und ausschalten: Nur eine angenommene Routingaktion darf das
+UTF-8-sicher erreichte Zeichen ansagen; abgelehnte Statussegmente,
+Capability-/Fokusfehler und die ausgeschaltete Einstellung bleiben still. Nach
+Rückkehr aus einer anderen Anwendung oder einem anderen Terminaltab muss die
+asynchrone Fokusbestätigung die strukturierte Region vollständig neu aufbauen;
+Routing ist anschließend in Normal- und Insert-Modus zu prüfen.
 
 ## Bewertung eines Fehlers
 

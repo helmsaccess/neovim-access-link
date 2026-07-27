@@ -1,19 +1,13 @@
 # Neovim Access Link — Quick Guide
 
-This guide covers the current alpha-to-beta build for NVDA 2026.1.x on Windows
-11. Neovim is supported in Windows Terminal, either as local `nvim.exe` or on
-Linux through SSH. Multiple tabs, windows, remote accounts, and tmux sessions
-can be used.
+This guide covers the current beta build for NVDA 2026.1.x on Windows 11.
+Neovim is supported in Windows Terminal, either as local `nvim.exe` or on Linux
+through SSH. Multiple tabs, windows, remote accounts, and tmux sessions can be
+used.
 
-> Not every feature has received extensive practical testing. Braille has not
-> been tested with a physical Braille display and very likely contains bugs.
-> Braille is important to the project and hardware testing and fixes are a
-> priority, but reliable Braille support is not claimed yet.
-
-The documented reference workflows are checked on a best-effort basis; this
-does not mean every possible configuration has already been covered. Report
-defects with a reviewed, redacted diagnostic report so they can be investigated
-as promptly as circumstances allow.
+The current build is beta software. Defects, incomplete feedback, and changes
+to its operation remain possible. Report problems with a reviewed, redacted
+diagnostic report.
 
 ## Requirements
 
@@ -117,13 +111,35 @@ answers the newly focused control's context request.
 The activation gesture turns the shared service on or off from any focused
 Windows Terminal control.
 
-To explore without moving Neovim's cursor, hold NVDA and use `h/l` for
-characters, `k/j` for lines, or `Shift+h/l` for words. Releasing NVDA reads
-the current character or the word/line details selected on the Navigation
-settings tab. These fixed commands apply
+Speech exploration mode reads without moving Neovim's cursor: hold NVDA and
+use `h/l` for characters, `k/j` for lines, or `Shift+h/l` for words. Releasing
+NVDA reads the current character or the word/line details selected on the
+Navigation settings tab. These fixed commands apply
 only in the exact connected Neovim pane; NVDA remains unchanged in shells and
 other tabs or panes. A short two-note cue marks when the virtual position
-returns to the character, word, or line where exploration started.
+returns to the character, word, or line where speech exploration mode started.
+
+Independently, the Braille display's navigation controls have Braille cursor
+mode and Braille exploration mode. In Braille cursor mode, Up and Down move
+the real Neovim cursor. In Braille exploration mode, you can read several
+lines while leaving the cursor in place; a routing key adopts the explored
+location. The toggle has no default gesture and can be assigned under `NVDA
+menu → Preferences → Input gestures → Neovim Access Link`. Speech exploration
+mode is not a Braille feature, although it can optionally present its virtual
+position on the Braille display.
+
+Neovim Access Link also makes Neovim's built-in spelling suggestions
+accessible. Place the cursor on a misspelled word and press `z=`. A brief
+spoken message confirms that suggestions are available. Hold NVDA and use `j`
+or `k` to move through the suggestions. The add-on speaks only the
+suggestion text, without its number, and shows it temporarily in Braille.
+`NVDA+Enter` accepts the selected suggestion. Releasing only NVDA discards the
+local selection, leaves Neovim's list open, and restores the editor Braille
+line; `Escape` can then cancel Neovim's prompt. This applies only in the exact
+connected Neovim pane. If needed, the `Braille` tab can start this transient
+suggestion at a later Braille cell; an unavailable position safely falls back
+to cell 1. If the remaining space is too short, the suggestion moves left as
+far as cell 1 and ends at the right edge where its translated length permits.
 
 ## First safety check
 

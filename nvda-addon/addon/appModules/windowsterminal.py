@@ -1,9 +1,9 @@
 """Windows Terminal adapter for the structured Neovim accessibility add-on.
 
 NVDA loads this AppModule only for Windows Terminal. Application events and
-object overlays remain application-owned. The process-wide F12 decider exists
-only while an instance of this AppModule is loaded and is inert unless the
-exact focused AppModule and terminal control match.
+object overlays remain application-owned. The process-wide gesture observer
+exists only while an instance of this AppModule is loaded and is inert unless
+the exact focused AppModule and terminal control match.
 """
 
 import api
@@ -21,8 +21,8 @@ from globalPlugins import NeovimAccessLink
 addonHandler.initTranslation()
 
 
-# Translators: Input Help description for reading Neovim text without moving its real cursor.
-@scriptHandler.script(description=_("Explore Neovim text without moving the cursor"))
+# Translators: Input Help description for speech exploration without moving Neovim's real cursor.
+@scriptHandler.script(description=_("Speech exploration mode: read Neovim text without moving the cursor"))
 def script_exploreText(app_module, gesture):
 	app_module._executeExploration(gesture)
 
@@ -30,6 +30,11 @@ def script_exploreText(app_module, gesture):
 @scriptHandler.script()
 def script_suppressExplorationRepeat(app_module, gesture):
 	pass
+
+
+@scriptHandler.script()
+def script_passThroughStructuredNavigation(app_module, gesture):
+	gesture.send()
 
 
 class AppModule(appModuleHandler.AppModule):
@@ -47,12 +52,26 @@ class AppModule(appModuleHandler.AppModule):
 		(frozenset({"nvda", "shift"}), "l"): NeovimAccessLink.ExplorationAction.WORD_NEXT,
 	}
 	_EXPLORATION_VK_CODES = frozenset({72, 74, 75, 76})
+	_STRUCTURED_NAVIGATION_KEYS = frozenset(
+		{
+			"leftarrow",
+			"rightarrow",
+			"uparrow",
+			"downarrow",
+			"home",
+			"end",
+			"pageup",
+			"pagedown",
+		}
+	)
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._eventToken = object()
 		self._explorationActive = False
 		self._explorationHeldKeys = {}
+		self._numberedChoiceActive = False
+		self._numberedChoiceHeldKeys = set()
 		self._heldNvdaModifiers = set()
 		self._physicallyHeldExplorationKeys = set()
 		self._explorationScript = types.MethodType(script_exploreText, self)
@@ -60,10 +79,14 @@ class AppModule(appModuleHandler.AppModule):
 			script_suppressExplorationRepeat,
 			self,
 		)
+		self._passThroughStructuredNavigationScript = types.MethodType(
+			script_passThroughStructuredNavigation,
+			self,
+		)
 		cls = type(self)
 		cls._observerAdapters.append(self)
 		if cls._observerCallback is None:
-			cls._observerCallback = cls._dispatchClaimGesture
+			cls._observerCallback = cls._dispatchObservedGesture
 			inputCore.decide_executeGesture.register(cls._observerCallback)
 		if cls._rawKeyCallback is None:
 			cls._rawKeyCallback = cls._dispatchRawKey
@@ -76,8 +99,14 @@ class AppModule(appModuleHandler.AppModule):
 				service.cancel_exploration(self._eventToken)
 			except Exception:
 				pass
+			try:
+				service.cancel_numbered_choice(self._eventToken)
+			except Exception:
+				pass
 		self._explorationActive = False
 		self._explorationHeldKeys.clear()
+		self._numberedChoiceActive = False
+		self._numberedChoiceHeldKeys.clear()
 		self._heldNvdaModifiers.clear()
 		self._physicallyHeldExplorationKeys.clear()
 		cls = type(self)
@@ -92,8 +121,15 @@ class AppModule(appModuleHandler.AppModule):
 		super().terminate()
 
 	@classmethod
-	def _dispatchClaimGesture(cls, gesture):
-		if not cls._isClaimGesture(gesture):
+	def _dispatchObservedGesture(cls, gesture):
+		main_key = getattr(gesture, "mainKeyName", "")
+		direct_braille_next_line = cls._isDirectBrailleNextLineGesture(gesture)
+		if (
+			not cls._isClaimGesture(gesture)
+			and not cls._isNumberedChoiceGesture(gesture)
+			and not direct_braille_next_line
+			and (not isinstance(main_key, str) or main_key.lower() not in {"j", "k"})
+		):
 			return True
 		try:
 			focus_obj = api.getFocusObject()
@@ -101,6 +137,9 @@ class AppModule(appModuleHandler.AppModule):
 			return True
 		adapter = getattr(focus_obj, "appModule", None)
 		if not any(adapter is candidate for candidate in tuple(cls._observerAdapters)):
+			return True
+		if direct_braille_next_line:
+			adapter._observeDirectBrailleNextLine(focus_obj)
 			return True
 		return adapter._decideExecuteGesture(gesture, focus_obj=focus_obj)
 
@@ -118,6 +157,51 @@ class AppModule(appModuleHandler.AppModule):
 	def _isClaimGesture(gesture):
 		return NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() in (
 			identifier.lower() for identifier in getattr(gesture, "normalizedIdentifiers", ())
+		)
+
+	@staticmethod
+	def _isNumberedChoiceGesture(gesture):
+		main_key = getattr(gesture, "mainKeyName", "")
+		modifiers = getattr(gesture, "modifierNames", ())
+		try:
+			names = frozenset(name.lower() for name in modifiers if isinstance(name, str))
+		except TypeError:
+			return False
+		return isinstance(main_key, str) and main_key.lower() in {"j", "k", "enter"} and names == {"nvda"}
+
+	@staticmethod
+	def _isDirectBrailleNextLineGesture(gesture):
+		script = getattr(gesture, "script", None)
+		if script is None:
+			return False
+		try:
+			return (
+				scriptHandler.getScriptName(script) == "braille_nextLine"
+				and scriptHandler.getScriptLocation(script) == "globalCommands.GlobalCommands"
+			)
+		except Exception:
+			return False
+
+	def _observeDirectBrailleNextLine(self, focus_obj):
+		if getattr(inputCore.manager, "isInputHelpActive", False):
+			return
+		service = self._service()
+		if service is None:
+			return
+		try:
+			token = service.mark_direct_braille_next_line(
+				focus_obj,
+				self,
+				self._eventToken,
+			)
+		except Exception:
+			return
+		if token is None:
+			return
+		queueHandler.queueFunction(
+			queueHandler.eventQueue,
+			service.clear_direct_braille_next_line,
+			token,
 		)
 
 	def _service(self):
@@ -163,6 +247,31 @@ class AppModule(appModuleHandler.AppModule):
 
 	def getScript(self, gesture):
 		"""Select contextual scripts through NVDA's standard gesture resolution."""
+		main_key = getattr(gesture, "mainKeyName", "")
+		try:
+			modifier_names = frozenset(
+				name.lower() for name in getattr(gesture, "modifierNames", ()) if isinstance(name, str)
+			)
+		except TypeError:
+			modifier_names = frozenset({"invalid"})
+		if (
+			isinstance(main_key, str)
+			and main_key.lower() in self._STRUCTURED_NAVIGATION_KEYS
+			and modifier_names <= {"control", "shift"}
+			and not getattr(inputCore.manager, "isInputHelpActive", False)
+		):
+			service = self._service()
+			try:
+				focus_obj = api.getFocusObject()
+			except Exception:
+				focus_obj = None
+			if (
+				service is not None
+				and focus_obj is not None
+				and getattr(focus_obj, "appModule", None) is self
+				and not self._shouldUseNativeEvent(service, focus_obj, "caretNavigationScript")
+			):
+				return self._passThroughStructuredNavigationScript
 		action = self._explorationAction(gesture)
 		physical_key = self._physicalKey(gesture)
 		bare_repeat = (
@@ -202,14 +311,37 @@ class AppModule(appModuleHandler.AppModule):
 						self._handleExplorationModifierRelease,
 						service,
 					)
+			if self._numberedChoiceActive and not self._heldNvdaModifiers:
+				self._numberedChoiceActive = False
+				service = self._service()
+				if service is not None:
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._handleNumberedChoiceModifierRelease,
+						service,
+					)
 			return
 		if vk_code in self._EXPLORATION_VK_CODES:
 			if pressed:
 				self._physicallyHeldExplorationKeys.add(key)
 			else:
 				self._physicallyHeldExplorationKeys.discard(key)
+				self._numberedChoiceHeldKeys.discard(key)
 		if not pressed:
 			self._explorationHeldKeys.pop(key, None)
+
+	def _handleNumberedChoiceModifierRelease(self, originating_service):
+		service = self._service()
+		if service is not originating_service:
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			return
+		try:
+			service.release_numbered_choice(focus_obj, self, self._eventToken)
+		except Exception:
+			pass
 
 	def _handleExplorationModifierRelease(self, originating_service):
 		service = self._service()
@@ -273,16 +405,36 @@ class AppModule(appModuleHandler.AppModule):
 		except Exception:
 			return True
 
+	@staticmethod
+	def _hasNativeTerminalOverlay(clsList):
+		"""Return whether NVDA already classified this object as a terminal."""
+		for candidate in clsList:
+			try:
+				if getattr(candidate, "role", None) == controlTypes.Role.TERMINAL:
+					return True
+			except Exception:
+				pass
+		return False
+
 	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
+		# Overlay composition can run before the process-wide service is
+		# published. Keep the inert, fail-open mixin on every object which NVDA
+		# itself already classified as the Windows Terminal terminal control, so
+		# a later authenticated fullState can rebuild Braille without requiring
+		# a new focus object.
+		if (
+			not self._hasNativeTerminalOverlay(clsList)
+			or NeovimAccessLink.StructuredTerminalBrailleOverlay in clsList
+		):
+			return
+		clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
 		service = self._service()
 		if service is None:
 			return
 		try:
-			supported = service.supports_braille_overlay(obj)
+			service.record_braille_overlay_selected()
 		except Exception:
-			supported = False
-		if getattr(obj, "role", None) == controlTypes.Role.TERMINAL and supported:
-			clsList.insert(0, NeovimAccessLink.StructuredTerminalBrailleOverlay)
+			pass
 
 	def event_gainFocus(self, obj, nextHandler):
 		service = self._service()
@@ -312,12 +464,18 @@ class AppModule(appModuleHandler.AppModule):
 	def event_appModule_loseFocus(self):
 		self._explorationActive = False
 		self._explorationHeldKeys.clear()
+		self._numberedChoiceActive = False
+		self._numberedChoiceHeldKeys.clear()
 		self._physicallyHeldExplorationKeys.clear()
 		self._heldNvdaModifiers.clear()
 		service = self._service()
 		if service is not None:
 			try:
 				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
+			try:
+				service.cancel_numbered_choice(self._eventToken)
 			except Exception:
 				pass
 			try:
@@ -368,6 +526,17 @@ class AppModule(appModuleHandler.AppModule):
 		self._dispatchConfiguredTerminalScript(
 			gesture,
 			NeovimAccessLink.TerminalCommand.TOGGLE_ACCESSIBILITY,
+		)
+
+	@scriptHandler.script(
+		# Translators: Input Help description for switching Braille display navigation modes.
+		description=_("Toggle Braille navigation between Braille cursor mode and Braille exploration mode"),
+		category=scriptCategory,
+	)
+	def script_toggleBrailleExplorationMode(self, gesture):
+		self._dispatchConfiguredTerminalScript(
+			gesture,
+			NeovimAccessLink.TerminalCommand.TOGGLE_BRAILLE_EXPLORATION,
 		)
 
 	@scriptHandler.script(
@@ -505,7 +674,15 @@ class AppModule(appModuleHandler.AppModule):
 		# forwarding a bare motion key that could move the real editor cursor.
 
 	def _decideExecuteGesture(self, gesture, focus_obj=None):
-		if not self._isClaimGesture(gesture):
+		numbered_choice_action = self._numberedChoiceAction(gesture)
+		numbered_choice_accept = self._isNumberedChoiceGesture(gesture) and (
+			getattr(gesture, "mainKeyName", "").lower() == "enter"
+		)
+		if (
+			not self._isClaimGesture(gesture)
+			and numbered_choice_action is None
+			and not numbered_choice_accept
+		):
 			return True
 		if focus_obj is None:
 			try:
@@ -517,6 +694,38 @@ class AppModule(appModuleHandler.AppModule):
 		service = self._service()
 		if service is None:
 			return True
+		if numbered_choice_action is not None or numbered_choice_accept:
+			if getattr(inputCore.manager, "isInputHelpActive", False):
+				return True
+			try:
+				authorization = service.authorize_numbered_choice_accept(
+					focus_obj,
+					self,
+					self._eventToken,
+				)
+			except Exception:
+				return True
+			if authorization is None:
+				return True
+			if numbered_choice_action is not None:
+				physical_key = self._physicalKey(gesture)
+				if physical_key is not None:
+					self._numberedChoiceHeldKeys.add(physical_key)
+				self._numberedChoiceActive = bool(self._heldNvdaModifiers)
+				queueHandler.queueFunction(
+					queueHandler.eventQueue,
+					self._handleObservedNumberedChoiceNavigation,
+					service,
+					numbered_choice_action,
+				)
+			else:
+				queueHandler.queueFunction(
+					queueHandler.eventQueue,
+					self._handleObservedNumberedChoiceAccept,
+					service,
+					authorization,
+				)
+			return False
 		try:
 			authorization = service.authorize_session_claim(focus_obj, self)
 		except Exception:
@@ -530,6 +739,57 @@ class AppModule(appModuleHandler.AppModule):
 			authorization,
 		)
 		return True
+
+	def _numberedChoiceAction(self, gesture):
+		main_key = getattr(gesture, "mainKeyName", "")
+		if not isinstance(main_key, str) or main_key.lower() not in {"j", "k"}:
+			return None
+		modifiers = getattr(gesture, "modifierNames", ())
+		try:
+			names = frozenset(name.lower() for name in modifiers if isinstance(name, str))
+		except TypeError:
+			return None
+		physical_key = self._physicalKey(gesture)
+		if names != {"nvda"} and not (
+			not names and self._heldNvdaModifiers and physical_key in self._numberedChoiceHeldKeys
+		):
+			return None
+		return (
+			NeovimAccessLink.NumberedChoiceDirection.NEXT
+			if main_key.lower() == "j"
+			else NeovimAccessLink.NumberedChoiceDirection.PREVIOUS
+		)
+
+	def _handleObservedNumberedChoiceNavigation(self, originating_service, direction):
+		service = self._service()
+		if service is not originating_service:
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			return
+		try:
+			service.navigate_numbered_choice(direction, focus_obj, self, self._eventToken)
+		except Exception:
+			pass
+
+	def _handleObservedNumberedChoiceAccept(self, originating_service, authorization):
+		service = self._service()
+		if service is not originating_service:
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			return
+		try:
+			service.complete_numbered_choice_accept(
+				authorization,
+				focus_obj,
+				self,
+				self._eventToken,
+			)
+		except Exception:
+			pass
 
 	def _handleObservedClaimGesture(self, originating_service, authorization):
 		service = self._service()

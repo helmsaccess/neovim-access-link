@@ -30,9 +30,12 @@ Subdirectories may provide a more specific `AGENTS.md`, which overrides this fil
 - When setting a release version, update versioned README and changelog links in the same change.
 - Use Semantic Versioning.
 - Development builds use pre-release identifiers, e.g. `0.89.0-dev.12`.
-- On a non-release branch, set a positive development build before the first installable build. Before building changed installable content, check the highest `dev.N` already used on that branch and increment it; never use a release-only artifact version on a feature branch.
+- Each non-release branch owns an independent development-build sequence. Its first changed
+  installable state must use `dev.1`, regardless of an inherited value or numbers used on
+  `main`, its parent branch or other branches; increment only numbers assigned on that branch.
+  Never use a release-only artifact version on a feature branch.
 - Optional build metadata may include branch/commit, e.g. `0.89.0-dev.12+feature.nvim-api.a3f6c2d`.
-- Build numbers increase only within a branch.
+- Build numbers increase only within a branch and are never carried between branches.
 - Prefer CI/build-system generated build numbers. Otherwise maintain a branch-local counter.
 - Every changed installable branch state must have a new `dev.N`; branch or commit metadata improves traceability but never substitutes for that increment. An unchanged reproducible rebuild may reuse its number.
 - Keep version metadata in one machine-readable source.

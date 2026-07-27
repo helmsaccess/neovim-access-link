@@ -7,7 +7,21 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from .core.braille_routing_repeats import BrailleRoutingActions
 from .core.connection_profiles import parse_profiles
+
+
+BRAILLE_SUGGESTION_START_DEFAULT = 1
+BRAILLE_SUGGESTION_START_MAXIMUM = 1000
+BRAILLE_ROUTING_WORD_ACTIONS = ("none", "changeWord", "deleteWord")
+BRAILLE_ROUTING_LINE_ACTIONS = ("none", "changeLine", "deleteLine")
+BRAILLE_ROUTING_LINE_STARTS = ("routing", "indentation", "beginning")
+BRAILLE_ROUTING_DEFAULTS = {
+	"wordAction": 0,
+	"lineAction": 0,
+	"lineStart": 0,
+}
+BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT = True
 
 
 @dataclass(frozen=True)
@@ -16,6 +30,9 @@ class SettingsChange:
 
 	feedback_changed: bool
 	navigation_details_changed: bool
+	braille_suggestion_start_changed: bool
+	braille_routing_changed: bool
+	braille_follow_speech_exploration_changed: bool
 	focus_announcement_changed: bool
 	connections_changed: bool
 	claim_inventory_started: bool
@@ -58,12 +75,27 @@ class SettingsService:
 		raw_feedback = settings.get("feedback", {})
 		raw_navigation_details = settings.get("navigationDetails", {})
 		raw_connections = settings.get("connections")
+		raw_braille_routing = settings.get("brailleRouting", {})
+		braille_follow_speech_exploration = settings.get(
+			"brailleFollowSpeechExploration",
+			BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+		)
 		if not isinstance(raw_feedback, dict):
 			self._recordDiagnostic("configError", error="feedback must be an object")
 			raw_feedback = {}
 		if not isinstance(raw_navigation_details, dict):
 			self._recordDiagnostic("configError", error="navigationDetails must be an object")
 			raw_navigation_details = {}
+		if not isinstance(raw_braille_routing, dict):
+			self._recordDiagnostic("configError", error="brailleRouting must be an object")
+			raw_braille_routing = {}
+		if not isinstance(braille_follow_speech_exploration, bool):
+			self._recordDiagnostic(
+				"configError",
+				error="invalid Braille speech exploration follow setting",
+				option="brailleFollowSpeechExploration",
+			)
+			braille_follow_speech_exploration = BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT
 		feedback = dict(self._feedbackDefaults)
 		for key in feedback:
 			value = raw_feedback.get(key, feedback[key])
@@ -81,6 +113,38 @@ class SettingsService:
 				self._recordDiagnostic(
 					"configError",
 					error="invalid navigation details",
+					option=key,
+				)
+		braille_suggestion_start = settings.get(
+			"brailleSuggestionStart",
+			BRAILLE_SUGGESTION_START_DEFAULT,
+		)
+		if not (
+			isinstance(braille_suggestion_start, int)
+			and not isinstance(braille_suggestion_start, bool)
+			and BRAILLE_SUGGESTION_START_DEFAULT
+			<= braille_suggestion_start
+			<= BRAILLE_SUGGESTION_START_MAXIMUM
+		):
+			self._recordDiagnostic(
+				"configError",
+				error="invalid Braille suggestion start",
+				option="brailleSuggestionStart",
+			)
+			braille_suggestion_start = BRAILLE_SUGGESTION_START_DEFAULT
+		braille_routing = dict(BRAILLE_ROUTING_DEFAULTS)
+		for key, maximum in (
+			("wordAction", len(BRAILLE_ROUTING_WORD_ACTIONS) - 1),
+			("lineAction", len(BRAILLE_ROUTING_LINE_ACTIONS) - 1),
+			("lineStart", len(BRAILLE_ROUTING_LINE_STARTS) - 1),
+		):
+			value = raw_braille_routing.get(key, braille_routing[key])
+			if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= maximum:
+				braille_routing[key] = value
+			else:
+				self._recordDiagnostic(
+					"configError",
+					error="invalid repeated Braille routing setting",
 					option=key,
 				)
 		try:
@@ -105,6 +169,9 @@ class SettingsService:
 		return {
 			"feedback": feedback,
 			"navigationDetails": navigation_details,
+			"brailleSuggestionStart": braille_suggestion_start,
+			"brailleRouting": braille_routing,
+			"brailleFollowSpeechExploration": braille_follow_speech_exploration,
 			"focusAnnouncement": focus_announcement,
 			"connections": [profile.as_dict() for profile in connections],
 		}
@@ -126,6 +193,9 @@ class SettingsService:
 			"nvdaConfigProfileSettingsReloaded",
 			feedbackChanged=change.feedback_changed,
 			navigationDetailsChanged=change.navigation_details_changed,
+			brailleSuggestionStartChanged=change.braille_suggestion_start_changed,
+			brailleRoutingChanged=change.braille_routing_changed,
+			brailleFollowSpeechExplorationChanged=(change.braille_follow_speech_exploration_changed),
 			focusAnnouncementChanged=change.focus_announcement_changed,
 			connectionsChanged=change.connections_changed,
 		)
@@ -149,6 +219,37 @@ class SettingsService:
 		line = values.get(f"{prefix}Line", self._navigationDetailsDefaults[f"{prefix}Line"])
 		return bool(word & 1), bool(line & 1), bool(line & 2)
 
+	def braille_suggestion_start(self) -> int:
+		"""Return the one-based Braille cell for transient spelling suggestions."""
+		value = self._values.get("brailleSuggestionStart", BRAILLE_SUGGESTION_START_DEFAULT)
+		if (
+			isinstance(value, int)
+			and not isinstance(value, bool)
+			and BRAILLE_SUGGESTION_START_DEFAULT <= value <= BRAILLE_SUGGESTION_START_MAXIMUM
+		):
+			return value
+		return BRAILLE_SUGGESTION_START_DEFAULT
+
+	def braille_routing_actions(self) -> BrailleRoutingActions:
+		"""Return fixed repeated-routing actions selected for the active profile."""
+		values = self._values.get("brailleRouting", BRAILLE_ROUTING_DEFAULTS)
+		try:
+			return BrailleRoutingActions(
+				word_action=BRAILLE_ROUTING_WORD_ACTIONS[int(values.get("wordAction", 0))],
+				line_action=BRAILLE_ROUTING_LINE_ACTIONS[int(values.get("lineAction", 0))],
+				line_start=BRAILLE_ROUTING_LINE_STARTS[int(values.get("lineStart", 0))],
+			)
+		except (IndexError, TypeError, ValueError):
+			return BrailleRoutingActions()
+
+	def braille_follows_speech_exploration(self) -> bool:
+		"""Return whether contextual speech exploration also owns the Braille line."""
+		value = self._values.get(
+			"brailleFollowSpeechExploration",
+			BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+		)
+		return value if isinstance(value, bool) else BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT
+
 	def connection_profile_by_id(self, identifier: str):
 		try:
 			return next(
@@ -167,20 +268,32 @@ class SettingsService:
 				raise ValueError("connections must be a JSON string")
 			feedback_section = section.get("feedback", {})
 			navigation_details_section = section.get("navigationDetails", {})
+			braille_routing_section = section.get("brailleRouting", {})
 			if not hasattr(feedback_section, "items"):
 				raise ValueError("feedback must be an object")
 			if not hasattr(navigation_details_section, "items"):
 				raise ValueError("navigationDetails must be an object")
+			if not hasattr(braille_routing_section, "items"):
+				raise ValueError("brailleRouting must be an object")
 			settings = {
 				"connections": json.loads(connections_value),
 				"focusAnnouncement": section.get(
 					"focusAnnouncement",
 					self._focusAnnouncementDefault,
 				),
+				"brailleSuggestionStart": section.get(
+					"brailleSuggestionStart",
+					BRAILLE_SUGGESTION_START_DEFAULT,
+				),
+				"brailleFollowSpeechExploration": section.get(
+					"brailleFollowSpeechExploration",
+					BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+				),
 				# NVDA exposes nested configuration through AggregatedSection.
 				# Its public items() method has normal mapping semantics.
 				"feedback": dict(feedback_section.items()),
 				"navigationDetails": dict(navigation_details_section.items()),
+				"brailleRouting": dict(braille_routing_section.items()),
 			}
 		except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
 			self._recordDiagnostic(
@@ -195,6 +308,15 @@ class SettingsService:
 	def _write(self, settings: dict) -> None:
 		section = self._configRoot[self._sectionName]
 		section["focusAnnouncement"] = int(settings.get("focusAnnouncement", self._focusAnnouncementDefault))
+		section["brailleSuggestionStart"] = int(
+			settings.get("brailleSuggestionStart", BRAILLE_SUGGESTION_START_DEFAULT)
+		)
+		section["brailleFollowSpeechExploration"] = bool(
+			settings.get(
+				"brailleFollowSpeechExploration",
+				BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+			)
+		)
 		section["connections"] = json.dumps(
 			settings.get("connections", []),
 			ensure_ascii=False,
@@ -208,11 +330,22 @@ class SettingsService:
 		values = settings.get("navigationDetails", {})
 		for key, default in self._navigationDetailsDefaults.items():
 			navigation_details[key] = int(values.get(key, default))
+		braille_routing = section["brailleRouting"]
+		values = settings.get("brailleRouting", {})
+		for key, default in BRAILLE_ROUTING_DEFAULTS.items():
+			braille_routing[key] = int(values.get(key, default))
 
 	def _commit(self, values: dict) -> SettingsChange:
 		previous = self._values
 		feedback_changed = previous.get("feedback") != values.get("feedback")
 		navigation_details_changed = previous.get("navigationDetails") != values.get("navigationDetails")
+		braille_suggestion_start_changed = previous.get("brailleSuggestionStart") != values.get(
+			"brailleSuggestionStart"
+		)
+		braille_routing_changed = previous.get("brailleRouting") != values.get("brailleRouting")
+		braille_follow_speech_exploration_changed = previous.get(
+			"brailleFollowSpeechExploration"
+		) != values.get("brailleFollowSpeechExploration")
 		focus_changed = previous.get("focusAnnouncement") != values.get("focusAnnouncement")
 		connections_changed = previous.get("connections") != values.get("connections")
 		self._values = values
@@ -229,6 +362,9 @@ class SettingsService:
 		return SettingsChange(
 			feedback_changed=feedback_changed,
 			navigation_details_changed=navigation_details_changed,
+			braille_suggestion_start_changed=braille_suggestion_start_changed,
+			braille_routing_changed=braille_routing_changed,
+			braille_follow_speech_exploration_changed=(braille_follow_speech_exploration_changed),
 			focus_announcement_changed=focus_changed,
 			connections_changed=connections_changed,
 			claim_inventory_started=inventory_started,

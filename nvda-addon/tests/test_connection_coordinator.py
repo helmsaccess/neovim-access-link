@@ -93,6 +93,7 @@ class ConnectionCoordinatorTests(unittest.TestCase):
                 "connected": False,
                 "lastConnectionState": None,
                 "transportCapabilities": frozenset(),
+                "extensionState": {"marker": f"runtime-{len(created) + 1}"},
             }
             created.append(runtime)
             return runtime
@@ -101,18 +102,33 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         self.assertEqual({"label": "new-1"}, coordinator.current_state)
         self.assertFalse(coordinator.switch_runtime("connection-1", create_runtime))
         coordinator.current_state = {"label": "first-active"}
+        coordinator.runtime_extension_state["selection"] = "first"
         self.assertTrue(coordinator.switch_runtime("connection-2", create_runtime))
         self.assertEqual({"label": "new-2"}, coordinator.current_state)
+        self.assertEqual({"marker": "runtime-2"}, coordinator.runtime_extension_state)
         self.assertEqual(
             {"label": "first-active"},
             coordinator.runtime_states["connection-1"]["currentState"],
         )
+        self.assertEqual(
+            {"marker": "runtime-1", "selection": "first"},
+            coordinator.runtime_states["connection-1"]["extensionState"],
+        )
         coordinator.current_state = {"label": "second-active"}
+        coordinator.runtime_extension_state["selection"] = "second"
         self.assertTrue(coordinator.switch_runtime("connection-1", create_runtime))
         self.assertEqual({"label": "first-active"}, coordinator.current_state)
         self.assertEqual(
+            {"marker": "runtime-1", "selection": "first"},
+            coordinator.runtime_extension_state,
+        )
+        self.assertEqual(
             {"label": "second-active"},
             coordinator.runtime_states["connection-2"]["currentState"],
+        )
+        self.assertEqual(
+            {"marker": "runtime-2", "selection": "second"},
+            coordinator.runtime_states["connection-2"]["extensionState"],
         )
 
         self.assertFalse(coordinator.drop_runtime("connection-2", create_runtime))
@@ -227,6 +243,7 @@ class ConnectionCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(1, coordinator.next_request_id("focusContext"))
         self.assertEqual(1, coordinator.next_request_id("clipboard"))
+        self.assertEqual(1, coordinator.next_request_id("brailleExploration"))
         self.assertEqual(2, coordinator.next_request_id("focusContext"))
         coordinator._request_ids["terminalControl"] = coordinator._REQUEST_ID_LIMIT - 1
         self.assertEqual(0, coordinator.next_request_id("terminalControl"))

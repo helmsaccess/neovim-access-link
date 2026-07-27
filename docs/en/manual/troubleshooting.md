@@ -63,9 +63,8 @@ window/tab, local or SSH transport, mode, preceding tab switch, and whether
 F12 or manual selection was used. Copy a redacted report before restarting NVDA
 when possible.
 
-Because this is alpha-to-beta software, first try unfamiliar or unconfirmed
-features in a disposable buffer. Braille behavior has not yet been practically
-confirmed on physical hardware.
+Because this is beta software, first try unfamiliar features in a
+disposable buffer.
 
 ## NVDA appears stuck after a dialog
 

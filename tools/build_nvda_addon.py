@@ -23,13 +23,19 @@ import buildVars
 from tools.gettext_catalog import compile_catalogs
 
 PROTOCOL_MODULES = (
-    "clipboard.py", "codec.py", "exploration.py", "local_client.py", "messages.py", "nvim_rpc.py", "reconnect.py",
-    "session.py", "stdio_client.py", "terminal_control.py", "text.py",
+    "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
+    "clipboard.py", "codec.py",
+    "cursor_routing.py", "exploration.py",
+    "local_client.py", "messages.py",
+    "numbered_choice.py", "nvim_rpc.py", "reconnect.py", "session.py", "stdio_client.py",
+    "terminal_control.py", "text.py",
 )
 CORE_MODULES = (
-    "__init__.py", "braille.py", "connection_coordinator.py", "connection_instances.py",
+    "__init__.py", "braille.py", "braille_exploration_state.py",
+    "braille_routing_repeats.py", "connection_coordinator.py",
+    "connection_instances.py",
     "connection_profiles.py",
-    "connection_targets.py", "diagnostics.py", "exploration_state.py",
+    "connection_targets.py", "diagnostics.py", "exploration_state.py", "numbered_choice_state.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",
     "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )
@@ -78,16 +84,23 @@ def copy_python_files(source: pathlib.Path, destination: pathlib.Path, names: tu
         shutil.copy2(source / name, destination / name)
 
 
-def build() -> pathlib.Path:
+def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
     metadata = buildVars.manifest()
     artifact_version = buildVars.artifact_version()
-    output = ROOT / "dist" / f"{metadata['name']}-{artifact_version}.nvda-addon"
+    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output = output_root / f"{metadata['name']}-{artifact_version}.nvda-addon"
+    output.parent.mkdir(parents=True, exist_ok=True)
     msgpack_distribution = importlib.metadata.distribution("msgpack")
     if msgpack_distribution.version != "1.1.1":
         raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack_distribution.version}")
     msgpack_source = pathlib.Path(msgpack_distribution.locate_file("msgpack"))
-    with tempfile.TemporaryDirectory() as temporary:
-        stage = pathlib.Path(temporary)
+    with tempfile.TemporaryDirectory(
+        dir=output.parent,
+        prefix=f".{output.name}.",
+    ) as temporary:
+        temporary_root = pathlib.Path(temporary)
+        stage = temporary_root / "stage"
+        stage.mkdir()
         write_manifest(stage / "manifest.ini")
         shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
         staged_manifest = validate_manifest(stage / "manifest.ini")
@@ -116,7 +129,8 @@ def build() -> pathlib.Path:
         package_builder = importlib.util.module_from_spec(package_spec)
         package_spec.loader.exec_module(package_builder)
         package_builder.linux_component_config()
-        server_package = package_builder.build()
+        server_output = output_root if output_directory is None else temporary_root / "server-package"
+        server_package = package_builder.build(output_directory=server_output)
         resources = plugin / "resources"
         resources.mkdir(exist_ok=True)
         shutil.copy2(server_package, resources / "server-user.tar.gz")
@@ -138,14 +152,20 @@ def build() -> pathlib.Path:
         forbidden = list(stage.rglob("*.so")) + list(stage.rglob("*.pyc"))
         if forbidden:
             raise RuntimeError(f"non-portable files in add-on: {forbidden}")
-        output.parent.mkdir(exist_ok=True)
-        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        staged_output = temporary_root / output.name
+        with zipfile.ZipFile(
+            staged_output,
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+            compresslevel=9,
+        ) as archive:
             for source in sorted(path for path in stage.rglob("*") if path.is_file()):
                 relative = source.relative_to(stage).as_posix()
                 info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
                 archive.writestr(info, source.read_bytes(), compresslevel=9)
+        staged_output.replace(output)
         output.chmod(0o644)
     return output
 

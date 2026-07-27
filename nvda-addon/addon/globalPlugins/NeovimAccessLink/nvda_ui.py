@@ -17,6 +17,12 @@ from .core.connection_profiles import (
 from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_windows_target
 from .core.local_install import LocalPluginInstaller
 from .core.ssh_install import InstallResult, SshUserInstaller
+from .settings_service import (
+	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+	BRAILLE_ROUTING_DEFAULTS,
+	BRAILLE_SUGGESTION_START_DEFAULT,
+	BRAILLE_SUGGESTION_START_MAXIMUM,
+)
 
 addonHandler.initTranslation()
 
@@ -248,14 +254,17 @@ class NvdaUiManager:
 					general_page = wx.Panel(self.settingsNotebook)
 					feedback_page = wx.Panel(self.settingsNotebook)
 					navigation_page = wx.Panel(self.settingsNotebook)
+					braille_page = wx.Panel(self.settingsNotebook)
 					connections_page = wx.Panel(self.settingsNotebook)
 					general_sizer = wx.BoxSizer(wx.VERTICAL)
 					feedback_sizer = wx.BoxSizer(wx.VERTICAL)
 					navigation_sizer = wx.BoxSizer(wx.VERTICAL)
+					braille_sizer = wx.BoxSizer(wx.VERTICAL)
 					connections_sizer = wx.BoxSizer(wx.VERTICAL)
 					general_page.SetSizer(general_sizer)
 					feedback_page.SetSizer(feedback_sizer)
 					navigation_page.SetSizer(navigation_sizer)
+					braille_page.SetSizer(braille_sizer)
 					connections_page.SetSizer(connections_sizer)
 					# Translators: Name of the general settings tab.
 					self.settingsNotebook.AddPage(general_page, _("General"))
@@ -263,12 +272,15 @@ class NvdaUiManager:
 					self.settingsNotebook.AddPage(feedback_page, _("Feedback"))
 					# Translators: Name of the navigation-detail settings tab.
 					self.settingsNotebook.AddPage(navigation_page, _("Navigation"))
+					# Translators: Name of the Braille settings tab.
+					self.settingsNotebook.AddPage(braille_page, _("Braille"))
 					# Translators: Name of the connection settings tab.
 					self.settingsNotebook.AddPage(connections_page, _("Connections"))
 					self.settingsTabLabels = (
 						_("General"),
 						_("Feedback"),
 						_("Navigation"),
+						_("Braille"),
 						_("Connections"),
 					)
 					general_helper = guiHelper.BoxSizerHelper(general_page, sizer=general_sizer)
@@ -276,6 +288,10 @@ class NvdaUiManager:
 					navigation_helper = guiHelper.BoxSizerHelper(
 						navigation_page,
 						sizer=navigation_sizer,
+					)
+					braille_helper = guiHelper.BoxSizerHelper(
+						braille_page,
+						sizer=braille_sizer,
 					)
 					connections_helper = guiHelper.BoxSizerHelper(
 						connections_page,
@@ -318,6 +334,120 @@ class NvdaUiManager:
 							settings.get(
 								"focusAnnouncement",
 								focus_announcement_default,
+							)
+						)
+					)
+
+					# Translators: Group for Braille behavior during speech exploration.
+					braille_exploration_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						braille_page,
+						label=_("Speech exploration mode"),
+					)
+					braille_helper.addItem(braille_exploration_sizer)
+					braille_exploration_group = guiHelper.BoxSizerHelper(
+						braille_page,
+						sizer=braille_exploration_sizer,
+					)
+					# Translators: Checkbox making the Braille display follow speech exploration.
+					self.brailleFollowSpeechExploration = wx.CheckBox(
+						braille_page,
+						label=_("Braille display follows the &speech exploration mode position"),
+					)
+					self.brailleFollowSpeechExploration.SetValue(
+						bool(
+							settings.get(
+								"brailleFollowSpeechExploration",
+								BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+							)
+						)
+					)
+					braille_exploration_group.addItem(self.brailleFollowSpeechExploration)
+
+					# Translators: Group for actions assigned to Braille routing keys.
+					braille_routing_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						braille_page,
+						label=_("Routing keys"),
+					)
+					braille_helper.addItem(braille_routing_sizer)
+					braille_routing_group = guiHelper.BoxSizerHelper(
+						braille_page,
+						sizer=braille_routing_sizer,
+					)
+					braille_routing = settings.get("brailleRouting", BRAILLE_ROUTING_DEFAULTS)
+					# Translators: Action performed by pressing one Braille routing key twice.
+					self.brailleRoutingWordAction = braille_routing_group.addLabeledControl(
+						_("Double routing press on a &word:"),
+						wx.Choice,
+						choices=[
+							_("Route only"),
+							_("Change word (cw)"),
+							_("Delete word (dw)"),
+						],
+					)
+					self.brailleRoutingWordAction.SetSelection(
+						int(braille_routing.get("wordAction", BRAILLE_ROUTING_DEFAULTS["wordAction"]))
+					)
+					# Translators: Action performed by pressing one Braille routing key three times.
+					self.brailleRoutingLineAction = braille_routing_group.addLabeledControl(
+						_("Triple routing press on a &line:"),
+						wx.Choice,
+						choices=[
+							_("Route only"),
+							_("Change to end of line (c$)"),
+							_("Delete to end of line (d$)"),
+						],
+					)
+					self.brailleRoutingLineAction.SetSelection(
+						int(braille_routing.get("lineAction", BRAILLE_ROUTING_DEFAULTS["lineAction"]))
+					)
+					# Translators: Starting position used for a triple-press Braille line action.
+					self.brailleRoutingLineStart = braille_routing_group.addLabeledControl(
+						_("&Start triple-press line action at:"),
+						wx.Choice,
+						choices=[
+							_("Routed position"),
+							_("First non-blank character"),
+							_("Beginning of line"),
+						],
+					)
+					self.brailleRoutingLineStart.SetSelection(
+						int(braille_routing.get("lineStart", BRAILLE_ROUTING_DEFAULTS["lineStart"]))
+					)
+					# Translators: Explains which NVDA setting controls repeated Braille routing timing.
+					braille_routing_group.addItem(
+						wx.StaticText(
+							braille_page,
+							label=_(
+								"Timing uses NVDA's multiple key press timeout from the Keyboard settings."
+							),
+						)
+					)
+
+					# Translators: Group for Braille presentation of spelling suggestions.
+					braille_spelling_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						braille_page,
+						label=_("Spelling suggestions"),
+					)
+					braille_helper.addItem(braille_spelling_sizer)
+					braille_spelling_group = guiHelper.BoxSizerHelper(
+						braille_page,
+						sizer=braille_spelling_sizer,
+					)
+					# Translators: One-based Braille cell where a spelling suggestion begins.
+					self.brailleSuggestionStart = braille_spelling_group.addLabeledControl(
+						_("Start spelling &suggestions at Braille cell:"),
+						wx.SpinCtrl,
+						min=BRAILLE_SUGGESTION_START_DEFAULT,
+						max=BRAILLE_SUGGESTION_START_MAXIMUM,
+					)
+					self.brailleSuggestionStart.SetValue(
+						int(
+							settings.get(
+								"brailleSuggestionStart",
+								BRAILLE_SUGGESTION_START_DEFAULT,
 							)
 						)
 					)
@@ -400,20 +530,20 @@ class NvdaUiManager:
 					)
 					self.navigationDetailControls["navigationLine"] = control
 
-					# Translators: Group for feedback when the NVDA key ends exploration.
+					# Translators: Group for feedback when the NVDA key ends speech exploration.
 					exploration_sizer = wx.StaticBoxSizer(
 						wx.VERTICAL,
 						navigation_page,
-						label=_("Exploration release"),
+						label=_("Speech exploration mode release"),
 					)
 					navigation_helper.addItem(exploration_sizer)
 					exploration_group = guiHelper.BoxSizerHelper(
 						navigation_page,
 						sizer=exploration_sizer,
 					)
-					# Translators: Label for details spoken after word exploration.
+					# Translators: Label for details spoken after word speech exploration.
 					control = exploration_group.addLabeledControl(
-						_("After &word exploration:"),
+						_("After &word exploration in speech exploration mode:"),
 						wx.Choice,
 						choices=word_detail_choices,
 					)
@@ -426,9 +556,9 @@ class NvdaUiManager:
 						)
 					)
 					self.navigationDetailControls["explorationWord"] = control
-					# Translators: Label for details spoken after line exploration.
+					# Translators: Label for details spoken after line speech exploration.
 					control = exploration_group.addLabeledControl(
-						_("After &line exploration:"),
+						_("After &line exploration in speech exploration mode:"),
 						wx.Choice,
 						choices=line_detail_choices,
 					)
@@ -546,6 +676,15 @@ class NvdaUiManager:
 					change = settings_service.update(
 						{
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
+							"brailleSuggestionStart": self.brailleSuggestionStart.GetValue(),
+							"brailleFollowSpeechExploration": (
+								self.brailleFollowSpeechExploration.GetValue()
+							),
+							"brailleRouting": {
+								"wordAction": self.brailleRoutingWordAction.GetSelection(),
+								"lineAction": self.brailleRoutingLineAction.GetSelection(),
+								"lineStart": self.brailleRoutingLineStart.GetSelection(),
+							},
 							"feedback": {
 								key: control.GetSelection() for key, control in self.feedbackControls.items()
 							},

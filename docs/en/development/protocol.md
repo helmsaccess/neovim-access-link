@@ -86,6 +86,14 @@ The transport adds `exploration` only when the connected Neovim plugin reports
 it in the fixed `pluginCapabilities` field. This prevents an updated add-on
 from capturing exploration gestures while an older plugin is still installed
 or running.
+It likewise adds `numberedChoices` only when the plugin reports structured
+detection and acceptance of numbered native choice lists.
+It adds `brailleLineNavigation` only when the plugin supports the fixed
+adjacent-line operation and preferred-virtual-column state.
+It independently adds `brailleExploration` only when the plugin reports the
+separate ephemeral Braille line channel.
+It adds `brailleRoutingActions` only when the plugin reports the fixed
+repeated-routing actions and their complete state validation.
 Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
 are not supported.
 
@@ -136,7 +144,9 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `menuSelectionChanged`, `menuClosed`, `signatureChanged`,
 `diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
-`leaveTerminalInputResult`, `exploreTextResult`, and `connectionStateChanged`.
+`leaveTerminalInputResult`, `exploreTextResult`,
+`brailleExploreLineResult`, `numberedChoiceOpened`,
+`numberedChoiceClosed`, and `connectionStateChanged`.
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
@@ -195,6 +205,14 @@ Only these add-on-to-Neovim controls are permitted:
 - `requestFocusContext` with an integer `requestId` from 0 through
   2,147,483,647;
 - `routeCursor` with buffer, window, line, UTF-8 byte column, and changed tick;
+- `brailleRouteAction` with buffer, window, line, UTF-8 byte column, changed
+  tick, exact raw mode, and exactly one of `changeWord`, `deleteWord`,
+  `changeLine`, or `deleteLine`. Only a line action also carries exactly one
+  of `routing`, `indentation`, or `beginning`;
+- `moveBrailleLine` with buffer, window, current line, changed tick, exact raw
+  mode, a fixed `previous` or `next` direction, and
+  a fixed `targetColumn` of `preferred`, `start`, or `end`, plus
+  `preferredVirtualColumn` from 0 through 2,147,483,647;
 - `copyTextRequest` with correlated request ID, expected buffer/window/tab,
   changed tick and raw mode, plus exactly `visualSelection` or `yankRegister`;
 - `pasteTextRequest` with the same expected identity and at most 256 KiB of
@@ -208,6 +226,15 @@ Only these add-on-to-Neovim controls are permitted:
   buffer/window/tab, changed-tick, raw-mode, and real-cursor identity;
 - `endExplorationRequest` with request and exploration IDs to discard
   ephemeral Lua state.
+- `brailleExploreLineRequest` with the same complete origin identity,
+  positive request, exploration, and action indices, exactly `lineUp` or
+  `lineDown`, repeat count 1, and `desiredVirtualColumn` from 0 through
+  2,147,483,647 plus the same fixed `targetColumn` choice;
+- `endBrailleExplorationRequest` with request and exploration IDs to discard
+  only the separate Braille Lua state.
+- `acceptNumberedChoiceRequest` with a correlated request ID, choice kind,
+  choice ID, zero-based item index, and exact buffer, window, tab, and changed
+  tick identity.
 
 `requestFocusContext` is sent only to an authenticated instance bound exactly
 to the focused terminal control. A mismatched request ID, instance, binding, or
@@ -215,6 +242,27 @@ focus discards its response.
 
 `routeCursor` validates current buffer, window, changed tick, line, UTF-8 byte
 column, and character boundary before calling Neovim's cursor API.
+
+`brailleRouteAction` requires its negotiated capability and permits only
+Normal or Insert mode. Bridge and plugin accept exactly the fields specified
+for the selected action; additional fields are rejected. The plugin
+revalidates current buffer, window, changed tick, raw mode, cursor line,
+UTF-8 byte column, character boundary, `modifiable`, and `readonly`. A word
+action on whitespace or at end of line is rejected. Only then are fixed
+identifiers mapped internally to `cw`, `dw`, `c$`, or `d$`; line starts map
+to no movement, `^`, or `0`. Insert-mode delete actions return to Insert,
+while change actions retain Neovim's operator-defined Insert state. Arbitrary
+key sequences and command text are not protocol fields.
+
+`moveBrailleLine` revalidates the current buffer, window, changed tick, raw
+mode, and origin line. Command-line and terminal-input modes are rejected.
+The only possible target is the immediately adjacent line. `preferred` maps
+the preferred virtual column to a valid UTF-8 byte column with
+`virtcol2col()` and stores the same column back as `curswant`. `start` selects
+byte and desired column zero. `end` safely selects the final UTF-8 character
+in Normal mode or the position immediately after the text in Insert mode; an
+empty line yields zero in either mode. It then publishes exactly one
+`cursorMoved` event with reason `brailleLineNavigation`.
 
 Clipboard results return the same request ID and a fixed result code. Only
 `copyTextResult` may contain one-shot `clipboardText`; it is removed before
@@ -231,13 +279,35 @@ mode transition remains event-driven through `ModeChanged` or `TermLeave`.
 `exploreTextResult` correlates request, exploration, action index, and fixed
 action. A successful result contains exactly a character, word, or line unit,
 a bounded virtual position, a Boolean `atOrigin`, and at most 16 KiB of text.
-The origin flag uses the requested unit: exact character, containing word, or
+Optional `explorationLineText` contains the complete virtual line, also
+bounded to 16 KiB. It exists only for a configurable derived Braille view and,
+like all result-only fields, never enters canonical state. Only a word result
+may additionally carry the fixed semantic value
+`formatError=spelling|grammar`; message, source, and other diagnostic data are
+not transported. The origin flag uses the requested unit: exact character,
+containing word, or
 line. This keeps Neovim's word rules on the Neovim side. One word scan reads
 at most 256 lines or 64 KiB. The Lua engine uses no cursor, feedkeys, Normal,
 search, or buffer-mutation operation. The receiver rejects a result after any
 focus, binding, context, or identifier change.
 
+`brailleExploreLineResult` uses the same strict correlation but permits only
+the `line` unit and `lineUp` or `lineDown` actions. Its at-most-16-KiB result
+carries the virtual line and its UTF-8, character, and virtual columns. The
+add-on, bridge, and local client accept it once and never store it as canonical
+state. Speech and Braille exploration own separate action sequences; a cleanup
+control discards only its own channel.
+
 No received text is ever executed as Lua or Ex code.
+
+`numberedChoiceOpened` is transient and never enters canonical state. For
+`choiceKind=spellSuggestions`, it contains a choice ID and at most 128 valid
+UTF-8 items of at most 4 KiB each. The plugin emits it only after a proven
+direct `z=` and a native list numbered consecutively from 1.
+`numberedChoiceClosed` discards the selection when the UI closes or editor
+context changes. `acceptNumberedChoiceRequest` must match that exact active
+prompt. The transport sends only the validated one-based number and Enter
+through Neovim's public input API; suggestion text is not sent back.
 
 ## Security boundary
 

@@ -50,6 +50,36 @@ Wortsuche ist auf 256 Zeilen beziehungsweise 64 KiB und Wiederholung auf 64
 Schritte begrenzt. Die Schlussansage beim Loslassen verwendet den bereits
 vorliegenden kanonischen Zustand und wartet nicht auf einen Roundtrip.
 
+Braille-Routing verwendet denselben begrenzten Control-Dispatcher. Regions-
+und Routingcallbacks bilden auf NVDAs Hauptthread ausschließlich die
+übersetzte Zelle auf einen bereits validierten festen Payload ab und legen
+eine unveränderliche Kopie ohne Warten in die Queue. Erst der Worker ruft
+`send_control` auf. Das ist insbesondere für SSH erforderlich, weil dessen
+Stdio-Client in `send_control` auf den Pipe-Lock zugreift, schreibt und
+`flush()` aufruft. Eine volle oder geschlossene Queue verwirft die optionale
+Routingaktion fail-open; sie darf NVDA niemals blockieren.
+
+Die erste Betätigung einer Routingtaste bleibt auch bei aktivierten
+Mehrfachaktionen unverzögert. Wenn Wort- und Zeilenaktion gleichzeitig
+konfiguriert sind, hält `core.callLater` nur den bereits lokal geplanten
+Wortauftrag bis zum Ablauf von NVDAs Mehrfachbetätigungsfrist zurück. Der
+Callback wartet nicht, schläft nicht und führt kein I/O aus; eine dritte
+Betätigung entwertet ihn per Token. Erst der daraus entstehende feste
+`brailleRouteAction`-Auftrag wird wie anderes Routing nichtblockierend in
+denselben Dispatcher gelegt.
+
+`moveBrailleLine` verwendet denselben Dispatcher und dieselben
+Nichtblockierungsregeln. Der NVDA-Regionscallback prüft und reiht nur den
+kleinen festen Payload ein. Virtuelle-zu-Bytespalten-Abbildung,
+Cursorbewegung und Zustandsereignis entstehen im Neovim-Prozess.
+
+Im Braille-Explorationsmodus ersetzt ein ebenso begrenzter
+`brailleExploreLineRequest` diesen Cursorauftrag. Der NVDA-Hauptthread
+verändert nur lokalen Planungszustand und wartet nicht auf die virtuelle
+Zeile. Ergebnisse sind auf 16 KiB begrenzt, werden korreliert und lösen nur
+eine öffentliche Brailleaktualisierung aus. Eine volle Queue, veraltete
+Antwort oder ein Fokuswechsel verwirft den optionalen Schritt fail-open.
+
 ## Serialisierung
 
 | Format | n | Bytes | Encode Median | Decode Median |

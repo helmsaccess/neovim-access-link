@@ -4,10 +4,10 @@ Neovim Access Link verbindet Neovim in Windows Terminal mit NVDA. Statt das
 wechselnde Terminalbild auszulesen, erhält das Add-on strukturierte Daten
 direkt von Neovim. Dadurch kann NVDA Editorzustände wie Modus, Cursorposition,
 Textänderungen, Auswahl, Einrückung, Vervollständigung und Diagnosen gezielt
-ausgeben. Ein Explorationsmodus liest Zeichen, Wörter und Zeilen vorübergehend,
-ohne den echten Neovim-Cursor zu bewegen.
+ausgeben. Der Sprachexplorationsmodus liest Zeichen, Wörter und Zeilen
+vorübergehend, ohne den echten Neovim-Cursor zu bewegen.
 
-Das Handbuch beschreibt den aktuellen Alpha- bis Beta-Stand für NVDA 2026.1.x unter
+Das Handbuch beschreibt den aktuellen Beta-Stand für NVDA 2026.1.x unter
 Windows 11. Unterstützt werden:
 
 - lokales Windows-Neovim als `nvim.exe` in Windows Terminal,
@@ -21,24 +21,18 @@ Noch nicht unterstützt werden andere Terminalprogramme wie PuTTY, grafische
 Neovim-Oberflächen und automatisch erkannte portable oder durch `NVIM_APPNAME`
 getrennte Windows-Datenverzeichnisse.
 
-## Reifegrad und wichtiger Braillehinweis
+Die erweiterte [Braille-Unterstützung](braille.md) zeigt strukturierte
+Editorzeilen statt Terminalfragmenten. Sie umfasst Routing in Normal-, Insert-
+und Befehlszeilenmodus, die Einfügeposition hinter dem letzten Zeichen,
+automatischen Nachlauf langer Zeilen, Navigationstasten der Braillezeile und
+einen eigenständigen Braille-Explorationsmodus.
 
-Das Add-on befindet sich in einem Alpha- bis Beta-Zustand. Die grundlegenden
-lokalen und entfernten Verbindungswege wurden praktisch geprüft, aber noch
-nicht jede beschriebene Editorfunktion wurde ausführlich in allen Modi und
-Konfigurationen getestet. Fehler und unvollständige Rückmeldungen sind daher
-zu erwarten.
+## Reifegrad
 
-Die Entwicklung versucht, wichtige Arbeitsabläufe, Sicherheitsgrenzen und
-bekannte Fehler sorgfältig zu prüfen. Daraus folgt keine Zusage, dass jede
-Kombination aus Editorfunktion, Plugin, Terminalaufteilung und Umgebung
-abgedeckt ist. Gemeldete Fehler werden nach Möglichkeit zeitnah untersucht und
-behoben; feste Reaktions- oder Behebungszeiten werden nicht zugesagt.
-
-Die Braillefunktionen wurden bislang nicht mit einer echten Braillezeile
-getestet und enthalten sehr wahrscheinlich Fehler. Braille ist für das Projekt
-selbstverständlich wichtig und als priorisierte weitere Test- und
-Korrekturarbeit eingeplant.
+Das Add-on befindet sich im Beta-Stadium. Fehler, unvollständige Rückmeldungen
+und Änderungen an der Bedienung sind weiterhin möglich. Vor wichtiger Arbeit
+sind normale Backups und ein schrittweiser Einstieg mit der eigenen NVDA-,
+Neovim- und Terminalkonfiguration sinnvoll.
 
 ## Für wen welches Dokument gedacht ist
 
@@ -47,10 +41,10 @@ Wer das Add-on erstmals einrichtet, beginnt mit dem separaten
 nötigen Schritte von der Installation bis zur ersten lokalen oder entfernten
 Verbindung.
 
-Dieses Handbuch erklärt anschließend die derzeit unterstützten Einstellungen,
-Kommunikationswege und Bedienkonzepte im Zusammenhang. Technische Implementierungsdetails, Testnachweise
-und Architekturentscheidungen gehören nicht zum Anwenderhandbuch und bleiben
-in der Entwicklungsdokumentation des Quellprojekts.
+Dieses Handbuch erklärt anschließend die unterstützten Einstellungen,
+Kommunikationswege und Bedienkonzepte aus Anwendersicht. Architektur und
+Entwicklungsstand werden getrennt in der Entwicklungsdokumentation des
+Quellprojekts beschrieben.
 
 ## Grundbegriffe
 
@@ -131,22 +125,23 @@ oder unbekanntem Control fällt NVDA auf die normale Terminalausgabe zurück.
 ## Handbuchkapitel
 
 1. [Einstellungen und Verbindungsprofile](settings.md)
-2. [Kommunikation, Verbindungen und Sitzungszuordnung](communication.md)
-3. [Betrieb mit SSH und tmux](ssh-and-tmux.md)
-4. [Menüs und Vervollständigung](menus-and-completion.md)
-5. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
-6. [Sounds und Earcons](sounds.md)
-7. [Braille-Unterstützung](braille.md)
-8. [Fehlerdiagnose und Diagnosebericht](troubleshooting.md)
+2. [Sprachexplorationsmodus](speech-exploration.md)
+3. [Kommunikation, Verbindungen und Sitzungszuordnung](communication.md)
+4. [Betrieb mit SSH und tmux](ssh-and-tmux.md)
+5. [Menüs und Vervollständigung](menus-and-completion.md)
+6. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
+7. [Sounds und Earcons](sounds.md)
+8. [Braille-Unterstützung](braille.md)
+9. [Fehlerdiagnose und Diagnosebericht](troubleshooting.md)
 
-## Empfohlene erste Funktionsprüfung
+## Erste Schritte nach der Einrichtung
 
 Nach Installation und Einrichtung sollte nicht sofort mit einer wichtigen
-Datei begonnen werden. Zuerst in einem Testpuffer prüfen:
+Datei begonnen werden. In einem vorübergehenden Puffer:
 
 1. Insert-, Normal- und Visual-Modus wechseln.
 2. Zeichen, Wörter und Zeilen navigieren.
-3. Mit gedrückter NVDA-Taste Zeichen, Wörter und Zeilen explorieren und prüfen,
+3. Den Sprachexplorationsmodus mit gedrückter NVDA-Taste verwenden und prüfen,
    dass der echte Cursor stehen bleibt.
 4. Text einfügen und löschen.
 5. Zwischen zwei verbundenen Tabs wechseln.
@@ -157,11 +152,7 @@ Bei mehreren Sitzungen muss NVDA stets nur den Inhalt des aktuell fokussierten
 und zugeordneten Neovim ausgeben. Terminalstatuszeilen, Inhalte anderer Tabs
 und Ereignisse einer früheren Sitzung dürfen nicht gesprochen werden.
 
-## Versions- und Testhinweis
+## Versionshinweis
 
-Der aktuelle Stand wurde mit Windows 11 25H2, NVDA 2026.1.1, Rocky Linux 10.2
-und Neovim 0.10.1 praktisch erprobt. Der Reifegrad bleibt zwischen Alpha und
-Beta; aus diesem praktischen Referenztest folgt keine allgemeine
-Stabilitätszusage. Vor wichtiger Arbeit
-sind normale Backups und ein schrittweiser Test mit der eigenen SSH-, tmux-,
-Braille- und Neovim-Konfiguration sinnvoll.
+Dieses Handbuch gilt für NVDA 2026.1.x unter Windows 11 und Neovim 0.10.1 oder
+neuer. Für entfernte Sitzungen wird Linux mit Python 3 und OpenSSH benötigt.

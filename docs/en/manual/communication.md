@@ -78,10 +78,11 @@ Disconnect, timeout, invalid sequence, deactivation, or loss of focus clears
 the gate and restores normal terminal output. The add-on never suppresses an
 unknown application or an unbound tab.
 
-## Explore text without moving Neovim's cursor
+## Speech exploration mode: read without moving Neovim's cursor
 
-In a connected and confirmed Neovim control, hold the NVDA key and use these
-fixed reading commands:
+Speech exploration mode is an independent speech feature of the add-on, not a
+Braille mode. In a connected and confirmed Neovim control, hold the NVDA key
+and use these fixed reading commands:
 
 | Key | Virtual reading movement |
 |---|---|
@@ -95,17 +96,17 @@ view, and real cursor do not change. Every movement speaks the character,
 word, or line at the virtual position.
 
 Releasing NVDA returns output to the unchanged real cursor. Character
-exploration reads its character. Word and line exploration use the respective
-choices under `Settings → Neovim Access Link → Navigation → Exploration
+speech exploration reads its character. Word and line speech exploration use the respective
+choices under `Settings → Neovim Access Link → Navigation → Speech exploration
 release`. Word output may add the cursor character. Line output may add the
 current word, the cursor character, both in that order, or neither. The base
 word or line is never disabled. These two choices are independent of the
 corresponding normal-navigation settings.
 
-During character exploration, a short two-note cue marks a return to the real
+During character speech exploration, a short two-note cue marks a return to the real
 cursor position. The same cue marks a return to the original word or line
-during word or line exploration. It follows the configured line-boundary sound
-feedback.
+during word or line speech exploration. It follows the configured
+line-boundary sound feedback.
 
 The commands apply in every Neovim mode supported by the add-on, including
 Normal, Insert, Replace, Visual, Operator-pending, command line,
@@ -114,6 +115,32 @@ focused, authenticated Neovim pane. The same keys retain normal NVDA behavior
 in a shell, an unbound pane, another tab, or another application. After
 installing a build that adds this feature, update the Neovim components and
 restart running Neovim instances.
+
+See [Speech exploration mode](speech-exploration.md) for the complete user
+description, including optional Braille presentation and the distinction from
+Braille exploration mode.
+
+## Use built-in spelling suggestions
+
+Neovim's `z=` opens a numbered list and then waits for a number. The add-on
+recognizes only this proven active spelling prompt. A brief spoken message
+announces the successfully recognized non-empty list once. While NVDA remains
+held, `NVDA+j` selects the next item and `NVDA+k` the previous item, wrapping
+at the ends. Speech and Braille present only the suggestion itself; Neovim's
+internal number is not exposed.
+
+`NVDA+Enter` accepts the selected correction. This contextual command takes
+priority over a user-assigned add-on action such as “Paste Windows clipboard
+text” only in the exact recognized prompt. With no local selection, it reports
+“No item selected” and performs no other action. NVDA Input Help never
+executes it.
+
+Releasing the final NVDA key discards only the add-on's local selection and
+restores the editor Braille line. Neovim's prompt remains open and can be
+explored again or cancelled with `Escape`. Focus changes, disconnects, editor
+context changes, or closing the prompt discard its transient state. Shells,
+other tabs and panes, and other Neovim prompts retain their normal keyboard
+behavior.
 
 ## Manual selection
 

@@ -1,5 +1,6 @@
 local targets = {
   ["settings.md"] = "#docs__en__manual__settingsmd__manual-add-on-settings",
+  ["speech-exploration.md"] = "#docs__en__manual__speech-explorationmd__speech-exploration-mode",
   ["communication.md"] = "#docs__en__manual__communicationmd__manual-communication-connections-and-session-binding",
   ["ssh-and-tmux.md"] = "#docs__en__manual__ssh-and-tmuxmd__using-ssh-tmux-and-neovim",
   ["menus-and-completion.md"] = "#docs__en__manual__menus-and-completionmd__menus-and-completion",
@@ -19,7 +20,7 @@ local targets = {
   ["adr/0002-nvda-api-boundaries.md"] = "#docs__en__development__adr__0002-nvda-api-boundariesmd__adr-0002-nvda-api-boundaries-for-the-first-beta",
   ["adr/0003-oil-confirmation-fallback.md"] = "#docs__en__development__adr__0003-oil-confirmation-fallbackmd__adr-0003-narrow-fallback-for-oil-confirmations",
   ["adr/0004-nvda-lifetime-and-event-ownership.md"] = "#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership",
-  ["adr/0005-contextual-exploration-input.md"] = "#docs__en__development__adr__0005-contextual-exploration-inputmd__adr-0005-contextual-input-for-exploration-mode",
+  ["adr/0005-contextual-exploration-input.md"] = "#docs__en__development__adr__0005-contextual-exploration-inputmd__adr-0005-contextual-input-for-speech-exploration-mode",
   ["security.md"] = "#docs__en__development__securitymd__security-and-privacy",
   ["latency.md"] = "#docs__en__development__latencymd__latency",
   ["protocol.md"] = "#docs__en__development__protocolmd__protocol-v2",

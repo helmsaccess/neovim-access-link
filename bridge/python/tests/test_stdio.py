@@ -43,6 +43,128 @@ class StdioTransportTests(unittest.TestCase):
 		self.assertEqual([("routeCursor", {"line": 2})], controls)
 		transport.stop()
 
+	def test_braille_line_control_is_validated_and_capability_gated(self) -> None:
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"changedtick": 4,
+			"modeRaw": "n",
+			"direction": "next",
+			"targetColumn": "preferred",
+			"preferredVirtualColumn": 79,
+		}
+		controls: list[tuple[str, dict]] = []
+		frames = b"".join(
+			encode_frame(MessageFactory().create("moveBrailleLine", value))
+			for value in (payload, {**payload, "modeRaw": "c"})
+		)
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["brailleLineNavigation"]},
+			io.BytesIO(frames),
+			io.BytesIO(),
+			on_control=lambda kind, value: controls.append((kind, value)),
+			heartbeat_seconds=10.0,
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual([("moveBrailleLine", payload)], controls)
+		transport.stop()
+
+	def test_repeated_braille_routing_action_is_validated_and_capability_gated(self) -> None:
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"byteColumn": 4,
+			"changedtick": 5,
+			"modeRaw": "n",
+			"action": "changeLine",
+			"lineStart": "beginning",
+		}
+		controls: list[tuple[str, dict]] = []
+		frames = b"".join(
+			encode_frame(MessageFactory().create("brailleRouteAction", value))
+			for value in (payload, {**payload, "action": "dd"})
+		)
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["brailleRoutingActions"]},
+			io.BytesIO(frames),
+			io.BytesIO(),
+			on_control=lambda kind, value: controls.append((kind, value)),
+			heartbeat_seconds=10.0,
+		)
+		self.assertIn(
+			"brailleRoutingActions",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual([("brailleRouteAction", payload)], controls)
+		transport.stop()
+
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": []},
+			io.BytesIO(),
+			io.BytesIO(),
+			heartbeat_seconds=10.0,
+		)
+		self.assertNotIn(
+			"brailleRoutingActions",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+
+	def test_braille_exploration_controls_are_independent_validated_and_gated(self) -> None:
+		step = {
+			"requestId": 1,
+			"explorationId": 2,
+			"actionIndex": 1,
+			"action": "lineDown",
+			"count": 1,
+			"bufferId": 3,
+			"windowId": 4,
+			"tabpageId": 5,
+			"changedtick": 6,
+			"modeRaw": "n",
+			"cursorLine": 7,
+			"cursorByteColumn": 0,
+			"cursorVirtualColumn": 0,
+			"desiredVirtualColumn": 79,
+			"targetColumn": "preferred",
+		}
+		controls = b"".join(
+			(
+				encode_frame(MessageFactory().create("brailleExploreLineRequest", step)),
+				encode_frame(
+					MessageFactory().create(
+						"endBrailleExplorationRequest",
+						{"requestId": 2, "explorationId": 2},
+					)
+				),
+				encode_frame(
+					MessageFactory().create(
+						"brailleExploreLineRequest",
+						{**step, "action": "wordNext"},
+					)
+				),
+			)
+		)
+		dispatched = []
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["brailleExploration"]},
+			io.BytesIO(controls),
+			io.BytesIO(),
+			on_control=lambda kind, payload: dispatched.append((kind, payload)),
+			heartbeat_seconds=10.0,
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual(
+			["brailleExploreLineRequest", "endBrailleExplorationRequest"],
+			[kind for kind, _payload in dispatched],
+		)
+		transport.stop()
+
 	def test_only_valid_clipboard_controls_are_dispatched(self) -> None:
 		state = {
 			"bufferId": 1,
@@ -225,6 +347,62 @@ class StdioTransportTests(unittest.TestCase):
 		self.assertNotIn(
 			"exploration",
 			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual([], dispatched)
+		transport.stop()
+
+	def test_numbered_choice_accept_is_exact_and_capability_gated(self) -> None:
+		request = {
+			"requestId": 8,
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"itemIndex": 1,
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+		controls = b"".join(
+			(
+				encode_frame(MessageFactory().create("acceptNumberedChoiceRequest", request)),
+				encode_frame(
+					MessageFactory().create(
+						"acceptNumberedChoiceRequest",
+						{**request, "itemIndex": -1},
+					)
+				),
+			)
+		)
+		dispatched = []
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["numberedChoices"]},
+			io.BytesIO(controls),
+			io.BytesIO(),
+			on_control=lambda kind, payload: dispatched.append((kind, payload)),
+			heartbeat_seconds=10.0,
+		)
+		self.assertIn(
+			"numberedChoices",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual([("acceptNumberedChoiceRequest", request)], dispatched)
+		transport.stop()
+
+		dispatched.clear()
+		transport = StdioTransport(
+			lambda: {},
+			io.BytesIO(
+				encode_frame(
+					MessageFactory().create("acceptNumberedChoiceRequest", request),
+				)
+			),
+			io.BytesIO(),
+			on_control=lambda kind, payload: dispatched.append((kind, payload)),
+			heartbeat_seconds=10.0,
 		)
 		transport.start()
 		self.assertTrue(transport.closed.wait(1.0))

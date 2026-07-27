@@ -1,7 +1,7 @@
 # Neovim Access Link – Quick Guide
 
 Dieser Quick Guide führt von der Installation bis zur ersten funktionierenden
-Verbindung. Er beschreibt den aktuellen Alpha- bis Beta-Stand für NVDA 2026.1.x unter
+Verbindung. Er beschreibt den aktuellen Beta-Stand für NVDA 2026.1.x unter
 Windows 11. Unterstützt wird Neovim in Windows Terminal:
 
 - lokal als Windows-Programm `nvim.exe`,
@@ -12,16 +12,9 @@ Windows 11. Unterstützt wird Neovim in Windows Terminal:
 Andere Terminalprogramme und grafische Neovim-Oberflächen werden derzeit nicht
 unterstützt.
 
-Der aktuelle Stand liegt zwischen Alpha und Beta. Nicht alle Funktionen wurden
-bereits ausführlich praktisch getestet. Insbesondere die Brailleunterstützung
-wurde noch nicht mit einer echten Braillezeile geprüft und enthält sehr
-wahrscheinlich Fehler. Braille ist ein wichtiges, ausdrücklich eingeplantes
-Arbeitsgebiet, aber noch keine belastbare Funktionszusage.
-
-Die beschriebenen Referenzabläufe werden nach bestem Wissen geprüft; sie sind
-keine Zusage, dass jede mögliche Konfiguration bereits abgedeckt ist. Fehler
-sollten mit einem redigierten Diagnosebericht gemeldet werden und werden nach
-Möglichkeit zeitnah untersucht.
+Der aktuelle Stand ist Beta. Fehler, unvollständige Rückmeldungen und
+Änderungen an der Bedienung sind weiterhin möglich. Fehler sollten mit einem
+redigierten Diagnosebericht gemeldet werden.
 
 ## 1. Voraussetzungen
 
@@ -144,7 +137,7 @@ Dieser Schritt entfällt für lokales Windows-Neovim.
 6. Die Einstellungen speichern und danach die Komponenten für diese Verbindung
    wie in Abschnitt 4 installieren.
 
-Vor dem ersten Add-on-Test sollte eine normale Anmeldung in Windows Terminal
+Vor der ersten Verbindung sollte eine normale Anmeldung in Windows Terminal
 funktionieren, beispielsweise:
 
 ```text
@@ -221,15 +214,42 @@ F12 ist kein Ein-/Ausschalter. Zum Beenden der Unterstützung wird erneut die
 selbst festgelegte Aktivierungstaste verwendet. Bei Verbindungsverlust oder
 Deaktivierung fällt NVDA automatisch auf die normale Terminalausgabe zurück.
 
-Text lässt sich ohne Cursorbewegung erkunden: NVDA gedrückt halten und mit
-`h/l` zeichenweise, mit `k/j` zeilenweise oder mit `Umschalt+h/l` wortweise
-lesen. Beim Loslassen spricht das Add-on das aktuelle Zeichen beziehungsweise
-die auf der Registerkarte `Navigation` gewählten Wort-/Zeilendetails. Diese
-festen Kombinationen gelten nur in der
+Der Sprachexplorationsmodus liest Text ohne Cursorbewegung: NVDA gedrückt
+halten und mit `h/l` zeichenweise, mit `k/j` zeilenweise oder mit
+`Umschalt+h/l` wortweise lesen. Beim Loslassen spricht das Add-on das aktuelle
+Zeichen beziehungsweise die auf der Registerkarte `Navigation` gewählten
+Wort-/Zeilendetails. Diese festen Kombinationen gelten nur in der
 exakt verbundenen Neovim-Pane; in Shells und anderen Tabs oder Panes arbeitet
 NVDA unverändert. Ein kurzer Doppelton meldet, wenn die virtuelle Position
-wieder das Zeichen, Wort oder die Zeile erreicht, an dem die Exploration
-begann.
+wieder das Zeichen, Wort oder die Zeile erreicht, an dem der
+Sprachexplorationsmodus begann.
+
+Die Navigationstasten der Braillezeile besitzen davon unabhängig einen
+Braille-Cursormodus und einen Braille-Explorationsmodus. Im
+Braille-Cursormodus versetzen Oben und Unten den echten Neovim-Cursor. Im
+Braille-Explorationsmodus lassen sich mehrere
+Zeilen lesen, während der Cursor stehen bleibt; eine Routingtaste übernimmt
+die erkundete Stelle. Der Umschalter hat keine Standardgeste und kann unter
+`NVDA-Menü → Optionen → Eingaben → Neovim Access Link` zugewiesen werden.
+Der Sprachexplorationsmodus ist kein Braillefeature, kann seine virtuelle
+Position aber optional auf der Braillezeile anzeigen.
+
+Neovims eingebaute Rechtschreibvorschläge lassen sich mit Neovim Access Link
+zugänglich bedienen. Cursor auf das falsch geschriebene Wort setzen und `z=`
+drücken. Eine kurze Sprachmeldung bestätigt, dass Vorschläge verfügbar sind.
+Danach die NVDA-Taste gedrückt halten und mit `j` beziehungsweise `k` durch die
+Vorschläge gehen. Das Add-on spricht nur den Vorschlagstext ohne Nummer und
+zeigt ihn vorübergehend auf Braille. `NVDA+Eingabe` übernimmt den gewählten
+Vorschlag. Wird stattdessen nur die NVDA-Taste losgelassen, verwirft
+das Add-on die lokale Auswahl, lässt Neovims Vorschlagsliste aber offen und
+stellt die normale Braillezeile wieder her; `Esc` bricht anschließend Neovims
+Abfrage ab. Dieser Ablauf gilt nur für die exakt verbundene Neovim-Pane. Bei
+Bedarf kann
+die Registerkarte `Braille` den vorübergehenden Vorschlag ab einem späteren
+Braillemodul anzeigen; eine auf der aktuellen Braillezeile nicht vorhandene
+Position fällt sicher auf Modul 1 zurück. Reicht der verbleibende Platz nicht,
+wird der Vorschlag bis höchstens Modul 1 nach links verschoben und endet
+möglichst am rechten Rand.
 
 ## 10. Wenn keine Verbindung entsteht
 

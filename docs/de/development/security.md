@@ -89,19 +89,71 @@ Resynchronisation verhindern die Ausgabe alter oder ungeordneter Ereignisse.
 
 Die Rückrichtung ist eine feste Allowlist und keine allgemeine Neovim-RPC-
 Weiterleitung. `requestFullState` und `requestFocusContext` fordern nur Zustand
-an. Zustandsändernd sind ausschließlich validiertes `routeCursor`, die unten
+an. Zustandsändernd sind ausschließlich validiertes `routeCursor`,
+`brailleRouteAction`, `moveBrailleLine`, die unten
 beschriebenen Zwischenablagebefehle, `leaveTerminalInputRequest` mit der
 festen Operation `stopinsert` sowie die rein lesenden Explorationsbefehle.
 
-Vor dem Aufruf der Neovim-Cursor-API prüft `routeCursor` Buffer, Fenster,
-`changedtick`, Zeile, UTF-8-Bytespalte und Zeichenrand. Ein veralteter
-Braille-Routingbefehl wird verworfen. `leaveTerminalInputRequest` prüft
+Vor dem Aufruf der Neovim-Cursor-API prüft `routeCursor` festes Ziel, Buffer,
+Fenster, `changedtick`, exakten Rohmodus, Zeile, UTF-8-Bytespalte und
+Zeichenrand. Ein veralteter Braille-Routingbefehl wird verworfen. Für die
+aktive Befehlszeile werden zusätzlich der höchstens 16 KiB große Inhalt und
+der strukturierte Typ exakt verglichen. `setcmdline()` erhält ausschließlich
+den bereits exakt abgeglichenen, unveränderten Text und die validierte
+Ganzzahlposition; eine erneute Prüfung folgt direkt nach dem Aufruf.
+Befehlszeilentext wird weder ausgeführt noch unredigiert in die Diagnose
+übernommen. `leaveTerminalInputRequest` prüft
 Anfrage-ID, aktive Control-/Instanzbindung, Buffer, Fenster, Tab und den rohen
 Terminalmodus `t`; frei wählbarer Lua- oder Ex-Text wird nicht übertragen.
 `exploreTextRequest` akzeptiert nur sechs feste Bewegungen, korreliert den
 vollständigen Editorursprung und verändert weder Cursor noch Buffer. Ergebnis,
 Wiederholung und Wortsuche sind begrenzt; Fokus- oder Kontextwechsel verwerfen
 den flüchtigen Zustand.
+
+`brailleRouteAction` verlangt die eigene ausgehandelte Capability und erlaubt
+nur vier feste Aktionskennungen sowie drei feste Zeilenstarts. Der Payload
+enthält keinen auszuführenden Text. Zusätzlich zu den Routingprüfungen werden
+die exakte Cursorposition, Änderbarkeit und Schreibschutz unmittelbar vor
+der Ausführung geprüft; Wortaktionen auf Leerraum oder Zeilenende werden
+verworfen. Ein alter Timer oder ein inzwischen veränderter Buffer scheitert
+spätestens an `changedtick`, Modus oder Cursoridentität. Die interne Abbildung
+auf feste Normalbefehle ist keine allgemeine RPC- oder Tasteneinspeisung.
+
+`moveBrailleLine` akzeptiert ausschließlich `previous` oder `next`, verlangt
+die ausgehandelte Capability `brailleLineNavigation` und korreliert Buffer,
+Fenster, Ausgangszeile, `changedtick` und exakten Rohmodus. Die bevorzugte
+virtuelle Spalte ist eine begrenzte Ganzzahl. Das Plugin bewegt höchstens um
+eine Zeile, verwirft Puffergrenzen sowie Befehlszeilen- und Terminalmodus und
+verwendet keinen übertragenen Lua- oder Ex-Text.
+
+Der getrennte `brailleExploreLineRequest` akzeptiert ausschließlich eine
+benachbarte Zeile und eine begrenzte gewünschte virtuelle Spalte. Er verlangt
+die unabhängige Capability `brailleExploration`, besitzt einen eigenen
+Korrelations- und Lua-Zustand und verändert weder den Sprachexplorationsmodus noch den
+echten Cursor. Die erste Anfrage muss den vollständigen echten Ursprung
+treffen. Folgeanfragen dürfen nur bei unverändertem Buffer, Fenster und Tab
+von einer inzwischen anderen echten Cursor-, Modus- oder Textposition
+abweichen. `changedtick` darf auf den im selben Buffer aktuell geprüften Wert
+fortgeschrieben werden; Ursprungsidentität, Explorations-ID und Aktionsfolge
+bleiben exakt.
+Die lokale abgeleitete Brailleansicht übernimmt neuen Zeileninhalt nur bei
+gültigem begrenztem Text und exakter Übereinstimmung von echter Cursorzeile
+und virtueller Anzeigezeile. Das erweitert weder Protokollbefugnisse noch
+Schreibzugriffe und verändert den kanonischen Zustand nicht.
+Der Ausschnittserhalt verwendet ausschließlich die öffentliche
+`TextInfoRegion.pendingCaretUpdate`-Markierung der eigenen strukturierten
+Region. Er greift nicht auf NVDAs private Buffer- oder Fensterfelder zu und
+verändert keine fremden Regionen.
+Nur ein späterer, erneut vollständig validierter
+`routeCursor`-Auftrag darf die virtuelle Position übernehmen. Ergebnisse
+werden weder im Bridge- noch im Client-Zustand zwischengespeichert.
+
+`acceptNumberedChoiceRequest` akzeptiert nur einen bereits strukturiert
+erkannten, aktiven Auswahleintrag mit exakter Prompt- und Editoridentität. Für
+Rechtschreibvorschläge wird ausschließlich die feste Neovim-Eingabe aus
+internem Index und `Enter` erzeugt. Vorschlagstext wird weder ausgeführt noch
+zurückgesendet. Ein Fokuswechsel oder das Schließen der Abfrage verwirft den
+flüchtigen Auswahlzustand.
 
 Zusätzlich existiert ein eng begrenzter, ausdrücklich durch frei belegbare
 NVDA-Befehle ausgelöster Zwischenablagepfad. Er akzeptiert keine frei wählbaren

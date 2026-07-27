@@ -42,6 +42,7 @@ Für die vollständige lokale Prüfung werden benötigt:
 - `msgpack` exakt in Version 1.1.1 für Protokolltests und Paketbau;
 - ConfigObj für die NVDA-kompatible Manifestprüfung im Add-on-Build; die
   bestätigte Umgebung verwendet 5.0.8;
+- Ruff 0.14.5 entsprechend NVDA 2026.1;
 - Neovim für die echten Lua-Suiten;
 - Pandoc für den HTML-Build; bestätigt ist 3.1.11.1;
 - Git für Diff- und Whitespace-Prüfungen.
@@ -52,32 +53,52 @@ Inhalt des gebauten Add-ons.
 
 ## Erste Prüfung eines Checkouts
 
-Zuerst die NVDA-unabhängigen Python-Suiten ausführen:
+Für eine schnelle Rückmeldung ohne Paketbau und echte Listener:
 
 ```bash
-export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
-python3 -m unittest discover -s protocol/python/tests
-python3 -m unittest discover -s bridge/python/tests
-python3 -m unittest discover -s nvda-addon/tests
+tools/run_tests.py quick
 ```
 
-Danach die Lua-Spezifikationen mit einem echten Headless-Neovim ausführen:
+Der normale vollständige, sandbox-taugliche Ablauf ist:
 
 ```bash
-tools/test_neovim_plugin.sh
-```
-
-Für Änderungen an Paket, Metadaten, Übersetzungen oder Dokumentation außerdem:
-
-```bash
+ruff check .
+ruff format --check .
+tools/run_tests.py all-safe
 python3 tools/build_nvda_addon.py
+python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
 
-Der Add-on-Build ist selbst Teil der Prüfung: Pakettests müssen das erzeugte
-Archiv untersuchen und dürfen sich nicht nur auf den Quellbaum verlassen.
+Echte lokale Listener und Unix-Sockets benötigen eine geeignete Umgebung und
+laufen deshalb separat:
+
+```bash
+tools/run_tests.py socket
+```
+
+`tools/run_tests.py all` führt erst die sandbox-taugliche Phase und danach die
+Socket-Phase aus. Ohne Gruppenargument entspricht der Runner dem Preset
+`safe`. `-j N` begrenzt die parallelen Prozesse; `--list` zeigt die Auswahl
+ohne Ausführung.
+
+| Gruppe oder Preset | Kompakter Zweck |
+| --- | --- |
+| `unit` | reine und mit Attrappen isolierte Python-Tests |
+| `package` | gebautes Add-on, Paketinhalt und NVDA-Integrationsattrappen |
+| `lua` | Headless-Neovim-Spezifikationen ohne Listener |
+| `ssh` | ersetzte SSH-Kommando-, Askpass- und Fehlerpfade, ohne echte Verbindung |
+| `socket` | echte wegwerfbare TUI-, RPC-, TCP- und Unix-Socket-Fälle |
+| `quick` | schnelle Rückmeldung; entspricht `unit` |
+| `safe` | Standard ohne Argument: `quick`, `package` und `lua` |
+| `all-safe` | `safe` plus `ssh` |
+| `all` | alle Gruppen; `socket` läuft in einer eigenen zweiten Phase |
+
+Der Add-on-Build ist selbst Teil der Prüfung: Pakettests untersuchen das
+tatsächlich erzeugte Archiv und nicht nur den Quellbaum. Details zu Isolation,
+Sandbox-Grenzen und den nachgewiesenen Eigenschaften stehen in
+[testing.md](testing.md).
 
 ## Wo eine Änderung beginnt
 
@@ -92,8 +113,9 @@ Archiv untersuchen und dürfen sich nicht nur auf den Quellbaum verlassen.
 | Einstellungen oder Werkzeugdialoge | `globalPlugins/NeovimAccessLink/nvda_ui.py` und `settings-reference.md` | Einstellungs-, Lokalisierungs- und Pakettests |
 | Installation oder Build | `tools/`, `packaging/`, Installerklassen | gebautes Add-on, Installations- und Archivtests |
 
-Die vollständige Zuordnung steht in [testing.md](testing.md). Ein einzelner
-grüner Test ist keine Freigabe für andere Komponenten oder Plattformen.
+Die vollständige Zuordnung steht ebenfalls in [testing.md](testing.md). Ein
+einzelner grüner Test ist keine Freigabe für andere Komponenten oder
+Plattformen.
 
 ## Praktische Tests sicher durchführen
 

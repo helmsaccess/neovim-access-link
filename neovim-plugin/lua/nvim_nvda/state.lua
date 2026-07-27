@@ -107,12 +107,23 @@ function M.snapshot(reason)
   local window_info = vim.fn.getwininfo(win)[1] or {}
   local command_line = ""
   local command_line_position = 0
+  local virtual_column = vim.fn.virtcol(".") - 1
+  local view = vim.fn.winsaveview()
+  local preferred_virtual_column = type(view.curswant) == "number"
+      and math.max(0, math.min(view.curswant, 2147483647))
+    or virtual_column
   if mode_raw:sub(1, 1) == "c" then
     command_line = vim.fn.getcmdline()
     command_line_position = vim.fn.getcmdpos() - 1
   end
   local result = {
-    pluginCapabilities = { "exploration" },
+    pluginCapabilities = {
+      "exploration",
+      "numberedChoices",
+      "brailleLineNavigation",
+      "brailleExploration",
+      "brailleRoutingActions",
+    },
     reason = reason,
     mode = M.normalize_mode(mode_raw),
     modeRaw = mode_raw,
@@ -136,7 +147,8 @@ function M.snapshot(reason)
       line = cursor[1],
       byteColumn = cursor[2],
       characterColumn = character_column(line, cursor[2]),
-      virtualColumn = vim.fn.virtcol(".") - 1,
+      virtualColumn = virtual_column,
+      preferredVirtualColumn = preferred_virtual_column,
     },
     lineText = line,
     tabstop = vim.bo[buf].tabstop,

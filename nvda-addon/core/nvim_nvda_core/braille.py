@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 try:
     from .text import InvalidByteColumn, cursor_text
@@ -32,6 +32,10 @@ _FILE_MANAGER_KIND_NAMES = {
 }
 
 
+def _identity(message: str) -> str:
+    return message
+
+
 def _file_manager_location(manager: dict[str, Any]) -> str | None:
     value = manager.get("currentDirectory")
     if not isinstance(value, str) or not value:
@@ -50,9 +54,12 @@ def _unique_name_start(line: str, name: str) -> int | None:
     return start
 
 
-def _file_manager_context_plan(manager: dict[str, Any]) -> BraillePlan:
+def _file_manager_context_plan(
+    manager: dict[str, Any],
+    translate: Callable[[str], str],
+) -> BraillePlan:
     name = manager.get("name")
-    parts = [name] if isinstance(name, str) and name else ["file manager"]
+    parts = [name] if isinstance(name, str) and name else [translate("file manager")]
     location = _file_manager_location(manager)
     if location:
         parts.append(location)
@@ -63,21 +70,25 @@ def _file_manager_context_plan(manager: dict[str, Any]) -> BraillePlan:
     )
 
 
-def _file_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
+def _file_manager_plan(
+    state: dict[str, Any],
+    translate: Callable[[str], str],
+) -> BraillePlan | None:
     manager = state.get("fileManager")
     if not isinstance(manager, dict):
         return None
     entry = manager.get("entry")
     if not isinstance(entry, dict):
-        return _file_manager_context_plan(manager)
+        return _file_manager_context_plan(manager, translate)
 
     name = entry.get("name")
     if not isinstance(name, str) or not name:
-        return _file_manager_context_plan(manager)
+        return _file_manager_context_plan(manager, translate)
     parts = [name]
     entry_type = entry.get("type")
     if isinstance(entry_type, str) and entry_type:
-        parts.append(_FILE_MANAGER_KIND_NAMES.get(entry_type, entry_type))
+        kind_name = _FILE_MANAGER_KIND_NAMES.get(entry_type)
+        parts.append(translate(kind_name) if kind_name else entry_type)
     selection_state = entry.get("selectionState")
     clipboard_state = entry.get("clipboardState")
     if selection_state == "marked" or (
@@ -85,15 +96,15 @@ def _file_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
         and entry.get("marked") is True
         and clipboard_state not in {"copied", "cut", "none"}
     ):
-        parts.append("marked")
+        parts.append(translate("marked"))
     if clipboard_state == "copied":
-        parts.append("copied")
+        parts.append(translate("copied"))
     elif clipboard_state == "cut":
-        parts.append("cut")
+        parts.append(translate("cut"))
     if entry.get("expanded") is True:
-        parts.append("expanded")
+        parts.append(translate("expanded"))
     elif entry.get("expanded") is False:
-        parts.append("collapsed")
+        parts.append(translate("collapsed"))
     text = ", ".join(parts)
 
     line = state.get("lineText")
@@ -136,8 +147,13 @@ def _expand_tabs(text: str, tabstop: int) -> tuple[str, list[int]]:
     return "".join(output), offsets
 
 
-def plan_braille(state: dict[str, Any]) -> BraillePlan:
-    file_manager_plan = _file_manager_plan(state)
+def plan_braille(
+    state: dict[str, Any],
+    *,
+    translate: Callable[[str], str] | None = None,
+) -> BraillePlan:
+    translate = translate or _identity
+    file_manager_plan = _file_manager_plan(state, translate)
     if file_manager_plan is not None:
         return file_manager_plan
     line = state.get("lineText", "")
@@ -191,7 +207,52 @@ def plan_braille(state: dict[str, Any]) -> BraillePlan:
                 cursor = None
         except (KeyError, TypeError, InvalidByteColumn):
             selection_start = selection_end = None
+    if state.get("brailleCursorVisible") is False:
+        cursor = None
+    insert_mode = (
+        state.get("mode") == "insert"
+        or str(state.get("modeRaw", "")).startswith("i")
+    )
+    if insert_mode or not expanded:
+        # An Insert-mode cursor may sit after the final character. Liblouis can
+        # only render dots 7+8 on an existing cell, so expose one virtual blank
+        # whose source mapping resolves to the UTF-8 end of the unchanged line.
+        # An empty Normal-mode line also needs one cursor-bearing cell. Without
+        # it, NVDA cannot focus this region and leaves its preceding terminal
+        # context (for example "Windows PowerShell") at the display start.
+        expanded += " "
     return BraillePlan(expanded, cursor, selection_start, selection_end, tuple(offsets))
+
+
+def plan_command_line_braille(state: dict[str, Any]) -> BraillePlan:
+    """Plan the structured command line, keeping its prompt cells non-routable."""
+    command_line = state.get("commandLine")
+    command_line = command_line if isinstance(command_line, str) else ""
+    command_type = state.get("commandLineType")
+    command_type = command_type if isinstance(command_type, str) else ""
+    byte_position = state.get("commandLinePosition")
+    try:
+        character_position = cursor_text(command_line, byte_position).character_column
+    except (InvalidByteColumn, TypeError):
+        character_position = 0
+
+    byte_offsets = [0]
+    for character in command_line:
+        byte_offsets.append(byte_offsets[-1] + len(character.encode("utf-8")))
+    routing = (
+        tuple(None for _ in command_type)
+        + tuple(byte_offsets[index] for index in range(len(command_line)))
+        + (byte_offsets[-1],)
+    )
+    text = command_type + command_line + " "
+    return BraillePlan(
+        text,
+        len(command_type) + character_position,
+        None,
+        None,
+        tuple(range(len(text) + 1)),
+        routing,
+    )
 
 
 def source_offset_for_expanded(plan: BraillePlan, expanded_offset: int) -> int:

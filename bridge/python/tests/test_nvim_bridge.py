@@ -35,6 +35,164 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_cursor_routing_uses_only_fixed_validated_plugin_entry_point(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+			},
+		)()
+		payload = {
+			"target": "editor",
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"byteColumn": 4,
+			"changedtick": 5,
+			"modeRaw": "i",
+		}
+		bridge._on_client_control("routeCursor", payload)
+		bridge._on_client_control("routeCursor", {**payload, "modeRaw": "c"})
+		self.assertEqual(1, len(notifications))
+		self.assertEqual("nvim_exec_lua", notifications[0][0])
+		self.assertIn("request_route_cursor", notifications[0][1][0])
+		self.assertEqual([payload], notifications[0][1][1])
+
+	def test_braille_line_navigation_uses_only_fixed_capability_gated_entry_point(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["brailleLineNavigation"]}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+			},
+		)()
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"changedtick": 4,
+			"modeRaw": "n",
+			"direction": "next",
+			"targetColumn": "preferred",
+			"preferredVirtualColumn": 79,
+		}
+		bridge._on_client_control("moveBrailleLine", payload)
+		bridge._on_client_control("moveBrailleLine", {**payload, "modeRaw": "c"})
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_client_control("moveBrailleLine", payload)
+		self.assertEqual(1, len(notifications))
+		self.assertEqual("nvim_exec_lua", notifications[0][0])
+		self.assertIn("request_move_braille_line", notifications[0][1][0])
+		self.assertEqual([payload], notifications[0][1][1])
+
+	def test_repeated_braille_routing_uses_only_fixed_capability_gated_entry_point(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["brailleRoutingActions"]}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+			},
+		)()
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"byteColumn": 4,
+			"changedtick": 5,
+			"modeRaw": "n",
+			"action": "deleteLine",
+			"lineStart": "routing",
+		}
+		bridge._on_client_control("brailleRouteAction", payload)
+		bridge._on_client_control("brailleRouteAction", {**payload, "action": "dd"})
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_client_control("brailleRouteAction", payload)
+		self.assertEqual(1, len(notifications))
+		self.assertEqual("nvim_exec_lua", notifications[0][0])
+		self.assertIn("request_braille_route_action", notifications[0][1][0])
+		self.assertEqual([payload], notifications[0][1][1])
+
+	def test_braille_exploration_uses_separate_fixed_capability_gated_entry_points(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["brailleExploration"]}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+			},
+		)()
+		payload = {
+			"requestId": 1,
+			"explorationId": 2,
+			"actionIndex": 1,
+			"action": "lineDown",
+			"count": 1,
+			"bufferId": 3,
+			"windowId": 4,
+			"tabpageId": 5,
+			"changedtick": 6,
+			"modeRaw": "n",
+			"cursorLine": 7,
+			"cursorByteColumn": 0,
+			"cursorVirtualColumn": 0,
+			"desiredVirtualColumn": 79,
+			"targetColumn": "preferred",
+		}
+		bridge._on_client_control("brailleExploreLineRequest", payload)
+		bridge._on_client_control(
+			"endBrailleExplorationRequest",
+			{"requestId": 2, "explorationId": 2},
+		)
+		bridge._on_client_control("brailleExploreLineRequest", {**payload, "action": "wordNext"})
+		bridge._state = {"pluginCapabilities": ["exploration"]}
+		bridge._on_client_control("brailleExploreLineRequest", payload)
+		self.assertEqual(2, len(notifications))
+		self.assertIn("request_braille_explore_line", notifications[0][1][0])
+		self.assertIn("request_end_braille_exploration", notifications[1][1][0])
+
+	def test_bridge_publishes_braille_exploration_once_but_never_caches_it(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {}
+		bridge.transport = transport
+		result = {
+			"mode": "normal",
+			"requestId": 1,
+			"explorationId": 2,
+			"actionIndex": 1,
+			"action": "lineDown",
+			"unit": "line",
+			"ok": True,
+			"resultCode": "moved",
+			"text": "virtual line",
+			"line": 2,
+			"byteColumn": 0,
+			"characterColumn": 0,
+			"virtualColumn": 0,
+			"atOrigin": False,
+		}
+		bridge._on_nvim_event("brailleExploreLineResult", result)
+		self.assertEqual("virtual line", transport.events[-1]["payload"]["text"])
+		self.assertNotIn("text", bridge.full_state())
+		self.assertNotIn("explorationId", bridge.full_state())
+		bridge._on_nvim_event("brailleExploreLineResult", {**result, "unit": "word"})
+		self.assertEqual(1, len(transport.events))
+
 	def test_clipboard_control_uses_only_fixed_plugin_entry_points(self) -> None:
 		notifications = []
 		bridge = Bridge.__new__(Bridge)
@@ -172,6 +330,48 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertNotIn("explorationId", bridge.full_state())
 		bridge._on_nvim_event("exploreTextResult", {**result, "action": "arbitrary"})
 		self.assertEqual(1, len(transport.events))
+
+	def test_bridge_accepts_only_the_exact_active_numbered_choice(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["numberedChoices"]}
+		bridge.transport = RecordingTransport()
+		bridge._active_numbered_choice = {
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"items": ["misspelled", "misapplied"],
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
+			},
+		)()
+		request = {
+			"requestId": 8,
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"itemIndex": 1,
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+
+		bridge._on_client_control("acceptNumberedChoiceRequest", request)
+		bridge._on_client_control(
+			"acceptNumberedChoiceRequest",
+			{**request, "windowId": 9},
+		)
+		self.assertEqual([("nvim_input", ("2\r",))], notifications)
+		bridge._on_nvim_connection("disconnected")
+		self.assertIsNone(bridge._active_numbered_choice)
 
 	def test_real_tui_f12_claim_preserves_normal_and_insert_input(self) -> None:
 		root = pathlib.Path.cwd()
@@ -1088,6 +1288,95 @@ class NvimBridgeTests(unittest.TestCase):
 				if process.isalive():
 					process.terminate(force=True)
 
+	def test_real_tui_spell_choices_are_structured_and_accept_the_native_index(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n",
+					"-u",
+					"NONE",
+					"-i",
+					"NONE",
+					"--noplugin",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"execute 'set runtimepath={root / 'neovim-plugin'},' . $VIMRUNTIME",
+					"--cmd",
+					"runtime plugin/nvim_nvda.lua",
+					"--listen",
+					nvim_socket,
+				],
+				env={
+					**os.environ,
+					"TERM": "xterm-256color",
+					"XDG_DATA_HOME": os.path.join(directory, "data"),
+					"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+					"XDG_STATE_HOME": os.path.join(directory, "state"),
+					"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+				},
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.opt.spelllang='en_us'; vim.wo.spell=true; "
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'mispelled'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,0})",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(e["payload"].get("lineText") == "mispelled" for e in events),
+				)
+				process.send(b"z=")
+				self._wait(
+					condition,
+					lambda: any(e["type"] == "numberedChoiceOpened" for e in events),
+				)
+				opened = next(e for e in reversed(events) if e["type"] == "numberedChoiceOpened")
+				payload = opened["payload"]
+				self.assertEqual("spellSuggestions", payload["choiceKind"])
+				self.assertGreater(len(payload["items"]), 1)
+				self.assertTrue(all(item and not item[:1].isdigit() for item in payload["items"]))
+				request = {
+					"requestId": 1,
+					"choiceKind": payload["choiceKind"],
+					"choiceId": payload["choiceId"],
+					"itemIndex": 0,
+					"bufferId": payload["bufferId"],
+					"windowId": payload["windowId"],
+					"tabpageId": payload["tabpageId"],
+					"changedtick": payload["changedtick"],
+				}
+				bridge._on_client_control("acceptNumberedChoiceRequest", request)
+				self._wait(
+					condition,
+					lambda: any(e["payload"].get("lineText") == payload["items"][0] for e in events),
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "numberedChoiceClosed"
+						and e["payload"].get("choiceId") == payload["choiceId"]
+						for e in events
+					),
+				)
+				self.assertNotIn("items", bridge.full_state())
+			finally:
+				bridge.stop()
+				process.terminate(force=True)
+
 	def test_real_tui_terminal_control_and_process_exit_are_structured(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
@@ -1330,6 +1619,104 @@ class NvimBridgeTests(unittest.TestCase):
 				if process.isalive():
 					process.terminate(force=True)
 
+	def test_cursor_routing_publishes_immediately_in_insert_and_command_line_modes(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			process = self._start_nvim(root, nvim_socket)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "n" for e in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'a界z'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,0}); vim.api.nvim_input('i')",
+					[],
+				)
+				self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "i" for e in events))
+				insert_state = next(
+					e["payload"] for e in reversed(events) if e["payload"].get("modeRaw") == "i"
+				)
+				bridge._on_client_control(
+					"routeCursor",
+					{
+						"target": "editor",
+						"bufferId": insert_state["bufferId"],
+						"windowId": insert_state["windowId"],
+						"line": 1,
+						"byteColumn": 5,
+						"changedtick": insert_state["changedtick"],
+						"modeRaw": "i",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "cursorMoved"
+						and e["payload"].get("reason") == "brailleRoute"
+						and e["payload"].get("modeRaw") == "i"
+						and e["payload"].get("cursor", {}).get("byteColumn") == 5
+						for e in events
+					),
+				)
+				self._wait_cursor(nvim_socket, 6)
+
+				bridge.nvim.notify("nvim_input", "\x1b:a界z")
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw", "").startswith("c")
+						and e["payload"].get("commandLine") == "a界z"
+						for e in events
+					),
+				)
+				command_state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("modeRaw", "").startswith("c")
+					and e["payload"].get("commandLine") == "a界z"
+				)
+				route_event_start = len(events)
+				bridge._on_client_control(
+					"routeCursor",
+					{
+						"target": "commandLine",
+						"bufferId": command_state["bufferId"],
+						"windowId": command_state["windowId"],
+						"byteColumn": 5,
+						"changedtick": command_state["changedtick"],
+						"modeRaw": command_state["modeRaw"],
+						"commandLine": "a界z",
+						"commandLineType": ":",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "commandLineChanged"
+						and e["payload"].get("reason") == "brailleRoute"
+						and e["payload"].get("commandLinePosition") == 5
+						for e in events
+					),
+				)
+				self.assertTrue(
+					all(
+						e["payload"].get("commandLine") == "a界z"
+						for e in events[route_event_start:]
+						if e["type"] == "commandLineChanged"
+					),
+					"routing must not publish transient command-line text",
+				)
+				bridge.nvim.notify("nvim_input", "\x1b")
+			finally:
+				bridge.stop()
+				if process.poll() is None:
+					process.terminate()
+					process.wait(timeout=2)
+
 	def test_neovim_restart_reconnects_and_pushes_full_state(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
@@ -1354,11 +1741,13 @@ class NvimBridgeTests(unittest.TestCase):
 				bridge._on_client_control(
 					"routeCursor",
 					{
+						"target": "editor",
 						"bufferId": routed_state["bufferId"],
 						"windowId": routed_state["windowId"],
 						"line": 1,
 						"byteColumn": 1,
 						"changedtick": routed_state["changedtick"],
+						"modeRaw": routed_state["modeRaw"],
 					},
 				)
 				self._wait_cursor(nvim_socket, 2)
@@ -1552,6 +1941,441 @@ class NvimBridgeTests(unittest.TestCase):
 					restarted.terminate()
 					restarted.wait(timeout=2)
 				elif process.poll() is None:
+					process.terminate()
+					process.wait(timeout=2)
+
+	def test_braille_line_navigation_preserves_insert_virtual_column(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			process = self._start_nvim(root, nvim_socket)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "n" for e in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'0123456789','x','abcdefghij'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,7}); vim.api.nvim_input('i')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "i" and e["payload"].get("cursor", {}).get("line") == 1
+						for e in events
+					),
+				)
+				insert_state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("modeRaw") == "i" and e["payload"].get("cursor", {}).get("line") == 1
+				)
+				bridge._on_client_control(
+					"routeCursor",
+					{
+						"target": "editor",
+						"bufferId": insert_state["bufferId"],
+						"windowId": insert_state["windowId"],
+						"line": 1,
+						"byteColumn": 7,
+						"changedtick": insert_state["changedtick"],
+						"modeRaw": "i",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "cursorMoved"
+						and e["payload"].get("reason") == "brailleRoute"
+						and e["payload"].get("cursor", {}).get("preferredVirtualColumn") == 7
+						for e in events
+					),
+				)
+				routed = next(
+					e["payload"] for e in reversed(events) if e["payload"].get("reason") == "brailleRoute"
+				)
+				bridge._on_client_control(
+					"moveBrailleLine",
+					{
+						"bufferId": routed["bufferId"],
+						"windowId": routed["windowId"],
+						"line": 1,
+						"changedtick": routed["changedtick"],
+						"modeRaw": "i",
+						"direction": "next",
+						"targetColumn": "preferred",
+						"preferredVirtualColumn": 7,
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("reason") == "brailleLineNavigation"
+						and e["payload"].get("cursor", {}).get("line") == 2
+						for e in events
+					),
+				)
+				short_line = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("reason") == "brailleLineNavigation"
+					and e["payload"].get("cursor", {}).get("line") == 2
+				)
+				self.assertEqual(1, short_line["cursor"]["byteColumn"])
+				self.assertEqual(7, short_line["cursor"]["preferredVirtualColumn"])
+				bridge._on_client_control(
+					"moveBrailleLine",
+					{
+						"bufferId": short_line["bufferId"],
+						"windowId": short_line["windowId"],
+						"line": 2,
+						"changedtick": short_line["changedtick"],
+						"modeRaw": "i",
+						"direction": "next",
+						"targetColumn": "preferred",
+						"preferredVirtualColumn": 7,
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("reason") == "brailleLineNavigation"
+						and e["payload"].get("cursor", {}).get("line") == 3
+						for e in events
+					),
+				)
+				long_line = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("reason") == "brailleLineNavigation"
+					and e["payload"].get("cursor", {}).get("line") == 3
+				)
+				self.assertEqual(7, long_line["cursor"]["byteColumn"])
+				self.assertEqual(7, long_line["cursor"]["preferredVirtualColumn"])
+			finally:
+				bridge.stop()
+				if process.poll() is None:
+					process.terminate()
+					process.wait(timeout=2)
+
+	def test_repeated_braille_routing_actions_preserve_insert_and_line_semantics(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			process = self._start_nvim(root, nvim_socket)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "n" for e in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'alpha beta'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,6}); vim.api.nvim_input('i')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "i"
+						and e["payload"].get("lineText") == "alpha beta"
+						and e["payload"].get("cursor", {}).get("byteColumn") == 6
+						for e in events
+					),
+				)
+				insert_state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("modeRaw") == "i" and e["payload"].get("lineText") == "alpha beta"
+				)
+				bridge._on_client_control(
+					"brailleRouteAction",
+					{
+						"bufferId": insert_state["bufferId"],
+						"windowId": insert_state["windowId"],
+						"line": 1,
+						"byteColumn": 6,
+						"changedtick": insert_state["changedtick"],
+						"modeRaw": "i",
+						"action": "deleteWord",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "i"
+						and e["payload"].get("lineText") == "alpha "
+						and e["payload"].get("cursor", {}).get("byteColumn") == 6
+						for e in events
+					),
+				)
+
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_input(vim.api.nvim_replace_termcodes('<Esc>',true,false,true))",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "n" and e["payload"].get("lineText") == "alpha "
+						for e in events
+					),
+				)
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'  alpha beta'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,8})",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "n"
+						and e["payload"].get("lineText") == "  alpha beta"
+						and e["payload"].get("cursor", {}).get("byteColumn") == 8
+						for e in events
+					),
+				)
+				normal_state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("modeRaw") == "n"
+					and e["payload"].get("lineText") == "  alpha beta"
+					and e["payload"].get("cursor", {}).get("byteColumn") == 8
+				)
+				bridge._on_client_control(
+					"brailleRouteAction",
+					{
+						"bufferId": normal_state["bufferId"],
+						"windowId": normal_state["windowId"],
+						"line": 1,
+						"byteColumn": 8,
+						"changedtick": normal_state["changedtick"],
+						"modeRaw": "n",
+						"action": "changeLine",
+						"lineStart": "indentation",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "i"
+						and e["payload"].get("lineText") == "  "
+						and e["payload"].get("cursor", {}).get("byteColumn") == 2
+						for e in events
+					),
+				)
+			finally:
+				bridge.stop()
+				if process.poll() is None:
+					process.terminate()
+					process.wait(timeout=2)
+
+	def test_braille_exploration_is_read_only_in_insert_and_independent(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			process = self._start_nvim(root, nvim_socket)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(e["payload"].get("modeRaw") == "n" for e in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'0123456789','x','abcdefghij'}); "
+					"vim.api.nvim_win_set_cursor(0,{1,7}); vim.api.nvim_input('i')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("modeRaw") == "i"
+						and e["payload"].get("cursor", {}).get("line") == 1
+						and e["payload"].get("cursor", {}).get("byteColumn") == 7
+						for e in events
+					),
+				)
+				state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("modeRaw") == "i"
+					and e["payload"].get("cursor", {}).get("line") == 1
+					and e["payload"].get("cursor", {}).get("byteColumn") == 7
+				)
+				origin = {
+					"bufferId": state["bufferId"],
+					"windowId": state["windowId"],
+					"tabpageId": state["tabpageId"],
+					"changedtick": state["changedtick"],
+					"modeRaw": "i",
+					"cursorLine": 1,
+					"cursorByteColumn": 7,
+					"cursorVirtualColumn": 7,
+				}
+				bridge._on_client_control(
+					"brailleExploreLineRequest",
+					{
+						**origin,
+						"requestId": 101,
+						"explorationId": 201,
+						"actionIndex": 1,
+						"action": "lineDown",
+						"count": 1,
+						"desiredVirtualColumn": 7,
+						"targetColumn": "preferred",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 101
+						for e in events
+					),
+				)
+				short_line = next(
+					e["payload"]
+					for e in events
+					if e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 101
+				)
+				self.assertEqual(
+					("line", "x", 2, 1, 1),
+					(
+						short_line["unit"],
+						short_line["text"],
+						short_line["line"],
+						short_line["byteColumn"],
+						short_line["virtualColumn"],
+					),
+				)
+
+				bridge._on_client_control(
+					"exploreTextRequest",
+					{
+						**origin,
+						"requestId": 102,
+						"explorationId": 301,
+						"actionIndex": 1,
+						"action": "characterLeft",
+						"count": 1,
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "exploreTextResult" and e["payload"].get("requestId") == 102
+						for e in events
+					),
+				)
+
+				bridge._on_client_control(
+					"brailleExploreLineRequest",
+					{
+						**origin,
+						"requestId": 103,
+						"explorationId": 201,
+						"actionIndex": 2,
+						"action": "lineDown",
+						"count": 1,
+						"desiredVirtualColumn": 7,
+						"targetColumn": "preferred",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 103
+						for e in events
+					),
+				)
+				long_line = next(
+					e["payload"]
+					for e in events
+					if e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 103
+				)
+				self.assertEqual(
+					("line", "abcdefghij", 3, 7, 7),
+					(
+						long_line["unit"],
+						long_line["text"],
+						long_line["line"],
+						long_line["byteColumn"],
+						long_line["virtualColumn"],
+					),
+				)
+				self.assertEqual(
+					(1, 7, "i"),
+					(
+						long_line["cursor"]["line"],
+						long_line["cursor"]["byteColumn"],
+						long_line["modeRaw"],
+					),
+				)
+				self.assertFalse(
+					any(
+						e["type"] == "cursorMoved" and e["payload"].get("cursor", {}).get("line") != 1
+						for e in events
+					)
+				)
+
+				bridge.nvim.notify("nvim_input", "Z")
+				self._wait(
+					condition,
+					lambda: any(
+						e["payload"].get("changedtick", 0) > origin["changedtick"]
+						and e["payload"].get("cursor", {}).get("line") == 1
+						for e in events
+					),
+				)
+				typed_state = next(
+					e["payload"]
+					for e in reversed(events)
+					if e["payload"].get("changedtick", 0) > origin["changedtick"]
+					and e["payload"].get("cursor", {}).get("line") == 1
+				)
+				bridge._on_client_control(
+					"brailleExploreLineRequest",
+					{
+						**origin,
+						"changedtick": typed_state["changedtick"],
+						"requestId": 104,
+						"explorationId": 201,
+						"actionIndex": 3,
+						"action": "lineUp",
+						"count": 1,
+						"desiredVirtualColumn": 7,
+						"targetColumn": "preferred",
+					},
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 104
+						for e in events
+					),
+				)
+				after_typing = next(
+					e["payload"]
+					for e in events
+					if e["type"] == "brailleExploreLineResult" and e["payload"].get("requestId") == 104
+				)
+				self.assertEqual(
+					("x", 2, typed_state["changedtick"]),
+					(
+						after_typing["text"],
+						after_typing["line"],
+						after_typing["changedtick"],
+					),
+				)
+			finally:
+				bridge.stop()
+				if process.poll() is None:
 					process.terminate()
 					process.wait(timeout=2)
 

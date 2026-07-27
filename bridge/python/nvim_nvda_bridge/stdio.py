@@ -18,6 +18,11 @@ from nvim_nvda_protocol import (
 	valid_leave_terminal_input_request,
 	valid_end_exploration_request,
 	valid_explore_text_request,
+	valid_accept_numbered_choice_request,
+	valid_braille_explore_line_request,
+	valid_braille_route_action_request,
+	valid_end_braille_exploration_request,
+	valid_move_braille_line_request,
 )
 
 
@@ -133,6 +138,18 @@ class StdioTransport:
 							self.publish("focusContext", state)
 					elif kind == "routeCursor":
 						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "brailleRouteAction"
+						and valid_braille_route_action_request(control.get("payload"))
+						and self._supports_plugin_capability("brailleRoutingActions")
+					):
+						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "moveBrailleLine"
+						and valid_move_braille_line_request(control.get("payload"))
+						and self._supports_plugin_capability("brailleLineNavigation")
+					):
+						self.on_control(kind, dict(control["payload"]))
 					elif kind == "copyTextRequest" and valid_copy_text_request(control.get("payload")):
 						self.on_control(kind, dict(control["payload"]))
 					elif kind == "pasteTextRequest" and valid_paste_text_request(control.get("payload")):
@@ -155,6 +172,24 @@ class StdioTransport:
 						and self._supports_plugin_capability("exploration")
 					):
 						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "brailleExploreLineRequest"
+						and valid_braille_explore_line_request(control.get("payload"))
+						and self._supports_plugin_capability("brailleExploration")
+					):
+						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "endBrailleExplorationRequest"
+						and valid_end_braille_exploration_request(control.get("payload"))
+						and self._supports_plugin_capability("brailleExploration")
+					):
+						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "acceptNumberedChoiceRequest"
+						and valid_accept_numbered_choice_request(control.get("payload"))
+						and self._supports_plugin_capability("numberedChoices")
+					):
+						self.on_control(kind, dict(control["payload"]))
 		except (OSError, ProtocolError):
 			pass
 		finally:
@@ -171,6 +206,14 @@ class StdioTransport:
 		capabilities = list(self.capabilities)
 		if self._payload_supports(result, "exploration"):
 			capabilities.append("exploration")
+		if self._payload_supports(result, "numberedChoices"):
+			capabilities.append("numberedChoices")
+		if self._payload_supports(result, "brailleLineNavigation"):
+			capabilities.append("brailleLineNavigation")
+		if self._payload_supports(result, "brailleExploration"):
+			capabilities.append("brailleExploration")
+		if self._payload_supports(result, "brailleRoutingActions"):
+			capabilities.append("brailleRoutingActions")
 		result["_transport"] = {"capabilities": capabilities, "kind": "ssh-stdio"}
 		return result
 

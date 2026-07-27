@@ -1,12 +1,12 @@
 # Current status
 
-Status date: July 23, 2026. Product version in the source tree: 0.95.2.
+Status date: July 27, 2026. Product version in the source tree: 0.96.0.
 
-The source tree is prepared for version 0.95.2. Its GitHub release link and
+The source tree is prepared for version 0.96.0. Its GitHub release link and
 version-specific English and German changelog links are kept prominently in
-`README.md`. Project-defined maturity remains between alpha and beta. This
-documentation does not infer a higher stability classification from test
-coverage, version number, or feature count.
+`README.md`. Project-defined maturity is beta. This documentation does not
+infer a higher stability classification from test coverage, version number, or
+feature count.
 
 Verification is risk-based and best-effort, not exhaustive. Automated suites
 and practical reference workflows cannot anticipate every combination of NVDA,
@@ -179,14 +179,15 @@ See `compatibility.md` for complete platform boundaries.
   publication; neither that registry module nor the Braille module imports the
   Global Plugin.
 - The final V2-6 structural audit removes the remaining test-only runtime
-  factory and adds package-level dependency checks. The composition root is
-  2,499 lines with 112 methods and exactly two properties: the frequently used
-  gate and instance-manager composition views. No AppModule event entry point
-  remains there, and none of the extracted runtime or NVDA-edge services
+  factory and adds package-level dependency checks. The composition root keeps
+  exactly two frequently used gate and instance-manager composition views. No
+  AppModule event entry point remains there, and none of the extracted runtime
+  or NVDA-edge services
   depends on the `GlobalPlugin` class. Further extraction is deliberately
   stopped without a demonstrated ownership, reliability, or testability gain.
   Automated V2-6 work and practical milestone 2 are complete without a newly
-  reported error. Practical Braille hardware remains unavailable.
+  reported error. The later practical `z=` suggestion-path check with one
+  physical Braille display succeeded; a broader Braille matrix remains open.
 
 ### Editor output
 
@@ -201,8 +202,61 @@ The semantic path covers, among other features:
   mode and saved connection name;
 - separate speech, sound, and persistent Braille planning.
 
-Version 0.95.2 adds contextual exploration:
-`NVDA+h/j/k/l` and `Shift+NVDA+h/l` read characters, lines, or words at an
+Persistent Braille output follows the same semantic editor source as speech
+and sound, but has separate planning. A public `braille.TextInfoRegion`
+translates the complete line. In Braille cursor mode,
+`braille.handler.handleCaretMove` reports semantic cursor movement to NVDA so
+the viewport on long lines follows NVDA's standard behavior. Empty lines and
+the insertion position after the last character remain routable,
+cursor-bearing cells.
+
+Routing works in Normal, Insert, and command-line modes. It uses NVDA's public
+`brailleToRawPos` mapping and moves the Neovim cursor only after focus,
+capability, state, mode, `changedtick`, and UTF-8 validation. Optional source
+character feedback uses `speech.speakSpelling`. Configurable double and
+triple presses can invoke fixed word or line actions; transmitted command text
+is never executed.
+
+NVDA's horizontal Braille navigation pans the viewport. Previous/next line
+uses a fixed semantic `moveBrailleLine` control and retains Neovim's preferred
+visual column. Independent Braille exploration mode instead reads lines
+without moving the real cursor. It owns separate correlation and Lua state,
+keeps its virtual line, reading column, and manually selected viewport stable
+during real cursor movement, and refreshes only affected explored content.
+On confirmed session focus, the configured focus announcement remains audible
+but does not take over the transient Braille message buffer while Braille
+exploration is active, so the restored viewport appears immediately. A
+session's selected mode and numbered native choices live in that Neovim
+instance's runtime. Concurrent local or remote sessions can therefore select
+Braille cursor or exploration mode independently. A control or application
+switch retains the virtual position, reading column, and horizontal NVDA
+viewport in the associated session runtime while discarding focus-bound input
+sequences. Returning restores that exact session view. Disconnect resets only
+the affected runtime. A
+Braille cursor appears only when it represents the one real Neovim cursor.
+Routing deliberately transfers the virtual position to the real cursor.
+Speech exploration mode remains a separate speech feature; its complete
+virtual line can optionally appear on Braille.
+
+The AppModule, overlay, core controllers, capability-negotiated protocol,
+Neovim adapter, and local and SSH transports remain separate. Every optional
+reverse control goes through the bounded `ControlDispatcher`, so no Braille
+path performs network I/O on NVDA's main thread. A full or closed queue drops
+the action fail-open. Persistent regions, routing, navigation, and exploration
+use only NVDA's public `BrailleBuffer.windowStartPos` property for viewport
+restoration and read no private driver or scroll state. The only
+Braille-specific private exception is the tightly owned lifetime of the
+transient spelling-suggestion message, justified by ADR-0002.
+
+Protocol validators, core, package contents, NVDA adapter, Lua, local and SSH
+transports, and real Neovim RPC paths are covered automatically. Routing, long
+lines, line boundaries, navigation, both Braille modes, routing actions, and
+spelling suggestions have been exercised practically with a Papenmeier
+BRAILLEX EL 80c. This proves the reference path, not every display, table,
+language, or driver combination.
+
+Contextual speech exploration mode uses `NVDA+h/j/k/l` and
+`Shift+NVDA+h/l`. These commands read characters, lines, or words at an
 ephemeral position without moving the real cursor. AppModule, protocol,
 controller, dispatcher, and Lua tests cover the path. Character, word, and
 line exploration, release feedback, origin cues, and backward word movement
@@ -211,6 +265,19 @@ detail choices for normal word/line navigation and exploration release were
 also practically exercised without an observed defect. This confirms the
 tested core path, not every possible keyboard assignment, language, or plugin
 combination.
+
+Version 0.96.0 adds accessible operation of Neovim's built-in `z=` spelling
+list. A strict Lua adapter recognizes only the proven
+native prompt, and a neutral controller owns its transient selection. `NVDA+j/k`
+cycles items, speech and Braille show the label without its number, and
+`NVDA+Enter` confirms only the validated index. Releasing NVDA discards the
+local selection while leaving Neovim's prompt open. A profile-aware one-based
+setting shifts the transient Braille message to a later cell; unavailable or
+too-far-right positions are adjusted safely. Protocol, local and SSH
+transport, real Neovim RPC, controller, AppModule, Braille planning, and built
+add-on paths have automated coverage. Practical Windows/NVDA acceptance with
+a physical Braille display succeeded; broader Braille hardware remains
+untested.
 
 See `accessibility.md` for the feature matrix and known differences.
 
@@ -253,6 +320,10 @@ saved mapping elsewhere for that run without making its execution global.
   pass translation checks.
 - The quick guide, user manual, and developer documentation are each built as
   German and English HTML.
+- The revised Braille, speech-exploration, and status text is aligned between
+  both languages. Some older English user-manual and developer chapters are
+  condensed versions and are not yet fully equivalent; their alignment is in
+  the active plan.
 
 ## Current verification evidence
 
@@ -266,6 +337,7 @@ Maintained automated checks cover:
 
 Tests include bounds, invalid UTF-8, sequence gaps, resync, late replies, focus
 changes, concurrent instances, clipboard correlation, terminal return, and
+transient numbered choices, isolated per-session Braille modes, and
 file-manager workflows.
 
 Automated tests do not replace checks in NVDA, Windows Terminal, real SSH, or
@@ -297,8 +369,11 @@ Without claiming a complete platform matrix, practical checks have confirmed:
 - An older Neovim version on Rocky Linux 9 did not connect with a current
   build. The cause and exact version boundary are uninvestigated, so no
   compatibility claim follows.
-- No physical Braille display has been tested. Automated Braille planning and
-  routing cannot exclude hardware or driver issues.
+- Routing, navigation, both Braille modes, routing actions, and the `z=`
+  suggestion path have been practically exercised in the described reference
+  workflows with a physical Braille display. More displays, drivers,
+  translation tables, and the latest edit/routing edge cases in Braille
+  exploration mode remain to be exercised practically.
 - Oil is the only file manager practically tested under Windows and NVDA.
   netrw, mini.files, nvim-tree, and Neo-tree need incremental real-world
   acceptance.

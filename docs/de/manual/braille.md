@@ -1,84 +1,358 @@
 # Braille-Unterstützung
 
-> **Wichtiger Testhinweis:** Dieser Bereich wurde noch nicht mit einer echten
-> Braillezeile geprüft und enthält sehr wahrscheinlich Fehler. Die folgenden
-> Abschnitte beschreiben das beabsichtigte und automatisiert geprüfte Modell,
-> keine belastbar bestätigte Hardwareunterstützung. Praktische Brailletests und
-> Korrekturen sind ein wichtiges priorisiertes TODO.
+Nach dem Verbinden zeigt Neovim Access Link die aktuelle Neovim-Zeile auf der
+Braillezeile an. Die Brailleübersetzung, der Brailletreiber und die Darstellung
+des Cursors werden weiterhin in NVDA eingestellt.
 
-Neovim Access Link zeigt die aktuelle Neovim-Zeile über NVDAs normale
-Brailleverarbeitung an. Dadurch gelten weiterhin die in NVDA ausgewählte
-Übersetzungstabelle, Cursorform, Wortumbruch- und Anzeigeeinstellungen.
+Die Funktionen wurden praktisch mit einer Papenmeier BRAILLEX EL 80c mit
+80 Braillemodulen getestet. Sie verwenden NVDAs normale Brailletreiber- und
+Navigationsbefehle und sind nicht auf dieses Modell beschränkt; andere von
+NVDA unterstützte Braillezeilen sollten entsprechend funktionieren.
 
-## Angezeigte Informationen
+Die Anzeige enthält nur die für die Arbeit in Neovim wichtigen Informationen.
+Bezeichnungen von Windows Terminal wie „Windows PowerShell“, Statuszeilen und
+Inhalte anderer Terminalbereiche werden nicht vor den Editortext gesetzt.
 
-Die Braillezeile enthält:
+## Was auf der Braillezeile erscheint
 
-- den strukturierten Text der aktuellen Neovim-Zeile,
+Im Editor zeigt die Braillezeile:
+
+- den Text der aktuellen Zeile,
 - die Cursorposition,
-- den auf der aktuellen Zeile liegenden Teil einer Visual-Auswahl,
-- führende und innere Einrückung,
-- kurze Meldungen zu Menüs und Diagnosen,
-- in Dateimanagern dauerhaft den semantischen Namen, Typ und Zustand des
-  aktuellen Eintrags statt der dekorierten Pluginzeile.
+- eine Visual-Auswahl auf der aktuellen Zeile,
+- Tabulatoren, die nach Neovims `tabstop`-Wert in Leerzellen aufgelöst werden,
+- Einrückung,
+- vorübergehende Meldungen, beispielsweise einen Rechtschreibvorschlag.
 
-Editorstatuszeile, tmux-Statuszeile und andere sichtbare Terminalbestandteile
-werden nicht in die strukturierte Braillezeile übernommen.
+In unterstützten Dateimanagern erscheinen statt dekorierter Pluginzeilen der
+Name, der Typ und der Zustand des aktuellen Eintrags. Weitere Informationen
+dazu stehen im Kapitel
+[Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md).
 
-## Tabs und Einrückung
+NVDA sollte für die normale Editoranzeige auf „Cursor verfolgen“ eingestellt
+sein. Bei „Sprachausgabe anzeigen“ gibt die Braillezeile wie von NVDA
+vorgesehen die gesprochene Ausgabe wieder und folgt nicht dauerhaft der
+Editorzeile.
 
-Neovim übermittelt den bufferlokalen Wert von `tabstop`. Das Add-on expandiert
-Tabulatoren für die Brailledarstellung bis zum richtigen Tabstopp. Cursor und
-Auswahl bleiben dadurch auch bei gemischten Tabs und Leerzeichen an der
-passenden Textposition.
+Bewegt sich der Neovim-Cursor außerhalb des gerade sichtbaren Ausschnitts,
+schiebt NVDA die Brailleanzeige automatisch nach. Das gilt auch beim Schreiben
+einer langen Zeile im Insert-Modus und beim Bewegen des Cursors in der
+Neovim-Befehlszeile. Ein zuvor mit Links oder Rechts gewählter Ausschnitt bleibt
+erhalten, solange der Cursor darin sichtbar ist.
 
-Die Art zusätzlicher Einrückungsmeldungen richtet sich nach NVDAs Einstellungen
-für Zeileneinrückung. Sprachansage und Einrückungstöne können unabhängig von
-der Brailledarstellung konfiguriert werden.
+## Braille-Einstellungen des Add-ons
+
+Neovim Access Link besitzt im Einstellungsdialog eine eigene Registerkarte
+`Braille`. Dort stehen ausschließlich Einstellungen, die das Add-on selbst
+ergänzt:
+
+| Einstellung | Standard | Bedeutung |
+| --- | --- | --- |
+| Braillezeile folgt der Position des Sprachexplorationsmodus | Ein | Zeigt die virtuelle Sprachposition vorübergehend auch auf Braille. |
+| Doppelte Routingbetätigung auf einem Wort | Nur Cursor setzen | Kann wahlweise `cw` oder `dw` ausführen. |
+| Dreifache Routingbetätigung auf einer Zeile | Nur Cursor setzen | Kann wahlweise `c$` oder `d$` ausführen. |
+| Start der dreifachen Zeilenaktion | Routingposition | Beginnt an der Routingtaste, an der Einrückung oder am absoluten Zeilenanfang. |
+| Rechtschreibvorschläge ab Braillemodul anzeigen | 1 | Verschiebt nur den vorübergehenden Rechtschreibvorschlag. |
+
+Brailleübersetzung, Treiber, Cursorform, Auswahlmarkierung und das Ansagen des
+Zeichens beim Routing bleiben normale NVDA-Einstellungen. Eine ausführliche
+Beschreibung aller Auswahlwerte steht unter
+[Einstellungen des NVDA-Add-ons](settings.md#registerkarte-braille).
+
+## Cursor mit Routingtasten versetzen
+
+Eine Routingtaste über einem Zeichen setzt den Neovim-Cursor auf dieses
+Zeichen. Das funktioniert im Normal-, Insert- und Befehlszeilenmodus.
+
+Wenn NVDA unter `Optionen → Einstellungen → Braille` die Option
+„Zeichen beim Cursor-Routing in Text sprechen“ aktiviert hat, wird das
+erreichte Zeichen angesagt.
+
+Die Position hinter dem letzten Zeichen hängt vom Neovim-Modus ab:
+
+- **Insert-Modus:** Hinter dem letzten Zeichen befindet sich eine zusätzliche
+  leere Braillezelle. Ihre Routingtaste setzt die Einfügeposition ans
+  Zeilenende.
+- **Befehlszeilenmodus:** Auch hinter dem eingegebenen Befehl befindet sich
+  eine zusätzliche leere Zelle. Damit lässt sich der Cursor hinter das letzte
+  Zeichen setzen.
+- **Normalmodus:** Der Cursor steht auf einem vorhandenen Zeichen. Deshalb
+  gibt es hinter dem letzten Zeichen keine zusätzliche Routingposition.
+- **Leere Zeile:** Auf einer vollständig leeren Zeile ist eine einzelne
+  Cursorzelle vorhanden.
+
+Die zusätzliche Zelle im Insert- und Befehlszeilenmodus fügt kein Leerzeichen
+in den Text ein. Sie stellt nur die Position hinter dem Zeilenende dar.
+
+Routing über Tabulatoren, Umlaute, breite Zeichen und Emoji wird an die
+zugehörige Textposition weitergegeben. Ist eine angezeigte Information keine
+Textposition, bleibt ihre Routingtaste ohne Wirkung.
+
+## Warum der Cursor beim Verlassen des Insert-Modus nach links geht
+
+Beim Wechsel vom Insert- in den Normalmodus scheint der Cursor häufig ein
+Zeichen nach links zu springen. Das ist das normale Verhalten von Neovim und
+kein Fehler von Neovim Access Link.
+
+Im Insert-Modus bezeichnet der Cursor eine Einfügeposition zwischen Zeichen.
+Diese Position darf direkt hinter dem letzten Zeichen liegen:
+
+```text
+Insert-Modus: hallo|
+```
+
+Im Normalmodus bezeichnet der Cursor dagegen das Zeichen, auf das der nächste
+Befehl wirkt:
+
+```text
+Normalmodus:  hall[o]
+```
+
+Beim Drücken von `Esc` verändert Neovim den Text nicht. Es setzt den
+Normalmodus-Cursor auf das Zeichen links von der bisherigen Einfügeposition.
+Dadurch können Befehle wie `x` oder `r` auf das Zeichen unter dem Cursor
+wirken. Mit `i` wird vor diesem Zeichen und mit `a` danach eingefügt.
+
+Dasselbe gilt innerhalb einer Zeile:
+
+```text
+Insert-Modus: hal|lo
+Normalmodus:  ha[l]lo
+```
+
+Neovim Access Link zeigt in beiden Modi die tatsächliche Neovim-Position an.
+Mit `gi` kann der Insert-Modus an der zuletzt verlassenen Einfügeposition
+fortgesetzt werden.
+
+Weitere Informationen bieten die offiziellen Neovim-Hilfeseiten zu
+[Insert-Modus](https://neovim.io/doc/user/insert/) und
+[Cursorbewegungen](https://neovim.io/doc/user/motion/).
+
+## Wörter und Zeilenteile mit Routingtasten bearbeiten
+
+Eine Routingtaste kann wahlweise auch einen Neovim-Änderungs- oder
+Löschbefehl auslösen, wenn dieselbe Taste schnell zwei- oder dreimal gedrückt
+wird. Diese Bearbeitungsfunktionen sind zunächst ausgeschaltet. Eine einzelne
+Betätigung setzt deshalb immer nur den Cursor.
+
+Die Einstellungen stehen unter `NVDA-Menü → Optionen → Einstellungen →
+Neovim Access Link → Braille`:
+
+- **Doppelte Betätigung auf einem Wort:** Nur Cursor setzen, Wort ändern
+  (`cw`) oder Wort löschen (`dw`).
+- **Dreifache Betätigung auf einer Zeile:** Nur Cursor setzen, bis zum
+  Zeilenende ändern (`c$`) oder bis zum Zeilenende löschen (`d$`).
+- **Start der Zeilenaktion:** An der gewählten Routingposition, am ersten
+  Nicht-Leerzeichen oder am absoluten Zeilenanfang.
+
+„Wort ändern“ entfernt das Wort und bleibt im Insert-Modus, damit sofort
+Ersatztext eingegeben werden kann. „Wort löschen“ verwendet Neovims normales
+`dw`-Verhalten und löscht in der Regel auch den folgenden Zwischenraum.
+Die Zeilenaktionen wirken einschließlich des Zeichens an ihrer Startposition
+bis zum Zeilenende. Bei „erstes Nicht-Leerzeichen“ bleibt die Einrückung
+erhalten; bei „Zeilenanfang“ gehört auch die Einrückung zur Aktion.
+
+Die erste Betätigung setzt den Cursor sofort. Ist eine dreifache Aktion
+eingeschaltet, wartet eine konfigurierte doppelte Wortaktion kurz, damit noch
+eine dritte Betätigung erkannt werden kann. Die Wartezeit entspricht NVDAs
+Einstellung `Optionen → Einstellungen → Tastatur → Zeitüberschreitung für
+Mehrfachbetätigungen`.
+
+Alle Betätigungen müssen dieselbe Routingtaste an derselben Textposition
+treffen. Eine andere Position, eine Textänderung, ein Moduswechsel oder eine
+überschrittene Wartezeit beginnt wieder mit einer einzelnen Cursorbewegung.
+Die Bearbeitungsaktionen sind nur im Normal- und Insert-Modus verfügbar. In
+der Neovim-Befehlszeile und im direkten Eingabemodus eines eingebetteten
+Terminals bleibt es bei der normalen Cursorpositionierung.
+
+## Mit den Navigationstasten der Braillezeile navigieren
+
+Neovim Access Link verwendet die normalen Navigationsbefehle des in NVDA
+gewählten Brailletreibers. Die Tasten heißen und liegen je nach Braillezeile
+unterschiedlich. Bei einer Papenmeier BRAILLEX wird beispielsweise die
+Navigationsleiste nach links, rechts, oben oder unten gedrückt.
+
+Links und rechts verschieben das sichtbare Fenster innerhalb einer langen
+Zeile. Eine 80-modulige Braillezeile zeigt so nacheinander die weiteren Teile
+einer Zeile. Der Neovim-Cursor wird dabei nicht versetzt. Für oben und unten
+stehen zwei getrennte Navigationsmodi zur Verfügung.
+
+NVDA wechselt nach seinem üblichen Brailleverhalten auch dann zur
+vorherigen oder nächsten Zeile, wenn am Anfang beziehungsweise Ende einer
+Zeile nochmals horizontal weitergeschaltet wird. Links über den Zeilenanfang
+zeigt das Ende der vorherigen Zeile. Rechts über das Zeilenende zeigt den
+Anfang der nächsten Zeile. Kehrt man so zu einer langen Zeile zurück, beginnt
+die Anzeige deshalb am Zeilenanfang und nicht beim zuvor weitergeschalteten
+Ausschnitt. Oben und unten behalten dagegen nach Möglichkeit die bisherige
+Spalte bei.
+
+### Braille-Cursormodus: Cursor beim Lesen mitnehmen
+
+Der Braille-Cursormodus ist nach dem Verbinden aktiv:
+
+- Oben und unten setzen den Neovim-Cursor in die vorherige oder nächste
+  Zeile.
+- Neovim Access Link versucht, dieselbe sichtbare Spalte beizubehalten.
+- Ist eine Zwischenzeile kürzer, steht der Cursor dort am erreichbaren
+  Zeilenende. Auf einer späteren längeren Zeile kehrt er zur ursprünglichen
+  Spalte zurück.
+- Am Anfang oder Ende des Puffers bleibt der Cursor in der vorhandenen Zeile.
+
+Dieser Modus eignet sich zum Bearbeiten: Nach Oben oder Unten steht der echte
+Neovim-Cursor bereits in der gelesenen Zeile. Text kann dort sofort eingefügt
+oder mit einem Normalmodus-Befehl bearbeitet werden.
+
+### Braille-Explorationsmodus: Zeilen lesen, Cursor stehen lassen
+
+Im Braille-Explorationsmodus lassen sich andere Zeilen lesen, ohne den
+Neovim-Cursor zu verschieben:
+
+- Oben und unten zeigen die vorherige oder nächste Pufferzeile.
+- Die möglichst gleiche sichtbare Spalte wird beibehalten.
+- Eine Routingtaste setzt den echten Neovim-Cursor auf die gewählte Position
+  der gerade angezeigten Zeile. Der Braille-Explorationsmodus bleibt dabei
+  eingeschaltet.
+- Bewegungen des echten Cursors und Moduswechsel verändern die virtuelle
+  Brailleposition nicht. Texteingaben und Bearbeitungen auf einer anderen
+  Zeile lassen die explorierte Zeile und Lesespalte ebenfalls stehen.
+- Befindet sich der echte Cursor dagegen auf der gerade explorierten Zeile,
+  werden Änderungen dieser Zeile sofort auf der Braillezeile aktualisiert.
+  Das gilt beispielsweise nach Routing und anschließendem Ersetzen mit `r`,
+  beim Einfügen sowie beim Löschen. Sichtbar ändert sich dabei nur der gerade
+  angezeigte Ausschnitt, wenn die Bearbeitung ihn betrifft. Der echte Cursor
+  und Änderungen außerhalb des Ausschnitts holen die Brailleausgabe nicht zu
+  sich. Die virtuelle Zeilenposition und der gewählte Ausschnitt bleiben
+  erhalten.
+- Routing verwendet niemals einen älteren, nicht mehr belegten Bufferstand.
+  Hat sich der Buffer geändert, während der echte Cursor auf einer anderen
+  Zeile stand, bleibt die explorierte Anzeige zum ungestörten Lesen stehen,
+  aber ihre Routingtasten werden vorübergehend nicht ausgeführt. Mit den
+  Navigationstasten eine andere Zeile anzeigen und zur gewünschten Zeile
+  zurückkehren; danach stammt sie wieder aus dem aktuellen Bufferstand und
+  kann geroutet werden.
+- Nur die Navigationstasten der Braillezeile bewegen die virtuelle
+  Leseposition.
+- Die virtuelle Leseposition wird nicht als Braillecursor dargestellt. Der
+  echte Neovim-Cursor erscheint nur, wenn er sich tatsächlich in der gerade
+  explorierten Zeile befindet und deren angezeigter Text noch übereinstimmt.
+  Dadurch gibt es nie einen zweiten, scheinbaren Cursor.
+- Ein Buffer-, Neovim-Fenster- oder Neovim-Tabwechsel innerhalb derselben
+  Sitzung verwirft die bisherige virtuelle Position. Der Wechsel zu einer
+  anderen Windows-Terminal-Session oder Anwendung behält dagegen virtuelle
+  Zeile, Lesespalte und horizontalen Ausschnitt in der zugehörigen
+  Neovim-Session. Bei der Rückkehr wird genau diese Ansicht
+  wiederhergestellt; die andere Session besitzt ihre eigene. Die konfigurierte
+  Fokusansage bleibt dabei hörbar, erzeugt aber keine vorübergehende
+  Braillemeldung, die diesen Ausschnitt bis zum Nachrichten-Timeout verdecken
+  würde. Erst eine Trennung setzt die betroffene Session in den
+  Braille-Cursormodus zurück.
+
+Für den Umschalter ist absichtlich keine Tastenkombination vorgegeben. Unter
+`NVDA-Menü → Optionen → Eingaben` kann in der Kategorie
+`Neovim Access Link` dem Befehl „Braillezeilen-Navigation zwischen
+Braille-Cursormodus und Braille-Explorationsmodus umschalten“ eine Taste
+zugewiesen werden. NVDA meldet beim Umschalten „Braille-Explorationsmodus“
+oder „Braille-Cursormodus“.
+
+Dieser Modus eignet sich beispielsweise, um mehrere Zeilen oberhalb und
+unterhalb der aktuellen Einfügeposition zu lesen, ohne beim anschließenden
+Weiterschreiben die Stelle suchen zu müssen. Soll eine erkundete Stelle doch
+zum Bearbeitungsort werden, genügt ihre Routingtaste.
+
+Beide Braille-Navigationsmodi sind in den strukturierten Editormodi verfügbar.
+In der aktiven Neovim-Befehlszeile und im direkten Eingabemodus eines
+eingebetteten Terminals sind sie nicht verfügbar. Beim Trennen wird nur der
+Modus der betroffenen Sitzung auf den Braille-Cursormodus zurückgesetzt. Ein
+Wechsel zu einem anderen Windows-Terminal-Tab oder -Pane übernimmt niemals
+Modus oder Ausschnitt der zuvor fokussierten Sitzung.
+
+### Sprachexplorationsmodus: eine Sprachfunktion mit optionaler Brailleanzeige
+
+Der [Sprachexplorationsmodus](speech-exploration.md) ist kein Braillemodus. Er
+liest mit gehaltener NVDA-Taste Zeichen, Wörter oder Zeilen, ohne den echten
+Neovim-Cursor zu bewegen. Er funktioniert vollständig ohne Braillezeile.
+
+Eine Braillezeile kann diese Sprachfunktion optional unterstützen:
+Standardmäßig zeigt sie die virtuelle Sprachposition vorübergehend mit an und
+kehrt beim Loslassen der NVDA-Taste zum echten Cursor zurück. Unter
+`NVDA-Menü → Optionen → Einstellungen → Neovim Access Link → Braille →
+Sprachexplorationsmodus` lässt sich „Braillezeile folgt der Position des
+Sprachexplorationsmodus“ ausschalten.
+
+Der Braille-Explorationsmodus ist davon unabhängig. Er wird mit den
+Navigationstasten der Braillezeile bedient, bleibt nach dem Umschalten aktiv
+und besitzt eine eigene virtuelle Zeilenposition. Eine einzelne Routingtaste
+kann in beiden Modi die gerade angezeigte Textposition als echten Cursor
+übernehmen. Doppelte und dreifache Routing-Bearbeitungsaktionen sind während
+des schreibgeschützten Sprachexplorationsmodus ausgeschaltet.
+
+### Welche Navigation eignet sich wofür?
+
+| Ziel | Geeignete Funktion |
+| --- | --- |
+| Beim Lesen mit Oben und Unten zugleich den echten Cursor versetzen | Braille-Cursormodus |
+| Mehrere Zeilen auf der Braillezeile lesen, ohne den Cursor zu versetzen | Braille-Explorationsmodus |
+| Kurz ein Zeichen, Wort oder eine Zeile mit Sprache erkunden und automatisch zurückkehren | Sprachexplorationsmodus mit gehaltener NVDA-Taste |
+| An einer erkundeten Stelle weiterarbeiten | Einmal die Routingtaste an dieser Stelle drücken |
+
+Braille-Explorationsmodus und Sprachexplorationsmodus besitzen getrennte virtuelle
+Positionen. Das Umschalten der Braille-Navigation verändert den
+Sprachexplorationsmodus nicht. Ist der Braille-Explorationsmodus aktiv, hat
+seine Zeilenposition Vorrang vor der optionalen Brailleanzeige des
+Sprachexplorationsmodus.
 
 ## Visual-Auswahl
 
-Zeichen-, zeilen- und blockweise Auswahl werden aus Neovims tatsächlichem
-Auswahlbereich berechnet. Bei einer mehrzeiligen Auswahl markiert die
-Braillezeile jeweils nur den Abschnitt auf der aktuellen Zeile. Ob und wie
-NVDA ausgewählten Text mit Punkten 7 und 8 hervorhebt, bestimmt die normale
-NVDA-Braillekonfiguration.
+Bei einer Visual-Auswahl markiert NVDA den ausgewählten Teil der aktuellen
+Zeile auf Braille. Bei einer mehrzeiligen Auswahl ändert sich die Markierung
+mit der angezeigten Zeile. NVDA verwendet dafür die Punkte 7 und 8. Ob
+Auswahlen angezeigt werden und welche Form der Braillecursor besitzt, wird in
+NVDAs Brailleeinstellungen festgelegt.
 
-## Cursor-Routing
+## Rechtschreibvorschläge
 
-Routingtasten setzen den Neovim-Cursor auf das entsprechende Zeichen der
-aktuellen Zeile. Vor der Ausführung werden Sitzung, Buffer, Fenster,
-Änderungsstand, Zeile und UTF-8-Zeichengrenze geprüft. Veraltete oder nicht
-eindeutige Routinganforderungen werden verworfen.
+Neovims eingebaute Rechtschreibvorschläge lassen sich folgendermaßen bedienen:
 
-Bei Tabs verweist jede durch die Expansion entstandene Brailleposition auf die
-zugehörige Stelle im ursprünglichen Text. Breite Unicode-Zeichen, kombinierende
-Zeichen und Emoji werden nicht als einfache Byteposition behandelt.
+1. Den Cursor auf ein falsch geschriebenes Wort setzen und `z=` drücken.
+2. Die NVDA-Taste gedrückt halten.
+3. Mit `j` und `k` durch die Vorschläge gehen.
+4. Mit `NVDA+Eingabe` den ausgewählten Vorschlag übernehmen.
 
-In einem Dateimanager ist nur der semantische Name routbar, und auch dieser
-nur, wenn er genau einmal in der echten Bufferzeile gefunden wird. Ergänzte
-Angaben wie „Verzeichnis“, „markiert“ oder „geöffnet“ besitzen keine erfundene
-Bufferposition. Eine Routingtaste auf solchen Statuszellen oder auf einem
-mehrdeutigen Namen wird verworfen.
+Sprache und Braille zeigen dabei nur den Vorschlag ohne seine Nummer. Wird die
+NVDA-Taste losgelassen, kehrt die Braillezeile zur Editorzeile zurück. Neovims
+Vorschlagsliste bleibt geöffnet und kann mit `Esc` geschlossen werden.
+
+Unter `NVDA-Menü → Optionen → Einstellungen → Neovim Access Link → Braille`
+kann festgelegt werden, ab welchem Braillemodul der
+Vorschlag erscheinen soll. Die Zählung beginnt bei 1. Passt die gewählte
+Position oder der Vorschlag nicht auf die Braillezeile, wird die Anzeige
+automatisch an den verfügbaren Platz angepasst. Die normale Editorzeile wird
+durch diese Einstellung nicht verschoben.
+
+Die Verschiebung verbessert besonders dann die Ergonomie, wenn die
+Feststelltaste als NVDA-Taste verwendet wird und die linke Hand während der
+Auswahl darauf liegen bleibt. Hand und linker Arm können dabei den linken
+Teil der Braillezeile verdecken, während die Vorschläge mit der rechten Hand
+gelesen werden. Beginnt die Vorschlagsausgabe weiter rechts, bleibt sie für
+die rechte Hand frei erreichbar und lässt sich wesentlich bequemer lesen.
 
 ## Eingebettetes Terminal
 
 Im direkten Eingabemodus eines mit `:terminal` geöffneten Buffers verwendet
-NVDA wieder seine native Windows-Terminal-Unterstützung. Nach dem Wechsel in
-den Terminal-Normalmodus übernimmt erneut die strukturierte Neovim-Anzeige.
+NVDA seine normale Windows-Terminal-Anzeige. Nach dem Wechsel in den
+Terminal-Normalmodus zeigt Neovim Access Link wieder die strukturierte
+Neovim-Zeile.
 
-## Bekannte Grenzen
+## Wenn die Anzeige nicht stimmt
 
-Die Basisanzeige von Zeile, Einrückung, Cursor, Auswahl und Routing ist
-implementiert. Noch nicht breit praktisch geprüft sind:
+Wenn nach dem Verbinden weiterhin „Windows PowerShell“ statt der Editorzeile
+erscheint, keine Cursorzelle sichtbar ist oder eine Routingtaste an einer
+Textposition nicht reagiert:
 
-- verschiedene physische Braillezeilen und Displaygrößen,
-- kontrahierte Brailleschriften und weitere Übersetzungstabellen,
-- Brailleeingabe über unterschiedliche Braillekeyboards,
-- lange horizontal gescrollte Zeilen,
-- Visual-Block-Auswahl mit Tabs, breiten Zeichen und Emoji auf realer Hardware,
-- semantische Dateimanagerzeilen, Statussegmente und Namensrouting auf realer
-  Hardware.
+1. Prüfen, ob das richtige Windows-Terminal-Tab oder -Pane fokussiert ist.
+2. Prüfen, ob die Neovim-Sitzung mit F12 verbunden wurde.
+3. NVDA auf „Cursor verfolgen“ stellen.
+4. Einen redigierten Diagnosebericht unmittelbar nach dem Fehler kopieren.
 
-Vor produktiver Nutzung sollte die eigene Braillekonfiguration deshalb in
-einem Testpuffer geprüft werden.
+Weitere Schritte beschreibt das Kapitel
+[Fehlerdiagnose und Diagnosebericht](troubleshooting.md).

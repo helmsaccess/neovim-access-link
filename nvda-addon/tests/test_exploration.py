@@ -69,6 +69,7 @@ class ExplorationControllerTests(unittest.TestCase):
 			"ok": True,
 			"resultCode": "moved",
 			"text": "value",
+			"explorationLineText": "alpha beta",
 			"line": 5,
 			"byteColumn": 1,
 			"characterColumn": 1,
@@ -77,6 +78,60 @@ class ExplorationControllerTests(unittest.TestCase):
 		}
 		value.update(changes)
 		return value
+
+	def test_validated_virtual_line_can_drive_braille_until_release(self) -> None:
+		plan = self.controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.CHARACTER_RIGHT,
+			capabilities={"exploration"},
+		)
+		result = self.controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(
+					plan,
+					text="界",
+					explorationLineText="a界 beta",
+					byteColumn=1,
+					characterColumn=1,
+					virtualColumn=1,
+				),
+			},
+			state=editor_state(),
+		)
+		self.assertTrue(result.accepted)
+		self.assertTrue(result.braille_display_changed)
+		self.assertTrue(self.controller.braille_display_active)
+		display = self.controller.display_state(editor_state())
+		self.assertEqual("a界 beta", display["lineText"])
+		self.assertEqual(1, display["cursor"]["byteColumn"])
+		self.assertEqual([], display["spellingErrors"])
+		self.controller.invalidate()
+		self.assertEqual(editor_state(), self.controller.display_state(editor_state()))
+
+	def test_invalid_or_unavailable_exploration_line_never_moves_braille(self) -> None:
+		plan = self.controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.CHARACTER_RIGHT,
+			capabilities={"exploration"},
+		)
+		result = self.controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(
+					plan,
+					explorationLineText=None,
+				),
+			},
+			state=editor_state(),
+		)
+		self.assertTrue(result.accepted)
+		self.assertFalse(result.braille_display_changed)
+		self.assertFalse(self.controller.braille_display_active)
 
 	def test_first_step_is_fixed_bounded_and_uses_canonical_origin(self) -> None:
 		plan = self.controller.plan_step(
@@ -220,6 +275,47 @@ class ExplorationControllerTests(unittest.TestCase):
 			ExplorationRejection.INVALID_RESULT,
 			self.controller.consume_result(self.context, None).rejection,
 		)
+
+	def test_word_result_carries_semantic_spelling_feedback_only_for_words(self) -> None:
+		word = self.controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.WORD_NEXT,
+			capabilities={"exploration"},
+		)
+		result = self.controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(
+					word,
+					text="mispelled",
+					formatError="spelling",
+				),
+			},
+		)
+		self.assertTrue(result.accepted)
+		self.assertEqual("spelling", result.speech_action.format_error)
+
+		character_controller = ExplorationController(RequestIds())
+		character = character_controller.plan_step(
+			self.context,
+			editor_state(),
+			ExplorationAction.CHARACTER_RIGHT,
+			capabilities={"exploration"},
+		)
+		rejected = character_controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(
+					character,
+					text="x",
+					formatError="spelling",
+				),
+			},
+		)
+		self.assertEqual(ExplorationRejection.INVALID_RESULT, rejected.rejection)
 
 	def test_result_with_changed_real_origin_is_rejected(self) -> None:
 		plan = self.controller.plan_step(
@@ -455,18 +551,20 @@ class ExplorationControllerTests(unittest.TestCase):
 		)
 		line = line_controller.release(self.context, line_state).speech_action
 		planner = SpeechPlanner()
-		planner.plan({
-			"type": "fullState",
-			"payload": editor_state(
-				lineText="old",
-				cursor={
-					"line": 4,
-					"byteColumn": 1,
-					"characterColumn": 1,
-					"virtualColumn": 1,
-				},
-			),
-		})
+		planner.plan(
+			{
+				"type": "fullState",
+				"payload": editor_state(
+					lineText="old",
+					cursor={
+						"line": 4,
+						"byteColumn": 1,
+						"characterColumn": 1,
+						"virtualColumn": 1,
+					},
+				),
+			}
+		)
 		normal_line = planner.plan({"type": "lineChanged", "payload": line_state})[0]
 		self.assertEqual(
 			(
@@ -527,10 +625,13 @@ class ExplorationControllerTests(unittest.TestCase):
 					line_word=line_word,
 					line_character=line_character,
 				).speech_action
-				self.assertEqual(expected, (
-					action.word_suffix,
-					action.character_suffix,
-				))
+				self.assertEqual(
+					expected,
+					(
+						action.word_suffix,
+						action.character_suffix,
+					),
+				)
 
 	def test_release_character_at_line_end_uses_sound_without_guessing_text(self) -> None:
 		self.controller.plan_step(

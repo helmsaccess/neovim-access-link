@@ -45,11 +45,16 @@ def copy_python_package(source: pathlib.Path, destination: pathlib.Path) -> None
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
 
-def build() -> pathlib.Path:
+def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
     version = project_version()
     linux_component_config()
-    output = ROOT / "dist" / f"{buildVars.product_slug()}-{version}-user.tar.gz"
-    with tempfile.TemporaryDirectory() as temporary_name:
+    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output = output_root / f"{buildVars.product_slug()}-{version}-user.tar.gz"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        dir=output.parent,
+        prefix=f".{output.name}.",
+    ) as temporary_name:
         temporary = pathlib.Path(temporary_name)
         package = temporary / f"server-components-{version}"
         application = temporary / "zipapp"
@@ -82,9 +87,10 @@ def build() -> pathlib.Path:
         shutil.copy2(ROOT / "packaging" / "install_user.py", package / "install.py")
         shutil.copy2(ROOT / "LICENSE", package / "LICENSE")
         (package / "install.py").chmod(0o755)
-        output.parent.mkdir(exist_ok=True)
-        with tarfile.open(output, "w:gz", format=tarfile.PAX_FORMAT) as archive:
+        staged_output = temporary / output.name
+        with tarfile.open(staged_output, "w:gz", format=tarfile.PAX_FORMAT) as archive:
             archive.add(package, arcname=package.name)
+        staged_output.replace(output)
     return output
 
 

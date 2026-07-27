@@ -9,7 +9,18 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Any
 
-from .core.braille import BraillePlan, plan_braille as build_braille_plan
+from .core.braille import (
+	BraillePlan,
+	plan_braille as build_braille_plan,
+	plan_command_line_braille as build_command_line_braille_plan,
+)
+from .core.braille_exploration_state import (
+	BrailleExplorationController,
+	BrailleExplorationRejection,
+	BrailleExplorationRequestPlan,
+	BrailleExplorationResultPlan,
+	BrailleExplorationTogglePlan,
+)
 from .core.clipboard import clipboard_result_state, valid_clipboard_text, valid_request_id
 from .core.connection_coordinator import ConnectionCoordinator, PendingControlRequest
 from .core.exploration_state import (
@@ -21,8 +32,17 @@ from .core.exploration_state import (
 	ExplorationResultPlan,
 )
 from .core.gate import TerminalIdentity
+from .core.numbered_choice_state import (
+	NumberedChoiceAcceptPlan,
+	NumberedChoiceContext,
+	NumberedChoiceController,
+	NumberedChoiceDirection,
+	NumberedChoicePresentation,
+	NumberedChoiceRejection,
+)
 from .core.speech import SpeechAction, SpeechPlanner
 from .core.terminal_control import terminal_control_result_state
+from .core.text import InvalidByteColumn, cursor_text
 
 
 def mode_sound_kind(mode: str | None) -> str | None:
@@ -47,6 +67,7 @@ class EditorEventTransition:
 	buffer_id: int | None
 	previous_buftype: str | None
 	reset_typed_echo: bool
+	braille_cursor_moved: bool
 
 
 @dataclass(frozen=True)
@@ -80,24 +101,79 @@ class EditorEventPlan:
 class BrailleSessionPlan:
 	plan: BraillePlan
 	source_line: str
+	numbered_choice: bool = False
+	preserve_viewport: bool = False
 
 
 @dataclass(frozen=True)
 class BrailleRoutePlan:
+	rejection_reason: str | None
+	target: str | None = None
+	buffer_id: int | None = None
+	window_id: int | None = None
+	line: int | None = None
+	byte_column: int | None = None
+	changedtick: int | None = None
+	mode_raw: str | None = None
+	command_line: str | None = None
+	command_line_type: str | None = None
+	character: str | None = None
+
+	@property
+	def ready(self) -> bool:
+		return self.rejection_reason is None
+
+	def payload(self) -> dict[str, int | str]:
+		if not self.ready:
+			raise ValueError("a rejected Braille route has no payload")
+		values = {
+			"bufferId": self.buffer_id,
+			"windowId": self.window_id,
+			"byteColumn": self.byte_column,
+			"changedtick": self.changedtick,
+		}
+		if not all(isinstance(value, int) and not isinstance(value, bool) for value in values.values()):
+			raise ValueError("a ready Braille route requires complete integer state")
+		if not isinstance(self.mode_raw, str) or not self.mode_raw:
+			raise ValueError("a ready Braille route requires a raw mode")
+		payload: dict[str, int | str] = {
+			"target": self.target or "",
+			**values,
+			"modeRaw": self.mode_raw,
+		}
+		if self.target == "editor":
+			if not isinstance(self.line, int) or isinstance(self.line, bool):
+				raise ValueError("an editor Braille route requires a line")
+			payload["line"] = self.line
+		elif self.target == "commandLine":
+			if not isinstance(self.command_line, str) or not isinstance(self.command_line_type, str):
+				raise ValueError("a command-line Braille route requires structured command state")
+			payload["commandLine"] = self.command_line
+			payload["commandLineType"] = self.command_line_type
+		else:
+			raise ValueError("a ready Braille route requires a fixed target")
+		return payload
+
+
+@dataclass(frozen=True)
+class BrailleRoutingActionPlan:
 	rejection_reason: str | None
 	buffer_id: int | None = None
 	window_id: int | None = None
 	line: int | None = None
 	byte_column: int | None = None
 	changedtick: int | None = None
+	mode_raw: str | None = None
+	action: str | None = None
+	line_start: str | None = None
 
 	@property
 	def ready(self) -> bool:
 		return self.rejection_reason is None
 
-	def payload(self) -> dict[str, int]:
+	def payload(self) -> dict[str, int | str]:
 		if not self.ready:
-			raise ValueError("a rejected Braille route has no payload")
+			raise ValueError("a rejected repeated Braille routing action has no payload")
 		values = {
 			"bufferId": self.buffer_id,
 			"windowId": self.window_id,
@@ -106,8 +182,63 @@ class BrailleRoutePlan:
 			"changedtick": self.changedtick,
 		}
 		if not all(isinstance(value, int) and not isinstance(value, bool) for value in values.values()):
-			raise ValueError("a ready Braille route requires complete integer state")
-		return values
+			raise ValueError("a ready repeated Braille routing action requires complete state")
+		if not isinstance(self.mode_raw, str) or self.mode_raw[:1] not in {"n", "i"}:
+			raise ValueError("a ready repeated Braille routing action requires normal or insert mode")
+		if self.action not in {"changeWord", "deleteWord", "changeLine", "deleteLine"}:
+			raise ValueError("a ready repeated Braille routing action requires a fixed action")
+		payload: dict[str, int | str] = {
+			**values,
+			"modeRaw": self.mode_raw,
+			"action": self.action,
+		}
+		if self.action in {"changeLine", "deleteLine"}:
+			if self.line_start not in {"routing", "indentation", "beginning"}:
+				raise ValueError("a line action requires a fixed line start")
+			payload["lineStart"] = self.line_start
+		return payload
+
+
+@dataclass(frozen=True)
+class BrailleLineNavigationPlan:
+	rejection_reason: str | None
+	direction: str | None = None
+	buffer_id: int | None = None
+	window_id: int | None = None
+	line: int | None = None
+	changedtick: int | None = None
+	mode_raw: str | None = None
+	preferred_virtual_column: int | None = None
+	target_column: str | None = None
+
+	@property
+	def ready(self) -> bool:
+		return self.rejection_reason is None
+
+	def payload(self) -> dict[str, int | str]:
+		if not self.ready:
+			raise ValueError("a rejected Braille line navigation has no payload")
+		values = {
+			"bufferId": self.buffer_id,
+			"windowId": self.window_id,
+			"line": self.line,
+			"changedtick": self.changedtick,
+			"preferredVirtualColumn": self.preferred_virtual_column,
+		}
+		if not all(isinstance(value, int) and not isinstance(value, bool) for value in values.values()):
+			raise ValueError("a ready Braille line navigation requires complete integer state")
+		if self.direction not in {"previous", "next"}:
+			raise ValueError("a ready Braille line navigation requires a fixed direction")
+		if self.target_column not in {"preferred", "start", "end"}:
+			raise ValueError("a ready Braille line navigation requires a fixed target column")
+		if not isinstance(self.mode_raw, str) or not self.mode_raw:
+			raise ValueError("a ready Braille line navigation requires a raw mode")
+		return {
+			**values,
+			"direction": self.direction,
+			"targetColumn": self.target_column,
+			"modeRaw": self.mode_raw,
+		}
 
 
 class ControlReplyKind(Enum):
@@ -188,6 +319,7 @@ class EditorSessionController:
 	) -> None:
 		self._coordinator = coordinator
 		self._newPlanner = new_planner
+		self._translate = translate or (lambda message: message)
 		self._maxPendingClipboardRequests = max_pending_clipboard_requests
 		self._maxPendingTerminalControlRequests = max_pending_terminal_control_requests
 		self._explorationRequestId = 0
@@ -208,6 +340,12 @@ class EditorSessionController:
 			"connected": False,
 			"lastConnectionState": None,
 			"transportCapabilities": frozenset(),
+			"extensionState": {
+				"brailleExploration": BrailleExplorationController(
+					lambda: self._coordinator.next_request_id("brailleExploration"),
+				),
+				"numberedChoice": NumberedChoiceController(),
+			},
 		}
 
 	def switch_instance(self, instance_id: str) -> bool:
@@ -237,6 +375,164 @@ class EditorSessionController:
 			return None
 		return self._coordinator.active_instance_id, self._coordinator.active_client
 
+	def braille_route_instance(self) -> tuple[str, object] | None:
+		"""Return the selected routable instance without performing transport I/O."""
+		if (
+			self._coordinator.active_client is None
+			or self._coordinator.active_instance_id is None
+			or not self._coordinator.connected
+			or "cursorRouting" not in self._coordinator.transport_capabilities
+		):
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def braille_line_navigation_instance(self) -> tuple[str, object] | None:
+		"""Return the selected line-navigable instance without transport I/O."""
+		if (
+			self._coordinator.active_client is None
+			or self._coordinator.active_instance_id is None
+			or not self._coordinator.connected
+			or "brailleLineNavigation" not in self._coordinator.transport_capabilities
+		):
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def braille_exploration_instance(self) -> tuple[str, object] | None:
+		"""Return the selected Braille-explorable instance without transport I/O."""
+		if (
+			self._coordinator.active_client is None
+			or self._coordinator.active_instance_id is None
+			or not self._coordinator.connected
+			or "brailleExploration" not in self._coordinator.transport_capabilities
+		):
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def braille_exploration_enabled(self) -> bool:
+		controller = self._active_braille_exploration()
+		return controller is not None and controller.enabled
+
+	def toggle_braille_exploration(self) -> BrailleExplorationTogglePlan:
+		controller = self._active_braille_exploration()
+		if controller is None:
+			return BrailleExplorationTogglePlan(
+				BrailleExplorationRejection.INCOMPLETE_STATE,
+				False,
+			)
+		plan = controller.toggle(
+			self._coordinator.current_state,
+			capabilities=self._coordinator.transport_capabilities,
+		)
+		if plan.changed:
+			# A viewport belongs to one continuous activation. Switching away
+			# preserves it through the instance runtime; explicitly toggling the
+			# mode starts or ends a different reading context.
+			self._coordinator.runtime_extension_state.pop("brailleViewport", None)
+		return plan
+
+	def disable_braille_exploration(self) -> BrailleExplorationTogglePlan:
+		controller = self._active_braille_exploration()
+		if controller is None:
+			return BrailleExplorationTogglePlan(
+				BrailleExplorationRejection.DISABLED,
+				False,
+			)
+		plan = controller.disable()
+		self._coordinator.runtime_extension_state.pop("brailleViewport", None)
+		return plan
+
+	def plan_braille_exploration_step(
+		self,
+		direction: str,
+		*,
+		target_column: str = "preferred",
+	) -> BrailleExplorationRequestPlan:
+		controller = self._active_braille_exploration()
+		if controller is None:
+			return BrailleExplorationRequestPlan(BrailleExplorationRejection.DISABLED)
+		return controller.plan_step(
+			self._coordinator.current_state,
+			direction,
+			capabilities=self._coordinator.transport_capabilities,
+			target_column=target_column,
+		)
+
+	def consume_braille_exploration_result(
+		self,
+		event: Mapping[str, Any],
+	) -> BrailleExplorationResultPlan:
+		controller = self._active_braille_exploration()
+		if controller is None:
+			return BrailleExplorationResultPlan(BrailleExplorationRejection.DISABLED)
+		return controller.consume_result(
+			self._coordinator.current_state,
+			event,
+		)
+
+	def fail_braille_exploration_request(self, request_id: int) -> bool:
+		controller = self._active_braille_exploration()
+		return controller is not None and controller.fail_request(request_id)
+
+	def remember_braille_exploration_viewport(self, start_position: int) -> bool:
+		"""Store NVDA's public Braille-window offset in the selected instance runtime."""
+		controller = self._active_braille_exploration()
+		if (
+			controller is None
+			or not controller.enabled
+			or not isinstance(start_position, int)
+			or isinstance(start_position, bool)
+			or start_position < 0
+		):
+			return False
+		context = self._braille_viewport_context()
+		if context is None:
+			return False
+		self._coordinator.runtime_extension_state["brailleViewport"] = (
+			*context,
+			start_position,
+		)
+		return True
+
+	def braille_exploration_viewport(self) -> int | None:
+		"""Return the selected instance's saved Braille-window offset."""
+		controller = self._active_braille_exploration()
+		if controller is None or not controller.enabled:
+			return None
+		viewport = self._coordinator.runtime_extension_state.get("brailleViewport")
+		context = self._braille_viewport_context()
+		if (
+			not isinstance(viewport, tuple)
+			or len(viewport) != 4
+			or context is None
+			or viewport[:3] != context
+		):
+			self._coordinator.runtime_extension_state.pop("brailleViewport", None)
+			return None
+		start_position = viewport[3]
+		if not isinstance(start_position, int) or isinstance(start_position, bool) or start_position < 0:
+			self._coordinator.runtime_extension_state.pop("brailleViewport", None)
+			return None
+		return start_position
+
+	def _braille_viewport_context(self) -> tuple[int, int, int] | None:
+		state = self._coordinator.current_state
+		context = (
+			state.get("bufferId"),
+			state.get("windowId"),
+			state.get("tabpageId"),
+		)
+		if not all(
+			isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in context
+		):
+			return None
+		return context
+
+	def _active_braille_exploration(self) -> BrailleExplorationController | None:
+		if self._coordinator.active_instance_id is None:
+			return None
+		controller = self._coordinator.runtime_extension_state.get("brailleExploration")
+		return controller if isinstance(controller, BrailleExplorationController) else None
+
 	def plan_exploration_step(
 		self,
 		context: ExplorationContext,
@@ -254,7 +550,11 @@ class EditorSessionController:
 		context: ExplorationContext,
 		event: Mapping[str, Any],
 	) -> ExplorationResultPlan:
-		return self._exploration.consume_result(context, event)
+		return self._exploration.consume_result(
+			context,
+			event,
+			state=self._coordinator.current_state,
+		)
 
 	def release_exploration(
 		self,
@@ -281,6 +581,9 @@ class EditorSessionController:
 	def active_exploration_context(self) -> ExplorationContext | None:
 		return self._exploration.active_context
 
+	def exploration_braille_display_active(self) -> bool:
+		return self._exploration.braille_display_active
+
 	def exploration_mode(self) -> str | None:
 		return self._string_field(self._coordinator.current_state, "mode")
 
@@ -292,6 +595,87 @@ class EditorSessionController:
 			1 if self._explorationRequestId >= 2_147_483_647 else self._explorationRequestId + 1
 		)
 		return self._explorationRequestId
+
+	def handle_numbered_choice_event(
+		self,
+		context: NumberedChoiceContext,
+		event: Mapping[str, Any],
+	) -> bool:
+		controller = self._active_numbered_choice()
+		if controller is None:
+			return False
+		event_type = event.get("type")
+		if event_type == "numberedChoiceOpened":
+			return controller.open(
+				context,
+				event,
+				capabilities=self._coordinator.transport_capabilities,
+			)
+		if event_type == "numberedChoiceClosed":
+			return controller.close(context, event)
+		return False
+
+	def numbered_choice_available(self, context: NumberedChoiceContext) -> bool:
+		controller = self._active_numbered_choice()
+		return (
+			controller is not None
+			and "numberedChoices" in self._coordinator.transport_capabilities
+			and controller.available(context)
+		)
+
+	def numbered_choice_instance(self) -> tuple[str, object] | None:
+		if (
+			self._coordinator.active_client is None
+			or self._coordinator.active_instance_id is None
+			or not self._coordinator.connected
+			or "numberedChoices" not in self._coordinator.transport_capabilities
+		):
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def navigate_numbered_choice(
+		self,
+		context: NumberedChoiceContext,
+		direction: NumberedChoiceDirection,
+	) -> NumberedChoicePresentation:
+		controller = self._active_numbered_choice()
+		if controller is None:
+			return NumberedChoicePresentation(NumberedChoiceRejection.NO_ACTIVE_CHOICE)
+		return controller.navigate(context, direction)
+
+	def plan_numbered_choice_accept(
+		self,
+		context: NumberedChoiceContext,
+	) -> NumberedChoiceAcceptPlan:
+		controller = self._active_numbered_choice()
+		if controller is None:
+			return NumberedChoiceAcceptPlan(NumberedChoiceRejection.NO_ACTIVE_CHOICE)
+		return controller.accept_plan(
+			context,
+			self._coordinator.next_request_id("numberedChoice"),
+		)
+
+	def discard_numbered_choice_selection(
+		self,
+		context: NumberedChoiceContext | None = None,
+	) -> bool:
+		controller = self._active_numbered_choice()
+		return controller is not None and controller.discard_selection(context)
+
+	def active_numbered_choice_context(self) -> NumberedChoiceContext | None:
+		controller = self._active_numbered_choice()
+		return controller.active_context if controller is not None else None
+
+	def invalidate_numbered_choice(self) -> None:
+		controller = self._active_numbered_choice()
+		if controller is not None:
+			controller.invalidate()
+
+	def _active_numbered_choice(self) -> NumberedChoiceController | None:
+		if self._coordinator.active_instance_id is None:
+			return None
+		controller = self._coordinator.runtime_extension_state.get("numberedChoice")
+		return controller if isinstance(controller, NumberedChoiceController) else None
 
 	def apply_event(self, event: Mapping[str, Any]) -> EditorEventTransition:
 		"""Apply canonical state changes and return presentation-relevant facts."""
@@ -305,6 +689,9 @@ class EditorSessionController:
 		payload = payload_value if isinstance(payload_value, dict) else None
 		mode = self._string_field(payload, "mode")
 		buffer_id = self._integer_field(payload, "bufferId")
+		braille_cursor_moved = payload is not None and self._braille_cursor_signature(
+			previous_state
+		) != self._braille_cursor_signature(payload)
 
 		if payload is not None:
 			self._coordinator.current_state = payload
@@ -340,6 +727,22 @@ class EditorSessionController:
 			buffer_id=buffer_id,
 			previous_buftype=previous_buftype,
 			reset_typed_echo=reset_typed_echo,
+			braille_cursor_moved=braille_cursor_moved,
+		)
+
+	@staticmethod
+	def _braille_cursor_signature(state: Mapping[str, Any] | None) -> tuple[object, ...] | None:
+		if not isinstance(state, Mapping):
+			return None
+		cursor = state.get("cursor")
+		cursor = cursor if isinstance(cursor, Mapping) else {}
+		return (
+			state.get("modeRaw"),
+			cursor.get("line"),
+			cursor.get("byteColumn"),
+			cursor.get("virtualColumn"),
+			state.get("commandLineType"),
+			state.get("commandLinePosition"),
 		)
 
 	def plan_event(
@@ -415,6 +818,7 @@ class EditorSessionController:
 
 	def reset_planning_state(self) -> None:
 		"""Reset the active semantic planner and its structured typing state."""
+		self.disable_braille_exploration()
 		self._coordinator.planner.reset()
 		self.reset_typed_echo()
 
@@ -425,7 +829,37 @@ class EditorSessionController:
 	def mark_disconnected(self) -> None:
 		"""Open connection state immediately when called by a network callback."""
 		self._exploration.invalidate()
+		self.disable_braille_exploration()
+		self.invalidate_numbered_choice()
 		self._coordinator.connected = False
+
+	def reset_disconnected_instance(self, instance_id: str) -> bool:
+		"""Reset one disconnected runtime without activating another session."""
+		if not instance_id:
+			return False
+		if self._coordinator.active_instance_id == instance_id:
+			self.apply_connection_state("disconnected", reset_runtime=True)
+			self.mark_disconnected()
+			return True
+		runtime = self._coordinator.runtime_states.get(instance_id)
+		if not isinstance(runtime, dict):
+			return False
+		runtime["connected"] = False
+		runtime["lastConnectionState"] = "disconnected"
+		runtime["typedWord"] = []
+		runtime["typedPosition"] = None
+		planner = runtime.get("planner")
+		if callable(getattr(planner, "reset", None)):
+			planner.reset()
+		extension_state = runtime.get("extensionState")
+		if isinstance(extension_state, dict):
+			braille_exploration = extension_state.get("brailleExploration")
+			if isinstance(braille_exploration, BrailleExplorationController):
+				braille_exploration.disable()
+			numbered_choice = extension_state.get("numberedChoice")
+			if isinstance(numbered_choice, NumberedChoiceController):
+				numbered_choice.invalidate()
+		return True
 
 	def apply_connection_state(
 		self,
@@ -438,6 +872,8 @@ class EditorSessionController:
 		connection_lost = state == "disconnected" and previous == "connected"
 		if connection_lost and reset_runtime:
 			self._exploration.invalidate()
+			self.disable_braille_exploration()
+			self.invalidate_numbered_choice()
 			self._coordinator.planner.reset()
 			self.reset_typed_echo()
 		return ConnectionStateTransition(previous, state, connection_lost)
@@ -498,20 +934,83 @@ class EditorSessionController:
 		self._coordinator.typed_position = (identity, byte_column) if isinstance(byte_column, int) else None
 		return tuple(actions)
 
-	def plan_braille(self, *, report_spelling: bool) -> BrailleSessionPlan:
+	def plan_braille(
+		self,
+		*,
+		report_spelling: bool,
+		follow_speech_exploration: bool = False,
+	) -> BrailleSessionPlan:
 		"""Return an isolated Braille plan for the active canonical editor state."""
-		state = dict(self._coordinator.current_state)
+		braille_exploration = self._active_braille_exploration()
+		braille_exploration_enabled = braille_exploration is not None and braille_exploration.enabled
+		numbered_choice = self._active_numbered_choice()
+		choice_text = numbered_choice.display_text() if numbered_choice is not None else None
+		if choice_text is not None:
+			return BrailleSessionPlan(
+				plan=BraillePlan(
+					choice_text,
+					0,
+					None,
+					None,
+					tuple(range(len(choice_text) + 1)),
+					tuple(None for _ in choice_text),
+				),
+				source_line="",
+				numbered_choice=True,
+			)
+		if braille_exploration_enabled:
+			display_state = braille_exploration.display_state(self._coordinator.current_state)
+		elif follow_speech_exploration:
+			display_state = self._exploration.display_state(self._coordinator.current_state)
+		else:
+			display_state = self._coordinator.current_state
+		state = dict(display_state)
+		if braille_exploration_enabled:
+			display_cursor = state.get("cursor")
+			real_state = self._coordinator.current_state
+			real_cursor = real_state.get("cursor")
+			real_cursor_visible = (
+				isinstance(display_cursor, dict)
+				and isinstance(real_cursor, dict)
+				and display_cursor.get("line") == real_cursor.get("line")
+				and state.get("lineText") == real_state.get("lineText")
+			)
+			state["brailleCursorVisible"] = real_cursor_visible
+			if real_cursor_visible:
+				state["cursor"] = dict(real_cursor)
 		state["reportSpellingBraille"] = bool(report_spelling)
+		if state.get("mode") == "commandLine" or str(state.get("modeRaw", "")).startswith("c"):
+			command_line = state.get("commandLine")
+			return BrailleSessionPlan(
+				plan=build_command_line_braille_plan(state),
+				source_line=command_line if isinstance(command_line, str) else "",
+				preserve_viewport=braille_exploration_enabled,
+			)
 		line = state.get("lineText")
 		return BrailleSessionPlan(
-			plan=build_braille_plan(state),
+			plan=build_braille_plan(state, translate=self._translate),
 			source_line=line if isinstance(line, str) else "",
+			preserve_viewport=braille_exploration_enabled,
 		)
 
-	def plan_braille_route(self, byte_column: int) -> BrailleRoutePlan:
+	def plan_braille_route(
+		self,
+		byte_column: int,
+		*,
+		follow_speech_exploration: bool = False,
+	) -> BrailleRoutePlan:
 		"""Validate a semantic cursor route without performing transport I/O."""
-		state = self._coordinator.current_state
-		transport_value = state.get("_transport", {})
+		braille_exploration = self._active_braille_exploration()
+		braille_exploration_enabled = braille_exploration is not None and braille_exploration.enabled
+		if braille_exploration_enabled:
+			state = braille_exploration.routing_state(self._coordinator.current_state)
+			if state is None:
+				return BrailleRoutePlan("staleExplorationState", byte_column=byte_column)
+		elif follow_speech_exploration:
+			state = self._exploration.display_state(self._coordinator.current_state)
+		else:
+			state = self._coordinator.current_state
+		transport_value = self._coordinator.current_state.get("_transport", {})
 		transport = transport_value if isinstance(transport_value, dict) else {}
 		capability_values = transport.get("capabilities")
 		capabilities = (
@@ -521,26 +1020,181 @@ class EditorSessionController:
 		)
 		if "cursorRouting" not in capabilities:
 			return BrailleRoutePlan("capabilityMissing")
+		common_values = (
+			state.get("bufferId"),
+			state.get("windowId"),
+			byte_column,
+			state.get("changedtick"),
+		)
+		mode_raw = state.get("modeRaw")
+		if (
+			self._coordinator.active_client is None
+			or not all(
+				isinstance(value, int) and not isinstance(value, bool) and value >= 0
+				for value in common_values
+			)
+			or not isinstance(mode_raw, str)
+			or not mode_raw
+		):
+			return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+		if braille_exploration_enabled and mode_raw.startswith(("c", "t")):
+			return BrailleRoutePlan("modeUnavailable", byte_column=byte_column)
+		command_line_mode = state.get("mode") == "commandLine" or mode_raw.startswith("c")
+		if command_line_mode:
+			command_line = state.get("commandLine")
+			command_line_type = state.get("commandLineType")
+			if not isinstance(command_line, str) or not isinstance(command_line_type, str):
+				return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+			try:
+				character = cursor_text(command_line, byte_column).character
+			except InvalidByteColumn:
+				return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+			return BrailleRoutePlan(
+				None,
+				target="commandLine",
+				buffer_id=common_values[0],
+				window_id=common_values[1],
+				byte_column=common_values[2],
+				changedtick=common_values[3],
+				mode_raw=mode_raw,
+				command_line=command_line,
+				command_line_type=command_line_type,
+				character=character,
+			)
+
 		cursor_value = state.get("cursor", {})
 		cursor = cursor_value if isinstance(cursor_value, dict) else {}
+		line = cursor.get("line")
+		if not isinstance(line, int) or isinstance(line, bool) or line < 1:
+			return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+		line_text = state.get("lineText")
+		try:
+			character = cursor_text(line_text, byte_column).character if isinstance(line_text, str) else None
+		except InvalidByteColumn:
+			return BrailleRoutePlan("incompleteState", byte_column=byte_column)
+		return BrailleRoutePlan(
+			None,
+			target="editor",
+			buffer_id=common_values[0],
+			window_id=common_values[1],
+			line=line,
+			byte_column=common_values[2],
+			changedtick=common_values[3],
+			mode_raw=mode_raw,
+			character=character,
+		)
+
+	def plan_braille_routing_action(
+		self,
+		byte_column: int,
+		action: str,
+		*,
+		line_start: str = "routing",
+	) -> BrailleRoutingActionPlan:
+		"""Validate a fixed word or line edit at one semantic routing position."""
+		if action not in {"changeWord", "deleteWord", "changeLine", "deleteLine"}:
+			return BrailleRoutingActionPlan("invalidAction", action=action)
+		if line_start not in {"routing", "indentation", "beginning"}:
+			return BrailleRoutingActionPlan(
+				"invalidLineStart",
+				action=action,
+				line_start=line_start,
+			)
+		if "brailleRoutingActions" not in self._coordinator.transport_capabilities:
+			return BrailleRoutingActionPlan(
+				"capabilityMissing",
+				action=action,
+				line_start=line_start,
+			)
+		route = self.plan_braille_route(byte_column)
+		if not route.ready:
+			return BrailleRoutingActionPlan(
+				route.rejection_reason,
+				action=action,
+				line_start=line_start,
+			)
+		if route.target != "editor" or route.mode_raw is None or route.mode_raw[:1] not in {"n", "i"}:
+			return BrailleRoutingActionPlan(
+				"modeUnavailable",
+				action=action,
+				line_start=line_start,
+			)
+		return BrailleRoutingActionPlan(
+			None,
+			buffer_id=route.buffer_id,
+			window_id=route.window_id,
+			line=route.line,
+			byte_column=route.byte_column,
+			changedtick=route.changedtick,
+			mode_raw=route.mode_raw,
+			action=action,
+			line_start=line_start,
+		)
+
+	def plan_braille_line_navigation(
+		self,
+		direction: str,
+		*,
+		target_column: str = "preferred",
+	) -> BrailleLineNavigationPlan:
+		"""Validate one editor-cursor line move without performing transport I/O."""
+		if direction not in {"previous", "next"}:
+			return BrailleLineNavigationPlan("invalidDirection", direction=direction)
+		if target_column not in {"preferred", "start", "end"}:
+			return BrailleLineNavigationPlan(
+				"invalidTargetColumn",
+				direction=direction,
+				target_column=target_column,
+			)
+		state = self._coordinator.current_state
+		transport_value = state.get("_transport", {})
+		transport = transport_value if isinstance(transport_value, dict) else {}
+		capability_values = transport.get("capabilities")
+		capabilities = (
+			frozenset(value for value in capability_values if isinstance(value, str))
+			if isinstance(capability_values, list)
+			else self._coordinator.transport_capabilities
+		)
+		if "brailleLineNavigation" not in capabilities:
+			return BrailleLineNavigationPlan("capabilityMissing", direction=direction)
+		cursor_value = state.get("cursor", {})
+		cursor = cursor_value if isinstance(cursor_value, dict) else {}
+		preferred = cursor.get("preferredVirtualColumn", cursor.get("virtualColumn"))
 		values = (
 			state.get("bufferId"),
 			state.get("windowId"),
 			cursor.get("line"),
-			byte_column,
 			state.get("changedtick"),
+			preferred,
+			state.get("lineCount"),
 		)
-		if self._coordinator.active_client is None or not all(
-			isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in values
+		mode_raw = state.get("modeRaw")
+		if (
+			self._coordinator.active_client is None
+			or not all(
+				isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in values
+			)
+			or values[2] < 1
+			or values[4] > 2_147_483_647
+			or values[5] < 1
+			or not isinstance(mode_raw, str)
+			or not mode_raw
+			or mode_raw.startswith(("c", "t"))
 		):
-			return BrailleRoutePlan("incompleteState", byte_column=byte_column)
-		return BrailleRoutePlan(
+			return BrailleLineNavigationPlan("incompleteState", direction=direction)
+		target_line = values[2] + (-1 if direction == "previous" else 1)
+		if target_line < 1 or target_line > values[5]:
+			return BrailleLineNavigationPlan("boundary", direction=direction)
+		return BrailleLineNavigationPlan(
 			None,
+			direction=direction,
 			buffer_id=values[0],
 			window_id=values[1],
 			line=values[2],
-			byte_column=values[3],
-			changedtick=values[4],
+			changedtick=values[3],
+			mode_raw=mode_raw,
+			preferred_virtual_column=values[4],
+			target_column=target_column,
 		)
 
 	def plan_clipboard_request(

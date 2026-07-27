@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import builtins
 import gettext
+import hashlib
 import io
 import json
 import pathlib
@@ -30,13 +31,55 @@ def add_remote_instance(manager, target_id, session_id, label, client):
 
 
 class BuiltAddonTests(unittest.TestCase):
+    _PRIVATE_EXTRACT_TESTS = frozenset({
+        "test_editor_earcons_remain_playable_after_source_files_are_removed",
+        "test_shared_component_config_changes_the_claim_function_key",
+    })
+
+    @staticmethod
+    def _treeFingerprint(root: pathlib.Path) -> str:
+        digest = hashlib.sha256()
+        for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
+            relative = path.relative_to(root).as_posix().encode("utf-8")
+            digest.update(b"d\0" if path.is_dir() else b"f\0")
+            digest.update(relative)
+            digest.update(b"\0")
+            if path.is_file():
+                digest.update(path.read_bytes())
+        return digest.hexdigest()
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.artifact_temporary = tempfile.TemporaryDirectory()
+        cls.archive_path = build(pathlib.Path(cls.artifact_temporary.name))
+        cls.extract_template = pathlib.Path(cls.artifact_temporary.name) / "addon"
+        with zipfile.ZipFile(cls.archive_path) as archive:
+            archive.extractall(cls.extract_template)
+        cls.extract_template_fingerprint = cls._treeFingerprint(cls.extract_template)
+        cls.previous_pycache_prefix = sys.pycache_prefix
+        if sys.pycache_prefix is None and not sys.dont_write_bytecode:
+            sys.pycache_prefix = str(pathlib.Path(cls.artifact_temporary.name) / "pycache")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            fingerprint = cls._treeFingerprint(cls.extract_template)
+            if fingerprint != cls.extract_template_fingerprint:
+                raise AssertionError("shared built-add-on extraction was modified by a test")
+        finally:
+            sys.pycache_prefix = cls.previous_pycache_prefix
+            cls.artifact_temporary.cleanup()
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.config_path = pathlib.Path(self.temporary.name) / "config"
         self.config_path.mkdir()
-        self.extract_path = pathlib.Path(self.temporary.name) / "addon"
-        with zipfile.ZipFile(build()) as archive:
-            archive.extractall(self.extract_path)
+        if self._testMethodName in self._PRIVATE_EXTRACT_TESTS:
+            self.extract_path = pathlib.Path(self.temporary.name) / "addon"
+            with zipfile.ZipFile(self.archive_path) as archive:
+                archive.extractall(self.extract_path)
+        else:
+            self.extract_path = self.extract_template
         self.messages: list[str] = []
         self.spoken: list[str] = []
         self.speechTextCalls: list[tuple[str, dict]] = []
@@ -99,6 +142,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.addCleanup(adapter.terminate)
         return adapter
 
+    def _buildUserPackage(self) -> pathlib.Path:
+        return build_user_package.build(pathlib.Path(self.temporary.name) / "artifacts")
+
     def _install_mocks(self) -> None:
         addon_handler = types.ModuleType("addonHandler")
         addon_handler.initTranslation = lambda: None
@@ -120,19 +166,67 @@ class BuiltAddonTests(unittest.TestCase):
 
         braille = types.ModuleType("braille")
         class Region:
-            def __init__(self):
+            def __init__(self, *_args):
                 self.rawText = ""
                 self.cursorPos = self.selectionStart = self.selectionEnd = None
                 self.brailleSelectionStart = self.brailleSelectionEnd = None
+                self.brailleCells = []
                 self.brailleToRawPos = []
+                self.focusToHardLeft = False
+                self.hidePreviousRegions = False
             def update(self):
+                self.brailleCells = list(range(len(self.rawText)))
                 self.brailleToRawPos = list(range(len(self.rawText)))
         braille.Region = Region
-        braille.handler = types.SimpleNamespace(
-            handleGainFocus=lambda *_args, **_kwargs: None,
-            handleUpdate=lambda *_: None,
-            message=self.brailleMessages.append,
+        braille.TextInfoRegion = Region
+        self.brailleGainFocusUpdates = []
+        self.brailleCaretMoveUpdates = []
+        self.brailleRegionUpdates = []
+        self.brailleMessageDismissals = 0
+        self.brailleMessageTimerStops = 0
+        main_buffer = types.SimpleNamespace(
+            regions=[],
+            brailleCells=[],
+            windowStartPos=0,
         )
+        message_buffer = types.SimpleNamespace(regions=[])
+        braille.handler = types.SimpleNamespace(
+            handleGainFocus=lambda *args, **kwargs: self.brailleGainFocusUpdates.append(
+                (args, kwargs),
+            ),
+            handleCaretMove=lambda *args, **kwargs: self.brailleCaretMoveUpdates.append(
+                (args, kwargs),
+            ),
+            handleUpdate=lambda *args: self.brailleRegionUpdates.append(args),
+            enabled=True,
+            getTether=lambda: "focus",
+            mainBuffer=main_buffer,
+            messageBuffer=message_buffer,
+            buffer=main_buffer,
+            displaySize=40,
+            _messageCallLater=None,
+            update=lambda: None,
+        )
+        def show_braille_message(text):
+            self.brailleMessages.append(text)
+            region = Region()
+            region.rawText = text
+            region.update()
+            message_buffer.regions[:] = [region]
+            braille.handler.buffer = message_buffer
+            braille.handler._messageCallLater = types.SimpleNamespace(
+                Stop=lambda: setattr(
+                    self,
+                    "brailleMessageTimerStops",
+                    self.brailleMessageTimerStops + 1,
+                ),
+            )
+        def dismiss_braille_message():
+            self.brailleMessageDismissals += 1
+            message_buffer.regions.clear()
+            braille.handler.buffer = main_buffer
+        braille.handler.message = show_braille_message
+        braille.handler._dismissMessage = dismiss_braille_message
         sys.modules["braille"] = braille
 
         control_types = types.ModuleType("controlTypes")
@@ -158,13 +252,22 @@ class BuiltAddonTests(unittest.TestCase):
                             "navigationWord": 1, "navigationLine": 2,
                             "explorationWord": 1, "explorationLine": 2,
                         },
+                        "brailleRouting": {
+                            "wordAction": 0, "lineAction": 0, "lineStart": 0,
+                        },
                     }
                 return super().__getitem__(key)
             def save(inner_self): self.configSaves += 1
         config.conf = ConfigMock({
+            "braille": {
+                "mode": "followCursors",
+                "speakOnRouting": False,
+                "tetherTo": "auto",
+            },
             "keyboard": {
                 "speakTypedCharacters": 2, "speakTypedWords": 0,
                 "alertForSpellingErrors": True,
+                "multiPressTimeout": 500,
             },
             "documentFormatting": {
                 "reportLineIndentation": 2, "indentToneDuration": 40,
@@ -181,6 +284,10 @@ class BuiltAddonTests(unittest.TestCase):
                 for handler in tuple(inner_self.handlers): handler(**kwargs)
         config.post_configProfileSwitch = Action()
         sys.modules["config"] = config
+
+        core = types.ModuleType("core")
+        core.callLater = lambda _delay, _callback: None
+        sys.modules["core"] = core
 
         log_handler = types.ModuleType("logHandler")
         log_handler.log = types.SimpleNamespace(
@@ -220,6 +327,7 @@ class BuiltAddonTests(unittest.TestCase):
             def unregister(inner_self, handler): inner_self.handlers.remove(handler)
         self.inputDecider = input_core.decide_executeGesture = Decider()
         self.rawKeyDecider = input_core.decide_handleRawKey = Decider()
+        input_core.manager = types.SimpleNamespace(isInputHelpActive=False)
         sys.modules["inputCore"] = input_core
 
         global_vars = types.ModuleType("globalVars")
@@ -260,6 +368,17 @@ class BuiltAddonTests(unittest.TestCase):
                 return function
             return decorate
         script_handler.script = script
+        script_handler.getScriptName = lambda value: value.__name__[7:]
+        def get_script_location(value):
+            instance = getattr(value, "__self__", None)
+            if instance is None:
+                return None
+            name = value.__name__
+            for cls in instance.__class__.__mro__:
+                if name in cls.__dict__:
+                    return f"{cls.__module__}.{cls.__name__}"
+            return None
+        script_handler.getScriptLocation = get_script_location
         sys.modules["scriptHandler"] = script_handler
 
         speech = types.ModuleType("speech")
@@ -345,6 +464,7 @@ class BuiltAddonTests(unittest.TestCase):
                 inner_self.handlers = {}
                 self.checkBoxControls.append(inner_self)
             def SetValue(self, value): self.checked = bool(value)
+            def GetValue(self): return self.checked
             def IsChecked(self): return self.checked
             def Bind(self, event, handler): self.handlers[event] = handler
             def SetFocus(self): self.focused = True
@@ -470,9 +590,11 @@ class BuiltAddonTests(unittest.TestCase):
                 dialog.Destroy()
         gui.runScriptModalDialog = run_script_modal_dialog
         class ChoiceControl:
-            def __init__(self): self.selection = 0; self.enabled = True
+            def __init__(self): self.selection = 0; self.value = 0; self.enabled = True
             def SetSelection(self, value): self.selection = value
             def GetSelection(self): return self.selection
+            def SetValue(self, value): self.value = value
+            def GetValue(self): return self.value
             def Enable(self, value): self.enabled = bool(value)
             def Bind(self, *_args, **_kwargs): pass
             def SetItems(self, items): self.items = list(items)
@@ -492,6 +614,7 @@ class BuiltAddonTests(unittest.TestCase):
             def addItem(self, item): return item
         gui.guiHelper = types.SimpleNamespace(BoxSizerHelper=BoxSizerHelper, ButtonHelper=ButtonHelper)
         sys.modules["gui"] = gui
+        wx.SpinCtrl = object
         settings_dialogs = types.ModuleType("gui.settingsDialogs")
         class SettingsPanel:
             def _validationErrorMessageBox(inner_self, *_args, **_kwargs): pass
@@ -516,7 +639,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("dev", manifest["version"])
 
     def test_archive_contains_only_the_new_addon_identity(self) -> None:
-        with zipfile.ZipFile(build()) as archive:
+        with zipfile.ZipFile(self.archive_path) as archive:
             names = archive.namelist()
         self.assertIn("globalPlugins/NeovimAccessLink/__init__.py", names)
         self.assertFalse(any(
@@ -1182,29 +1305,135 @@ class BuiltAddonTests(unittest.TestCase):
             "bufferId": 7,
             "windowId": 11,
             "changedtick": 13,
+            "mode": "insert",
+            "modeRaw": "i",
             "lineText": "\t界z",
             "tabstop": 4,
-            "cursor": {"line": 3, "byteColumn": 1},
-            "_transport": {"capabilities": ["cursorRouting"]},
+            "lineCount": 8,
+            "cursor": {
+                "line": 3,
+                "byteColumn": 1,
+                "virtualColumn": 4,
+                "preferredVirtualColumn": 6,
+            },
+            "_transport": {
+                "capabilities": [
+                    "cursorRouting",
+                    "brailleLineNavigation",
+                    "brailleRoutingActions",
+                ],
+            },
         }
         coordinator.active_client = object()
+        coordinator.transport_capabilities = frozenset({
+            "cursorRouting",
+            "brailleLineNavigation",
+            "brailleRoutingActions",
+        })
 
         session_plan = controller.plan_braille(report_spelling=False)
-        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("    界z ", session_plan.plan.text)
         self.assertEqual("\t界z", session_plan.source_line)
         coordinator.current_state["lineText"] = "changed later"
-        self.assertEqual("    界z", session_plan.plan.text)
+        self.assertEqual("    界z ", session_plan.plan.text)
         self.assertEqual("\t界z", session_plan.source_line)
 
         route = controller.plan_braille_route(1)
         self.assertTrue(route.ready)
+        self.assertEqual({
+            "target": "editor",
+            "bufferId": 7,
+            "windowId": 11,
+            "line": 3,
+            "byteColumn": 1,
+            "changedtick": 13,
+            "modeRaw": "i",
+        }, route.payload())
+        self.assertEqual("h", route.character)
+        repeated_action = controller.plan_braille_routing_action(
+            1,
+            "deleteLine",
+            line_start="indentation",
+        )
+        self.assertTrue(repeated_action.ready)
         self.assertEqual({
             "bufferId": 7,
             "windowId": 11,
             "line": 3,
             "byteColumn": 1,
             "changedtick": 13,
-        }, route.payload())
+            "modeRaw": "i",
+            "action": "deleteLine",
+            "lineStart": "indentation",
+        }, repeated_action.payload())
+        self.assertEqual(
+            "invalidAction",
+            controller.plan_braille_routing_action(1, "dd").rejection_reason,
+        )
+        self.assertEqual(
+            "invalidLineStart",
+            controller.plan_braille_routing_action(
+                1,
+                "deleteLine",
+                line_start="cursor",
+            ).rejection_reason,
+        )
+        line_navigation = controller.plan_braille_line_navigation("next")
+        self.assertTrue(line_navigation.ready)
+        self.assertEqual({
+            "bufferId": 7,
+            "windowId": 11,
+            "line": 3,
+            "changedtick": 13,
+            "preferredVirtualColumn": 6,
+            "direction": "next",
+            "targetColumn": "preferred",
+            "modeRaw": "i",
+        }, line_navigation.payload())
+        self.assertEqual(
+            "invalidTargetColumn",
+            controller.plan_braille_line_navigation(
+                "next",
+                target_column="middle",
+            ).rejection_reason,
+        )
+        coordinator.current_state["cursor"]["line"] = 8
+        self.assertEqual(
+            "boundary",
+            controller.plan_braille_line_navigation("next").rejection_reason,
+        )
+        coordinator.current_state["cursor"]["line"] = 3
+
+        coordinator.current_state.update({
+            "mode": "commandLine",
+            "modeRaw": "c",
+            "commandLine": "a界z",
+            "commandLineType": ":",
+            "commandLinePosition": 4,
+        })
+        command_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual(":a界z ", command_plan.plan.text)
+        self.assertEqual((None, 0, 1, 4, 5), command_plan.plan.routing_byte_columns)
+        command_route = controller.plan_braille_route(1)
+        self.assertEqual({
+            "target": "commandLine",
+            "bufferId": 7,
+            "windowId": 11,
+            "byteColumn": 1,
+            "changedtick": 13,
+            "modeRaw": "c",
+            "commandLine": "a界z",
+            "commandLineType": ":",
+        }, command_route.payload())
+        self.assertEqual("界", command_route.character)
+        command_end_route = controller.plan_braille_route(5)
+        self.assertTrue(command_end_route.ready)
+        self.assertEqual(5, command_end_route.payload()["byteColumn"])
+        self.assertEqual("", command_end_route.character)
+        self.assertEqual(
+            "modeUnavailable",
+            controller.plan_braille_routing_action(1, "changeWord").rejection_reason,
+        )
 
         rejected_column = controller.plan_braille_route(-1)
         self.assertFalse(rejected_column.ready)
@@ -1218,6 +1447,419 @@ class BuiltAddonTests(unittest.TestCase):
         rejected_capability = controller.plan_braille_route(1)
         self.assertFalse(rejected_capability.ready)
         self.assertEqual("capabilityMissing", rejected_capability.rejection_reason)
+        self.assertEqual(
+            "capabilityMissing",
+            controller.plan_braille_line_navigation("previous").rejection_reason,
+        )
+        self.assertEqual(
+            "capabilityMissing",
+            controller.plan_braille_routing_action(1, "deleteWord").rejection_reason,
+        )
+
+    def test_editor_session_braille_exploration_is_virtual_until_routing(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+        coordinator.active_client = object()
+        coordinator.connected = True
+        coordinator.transport_capabilities = frozenset({
+            "brailleExploration",
+            "cursorRouting",
+        })
+        coordinator.current_state = {
+            "bufferId": 7,
+            "windowId": 11,
+            "tabpageId": 5,
+            "changedtick": 13,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "origin",
+            "lineCount": 8,
+            "tabstop": 4,
+            "cursor": {
+                "line": 3,
+                "byteColumn": 2,
+                "characterColumn": 2,
+                "virtualColumn": 2,
+                "preferredVirtualColumn": 2,
+            },
+            "_transport": {
+                "capabilities": ["brailleExploration", "cursorRouting"],
+            },
+        }
+
+        toggle = controller.toggle_braille_exploration()
+        self.assertTrue(toggle.changed)
+        self.assertTrue(toggle.enabled)
+        request = controller.plan_braille_exploration_step("next")
+        self.assertTrue(request.ready)
+        self.assertEqual("brailleExploreLineRequest", request.control)
+        self.assertEqual("lineDown", request.payload["action"])
+        self.assertEqual(2, request.payload["desiredVirtualColumn"])
+        self.assertEqual("preferred", request.payload["targetColumn"])
+        result_payload = {
+            **coordinator.current_state,
+            "requestId": request.request_id,
+            "explorationId": request.payload["explorationId"],
+            "actionIndex": request.payload["actionIndex"],
+            "action": "lineDown",
+            "unit": "line",
+            "ok": True,
+            "resultCode": "moved",
+            "text": "target",
+            "line": 4,
+            "byteColumn": 2,
+            "characterColumn": 2,
+            "virtualColumn": 2,
+            "atOrigin": False,
+        }
+        result = controller.consume_braille_exploration_result({
+            "type": "brailleExploreLineResult",
+            "payload": result_payload,
+        })
+        self.assertTrue(result.accepted)
+        self.assertEqual(3, coordinator.current_state["cursor"]["line"])
+        self.assertEqual("origin", coordinator.current_state["lineText"])
+        braille_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual("target", braille_plan.source_line)
+        self.assertIsNone(braille_plan.plan.cursor)
+        self.assertTrue(braille_plan.preserve_viewport)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "lineText": "target",
+            "cursor": {
+                "line": 4,
+                "byteColumn": 1,
+                "characterColumn": 1,
+                "virtualColumn": 1,
+                "preferredVirtualColumn": 1,
+            },
+        }
+        self.assertEqual(
+            1,
+            controller.plan_braille(report_spelling=False).plan.cursor,
+        )
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "changedtick": 14,
+            "lineText": "tXrget",
+        }
+        refreshed_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual("tXrget", refreshed_plan.source_line)
+        self.assertEqual(1, refreshed_plan.plan.cursor)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "changedtick": 15,
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "typed at real cursor",
+            "cursor": {
+                "line": 3,
+                "byteColumn": 20,
+                "characterColumn": 20,
+                "virtualColumn": 20,
+                "preferredVirtualColumn": 20,
+            },
+        }
+        braille_plan = controller.plan_braille(report_spelling=False)
+        self.assertEqual("tXrget", braille_plan.source_line)
+        self.assertIsNone(braille_plan.plan.cursor)
+        continued = controller.plan_braille_exploration_step("next")
+        self.assertTrue(continued.ready)
+        self.assertEqual(15, continued.payload["changedtick"])
+        self.assertEqual(13, result_payload["changedtick"])
+
+        route = controller.plan_braille_route(2)
+        self.assertFalse(route.ready)
+        self.assertEqual("staleExplorationState", route.rejection_reason)
+        self.assertEqual("tXrget", controller.plan_braille(report_spelling=False).source_line)
+
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "changedtick": 16,
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "tXrget updated",
+            "cursor": {
+                "line": 4,
+                "byteColumn": 3,
+                "characterColumn": 3,
+                "virtualColumn": 3,
+                "preferredVirtualColumn": 3,
+            },
+        }
+        self.assertEqual(
+            "tXrget updated",
+            controller.plan_braille(report_spelling=False).source_line,
+        )
+        coordinator.current_state = {
+            **coordinator.current_state,
+            "mode": "normal",
+            "modeRaw": "n",
+        }
+        route = controller.plan_braille_route(2)
+        self.assertTrue(route.ready)
+        self.assertEqual(4, route.line)
+        self.assertEqual(2, route.byte_column)
+        self.assertEqual(16, route.changedtick)
+        self.assertEqual("n", route.mode_raw)
+        self.assertEqual("r", route.character)
+        for mode, mode_raw in (("commandLine", "c"), ("terminal", "t")):
+            coordinator.current_state = {
+                **coordinator.current_state,
+                "mode": mode,
+                "modeRaw": mode_raw,
+            }
+            unavailable = controller.plan_braille_route(2)
+            self.assertFalse(unavailable.ready)
+            self.assertEqual("modeUnavailable", unavailable.rejection_reason)
+
+    def test_editor_session_keeps_braille_modes_and_choices_isolated_per_instance(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.numbered_choice_state import (
+            NumberedChoiceContext,
+            NumberedChoiceDirection,
+        )
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        adapter_token = object()
+        generation = object()
+
+        def activate(instance_id: str, line_text: str) -> None:
+            controller.switch_instance(instance_id)
+            coordinator.active_client = object()
+            coordinator.connected = True
+            coordinator.transport_capabilities = frozenset({
+                "brailleExploration",
+                "cursorRouting",
+                "numberedChoices",
+            })
+            coordinator.current_state = {
+                "bufferId": 7,
+                "windowId": 11,
+                "tabpageId": 5,
+                "changedtick": 13,
+                "mode": "normal",
+                "modeRaw": "n",
+                "lineText": line_text,
+                "lineCount": 8,
+                "cursor": {
+                    "line": 3,
+                    "byteColumn": 0,
+                    "characterColumn": 0,
+                    "virtualColumn": 0,
+                    "preferredVirtualColumn": 0,
+                },
+                "_transport": {
+                    "capabilities": [
+                        "brailleExploration",
+                        "cursorRouting",
+                        "numberedChoices",
+                    ],
+                },
+            }
+
+        def choice_context(instance_id: str, window_handle: int) -> NumberedChoiceContext:
+            return NumberedChoiceContext(
+                instance_id,
+                TerminalIdentity(
+                    "windowsTerminal",
+                    20,
+                    (1, window_handle, 3),
+                    window_handle,
+                ),
+                adapter_token,
+                generation,
+            )
+
+        def open_choice(context: NumberedChoiceContext, choice_id: int) -> None:
+            self.assertTrue(controller.handle_numbered_choice_event(context, {
+                "type": "numberedChoiceOpened",
+                "payload": {
+                    "choiceKind": "spellSuggestions",
+                    "choiceId": choice_id,
+                    "items": [f"{context.instance_id}-first", f"{context.instance_id}-second"],
+                    "bufferId": 7,
+                    "windowId": 11,
+                    "tabpageId": 5,
+                    "changedtick": 13,
+                },
+            }))
+
+        first_context = choice_context("first", 101)
+        activate("first", "first line")
+        self.assertTrue(controller.toggle_braille_exploration().enabled)
+        first_request = controller.plan_braille_exploration_step("next")
+        self.assertTrue(first_request.ready)
+        first_result = controller.consume_braille_exploration_result({
+            "type": "brailleExploreLineResult",
+            "payload": {
+                **coordinator.current_state,
+                "requestId": first_request.request_id,
+                "explorationId": first_request.payload["explorationId"],
+                "actionIndex": first_request.payload["actionIndex"],
+                "action": "lineDown",
+                "unit": "line",
+                "ok": True,
+                "resultCode": "moved",
+                "text": "first explored line",
+                "line": 4,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+                "atOrigin": False,
+            },
+        })
+        self.assertTrue(first_result.accepted)
+        self.assertTrue(controller.remember_braille_exploration_viewport(41))
+        open_choice(first_context, 1)
+        controller.navigate_numbered_choice(first_context, NumberedChoiceDirection.NEXT)
+        self.assertEqual(
+            "first-first",
+            controller.plan_braille(report_spelling=False).plan.text,
+        )
+
+        second_context = choice_context("second", 202)
+        activate("second", "second line")
+        self.assertFalse(controller.braille_exploration_enabled())
+        self.assertEqual(
+            "second line",
+            controller.plan_braille(report_spelling=False).source_line,
+        )
+        open_choice(second_context, 2)
+        controller.navigate_numbered_choice(second_context, NumberedChoiceDirection.NEXT)
+        controller.navigate_numbered_choice(second_context, NumberedChoiceDirection.NEXT)
+        self.assertEqual(
+            "second-second",
+            controller.plan_braille(report_spelling=False).plan.text,
+        )
+        self.assertTrue(controller.toggle_braille_exploration().enabled)
+        self.assertTrue(controller.remember_braille_exploration_viewport(8))
+
+        activate("first", "unused replacement")
+        self.assertTrue(controller.braille_exploration_enabled())
+        self.assertEqual(41, controller.braille_exploration_viewport())
+        self.assertEqual(first_context, controller.active_numbered_choice_context())
+        self.assertEqual(
+            "first-first",
+            controller.plan_braille(report_spelling=False).plan.text,
+        )
+        controller.discard_numbered_choice_selection(first_context)
+        self.assertEqual(
+            "first explored line",
+            controller.plan_braille(report_spelling=False).source_line,
+        )
+
+        activate("second", "unused replacement")
+        self.assertTrue(controller.braille_exploration_enabled())
+        self.assertEqual(8, controller.braille_exploration_viewport())
+        self.assertEqual(second_context, controller.active_numbered_choice_context())
+        self.assertEqual(
+            "second-second",
+            controller.plan_braille(report_spelling=False).plan.text,
+        )
+
+        controller.mark_disconnected()
+        self.assertFalse(controller.braille_exploration_enabled())
+        self.assertIsNone(controller.active_numbered_choice_context())
+        activate("first", "unused replacement")
+        self.assertTrue(controller.braille_exploration_enabled())
+        self.assertEqual(first_context, controller.active_numbered_choice_context())
+        activate("second", "unused replacement")
+        self.assertTrue(controller.reset_disconnected_instance("first"))
+        activate("first", "unused replacement")
+        self.assertFalse(controller.braille_exploration_enabled())
+        self.assertIsNone(controller.active_numbered_choice_context())
+
+    def test_speech_exploration_option_can_follow_virtual_line_on_braille(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
+        from globalPlugins.NeovimAccessLink.core.exploration_state import (
+            ExplorationAction,
+            ExplorationContext,
+        )
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+        from globalPlugins.NeovimAccessLink.core.speech import SpeechPlanner
+        from globalPlugins.NeovimAccessLink.editor_session import EditorSessionController
+
+        coordinator = ConnectionCoordinator()
+        controller = EditorSessionController(coordinator, new_planner=SpeechPlanner)
+        controller.switch_instance("instance-1")
+        coordinator.active_client = object()
+        coordinator.connected = True
+        coordinator.transport_capabilities = frozenset({"exploration", "cursorRouting"})
+        coordinator.current_state = {
+            "bufferId": 7,
+            "windowId": 11,
+            "tabpageId": 5,
+            "changedtick": 13,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "origin",
+            "lineCount": 8,
+            "cursor": {
+                "line": 3,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+            },
+            "_transport": {"capabilities": ["exploration", "cursorRouting"]},
+        }
+        context = ExplorationContext(
+            "instance-1",
+            TerminalIdentity("windowsTerminal", 20, (1, 2, 3), 4),
+            object(),
+            object(),
+        )
+        request = controller.plan_exploration_step(context, ExplorationAction.LINE_DOWN)
+        result = controller.consume_exploration_result(context, {
+            "type": "exploreTextResult",
+            "payload": {
+                **coordinator.current_state,
+                "requestId": request.request_id,
+                "explorationId": request.exploration_id,
+                "actionIndex": request.action_index,
+                "action": "lineDown",
+                "unit": "line",
+                "ok": True,
+                "resultCode": "moved",
+                "text": "target line",
+                "explorationLineText": "target line",
+                "line": 4,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+                "atOrigin": False,
+            },
+        })
+        self.assertTrue(result.accepted)
+        self.assertEqual(
+            "origin",
+            controller.plan_braille(
+                report_spelling=False,
+                follow_speech_exploration=False,
+            ).source_line,
+        )
+        self.assertEqual(
+            "target line",
+            controller.plan_braille(
+                report_spelling=False,
+                follow_speech_exploration=True,
+            ).source_line,
+        )
+        route = controller.plan_braille_route(0, follow_speech_exploration=True)
+        self.assertTrue(route.ready)
+        self.assertEqual(4, route.line)
 
     def test_global_plugin_delegates_editor_runtime_mutation_to_controller(self) -> None:
         plugin = self.extract_path / "globalPlugins" / "NeovimAccessLink"
@@ -1237,6 +1879,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("PendingControlRequest", global_source)
         self.assertIn("self._editorSession.plan_braille(", facade_source)
         self.assertIn("self._editorSession.plan_braille_route(", facade_source)
+        self.assertIn("self._editorSession.toggle_braille_exploration()", facade_source)
+        self.assertNotIn(
+            "self._editorSessionController.toggle_braille_exploration()",
+            global_source,
+        )
         self.assertNotIn("self._runtime._currentState", facade_source)
         self.assertNotIn("self._runtime._routeBrailleCursor", facade_source)
         self.assertNotIn('payload["_connectionLabel"]', global_source)
@@ -1729,7 +2376,6 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertTrue(service.closed)
         self.assertFalse(service.close())
-        self.assertFalse(service.supports_braille_overlay(self.focus))
         self.assertIsNone(service.prepare_focus(self.focus, object(), app_module))
         service.finish_focus(object())
         service.abandon_focus(object())
@@ -1757,8 +2403,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(service.cancel_session_claim(authorization))
         self.assertFalse(service.should_suppress_braille(self.focus))
         self.assertIsNone(service.braille_plan(self.focus, report_spelling=False))
+        self.assertFalse(service.navigate_braille_line(self.focus, "next"))
         self.assertFalse(service.suppress_terminal_live_text(self.focus, 1))
         service.record_braille_route_rejection("closed", 0)
+        service.record_braille_overlay_selected()
+        service.record_braille_region_request(review=False, suppressed=True)
+        service.record_braille_route_attempt(0, suppressed=True)
         self.assertFalse(service.route_braille_cursor(self.focus, 0))
         self.assertEqual(report_after_terminate, plugin._diagnostics.report())
 
@@ -1776,10 +2426,14 @@ class BuiltAddonTests(unittest.TestCase):
             "command_actions": actions,
             "copy_diagnostic_report": mock.Mock(),
             "claim_focused_session": mock.Mock(),
-            "send_braille_route": mock.Mock(),
+            "present_braille_route_character": mock.Mock(),
             "control_dispatcher": mock.Mock(),
             "present_exploration": mock.Mock(),
             "exploration_details": mock.Mock(return_value=(True, False, True)),
+            "present_numbered_choice": mock.Mock(),
+            "dismiss_numbered_choice": mock.Mock(),
+            "refresh_braille": mock.Mock(),
+            "no_item_selected_message": "No item selected",
             "record_diagnostic": mock.Mock(),
             "fail_open_event": mock.Mock(),
         }
@@ -1792,7 +2446,559 @@ class BuiltAddonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "every terminal command"):
             TerminalIntegrationService(**{**dependencies, "command_actions": incomplete})
         with self.assertRaisesRegex(ValueError, "callbacks are required"):
-            TerminalIntegrationService(**{**dependencies, "send_braille_route": None})
+            TerminalIntegrationService(**{
+                **dependencies,
+                "present_braille_route_character": None,
+            })
+
+    def test_terminal_focus_change_discards_only_transient_input_sequences(self) -> None:
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        dismiss_numbered_choice = mock.Mock()
+        service = TerminalIntegrationService(
+            mock.Mock(),
+            mock.Mock(),
+            mock.Mock(),
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=mock.Mock(),
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(True, False, True)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=dismiss_numbered_choice,
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+        service.cancel_exploration = mock.Mock()
+        service._brailleRoutingRepeats = mock.Mock()
+        service._pendingBrailleRoutingAction = object()
+        service._directBrailleNextLineIntent = object()
+
+        service.discard_transient_focus_context()
+
+        service.cancel_exploration.assert_called_once_with()
+        service._brailleRoutingRepeats.reset.assert_called_once_with()
+        self.assertIsNone(service._pendingBrailleRoutingAction)
+        self.assertIsNone(service._directBrailleNextLineIntent)
+        dismiss_numbered_choice.assert_called_once_with()
+
+    def test_terminal_integration_owns_braille_exploration_toggle_cleanup(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.braille_exploration_state import (
+            BrailleExplorationTogglePlan,
+        )
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = object()
+        editor_session = mock.Mock()
+        editor_session.toggle_braille_exploration.return_value = (
+            BrailleExplorationTogglePlan(
+                None,
+                False,
+                cleanup_control="endBrailleExplorationRequest",
+                cleanup_payload={"explorationId": 7},
+            )
+        )
+        editor_session.braille_exploration_instance.return_value = (
+            "connection-1",
+            client,
+        )
+        dispatcher = mock.Mock()
+        record = mock.Mock()
+        service = TerminalIntegrationService(
+            mock.Mock(),
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(True, False, True)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=record,
+            fail_open_event=mock.Mock(),
+        )
+
+        plan = service.toggle_braille_exploration()
+
+        self.assertTrue(plan.changed)
+        self.assertFalse(plan.enabled)
+        dispatcher.submit.assert_called_once_with(
+            client,
+            "endBrailleExplorationRequest",
+            {"explorationId": 7},
+        )
+        record.assert_called_once_with("brailleExplorationMode", enabled=False)
+
+    def test_braille_routing_queues_transport_off_the_nvda_thread(self) -> None:
+        from globalPlugins.NeovimAccessLink.editor_session import BrailleRoutePlan
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = mock.Mock()
+        editor_session = mock.Mock()
+        editor_session.braille_route_instance.return_value = ("connection-1", client)
+        editor_session.plan_braille_route.return_value = BrailleRoutePlan(
+            None,
+            target="editor",
+            buffer_id=7,
+            window_id=11,
+            line=3,
+            byte_column=2,
+            changedtick=13,
+            mode_raw="i",
+            character="x",
+        )
+        dispatcher = mock.Mock()
+        dispatcher.submit.return_value = True
+        present_character = mock.Mock()
+        focus_service = mock.Mock()
+        focus_service.should_suppress.return_value = True
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=present_character,
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+
+        self.assertTrue(service.route_braille_cursor(self.focus, 2))
+        dispatcher.submit.assert_called_once_with(
+            client,
+            "routeCursor",
+            {
+                "target": "editor",
+                "bufferId": 7,
+                "windowId": 11,
+                "line": 3,
+                "byteColumn": 2,
+                "changedtick": 13,
+                "modeRaw": "i",
+            },
+        )
+        client.send_control.assert_not_called()
+        present_character.assert_called_once_with("x")
+
+    def test_repeated_braille_routing_defers_word_and_prefers_triple_line_action(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.braille_routing_repeats import (
+            BrailleRoutingActions,
+        )
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            BrailleRoutePlan,
+            BrailleRoutingActionPlan,
+        )
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = mock.Mock()
+        editor_session = mock.Mock()
+        editor_session.braille_route_instance.return_value = ("connection-1", client)
+        editor_session.plan_braille_route.return_value = BrailleRoutePlan(
+            None,
+            target="editor",
+            buffer_id=7,
+            window_id=11,
+            line=3,
+            byte_column=2,
+            changedtick=13,
+            mode_raw="i",
+            character="x",
+        )
+
+        def action_plan(_byte_column, action, *, line_start):
+            return BrailleRoutingActionPlan(
+                None,
+                buffer_id=7,
+                window_id=11,
+                line=3,
+                byte_column=2,
+                changedtick=13,
+                mode_raw="i",
+                action=action,
+                line_start=line_start,
+            )
+
+        editor_session.plan_braille_routing_action.side_effect = action_plan
+        dispatcher = mock.Mock()
+        dispatcher.submit.return_value = True
+        focus_service = mock.Mock()
+        focus_service.should_suppress.return_value = True
+        scheduled = []
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+            braille_routing_actions=lambda: BrailleRoutingActions(
+                word_action="changeWord",
+                line_action="deleteLine",
+                line_start="indentation",
+            ),
+            routing_repeat_timeout_ms=lambda: 500,
+            schedule_later=lambda delay, callback: scheduled.append((delay, callback)),
+        )
+
+        with mock.patch(
+            "globalPlugins.NeovimAccessLink.terminal_integration.time.monotonic",
+            side_effect=(0.0, 0.1, 0.2, 1.0, 1.1),
+        ):
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertEqual(1, len(scheduled))
+            scheduled[0][1]()
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertEqual(2, len(scheduled))
+            scheduled[1][1]()
+
+        self.assertEqual(
+            ["routeCursor", "brailleRouteAction", "routeCursor", "brailleRouteAction"],
+            [call.args[1] for call in dispatcher.submit.call_args_list],
+        )
+        self.assertEqual(
+            ["deleteLine", "changeWord"],
+            [
+                call.args[2]["action"]
+                for call in dispatcher.submit.call_args_list
+                if call.args[1] == "brailleRouteAction"
+            ],
+        )
+        self.assertEqual(
+            "indentation",
+            dispatcher.submit.call_args_list[1].args[2]["lineStart"],
+        )
+        client.send_control.assert_not_called()
+
+    def test_deferred_braille_routing_action_is_revalidated_before_dispatch(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.braille_routing_repeats import (
+            BrailleRoutingActions,
+        )
+        from globalPlugins.NeovimAccessLink.editor_session import (
+            BrailleRoutePlan,
+            BrailleRoutingActionPlan,
+        )
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = object()
+        editor_session = mock.Mock()
+        editor_session.braille_route_instance.return_value = ("connection-1", client)
+        editor_session.plan_braille_route.return_value = BrailleRoutePlan(
+            None,
+            target="editor",
+            buffer_id=7,
+            window_id=11,
+            line=3,
+            byte_column=2,
+            changedtick=13,
+            mode_raw="n",
+            character="x",
+        )
+        ready_action = BrailleRoutingActionPlan(
+            None,
+            buffer_id=7,
+            window_id=11,
+            line=3,
+            byte_column=2,
+            changedtick=13,
+            mode_raw="n",
+            action="changeWord",
+            line_start="routing",
+        )
+        editor_session.plan_braille_routing_action.side_effect = (
+            ready_action,
+            ready_action,
+            ready_action,
+            BrailleRoutingActionPlan(
+                "staleExplorationState",
+                action="changeWord",
+                line_start="routing",
+            ),
+        )
+        dispatcher = mock.Mock()
+        dispatcher.submit.return_value = True
+        scheduled = []
+        record = mock.Mock()
+        focus_service = mock.Mock()
+        focus_service.should_suppress.return_value = True
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=record,
+            fail_open_event=mock.Mock(),
+            braille_routing_actions=lambda: BrailleRoutingActions(
+                word_action="changeWord",
+                line_action="deleteLine",
+            ),
+            routing_repeat_timeout_ms=lambda: 500,
+            schedule_later=lambda delay, callback: scheduled.append((delay, callback)),
+        )
+
+        with mock.patch(
+            "globalPlugins.NeovimAccessLink.terminal_integration.time.monotonic",
+            side_effect=(0.0, 0.1),
+        ):
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+            self.assertTrue(service.route_braille_cursor(self.focus, 2))
+        self.assertEqual(1, len(scheduled))
+        scheduled[0][1]()
+
+        self.assertEqual(
+            ["routeCursor"],
+            [call.args[1] for call in dispatcher.submit.call_args_list],
+        )
+        record.assert_any_call(
+            "brailleRoutingActionRejected",
+            reason="staleExplorationState",
+            action="changeWord",
+        )
+
+    def test_braille_line_navigation_queues_transport_off_the_nvda_thread(self) -> None:
+        from globalPlugins.NeovimAccessLink.editor_session import BrailleLineNavigationPlan
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = mock.Mock()
+        editor_session = mock.Mock()
+        editor_session.braille_exploration_enabled.return_value = False
+        editor_session.braille_line_navigation_instance.return_value = ("connection-1", client)
+        editor_session.plan_braille_line_navigation.return_value = BrailleLineNavigationPlan(
+            None,
+            direction="next",
+            buffer_id=7,
+            window_id=11,
+            line=3,
+            changedtick=13,
+            mode_raw="i",
+            preferred_virtual_column=79,
+            target_column="start",
+        )
+        dispatcher = mock.Mock()
+        dispatcher.submit.return_value = True
+        focus_service = mock.Mock()
+        focus_service.should_suppress.return_value = True
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+
+        self.assertTrue(
+            service.navigate_braille_line(
+                self.focus,
+                "next",
+                target_column="start",
+            )
+        )
+        editor_session.plan_braille_line_navigation.assert_called_once_with(
+            "next",
+            target_column="start",
+        )
+        dispatcher.submit.assert_called_once_with(
+            client,
+            "moveBrailleLine",
+            {
+                "bufferId": 7,
+                "windowId": 11,
+                "line": 3,
+                "changedtick": 13,
+                "preferredVirtualColumn": 79,
+                "direction": "next",
+                "targetColumn": "start",
+                "modeRaw": "i",
+            },
+        )
+        client.send_control.assert_not_called()
+
+    def test_braille_exploration_navigation_and_result_are_correlated_off_thread(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.braille_exploration_state import (
+            BrailleExplorationRequestPlan,
+            BrailleExplorationResultPlan,
+        )
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        client = mock.Mock()
+        editor_session = mock.Mock()
+        editor_session.braille_exploration_enabled.return_value = True
+        editor_session.braille_exploration_instance.return_value = ("connection-1", client)
+        editor_session.plan_braille_exploration_step.return_value = (
+            BrailleExplorationRequestPlan(
+                None,
+                control="brailleExploreLineRequest",
+                request_id=41,
+                payload={
+                    "requestId": 41,
+                    "explorationId": 9,
+                    "actionIndex": 1,
+                    "action": "lineDown",
+                    "count": 1,
+                    "bufferId": 7,
+                    "windowId": 11,
+                    "tabpageId": 5,
+                    "changedtick": 13,
+                    "modeRaw": "i",
+                    "cursorLine": 3,
+                    "cursorByteColumn": 2,
+                    "cursorVirtualColumn": 2,
+                    "desiredVirtualColumn": 79,
+                    "targetColumn": "start",
+                },
+            )
+        )
+        editor_session.consume_braille_exploration_result.return_value = (
+            BrailleExplorationResultPlan(
+                None,
+                request_id=41,
+                result_code="moved",
+                display_changed=True,
+            )
+        )
+        dispatcher = mock.Mock()
+        dispatcher.submit.return_value = True
+        focus_service = mock.Mock()
+        focus_service.should_suppress.return_value = True
+        focus_service.focused_terminal_object = self.focus
+        focus_service.identity.return_value = "terminal-identity"
+        focus_service.is_active_neovim_context.return_value = True
+        refresh_braille = mock.Mock()
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=refresh_braille,
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+
+        self.assertTrue(
+            service.navigate_braille_line(
+                self.focus,
+                "next",
+                target_column="start",
+            )
+        )
+        editor_session.plan_braille_exploration_step.assert_called_once_with(
+            "next",
+            target_column="start",
+        )
+        dispatcher.submit.assert_called_once_with(
+            client,
+            "brailleExploreLineRequest",
+            editor_session.plan_braille_exploration_step.return_value.payload,
+        )
+        editor_session.fail_braille_exploration_request.assert_not_called()
+        event = {
+            "type": "brailleExploreLineResult",
+            "payload": {"requestId": 41},
+        }
+        self.assertTrue(
+            service.handle_braille_exploration_result(
+                "connection-1",
+                "terminal-identity",
+                event,
+            )
+        )
+        editor_session.consume_braille_exploration_result.assert_called_once_with(event)
+        refresh_braille.assert_called_once_with()
+
+        focus_service.identity.return_value = "other-terminal"
+        self.assertFalse(
+            service.handle_braille_exploration_result(
+                "connection-1",
+                "terminal-identity",
+                event,
+            )
+        )
+        editor_session.consume_braille_exploration_result.assert_called_once_with(event)
+        refresh_braille.assert_called_once_with()
+
+        dispatcher.submit.return_value = False
+        self.assertFalse(service.navigate_braille_line(self.focus, "next"))
+        editor_session.fail_braille_exploration_request.assert_called_once_with(41)
 
     def test_terminal_integration_exploration_requires_the_exact_focused_adapter(self) -> None:
         from globalPlugins.NeovimAccessLink.terminal_integration import (
@@ -1825,10 +3031,14 @@ class BuiltAddonTests(unittest.TestCase):
             command_actions={command: mock.Mock() for command in TerminalCommand},
             copy_diagnostic_report=mock.Mock(),
             claim_focused_session=mock.Mock(),
-            send_braille_route=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
             control_dispatcher=mock.Mock(),
             present_exploration=mock.Mock(),
             exploration_details=exploration_details,
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
             fail_open_event=mock.Mock(),
         )
@@ -1862,6 +3072,119 @@ class BuiltAddonTests(unittest.TestCase):
             },
             editor_session.release_exploration.call_args.kwargs,
         )
+
+    def test_speech_exploration_refreshes_braille_only_when_following_is_enabled(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.exploration_state import ExplorationResultPlan
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        app_module = object()
+        adapter_token = object()
+        identity = object()
+        focus = types.SimpleNamespace(appModule=app_module)
+        focus_service = mock.Mock(
+            focused_terminal_object=focus,
+            focused_app_module=app_module,
+            focused_adapter_token=adapter_token,
+        )
+        focus_service.identity.return_value = identity
+        focus_service.is_active_neovim_context.return_value = True
+        editor_session = mock.Mock()
+        editor_session.exploration_instance.return_value = ("connection-1", object())
+        editor_session.consume_exploration_result.return_value = ExplorationResultPlan(
+            None,
+            speech_action=object(),
+            braille_display_changed=True,
+        )
+        refresh_braille = mock.Mock()
+        present_exploration = mock.Mock()
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=mock.Mock(),
+            present_exploration=present_exploration,
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=refresh_braille,
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+            braille_follows_speech_exploration=lambda: True,
+        )
+        event = {"type": "exploreTextResult", "payload": {"requestId": 9}}
+        self.assertTrue(service.handle_exploration_result("connection-1", identity, event))
+        refresh_braille.assert_called_once_with()
+        present_exploration.assert_called_once()
+
+    def test_numbered_choice_enter_without_selection_is_consumed_without_paste(self) -> None:
+        from globalPlugins.NeovimAccessLink.core.numbered_choice_state import (
+            NumberedChoiceAcceptPlan,
+            NumberedChoiceRejection,
+        )
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        app_module = object()
+        adapter_token = object()
+        identity = object()
+        focus = types.SimpleNamespace(appModule=app_module)
+        focus_service = mock.Mock()
+        focus_service.focused_terminal_object = focus
+        focus_service.focused_app_module = app_module
+        focus_service.focused_adapter_token = adapter_token
+        focus_service.identity.return_value = identity
+        focus_service.is_active_neovim_context.return_value = True
+        editor_session = mock.Mock()
+        editor_session.numbered_choice_instance.return_value = ("connection-1", object())
+        editor_session.numbered_choice_available.return_value = True
+        editor_session.plan_numbered_choice_accept.return_value = NumberedChoiceAcceptPlan(
+            NumberedChoiceRejection.NO_SELECTED_ITEM,
+        )
+        present = mock.Mock()
+        dispatcher = mock.Mock()
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=present,
+            dismiss_numbered_choice=mock.Mock(),
+            refresh_braille=mock.Mock(),
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+
+        authorization = service.authorize_numbered_choice_accept(
+            focus,
+            app_module,
+            adapter_token,
+        )
+        self.assertIsNotNone(authorization)
+        self.assertTrue(service.complete_numbered_choice_accept(
+            authorization,
+            focus,
+            app_module,
+            adapter_token,
+        ))
+        present.assert_called_once_with("No item selected")
+        dispatcher.submit.assert_not_called()
 
     def test_direct_neovim_terminal_input_remains_an_active_exploration_context(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -1908,6 +3231,52 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual([], executed)
         self.assertEqual(1, len(queued))
+
+    def test_managed_disconnect_fails_open_only_for_the_active_instance(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        plugin._editorSessionController.switch_instance("active")
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"brailleExploration"})
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 2,
+            "tabpageId": 3,
+            "changedtick": 4,
+            "modeRaw": "n",
+            "lineText": "active",
+            "lineCount": 3,
+            "cursor": {
+                "line": 2,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+            },
+        }
+        plugin._gate.manual_enabled = True
+        plugin._gate.authenticated = True
+        plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = plugin._identity(self.focus)
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        plugin._queueRuntimeCallback = mock.Mock(return_value=True)
+
+        plugin._onManagedState("inactive", "disconnected")
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertTrue(plugin._editorSessionController.braille_exploration_enabled())
+
+        plugin._onManagedState("active", "disconnected")
+        self.assertFalse(plugin._gate.suppression_active)
+        self.assertFalse(plugin._connectionCoordinator.connected)
+        self.assertFalse(plugin._editorSessionController.braille_exploration_enabled())
+        self.assertEqual(
+            [
+                mock.call(plugin._handleManagedState, "inactive", "disconnected"),
+                mock.call(plugin._handleManagedState, "active", "disconnected"),
+            ],
+            plugin._queueRuntimeCallback.call_args_list,
+        )
 
     def test_delayed_runtime_callback_race_is_inert_after_teardown(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2130,7 +3499,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
-        archive = build()
+        archive = self.archive_path
         metadata = buildVars.manifest()
         self.assertEqual(
             f"{metadata['name']}-{buildVars.artifact_version()}.nvda-addon",
@@ -2138,7 +3507,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertEqual(
             f"{buildVars.product_slug()}-{buildVars.artifact_version()}-user.tar.gz",
-            build_user_package.build().name,
+            self._buildUserPackage().name,
         )
         with mock.patch.object(buildVars, "development_build", 1):
             self.assertRegex(
@@ -2190,7 +3559,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("kb:f9", NeovimAccessLink._SESSION_CLAIM_GESTURE)
 
     def test_addon_reuses_nvda_sounds_and_bundles_only_cc0_editor_earcons(self) -> None:
-        with zipfile.ZipFile(build()) as archive:
+        with zipfile.ZipFile(self.archive_path) as archive:
             waves = sorted(name.rsplit("/", 1)[-1] for name in archive.namelist() if name.endswith(".wav"))
             self.assertEqual([
                 "delete.wav", "fileEnd.wav", "fileStart.wav", "lineCrossed.wav",
@@ -2216,7 +3585,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
 
     def test_addon_contains_complete_linux_package_and_shared_configuration(self) -> None:
-        with zipfile.ZipFile(build()) as archive:
+        with zipfile.ZipFile(self.archive_path) as archive:
             resource = "globalPlugins/NeovimAccessLink/resources/"
             config_bytes = archive.read(resource + "linux-components.json")
             package_bytes = archive.read(resource + "server-user.tar.gz")
@@ -2296,6 +3665,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         configurable_scripts = (
             "script_toggleNeovimMode",
+            "script_toggleBrailleExplorationMode",
             "script_readCompletionDocumentation",
             "script_copyNeovimSelection",
             "script_copyLastNeovimYank",
@@ -2325,6 +3695,52 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))
         self.assertTrue(hasattr(AppModule, "_decideExecuteGesture"))
+
+    def test_braille_exploration_toggle_is_assignable_and_separate(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._editorSessionController.switch_instance("connection-1")
+        plugin._connectionCoordinator.active_client = object()
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({
+            "brailleExploration",
+            "cursorRouting",
+        })
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "tabpageId": 1,
+            "changedtick": 4,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "current",
+            "lineCount": 3,
+            "cursor": {
+                "line": 2,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+            },
+        }
+        plugin._queueBrailleRefresh = mock.Mock()
+        self.assertFalse(plugin._editorSessionController.braille_exploration_enabled())
+        self.assertFalse(plugin._editorSessionController._exploration.active)
+
+        plugin.action_toggleBrailleExplorationMode(None)
+        self.assertTrue(plugin._editorSessionController.braille_exploration_enabled())
+        self.assertFalse(plugin._editorSessionController._exploration.active)
+        self.assertEqual("Braille exploration mode", self.messages[-1])
+
+        plugin.action_toggleBrailleExplorationMode(None)
+        self.assertFalse(plugin._editorSessionController.braille_exploration_enabled())
+        self.assertFalse(plugin._editorSessionController._exploration.active)
+        self.assertEqual("Braille cursor mode", self.messages[-1])
+        self.assertEqual(
+            [mock.call(rebuild=True), mock.call(rebuild=True)],
+            plugin._queueBrailleRefresh.call_args_list,
+        )
+        plugin.terminate()
 
     def test_configured_app_module_gesture_passes_through_after_focus_race(self) -> None:
         from appModules.windowsterminal import AppModule
@@ -2431,6 +3847,55 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], self.inputDecider.handlers)
         self.assertEqual([], self.rawKeyDecider.handlers)
 
+    def test_direct_braille_next_line_intent_is_exact_one_turn_and_fail_open(self) -> None:
+        import inputCore
+        import queueHandler
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        class GlobalCommands:
+            __module__ = "globalCommands"
+
+            def script_braille_nextLine(self, gesture):
+                pass
+
+        service = mock.Mock()
+        token = object()
+        service.mark_direct_braille_next_line.return_value = token
+        queued = []
+        with (
+            mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service),
+            mock.patch.object(
+                queueHandler,
+                "queueFunction",
+                side_effect=lambda _queue, function, *args: queued.append((function, args)),
+            ),
+        ):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            gesture = types.SimpleNamespace(
+                script=GlobalCommands().script_braille_nextLine,
+                mainKeyName="",
+                modifierNames=(),
+                normalizedIdentifiers=(),
+            )
+
+            self.assertTrue(self.inputDecider.handlers[0](gesture=gesture))
+            service.mark_direct_braille_next_line.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertEqual([(service.clear_direct_braille_next_line, (token,))], queued)
+
+            queued[0][0](*queued[0][1])
+            service.clear_direct_braille_next_line.assert_called_once_with(token)
+
+            inputCore.manager.isInputHelpActive = True
+            self.assertTrue(self.inputDecider.handlers[0](gesture=gesture))
+            service.mark_direct_braille_next_line.assert_called_once()
+            adapter.terminate()
+
     def test_exploration_raw_key_observer_always_fails_open(self) -> None:
         from appModules.windowsterminal import AppModule
 
@@ -2440,6 +3905,45 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True))
             self.assertTrue(raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False))
         adapter.terminate()
+
+    def test_structured_arrow_navigation_bypasses_only_nvda_native_caret_speech(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        import inputCore
+        from appModules.windowsterminal import (
+            AppModule,
+            script_passThroughStructuredNavigation,
+        )
+
+        fallback = object()
+        gesture = types.SimpleNamespace(
+            mainKeyName="leftArrow",
+            modifierNames=(),
+            fallbackScript=fallback,
+            send=mock.Mock(),
+        )
+        service = mock.Mock()
+        service.should_use_native_event.return_value = False
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+
+            script = adapter.getScript(gesture)
+            self.assertIs(script_passThroughStructuredNavigation, script.__func__)
+            script(gesture)
+            gesture.send.assert_called_once_with()
+            service.should_use_native_event.assert_called_once_with(
+                self.focus,
+                "caretNavigationScript",
+            )
+
+            service.should_use_native_event.return_value = True
+            self.assertIs(fallback, adapter.getScript(gesture))
+            self.addCleanup(setattr, inputCore.manager, "isInputHelpActive", False)
+            inputCore.manager.isInputHelpActive = True
+            service.should_use_native_event.return_value = False
+            self.assertIs(fallback, adapter.getScript(gesture))
+            inputCore.manager.isInputHelpActive = False
+            adapter.terminate()
 
     def test_exploration_uses_standard_contextual_script_resolution_and_release(self) -> None:
         import globalPlugins.NeovimAccessLink as addon_module
@@ -2472,7 +3976,7 @@ class BuiltAddonTests(unittest.TestCase):
             script = adapter.getScript(gesture)
             self.assertIs(script_exploreText, script.__func__)
             self.assertEqual(
-                "Explore Neovim text without moving the cursor",
+                "Speech exploration mode: read Neovim text without moving the cursor",
                 script.__func__._test_script_kwargs["description"],
             )
             self.assertFalse(hasattr(AppModule, "script_exploreText"))
@@ -2638,6 +4142,87 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
 
+    def test_numbered_spell_choice_overrides_j_k_and_enter_only_in_the_exact_prompt(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        authorization = object()
+        service.authorize_numbered_choice_accept.return_value = authorization
+        service.navigate_numbered_choice.return_value = True
+        service.complete_numbered_choice_accept.return_value = True
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            observer = self.inputDecider.handlers[0]
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True)
+            gesture = types.SimpleNamespace(
+                mainKeyName="j",
+                modifierNames=("NVDA",),
+                vkCode=74,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+j",),
+            )
+
+            self.assertFalse(observer(gesture))
+            service.navigate_numbered_choice.assert_called_once_with(
+                addon_module.NumberedChoiceDirection.NEXT,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+
+            enter = types.SimpleNamespace(
+                mainKeyName="enter",
+                modifierNames=("NVDA",),
+                vkCode=13,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+enter",),
+            )
+            self.assertFalse(observer(enter))
+            service.complete_numbered_choice_accept.assert_called_once_with(
+                authorization,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
+            service.release_numbered_choice.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+
+            service.authorize_numbered_choice_accept.return_value = None
+            self.assertTrue(observer(enter))
+            adapter.terminate()
+
+    def test_numbered_spell_choice_never_executes_during_input_help(self) -> None:
+        import inputCore
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        service.authorize_numbered_choice_accept.return_value = object()
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            inputCore.manager.isInputHelpActive = True
+            gesture = types.SimpleNamespace(
+                mainKeyName="enter",
+                modifierNames=("NVDA",),
+                vkCode=13,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+enter",),
+            )
+
+            self.assertTrue(self.inputDecider.handlers[0](gesture))
+            service.authorize_numbered_choice_accept.assert_not_called()
+            service.complete_numbered_choice_accept.assert_not_called()
+            adapter.terminate()
+
     def test_every_configurable_app_module_script_dispatches_its_action(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -2645,6 +4230,10 @@ class BuiltAddonTests(unittest.TestCase):
 
         scripts_and_actions = (
             ("script_toggleNeovimMode", TerminalCommand.TOGGLE_ACCESSIBILITY),
+            (
+                "script_toggleBrailleExplorationMode",
+                TerminalCommand.TOGGLE_BRAILLE_EXPLORATION,
+            ),
             (
                 "script_readCompletionDocumentation",
                 TerminalCommand.READ_COMPLETION_DOCUMENTATION,
@@ -3526,7 +5115,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_terminal_events_and_configurable_scripts_stay_in_app_module(self) -> None:
-        with zipfile.ZipFile(build()) as archive:
+        with zipfile.ZipFile(self.archive_path) as archive:
             names = set(archive.namelist())
             global_source = archive.read(
                 "globalPlugins/NeovimAccessLink/__init__.py"
@@ -3598,6 +5187,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "script_readCompletionDocumentation",
                 "script_setNeovimRegisterFromWindowsClipboard",
                 "script_startConnectionInstance",
+                "script_toggleBrailleExplorationMode",
                 "script_toggleNeovimMode",
             ],
             sorted(
@@ -3608,6 +5198,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
 
     def test_app_module_uses_only_the_public_terminal_service_contract(self) -> None:
+        import controlTypes
         import globalPlugins.NeovimAccessLink as addon_module
         from appModules.windowsterminal import AppModule
 
@@ -3632,9 +5223,8 @@ class BuiltAddonTests(unittest.TestCase):
                 order.append(("native", obj, event_name))
                 return False
 
-            def supports_braille_overlay(inner_self, obj):
-                order.append(("overlay", obj))
-                return True
+            def record_braille_overlay_selected(inner_self):
+                order.append(("overlaySelected",))
 
             def dispatch_command(inner_self, command, gesture, obj, app_module, token):
                 order.append(("command", command, gesture, obj, app_module, token))
@@ -3650,7 +5240,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.focus.appModule = adapter
         native_focus = []
         native_text = []
-        classes = [object]
+        native_terminal_overlay = type(
+            "NativeTerminalOverlay",
+            (),
+            {"role": controlTypes.Role.TERMINAL},
+        )
+        classes = [native_terminal_overlay, object]
         gesture = object()
         try:
             adapter.event_gainFocus(self.focus, lambda: native_focus.append(True))
@@ -3667,7 +5262,15 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], native_text)
         self.assertIs(addon_module.StructuredTerminalBrailleOverlay, classes[0])
         self.assertEqual(
-            ["prepare", "finish", "native", "overlay", "command", "diagnostics", "lose"],
+            [
+                "prepare",
+                "finish",
+                "native",
+                "overlaySelected",
+                "command",
+                "diagnostics",
+                "lose",
+            ],
             [item[0] for item in order],
         )
         self.assertIs(
@@ -4207,11 +5810,23 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         adapter = AppModule()
         self.focus.appModule = adapter
-        classes = [object]
+        self.focus.role = controlTypes.Role.TERMINAL + 1
+        native_terminal_overlay = type(
+            "NativeTerminalOverlay",
+            (),
+            {"role": controlTypes.Role.TERMINAL},
+        )
+        classes = [native_terminal_overlay, object]
 
         adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
 
         self.assertIs(StructuredTerminalBrailleOverlay, classes[0])
+        self.assertIs(native_terminal_overlay, classes[1])
+        self.assertIn('"category": "brailleOverlaySelected"', plugin._diagnostics.report())
+        role_only = [object]
+        self.focus.role = controlTypes.Role.TERMINAL
+        adapter.chooseNVDAObjectOverlayClasses(self.focus, role_only)
+        self.assertEqual([object], role_only)
         non_terminal = types.SimpleNamespace(role=controlTypes.Role.TERMINAL + 1)
         unchanged = [object]
         adapter.chooseNVDAObjectOverlayClasses(non_terminal, unchanged)
@@ -4219,32 +5834,32 @@ class BuiltAddonTests(unittest.TestCase):
         adapter.terminate()
         plugin.terminate()
 
-    def test_windows_terminal_overlay_hook_fails_open_on_identity_error(self) -> None:
+    def test_windows_terminal_overlay_is_selected_before_service_publication(self) -> None:
+        import controlTypes
+        import globalPlugins.NeovimAccessLink as addon_module
         from appModules.windowsterminal import AppModule
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink import StructuredTerminalBrailleOverlay
 
-        plugin = GlobalPlugin()
+        native_terminal_overlay = type(
+            "NativeTerminalOverlay",
+            (),
+            {"role": controlTypes.Role.TERMINAL},
+        )
+        classes = [native_terminal_overlay, object]
+        original_getter = addon_module.getTerminalIntegrationService
+        addon_module.getTerminalIntegrationService = lambda: None
         adapter = AppModule()
         self.focus.appModule = adapter
-        plugin._gate.manual_enabled = True
-        plugin._gate.authenticated = True
-        plugin._gate.nvim_active = True
-        plugin._gate.focused = plugin._identity(self.focus)
-        plugin._gate.bound_terminal = plugin._gate.focused
-        plugin._terminalFocusService._identityForObject = (
-            lambda _obj: (_ for _ in ()).throw(RuntimeError("identity failed"))
-        )
-        classes = []
+        try:
+            adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+            adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
+        finally:
+            adapter.terminate()
+            addon_module.getTerminalIntegrationService = original_getter
 
-        adapter.chooseNVDAObjectOverlayClasses(self.focus, classes)
-
-        self.assertEqual([], classes)
-        self.assertFalse(plugin._gate.suppression_active)
-        report = plugin._diagnostics.report()
-        self.assertIn('"category": "terminalEventFailedOpen"', report)
-        self.assertIn('"event": "chooseNVDAObjectOverlayClasses"', report)
-        adapter.terminate()
-        plugin.terminate()
+        self.assertIs(StructuredTerminalBrailleOverlay, classes[0])
+        self.assertEqual(1, classes.count(StructuredTerminalBrailleOverlay))
+        self.assertIs(native_terminal_overlay, classes[1])
 
     def test_windows_terminal_events_fail_open_exactly_once(self) -> None:
         from appModules.windowsterminal import AppModule
@@ -5476,12 +7091,25 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("requestFocusContext", client.controls[-1][0])
         self.assertFalse(plugin._gate.suppression_active)
         request_id = client.controls[-1][1]["requestId"]
+        self.brailleGainFocusUpdates.clear()
+        self.brailleRegionUpdates.clear()
         plugin._handleManagedEvent(instance.identifier, {"type": "focusContext", "payload": {
             "_focusRequestId": request_id, "bufferName": "/work/returned.lua",
+            "bufferId": 1, "windowId": 1000, "changedtick": 4,
+            "lineText": "route here", "cursor": {"line": 1, "byteColumn": 0},
             "mode": "normal",
         }})
         self.assertTrue(plugin._gate.suppression_active)
         self.assertIn("file returned.lua, normal mode, on First", self.spoken)
+        self.assertEqual(
+            [((self.focus,), {"shouldAutoTether": False})],
+            self.brailleGainFocusUpdates,
+        )
+        self.assertEqual([], self.brailleRegionUpdates)
+        report = plugin._diagnostics.report()
+        self.assertIn('"category": "brailleRefresh"', report)
+        self.assertIn('"mode": "followCursors"', report)
+        self.assertIn('"tether": "focus"', report)
         plugin.terminate()
 
     def test_focus_announcement_choices_keep_mode_sounds_independent(self) -> None:
@@ -5528,6 +7156,56 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([], self.spoken)
         self.assertEqual([], self.soundFeeds)
         plugin.terminate()
+
+    def test_focus_announcement_does_not_cover_active_braille_exploration(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._editorSessionController.switch_instance("connection-1")
+        plugin._connectionCoordinator.active_client = object()
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({
+            "brailleExploration",
+        })
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "tabpageId": 3,
+            "changedtick": 9,
+            "lineCount": 8,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "preserved exploration line",
+            "cursor": {
+                "line": 3,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+                "preferredVirtualColumn": 0,
+            },
+            "_transport": {"capabilities": ["brailleExploration"]},
+        }
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = plugin._gate.focused
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        self._updateSettings(plugin, {"focusAnnouncement": 1})
+        self.spoken.clear()
+        self.brailleMessages.clear()
+        self.brailleGainFocusUpdates.clear()
+
+        plugin._handleEvent({"type": "focusContext", "payload": {
+            **plugin._connectionCoordinator.current_state,
+            "lineText": "confirmed session line",
+        }})
+
+        self.assertEqual(["confirmed session line"], self.spoken)
+        self.assertEqual([], self.brailleMessages)
+        self.assertEqual(
+            [((self.focus,), {"shouldAutoTether": False})],
+            self.brailleGainFocusUpdates,
+        )
 
     def test_in_place_buffer_switch_uses_focus_setting_and_connection_label(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -6196,12 +7874,14 @@ class BuiltAddonTests(unittest.TestCase):
         panel = self.settingsCategoryClasses[0]()
         panel.makeSettings(object())
         self.assertEqual(
-            ("General", "Feedback", "Navigation", "Connections"),
+            ("General", "Feedback", "Navigation", "Braille", "Connections"),
             panel.settingsTabLabels,
         )
         self.assertEqual([
-            "Global action feedback", "Session focus", "Individual actions",
-            "Normal navigation", "Exploration release", "Saved SSH connections",
+            "Global action feedback", "Session focus",
+            "Speech exploration mode", "Routing keys", "Spelling suggestions",
+            "Individual actions", "Normal navigation", "Speech exploration mode release",
+            "Saved SSH connections",
         ], self.staticBoxLabels)
         self.assertEqual(9, len(panel.feedbackControls))
         self.assertEqual({
@@ -6214,13 +7894,43 @@ class BuiltAddonTests(unittest.TestCase):
             for key, control in panel.navigationDetailControls.items()
         })
         self.assertEqual(2, panel.focusAnnouncement.GetSelection())
+        self.assertEqual(1, panel.brailleSuggestionStart.GetValue())
+        self.assertTrue(panel.brailleFollowSpeechExploration.IsChecked())
+        self.assertEqual(0, panel.brailleRoutingWordAction.GetSelection())
+        self.assertEqual(0, panel.brailleRoutingLineAction.GetSelection())
+        self.assertEqual(0, panel.brailleRoutingLineStart.GetSelection())
         panel.focusAnnouncement.SetSelection(1)
+        panel.brailleSuggestionStart.SetValue(40)
+        panel.brailleFollowSpeechExploration.SetValue(False)
+        panel.brailleRoutingWordAction.SetSelection(1)
+        panel.brailleRoutingLineAction.SetSelection(2)
+        panel.brailleRoutingLineStart.SetSelection(1)
         panel.feedbackControls["delete"].SetSelection(2)
         panel.navigationDetailControls["navigationLine"].SetSelection(3)
         panel.navigationDetailControls["explorationWord"].SetSelection(0)
         panel.onSave()
         self.assertEqual(1, self._settingsSnapshot(plugin)["focusAnnouncement"])
         self.assertEqual(1, __import__("config").conf["NeovimAccessLink"]["focusAnnouncement"])
+        self.assertEqual(40, self._settingsSnapshot(plugin)["brailleSuggestionStart"])
+        self.assertEqual(
+            40,
+            __import__("config").conf["NeovimAccessLink"]["brailleSuggestionStart"],
+        )
+        self.assertFalse(
+            self._settingsSnapshot(plugin)["brailleFollowSpeechExploration"],
+        )
+        self.assertFalse(
+            __import__("config").conf["NeovimAccessLink"]["brailleFollowSpeechExploration"],
+        )
+        self.assertEqual({
+            "wordAction": 1,
+            "lineAction": 2,
+            "lineStart": 1,
+        }, self._settingsSnapshot(plugin)["brailleRouting"])
+        self.assertEqual(
+            2,
+            __import__("config").conf["NeovimAccessLink"]["brailleRouting"]["lineAction"],
+        )
         self.assertEqual(2, self._settingsSnapshot(plugin)["feedback"]["delete"])
         self.assertEqual(2, __import__("config").conf["NeovimAccessLink"]["feedback"]["delete"])
         self.assertEqual(3, self._settingsSnapshot(plugin)["navigationDetails"]["navigationLine"])
@@ -6427,6 +8137,198 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual({}, plugin._connectionCoordinator.pending_clipboard_requests)
         self.assertIn("The Windows clipboard does not contain supported text", self.messages)
         plugin.terminate()
+
+    def test_numbered_choice_items_remain_transient_and_braille_restores_editor_state(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink import (
+            GlobalPlugin,
+            NumberedChoiceDirection,
+            StructuredLineRegion,
+        )
+        from globalPlugins.NeovimAccessLink.nvda_braille import numbered_choice_message_text
+
+        client = types.SimpleNamespace(
+            start=lambda: None,
+            stop=lambda: None,
+            send_control=lambda _kind, _payload: True,
+        )
+        plugin = GlobalPlugin()
+        adapter = self._terminalAdapter()
+        self.focus.appModule = adapter
+        identity = plugin._terminalFocusService.refresh_for_action(
+            self.focus,
+            adapter,
+            adapter._eventToken,
+        )
+        instance = add_remote_instance(
+            plugin._instanceManager,
+            "local",
+            "1",
+            "This computer",
+            client,
+        )
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.select_instance(
+            instance.identifier,
+            identity,
+            plugin._editorSessionController.new_runtime,
+        )
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"numberedChoices"})
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        editor_state = {
+            "pluginCapabilities": ["numberedChoices"],
+            "bufferId": 1,
+            "windowId": 2,
+            "tabpageId": 3,
+            "changedtick": 4,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "mispelled",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }
+        plugin._connectionCoordinator.current_state = dict(editor_state)
+        opened = {
+            "type": "numberedChoiceOpened",
+            "payload": {
+                **editor_state,
+                "choiceKind": "spellSuggestions",
+                "choiceId": 7,
+                "items": ["correct form", "alternate form"],
+            },
+        }
+
+        plugin._handleManagedEvent(instance.identifier, opened)
+        self.assertEqual(editor_state, plugin._connectionCoordinator.current_state)
+        self.assertNotIn("correct form", plugin._diagnostics.report())
+        self.assertEqual("Spelling suggestions available", self.spoken[-1])
+        self.assertEqual([], self.brailleMessages)
+        self.brailleGainFocusUpdates.clear()
+        self.brailleRegionUpdates.clear()
+        self.assertTrue(plugin._terminalIntegrationService.navigate_numbered_choice(
+            NumberedChoiceDirection.NEXT,
+            self.focus,
+            adapter,
+            adapter._eventToken,
+        ))
+        self.assertEqual([], self.brailleGainFocusUpdates)
+        self.assertEqual([], self.brailleRegionUpdates)
+        self.assertEqual("correct form", self.spoken[-1])
+        self.assertEqual("correct form", self.brailleMessages[-1])
+        self.assertEqual(1, self.brailleMessageTimerStops)
+        self.assertIsNotNone(braille.handler._messageCallLater)
+        self.assertEqual(
+            "correct form",
+            plugin._terminalIntegrationService.braille_plan(
+                self.focus,
+                report_spelling=False,
+            ).plan.text,
+        )
+        settings = plugin._settingsService.snapshot()
+        settings["brailleSuggestionStart"] = 4
+        plugin._settingsService.update(settings)
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("   correct form", region.rawText)
+        self.assertEqual(3, region.cursorPos)
+        settings = plugin._settingsService.snapshot()
+        settings["brailleSuggestionStart"] = 40
+        plugin._settingsService.update(settings)
+        region.update()
+        self.assertEqual((" " * 28) + "correct form", region.rawText)
+        self.assertEqual(28, region.cursorPos)
+        original_region_update = braille.Region.update
+        try:
+            def update_with_contraction(inner_self):
+                leading_cells = len(inner_self.rawText) - len(inner_self.rawText.lstrip(" "))
+                inner_self.brailleCells = list(range(leading_cells + 5))
+                inner_self.brailleToRawPos = list(range(len(inner_self.rawText)))
+
+            braille.Region.update = update_with_contraction
+            settings = plugin._settingsService.snapshot()
+            settings["brailleSuggestionStart"] = 9
+            plugin._settingsService.update(settings)
+            braille.handler.displaySize = 10
+            self.assertEqual(
+                (" " * 5) + "correct form",
+                numbered_choice_message_text(
+                    "correct form",
+                    start_cell=9,
+                    display_size=10,
+                ),
+            )
+            region.update()
+            self.assertEqual((" " * 5) + "correct form", region.rawText)
+            self.assertEqual(5, region.cursorPos)
+            self.assertEqual(10, len(region.brailleCells))
+        finally:
+            braille.Region.update = original_region_update
+        braille.handler.displaySize = 3
+        region.update()
+        self.assertEqual("correct form", region.rawText)
+        self.assertEqual(0, region.cursorPos)
+        braille.handler.displaySize = 40
+
+        self.assertTrue(plugin._terminalIntegrationService.release_numbered_choice(
+            self.focus,
+            adapter,
+            adapter._eventToken,
+        ))
+        self.assertEqual(1, self.brailleMessageDismissals)
+        self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
+        self.assertEqual(
+            "mispelled",
+            plugin._terminalIntegrationService.braille_plan(
+                self.focus,
+                report_spelling=False,
+            ).plan.text,
+        )
+        plugin._handleManagedEvent(instance.identifier, {
+            "type": "numberedChoiceClosed",
+            "payload": {
+                **editor_state,
+                "choiceKind": "spellSuggestions",
+                "choiceId": 7,
+            },
+        })
+        self.assertIsNone(plugin._editorSessionController.active_numbered_choice_context())
+        plugin.terminate()
+
+    def test_numbered_choice_does_not_dismiss_a_newer_braille_message(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink.nvda_braille import (
+            dismiss_numbered_choice_message,
+            present_numbered_choice_message,
+        )
+
+        token = present_numbered_choice_message("suggestion", start_cell=1)
+        self.assertIsNotNone(token)
+        braille.handler.message("newer NVDA message")
+
+        self.assertFalse(dismiss_numbered_choice_message(token))
+        self.assertEqual(0, self.brailleMessageDismissals)
+        self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
+        self.assertEqual("newer NVDA message", self.brailleMessages[-1])
+
+    def test_numbered_choice_does_not_claim_an_unchanged_foreign_braille_message(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink.nvda_braille import present_numbered_choice_message
+
+        braille.handler.message("foreign NVDA message")
+        foreign_region = braille.handler.messageBuffer.regions[-1]
+        timer_stops = self.brailleMessageTimerStops
+        original_message = braille.handler.message
+        try:
+            braille.handler.message = lambda _text: None
+            token = present_numbered_choice_message("suggestion", start_cell=1)
+        finally:
+            braille.handler.message = original_message
+
+        self.assertIsNone(token)
+        self.assertIs(braille.handler.messageBuffer.regions[-1], foreign_region)
+        self.assertEqual(timer_stops, self.brailleMessageTimerStops)
 
     def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -7064,6 +8966,56 @@ class BuiltAddonTests(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             overlay.getBrailleRegions()
 
+    def test_first_authenticated_empty_full_state_builds_a_focusable_braille_region(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredTerminalBrailleOverlay
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        plugin.action_toggleNeovimMode(None)
+        original_handle_gain_focus = braille.handler.handleGainFocus
+        original_region_update = braille.Region.update
+        rebuilt_regions = []
+
+        def strict_region_update(region):
+            original_region_update(region)
+            if region.cursorPos is not None and not region.brailleCells:
+                raise LookupError("No such position")
+
+        def rebuild_structured_focus(focus, *, shouldAutoTether):
+            self.assertFalse(shouldAutoTether)
+            region = StructuredTerminalBrailleOverlay.getBrailleRegions(focus)[0]
+            region.update()
+            rebuilt_regions.append(region)
+
+        braille.Region.update = strict_region_update
+        braille.handler.handleGainFocus = rebuild_structured_focus
+        try:
+            plugin._handleEvent({
+                "type": "fullState",
+                "payload": {
+                    "mode": "normal",
+                    "modeRaw": "n",
+                    "lineText": "",
+                    "cursor": {"line": 1, "byteColumn": 0},
+                },
+            })
+        finally:
+            braille.handler.handleGainFocus = original_handle_gain_focus
+            braille.Region.update = original_region_update
+
+        self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual(1, len(rebuilt_regions))
+        region = rebuilt_regions[0]
+        self.assertEqual(" ", region.rawText)
+        self.assertEqual(0, region.cursorPos)
+        self.assertEqual(1, len(region.brailleCells))
+        self.assertTrue(region.focusToHardLeft)
+        self.assertTrue(region.hidePreviousRegions)
+        self.assertNotIn('"category": "brailleError"', plugin._diagnostics.report())
+
     def test_authenticated_full_state_binds_only_focused_terminal(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
@@ -7071,11 +9023,18 @@ class BuiltAddonTests(unittest.TestCase):
         self._focusPlugin(plugin)
         plugin._beginClaimInventory = lambda: None
         plugin.action_toggleNeovimMode(None)
+        self.brailleGainFocusUpdates.clear()
+        self.brailleRegionUpdates.clear()
         plugin._handleEvent({
             "type": "fullState",
             "payload": {"modeRaw": "n", "lineText": "hello", "cursor": {"line": 1, "byteColumn": 0}},
         })
         self.assertTrue(plugin._gate.suppression_active)
+        self.assertEqual(
+            [((self.focus,), {"shouldAutoTether": False})],
+            self.brailleGainFocusUpdates,
+        )
+        self.assertEqual([], self.brailleRegionUpdates)
         called: list[bool] = []
         adapter = self._terminalAdapter()
         cancellations_before_modes = self.speechCancellations
@@ -7106,6 +9065,111 @@ class BuiltAddonTests(unittest.TestCase):
         adapter.event_textChange(self.focus, lambda: called.append(True))
         self.assertEqual([True, True], called)
         plugin.terminate()
+
+    def test_editor_cursor_updates_use_nvda_standard_braille_caret_following(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        plugin.action_toggleNeovimMode(None)
+        plugin._editorSessionController.switch_instance("connection-1")
+        plugin._handleEvent({
+            "type": "fullState",
+            "payload": {
+                "mode": "insert",
+                "modeRaw": "i",
+                "lineText": "a" * 80,
+                "cursor": {
+                    "line": 1,
+                    "byteColumn": 80,
+                    "characterColumn": 80,
+                    "virtualColumn": 80,
+                },
+            },
+        })
+        self.brailleCaretMoveUpdates.clear()
+        self.brailleRegionUpdates.clear()
+        plugin._handleEvent({
+            "type": "textChanged",
+            "payload": {
+                "mode": "insert",
+                "modeRaw": "i",
+                "lineText": "a" * 81,
+                "cursor": {
+                    "line": 1,
+                    "byteColumn": 81,
+                    "characterColumn": 81,
+                    "virtualColumn": 81,
+                },
+            },
+        })
+        self.assertEqual(
+            [((self.focus,), {"shouldAutoTether": False})],
+            self.brailleCaretMoveUpdates,
+        )
+        self.assertEqual([], self.brailleRegionUpdates)
+
+    def test_real_cursor_updates_do_not_move_active_braille_exploration(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._beginClaimInventory = lambda: None
+        plugin.action_toggleNeovimMode(None)
+        plugin._editorSessionController.switch_instance("connection-1")
+        plugin._handleEvent({
+            "type": "fullState",
+            "payload": {
+                "bufferId": 1,
+                "windowId": 2,
+                "tabpageId": 3,
+                "changedtick": 4,
+                "mode": "normal",
+                "modeRaw": "n",
+                "lineText": "virtual origin",
+                "lineCount": 5,
+                "cursor": {
+                    "line": 2,
+                    "byteColumn": 3,
+                    "characterColumn": 3,
+                    "virtualColumn": 3,
+                },
+                "_transport": {"capabilities": ["brailleExploration"]},
+            },
+        })
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        self.brailleCaretMoveUpdates.clear()
+        self.brailleRegionUpdates.clear()
+
+        plugin._handleEvent({
+            "type": "cursorMoved",
+            "payload": {
+                "bufferId": 1,
+                "windowId": 2,
+                "tabpageId": 3,
+                "changedtick": 4,
+                "mode": "normal",
+                "modeRaw": "n",
+                "lineText": "real cursor line",
+                "lineCount": 5,
+                "cursor": {
+                    "line": 4,
+                    "byteColumn": 0,
+                    "characterColumn": 0,
+                    "virtualColumn": 0,
+                },
+                "_transport": {"capabilities": ["brailleExploration"]},
+            },
+        })
+
+        self.assertEqual("virtual origin", plugin._editorSessionController.plan_braille(
+            report_spelling=False,
+        ).source_line)
+        self.assertEqual([], self.brailleCaretMoveUpdates)
+        self.assertEqual([(self.focus,)], self.brailleRegionUpdates)
 
     def test_event_diagnostics_expose_safe_key_observer_and_blocking_state(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -7366,20 +9430,235 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual((4, 6), (region.selectionStart, region.selectionEnd))
         self.assertIsNone(region.cursorPos)
 
-    def test_file_manager_braille_region_is_semantic_and_routes_only_the_name(self) -> None:
+    def test_braille_exploration_region_cancels_native_caret_scrolling(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = plugin._gate.focused
+        plugin._editorSessionController.switch_instance("connection-1")
+        plugin._connectionCoordinator.active_client = object()
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({
+            "brailleExploration",
+            "cursorRouting",
+        })
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "tabpageId": 3,
+            "changedtick": 9,
+            "lineCount": 8,
+            "mode": "normal",
+            "modeRaw": "n",
+            "lineText": "a line much longer than the physical Braille display",
+            "cursor": {
+                "line": 3,
+                "byteColumn": 0,
+                "characterColumn": 0,
+                "virtualColumn": 0,
+                "preferredVirtualColumn": 0,
+            },
+            "_transport": {
+                "capabilities": ["brailleExploration", "cursorRouting"],
+            },
+        }
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+
+        region = StructuredLineRegion(self.focus)
+        region.pendingCaretUpdate = True
+        region.update()
+        self.assertFalse(region.pendingCaretUpdate)
+
+        self.assertFalse(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        region.pendingCaretUpdate = True
+        region.update()
+        self.assertTrue(region.pendingCaretUpdate)
+
+    def test_braille_exploration_viewport_is_restored_per_instance(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        self.addCleanup(plugin.terminate)
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = plugin._gate.focused
+
+        def activate(instance_id: str, line_text: str) -> None:
+            plugin._editorSessionController.switch_instance(instance_id)
+            plugin._connectionCoordinator.active_client = object()
+            plugin._connectionCoordinator.connected = True
+            plugin._connectionCoordinator.transport_capabilities = frozenset({
+                "brailleExploration",
+            })
+            plugin._connectionCoordinator.current_state = {
+                "bufferId": 1,
+                "windowId": 1000,
+                "tabpageId": 3,
+                "changedtick": 9,
+                "lineCount": 8,
+                "mode": "normal",
+                "modeRaw": "n",
+                "lineText": line_text,
+                "cursor": {
+                    "line": 3,
+                    "byteColumn": 0,
+                    "characterColumn": 0,
+                    "virtualColumn": 0,
+                    "preferredVirtualColumn": 0,
+                },
+                "_transport": {"capabilities": ["brailleExploration"]},
+            }
+
+        region = StructuredLineRegion(self.focus)
+        braille.handler.mainBuffer.regions[:] = [region]
+        braille.handler.mainBuffer.brailleCells = list(range(100))
+        braille.handler.buffer = braille.handler.mainBuffer
+
+        activate("first", "first line")
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        braille.handler.mainBuffer.windowStartPos = 51
+        plugin._discardTransientFocusContext()
+        self.assertEqual(51, plugin._editorSessionController.braille_exploration_viewport())
+
+        activate("second", "second line")
+        self.assertTrue(plugin._editorSessionController.toggle_braille_exploration().enabled)
+        braille.handler.mainBuffer.windowStartPos = 8
+        plugin._discardTransientFocusContext()
+        self.assertEqual(8, plugin._editorSessionController.braille_exploration_viewport())
+
+        activate("first", "first line after return")
+        braille.handler.mainBuffer.windowStartPos = 0
+        self.assertTrue(plugin._restoreBrailleExplorationViewport())
+        self.assertEqual(51, braille.handler.mainBuffer.windowStartPos)
+
+        activate("second", "second line after return")
+        braille.handler.mainBuffer.windowStartPos = 0
+        self.assertTrue(plugin._restoreBrailleExplorationViewport())
+        self.assertEqual(8, braille.handler.mainBuffer.windowStartPos)
+
+        braille.handler.mainBuffer.brailleCells = list(range(5))
+        self.assertTrue(plugin._restoreBrailleExplorationViewport())
+        self.assertEqual(4, braille.handler.mainBuffer.windowStartPos)
+
+        original_get_tether = braille.handler.getTether
+        braille.handler.getTether = lambda: "review"
+        braille.handler.mainBuffer.windowStartPos = 0
+        self.assertFalse(plugin._restoreBrailleExplorationViewport())
+        self.assertEqual(0, braille.handler.mainBuffer.windowStartPos)
+        braille.handler.getTether = original_get_tether
+
+        plugin._connectionCoordinator.current_state = {
+            **plugin._connectionCoordinator.current_state,
+            "bufferId": 2,
+        }
+        braille.handler.mainBuffer.windowStartPos = 0
+        self.assertFalse(plugin._restoreBrailleExplorationViewport())
+        self.assertEqual(0, braille.handler.mainBuffer.windowStartPos)
+
+    def test_structured_braille_region_uses_standard_line_navigation_callbacks(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
 
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
+        controls_sent = threading.Event()
+
+        def send_control(kind, payload):
+            controls.append((kind, payload))
+            if len(controls) >= 4:
+                controls_sent.set()
+            return True
+
         plugin._connectionCoordinator.active_client = types.SimpleNamespace(
-            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+            send_control=send_control,
             stop=lambda: None,
         )
+        plugin._connectionCoordinator.active_instance_id = "braille-navigation"
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({
+            "cursorRouting",
+            "brailleLineNavigation",
+        })
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        identity = plugin._identity(self.focus)
+        plugin._gate.focused = plugin._gate.bound_terminal = identity
+        self._focusPlugin(plugin)
+        plugin._connectionCoordinator.current_state = {
+            "bufferId": 1,
+            "windowId": 1000,
+            "changedtick": 9,
+            "lineCount": 5,
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "current",
+            "cursor": {
+                "line": 3,
+                "byteColumn": 2,
+                "virtualColumn": 2,
+                "preferredVirtualColumn": 79,
+            },
+            "_transport": {
+                "capabilities": ["cursorRouting", "brailleLineNavigation"],
+            },
+        }
+        region = StructuredLineRegion(self.focus)
+        region.previousLine(start=True)
+        region.previousLine()
+        region.nextLine()
+        adapter_token = object()
+        plugin._terminalFocusService._focusedAppModule = self.focus.appModule
+        plugin._terminalFocusService._focusedAdapterToken = adapter_token
+        intent = plugin._terminalIntegrationService.mark_direct_braille_next_line(
+            self.focus,
+            self.focus.appModule,
+            adapter_token,
+        )
+        self.assertIsNotNone(intent)
+        region.nextLine()
+        self.assertTrue(controls_sent.wait(1))
+        self.assertEqual(["previous", "previous", "next", "next"], [
+            payload["direction"] for kind, payload in controls if kind == "moveBrailleLine"
+        ])
+        self.assertTrue(all(
+            payload["preferredVirtualColumn"] == 79
+            for kind, payload in controls
+            if kind == "moveBrailleLine"
+        ))
+        self.assertEqual(["preferred", "end", "start", "preferred"], [
+            payload["targetColumn"] for kind, payload in controls if kind == "moveBrailleLine"
+        ])
+        plugin.terminate()
+
+    def test_file_manager_braille_region_is_semantic_and_routes_only_the_name(self) -> None:
+        import config
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+
+        config.conf["braille"]["speakOnRouting"] = True
+        plugin = GlobalPlugin()
+        controls: list[tuple[str, dict]] = []
+        control_sent = threading.Event()
+
+        def send_control(kind, payload):
+            controls.append((kind, payload))
+            control_sent.set()
+            return True
+
+        plugin._connectionCoordinator.active_client = types.SimpleNamespace(
+            send_control=send_control,
+            stop=lambda: None,
+        )
+        plugin._connectionCoordinator.active_instance_id = "braille-file-manager"
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"cursorRouting"})
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
         plugin._connectionCoordinator.current_state = {
             "bufferId": 1, "windowId": 1000, "changedtick": 9,
+            "mode": "normal", "modeRaw": "n",
             "lineText": "   café/", "cursor": {"line": 3, "byteColumn": 8},
             "fileManager": {"name": "tree", "entry": {
                 "name": "café", "type": "directory", "expanded": True,
@@ -7390,10 +9669,38 @@ class BuiltAddonTests(unittest.TestCase):
         region.update()
         self.assertEqual("café, directory, expanded", region.rawText)
         region.routeTo(3)
+        self.assertTrue(control_sent.wait(1))
         region.routeTo(len("café"))
         self.assertEqual(9, controls[0][1]["byteColumn"])
         self.assertEqual(1, len(controls))
+        self.assertEqual(["é"], self.spelled)
         self.assertIn('"reason": "semanticStatus"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_file_manager_navigation_does_not_replace_persistent_braille_with_speech(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
+        plugin._gate.bound_terminal = plugin._gate.focused
+        self.spoken.clear()
+        self.brailleMessages.clear()
+
+        plugin._handleEvent({"type": "fileManagerEntryChanged", "payload": {
+            "bufferId": 1, "windowId": 1000, "changedtick": 9,
+            "mode": "normal", "modeRaw": "n",
+            "lineText": "test", "cursor": {"line": 3, "byteColumn": 0},
+            "fileManager": {"name": "oil", "entry": {
+                "name": "test", "type": "directory",
+            }},
+        }})
+
+        self.assertEqual(["test, directory"], self.spoken)
+        self.assertEqual([], self.brailleMessages)
+        region = StructuredLineRegion(self.focus)
+        region.update()
+        self.assertEqual("test, directory", region.rawText)
         plugin.terminate()
 
     def test_visual_line_delta_uses_interruptible_nvda_speech(self) -> None:
@@ -7462,13 +9769,20 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._handleEvent({"type": "fullState", "payload": state})
         self.assertIn("spelling error", self.spoken)
         self.assertEqual(1, len(self.soundFeeds))
+        plugin._handleEvent({"type": "wordMoved", "payload": {
+            **state,
+            "cursor": {"line": 1, "byteColumn": 8, "characterColumn": 8},
+            "character": "d",
+            "word": "mispelled",
+        }})
+        self.assertEqual(2, len(self.soundFeeds))
         region = StructuredLineRegion(self.focus)
         region.update()
         self.assertEqual("⠑mispelled⡑ word", region.rawText)
         plugin._handleEvent({
             "type": "spellingErrorTyped", "payload": {**state, "spellingError": state["spellingError"]},
         })
-        self.assertEqual(2, len(self.soundFeeds))
+        self.assertEqual(3, len(self.soundFeeds))
         plugin.terminate()
 
     def test_spelling_off_and_sound_only_follow_nvda_formatting_mode(self) -> None:
@@ -7527,6 +9841,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.action_copyDiagnosticReport(None)
         self.assertTrue(self.clipboard.startswith(buildVars.addon_info["summary"] + " diagnostic report"))
         self.assertIn('"addonVersion": "' + buildVars.artifact_version() + '"', self.clipboard)
+        self.assertIn('"brailleExplorationEnabled": false', self.clipboard)
         self.assertNotIn("private source", self.clipboard)
         self.assertIn("session-a", self.clipboard)
         plugin.terminate()
@@ -7837,6 +10152,68 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(300, self.speechTextCalls[-1][1]["symbolLevel"])
         plugin.terminate()
 
+    def test_word_navigation_and_exploration_follow_every_nvda_error_mode(self) -> None:
+        import config
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.speech import Priority, SpeechAction
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        action = SpeechAction(
+            "mispelled",
+            Priority.NAVIGATION,
+            interrupt=True,
+            force_symbols=True,
+            format_error="spelling",
+        )
+        base_state = {
+            "mode": "normal",
+            "lineText": "mispelled",
+            "word": "mispelled",
+            "character": "m",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }
+        spelling_error = {
+            "kind": "spelling",
+            "startByteColumn": 0,
+            "endByteColumn": 9,
+        }
+        self._updateSettings(plugin, {"navigationDetails": {"navigationWord": 0}})
+        for report_mode in range(8):
+            with self.subTest(report_mode=report_mode, path="exploration"):
+                config.conf["documentFormatting"]["reportSpellingErrors2"] = report_mode
+                self.spoken.clear()
+                sound_count = len(self.soundFeeds)
+                cancellation_count = self.speechCancellations
+                plugin._presentExploration(action, "normal", {})
+                expected = ["spelling error"] if report_mode & 1 else []
+                expected.append("mispelled")
+                self.assertEqual(expected, self.spoken)
+                self.assertEqual(bool(report_mode & 2), len(self.soundFeeds) > sound_count)
+                self.assertEqual(cancellation_count + 1, self.speechCancellations)
+
+            with self.subTest(report_mode=report_mode, path="navigation"):
+                plugin._connectionCoordinator.planner.reset()
+                plugin._handleEvent({"type": "fullState", "payload": base_state})
+                self.spoken.clear()
+                sound_count = len(self.soundFeeds)
+                cancellation_count = self.speechCancellations
+                plugin._handleEvent({
+                    "type": "wordMoved",
+                    "payload": {
+                        **base_state,
+                        "cursor": {"line": 1, "byteColumn": 8},
+                        "character": "d",
+                        "spellingError": spelling_error,
+                    },
+                })
+                expected = ["spelling error"] if report_mode & 1 else []
+                expected.append("mispelled")
+                self.assertEqual(expected, self.spoken)
+                self.assertEqual(bool(report_mode & 2), len(self.soundFeeds) > sound_count)
+                self.assertEqual(cancellation_count + 1, self.speechCancellations)
+        plugin.terminate()
+
     def test_normal_navigation_uses_profile_aware_detail_choices(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
@@ -8019,7 +10396,11 @@ class BuiltAddonTests(unittest.TestCase):
         class AggregatedSectionLike:
             """Minimal public mapping surface exposed by NVDA AggregatedSection."""
             def __init__(inner_self):
-                inner_self.values = {"feedback": {}, "navigationDetails": {}}
+                inner_self.values = {
+                    "feedback": {},
+                    "navigationDetails": {},
+                    "brailleRouting": {},
+                }
             def __getitem__(inner_self, key):
                 return inner_self.values[key]
             def __setitem__(inner_self, key, value):
@@ -8063,6 +10444,7 @@ class BuiltAddonTests(unittest.TestCase):
             "focusAnnouncement": 2,
             "feedback": {"global": 3, "mode": 3},
             "navigationDetails": {},
+            "brailleRouting": {},
         }
         notifications = []
         service = SettingsService(
@@ -8083,12 +10465,39 @@ class BuiltAddonTests(unittest.TestCase):
         detached["navigationDetails"]["navigationLine"] = 0
         self.assertEqual(3, service.snapshot()["feedback"]["global"])
         self.assertEqual(2, service.snapshot()["navigationDetails"]["navigationLine"])
+        self.assertEqual(1, service.braille_suggestion_start())
+        self.assertTrue(service.braille_follows_speech_exploration())
+        self.assertFalse(service.braille_routing_actions().enabled)
         self.assertEqual((True, False, True), service.navigation_details(exploration=False))
         self.assertEqual((True, False, True), service.navigation_details(exploration=True))
 
         unchanged = service.update(service.snapshot())
         self.assertFalse(unchanged.connections_changed)
         self.assertEqual([], notifications)
+        values = service.snapshot()
+        values["brailleSuggestionStart"] = 40
+        braille_changed = service.update(values)
+        self.assertTrue(braille_changed.braille_suggestion_start_changed)
+        self.assertFalse(braille_changed.connections_changed)
+        self.assertEqual(40, service.braille_suggestion_start())
+        self.assertEqual(40, section["brailleSuggestionStart"])
+        values = service.snapshot()
+        values["brailleFollowSpeechExploration"] = False
+        follow_changed = service.update(values)
+        self.assertTrue(follow_changed.braille_follow_speech_exploration_changed)
+        self.assertFalse(service.braille_follows_speech_exploration())
+        self.assertFalse(section["brailleFollowSpeechExploration"])
+        values = service.snapshot()
+        values["brailleRouting"] = {
+            "wordAction": 1,
+            "lineAction": 2,
+            "lineStart": 1,
+        }
+        routing_changed = service.update(values)
+        self.assertTrue(routing_changed.braille_routing_changed)
+        self.assertEqual("changeWord", service.braille_routing_actions().word_action)
+        self.assertEqual("deleteLine", service.braille_routing_actions().line_action)
+        self.assertEqual("indentation", service.braille_routing_actions().line_start)
         values = service.snapshot()
         values["connections"] = [{
             "id": "work", "name": "Work", "host": "host", "user": "user",
@@ -8125,6 +10534,11 @@ class BuiltAddonTests(unittest.TestCase):
                 "navigationWord": 1, "navigationLine": 2,
                 "explorationWord": 1, "explorationLine": 2,
             },
+            "brailleSuggestionStart": 1,
+            "brailleFollowSpeechExploration": True,
+            "brailleRouting": {
+                "wordAction": 0, "lineAction": 0, "lineStart": 0,
+            },
             "focusAnnouncement": 2,
         }, service.snapshot())
         self.assertTrue(diagnostics)
@@ -8139,6 +10553,13 @@ class BuiltAddonTests(unittest.TestCase):
                 "explorationLine": "word",
             },
             "focusAnnouncement": "line",
+            "brailleSuggestionStart": 1001,
+            "brailleFollowSpeechExploration": "yes",
+            "brailleRouting": {
+                "wordAction": 3,
+                "lineAction": True,
+                "lineStart": "indentation",
+            },
         })
         self.assertEqual([], normalized["connections"])
         self.assertEqual({"global": 3, "mode": 3}, normalized["feedback"])
@@ -8148,6 +10569,11 @@ class BuiltAddonTests(unittest.TestCase):
             "explorationWord": 1,
             "explorationLine": 2,
         }, normalized["navigationDetails"])
+        self.assertEqual(1, normalized["brailleSuggestionStart"])
+        self.assertTrue(normalized["brailleFollowSpeechExploration"])
+        self.assertEqual({
+            "wordAction": 0, "lineAction": 0, "lineStart": 0,
+        }, normalized["brailleRouting"])
         self.assertEqual(2, normalized["focusAnnouncement"])
 
     def test_profile_switch_notifies_only_for_changed_connections(self) -> None:
@@ -8202,6 +10628,7 @@ class BuiltAddonTests(unittest.TestCase):
             focusAnnouncement=2,
             feedback={"global": 3},
             navigationDetails={},
+            brailleRouting={},
         )
         service = SettingsService(
             {"NeovimAccessLink": section},
@@ -8244,6 +10671,7 @@ class BuiltAddonTests(unittest.TestCase):
             "focusAnnouncement": 1,
             "feedback": feedback,
             "navigationDetails": AggregatedSectionLike({}),
+            "brailleRouting": AggregatedSectionLike({}),
         })
 
         plugin = GlobalPlugin()
@@ -8256,14 +10684,29 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
 
     def test_braille_routing_sends_only_validated_cursor_control(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin, StructuredLineRegion
+        import config
+        from globalPlugins.NeovimAccessLink import (
+            GlobalPlugin,
+            StructuredTerminalBrailleOverlay,
+        )
 
+        config.conf["braille"]["speakOnRouting"] = True
         plugin = GlobalPlugin()
         controls: list[tuple[str, dict]] = []
+        control_sent = threading.Event()
+
+        def send_control(kind, payload):
+            controls.append((kind, payload))
+            control_sent.set()
+            return True
+
         plugin._connectionCoordinator.active_client = types.SimpleNamespace(
-            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
+            send_control=send_control,
             stop=lambda: None,
         )
+        plugin._connectionCoordinator.active_instance_id = "braille-routing"
+        plugin._connectionCoordinator.connected = True
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"cursorRouting"})
         plugin._gate.manual_enabled = plugin._gate.authenticated = plugin._gate.nvim_active = True
         identity = plugin._identity(self.focus)
         plugin._gate.focused = plugin._gate.bound_terminal = identity
@@ -8271,20 +10714,55 @@ class BuiltAddonTests(unittest.TestCase):
             "bufferId": 1,
             "windowId": 1000,
             "changedtick": 9,
+            "mode": "insert",
+            "modeRaw": "i",
             "lineText": "\t界z",
             "tabstop": 4,
-            "cursor": {"line": 3, "byteColumn": 0},
+            "cursor": {"line": 3, "byteColumn": 5},
             "_transport": {"capabilities": ["cursorRouting"]},
         }
-        region = StructuredLineRegion(self.focus)
+        region = StructuredTerminalBrailleOverlay.getBrailleRegions(self.focus)[0]
         region.update()
-        region.routeTo(4)
+        self.assertEqual("    界z ", region.rawText)
+        self.assertEqual(6, region.cursorPos)
+        control_sent.clear()
+        region.routeTo(0)
+        self.assertTrue(control_sent.wait(1))
         self.assertEqual("routeCursor", controls[0][0])
-        self.assertEqual(1, controls[0][1]["byteColumn"])
-        plugin._connectionCoordinator.current_state["_transport"] = {"capabilities": []}
+        self.assertEqual(0, controls[0][1]["byteColumn"])
+        self.assertEqual(["\t"], self.spelled)
+        control_sent.clear()
         region.routeTo(4)
-        self.assertEqual(1, len(controls))
+        self.assertTrue(control_sent.wait(1))
+        self.assertEqual("routeCursor", controls[1][0])
+        self.assertEqual(1, controls[1][1]["byteColumn"])
+        self.assertEqual(["\t", "界"], self.spelled)
+        plugin._connectionCoordinator.current_state["_transport"] = {"capabilities": []}
+        plugin._connectionCoordinator.transport_capabilities = frozenset()
+        control_sent.clear()
+        region.routeTo(4)
+        self.assertFalse(control_sent.wait(0.05))
+        self.assertEqual(2, len(controls))
+        self.assertEqual(["\t", "界"], self.spelled)
         self.assertIn('"reason": "capabilityMissing"', plugin._diagnostics.report())
+        config.conf["braille"]["speakOnRouting"] = False
+        plugin._connectionCoordinator.current_state["_transport"] = {
+            "capabilities": ["cursorRouting"],
+        }
+        plugin._connectionCoordinator.transport_capabilities = frozenset({"cursorRouting"})
+        control_sent.clear()
+        region.routeTo(5)
+        self.assertTrue(control_sent.wait(1))
+        self.assertEqual(3, len(controls))
+        self.assertEqual(["\t", "界"], self.spelled)
+        control_sent.clear()
+        region.routeTo(6)
+        self.assertTrue(control_sent.wait(1))
+        self.assertEqual(4, len(controls))
+        self.assertEqual(5, controls[3][1]["byteColumn"])
+        self.assertEqual(["\t", "界"], self.spelled)
+        self.assertIn('"category": "brailleRegionRequested"', plugin._diagnostics.report())
+        self.assertIn('"category": "brailleRouteAttempt"', plugin._diagnostics.report())
         plugin.terminate()
 
     def test_braille_routing_ignores_valid_state_without_confirmed_terminal_gate(self) -> None:

@@ -12,6 +12,7 @@ import api
 import braille as nvdaBraille
 import buildVersion
 import config
+import core as nvdaCore
 import globalPluginHandler
 import globalVars
 import queueHandler
@@ -87,6 +88,9 @@ from .core.connection_targets import (  # noqa: E402
 from .core.frontend_policy import FrontendPolicy  # noqa: E402
 from .core.gate import SessionGate, TerminalIdentity  # noqa: E402
 from .core.exploration_state import ExplorationAction as ExplorationAction  # noqa: E402
+from .core.numbered_choice_state import (  # noqa: E402
+	NumberedChoiceDirection as NumberedChoiceDirection,
+)
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
@@ -96,7 +100,13 @@ from .terminal_integration import (  # noqa: E402
 	TerminalCommand as TerminalCommand,
 	TerminalIntegrationService,
 )
-from .settings_service import SettingsService  # noqa: E402
+from .settings_service import (  # noqa: E402
+	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
+	BRAILLE_ROUTING_DEFAULTS,
+	BRAILLE_SUGGESTION_START_DEFAULT,
+	BRAILLE_SUGGESTION_START_MAXIMUM,
+	SettingsService,
+)
 from .managed_clients import ManagedClientFactory  # noqa: E402
 from .addon_runtime import AddonRuntime  # noqa: E402
 from .control_dispatcher import ControlDispatcher  # noqa: E402
@@ -122,6 +132,10 @@ from .service_registry import (  # noqa: E402
 	serviceRegistrar as _serviceRegistrar,
 )
 from .nvda_braille import (  # noqa: E402
+	capture_structured_viewport,
+	dismiss_numbered_choice_message,
+	present_numbered_choice_message,
+	restore_structured_viewport,
 	StructuredLineRegion as StructuredLineRegion,
 	StructuredTerminalBrailleOverlay as StructuredTerminalBrailleOverlay,
 )
@@ -313,6 +327,18 @@ _NVDA_CONFIG_SECTION = "NeovimAccessLink"
 _NVDA_CONFIG_SPEC = {
 	"connections": 'string(default="[]")',
 	"focusAnnouncement": f"integer(default={_FOCUS_ANNOUNCEMENT_DEFAULT}, min=0, max=2)",
+	"brailleSuggestionStart": (
+		f"integer(default={BRAILLE_SUGGESTION_START_DEFAULT}, "
+		f"min={BRAILLE_SUGGESTION_START_DEFAULT}, max={BRAILLE_SUGGESTION_START_MAXIMUM})"
+	),
+	"brailleFollowSpeechExploration": (
+		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
+	),
+	"brailleRouting": {
+		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",
+		"lineAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineAction']}, min=0, max=2)",
+		"lineStart": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineStart']}, min=0, max=2)",
+	},
 	"feedback": {key: f"integer(default={value}, min=0, max=3)" for key, value in _FEEDBACK_DEFAULTS.items()},
 	"navigationDetails": {
 		key: f"integer(default={value}, min=0, max={1 if key.endswith('Word') else 3})"
@@ -362,11 +388,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			translate=_,
 		)
 		self._controlDispatcher = ControlDispatcher(
-			on_result=self._onExplorationControlDispatched,
+			on_result=self._onControlDispatched,
 			max_pending=_MAX_PENDING_EXPLORATION_CONTROLS,
 		)
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
+		self._numberedChoiceBrailleMessageToken = None
 		managed_client_factory = ManagedClientFactory(
 			local_client_constructor=lambda *args, **kwargs: LocalTcpClient(*args, **kwargs),
 			ssh_client_constructor=lambda *args, **kwargs: SshStdioClient(*args, **kwargs),
@@ -432,6 +459,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._editorSessionController,
 			command_actions={
 				TerminalCommand.TOGGLE_ACCESSIBILITY: self.action_toggleNeovimMode,
+				TerminalCommand.TOGGLE_BRAILLE_EXPLORATION: (self.action_toggleBrailleExplorationMode),
 				TerminalCommand.READ_COMPLETION_DOCUMENTATION: self.action_readCompletionDocumentation,
 				TerminalCommand.COPY_VISUAL_SELECTION: self.action_copyNeovimSelection,
 				TerminalCommand.COPY_LAST_YANK: self.action_copyLastNeovimYank,
@@ -446,10 +474,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			},
 			copy_diagnostic_report=self.action_copyDiagnosticReport,
 			claim_focused_session=self.action_claimFocusedNeovimSession,
-			send_braille_route=self._sendBrailleRoute,
+			present_braille_route_character=self._presentation.speak_braille_routed_character,
 			control_dispatcher=self._controlDispatcher,
 			present_exploration=self._presentExploration,
 			exploration_details=lambda: self._settingsService.navigation_details(exploration=True),
+			present_numbered_choice=self._presentNumberedChoice,
+			dismiss_numbered_choice=self._dismissNumberedChoice,
+			# Rebuild because NVDA's incremental update only finds an already visible
+			# region for the identical focus object. Contextual input can otherwise
+			# leave the transient choice outside that update set.
+			refresh_braille=lambda: self._queueBrailleRefresh(True),
+			numbered_choice_braille_start=self._settingsService.braille_suggestion_start,
+			braille_routing_actions=self._settingsService.braille_routing_actions,
+			braille_follows_speech_exploration=(self._settingsService.braille_follows_speech_exploration),
+			routing_repeat_timeout_ms=lambda: int(config.conf["keyboard"]["multiPressTimeout"]),
+			schedule_later=nvdaCore.callLater,
+			# Translators: Spoken when Enter is pressed before choosing a spelling suggestion.
+			no_item_selected_message=_("No item selected"),
 			record_diagnostic=self._diagnostics.record,
 			fail_open_event=self._failOpenTerminalEvent,
 		)
@@ -500,18 +541,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		runtime = getattr(self, "_addonRuntime", None)
 		return runtime is not None and runtime.closed
 
-	def _onExplorationControlDispatched(self, kind, request_id, accepted, error_type):
+	def _onControlDispatched(self, kind, request_id, accepted, error_type):
 		self._queueRuntimeCallback(
-			self._handleExplorationControlDispatched,
+			self._handleControlDispatched,
 			kind,
 			request_id,
 			accepted,
 			error_type,
 		)
 
-	def _handleExplorationControlDispatched(self, kind, request_id, accepted, error_type):
+	def _handleControlDispatched(self, kind, request_id, accepted, error_type):
 		self._diagnostics.record(
-			"explorationControlDispatched",
+			"controlDispatched",
 			type=kind,
 			requestId=request_id,
 			accepted=accepted,
@@ -519,6 +560,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		if not accepted and kind == "exploreTextRequest" and isinstance(request_id, int):
 			self._editorSessionController.fail_exploration_request(request_id)
+		if not accepted and kind == "brailleExploreLineRequest" and isinstance(request_id, int):
+			self._editorSessionController.fail_braille_exploration_request(request_id)
 
 	def _runRuntimeCallback(self, callback, *args):
 		if self._runtimeClosed():
@@ -581,6 +624,32 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._diagnostics.record("toggleError", errorType=type(error).__name__, error=str(error))
 			log.exception("NeovimAccessLink activation failed")
 			ui.message(_("Neovim accessibility failed; normal terminal output restored"))
+
+	def action_toggleBrailleExplorationMode(self, gesture):
+		"""Toggle the persistent virtual Braille cursor for the selected editor."""
+		try:
+			plan = self._terminalIntegrationService.toggle_braille_exploration()
+			if not plan.changed:
+				# Translators: Spoken when Braille exploration cannot be used in this context.
+				ui.message(_("Braille exploration mode unavailable"))
+				return
+			if plan.enabled:
+				# Translators: Spoken when Braille display navigation stops moving the editor cursor.
+				ui.message(_("Braille exploration mode"))
+			else:
+				# Translators: Spoken when Braille display navigation follows the editor cursor again.
+				ui.message(_("Braille cursor mode"))
+			self._queueBrailleRefresh(rebuild=True)
+		except Exception as error:
+			self._diagnostics.record(
+				"brailleExplorationToggleError",
+				errorType=type(error).__name__,
+				error=str(error),
+			)
+			log.exception("Braille exploration toggle failed")
+			# Translators: Spoken when switching the Braille navigation mode failed.
+			ui.message(_("Braille exploration mode unavailable"))
+			self._queueBrailleRefresh(rebuild=True)
 
 	def _toggleNeovimMode(self):
 		identity = self._gate.focused
@@ -828,6 +897,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				"manualEnabled": self._gate.manual_enabled,
 				"suppressionActive": self._gate.suppression_active,
 				"connected": self._connectionCoordinator.connected,
+				"brailleExplorationEnabled": (self._editorSessionController.braille_exploration_enabled()),
 			},
 			product_name=_PRODUCT_NAME,
 		)
@@ -2077,6 +2147,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					reason="staleOrUnbound",
 				)
 			return
+		if event.get("type") == "brailleExploreLineResult":
+			if not self._terminalIntegrationService.handle_braille_exploration_result(
+				instance_id,
+				identity,
+				event,
+			):
+				self._diagnostics.record(
+					"brailleExplorationResultIgnored",
+					instanceId=instance_id,
+					reason="staleOrUnbound",
+				)
+			return
+		if event.get("type") in {"numberedChoiceOpened", "numberedChoiceClosed"}:
+			handled = self._terminalIntegrationService.handle_numbered_choice_event(
+				instance_id,
+				identity,
+				event,
+			)
+			if not handled:
+				self._diagnostics.record(
+					"numberedChoiceEventIgnored",
+					instanceId=instance_id,
+					reason="invalidOrStale",
+				)
+			elif event.get("type") == "numberedChoiceOpened":
+				self._announceNumberedChoiceOpened()
+			return
 		if event.get("type") in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
 			event = self._handleClipboardResult(instance_id, identity, event)
 			if event is None:
@@ -2219,12 +2316,52 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._editorSessionController.discard_terminal_control_requests(instance_id)
 
 	def _discardTransientFocusContext(self):
-		self._terminalIntegrationService.cancel_exploration()
+		self._captureBrailleExplorationViewport()
+		self._terminalIntegrationService.discard_transient_focus_context()
 		self._connectionCoordinator.discard_focus_context()
 		self._discardClipboardRequests()
 		self._discardTerminalControlRequests()
 
+	def _captureBrailleExplorationViewport(self):
+		try:
+			start_position = capture_structured_viewport(nvdaBraille.handler)
+			if start_position is None:
+				return False
+			return self._editorSessionController.remember_braille_exploration_viewport(
+				start_position,
+			)
+		except Exception as error:
+			self._diagnostics.record(
+				"brailleViewportCaptureFailed",
+				errorType=type(error).__name__,
+			)
+			return False
+
+	def _restoreBrailleExplorationViewport(self):
+		try:
+			start_position = self._editorSessionController.braille_exploration_viewport()
+			if start_position is None:
+				return False
+			restored = restore_structured_viewport(nvdaBraille.handler, start_position)
+			self._diagnostics.record(
+				"brailleViewportRestored",
+				restored=restored,
+				startPosition=start_position,
+			)
+			return restored
+		except Exception as error:
+			self._diagnostics.record(
+				"brailleViewportRestoreFailed",
+				errorType=type(error).__name__,
+			)
+			return False
+
 	def _onManagedState(self, instance_id, state):
+		# Fail open immediately in the transport callback for the exact active
+		# instance. Inactive runtimes are reset on NVDA's main thread below.
+		if state == "disconnected" and instance_id == self._connectionCoordinator.active_instance_id:
+			self._gate.disconnect()
+			self._editorSessionController.mark_disconnected()
 		self._queueRuntimeCallback(self._handleManagedState, instance_id, state)
 
 	def _handleManagedState(self, instance_id, state):
@@ -2240,6 +2377,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if selected is not None and selected.identifier == instance_id:
 			self._switchInstanceRuntime(instance_id)
 			self._handleConnectionState(state)
+		elif state == "disconnected":
+			self._editorSessionController.reset_disconnected_instance(instance_id)
 
 	def _prepareTerminalFocus(self, obj, adapter_token, app_module=None):
 		return self._terminalFocusService.prepare_focus(obj, adapter_token, app_module)
@@ -2429,9 +2568,24 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			previous_mode=previous_mode,
 			payload=payload,
 			speak_structured_typing=self._speakStructuredTyping,
+			allow_braille_messages=not (
+				event_type == "focusContext" and self._editorSessionController.braille_exploration_enabled()
+			),
 		)
 		if self._gate.suppression_active:
-			self._refreshBraille(rebuild=activated)
+			# NVDA builds its native terminal regions during gainFocus, before a
+			# remembered binding's asynchronous focusContext can authenticate
+			# this pane. An incremental update would retain that native region,
+			# so physical routing keys would never reach StructuredLineRegion.
+			rebuild = activated or event_type == "focusContext"
+			self._refreshBraille(
+				rebuild=rebuild,
+				follow_cursor=(
+					not rebuild
+					and transition.braille_cursor_moved
+					and not self._editorSessionController.braille_exploration_enabled()
+				),
+			)
 
 	def _reportIndentation(self, quarterTones, level):
 		self._presentation.report_indentation(quarterTones, level)
@@ -2461,13 +2615,34 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._editorSessionController.reset_typed_echo()
 		speech.clearTypedWordBuffer()
 
-	def _refreshBraille(self, rebuild):
+	def _refreshBraille(self, rebuild, follow_cursor=False):
 		try:
 			focus = self._terminalFocusService.focused_terminal_object
 			if focus is None:
 				return
+			braille_config = config.conf.get("braille", {})
+			try:
+				tether = nvdaBraille.handler.getTether()
+			except Exception:
+				tether = "unknown"
+			self._diagnostics.record(
+				"brailleRefresh",
+				rebuild=bool(rebuild),
+				followCursor=bool(follow_cursor),
+				enabled=bool(getattr(nvdaBraille.handler, "enabled", False)),
+				mode=braille_config.get("mode", "unknown"),
+				tether=tether,
+				structuredOverlay=isinstance(focus, StructuredTerminalBrailleOverlay),
+			)
 			if rebuild:
 				nvdaBraille.handler.handleGainFocus(focus, shouldAutoTether=False)
+				self._restoreBrailleExplorationViewport()
+			elif follow_cursor:
+				# This is NVDA's public standard caret path. StructuredLineRegion
+				# derives from TextInfoRegion so NVDA updates it, restores any
+				# manually selected window, and scrolls only as far as necessary
+				# to expose the translated cursor cell.
+				nvdaBraille.handler.handleCaretMove(focus, shouldAutoTether=False)
 			else:
 				nvdaBraille.handler.handleUpdate(focus)
 		except Exception as error:
@@ -2484,16 +2659,37 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			speak_structured_typing=self._speakStructuredTyping,
 		)
 
-	def _queueBrailleRefresh(self, rebuild):
-		self._queueRuntimeCallback(self._refreshBraille, rebuild)
+	def _presentNumberedChoice(self, text):
+		speech.cancelSpeech()
+		speech.speakText(text)
+		self._numberedChoiceBrailleMessageToken = present_numbered_choice_message(
+			text,
+			start_cell=self._settingsService.braille_suggestion_start(),
+		)
+		if self._numberedChoiceBrailleMessageToken is None:
+			self._diagnostics.record("numberedChoiceBrailleMessage", displayed=False)
+			return False
+		return True
+
+	def _announceNumberedChoiceOpened(self):
+		speech.cancelSpeech()
+		# Translators: Briefly spoken when Neovim opens a list of spelling corrections.
+		speech.speakText(_("Spelling suggestions available"))
+
+	def _dismissNumberedChoice(self):
+		message_token = self._numberedChoiceBrailleMessageToken
+		if message_token is None:
+			return
+		self._numberedChoiceBrailleMessageToken = None
+		dismissed = dismiss_numbered_choice_message(message_token)
+		self._diagnostics.record("numberedChoiceBrailleMessageDismissed", dismissed=dismissed)
+
+	def _queueBrailleRefresh(self, rebuild, follow_cursor=False):
+		self._queueRuntimeCallback(self._refreshBraille, rebuild, follow_cursor)
 
 	def _shouldSuppress(self, obj):
 		identity = self._identity(obj)
 		return identity is not None and self._gate.should_suppress(identity)
-
-	def _sendBrailleRoute(self, payload):
-		client = self._connectionCoordinator.active_client
-		return client is not None and bool(client.send_control("routeCursor", payload))
 
 	@staticmethod
 	def _identity(obj):

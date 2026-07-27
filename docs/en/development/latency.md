@@ -33,6 +33,34 @@ SSH I/O. One result contains at most 16 KiB of text; word scanning is limited
 to 256 lines or 64 KiB, and repetition to 64 steps. Modifier release reads
 from existing canonical state and waits for no round trip.
 
+Braille routing uses the same bounded control dispatcher. Region and routing
+callbacks only map the translated cell to an already validated fixed payload
+and place an immutable copy in the queue without waiting. The worker alone
+calls `send_control`. This is especially required for SSH because its stdio
+client acquires a pipe lock, writes, and calls `flush()` inside
+`send_control`. A full or closed queue drops the optional routing action
+fail-open; it must never block NVDA.
+
+The first routing-key press remains immediate even when repeated actions are
+enabled. If word and line actions are both configured, `core.callLater` holds
+only the already planned local word action until NVDA's multiple-press
+timeout expires. The callback neither waits nor sleeps nor performs I/O; a
+third press invalidates it by token. Only the resulting fixed
+`brailleRouteAction` control is then placed non-blockingly in the same
+dispatcher as other routing.
+
+`moveBrailleLine` uses the same dispatcher and non-blocking rules. The NVDA
+region callback only validates and queues the small fixed payload.
+Virtual-to-byte column mapping, cursor movement, and the resulting state event
+occur in the Neovim process.
+
+In Braille exploration mode, an equally bounded
+`brailleExploreLineRequest` replaces that cursor control. NVDA's main thread
+changes only local planning state and does not wait for the virtual line.
+Results are limited to 16 KiB, correlated, and trigger only a public Braille
+refresh. A full queue, stale reply, or focus change drops the optional step
+fail-open.
+
 Latency measurements must record platform, versions, transport, workload,
 sample count, percentiles, and failures. Synthetic measurements do not replace
 practical NVDA testing.

@@ -6,13 +6,13 @@ structured information from Neovim itself. NVDA can therefore report what
 actually happened: a mode change, cursor movement, edited text, a selection,
 completion item, command-line message, or menu entry.
 
-The result is focused editor feedback through speech and sounds, with
-experimental Braille support also included. Local Neovim on Windows and
-Neovim over SSH can use the same accessible workflow.
+The result is focused editor feedback through speech, sounds, and advanced
+Braille display support. Local Neovim on Windows and Neovim over SSH can use
+the same accessible workflow.
 
-[Current GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.95.2) —
-release notes for 0.95.2: [English](docs/en/development/changelog.md#0952) or
-[German](docs/de/development/changelog.md#0952).
+[Current GitHub release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.96.0) —
+release notes for 0.96.0: [English](docs/en/development/changelog.md#0960) or
+[German](docs/de/development/changelog.md#0960).
 
 ## What it helps with
 
@@ -20,8 +20,8 @@ Practically tested workflows include:
 
 - Normal, Insert, and Visual editing with mode feedback;
 - character, word, and line navigation with configurable cursor context;
-- read-only character and line exploration with `NVDA+h/j/k/l`, plus word
-  exploration with `Shift+NVDA+h/l`, without moving Neovim's real cursor;
+- read-only speech exploration of characters and lines with `NVDA+h/j/k/l`,
+  plus words with `Shift+NVDA+h/l`, without moving Neovim's real cursor;
 - selections, editing, messages, built-in completion, and buffer changes;
 - Neovim's command line and embedded terminal;
 - copying Visual selections or register 0 to Windows and sending Windows
@@ -30,6 +30,16 @@ Practically tested workflows include:
   name; and
 - file management through the Neovim plugin Oil, including navigation, rename
   preview, boundary sounds, and confirmation prompts.
+
+Advanced Braille support includes a structured editor line instead of
+terminal-screen fragments, cursor routing in Normal, Insert, and command-line
+modes, routing to the insertion position after the final character, optional
+word and line editing with repeated routing presses, automatic cursor
+following on long lines in Braille cursor mode, and standard display
+navigation controls. The independent Braille exploration mode reads other
+lines without moving the real cursor and preserves its manually selected
+viewport. Speech exploration remains a separate speech feature and can
+optionally present its virtual position on the Braille display.
 
 Configurable sound feedback covers entering Insert or direct Terminal input,
 the command line, returning to Normal or Terminal-normal, deletion,
@@ -81,10 +91,14 @@ Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See
 [compatibility](docs/en/development/compatibility.md) for exact boundaries.
 
-This is alpha-to-beta software. Testing is risk-based rather than exhaustive.
-Braille planning is covered by automated tests, but no physical Braille display
-has been tested yet. See [current status](docs/en/development/current-status.md)
-for confirmed evidence and remaining gaps.
+This is beta software. Testing is risk-based rather than exhaustive. Braille
+planning has broad automated coverage, and the principal routing, long-line,
+navigation, exploration, and spelling-suggestion workflows have been tested
+with a Papenmeier BRAILLEX EL 80c. Other NVDA-supported displays are expected
+to use the same standard interfaces but are not part of that practical
+hardware evidence. See
+[current status](docs/en/development/current-status.md) for confirmed evidence
+and remaining gaps.
 
 ## Documentation
 

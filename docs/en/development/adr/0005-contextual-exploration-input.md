@@ -1,4 +1,4 @@
-# ADR-0005: Contextual input for exploration mode
+# ADR-0005: Contextual input for speech exploration mode
 
 ## Status
 
@@ -8,7 +8,7 @@ configurable release feedback.
 
 ## Context
 
-Exploration mode uses `NVDA+h/j/k/l` and `Shift+NVDA+h/l` as read-only
+Speech exploration mode uses `NVDA+h/j/k/l` and `Shift+NVDA+h/l` as read-only
 navigation inside a confirmed Neovim pane. The same Windows Terminal process
 may simultaneously contain other tabs and panes running PowerShell, an
 ordinary SSH shell, or another Neovim session. NVDA's unchanged input
@@ -41,8 +41,11 @@ identifiers and a narrowly bounded autorepeat barrier.
   silently. It is not forwarded as a bare `h/j/k/l` that could move the real
   Neovim cursor.
 
-Exploration registers no handler with `inputCore.decide_executeGesture`. Its
-existing use remains limited to the F12 assignment described by ADR-0004.
+Speech exploration registers no additional handler with
+`inputCore.decide_executeGesture`. The AppModule shares the already registered
+observer bounded by ADR-0004 between F12, numbered choices, and direct Braille
+display next-line navigation; speech-exploration script selection itself
+continues to use only NVDA's normal `getScript` resolution.
 
 The AppModule symmetrically registers the public
 `inputCore.decide_handleRawKey` extension point while at least one of its

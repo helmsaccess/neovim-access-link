@@ -61,10 +61,6 @@ failure or some cancellations. For other plugins, their own failure/cancel
 messages remain authoritative where the public API has no result event; Access
 Link does not guess. Adapters load only for the active matching buffer. Unsupported custom
 file-manager drawings do not fall back to terminal scraping.
-Oil is currently the only one of these file managers practically tested under
-Windows/NVDA with Neovim 0.12, where it provides a solid foundation. The other
-adapters have automated or isolated coverage but no practical Windows
-acceptance yet; they will be tested incrementally.
 In Oil, the semantic name follows the visible draft during editing. After
 `0`, `c$`, a new name, and Escape, speech and Braille should therefore show
 the new name even though the file is renamed only by `:w`. `0`, `$`, `gg`,
@@ -100,6 +96,8 @@ state instead of the visible plugin row's icons, indentation decoration, and
 extra columns. Routing is available only inside the name when that name occurs
 exactly once in the real buffer row. Type and status text is synthetic
 orientation and deliberately has no routing action.
+Navigation speech does not replace this persistent line with a transient
+Braille message. Kind and state labels use the add-on's language.
 
 For the most structured input and selection prompts, use
 `select_prompts = true` with nvim-tree and `use_popups_for_input = false` with
@@ -120,4 +118,4 @@ after `y`, Oil's public completion event remains authoritative for success or
 failure. Access Link never answers or repeats the action itself. The fallback
 applies only to Oil's `oil_preview` in a real floating window; unknown or
 changed rendering remains fail-open to normal structured buffer/window
-output. Other plugin-specific popups still need separate verification.
+output. Other plugin-specific popups are not recognized automatically.

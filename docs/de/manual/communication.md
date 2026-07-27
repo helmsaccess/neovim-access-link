@@ -163,11 +163,12 @@ aktiviert Sprache, Braille, Klänge und Unterdrückung wieder. Antworten einer
 anderen oder zuvor fokussierten Verbindung werden verworfen. Ein ungebundenes
 Control bleibt nativ.
 
-## Text erkunden, ohne den Neovim-Cursor zu bewegen
+## Sprachexplorationsmodus: Text lesen, ohne den Neovim-Cursor zu bewegen
 
-In einem verbundenen und bestätigten Neovim-Control kann Text mit fest
-belegten NVDA-Kombinationen gelesen werden. Die NVDA-Taste bleibt dabei
-gedrückt:
+Der Sprachexplorationsmodus ist eine eigenständige Sprachfunktion des Add-ons,
+kein Braillemodus. In einem verbundenen und bestätigten Neovim-Control kann
+Text mit fest belegten NVDA-Kombinationen gelesen werden. Die NVDA-Taste bleibt
+dabei gedrückt:
 
 | Taste | Virtuelle Lesebewegung |
 |---|---|
@@ -181,20 +182,21 @@ Modus, Fensteransicht und echter Cursor bleiben unverändert. Jede Bewegung
 spricht das Zeichen, Wort oder die Zeile an der virtuellen Position.
 
 Beim Loslassen der NVDA-Taste kehrt die Ausgabe zum unveränderten echten Cursor
-zurück. Nach Zeichenexploration wird dessen Zeichen gesprochen. Nach Wort- oder
-Zeilenexploration gelten die jeweils unter `Einstellungen → Neovim Access Link
-→ Navigation → Abschluss der Exploration` gewählten Details. Wortausgabe kann
+zurück. Nach Zeichenexploration im Sprachexplorationsmodus wird dessen Zeichen
+gesprochen. Nach Wort- oder Zeilenexploration im Sprachexplorationsmodus gelten
+die jeweils unter `Einstellungen → Neovim Access Link
+→ Navigation → Abschluss des Sprachexplorationsmodus` gewählten Details. Wortausgabe kann
 das Cursorzeichen ergänzen; Zeilenausgabe kann das aktuelle Wort, das
 Cursorzeichen, beides in dieser Reihenfolge oder keines von beiden ergänzen.
 Die Grundausgabe des Wortes beziehungsweise der Zeile bleibt immer erhalten.
 Diese beiden Werte sind von den entsprechenden Einstellungen für normale
 Navigation unabhängig.
 
-Bei der zeichenweisen Exploration kennzeichnet ein kurzer Doppelton die
+Bei der zeichenweisen Sprachexploration kennzeichnet ein kurzer Doppelton die
 Rückkehr zur echten Cursorposition. Derselbe Ton kennzeichnet bei der Wort-
-oder Zeilenexploration die Rückkehr zum ursprünglichen Wort beziehungsweise
-zur ursprünglichen Zeile. Er folgt der konfigurierten Klangausgabe für
-Zeilengrenzen.
+oder Zeilenexploration im Sprachexplorationsmodus die Rückkehr zum
+ursprünglichen Wort beziehungsweise zur ursprünglichen Zeile. Er folgt der
+konfigurierten Klangausgabe für Zeilengrenzen.
 
 Die Belegung gilt in allen vom Add-on unterstützten Neovim-Modi, darunter
 Normal, Insert, Replace, Visual, Operator-Pending, Kommandozeile,
@@ -204,6 +206,33 @@ Pane, einem anderen Tab oder einer anderen Anwendung behalten dieselben
 Kombinationen ihr normales NVDA-Verhalten. Nach Installation einer Version mit
 dieser Funktion müssen die Neovim-Komponenten aktualisiert und laufende
 Neovim-Instanzen neu gestartet werden.
+
+Die vollständige Anwenderbeschreibung einschließlich optionaler
+Brailleanzeige und Abgrenzung zum Braille-Explorationsmodus steht unter
+[Sprachexplorationsmodus](speech-exploration.md).
+
+## Eingebaute Rechtschreibvorschläge bedienen
+
+Neovims `z=` öffnet eine nummerierte Liste und wartet anschließend auf eine
+Zahl. Das Add-on erkennt ausschließlich diese belegte, aktive
+Rechtschreibabfrage. Eine kurze Sprachmeldung kündigt die erfolgreich erkannte,
+nicht leere Liste einmalig an. Solange die NVDA-Taste gedrückt bleibt, wählt
+`NVDA+j` den nächsten und `NVDA+k` den vorherigen Eintrag. Die Auswahl läuft am
+Listenende weiter. Sprache und Braille zeigen nur den Vorschlag selbst; Neovims
+interne Nummer bleibt unsichtbar.
+
+`NVDA+Eingabe` übernimmt die aktuell gewählte Korrektur. Dieser kontextbezogene
+Befehl hat nur in der exakt erkannten Abfrage Vorrang vor einer eventuell
+selbst belegten Add-on-Funktion wie „Windows-Zwischenablagentext einfügen“.
+Ohne lokale Auswahl meldet er „Kein Eintrag ausgewählt“ und führt keine andere
+Aktion aus. NVDAs Eingabehilfe führt den Befehl niemals aus.
+
+Wird die letzte NVDA-Taste losgelassen, verwirft das Add-on nur seine lokale
+Auswahl und stellt die normale Editor-Braillezeile wieder her. Neovims Abfrage
+bleibt offen und kann erneut erkundet oder mit `Esc` abgebrochen werden.
+Fokuswechsel, Disconnect, ein anderer Editorzustand oder das Schließen der
+Abfrage verwerfen den flüchtigen Zustand. Shells, andere Tabs und Panes sowie
+andere Neovim-Abfragen behalten ihr normales Tastaturverhalten.
 
 ## Lokaler Kommunikationsweg unter Windows
 
@@ -305,13 +334,9 @@ Empfangener Text wird nie als beliebiger Lua- oder Ex-Befehl ausgeführt.
 
 ## Fenster, Tabs, Panes und tmux
 
-Praktisch bestätigt sind:
-
-- zwei lokale Windows-Neovim-Instanzen in zwei Tabs;
-- ein lokaler und ein SSH-Neovim-Tab im selben Fenster;
-- ein weiteres Windows-Terminal-Fenster mit anderem SSH-Konto;
-- SSH mit tmux und mehreren Neovim-Instanzen;
-- parallele lokale und entfernte Accessibility-Verbindungen.
+Mehrere lokale und entfernte Neovim-Instanzen können gleichzeitig in
+verschiedenen Windows-Terminal-Fenstern, Tabs und unterstützten Panes laufen.
+Das gilt auch für mehrere SSH-Konten und Neovim-Instanzen innerhalb von tmux.
 
 Das Add-on bildet aus UIA-Runtime-ID, Prozess und Fensterhandle eine flüchtige
 Terminalidentität. So bleiben Tabs oder unterstützte Panes auch im gleichen
@@ -360,20 +385,12 @@ dauerhaft stummes Terminal hinterlassen.
 - SSH-Passwörter werden nicht gespeichert.
 - Diagnoseberichte redigieren Editorinhalt und vertrauliche Felder.
 
-## Praktisch bestätigter Stand und bekannte Grenzen
+## Unterstützte Umgebungen
 
-Die Referenzpfade umfassen lokales Windows-Neovim, Neovim über SSH auf Rocky
-Linux 10.2, parallele lokale und entfernte Instanzen, mehrere Tabs, Panes und
-Windows-Terminal-Fenster, tmux, F12, manuelle Auswahl und Sitzungswechsel.
-Diese Prüfungen sind Stichproben in dokumentierten Umgebungen und keine
-erschöpfende Abnahme aller Kombinationen. Der aktuelle Nachweis und bekannte
-Grenzen werden zentral in der Entwicklerdokumentation unter `current-status.md`
-und `compatibility.md` gepflegt.
-
-Bestätigte Linux-Basis ist Rocky Linux 10.2 mit Neovim 0.10.1. Eine ältere, auf
-Rocky Linux 9 vorhandene Neovim-Version funktionierte mit einem aktuellen
-Stand nicht. Ursache und genaue Versionsgrenze sind noch nicht untersucht;
-Neovim 0.10.1 bleibt daher die vorläufige Mindestversion.
+Unterstützt werden lokales Windows-Neovim und Neovim über SSH auf Rocky Linux
+10.2. Mehrere lokale und entfernte Instanzen, Windows-Terminal-Fenster, Tabs,
+Panes und tmux können parallel verwendet werden. Benötigt wird Neovim 0.10.1
+oder neuer; ältere Neovim-Versionen werden nicht unterstützt.
 
 ## Wenn die Zuordnung nicht gelingt
 

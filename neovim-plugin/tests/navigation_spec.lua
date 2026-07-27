@@ -36,6 +36,28 @@ equal("hjklwebn%[d sample", vim.api.nvim_get_current_line(), "inserted motion-li
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
 vim.wait(50)
 
+-- One physical arrow motion must publish one authoritative semantic event.
+-- A following generic cursor event would make NVDA speak the same character
+-- a second time.
+events = {}
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "abc" })
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Right>", true, false, true), "xt", false)
+vim.wait(500, function() return vim.api.nvim_win_get_cursor(0)[2] == 1 end)
+-- Neovim 0.10 headless may move the cursor without dispatching CursorMoved.
+-- Re-running the autocmd is harmless on newer versions because the plugin
+-- deduplicates the unchanged cursor position.
+vim.api.nvim_exec_autocmds("CursorMoved", { modeline = false })
+vim.wait(100)
+local arrow_events = {}
+for _, event in ipairs(events) do
+  if event.type == "characterMoved" or event.type == "cursorMoved" then
+    table.insert(arrow_events, event.type)
+  end
+end
+equal(1, #arrow_events, "arrow motion publishes one navigation event")
+equal("characterMoved", arrow_events[1], "arrow motion keeps its semantic unit")
+
 -- Text typed on the Ex command line must not be retained as a Normal-mode
 -- motion.  The final `l` in commands such as `:terminal` previously leaked
 -- into the first cursor event of the resulting buffer as characterMoved.
@@ -58,5 +80,5 @@ end
 equal("cursorMoved", cursor_event, "Ex text does not become semantic motion")
 
 vim.rpcnotify = original_rpcnotify
-print("navigation tests: 3 assertions passed")
+print("navigation tests: 5 assertions passed")
 vim.cmd("qa!")

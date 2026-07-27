@@ -91,6 +91,7 @@ class ExplorationResultPlan:
 	unit: ExplorationUnit | None = None
 	result_code: str = "invalidResult"
 	speech_action: SpeechAction | None = None
+	braille_display_changed: bool = False
 
 	@property
 	def accepted(self) -> bool:
@@ -171,6 +172,7 @@ class ExplorationController:
 		self._nextExplorationId = 0
 		self._active: _ActiveExploration | None = None
 		self._pending: OrderedDict[int, _PendingResult] = OrderedDict()
+		self._brailleDisplayState: dict[str, Any] | None = None
 
 	@property
 	def active(self) -> bool:
@@ -183,6 +185,19 @@ class ExplorationController:
 	@property
 	def last_unit(self) -> ExplorationUnit | None:
 		return self._active.last_unit if self._active is not None else None
+
+	@property
+	def braille_display_active(self) -> bool:
+		return self._active is not None and self._brailleDisplayState is not None
+
+	def display_state(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+		"""Return the validated virtual line while exploration remains bound."""
+		if self._active is None or self._brailleDisplayState is None:
+			return state
+		if self._origin(state) != self._active.origin:
+			self.invalidate()
+			return state
+		return MappingProxyType(dict(self._brailleDisplayState))
 
 	def plan_step(
 		self,
@@ -251,6 +266,8 @@ class ExplorationController:
 		self,
 		context: ExplorationContext,
 		event: Mapping[str, Any],
+		*,
+		state: Mapping[str, Any] | None = None,
 	) -> ExplorationResultPlan:
 		if not isinstance(event, Mapping):
 			return ExplorationResultPlan(ExplorationRejection.INVALID_RESULT)
@@ -309,6 +326,7 @@ class ExplorationController:
 			payload.get("virtualColumn"),
 		)
 		position_at_origin = payload.get("atOrigin")
+		format_error = payload.get("formatError")
 		if (
 			payload.get("ok") is not True
 			or result_code not in {"moved", "boundary"}
@@ -316,6 +334,13 @@ class ExplorationController:
 			or not self._valid_result_text(text)
 			or not self._valid_positive_integer(position_values[0])
 			or not all(self._valid_nonnegative_integer(value) for value in position_values[1:])
+			or (
+				format_error is not None
+				and (
+					pending.unit != ExplorationUnit.WORD
+					or format_error not in {"spelling", "grammar"}
+				)
+			)
 		):
 			self.invalidate()
 			return ExplorationResultPlan(
@@ -346,6 +371,12 @@ class ExplorationController:
 			and position_at_origin
 		)
 		active.virtual_position_at_origin = position_at_origin
+		previous_braille_state = self._brailleDisplayState
+		self._brailleDisplayState = (
+			self._display_state_from_result(state, payload)
+			if state is not None
+			else None
+		)
 		return ExplorationResultPlan(
 			None,
 			request_id=request_id,
@@ -357,8 +388,10 @@ class ExplorationController:
 				pending,
 				text,
 				result_code,
+				format_error=format_error,
 				returned_to_origin=returned_to_origin,
 			),
+			braille_display_changed=self._brailleDisplayState != previous_braille_state,
 		)
 
 	def release(
@@ -409,6 +442,39 @@ class ExplorationController:
 	def invalidate(self) -> None:
 		self._active = None
 		self._pending.clear()
+		self._brailleDisplayState = None
+
+	@classmethod
+	def _display_state_from_result(
+		cls,
+		state: Mapping[str, Any],
+		payload: Mapping[str, Any],
+	) -> dict[str, Any] | None:
+		line_text = payload.get("explorationLineText")
+		byte_column = payload.get("byteColumn")
+		if not isinstance(line_text, str) or not cls._valid_nonnegative_integer(byte_column):
+			return None
+		try:
+			encoded = line_text.encode("utf-8")
+			if byte_column > len(encoded):
+				return None
+			encoded[:byte_column].decode("utf-8")
+		except (UnicodeDecodeError, UnicodeEncodeError):
+			return None
+		cursor = state.get("cursor")
+		display = dict(state)
+		display["lineText"] = line_text
+		display["cursor"] = {
+			**(dict(cursor) if isinstance(cursor, Mapping) else {}),
+			"line": payload.get("line"),
+			"byteColumn": byte_column,
+			"characterColumn": payload.get("characterColumn"),
+			"virtualColumn": payload.get("virtualColumn"),
+		}
+		display["selection"] = None
+		display["spellingErrors"] = []
+		display["fileManager"] = None
+		return display
 
 	def fail_request(self, request_id: int) -> bool:
 		"""Invalidate only when a failed dispatch belongs to the active exploration."""
@@ -480,6 +546,7 @@ class ExplorationController:
 		text: str,
 		result_code: str,
 		*,
+		format_error: str | None = None,
 		returned_to_origin: bool = False,
 	) -> SpeechAction:
 		sound = "explorationOrigin" if returned_to_origin else None
@@ -502,6 +569,7 @@ class ExplorationController:
 			sound=sound,
 			spelling=pending.unit == ExplorationUnit.CHARACTER and bool(spoken),
 			force_symbols=pending.unit == ExplorationUnit.WORD,
+			format_error=format_error if pending.unit == ExplorationUnit.WORD else None,
 		)
 
 	def _release_speech(

@@ -17,7 +17,7 @@ ein Bridge-Prozess und unter Windows der NVDA-Prozess. `protocol/python/` und
 | `nvda-addon/core/` | NVDA-unabhängige Verbindungsmodelle und -koordination, Dienstregistrierung, Gate, Discovery sowie Sprach- und Brailleplanung | `connection_coordinator.py`, `service_registrar.py`, `gate.py`, `connection_instances.py`, `speech.py`, `braille.py` |
 | `nvda-addon/addon/` | NVDA-Global-Plugin, Windows-Terminal-AppModule, UI- und Präsentationsdienste, Ressourcen und Übersetzungskataloge | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | rootlose Installation der Linux-Benutzerkomponenten | `install_user.py` |
-| `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog- und Testwerkzeuge | `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog- und Testwerkzeuge | `run_tests.py`, `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
 | `docs/de/manual/` | deutsche Anwenderdokumentation | `README.md`, `quick-guide.md` |
 | `docs/de/development/` | deutsche Entwicklererklärung, Referenz und Nachweise | diese Datei und die Übersicht `README.md` |
 | `docs/en/` | englische Anwender- und Entwicklerdokumentation | `README.md` |

@@ -207,7 +207,7 @@ must not close output again before state is confirmed.
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `service_registry.py` / `ServiceRegistrar` | Identity-checked process-wide publication of the fully initialized `TerminalIntegrationService` | A Global Plugin object, lifecycle decisions, or terminal events |
 | `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
-| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, contextual exploration, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, speech exploration mode, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
 | `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard, terminal, and exploration plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
@@ -219,7 +219,7 @@ must not close output again before state is confirmed.
 | `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
 | Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
-| Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable commands, contextual exploration gestures and their physical-key lifecycle, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection, separate gesture resolution, or transport |
+| Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable speech-exploration-mode gestures and their physical-key lifecycle, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection, separate gesture resolution, or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
@@ -286,7 +286,7 @@ Terminal AppModule.
 
 The service holds no broad `_runtime` reference. The composition root supplies
 exactly one handler for every `TerminalCommand` plus separate callbacks for
-diagnostics, fail-open handling, F12 completion, and Braille routing. The
+diagnostics, fail-open handling, F12 completion, and Braille presentation. The
 constructor copies the command map and rejects missing, additional, or
 non-callable entries. The public service therefore cannot reach other Global
 Plugin methods or state.
@@ -333,13 +333,158 @@ presentation remain separate. Semantic planner reset and access to the active
 instance's completion documentation use the same controller boundary. NVDA's
 own typed-word buffer and speech delivery remain at the NVDA boundary.
 
+Each managed Neovim instance runtime also owns its own Braille exploration
+controller and its own controller for numbered native choices. A tab or pane
+therefore cannot display or mutate another local or remote session's selected
+Braille mode or suggestion state. A runtime switch activates only the state
+owned by the assigned session. Its virtual line, reading column, and NVDA's
+public `windowStartPos` remain in that runtime. Repeated-routing sequences and
+focus messages are discarded when the control changes. Disconnect resets
+only the affected runtime.
+
 For Braille, the controller copies the active canonical state into a
 `BrailleSessionPlan`; later editor events cannot mutate that plan. A
 `BrailleRoutePlan` contains either a fully validated fixed `routeCursor`
-payload or one bounded rejection reason. The public terminal service first
-confirms the concrete terminal and records the result. The overlay only maps
-NVDA's translated Braille position to the semantic byte column; the transport
-call remains in the Global Plugin.
+payload with target kind, exact raw mode, and UTF-8-safe source character, or
+one bounded rejection reason. In command-line mode, only content cells and
+one virtual end cell map to byte columns; the prompt is non-routable. Insert
+mode likewise provides one virtual blank after unchanged line text. An empty
+Normal-mode line provides one cursor-bearing blank because NVDA cannot focus a
+region with a cursor but no cells. Non-empty Normal-mode lines have no extra
+end cell. `focusToHardLeft` and `hidePreviousRegions` ensure that the
+structured line replaces preceding Windows Terminal context labels.
+
+The public terminal service first confirms the exact terminal and records the
+result. The overlay maps only NVDA's translated Braille position to the
+semantic byte column. The service places the immutable fixed payload in the
+same bounded `ControlDispatcher` used by exploration and numbered choices.
+Its worker calls the local or SSH transport; a full queue or closed dispatcher
+drops the optional action fail-open. Neither a routing key nor an NVDA region
+callback can therefore perform socket, SSH, or `stdin.flush()` I/O on NVDA's
+main thread. Only after successful queueing does `NvdaPresentation` announce
+the source character, if NVDA's public `braille.speakOnRouting` setting is
+enabled, through public `speech.speakSpelling`. It does not call the private
+`braille._speakOnRouting` helper.
+
+Optional repeated presses remain within the same layers. The pure
+`BrailleRoutingRepeatController` recognizes only identical target signatures
+and uses NVDA's public `keyboard.multiPressTimeout` setting. The first press
+still emits `routeCursor` immediately; only the double-press word action is
+delayed when a third press could replace it with a line action.
+`core.callLater` schedules only this local main-thread callback and performs
+no transport I/O. A `BrailleRoutingActionPlan` permits only Normal and Insert
+modes and four fixed actions. The immutable `brailleRouteAction` payload uses
+the same bounded dispatcher. The Neovim plugin revalidates buffer, window,
+line, byte column, `changedtick`, raw mode, modifiability, and UTF-8 boundary,
+then maps the action identifier to `cw`, `dw`, `c$`, or `d$` with one fixed
+line start. No Lua, Ex, or Normal-command text crosses the transport.
+
+Vertical Braille-display navigation follows the same boundary. NVDA's public
+region methods plan only a direction. An immutable
+`BrailleLineNavigationPlan` binds it to the negotiated capability, active
+client, buffer, window, changed tick, raw mode, origin line, and Neovim's
+preferred virtual column. The dispatcher sends the fixed `moveBrailleLine`
+control. The fixed `preferred`, `start`, or `end` target rule distinguishes
+direct up/down from horizontal panning across a line boundary. Only the
+Neovim plugin maps that rule and virtual column to a valid byte
+column on the adjacent line through public `winsaveview()`, `virtcol2col()`,
+and `winrestview()`. With `preferred`, retaining `curswant` prevents a short
+intermediate line from losing the desired horizontal position. `start`
+resets both cursor and desired columns to zero; `end` selects the last
+character in Normal mode and the insertion point after it in Insert mode.
+Command-line mode and direct terminal input are excluded. Horizontal panning
+within a line remains entirely in NVDA; only crossing a line boundary sends a
+semantic transport control.
+
+The region deliberately passes only the semantic direction and one of the
+three fixed target rules. NVDA's `start` parameter distinguishes direct up
+from backward panning; for the parameterless down callback the Windows
+Terminal AppModule supplies an exactly bound marker for the public global
+Braille command that expires after one input turn. Behind the
+service/controller boundary, the independent `BrailleExplorationController`
+selects one of two strategies. Cursor mode produces the `moveBrailleLine`
+control described above. Braille exploration mode instead produces a
+correlated `brailleExploreLineRequest`. Its `desiredVirtualColumn`,
+`targetColumn`, and complete canonical origin identity are mapped by the
+Neovim plugin to an ephemeral line position; neither the buffer nor the real
+cursor changes. The first request must match the real cursor and mode exactly.
+After that, real-cursor, mode, and text changes do not replace the virtual
+position. When `changedtick` advances, the controller copies the new line
+text and its derived presentation fields into the derived view only when the
+real cursor line currently matches the explored line. The virtual line,
+reading column, and Braille viewport remain unchanged. Changes on other lines
+advance correlation only and do not refresh the displayed exploration.
+Every follow-up request must still carry the original identity,
+exploration ID, and next action number, while buffer, window, and tab remain
+unchanged. `changedtick` may only advance to the currently validated value of
+that same buffer. The result updates
+only a derived Braille view in `EditorSessionController`, never canonical
+connection state. Routing then plans from that view and deliberately moves the
+real cursor to the explored line without toggling the still-selected Braille
+exploration mode. The target line and byte column come from that derived view,
+but buffer/window identity, mode, transport capabilities, and `changedtick`
+come from the current canonical state. Routing is available only when the
+derived line content belongs to that same `changedtick`. This keeps a manually
+panned NVDA viewport stable while preventing an edit or mode transition from
+turning an old display snapshot into an apparently successful routing request.
+
+The derived view owns no visible Braille cursor. `EditorSessionController`
+copies the real cursor into the Braille plan only when the real and explored
+line and their text match.
+The targeted content refresh restores that match after an edit on the
+displayed line without introducing a second, virtual cursor. It replaces the
+complete line-derived snapshot, not only its text, while retaining the virtual
+line, preferred reading column, and NVDA viewport. A return from Insert to
+Normal mode therefore updates routing authorization without re-anchoring the
+Braille view.
+`BrailleSessionPlan` additionally marks this derived view with
+`preserve_viewport`. In that case, `StructuredLineRegion.update()` clears
+NVDA's public `TextInfoRegion.pendingCaretUpdate` marker after calculating
+the new region. A native terminal caret event arriving in the same NVDA cycle
+therefore cannot scroll to the real cursor after `handleUpdate()` has restored
+the Braille window as designed. The region is still processed fully through
+NVDA's public update path, so changes inside the existing viewport appear
+without allowing changes or the cursor outside it to take over its position.
+
+Braille exploration mode and speech exploration mode own separate controllers, request-ID channels,
+exploration IDs, Lua state, and cleanup controls. Interleaving therefore
+cannot consume the other mode's action sequence. A profile-aware option may
+also project the speech-exploration-mode controller's already validated virtual
+state as a derived Braille view. It does not merge the state machines:
+canonical editor state remains unchanged, the separate Braille exploration
+controller takes priority, and release or cancellation restores the canonical
+Braille view. The freely assignable toggle
+remains a contextual script in the Windows Terminal AppModule.
+`TerminalIntegrationService` owns the controller toggle and any asynchronously
+queued remote cleanup; the Global Plugin process action only delivers the NVDA
+message and requests a Braille refresh. Instance changes discard the transient
+virtual position and in-flight requests, but returning activates that
+session's independently selected Braille mode again. Disconnect and teardown
+symmetrically reset only the affected runtime or all owned runtimes,
+respectively. Command-line and direct-terminal modes are excluded.
+
+`StructuredLineRegion` is not a parallel Braille implementation. It subclasses
+NVDA's public `braille.TextInfoRegion` extension point so
+`braille.handler.handleCaretMove` can trigger normal caret following and
+`scrollToCursorOrSelection`. Because its text comes semantically from Neovim,
+its update calls the public `braille.Region.update()` base method directly. It
+sets only documented raw text, cursor, selection, and region fields and leaves translation, Unicode
+normalization, cursor shape, selection dots, viewport, and display driver to
+NVDA. Public `brailleToRawPos` maps a physical routing cell back into the
+neutral plan. For review tether the overlay raises `NotImplementedError` as
+handled by `braille.getFocusRegions`, so NVDA uses its native fallback.
+
+The successful asynchronous `focusContext` confirmation rebuilds the native
+focus region through public `handleGainFocus(..., shouldAutoTether=False)`;
+incremental `handleUpdate` is used only when the correct region already
+exists. Overlay composition belongs to the Windows Terminal AppModule and is
+based on the terminal class NVDA has already selected. It is inert without the
+published service or an exact authenticated binding and delegates fail-open.
+Persistent regions and routing read no private NVDA buffer or gesture state.
+Only the separate transient spelling suggestion identity-checks and dismisses
+the private message buffer created by its own public
+`braille.handler.message()` call. [ADR-0002](adr/0002-nvda-api-boundaries.md)
+documents and justifies every private touchpoint.
 
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely
@@ -392,11 +537,17 @@ The reverse channel is a fixed allowlist, not general remote control:
 
 - `requestFullState` and `requestFocusContext` request state;
 - `routeCursor` sets a validated cursor after a Braille routing action;
+- `brailleRouteAction` performs only one of four fixed word or line actions at
+  a previously and exactly bound routing position;
+- `moveBrailleLine` moves the editor cursor to the immediately previous or
+  next line while retaining the preferred virtual column;
 - `copyTextRequest`, `pasteTextRequest`, and `setRegisterRequest` mediate
   explicit clipboard actions;
 - `leaveTerminalInputRequest` performs only Neovim's fixed `stopinsert`.
 - `exploreTextRequest` moves only an ephemeral reading position, while
   `endExplorationRequest` discards it; neither moves the real cursor.
+- `acceptNumberedChoiceRequest` confirms only the already validated index of
+  an active native choice list.
 
 State-changing requests carry the expected session, buffer, window, tab, mode,
 and, where needed, `changedtick` identity. Text is never executed as Lua or Ex
@@ -446,6 +597,39 @@ through `nvim_paste`, or Windows text into fixed register 0. A request ID and
 expected editor/focus state prevent late replies from affecting another
 session. There is no automatic synchronization or retry.
 
+### Numbered native choices
+
+A neutral `NumberedChoiceController` stored in each instance runtime owns only
+transient local selection state. Its first strict adapter covers Neovim's
+built-in `z=` spelling list:
+the Lua plugin proves the immediately typed command and parses only a
+consecutively numbered, bounded list from Neovim's UI event. Items enter
+neither canonical editor state nor diagnostics.
+
+Neovim 0.12 permits full context validation on the scheduled UI-event path.
+Neovim 0.10 is already blocked inside the native prompt, so the plugin captures
+the bounded editor snapshot at the proven `z=` input and publishes only its
+corresponding native list through a fast-callback-safe RPC notification. The
+additional native input instruction at the end of that list is accepted only
+in its narrow form.
+
+The Windows Terminal AppModule uses NVDA's normal contextual gesture
+resolution for `NVDA+j/k/Enter`. The service and controller revalidate focus,
+control, instance, capability, and editor identity. Only the internal
+zero-based index is confirmed; displayed text is never sent back as input.
+Releasing NVDA discards the local selection, not Neovim's prompt. Each future
+prompt type requires its own strict adapter.
+
+For Braille, the NVDA adapter uses NVDA's transient message buffer. NVDA's own
+source uses the same public path for suggestion and selection feedback, and it
+writes the display immediately rather than waiting for a focus event. A normal
+NVDA region first measures the suggestion with the active translation table,
+then limits the configured start to the last position where the complete result
+fits. On release, only the proven add-on-owned message region is dismissed and
+the preserved editor buffer is refreshed. The narrowly scoped private
+counterpart required for that dismissal is documented in
+[ADR-0002](adr/0002-nvda-api-boundaries.md).
+
 ### File managers
 
 `file_manager.lua` normalizes the active entry. Separate adapters subscribe to
@@ -454,6 +638,14 @@ available. They transport typed names, kinds, states, and action results rather
 than decorated screen lines. Missing plugin APIs fall back to existing
 navigation. See `accessibility.md` and `current-status.md` for the feature
 matrix and practical test status.
+
+The Braille planner represents canonical file-manager state as a persistent
+region. Navigation and state announcements remain speech-only actions and do
+not create a second NVDA Braille message that would cover this region until a
+message timeout. The controller passes only the translation function into the
+NVDA-independent Braille planner: names and routing positions remain
+unchanged, while typed kinds and states are localized only at the NVDA
+boundary.
 
 ### Localization and packaging
 

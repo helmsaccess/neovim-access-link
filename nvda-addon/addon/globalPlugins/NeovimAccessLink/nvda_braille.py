@@ -2,20 +2,215 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import braille as nvdaBraille
 import config
 
-from .core.braille import plan_braille, source_offset_for_expanded
+from .core.braille import BraillePlan, plan_braille, source_offset_for_expanded
 from .service_registry import getTerminalIntegrationService
 
 
-class StructuredLineRegion(nvdaBraille.Region):
+def capture_structured_viewport(handler: object) -> int | None:
+	"""Read the public NVDA Braille-window offset for our active structured region."""
+	try:
+		if handler.getTether() != "focus":
+			return None
+	except Exception:
+		return None
+	main_buffer = getattr(handler, "mainBuffer", None)
+	if main_buffer is None or getattr(handler, "buffer", None) is not main_buffer:
+		return None
+	regions = getattr(main_buffer, "regions", ())
+	if not regions or not isinstance(regions[-1], StructuredLineRegion):
+		return None
+	start_position = getattr(main_buffer, "windowStartPos", None)
+	return (
+		start_position
+		if isinstance(start_position, int) and not isinstance(start_position, bool) and start_position >= 0
+		else None
+	)
+
+
+def restore_structured_viewport(handler: object, start_position: int) -> bool:
+	"""Restore a saved public NVDA Braille-window offset after a focus rebuild."""
+	if not isinstance(start_position, int) or isinstance(start_position, bool) or start_position < 0:
+		return False
+	try:
+		if handler.getTether() != "focus":
+			return False
+	except Exception:
+		return False
+	main_buffer = getattr(handler, "mainBuffer", None)
+	if main_buffer is None or getattr(handler, "buffer", None) is not main_buffer:
+		return False
+	regions = getattr(main_buffer, "regions", ())
+	if not regions or not isinstance(regions[-1], StructuredLineRegion):
+		return False
+	cells = getattr(main_buffer, "brailleCells", None)
+	if not isinstance(cells, (list, tuple)):
+		return False
+	if not cells:
+		restored_position = 0
+	else:
+		restored_position = min(start_position, len(cells) - 1)
+	try:
+		main_buffer.windowStartPos = restored_position
+		handler.update()
+	except Exception:
+		return False
+	return True
+
+
+def numbered_choice_message_text(
+	text: str,
+	*,
+	start_cell: int,
+	display_size: int,
+) -> str:
+	"""Position a transient choice using the active NVDA Braille translation."""
+	if (
+		not text
+		or not isinstance(start_cell, int)
+		or isinstance(start_cell, bool)
+		or not isinstance(display_size, int)
+		or isinstance(display_size, bool)
+		or start_cell <= 1
+		or start_cell > display_size
+	):
+		return text
+	try:
+		region = nvdaBraille.Region()
+		region.rawText = text
+		region.update()
+		content_cell_count = len(region.brailleCells)
+	except Exception:
+		return text
+	if content_cell_count <= 0:
+		return text
+	last_complete_start = max(1, display_size - content_cell_count + 1)
+	actual_start = min(start_cell, last_complete_start)
+	return (" " * (actual_start - 1)) + text
+
+
+def present_numbered_choice_message(text: str, *, start_cell: int) -> object | None:
+	"""Show a choice through NVDA's immediate transient Braille-message path."""
+	handler = nvdaBraille.handler
+	previous_message_buffer = getattr(handler, "messageBuffer", None)
+	previous_regions = getattr(previous_message_buffer, "regions", ())
+	previous_token = (
+		previous_regions[-1]
+		if previous_message_buffer is not None
+		and getattr(handler, "buffer", None) is previous_message_buffer
+		and previous_regions
+		else None
+	)
+	try:
+		message_text = numbered_choice_message_text(
+			text,
+			start_cell=start_cell,
+			display_size=handler.displaySize,
+		)
+		handler.message(message_text)
+	except Exception:
+		return None
+	message_buffer = getattr(handler, "messageBuffer", None)
+	if message_buffer is None:
+		# Test doubles and older compatible handlers do not expose buffer identity.
+		return True
+	if getattr(handler, "buffer", None) is not message_buffer:
+		return None
+	regions = getattr(message_buffer, "regions", ())
+	if not regions or regions[-1] is previous_token:
+		# `message` has no result value. Prove ownership by requiring the active
+		# buffer to contain a newly created region before touching its timer.
+		return None
+	message_token = regions[-1]
+	# The selected spelling item is an active control value, not a notification
+	# that may disappear while the user is still reading it. NVDA has no public
+	# per-message lifetime override, so stop only the timer created by the call
+	# above. A later foreign message creates and owns its own timer normally.
+	message_timer = getattr(handler, "_messageCallLater", None)
+	if message_timer is not None:
+		try:
+			message_timer.Stop()
+		except Exception:
+			pass
+	return message_token
+
+
+def dismiss_numbered_choice_message(message_token: object) -> bool:
+	"""Dismiss the visible NVDA Braille message after contextual choice navigation."""
+	handler = nvdaBraille.handler
+	message_buffer = getattr(handler, "messageBuffer", None)
+	if message_buffer is None or getattr(handler, "buffer", None) is not message_buffer:
+		return False
+	regions = getattr(message_buffer, "regions", ())
+	if message_token is not message_buffer and (not regions or regions[-1] is not message_token):
+		return False
+	dismiss = getattr(handler, "_dismissMessage", None)
+	if not callable(dismiss):
+		return False
+	try:
+		dismiss()
+	except Exception:
+		return False
+	return True
+
+
+def position_numbered_choice(
+	plan: BraillePlan,
+	*,
+	start_cell: int,
+	display_size: int,
+	content_cell_count: int,
+) -> BraillePlan:
+	"""Position a transient choice as far right as it completely fits."""
+	if (
+		not isinstance(start_cell, int)
+		or isinstance(start_cell, bool)
+		or not isinstance(display_size, int)
+		or isinstance(display_size, bool)
+		or not isinstance(content_cell_count, int)
+		or isinstance(content_cell_count, bool)
+		or start_cell <= 1
+		or start_cell > display_size
+		or content_cell_count <= 0
+	):
+		return plan
+	last_complete_start = max(1, display_size - content_cell_count + 1)
+	actual_start = min(start_cell, last_complete_start)
+	if actual_start <= 1:
+		return plan
+	offset = actual_start - 1
+	text = (" " * offset) + plan.text
+	routing = (
+		(tuple(None for _ in range(offset)) + plan.routing_byte_columns)
+		if plan.routing_byte_columns is not None
+		else None
+	)
+	return replace(
+		plan,
+		text=text,
+		cursor=plan.cursor + offset if plan.cursor is not None else None,
+		selection_start=plan.selection_start + offset if plan.selection_start is not None else None,
+		selection_end=plan.selection_end + offset if plan.selection_end is not None else None,
+		source_offsets=tuple(range(len(text) + 1)),
+		routing_byte_columns=routing,
+	)
+
+
+class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 	"""Let NVDA translate and decorate one structured Neovim line."""
 
 	def __init__(self, obj):
-		super().__init__()
+		super().__init__(obj)
 		self.obj = obj
 		self.focusToHardLeft = True
+		# The structured editor line replaces Windows Terminal's focus-context
+		# labels; keeping them as preceding visible regions can leave text
+		# appended after labels such as "Windows PowerShell".
+		self.hidePreviousRegions = True
 
 	def update(self):
 		service = getTerminalIntegrationService()
@@ -30,6 +225,32 @@ class StructuredLineRegion(nvdaBraille.Region):
 		except Exception:
 			session_plan = None
 		plan = session_plan.plan if session_plan is not None else plan_braille({})
+		self._apply_plan(plan, session_plan)
+		# TextInfoRegion supplies NVDA's public caret-following contract, while
+		# the semantic text itself comes from Neovim rather than an NVDA TextInfo.
+		nvdaBraille.Region.update(self)
+		if session_plan is not None and session_plan.numbered_choice and service is not None:
+			try:
+				positioned_plan = position_numbered_choice(
+					plan,
+					start_cell=service.numbered_choice_braille_start(),
+					display_size=nvdaBraille.handler.displaySize,
+					content_cell_count=len(self.brailleCells),
+				)
+			except Exception:
+				# Missing or changing display metadata must leave ordinary cell-1 output intact.
+				positioned_plan = plan
+			if positioned_plan is not plan:
+				plan = positioned_plan
+				self._apply_plan(plan, session_plan)
+				nvdaBraille.Region.update(self)
+		if session_plan is not None and session_plan.preserve_viewport:
+			# NVDA's public TextInfoRegion contract marks a pending caret update
+			# when native terminal events arrive. In Braille exploration, the
+			# real caret must not scroll the independently selected viewport.
+			self.pendingCaretUpdate = False
+
+	def _apply_plan(self, plan: BraillePlan, session_plan) -> None:
 		self._plan = plan
 		self._sourceLine = session_plan.source_line if session_plan is not None else ""
 		self.rawText = plan.text
@@ -38,7 +259,6 @@ class StructuredLineRegion(nvdaBraille.Region):
 		self.selectionEnd = plan.selection_end
 		self.brailleSelectionStart = None
 		self.brailleSelectionEnd = None
-		super().update()
 
 	def routeTo(self, braillePos):
 		service = getTerminalIntegrationService()
@@ -46,6 +266,11 @@ class StructuredLineRegion(nvdaBraille.Region):
 			suppressed = service is not None and service.should_suppress_braille(self.obj)
 		except Exception:
 			suppressed = False
+		if service is not None:
+			try:
+				service.record_braille_route_attempt(braillePos, suppressed=suppressed)
+			except Exception:
+				pass
 		if not suppressed:
 			return
 		if not 0 <= braillePos < len(self.brailleToRawPos):
@@ -63,7 +288,41 @@ class StructuredLineRegion(nvdaBraille.Region):
 		else:
 			source_offset = source_offset_for_expanded(self._plan, expanded_offset)
 			byte_column = len(self._sourceLine[:source_offset].encode("utf-8"))
-		service.route_braille_cursor(self.obj, byte_column)
+		service.route_braille_cursor(
+			self.obj,
+			byte_column,
+			braille_position=braillePos,
+		)
+
+	def previousLine(self, start=False):
+		self._navigate_line(
+			"previous",
+			target_column="preferred" if start else "end",
+		)
+
+	def nextLine(self):
+		service = getTerminalIntegrationService()
+		try:
+			direct = service is not None and service.consume_direct_braille_next_line(self.obj)
+		except Exception:
+			direct = False
+		self._navigate_line(
+			"next",
+			target_column="preferred" if direct else "start",
+		)
+
+	def _navigate_line(self, direction: str, *, target_column: str) -> None:
+		service = getTerminalIntegrationService()
+		try:
+			if service is not None:
+				service.navigate_braille_line(
+					self.obj,
+					direction,
+					target_column=target_column,
+				)
+		except Exception:
+			# A navigation failure must not escape into NVDA's gesture handling.
+			pass
 
 
 class StructuredTerminalBrailleOverlay:
@@ -83,6 +342,11 @@ class StructuredTerminalBrailleOverlay:
 			suppressed = service is not None and service.should_suppress_braille(self)
 		except Exception:
 			suppressed = False
+		if service is not None:
+			try:
+				service.record_braille_region_request(review=review, suppressed=suppressed)
+			except Exception:
+				pass
 		if review or not suppressed:
 			raise NotImplementedError
 		# Return a concrete iterable. A yield would turn this into a generator

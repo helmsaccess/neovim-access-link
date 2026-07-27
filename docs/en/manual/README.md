@@ -3,8 +3,8 @@
 Neovim Access Link provides NVDA with structured state from Neovim instead of
 scraping the changing terminal screen. It can report mode, cursor movement,
 editing, selections, indentation, completion, diagnostics, and other semantic
-editor events. A contextual exploration mode can read characters, words, and
-lines temporarily without moving Neovim's real cursor.
+editor events. Speech exploration mode can read characters, words, and lines
+temporarily without moving Neovim's real cursor.
 
 Supported today are local Windows `nvim.exe` and Linux Neovim over SSH in
 Windows Terminal, including multiple windows, tabs, split panes, mixed Neovim
@@ -12,23 +12,18 @@ and ordinary shell panes, accounts, and tmux sessions. PuTTY, graphical Neovim
 front ends, portable layouts, and automatic `NVIM_APPNAME` layouts are not
 supported.
 
-## Maturity and important Braille warning
+Advanced [Braille support](braille.md) presents structured editor lines
+instead of terminal fragments. It includes routing in Normal, Insert, and
+command-line modes, the insertion position after the final character,
+automatic following on long lines, Braille display navigation controls, and
+an independent Braille exploration mode.
 
-The add-on is in an alpha-to-beta state. The main local and SSH connection
-paths have been tested in practice, but not every documented editor feature has
-been exercised extensively in every mode and configuration. Bugs and missing
-feedback should be expected.
+## Maturity
 
-Development aims to test important workflows, security boundaries, and known
-defects carefully. This is not a claim that every combination of editor
-feature, plugin, terminal layout, and environment has been covered. Reported
-defects are investigated and corrected as promptly as circumstances allow;
-no fixed response or resolution time is promised.
-
-Braille has not been tested with a physical Braille display and very likely
-contains bugs. Braille is important, not optional to the project; practical
-hardware testing and corrections are priority follow-up work. The current
-documentation must not be read as a claim of reliable Braille support.
+The add-on is beta software. Defects, incomplete feedback, and changes to its
+operation remain possible. Keep normal backups and introduce the add-on
+gradually with your own NVDA, Neovim, and terminal configuration before
+relying on it for important work.
 
 ## Core concepts
 
@@ -66,15 +61,16 @@ terminal output.
 ## Manual chapters
 
 1. [Settings and connection profiles](settings.md)
-2. [Communication, connections, and session binding](communication.md)
-3. [SSH, tmux, and Neovim](ssh-and-tmux.md)
-4. [Menus and completion](menus-and-completion.md)
-5. [Embedded terminal and file managers](terminals-and-file-managers.md)
-6. [Sounds and earcons](sounds.md)
-7. [Braille support](braille.md)
-8. [Troubleshooting and diagnostic report](troubleshooting.md)
+2. [Speech exploration mode](speech-exploration.md)
+3. [Communication, connections, and session binding](communication.md)
+4. [SSH, tmux, and Neovim](ssh-and-tmux.md)
+5. [Menus and completion](menus-and-completion.md)
+6. [Embedded terminal and file managers](terminals-and-file-managers.md)
+7. [Sounds and earcons](sounds.md)
+8. [Braille support](braille.md)
+9. [Troubleshooting and diagnostic report](troubleshooting.md)
 
 Begin with the separate [Quick Guide](neovim-access-link-quick-guide-en.html)
-and test in a disposable buffer before important work. Include character,
-word, and line exploration while holding NVDA and verify that the real cursor
+and use a disposable buffer before important work. Include character, word,
+and line speech exploration while holding NVDA and verify that the real cursor
 does not move.

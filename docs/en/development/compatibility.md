@@ -50,11 +50,18 @@ Public action forms, including long type names such as `directory` and
 `symbolicLink`, are normalized; a complete practical operation matrix remains
 open.
 
-No physical Braille display has been tested. Automated Braille tests cover only
-state and planning, so hardware-specific defects may remain undiscovered.
-Other Windows/NVDA/Neovim versions, SSH variants, languages, and many add-on
-features also lack exhaustive practical coverage. The supported state is alpha
-to beta.
+The `z=` suggestion path, including restoration of the editor line, was
+successfully tested with one physical Braille display. Automated Braille tests
+cover further state and planning cases, but hardware-specific defects outside
+the practically tested path may remain undiscovered. The neutral Braille
+planner expands tabs from `tabstop` and the preceding Unicode code-point
+position. If a zero-width or double-width terminal character precedes a tab,
+the number of blank Braille cells can therefore differ from Neovim's virtual
+screen column; routing still resolves to the correct UTF-8 text position. A
+future exact display-width mapping must come from semantic Neovim state, not
+screen scraping or a second Unicode-width table in the add-on. Other
+Windows/NVDA/Neovim versions, SSH variants, languages, and many add-on features
+also lack exhaustive practical coverage. The supported state is beta.
 
 An older Neovim on Rocky Linux 9 did not connect with the current build; no
 compatibility promise is made for it. GUI front ends, portable Windows layouts,

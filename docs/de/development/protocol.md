@@ -158,6 +158,16 @@ Liste ohne `heartbeat`. `exploration` wird nur ergänzt, wenn das verbundene
 Neovim-Plugin diese feste Fähigkeit in `pluginCapabilities` bestätigt. So
 fängt ein aktualisiertes Add-on keine Explorationstasten ab, solange noch ein
 älteres Plugin installiert ist oder läuft.
+`numberedChoices` wird entsprechend nur ergänzt, wenn das Plugin die
+strukturierte Erkennung und Annahme nummerierter nativer Auswahllisten
+bestätigt.
+`brailleLineNavigation` wird nur ergänzt, wenn das Plugin den festen
+benachbarten Zeilenwechsel und den bevorzugten Virtuellspaltenzustand
+unterstützt.
+`brailleExploration` wird unabhängig davon nur ergänzt, wenn das Plugin den
+getrennten flüchtigen Braille-Zeilenkanal bestätigt.
+`brailleRoutingActions` wird nur ergänzt, wenn das Plugin die festen
+Mehrfachbetätigungsaktionen und ihre vollständige Zustandsprüfung bestätigt.
 
 ## Dateibasierte Sitzungsregistrierung und ausdrückliche Zuordnung
 
@@ -214,7 +224,9 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
-`leaveTerminalInputResult`, `exploreTextResult` und
+`leaveTerminalInputResult`, `exploreTextResult`,
+`brailleExploreLineResult` und
+`numberedChoiceOpened`, `numberedChoiceClosed` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
 `commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
@@ -242,8 +254,18 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `requestFullState` ohne inhaltliche Payload;
 - `requestFocusContext` mit einer ganzzahligen `requestId` zwischen 0 und
   2147483647;
-- `routeCursor` mit `bufferId`, `windowId`, `line`, `byteColumn` und
-  `changedtick`;
+- `routeCursor` mit festem Ziel `editor` oder `commandLine`, `bufferId`,
+  `windowId`, `byteColumn`, `changedtick` und exaktem `modeRaw`. Das Editorziel
+  trägt zusätzlich `line`; das Befehlszeilenziel trägt den exakt erwarteten,
+  auf 16 KiB begrenzten `commandLine`-Inhalt und `commandLineType`;
+- `brailleRouteAction` mit `bufferId`, `windowId`, `line`, `byteColumn`,
+  `changedtick`, exaktem `modeRaw` und genau einer Aktion `changeWord`,
+  `deleteWord`, `changeLine` oder `deleteLine`. Nur eine Zeilenaktion trägt
+  zusätzlich genau einen Start `routing`, `indentation` oder `beginning`;
+- `moveBrailleLine` mit `bufferId`, `windowId`, aktueller `line`,
+  `changedtick`, exaktem `modeRaw`, einer festen `direction` aus `previous`
+  oder `next`, einer festen Zielregel `targetColumn` aus `preferred`, `start`
+  oder `end` und `preferredVirtualColumn` zwischen 0 und 2147483647;
 - `copyTextRequest` mit korrelierter `requestId`, erwarteter Buffer-, Fenster-,
   Tab-, `changedtick`- und Modusidentität sowie genau einer Quelle
   `visualSelection` oder `yankRegister`;
@@ -261,15 +283,52 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
   Echtcursoridentität;
 - `endExplorationRequest` mit Anfrage- und Explorations-ID zum Verwerfen des
   flüchtigen Lua-Zustands.
+- `brailleExploreLineRequest` mit derselben vollständigen Ursprungsidentität,
+  positiver Anfrage-, Explorations- und Aktionsnummer, genau `lineUp` oder
+  `lineDown`, Wiederholungszahl 1 und `desiredVirtualColumn` zwischen 0 und
+  2147483647 sowie derselben festen `targetColumn`-Auswahl;
+- `endBrailleExplorationRequest` mit Anfrage- und Explorations-ID zum
+  Verwerfen ausschließlich des getrennten Braille-Lua-Zustands.
+- `acceptNumberedChoiceRequest` mit korrelierter Anfrage-ID, Auswahlart,
+  Auswahl-ID, nullbasiertem Eintragsindex sowie exakter
+  Buffer-/Fenster-/Tab-/`changedtick`-Identität.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
 wird bei abweichender Request-ID, Instanz, Bindung oder Fokusidentität
 verworfen. Der Ablauf ist fokusereignisgetrieben und verwendet kein Polling.
 
-`routeCursor` prüft aktuelle Buffer-/Fensterkennung, `changedtick`, Zeilen- und
-UTF-8-Bytespalten-Grenzen, bevor Neovims Cursor-API aufgerufen wird. Empfangener
-Text wird nie als Lua- oder Ex-Code ausgeführt.
+`routeCursor` prüft aktuelle Buffer-/Fensterkennung, `changedtick`, exakten
+Rohmodus sowie Zeilen- und UTF-8-Bytespalten-Grenzen. Das Editorziel setzt den
+Cursor über `nvim_win_set_cursor()`, zeichnet neu und veröffentlicht den
+Zustand auch im Insert-Modus unmittelbar. Das Befehlszeilenziel vergleicht
+zusätzlich Typ und vollständigen Inhalt und ruft anschließend Neovims
+öffentliche Funktion `setcmdline()` mit demselben Text und der neuen
+Bytespalte auf. Inhalt und Position werden danach erneut geprüft. Empfangener
+Text wird nie als Lua-, Ausdrucks- oder Ex-Code ausgeführt.
+
+`brailleRouteAction` ist nur mit ausgehandelter Capability im Normal- oder
+Insert-Modus zulässig. Bridge und Plugin akzeptieren exakt die für die
+jeweilige Aktion genannten Felder; zusätzliche Felder werden verworfen. Das
+Plugin prüft aktuellen Buffer, Fenster, `changedtick`, Rohmodus, Cursorzeile,
+UTF-8-Bytespalte, Zeichenrand sowie `modifiable` und `readonly`. Wortaktionen
+auf Leerraum oder am Zeilenende werden verworfen. Erst danach bildet es die
+festen Kennungen intern auf `cw`, `dw`, `c$` oder `d$` ab. Die Zeilenstarts
+entsprechen keiner Bewegung, `^` oder `0`. Insert-Löschaktionen kehren in den
+Insert-Modus zurück; Änderungsaktionen verbleiben entsprechend Neovims
+Operatorsemantik im Insert-Modus. Frei wählbare Tastensequenzen oder
+Befehlstexte sind kein Protokollfeld.
+
+`moveBrailleLine` prüft erneut aktuelle Buffer-/Fensterkennung,
+`changedtick`, Rohmodus und Ausgangszeile. Befehlszeilen- und
+Terminal-Eingabemodus werden verworfen. Das Ziel ist ausschließlich die
+unmittelbar benachbarte Zeile. `preferred` bildet die bevorzugte virtuelle
+Spalte mit `virtcol2col()` auf eine gültige UTF-8-Bytespalte ab und speichert
+dieselbe Spalte wieder als `curswant`. `start` wählt Bytespalte und
+Wunschspalte null. `end` wählt UTF-8-sicher das letzte Zeichen im Normalmodus
+beziehungsweise die Position direkt hinter dem Text im Insert-Modus; eine
+Leerzeile ergibt in beiden Fällen null. Danach wird genau ein
+`cursorMoved`-Ereignis mit Grund `brailleLineNavigation` veröffentlicht.
 
 `copyTextResult`, `pasteTextResult` und `setRegisterResult` tragen dieselbe
 Anfrage-ID und einen festen Ergebniscode. Nur `copyTextResult` darf einmalig das Feld
@@ -297,13 +356,38 @@ tatsächliche Moduswechsel folgt weiterhin ereignisgetrieben über
 `exploreTextResult` korreliert Anfrage, Exploration, Aktionsnummer und feste
 Aktion. Erfolgreiche Ergebnisse enthalten genau die Einheit Zeichen, Wort
 oder Zeile, eine begrenzte virtuelle Position, den booleschen Wert `atOrigin`
-und höchstens 16 KiB Text. Die Ursprungsmarkierung richtet sich nach der
+und höchstens 16 KiB Text. Optional enthält `explorationLineText` die ebenfalls
+auf 16 KiB begrenzte vollständige virtuelle Zeile. Sie dient ausschließlich
+einer konfigurierbaren, abgeleiteten Brailleansicht und wird ebenso wie alle
+anderen Ergebnisfelder nie in den kanonischen Zustand übernommen. Nur ein
+Wortergebnis darf zusätzlich den festen
+semantischen Wert `formatError=spelling|grammar` tragen; Meldung, Quelle und
+sonstige Diagnosedaten werden nicht übertragen. Die Ursprungsmarkierung
+richtet sich nach der
 angeforderten Einheit: genaues Zeichen, enthaltendes Wort oder Zeile. Damit
 bleiben Neovims Wortregeln auf der Neovim-Seite. Die Lua-Engine liest höchstens
 256 Zeilen beziehungsweise 64 KiB pro Wortsuche und liefert nur feste
 Erfolgs-, Grenz- oder Fehlercodes. Sie ruft keine Cursor-, Feedkeys-, Normal-,
 Such- oder Bufferänderungsoperation auf. Der Empfänger verwirft Antworten nach
 Fokus-, Bindungs-, Kontext- oder ID-Wechsel.
+
+`brailleExploreLineResult` verwendet dieselbe strikte Korrelation, erlaubt
+aber ausschließlich die Einheit `line` und die Aktionen `lineUp` oder
+`lineDown`. Das höchstens 16 KiB große Ergebnis trägt die virtuelle Zeile und
+ihre UTF-8-, Zeichen- und virtuelle Spalte. Add-on, Bridge und lokaler Client
+nehmen dieses Ergebnis nur einmalig entgegen und speichern es nicht als
+kanonischen Zustand. Sprach- und Braille-Exploration besitzen getrennte
+Aktionsfolgen; ein Abschlussauftrag verwirft nur seinen eigenen Kanal.
+
+`numberedChoiceOpened` ist ein flüchtiges Ereignis und wird nie Teil des
+kanonischen Zustands. Für `choiceKind=spellSuggestions` enthält es eine
+Auswahl-ID und höchstens 128 gültige UTF-8-Einträge mit je höchstens 4 KiB.
+Das Plugin emittiert es nur nach einem belegten direkten `z=` und einer
+lückenlos ab 1 nummerierten nativen Liste. `numberedChoiceClosed` verwirft die
+Auswahl bei geschlossenem UI- oder geändertem Editorkontext.
+`acceptNumberedChoiceRequest` muss exakt zu diesem aktiven Prompt passen. Der
+Transport sendet nur den validierten einsbasierten Zahlenwert und `Enter` über
+Neovims öffentliche Eingabe-API; Vorschlagstext wird nicht zurückgesendet.
 
 ## Sicherheitsgrenze
 

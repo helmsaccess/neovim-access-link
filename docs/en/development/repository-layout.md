@@ -17,7 +17,7 @@ for SSH, and the NVDA process on Windows. `protocol/python/` and
 | `nvda-addon/core/` | NVDA-independent connection models and coordination, service publication, gate, discovery, and speech/Braille planning | `connection_coordinator.py`, `service_registrar.py`, `gate.py`, `connection_instances.py`, `speech.py`, `braille.py` |
 | `nvda-addon/addon/` | NVDA Global Plugin, Windows Terminal AppModule, UI and presentation services, resources, and locale catalogs | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | Rootless installation of Linux user components | `install_user.py` |
-| `tools/` | Reproducible package, documentation, catalog, and test tools | `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `tools/` | Reproducible package, documentation, catalog, and test tools | `run_tests.py`, `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
 | `docs/de/` | Maintained German user and developer documentation | `README.md` |
 | `docs/en/manual/` | English user documentation | `README.md`, `quick-guide.md` |
 | `docs/en/development/` | English developer explanation, reference, and evidence | this file and `README.md` |

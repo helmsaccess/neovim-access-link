@@ -5,6 +5,490 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## 0.96.0
+
+- Ergänzt strukturierte Braillezeilen, Cursor-Routing und -Nachlauf,
+  Standardnavigation der Braillezeile, konfigurierbare Bearbeitungsaktionen
+  durch wiederholtes Routing sowie einen unabhängigen
+  Braille-Explorationsmodus. Die wesentlichen Abläufe wurden praktisch mit
+  einer Papenmeier BRAILLEX EL 80c geprüft.
+- Macht Neovims eingebaute `z=`-Rechtschreibvorschläge über `NVDA+j/k`,
+  `NVDA+Eingabe`, Sprache und eine konfigurierbare vorübergehende
+  Brailleposition zugänglich.
+- Gleicht das Rechtschreibfeedback bei normaler Navigation und
+  Sprachexploration an NVDAs unabhängig wählbare Dokumentformatierungsoptionen
+  für Sprache, Signaltöne und Braille an.
+- Speichert Braille-Cursormodus, Braille-Explorationsmodus, virtuelle Zeile,
+  Lesespalte und horizontalen Ausschnitt pro verbundener Neovim-Session.
+  Tabs, Panes, Anwendungen sowie gemischte lokale und entfernte Sessions
+  stellen ihre eigene Ansicht wieder her, ohne den Zustand einer anderen
+  Session zu übernehmen.
+- Lässt Fokusansagen hörbar, ohne den wiederhergestellten
+  Braille-Explorationsausschnitt mit einer vorübergehenden Meldung zu
+  überdecken. Fokusgebundene Mehrfach-Routingfolgen werden bei einem Wechsel
+  verworfen; ein Disconnect setzt nur die betroffene Session zurück.
+- Hält den manuell gewählten Braille-Explorationsausschnitt stabil, während
+  Änderungen die vollständige angezeigte Zeile aktualisieren, einschließlich
+  der Rückkehr vom Einfüge- in den Normalmodus. Routing lehnt veraltete
+  virtuelle Inhalte und verzögerte Aktionen vor dem Versand ab.
+- Bindet den flüchtigen Zustand nummerierter nativer Auswahllisten an die
+  zugehörige Session-Runtime und beendet die Terminalunterdrückung fail-open,
+  sobald der exakt aktive lokale oder SSH-Client getrennt wird.
+
+## 0.95.2-dev.32+feature.braille-support (Featurebranch-Testbuild)
+
+- Der abschließende Branch-Audit verschiebt die fachliche Umschaltung des
+  Braille-Explorationsmodus und ihre optionale Remote-Bereinigung aus der
+  Global-Plugin-Kompositionswurzel hinter den bereits vorhandenen schmalen
+  `TerminalIntegrationService`. Das Windows-Terminal-AppModule behält das
+  kontextbezogene Skript; im Global Plugin verbleiben nur NVDA-Meldung und
+  Brailleaktualisierung.
+- Der aktuelle Status beschreibt nun den konsolidierten Braille-Endstand statt
+  überholter Testbuild-Zwischenstände. README, deutsche und englische
+  Architektur-, Test- und Barrierefreiheitsdokumentation stimmen mit der
+  bestätigten Referenzhardware und der weiterhin offenen breiteren
+  Hardwarematrix überein.
+
+## 0.95.2-dev.31+feature.braille-support (Featurebranch-Testbuild)
+
+- Der echte Neovim-Cursor kann den manuell gewählten Ausschnitt im
+  Braille-Explorationsmodus nicht mehr verschieben. Die strukturierte
+  `TextInfoRegion` verwirft dafür ausschließlich NVDAs aus einem parallelen
+  nativen Terminal-Caretereignis stammende Nachlaufmarkierung; die normale
+  Regionsaktualisierung und NVDAs Sicherung des Braillefensters bleiben
+  erhalten.
+- Änderungen auf der explorierten Zeile werden weiterhin in die Region
+  übernommen. Sichtbar ändern sie daher nur den bestehenden Ausschnitt, wenn
+  sie ihn betreffen; ein Cursor oder eine Änderung außerhalb des Ausschnitts
+  löst keinen automatischen Ausschnittswechsel aus.
+
+## 0.95.2-dev.30+feature.braille-support (Featurebranch-Testbuild)
+
+- Der Braille-Explorationsmodus unterscheidet nun Änderungen auf fremden
+  Zeilen von Änderungen auf der tatsächlich angezeigten Zeile. Fremde
+  Änderungen lassen die virtuelle Ansicht vollständig stehen; stimmt die
+  echte Cursorzeile mit der explorierten Zeile überein, werden Zeilentext,
+  Modus, Auswahl- und Rechtschreibzustand sowie `changedtick` aktualisiert,
+  ohne die virtuelle Zeile oder ihren Ausschnitt neu zu verankern.
+- Der echte Braillecursor bleibt dadurch nach Routing und anschließendem
+  Ersetzen, Einfügen oder Löschen auf der angezeigten Zeile sichtbar.
+
+## 0.95.2-dev.29+feature.braille-support (Featurebranch-Testbuild)
+
+- Texteingaben und die dadurch erhöhte Neovim-`changedtick` verschieben oder
+  beenden die virtuelle Position des Braille-Explorationsmodus nicht mehr.
+  Folgeanfragen übernehmen den neuen Snapshot-Zähler innerhalb derselben
+  korrelierten Exploration; Buffer-, Fenster- und Tabwechsel bleiben harte
+  Kontextgrenzen.
+- Die virtuelle Leseposition erzeugt keinen Braillecursor mehr. Der echte
+  Neovim-Cursor wird auf einer explorierten Zeile nur dargestellt, wenn
+  Zeilennummer und Text mit dem echten Cursorzustand übereinstimmen.
+- Das Nutzerhandbuch nennt die praktisch verwendete Papenmeier BRAILLEX
+  EL 80c mit 80 Braillemodulen und stellt klar, dass die Integration über
+  NVDAs Standardbefehle nicht auf dieses Modell beschränkt ist.
+
+## 0.95.2-dev.28+feature.braille-support (Featurebranch-Testbuild)
+
+- Der Braille-Explorationsmodus bleibt nun bei Bewegungen des echten
+  Neovim-Cursors und bei Moduswechseln vollständig auf seiner virtuellen
+  Zeilenposition. Erst eine Textänderung, ein Buffer-/Sitzungswechsel, eine
+  Trennung oder das Ausschalten des Modus verwirft diese Position.
+- Die erste Explorationsanfrage verlangt weiterhin den vollständigen echten
+  Ursprung. Folgeanfragen dürfen eine veränderte echte Cursorposition nur bei
+  unverändertem Buffer, Fenster, Tab und `changedtick` verwenden und müssen
+  weiterhin zur ursprünglichen Explorations-ID, Aktionsfolge und
+  Ursprungsidentität gehören.
+- Im exakt authentifizierten Neovim-Terminal reicht das Windows-Terminal-
+  AppModule Pfeil-, Pos1-/Ende- und Bildtasten nun ohne NVDAs parallele native
+  Caret-Ansage weiter. Der semantische Neovim-Pfad spricht die Bewegung
+  einmal; fremde oder ungebundene Terminals bleiben unverändert und
+  fail-open. Verwendet werden ausschließlich öffentliche AppModule- und
+  Gestenschnittstellen.
+
+## 0.95.2-dev.27+feature.braille-support (Featurebranch-Testbuild)
+
+- Oberfläche und Dokumentation benennen den Sprachexplorationsmodus und den
+  davon unabhängigen Braille-Explorationsmodus jetzt durchgängig eindeutig.
+  Die Braille-Registerkarte verwendet „Sprachexplorationsmodus“ nur für die
+  optionale zusätzliche Brailleanzeige dieser Sprachfunktion.
+- Ein eigenes Handbuchkapitel beschreibt Bedienung, Abschlussansage,
+  Einsatzbereiche und optionale Brailleunterstützung des
+  Sprachexplorationsmodus. Das Braillekapitel verweist darauf und vergleicht
+  beide Modi ausdrücklich, ohne den Sprachexplorationsmodus als Braillefeature
+  einzuordnen.
+- README, Quick Guide, Handbuch und aktive Entwicklungsdokumentation weisen
+  den Produktstatus nun als Beta aus. README hebt die erweiterte strukturierte
+  Brailleunterstützung einschließlich Routing, Langzeilennachlauf,
+  Navigationstasten und Braille-Explorationsmodus hervor.
+- Die deutschen und englischen Texte der geänderten Sprach-, Braille- und
+  Statusabschnitte wurden inhaltlich gegeneinander geprüft. Der Dokumentbuild
+  enthält das neue Kapitel in beiden Sprachen.
+
+## 0.95.2-dev.26+feature.braille-support (Featurebranch-Testbuild)
+
+- Horizontales Weiterschalten über eine Zeilengrenze folgt nun vollständig
+  NVDAs Regionsvertrag: Links führt ans Ende der vorherigen Zeile, Rechts an
+  den Anfang der nächsten. Beim Zurückkehren zu einer langen Zeile wird damit
+  nicht mehr ihr früherer weitergeschalteter Ausschnitt wiederhergestellt.
+- Die getrennten Befehle für vorherige/nächste Zeile behalten weiterhin
+  Neovims bevorzugte sichtbare Spalte. Eine kurzlebige, exakt an AppModule,
+  Fokusobjekt und Servicegeneration gebundene Markierung unterscheidet NVDAs
+  direkten Abwärtsbefehl vom horizontalen Vorwärtsschalten.
+- Braille-Cursormodus und Braille-Explorationsmodus verwenden dieselben drei festen
+  Zielregeln `preferred`, `start` und `end`. Protokoll, Controller, gebautes
+  Add-on und Lua decken zusätzlich Leerzeilen, Tabs, UTF-8-/Breitzeichen,
+  Normal-/Insert-Zeilenende, Puffergrenzen, ungültige Zielregeln und
+  auslaufende Einmalmarkierungen ab. Es wird keine private NVDA-API verwendet;
+  `dev.25` bleibt als separates Testartefakt erhalten.
+
+## 0.95.2-dev.25+feature.braille-support (Featurebranch-Testbuild)
+
+- Der Add-on-Einstellungsdialog besitzt eine eigene zugängliche Registerkarte
+  „Braille“. Sie bündelt die profilfähige Explorationsanzeige, die
+  Doppel-/Dreifachaktionen der Routingtasten und die Position vorübergehender
+  Rechtschreibvorschläge in drei beschrifteten Gruppen.
+- Das Braille-Handbuch ist nun nach typischen Aufgaben geordnet. Es trennt
+  Braille-Cursormodus, Braille-Explorationsmodus und Sprachexplorationsmodus,
+  erklärt geeignete Einsatzfälle mit Beispielen und verweist durchgehend auf
+  die neue Registerkarte.
+- Kurzführer, Einstellungsreferenz und englische Dokumentation wurden auf
+  dieselben Begriffe, Einstellungswerte, Standards und Pfade abgeglichen. Der
+  vorhandene `dev.24`-Build bleibt als separates Testartefakt erhalten.
+
+## 0.95.2-dev.24+feature.braille-support (Featurebranch-Testbuild)
+
+- Die dauerhafte strukturierte Region nimmt über NVDAs öffentliche
+  `TextInfoRegion`- und `handleCaretMove`-Schnittstellen am normalen
+  Cursor-Nachlauf teil. Beim Schreiben oder Navigieren über den sichtbaren
+  Ausschnitt hinaus schiebt NVDA die Braillezeile nun wie in anderen
+  Textfeldern automatisch nach.
+- Eine neue profilfähige Option „Braillezeile folgt der
+  Position des Sprachexplorationsmodus“ ist standardmäßig aktiv. Der
+  Sprachexplorationsmodus kann damit seine validierte virtuelle Zeile vorübergehend
+  auf Braille zeigen, ohne den echten Neovim-Cursor oder den kanonischen
+  Zustand zu verändern.
+- Der eigenständige Braille-Explorationsmodus bleibt vollständig getrennt und
+  besitzt Vorrang. Beim Abschluss oder Abbruch des Sprachexplorationsmodus kehrt
+  die Braillezeile zum echten Cursor zurück; eine einzelne Routingtaste kann
+  die virtuelle Position übernehmen.
+- `explorationLineText` ist ein optionales, auf 16 KiB begrenztes
+  Ergebnisfeld und wird nie in den kanonischen Zustand übernommen.
+  Protokoll-, Lua-, Core-, Einstellungs-, Paket-, Lokalisierungs- und
+  Dokumentationstests decken positive und negative Pfade ab. Es wird keine
+  neue private NVDA-API verwendet; der vorhandene `dev.23`-Build bleibt
+  erhalten.
+
+## 0.95.2-dev.23+feature.braille-support (Featurebranch-Testbuild)
+
+- Für dieselbe Braille-Routingtaste sind optional feste Doppel- und
+  Dreifachaktionen verfügbar. Die sichere Voreinstellung „Nur Cursor setzen“
+  verändert das bisherige Verhalten nicht.
+- Eine doppelte Betätigung kann Neovims `cw` oder `dw` ausführen. Eine
+  dreifache Betätigung kann `c$` oder `d$` ab Routingposition, erstem
+  Nicht-Leerzeichen oder absolutem Zeilenanfang ausführen. Die Aktionen sind
+  auf Normal- und Insert-Modus begrenzt.
+- Der erste Druck routet ohne Verzögerung. Nur eine konfigurierte Wortaktion
+  wartet bei gleichzeitig konfigurierter Dreifachaktion auf NVDAs öffentliche
+  Mehrfachbetätigungsfrist. Zielidentität, Modus und `changedtick` müssen für
+  alle Betätigungen exakt übereinstimmen.
+- Der feste, Capability-gehandelte `brailleRouteAction`-Payload enthält
+  keinen übertragbaren Befehlstext. Das Neovim-Plugin bildet ausschließlich
+  vier erlaubte Aktionskennungen und drei erlaubte Zeilenstarts auf feste
+  Normalbefehle ab und prüft den Zustand unmittelbar vor der Ausführung
+  erneut.
+- Unit-, Paket-, Lua- und echte Socket-Tests decken Zeitablauf,
+  Doppel-/Dreifachabgrenzung, veraltete Zustände, ungültige Felder,
+  Einrückung sowie Insert-Modus-Erhalt ab. Der bestehende `dev.22`-Testbuild
+  bleibt als separates Artefakt erhalten.
+
+## 0.95.2-dev.22+feature.braille-support (Featurebranch-Testbuild)
+
+- Ein frei belegbares Windows-Terminal-AppModule-Skript schaltet unabhängig
+  vom Sprachexplorationsmodus zwischen Braille-Cursor- und
+  Braille-Explorationsmodus um. Es gibt absichtlich keine Standardgeste.
+- Im Explorationsmodus liest Auf/Ab eine flüchtige benachbarte Pufferzeile,
+  ohne Buffer oder echten Neovim-Cursor zu verändern. Routing aus dieser
+  Anzeige setzt den echten Cursor absichtlich auf die gewählte Position.
+- `brailleExploration`, `brailleExploreLineRequest`,
+  `brailleExploreLineResult` und `endBrailleExplorationRequest` bilden einen
+  festen, Capability-gehandelten und vollständig korrelierten Kanal. Sprach-
+  und Braille-Exploration besitzen getrennte Request-IDs, Aktionsfolgen und
+  Lua-Zustände.
+- Der begrenzte `ControlDispatcher` hält lokalen und SSH-Transport vom
+  NVDA-Hauptthread fern. Sitzungswechsel, Disconnect, Fokus-/Kontextwechsel,
+  veraltete Ergebnisse, Befehlszeile und direkte Terminaleingabe werden
+  fail-open behandelt.
+- Validator-, Controller-, Transport-, Paket-, Lua- und echte
+  Insert-Modus-RPC-Tests decken UTF-8, Spaltenerhalt, Insert-Zeilenende,
+  Routing, Ergebnis-Korrelation und parallele Sprach-/Braille-Exploration ab.
+  Handbuch und Entwicklerdokumentation beschreiben Bedienung und Grenzen.
+
+## 0.95.2-dev.21+feature.braille-support (Featurebranch-Testbuild)
+
+- Die Standard-Navigationstasten einer Braillezeile sind ohne
+  gerätespezifische Belegung integriert. Links/Rechts verwendet weiterhin
+  NVDAs eigenes Braillefenster; NVDAs öffentliche Regionsmethoden für
+  vorherige/nächste Zeile lösen die vertikale Neovim-Cursorbewegung aus.
+- Ein fester, Capability-gehandelter `moveBrailleLine`-Auftrag bindet
+  Richtung, Buffer, Fenster, Ausgangszeile, `changedtick`, Rohmodus und
+  bevorzugte virtuelle Spalte. Befehlszeilen- und direkter Terminalmodus,
+  veralteter Zustand und Puffergrenzen werden verworfen.
+- Neovim bewahrt `curswant` über kurze Zeilen hinweg, bildet die gewünschte
+  virtuelle Spalte UTF-8-sicher auf die Nachbarzeile ab und erlaubt im
+  Insert-Modus das erreichbare Zeilenende. Routing setzt nun ebenfalls die
+  bevorzugte virtuelle Spalte.
+- Regionscallbacks führen kein Transport-I/O aus; der vorhandene begrenzte
+  `ControlDispatcher` bedient lokalen und SSH-Transport.
+- Protokoll-, Transport-, Controller-, Paket-, Lua- und echte
+  Insert-Modus-RPC-Regressionen sind ergänzt. Handbuch und
+  Entwicklerdokumentation beschreiben Bedienung, NVDA-Quellen, Architektur,
+  Sicherheit und den späteren Explorationsmodus.
+
+## 0.95.2-dev.20+feature.braille-support (Featurebranch-Testbuild)
+
+- Der vollständige Braille-Architekturaudit fand einen Rückkanal-Sonderweg:
+  Lokales TCP reihte `routeCursor` intern ein, der SSH-Stdio-Client hätte beim
+  direkten Dienstaufruf jedoch auf NVDAs Hauptthread schreiben und `flush()`
+  ausführen können.
+- Braille-Routing verwendet nun denselben begrenzten
+  `ControlDispatcher` wie Exploration und nummerierte Auswahl. Regions- und
+  Routingcallbacks planen nur den validierten festen Payload; ausschließlich
+  der Worker führt lokales oder SSH-Transport-I/O aus. Eine volle oder
+  geschlossene Queue verwirft die optionale Aktion fail-open.
+- Eine Paketregression belegt, dass der Routingdienst `client.send_control`
+  nicht direkt aufruft und exakt einen unveränderlichen `routeCursor`-Auftrag
+  an den Dispatcher übergibt.
+- Die einzige Braille-spezifische private NVDA-Ausnahme wurde weiter
+  abgesichert: Ein wirkungsloser öffentlicher `braille.handler.message()`-
+  Aufruf kann keine bereits sichtbare fremde Meldung als eigene übernehmen,
+  deren Timer stoppen oder sie später schließen.
+- ADR-0002 nennt nun alle dafür berührten internen Puffer-, Regions-, Timer-
+  und Schließpfade, ihre Identitätsprüfungen, Fail-open-Grenzen, Begründung und
+  Ablösebedingung. Architektur-, Latenz-, API-, Test- und Reifedokumentation
+  wurden entsprechend berichtigt.
+- Das Handbuch stellt richtig, dass NVDA eine Auswahl fest mit Punkten 7 und 8
+  markiert; konfigurierbar sind deren Sichtbarkeit und die Cursorform. Veraltete
+  Aussagen, es sei noch keine physische Braillezeile getestet worden, wurden
+  durch die tatsächlich bestätigte und weiterhin offene Matrix ersetzt.
+
+## 0.95.2-dev.19+feature.braille-support (Featurebranch-Testbuild)
+
+- Der HTML-Dokumentationsbuild prüft nun ausdrücklich das deutsche und
+  englische Braille-Kapitel und erzeugt das für Veröffentlichungen vorgesehene
+  einzelne ZIP mit allen sechs HTML-Dokumenten.
+- Dateimanager-Navigation erzeugt keine zusätzliche kurzlebige Braillemeldung
+  mehr. Sprache bleibt aktiv, während die dauerhafte semantische Braillezeile
+  mit Name, Typ und Zustand unverdeckt bleibt.
+- Damit entfällt der sichtbare Wechsel von der lokalisierten Sprachmeldung
+  „test, Verzeichnis“ zur englischen dauerhaften Zeile „test, directory“ nach
+  Ablauf von NVDAs Meldungszeit.
+- Der Brailleplan lokalisiert Typ- und Zustandsbezeichnungen nun direkt am
+  NVDA-Rand über denselben vorhandenen Übersetzungskatalog. Die dauerhafte
+  Zeile bleibt deshalb beispielsweise bei „test, Verzeichnis“.
+- Core- und gebaute-Add-on-Regressionen trennen gesprochene
+  Dateimanager-Navigation von Braillemeldungen und prüfen die lokalisierte
+  dauerhafte Region.
+
+## 0.95.2-dev.18+feature.braille-support (Featurebranch-Testbuild)
+
+- Der praktische Test des vorangehenden Startfixes zeigte einen zweiten
+  Fehler: Bei einer anfangs leeren Normalmoduszeile blieb „Windows PowerShell“
+  auf der Braillezeile stehen; später eingegebener Text erschien dahinter.
+- Ursache war die Kombination aus NVDAs vorangestellter Fokuskontextregion und
+  einem strukturierten Plan mit Cursorposition 0, aber null Braillezellen.
+  NVDAs öffentlicher Fokusaufbau konnte diese leere Region nicht fokussieren
+  und brach mit `LookupError: No such position` ab.
+- Eine leere Editorzeile erhält nun auch im Normalmodus genau eine virtuelle
+  cursortragende Leerzelle für Bytespalte 0. Nicht leere Normalmoduszeilen
+  erhalten weiterhin keine zusätzliche Endzelle.
+- Die strukturierte Editorregion setzt zusätzlich NVDAs öffentliche
+  `Region.hidePreviousRegions`-Eigenschaft. Dadurch ersetzt sie
+  Windows-Terminal-Kontextbezeichnungen vollständig, statt Text hinter
+  „Windows PowerShell“ anzuhängen.
+- Core- und gebaute-Add-on-Regressionen bilden den strikten NVDA-Fehlerpfad,
+  den ersten authentifizierten leeren `fullState`, die sichtbare Einzelzelle
+  und das Ausblenden vorangehender Fokusregionen nach.
+
+## 0.95.2-dev.17+feature.braille-support (Featurebranch-Testbuild)
+
+- Das Handbuch erklärt nun die unterschiedliche Cursorbedeutung beim Wechsel
+  von Insert nach Normal: Einfügeposition zwischen Zeichen gegenüber
+  vorhandenem Zielzeichen für Normalmodusbefehle.
+- Beispiele innerhalb der Zeile und am Zeilenende zeigen, warum der Cursor
+  nach `Esc` erwartungsgemäß auf dem linken beziehungsweise letzten
+  vorhandenen Zeichen steht. `gi` als Rückkehr zur gespeicherten
+  Insert-Position ist ebenfalls dokumentiert.
+- Der Brailleabschnitt beschreibt die virtuelle, routbare Endzelle in Insert-
+  und Befehlszeilenmodus und grenzt sie von der Normalmodus-Zeichenposition ab.
+  Offizielle Neovim-Hilfe und die versionierte `ins_esc()`-Implementierung sind
+  als Primärquellen verlinkt.
+- Deutsche und englische Reifehinweise berücksichtigen die praktische
+  Bestätigung von Cursoranzeige und Routing in Normal-, Insert- und
+  Befehlszeilenmodus einschließlich der Endposition.
+
+## 0.95.2-dev.16+feature.braille-support (Featurebranch-Testbuild)
+
+- Der praktische `dev.15`-Test bestätigt Cursoranzeige und Routing in Normal-,
+  Insert- und Befehlszeilenmodus einschließlich der Einfügeposition hinter dem
+  letzten Zeichen.
+- Wurde das Windows-Terminal-Fokusobjekt beim NVDA-Start vor Veröffentlichung
+  des gemeinsamen Terminaldienstes zusammengesetzt, blieb dessen native
+  Brailleregion wie „PowerShell“ auch nach F12 und erfolgreicher Verbindung
+  erhalten. Erst ein Fensterwechsel erzeugte ein neues Fokusobjekt mit dem
+  strukturierten Overlay.
+- Das Windows-Terminal-AppModule fügt das inaktive, fail-open Overlay nun jedem
+  von NVDA bereits als Terminal klassifizierten Windows-Terminal-Control hinzu,
+  unabhängig von der Veröffentlichungsreihenfolge des Dienstes. Ohne eine
+  vollständig bestätigte Neovim-Sitzung delegiert es weiterhin an NVDA.
+- Die erste authentifizierte `fullState` baut die vorhandene Fokusregion über
+  NVDAs öffentliche Braille-API neu auf. Regressionen prüfen die
+  Overlaykomposition vor Dienstveröffentlichung und den Neuaufbau ohne
+  Fokuswechsel. Es wird keine zusätzliche private NVDA-API verwendet.
+
+## 0.95.2-dev.15+feature.braille-support (Featurebranch-Testbuild)
+
+- Ein Insert-Cursor direkt hinter dem letzten Zeichen hatte bisher keine
+  vorhandene Braillezelle. Deshalb konnten dort weder die Cursorpunkte 7+8
+  erscheinen noch konnte die Routingtaste rechts neben dem letzten Zeichen
+  diese gültige Neovim-Position erreichen.
+- Der strukturierte Insert-Plan ergänzt nun eine virtuelle, routbare
+  Leerzelle. Sie verändert den Puffertext nicht und bildet ausschließlich auf
+  die UTF-8-Bytespalte am Zeilenende ab. Das gilt auch für Unicode, expandierte
+  Tabs und leere Zeilen.
+- Der Befehlszeilenplan bietet dieselbe Endzelle hinter seinem unveränderten
+  Inhalt; das sichtbare Präfix bleibt nicht routbar.
+- Core-, gebauter-Add-on- und echte Neovim-RPC-Regressionen prüfen die
+  Cursoranzeige und das Routing hinter das letzte Zeichen mit Neovim 0.10.1
+  und 0.12.3.
+
+## 0.95.2-dev.14+feature.braille-support (Featurebranch-Testbuild)
+
+- Der praktische `dev.13`-Test bestätigt Cursor-Routing in Normal-, Insert-
+  und Befehlszeilenmodus. Der Wechsel von Insert nach Normal setzt den Cursor
+  wie von Neovim vorgesehen auf das vorherige Zeichen; dies ist keine
+  Routingverschiebung.
+- Beim Routing innerhalb einer Befehlszeile erzeugte der für `dev.13`
+  verwendete `setcmdpos()`-Ausdruck vorübergehend ein internes
+  Befehlszeilenereignis mit leerem Text. Die Brailleanzeige wurde anschließend
+  korrekt wiederhergestellt, der Sprachplan meldete den Zwischenzustand jedoch
+  fälschlich als gelöschten Befehlszeilentext.
+- Das Routing verwendet nun die öffentliche Funktion
+  `setcmdline(unveränderterText, neuePosition)`. Inhalt und Typ werden weiterhin
+  vorher und nachher exakt geprüft; der identische Text wird ausschließlich als
+  Text an die öffentliche Neovim-Funktion übergeben und nie ausgeführt. Damit
+  entfällt der vorübergehende Ausdruckszustand und nur die Cursorposition
+  ändert sich.
+- Der echte Neovim-RPC-Test verwirft die Regression, falls während des Routings
+  ein `commandLineChanged` mit abweichendem Text veröffentlicht wird.
+
+## 0.95.2-dev.13+feature.braille-support (Featurebranch-Testbuild)
+
+- Der praktische `dev.12`-Test bestätigt das strukturierte Overlay und
+  funktionierendes Cursor-Routing im Normalmodus. Im Insert-Modus erreichte die
+  Routingtaste den validierten Rückkanal, Neovim veröffentlichte die per
+  `nvim_win_set_cursor()` gesetzte Position jedoch erst beim Verlassen des
+  Modus. Der feste Plugin-Einstiegspunkt veröffentlicht den neuen
+  Cursorzustand nun sofort und fordert ein Neuzeichnen an.
+- Die aktive Befehlszeile besitzt erstmals einen eigenen dauerhaften
+  Brailleplan aus strukturiertem Typ, Inhalt und UTF-8-Position. Routingzellen
+  des Inhalts werden auf Befehlszeilen-Bytespalten abgebildet; Präfixzellen wie
+  `:` bleiben nicht routbar.
+- `routeCursor` unterscheidet feste Ziele `editor` und `commandLine` und prüft
+  zusätzlich den exakten Rohmodus. Befehlszeilen-Routing vergleicht Inhalt und
+  Typ mit Neovims aktuellem Zustand und verwendet ausschließlich die
+  öffentliche, dokumentierte `setcmdpos()`-Funktion über einen festen
+  sandboxed Kommandozeilenausdruck. Sein einziger variabler Bestandteil ist
+  die zuvor als UTF-8-Grenze validierte Ganzzahl; empfangener Text wird weder
+  ausgewertet noch ausgeführt.
+- Ein echter Neovim-RPC-Test bestätigt die unmittelbare Zustandsveröffentlichung
+  in Insert- und Befehlszeilenmodus. Befehlszeilentext wird im Diagnosebericht
+  redigiert.
+
+## 0.95.2-dev.12+feature.braille-support (Featurebranch-Testbuild)
+
+- Der `dev.11`-Bericht belegt die ausbleibende Hardwareaktion vor der
+  Brailleregion: NVDA war aktiviert, folgte dem Fokus und baute den Puffer neu
+  auf, das gespeicherte Fokusobjekt besaß jedoch kein strukturiertes Overlay.
+- Beim Aufruf von `chooseNVDAObjectOverlayClasses` hat das frisch erzeugte
+  UIA-Objekt seine endgültige Terminalrolle noch nicht. Das Windows-Terminal-
+  AppModule erkennt das Control nun an der von NVDA bereits ermittelten
+  öffentlichen Overlay-Klassenliste. Damit funktioniert sowohl NVDAs
+  diffbasierte als auch die notificationbasierte Windows-Terminal-Strategie.
+  Eine bloße vorläufige `obj.role`-Angabe reicht ausdrücklich nicht.
+- Die Diagnose `brailleOverlaySelected` entsteht nur nach tatsächlichem
+  Einfügen des strukturierten Overlays. Die zuvor zu breite
+  `brailleOverlayEligible`-Diagnose für identifizierbare Nachbarobjekte entfällt.
+
+## 0.95.2-dev.11+feature.braille-support (Featurebranch-Testbuild)
+
+- Braille-Routing sagt nach einer angenommenen Cursorbewegung das UTF-8-sicher
+  erreichte Zeichen an, wenn NVDAs Einstellung „Zeichen beim Cursor-Routing in
+  Text sprechen“ aktiv ist. Die Rückmeldung gilt auch für Unicode, expandierte
+  Tabs und eindeutig routbare Dateimanagernamen; abgelehnte Routingaktionen
+  bleiben still. Der NVDA-Präsentationsdienst verwendet dafür die öffentliche
+  `speech.speakSpelling`-API und nicht NVDAs private Routing-Hilfsfunktion.
+- Nach einer asynchron bestätigten `focusContext`-Antwort wird NVDAs
+  Braille-Fokusregion vollständig neu aufgebaut. Dadurch ersetzt die
+  strukturierte Editorregion die zuvor beim nativen Windows-Terminal-Fokus
+  entstandene Terminalregion. Ob die physische Routingtaste anschließend den
+  validierten `routeCursor`-Pfad erreicht, weist `dev.11` erstmals im
+  Diagnosebericht nach; der praktische Test steht für diesen Build noch aus.
+- Der Diagnosebericht belegt den Hardwarepfad ohne Textinhalt: Eignung des
+  Terminaloverlays, Regionsanforderung, Braillemodus und Tether beim
+  Regionsaufbau sowie Eintritt einer Routingtaste. Die Abfrage verwendet nur
+  NVDAs öffentliche Braillehandler- und Konfigurationsschnittstellen.
+- Der Testbuild trägt gemäß der Branchregel eine neue `dev.11`-Kennung.
+  Geänderter installierbarer Inhalt wird nicht mehr unter dem bereits
+  bereitgestellten Namen `dev.10` überschrieben.
+- Neovims eingebaute `z=`-Rechtschreibliste kann mit gedrückter NVDA-Taste
+  über `NVDA+j/k` zyklisch erkundet werden. Sprache und Braille zeigen nur den
+  Vorschlag ohne Nummer; `NVDA+Eingabe` übernimmt den gewählten Eintrag.
+- Eine kurze Sprachmeldung kündigt eine erfolgreich erkannte, nicht leere
+  Rechtschreibvorschlagsliste einmalig an.
+- Wortweise Navigation und Wortexploration übermitteln den semantischen
+  Fehlertyp am erreichten Wort. NVDAs Einstellung für Rechtschreib- und
+  Grammatikfehler steuert weiterhin Sprache, Fehlerklang und Braille unabhängig.
+  Bei der Wortexploration ergänzt das Fehlerfeedback die Wortansage, statt sie
+  zu ersetzen. Navigation und Exploration werten alle acht Kombinationen aus
+  Sprache, Klang und Braille identisch aus. Fehlerhinweis und Navigation bilden
+  eine gemeinsame Ausgabe, sodass die Wortansage den unmittelbar vorherigen
+  Hinweis nicht mehr abbricht. Die Hinweise verwenden dieselben übersetzbaren
+  Begriffe wie NVDA.
+- Der Vorschlag verwendet nun NVDAs unmittelbaren Braille-Nachrichtenpfad, den
+  NVDA selbst für Vorschlags- und Auswahlmeldungen nutzt. Die vorherige reine
+  Fokusregionsaktualisierung änderte eine angeschlossene Braillezeile praktisch
+  nicht zuverlässig. Beim Loslassen wird nur die nachweislich eigene Meldung
+  beendet; eine inzwischen fremde NVDA-Meldung bleibt unangetastet.
+- Das Loslassen der NVDA-Taste verwirft nur die lokale Auswahl und stellt die
+  Editor-Braillezeile wieder her. Die native Abfrage bleibt offen. Außerhalb
+  der exakt belegten Abfrage behalten J, K, Enter und frei belegte
+  Add-on-Befehle ihr bisheriges Verhalten.
+- Eine profilfähige einsbasierte Einstellung beginnt ausschließlich den
+  vorübergehenden Rechtschreibvorschlag an einem späteren Braillemodul.
+  Standard ist Modul 1; eine Position außerhalb der angeschlossenen
+  Braillezeile wird ignoriert und fällt sicher auf Modul 1 zurück. Reicht der
+  Platz rechts nicht, begrenzt die tatsächliche übersetzte Braillebreite den
+  Start nach links, sodass der Vorschlag möglichst rechtsbündig vollständig
+  bleibt.
+- Ein begrenzter Lua-Adapter, ein flüchtiger neutraler Controller,
+  capability-gesteuerte lokale/SSH-Transporte und erneute Fokus- und
+  Identitätsprüfungen schützen den Pfad. Automatisierte Tests einschließlich
+  echtem Neovim-RPC unter 0.10.1 und 0.12.3 sind vorhanden; praktische
+  Windows-/NVDA-Abnahme einschließlich einer physischen Braillezeile war für
+  den Vorschlagspfad erfolgreich; breitere Hardware-Braille-Prüfungen stehen
+  weiter aus.
+
+- Der neue isolierte Test-Runner parallelisiert unabhängige Python- und
+  Headless-Neovim-Suiten und trennt echte Socket- sowie ersetzte SSH-Fälle in
+  gezielt ausführbare Gruppen.
+- Paket-Builds schreiben erst ein vollständiges temporäres Artefakt und
+  ersetzen das Ziel atomar. Built-Add-on-Tests bauen und entpacken ihr
+  Ausgangsarchiv einmal pro Shard, schützen die gemeinsame Extraktion mit einem
+  Fingerabdruck und isolieren die zwei absichtlich dateiverändernden Tests.
+- Die importintensiven Paket-Shards verwenden jeweils einen eigenen temporären
+  Python-Bytecode-Cache, ohne den Checkout mit `.pyc`-Dateien zu verändern;
+  kurze Testjobs vermeiden die dafür unnötigen Schreibzugriffe.
+
 ## 0.95.2
 
 - Der neue Explorationsmodus liest mit `NVDA+h/l`, `NVDA+k/j` und

@@ -1,4 +1,5 @@
 local M = {}
+local spelling = require("nvim_nvda.spelling")
 
 local MAX_INTEGER = 2147483647
 local MAX_REPEAT = 64
@@ -16,7 +17,7 @@ local actions = {
   wordNext = { unit = "word", kind = "word", direction = 1 },
 }
 
-local active
+local active_by_channel = {}
 
 local function integer(value)
   return type(value) == "number" and value >= 0 and value <= MAX_INTEGER
@@ -82,9 +83,10 @@ local function virtual_column(window, line_number, byte_column)
   return math.max(0, vim.fn.virtcol({ line_number, byte_column + 1 }) - 1)
 end
 
-local function byte_column_for_virtual(window, buffer, line_number, desired)
+local function byte_column_for_virtual(window, buffer, line_number, desired, allow_line_end)
   local line = current_line(buffer, line_number)
   if line == "" then return 0 end
+  if allow_line_end and desired >= vim.fn.strdisplaywidth(line) then return #line end
   local one_based = vim.fn.virtcol2col(window, line_number, desired + 1)
   if type(one_based) ~= "number" or one_based <= 0 then return last_character_start(line) end
   local byte_column = one_based - 1
@@ -145,7 +147,7 @@ local function result(payload, ok, code, extra)
   return value
 end
 
-local function valid_request(payload)
+local function valid_request(payload, channel)
   if type(payload) ~= "table" or not actions[payload.action] then return false end
   for _, name in ipairs({
     "requestId", "explorationId", "actionIndex", "bufferId", "windowId",
@@ -160,9 +162,21 @@ local function valid_request(payload)
   local count = payload.count == nil and 1 or payload.count
   return integer(count) and count >= 1 and count <= MAX_REPEAT
     and type(payload.modeRaw) == "string" and #payload.modeRaw > 0 and #payload.modeRaw <= 16
+    and (
+      channel ~= "braille"
+      or (
+        actions[payload.action].kind == "line"
+        and integer(payload.desiredVirtualColumn)
+        and (
+          payload.targetColumn == "preferred"
+          or payload.targetColumn == "start"
+          or payload.targetColumn == "end"
+        )
+      )
+    )
 end
 
-local function current_context_matches(payload)
+local function current_context_matches(payload, active, channel)
   if not vim.api.nvim_buf_is_valid(payload.bufferId)
     or not vim.api.nvim_win_is_valid(payload.windowId)
     or not vim.api.nvim_tabpage_is_valid(payload.tabpageId) then
@@ -171,10 +185,23 @@ local function current_context_matches(payload)
   if vim.api.nvim_get_current_buf() ~= payload.bufferId
     or vim.api.nvim_get_current_win() ~= payload.windowId
     or vim.api.nvim_get_current_tabpage() ~= payload.tabpageId
-    or vim.api.nvim_buf_get_changedtick(payload.bufferId) ~= payload.changedtick
-    or vim.api.nvim_get_mode().mode ~= payload.modeRaw then
+    or vim.api.nvim_buf_get_changedtick(payload.bufferId) ~= payload.changedtick then
     return false
   end
+  if channel == "braille" and active and active.explorationId == payload.explorationId then
+    local same = true
+    for _, name in ipairs({
+      "bufferId", "windowId", "tabpageId", "modeRaw",
+      "cursorLine", "cursorByteColumn", "cursorVirtualColumn",
+    }) do
+      if payload[name] ~= active[name] then same = false break end
+    end
+    if same then
+      active.changedtick = payload.changedtick
+      return true
+    end
+  end
+  if vim.api.nvim_get_mode().mode ~= payload.modeRaw then return false end
   local cursor = vim.api.nvim_win_get_cursor(payload.windowId)
   if cursor[1] ~= payload.cursorLine or cursor[2] ~= payload.cursorByteColumn then return false end
   local line = current_line(payload.bufferId, cursor[1])
@@ -192,8 +219,8 @@ local function same_origin(payload, state)
   return true
 end
 
-local function initialize(payload)
-  active = {
+local function initialize(payload, channel)
+  active_by_channel[channel] = {
     explorationId = payload.explorationId,
     actionIndex = 0,
     bufferId = payload.bufferId,
@@ -211,7 +238,10 @@ local function initialize(payload)
     ),
     line = payload.cursorLine,
     byteColumn = payload.cursorByteColumn,
-    desiredVirtualColumn = payload.cursorVirtualColumn,
+    desiredVirtualColumn = channel == "braille"
+        and payload.desiredVirtualColumn
+      or payload.cursorVirtualColumn,
+    allowLineEnd = channel == "braille" and payload.modeRaw:sub(1, 1) == "i",
   }
 end
 
@@ -230,17 +260,29 @@ local function move_character(state, direction)
   return true, "moved"
 end
 
-local function move_line(state, direction)
+local function move_line(state, direction, target_column)
   local target = state.line + direction
   local line_count = vim.api.nvim_buf_line_count(state.bufferId)
   if target < 1 or target > line_count then return false, "boundary" end
   state.line = target
-  state.byteColumn = byte_column_for_virtual(
-    state.windowId,
-    state.bufferId,
-    state.line,
-    state.desiredVirtualColumn
-  )
+  local line = current_line(state.bufferId, state.line)
+  if target_column == "start" or line == "" then
+    state.byteColumn = 0
+    state.desiredVirtualColumn = 0
+  elseif target_column == "end" then
+    state.byteColumn = state.allowLineEnd and #line or last_character_start(line)
+    state.desiredVirtualColumn = state.allowLineEnd
+        and vim.fn.strdisplaywidth(line)
+      or virtual_column(state.windowId, state.line, state.byteColumn)
+  else
+    state.byteColumn = byte_column_for_virtual(
+      state.windowId,
+      state.bufferId,
+      state.line,
+      state.desiredVirtualColumn,
+      state.allowLineEnd
+    )
+  end
   return true, "moved"
 end
 
@@ -393,19 +435,22 @@ local function at_origin(state, unit)
     and anchor == state.originWordByteColumn
 end
 
-function M.step(payload)
-  if not valid_request(payload) or not current_context_matches(payload) then
-    active = nil
+function M.step(payload, channel)
+  channel = channel or "speech"
+  local active = active_by_channel[channel]
+  if not valid_request(payload, channel) or not current_context_matches(payload, active, channel) then
+    active_by_channel[channel] = nil
     return result(payload, false, "invalidOrStaleRequest")
   end
   if not active or active.explorationId ~= payload.explorationId then
     if payload.actionIndex ~= 1 then
-      active = nil
+      active_by_channel[channel] = nil
       return result(payload, false, "outOfOrder")
     end
-    initialize(payload)
+    initialize(payload, channel)
+    active = active_by_channel[channel]
   elseif not same_origin(payload, active) or payload.actionIndex ~= active.actionIndex + 1 then
-    active = nil
+    active_by_channel[channel] = nil
     return result(payload, false, "outOfOrder")
   end
 
@@ -415,7 +460,7 @@ function M.step(payload)
     if definition.kind == "character" then
       moved, code = move_character(active, definition.direction)
     elseif definition.kind == "line" then
-      moved, code = move_line(active, definition.direction)
+      moved, code = move_line(active, definition.direction, payload.targetColumn)
     else
       moved, code = move_word(active, definition.direction)
     end
@@ -423,6 +468,17 @@ function M.step(payload)
   end
   active.actionIndex = payload.actionIndex
   local text = selected_text(active, definition.unit)
+  local exploration_line = current_line(active.bufferId, active.line)
+  local format_error
+  if definition.unit == "word" then
+    local _, current_error = spelling.for_line(
+      active.bufferId,
+      active.line,
+      exploration_line,
+      active.byteColumn
+    )
+    format_error = current_error and current_error.kind or nil
+  end
   if #text > MAX_RESULT_BYTES then
     return result(payload, false, "textTooLarge", {
       unit = definition.unit,
@@ -435,28 +491,35 @@ function M.step(payload)
   return result(payload, code ~= "scanLimit", code, {
     unit = definition.unit,
     text = text,
+    explorationLineText = #exploration_line <= MAX_RESULT_BYTES and exploration_line or nil,
     line = active.line,
     byteColumn = active.byteColumn,
-    characterColumn = character_column(current_line(active.bufferId, active.line), active.byteColumn),
+    characterColumn = character_column(exploration_line, active.byteColumn),
     virtualColumn = virtual_column(active.windowId, active.line, active.byteColumn),
     atOrigin = at_origin(active, definition.unit),
+    formatError = format_error,
   })
 end
 
-function M.finish(payload)
+function M.finish(payload, channel)
+  channel = channel or "speech"
   if type(payload) ~= "table" or not integer(payload.requestId) or payload.requestId == 0
     or not integer(payload.explorationId) or payload.explorationId == 0 then
     return false
   end
-  if active and active.explorationId == payload.explorationId then active = nil end
+  local active = active_by_channel[channel]
+  if active and active.explorationId == payload.explorationId then
+    active_by_channel[channel] = nil
+  end
   return true
 end
 
 function M.reset()
-  active = nil
+  active_by_channel = {}
 end
 
-function M._test_active()
+function M._test_active(channel)
+  local active = active_by_channel[channel or "speech"]
   return active and vim.deepcopy(active) or nil
 end
 

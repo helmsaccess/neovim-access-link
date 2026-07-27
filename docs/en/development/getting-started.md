@@ -41,6 +41,7 @@ Complete local verification requires:
 - `msgpack` exactly 1.1.1 for protocol tests and package builds;
 - ConfigObj for NVDA-compatible manifest validation during the add-on build;
   the confirmed environment uses 5.0.8;
+- Ruff 0.14.5, matching NVDA 2026.1;
 - Neovim for real Lua suites;
 - Pandoc for HTML builds; 3.1.11.1 is confirmed;
 - Git for diff and whitespace checks.
@@ -50,32 +51,52 @@ test doubles and additionally inspect the built add-on.
 
 ## First checkout verification
 
-Run the NVDA-independent Python suites first:
+For fast feedback without package builds or real listeners:
 
 ```bash
-export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
-python3 -m unittest discover -s protocol/python/tests
-python3 -m unittest discover -s bridge/python/tests
-python3 -m unittest discover -s nvda-addon/tests
+tools/run_tests.py quick
 ```
 
-Then run Lua specifications with a real headless Neovim:
+The normal complete sandbox-compatible workflow is:
 
 ```bash
-tools/test_neovim_plugin.sh
-```
-
-For package, metadata, localization, or documentation changes, also run:
-
-```bash
+ruff check .
+ruff format --check .
+tools/run_tests.py all-safe
 python3 tools/build_nvda_addon.py
+python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
 
-The add-on build is itself part of verification: package tests must inspect
-the generated archive rather than only the source tree.
+Real local listeners and Unix sockets require a suitable environment and
+therefore run separately:
+
+```bash
+tools/run_tests.py socket
+```
+
+`tools/run_tests.py all` runs the sandbox-compatible phase first and the socket
+phase afterward. With no group argument, the runner uses the `safe` preset.
+Use `-j N` to limit parallel processes and `--list` to inspect selection
+without running it.
+
+| Group or preset | Compact purpose |
+| --- | --- |
+| `unit` | pure and mock-isolated Python tests |
+| `package` | built add-on, package contents, and NVDA integration doubles |
+| `lua` | headless-Neovim specifications without listeners |
+| `ssh` | replaced SSH command, Askpass, and failure paths, without a real connection |
+| `socket` | real disposable TUI, RPC, TCP, and Unix-socket cases |
+| `quick` | fast feedback; equivalent to `unit` |
+| `safe` | default without arguments: `quick`, `package`, and `lua` |
+| `all-safe` | `safe` plus `ssh` |
+| `all` | every group; `socket` runs in a separate second phase |
+
+The add-on build is itself part of verification: package tests inspect the
+actual generated archive rather than only the source tree. See
+[testing.md](testing.md) for isolation, sandbox boundaries, and the properties
+proved by each suite.
 
 ## Where a change starts
 
@@ -90,8 +111,8 @@ the generated archive rather than only the source tree.
 | Settings or Tools dialogs | `globalPlugins/NeovimAccessLink/nvda_ui.py` and `settings-reference.md` | settings, localization, and package tests |
 | Installation or build | `tools/`, `packaging/`, installer classes | built add-on, installation, and archive tests |
 
-[testing.md](testing.md) contains the complete mapping. One passing test does
-not approve unrelated components or platforms.
+[testing.md](testing.md) also contains the complete mapping. One passing test
+does not approve unrelated components or platforms.
 
 ## Safe practical testing
 

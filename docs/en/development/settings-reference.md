@@ -6,15 +6,49 @@ dialog and stores validated values in `config.conf` section
 profile writes. `post_configProfileSwitch` reloads effective values without
 stopping an authenticated runtime connection.
 
-Tabs are “General”, “Feedback”, “Navigation”, and “Connections”. Feedback
-values are numeric Off, Speech, Tones, or Both Speech and Tones. Existing NVDA
-Keyboard, Document Formatting, and Object Presentation settings remain
-authoritative for typing echo, indentation/spelling, and automatic suggestions.
+Tabs are “General”, “Feedback”, “Navigation”, “Braille”, and “Connections”.
+The Braille tab groups speech-exploration presentation, routing actions, and
+spelling-suggestion placement. Feedback values are numeric Off, Speech, Tones,
+or Both Speech and Tones. Existing NVDA Keyboard, Document Formatting, Object
+Presentation, and Braille settings remain authoritative for typing echo,
+indentation/spelling, automatic suggestions, translation, drivers, and cursor
+presentation.
 
 General also contains a profile-aware session-focus choice: no announcement,
 current structured line, or the existing file/special context with mode and
 connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
+
+The top-level profile-aware integer `brailleSuggestionStart` is one-based and
+defaults to 1. It positions only the transient text of an active spelling
+choice. The NVDA Braille adapter compares it with
+`braille.handler.displaySize`; values beyond the current display are ignored
+at presentation time and cell 1 is used. Before adding blank cells, the region
+translates the unshifted suggestion with NVDA's active Braille table. The last
+start at which the translated result completely fits then limits the requested
+cell to the left; a longer suggestion starts at cell 1. The setting never
+changes speech or the persistent editor Braille plan.
+
+The top-level profile-aware Boolean `brailleFollowSpeechExploration` defaults
+to `true`. It allows the Braille plan to present the contextual speech
+exploration controller's validated virtual line while canonical editor state
+remains unchanged. The separate Braille exploration controller takes
+priority. With `false`, Braille planning remains at the canonical cursor
+during `NVDA+h/j/k/l` and `Shift+NVDA+h/l`.
+
+The nested profile-aware `brailleRouting` section contains three choice
+indices:
+
+- `wordAction`: 0 for route only, 1 for `cw`, and 2 for `dw`;
+- `lineAction`: 0 for route only, 1 for `c$`, and 2 for `d$`;
+- `lineStart`: 0 for the routed position, 1 for the first non-blank
+  character, and 2 for the absolute line beginning.
+
+All defaults are 0. `lineStart` is consulted only when a line action is
+enabled. Repeat timing comes from NVDA's public
+`config.conf["keyboard"]["multiPressTimeout"]` setting; the add-on has no
+second timing value. `SettingsService` validates these indices and exposes
+only resolved symbolic values to terminal integration.
 
 The nested `navigationDetails` section stores four profile-aware choice
 indices: `navigationWord` and `explorationWord` are 0 for the base word only

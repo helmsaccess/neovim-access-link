@@ -1,4 +1,15 @@
-from .braille import BraillePlan, plan_braille, source_offset_for_expanded
+from .braille import (
+    BraillePlan, plan_braille, plan_command_line_braille, source_offset_for_expanded,
+)
+from .braille_exploration_state import (
+    BrailleExplorationController, BrailleExplorationRejection,
+    BrailleExplorationRequestPlan, BrailleExplorationResultPlan,
+    BrailleExplorationTogglePlan,
+)
+from .braille_routing_repeats import (
+    BrailleRoutingActions, BrailleRoutingPressKind, BrailleRoutingPressPlan,
+    BrailleRoutingRepeatController,
+)
 from .connection_profiles import (
     ConnectionProfile, parse_profile, parse_profiles,
     remove_profile, save_profile, unique_profile_id,
@@ -18,6 +29,10 @@ from .exploration_state import (
     ExplorationRejection, ExplorationReleasePlan, ExplorationRequestPlan,
     ExplorationResultPlan, ExplorationUnit,
 )
+from .numbered_choice_state import (
+    NumberedChoiceAcceptPlan, NumberedChoiceContext, NumberedChoiceController,
+    NumberedChoiceDirection, NumberedChoicePresentation, NumberedChoiceRejection,
+)
 from .gate import SessionGate, TerminalIdentity
 from .local_sessions import LocalSessionLister, LocalWindowsSession, local_registry_directory
 from .local_install import LocalPluginInstaller, default_local_plugin_directory
@@ -27,11 +42,18 @@ from .ssh_install import InstallResult, SshUserInstaller
 from .ssh_sessions import RemoteSession, SshSessionLister
 
 __all__ = [
-    "BraillePlan", "ConnectionCoordinator", "ConnectionInstance", "ConnectionInstanceManager",
+    "BrailleExplorationController", "BrailleExplorationRejection",
+    "BrailleExplorationRequestPlan", "BrailleExplorationResultPlan",
+    "BrailleExplorationTogglePlan", "BraillePlan",
+    "BrailleRoutingActions", "BrailleRoutingPressKind", "BrailleRoutingPressPlan",
+    "BrailleRoutingRepeatController",
+    "ConnectionCoordinator", "ConnectionInstance", "ConnectionInstanceManager",
     "ConnectionTarget", "LOCAL_WINDOWS_TARGET_ID", "LOCAL_WINDOWS_TCP", "REMOTE_SSH",
     "AVAILABLE_ADAPTERS", "DiagnosticBuffer", "ExplorationAction", "ExplorationContext",
     "ExplorationController", "ExplorationRejection", "ExplorationReleasePlan",
     "ExplorationRequestPlan", "ExplorationResultPlan", "ExplorationUnit",
+    "NumberedChoiceAcceptPlan", "NumberedChoiceContext", "NumberedChoiceController",
+    "NumberedChoiceDirection", "NumberedChoicePresentation", "NumberedChoiceRejection",
     "FrontendDescriptor", "FrontendPolicy",
     "LocalPluginInstaller", "LocalSessionLister", "LocalWindowsSession", "PendingControlRequest",
     "PendingFocusContext", "Priority", "SessionGate",
@@ -41,5 +63,5 @@ __all__ = [
     "parse_profile", "parse_profiles",
     "remote_ssh_target",
     "remove_profile", "save_profile", "unique_profile_id",
-    "plan_braille", "source_offset_for_expanded",
+    "plan_braille", "plan_command_line_braille", "source_offset_for_expanded",
 ]

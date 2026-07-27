@@ -76,12 +76,6 @@ freigegeben.
 - Neo-tree: öffentlicher Quellenzustand und aktueller Baumknoten
 - mini.files: `get_fs_entry()` und `get_explorer_state()`
 
-Oil ist bislang der einzige dieser Dateimanager, der unter Windows/NVDA mit
-Neovim 0.12 praktisch getestet wurde. Er funktioniert dort als solide
-Grundlage. Die übrigen Adapter sind automatisiert beziehungsweise isoliert
-geprüft, aber noch nicht praktisch unter Windows abgenommen; diese Tests folgen
-schrittweise.
-
 Die Grundabläufe sind für Quellcodeprojekte und Schreibprojekte gleich:
 Verzeichnisse navigieren und öffnen, Dateien öffnen, anlegen, umbenennen,
 duplizieren beziehungsweise kopieren, verschieben, markieren und als Batch
@@ -138,6 +132,9 @@ Zustand statt Icons, Einrückungsdekoration und Zusatzspalten der sichtbaren
 Pluginzeile. Routing ist nur innerhalb des Namens möglich, wenn dieser genau
 einmal in der echten Bufferzeile vorkommt. Typ- und Statusangaben sind
 synthetische Orientierung und besitzen absichtlich keine Routingfunktion.
+Sprachansagen beim Navigieren ersetzen diese dauerhafte Zeile nicht durch eine
+vorübergehende Braillemeldung. Typ und Zustand erscheinen in der Sprache des
+Add-ons.
 
 Für möglichst gut strukturierte Eingabe- und Auswahlprompts empfiehlt sich bei
 nvim-tree `select_prompts = true` und bei Neo-tree
@@ -159,8 +156,8 @@ nach `y` bleibt Oils öffentliches Abschlussereignis für Erfolg oder Fehler
 maßgeblich. Access Link beantwortet oder wiederholt die Aktion niemals selbst.
 Dieser Fallback greift ausschließlich für Oils `oil_preview` in einem echten
 Floating Window; unbekannte oder veränderte Darstellungen bleiben fail-open
-bei der normalen strukturierten Buffer-/Fensterausgabe. Weitere
-pluginspezifische Popups müssen separat geprüft werden.
+bei der normalen strukturierten Buffer-/Fensterausgabe. Andere
+pluginspezifische Popups werden nicht automatisch erkannt.
 
 ## Weitere Dateimanager
 

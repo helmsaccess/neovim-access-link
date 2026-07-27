@@ -9,13 +9,15 @@ Der Dialog wird über `NVDA-Menü → Optionen → Einstellungen… → Neovim
 Access Link` geöffnet. Das Add-on fügt keinen redundanten direkten
 Einstellungs-Menüpunkt hinzu.
 
-Die Kategorie enthält vier Registerkarten:
+Die Kategorie enthält fünf Registerkarten:
 
 - `Allgemein` für die globale Rückmeldungsart und die Ausgabe beim erneuten
   Sitzungsfokus;
 - `Rückmeldung` für Rückmeldungen einzelner Editoraktionen;
 - `Navigation` für zusätzliche Wort- und Cursorinformationen bei normaler
-  Navigation und beim Abschluss der Exploration;
+  Navigation und beim Abschluss des Sprachexplorationsmodus;
+- `Braille` für die optionale Brailleanzeige des Sprachexplorationsmodus,
+  Routingtasten und die Position vorübergehender Rechtschreibvorschläge;
 - `Verbindungen` für Linux-Rechner und Linux-Benutzerkonten.
 
 Mit `OK` werden die Einstellungen gespeichert und der Dialog geschlossen. Mit
@@ -33,7 +35,7 @@ NVDA-Kategorien geerbt. Das Add-on wählt oder aktiviert selbst kein Profil.
 NVDA-Konfigurationsprofile werden über `NVDA-Menü → Konfigurationsprofile verwalten…`
 erstellt, aktiviert und mit Auslösern verbunden. Um eigene Neovim-Werte zu
 speichern, wird zuerst das gewünschte NVDA-Profil aktiviert und anschließend
-dieser Einstellungsdialog geöffnet. Änderungen auf allen vier Registerkarten
+dieser Einstellungsdialog geöffnet. Änderungen auf allen fünf Registerkarten
 werden dann von NVDAs normalem Profilmechanismus verwaltet.
 
 Ein Profil kann beispielsweise Add-on-Rückmeldungen zusammen mit Zeichen- und
@@ -90,7 +92,10 @@ beispielsweise nach `:bp` oder `:bn`:
 | `Aktueller Kontext, Modus und Verbindungsname` | Datei beziehungsweise Spezialkontext, Änderungs-/Schreibschutzstatus, Modus und gespeicherter Verbindungsname. |
 
 Der letzte Wert ist Standard. Die Auswahl ändert nur diese Fokus- und
-Bufferwechselansage sowie deren vorübergehende Braillemeldung. Bei Tab- und
+Bufferwechselansage sowie normalerweise deren vorübergehende Braillemeldung.
+Ist in der Zielsession der Braille-Explorationsmodus aktiv, bleibt die
+Fokusansage hörbar, verdeckt den wiederhergestellten Explorationsausschnitt
+aber nicht mit einer vorübergehenden Braillemeldung. Bei Tab- und
 Fensterwechseln bleibt die Zielposition erhalten; der Kontextwert fasst sie
 mit Ziel, Status, Modus und Verbindung in genau einer Ansage zusammen. Ein
 kurzer Dateiname wird eindeutig als `Datei T` ausgegeben. Ein Terminal nennt
@@ -255,9 +260,10 @@ Add-on-Dialog gespeichert.
 
 Diese Registerkarte steuert zusätzliche Informationen am Cursor getrennt für
 normale Neovim-Navigation und für die Ansage beim Loslassen der NVDA-Taste nach
-einer Exploration. Die eigentliche Wort- oder Zeilenansage wird dadurch nicht
-abgeschaltet. `Nur Wort` beziehungsweise `Nur Zeile` bedeutet daher, dass alle
-Zusatzinformationen ausgeschaltet sind, nicht die Grundansage.
+dem Sprachexplorationsmodus. Die eigentliche Wort- oder Zeilenansage wird
+dadurch nicht abgeschaltet. `Nur Wort` beziehungsweise `Nur Zeile` bedeutet
+daher, dass alle Zusatzinformationen ausgeschaltet sind, nicht die
+Grundansage.
 
 ### Gruppe Normale Navigation
 
@@ -265,19 +271,120 @@ Zusatzinformationen ausgeschaltet sind, nicht die Grundansage.
 `Zeilennavigation` bietet `Nur Zeile`, `Zeile und aktuelles Wort`, `Zeile und
 Cursorzeichen` sowie `Zeile, aktuelles Wort und Cursorzeichen`.
 
-### Gruppe Abschluss der Exploration
+### Gruppe Abschluss des Sprachexplorationsmodus
 
-`Nach der Wortexploration` und `Nach der Zeilenexploration` verwenden dieselben
-Auswahlwerte für die Ansage am unveränderten echten Cursor, wenn die NVDA-Taste
-losgelassen wird. Die während der Exploration gesprochenen virtuellen Zeichen,
+`Nach der Wortexploration im Sprachexplorationsmodus` und `Nach der
+Zeilenexploration im Sprachexplorationsmodus` verwenden dieselben Auswahlwerte
+für die Ansage am unveränderten echten Cursor, wenn die NVDA-Taste losgelassen
+wird. Die während des Sprachexplorationsmodus gesprochenen virtuellen Zeichen,
 Wörter und Zeilen ändern sich dadurch nicht.
 
 Standard sind `Wort und Cursorzeichen` sowie `Zeile und Cursorzeichen`; damit
 bleibt das Verhalten vor Einführung dieser Auswahl erhalten. Sind bei einer
 Zeile beide Details aktiv, lautet die feste Reihenfolge Zeile, aktuelles Wort,
-Cursorzeichen. Zeichenweise Navigation und Exploration bleiben unverändert.
-Die Werte folgen dem aktiven NVDA-Konfigurationsprofil und gelten unmittelbar
-nach `Übernehmen` oder `OK`.
+Cursorzeichen. Zeichenweise Navigation und der Sprachexplorationsmodus bleiben
+unverändert. Die Werte folgen dem aktiven NVDA-Konfigurationsprofil und gelten
+unmittelbar nach `Übernehmen` oder `OK`.
+
+## Registerkarte Braille
+
+Alle Einstellungen dieser Registerkarte sind profilfähig. Sie ergänzen NVDAs
+eigene Brailleeinstellungen, ersetzen sie aber nicht. Übersetzungstabelle,
+Brailletreiber, Cursorform, Auswahlmarkierung und „Zeichen beim
+Cursor-Routing in Text sprechen“ werden weiterhin unter NVDAs Kategorie
+`Braille` eingestellt.
+
+### Gruppe Sprachexplorationsmodus
+
+#### Braillezeile folgt der Position des Sprachexplorationsmodus
+
+Diese profilfähige Option ist standardmäßig eingeschaltet. Während der
+Sprachexploration mit `NVDA+h`, `NVDA+j`, `NVDA+k`, `NVDA+l` sowie
+`Umschalt+NVDA+h/l` zeigt die Braillezeile dann die erreichte virtuelle
+Position. Der echte Neovim-Cursor wird dadurch nicht bewegt. Beim Ende des
+Sprachexplorationsmodus kehrt die Anzeige zur Cursorposition zurück.
+
+Ist die Option ausgeschaltet, bleibt die Braillezeile während der
+Sprachexploration am echten Cursor. Der eigenständige
+Braille-Explorationsmodus wird von dieser Einstellung nicht verändert.
+
+Beispiel: Der echte Cursor steht im Wort `beispiel`. Mit `NVDA+l` wird
+vorübergehend das nächste Zeichen und mit `Umschalt+NVDA+l` das nächste Wort
+erkundet. Bei eingeschalteter Option zeigt die Braillezeile diese virtuelle
+Position. Beim Loslassen der NVDA-Taste springt sie zu `beispiel` zurück.
+
+Der Sprachexplorationsmodus ist eine Sprachfunktion und kein Braillemodus. Die
+Braillezeile unterstützt ihn mit dieser Option lediglich als zweite Ausgabe.
+Die vollständige Bedienung und der Unterschied zum Braille-Explorationsmodus
+stehen unter [Sprachexplorationsmodus](speech-exploration.md). Die beiden
+Braille-Navigationsmodi werden unter
+[Mit den Navigationstasten der Braillezeile navigieren](braille.md#mit-den-navigationstasten-der-braillezeile-navigieren)
+erklärt.
+
+### Gruppe Routingtasten
+
+#### Doppelte Routingbetätigung auf einem Wort
+
+Bestimmt, was geschieht, wenn dieselbe Routingtaste an derselben Textposition
+schnell zweimal gedrückt wird:
+
+| Auswahl | Wirkung |
+| --- | --- |
+| `Nur Cursor setzen` | Die zweite Betätigung löst keine Bearbeitung aus. Dies ist der Standard. |
+| `Wort ändern (cw)` | Neovim führt `cw` aus und bleibt für den Ersatztext im Insert-Modus. |
+| `Wort löschen (dw)` | Neovim führt `dw` aus; dabei wird gewöhnlich auch der folgende Zwischenraum gelöscht. |
+
+#### Dreifache Routingbetätigung auf einer Zeile
+
+Bestimmt die optionale Aktion bei drei schnellen Betätigungen derselben
+Routingtaste:
+
+| Auswahl | Wirkung |
+| --- | --- |
+| `Nur Cursor setzen` | Keine Zeilenaktion. Dies ist der Standard. |
+| `Bis zum Zeilenende ändern (c$)` | Ändert ab dem eingestellten Start bis zum Zeilenende und wechselt in den Insert-Modus. |
+| `Bis zum Zeilenende löschen (d$)` | Löscht ab dem eingestellten Start bis zum Zeilenende. |
+
+#### Start der dreifachen Zeilenaktion
+
+Diese Einstellung wird nur verwendet, wenn eine dreifache Zeilenaktion
+aktiviert ist:
+
+| Auswahl | Wirkung |
+| --- | --- |
+| `Routingposition` | Beginnt genau an der gedrückten Routingtaste. Dies ist der Standard. |
+| `Erstes Nicht-Leerzeichen` | Behält die Einrückung der Zeile bei. |
+| `Zeilenanfang` | Bezieht auch die Einrückung ein. |
+
+Die erste Betätigung setzt den Cursor immer sofort. Ist zugleich eine
+doppelte und eine dreifache Aktion eingerichtet, wartet die Wortaktion kurz
+auf eine mögliche dritte Betätigung. Die Frist stammt aus NVDAs Einstellung
+`Tastatur → Zeitüberschreitung für Mehrfachbetätigungen`.
+
+Bearbeitungsaktionen stehen nur im Normal- und Insert-Modus zur Verfügung.
+In der Befehlszeile, in direkter Terminaleingabe und während des
+schreibgeschützten Sprachexplorationsmodus bleibt es beim normalen Routing.
+
+### Gruppe Rechtschreibvorschläge
+
+#### Rechtschreibvorschläge ab Braillemodul anzeigen
+
+Diese profilfähige Einstellung positioniert ausschließlich den
+vorübergehenden Vorschlag beim Erkunden von Neovims eingebauter `z=`-Liste.
+Die Modulnummer beginnt bei 1: Der Standardwert 1 verwendet das erste
+Braillemodul, der Wert 40 beginnt am vierzigsten Modul. Damit kann die Anzeige
+außerhalb der Hand liegen, welche die NVDA-Taste gedrückt hält. Wird die
+Feststelltaste mit der linken Hand als NVDA-Taste gehalten, können Hand und
+Arm den linken Teil der Braillezeile verdecken. Ein weiter rechts beginnender
+Vorschlag lässt sich dann mit der rechten Hand wesentlich komfortabler lesen.
+
+Besitzt die angeschlossene Braillezeile weniger Module als eingestellt, wird
+die Verschiebung ignoriert und der Vorschlag beginnt am ersten Modul. Sprache,
+die dauerhafte Editorzeile und jede andere Brailledarstellung bleiben
+unverändert. Passt der vollständig in Braille übersetzte Vorschlag ab dem
+gewünschten Modul nicht mehr auf die Zeile, verschiebt ihn das Add-on nur so
+weit nach links, dass er rechtsbündig vollständig dargestellt werden kann.
+Ist der Vorschlag selbst länger als die Zeile, beginnt er am ersten Modul.
 
 ## Registerkarte Verbindungen
 
@@ -605,7 +712,7 @@ redigieren aber Passwörter, Tokens und Editorinhalte.
 
 ## Empfohlene Grundeinstellung
 
-Für einen ersten Test empfiehlt sich:
+Zum Einstieg empfiehlt sich:
 
 1. Ein eigenes NVDA-Konfigurationsprofil für Neovim anlegen, falls Zeichen-,
    Wort-, Einrückungs- oder Rechtschreiboptionen von anderen Anwendungen

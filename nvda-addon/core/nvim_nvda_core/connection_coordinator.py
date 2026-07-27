@@ -49,7 +49,13 @@ class ConnectionCoordinator:
     """Own connection instances and their cross-terminal runtime tracking."""
 
     _REQUEST_ID_LIMIT = 2_147_483_648
-    _REQUEST_CHANNELS = frozenset({"focusContext", "clipboard", "terminalControl"})
+    _REQUEST_CHANNELS = frozenset({
+        "focusContext",
+        "clipboard",
+        "terminalControl",
+        "numberedChoice",
+        "brailleExploration",
+    })
     _PENDING_CHANNELS = frozenset({"clipboard", "terminalControl"})
 
     def __init__(
@@ -80,6 +86,7 @@ class ConnectionCoordinator:
         self.pending_clipboard_requests: dict[int, PendingControlRequest] = {}
         self.pending_terminal_control_requests: dict[int, PendingControlRequest] = {}
         self.transport_capabilities: frozenset[str] = frozenset()
+        self.runtime_extension_state: dict[str, Any] = {}
         self._request_ids = {channel: 0 for channel in self._REQUEST_CHANNELS}
 
     def next_request_id(self, channel: str) -> int:
@@ -236,6 +243,7 @@ class ConnectionCoordinator:
         self.pending_clipboard_requests.clear()
         self.pending_terminal_control_requests.clear()
         self.transport_capabilities = frozenset()
+        self.runtime_extension_state = {}
 
     def discard_instance_tracking(
         self,
@@ -295,6 +303,7 @@ class ConnectionCoordinator:
             "connected": self.connected,
             "lastConnectionState": self.last_connection_state,
             "transportCapabilities": self.transport_capabilities,
+            "extensionState": self.runtime_extension_state,
         }
 
     def _activate_runtime(self, runtime: dict[str, Any]) -> None:
@@ -307,3 +316,7 @@ class ConnectionCoordinator:
         self.connected = runtime["connected"]
         self.last_connection_state = runtime["lastConnectionState"]
         self.transport_capabilities = runtime["transportCapabilities"]
+        extension_state = runtime.get("extensionState", {})
+        self.runtime_extension_state = (
+            extension_state if isinstance(extension_state, dict) else {}
+        )

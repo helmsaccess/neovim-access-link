@@ -11,8 +11,7 @@ tmux new-session -A -s neovim
 nvim [datei]
 ```
 
-Neovim läuft dabei interaktiv. `nvim --headless` wird ausschließlich für
-automatisierte Tests und Benchmarks verwendet.
+Neovim läuft dabei normal und interaktiv.
 
 Nach der Installation der Serverkomponenten durch das NVDA-Add-on sind weder
 Wrapper, `--listen`, ein manuell gestarteter Bridgeprozess noch zusätzliche

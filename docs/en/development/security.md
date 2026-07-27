@@ -32,16 +32,59 @@ Protocol messages are size-bounded, schema-validated, session- and sequence-
 checked. Untrusted messages cannot request arbitrary code or general Neovim
 RPC. The reverse direction is a fixed allowlist: `requestFullState` and
 `requestFocusContext` request state; validated `routeCursor` performs Braille
-routing; the explicit clipboard requests below perform fixed copy, paste, and
+routing; `brailleRouteAction` performs one fixed repeated-routing edit;
+`moveBrailleLine` performs one bounded adjacent-line movement; the
+explicit clipboard requests below perform fixed copy, paste, and
 register operations; `leaveTerminalInputRequest` can perform only
 `stopinsert`; and exploration controls can perform only six read-only virtual
 movements or discard their ephemeral state. State-changing controls are correlated with current session,
 control, instance, editor identity, and mode as applicable. Diagnostic editor
 text and secrets are redacted.
 
+`brailleRouteAction` requires its own negotiated capability and allows only
+four fixed action identifiers and three fixed line starts. Its payload
+contains no executable text. In addition to routing validation, the plugin
+checks the exact cursor position, modifiability, and read-only state
+immediately before execution; word actions on whitespace or end of line are
+rejected. A stale timer or since-modified buffer fails at changed tick, mode,
+or cursor identity. Internal mapping to fixed Normal commands is not a
+general RPC or key-injection facility.
+
+`moveBrailleLine` accepts only `previous` or `next`, requires the negotiated
+`brailleLineNavigation` capability, and correlates buffer, window, origin
+line, changed tick, and exact raw mode. Its preferred virtual column is a
+bounded integer. The plugin moves by at most one line, rejects buffer
+boundaries plus command-line and terminal modes, and receives no Lua or Ex
+text.
+
 Exploration validates the complete editor origin and never moves the real
 cursor or mutates a buffer. Result size, repeats, and word scanning are
 bounded; a focus or context change invalidates the ephemeral position.
+
+The separate `brailleExploreLineRequest` accepts only one adjacent line and a
+bounded desired virtual column. It requires the independent
+`brailleExploration` capability, owns separate correlation and Lua state, and
+can change neither speech exploration mode nor the real cursor. Its first
+request must match the complete real origin. Follow-up requests may differ
+from a later real cursor, mode, or text state only while buffer, window, and
+tab remain unchanged. `changedtick` may advance to the currently validated
+value in that same buffer; origin identity, exploration ID, and action
+sequence stay exact. The local derived Braille view adopts new line content
+only for valid bounded text and an exact match between the real cursor line
+and virtual display line. This grants no additional protocol authority or
+write access and does not mutate canonical state. Viewport retention uses
+only the public `TextInfoRegion.pendingCaretUpdate` marker on the add-on's own
+structured region. It reads no private NVDA buffer or window fields and
+changes no foreign region. Only a later, fully
+revalidated `routeCursor` control may
+commit the virtual position.
+Results are cached in neither bridge nor client state.
+
+Numbered-choice acceptance is limited to an already structured active prompt
+with exact prompt and editor identity. The spelling adapter generates only
+Neovim's fixed numeric selection plus Enter from the validated internal index;
+suggestion text is neither executed nor sent back. Focus changes or prompt
+closure discard the transient local selection.
 
 The clipboard path runs only from explicit, freely assignable NVDA commands.
 It accepts no arbitrary Lua, Ex, or register name: copy reads only the current

@@ -6,8 +6,9 @@ Accepted and implemented through the incremental migration. The shared
 service is now located through an identity-checked registrar. Terminal events,
 overlay selection, and `nextHandler` now reside in the Windows Terminal
 AppModule. This stage is confirmed by automated and practical tests with local
-and remote connections across multiple WT windows, tabs, and panes; practical
-Braille testing was not possible. The Windows Terminal AppModule now also owns
+and remote connections across multiple WT windows, tabs, and panes. The
+structured region and routing path has since also been checked with a physical
+Braille display. The Windows Terminal AppModule now also owns
 the configurable terminal commands under automated and practical coverage.
 The final practical milestone reported no error across the current local,
 SSH, focus, terminal, clipboard, file-manager, and reload variants.
@@ -61,18 +62,44 @@ depend on the `GlobalPlugin` class. The composition root retains direct gate
 and instance-manager views because they are its frequently used dependencies,
 not independent state owners.
 
-## F12 exception
+## Bounded process-wide gesture observer
 
-F12 remains the explicit assignment signal and is not an NVDA script. The
-Windows Terminal AppModule owns registration with the public but process-wide
-`inputCore.decide_executeGesture` decider. Registration exists only while at
-least one instance of this AppModule is loaded, and non-claim keys return
-immediately without querying focus. After an F12 match, NVDA's current focus
-object, its concrete registered AppModule instance, and the control identity
-derived from it must match the gate; merely having one AppModule instance is
-not substitute evidence. Assignment may start only when the same concrete
-focused Windows Terminal control is also confirmed again on NVDA's main
-thread. Any mismatch falls back to native processing without an assignment.
+The Windows Terminal AppModule owns registration with the public but
+process-wide `inputCore.decide_executeGesture` decider. Registration exists
+only while at least one instance of this AppModule is loaded, is removed
+symmetrically, and may observe only three narrowly bounded cases:
+
+- F12 as the explicit assignment signal, which is not an NVDA script;
+- `NVDA+j/k/Enter` and the still-held bare `j/k` autorepeat continuation of an
+  already authorized numbered choice;
+- NVDA's public
+  `globalCommands.GlobalCommands.braille_nextLine` command, confirmed by exact
+  script name and script location.
+
+Every other gesture returns unchanged. The observer queries focus only for one
+of these candidates and then works exclusively with the focus object's
+concrete registered AppModule instance.
+
+After an F12 match, NVDA's current focus object, its concrete registered
+AppModule instance, and the control identity derived from it must match the
+gate; merely having one AppModule instance is not substitute evidence.
+Assignment may start only when the same concrete focused Windows Terminal
+control is also confirmed again on NVDA's main thread. Any mismatch falls back
+to native processing without an assignment. Numbered choices have the same
+identity and generation checks and may consume only their fixed navigation or
+accept actions.
+
+The Braille-display observation does not consume the gesture, perform a
+transport action, or read driver state or private Braille buffers. After exact
+focus, AppModule, event-token, and service-generation checks, it merely sets a
+one-shot marker for the same NVDA event turn. The marker is discarded after
+use or, at the latest, through NVDA's event queue. It is needed because NVDA's
+public `TextInfoRegion.nextLine()` method is invoked both for a direct
+next-line command and for a horizontal region-boundary transition, but
+receives neither the gesture nor a direction. Without this marker, the add-on
+could not reliably distinguish the desired semantic target column during
+direct downward navigation from horizontal panning. This avoids driver hooks
+and private NVDA state.
 
 ## Non-negotiable invariants
 

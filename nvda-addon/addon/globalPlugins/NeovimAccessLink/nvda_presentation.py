@@ -107,6 +107,23 @@ class NvdaPresentation:
 			return bool(self.feedback_mode(feedback_key) & 1)
 		return True
 
+	def speak_braille_routed_character(self, character):
+		# Mirror NVDA's native routing feedback without calling its private helper.
+		try:
+			braille_settings = config.conf.get("braille", {})
+			if not braille_settings.get("speakOnRouting", False) or not character:
+				return False
+			speech.speakSpelling(character)
+			return True
+		except Exception as error:
+			self._diagnostic(
+				"speechError",
+				errorType=type(error).__name__,
+				error=str(error),
+			)
+			log.exception("NeovimAccessLink speech failure")
+			return False
+
 	def deliver_actions(
 		self,
 		actions,
@@ -116,6 +133,7 @@ class NvdaPresentation:
 		previous_mode,
 		payload,
 		speak_structured_typing,
+		allow_braille_messages=True,
 	):
 		for action in actions:
 			indentation = getattr(action, "indentation_tones", None)
@@ -145,16 +163,20 @@ class NvdaPresentation:
 					and feedback_mode & 1
 					and not action.text
 				):
-					speech.speakText(
-						_("line start") if sound == "lineStart" else _("line end"),
-						priority=priority,
-					)
+					if sound == "lineStart":
+						# Translators: Reported when the cursor reaches the start of a line.
+						message = _("line start")
+					else:
+						# Translators: Reported when the cursor reaches the end of a line.
+						message = _("line end")
+					speech.speakText(message, priority=priority)
 				elif speech_allowed and feedback_key == "lineCrossed" and feedback_mode & 1:
+					# Translators: Reported after navigation crosses onto another line.
 					speech.speakText(_("new line"), priority=priority)
 				format_error = getattr(action, "format_error", None)
 				if format_error and speech_allowed:
 					self._present_format_error(action, format_error, priority)
-				elif getattr(action, "typed", False) and speech_allowed:
+				if getattr(action, "typed", False) and speech_allowed:
 					speak_structured_typing(
 						action.text,
 						payload,
@@ -175,7 +197,7 @@ class NvdaPresentation:
 					)
 				if speech_allowed and getattr(action, "character_suffix", None):
 					speech.speakSpelling(action.character_suffix, priority=priority)
-				if getattr(action, "braille_message", None):
+				if allow_braille_messages and getattr(action, "braille_message", None):
 					nvdaBraille.handler.message(action.braille_message)
 			except Exception as error:
 				self._diagnostic(
@@ -236,8 +258,19 @@ class NvdaPresentation:
 		if not leaving and report_mode & 2:
 			self.spelling_sound.play()
 		if (report_mode & 1) or (leaving and report_mode & 3):
-			label = "grammar error" if kind == "grammar" else "spelling error"
-			speech.speakText(("out of " if leaving else "") + label, priority=priority)
+			if leaving and kind == "grammar":
+				# Translators: Reported when moving out of text containing a grammar error.
+				message = _("out of grammar error")
+			elif leaving:
+				# Translators: Reported when moving out of text containing a spelling error.
+				message = _("out of spelling error")
+			elif kind == "grammar":
+				# Translators: Reported when text contains a grammar error.
+				message = _("grammar error")
+			else:
+				# Translators: Reported when text contains a spelling error.
+				message = _("spelling error")
+			speech.speakText(message, priority=priority)
 
 	def report_indentation(self, quarter_tones, level):
 		formatting = config.conf.get("documentFormatting", {})

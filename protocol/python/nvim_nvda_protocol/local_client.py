@@ -7,12 +7,20 @@ from collections.abc import Callable
 from typing import Any
 
 from .codec import ProtocolError, encode_frame
+from .braille_navigation import valid_move_braille_line_request
+from .braille_exploration import (
+	valid_braille_explore_line_request,
+	valid_braille_explore_line_result,
+	valid_end_braille_exploration_request,
+)
+from .braille_routing_actions import valid_braille_route_action_request
 from .clipboard import (
 	clipboard_result_state,
 	valid_copy_text_request,
 	valid_paste_text_request,
 	valid_set_register_request,
 )
+from .cursor_routing import valid_route_cursor_request
 from .exploration import (
 	exploration_result_state,
 	valid_end_exploration_request,
@@ -20,6 +28,12 @@ from .exploration import (
 	valid_explore_text_result,
 )
 from .messages import MessageFactory
+from .numbered_choice import (
+	numbered_choice_state,
+	valid_accept_numbered_choice_request,
+	valid_numbered_choice_closed,
+	valid_numbered_choice_opened,
+)
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .terminal_control import (
 	terminal_control_result_state,
@@ -27,21 +41,13 @@ from .terminal_control import (
 )
 
 
-_ROUTE_CURSOR_LUA = """
-  local p = ...
-  if vim.api.nvim_get_current_buf() ~= p.bufferId then return false end
-  if vim.api.nvim_get_current_win() ~= p.windowId then return false end
-  if vim.api.nvim_buf_get_changedtick(p.bufferId) ~= p.changedtick then return false end
-  if p.line < 1 or p.line > vim.api.nvim_buf_line_count(p.bufferId) then return false end
-  local line = vim.api.nvim_buf_get_lines(p.bufferId, p.line - 1, p.line, true)[1] or ''
-  if p.byteColumn < 0 or p.byteColumn > #line then return false end
-  if p.byteColumn < #line then
-    local byte = string.byte(line, p.byteColumn + 1)
-    if byte >= 0x80 and byte < 0xC0 then return false end
-  end
-  vim.api.nvim_win_set_cursor(p.windowId, { p.line, p.byteColumn })
-  return true
-"""
+_ROUTE_CURSOR_LUA = "return require('nvim_nvda').request_route_cursor(...)"
+_BRAILLE_ROUTE_ACTION_LUA = "return require('nvim_nvda').request_braille_route_action(...)"
+_MOVE_BRAILLE_LINE_LUA = "return require('nvim_nvda').request_move_braille_line(...)"
+_BRAILLE_EXPLORE_LINE_LUA = "return require('nvim_nvda').request_braille_explore_line(...)"
+_END_BRAILLE_EXPLORATION_LUA = (
+	"return require('nvim_nvda').request_end_braille_exploration(...)"
+)
 
 _COPY_TEXT_LUA = "return require('nvim_nvda').request_copy_text(...)"
 _PASTE_TEXT_LUA = "return require('nvim_nvda').request_paste_text(...)"
@@ -79,6 +85,7 @@ class LocalTcpClient:
 		self._factory = MessageFactory()
 		self._state_lock = threading.Lock()
 		self._state: dict[str, Any] | None = None
+		self._active_numbered_choice: dict[str, Any] | None = None
 		self._authenticated = False
 		self._source = source_factory(
 			self.endpoint,
@@ -160,18 +167,71 @@ class LocalTcpClient:
 				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
 				return False
 			return self._source.notify("nvim_exec_lua", _END_EXPLORATION_LUA, [dict(payload)])
-		if kind != "routeCursor" or not self._valid_cursor_payload(payload):
+		if kind == "brailleExploreLineRequest":
+			if not self._supports_plugin_capability("brailleExploration"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_braille_explore_line_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify(
+				"nvim_exec_lua",
+				_BRAILLE_EXPLORE_LINE_LUA,
+				[dict(payload)],
+			)
+		if kind == "endBrailleExplorationRequest":
+			if not self._supports_plugin_capability("brailleExploration"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_end_braille_exploration_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify(
+				"nvim_exec_lua",
+				_END_BRAILLE_EXPLORATION_LUA,
+				[dict(payload)],
+			)
+		if kind == "acceptNumberedChoiceRequest":
+			if not self._supports_plugin_capability("numberedChoices"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_accept_numbered_choice_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			with self._state_lock:
+				choice = (
+					dict(self._active_numbered_choice)
+					if self._active_numbered_choice is not None
+					else None
+				)
+			if not self._matches_numbered_choice(payload, choice):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "staleState"})
+				return False
+			return self._source.notify("nvim_input", f"{payload['itemIndex'] + 1}\r")
+		if kind == "moveBrailleLine":
+			if not self._supports_plugin_capability("brailleLineNavigation"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_move_braille_line_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify("nvim_exec_lua", _MOVE_BRAILLE_LINE_LUA, [dict(payload)])
+		if kind == "brailleRouteAction":
+			if not self._supports_plugin_capability("brailleRoutingActions"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_braille_route_action_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify(
+				"nvim_exec_lua",
+				_BRAILLE_ROUTE_ACTION_LUA,
+				[dict(payload)],
+			)
+		if kind != "routeCursor" or not valid_route_cursor_request(payload):
 			self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
 			return False
 		return self._source.notify("nvim_exec_lua", _ROUTE_CURSOR_LUA, [dict(payload)])
-
-	@staticmethod
-	def _valid_cursor_payload(payload: dict[str, Any]) -> bool:
-		required = ("bufferId", "windowId", "line", "byteColumn", "changedtick")
-		return isinstance(payload, dict) and all(
-			isinstance(payload.get(field), int) and not isinstance(payload.get(field), bool)
-			for field in required
-		)
 
 	@staticmethod
 	def _valid_request_id(value: Any) -> bool:
@@ -188,6 +248,31 @@ class LocalTcpClient:
 				},
 			)
 			return
+		if (
+			event_type == "brailleExploreLineResult"
+			and not valid_braille_explore_line_result(payload)
+		):
+			self.on_diagnostic(
+				"localEventRejected",
+				{
+					"type": event_type,
+					"errorType": "ProtocolError",
+					"error": "invalid Braille exploration result",
+				},
+			)
+			return
+		if event_type == "numberedChoiceOpened" and not valid_numbered_choice_opened(payload):
+			self.on_diagnostic(
+				"localEventRejected",
+				{"type": event_type, "errorType": "ProtocolError", "error": "invalid numbered choice"},
+			)
+			return
+		if event_type == "numberedChoiceClosed" and not valid_numbered_choice_closed(payload):
+			self.on_diagnostic(
+				"localEventRejected",
+				{"type": event_type, "errorType": "ProtocolError", "error": "invalid numbered choice"},
+			)
+			return
 		state = dict(payload)
 		event = self._validated_event(event_type, state)
 		if event is None:
@@ -196,10 +281,20 @@ class LocalTcpClient:
 			state = clipboard_result_state(state)
 		elif event_type == "leaveTerminalInputResult":
 			state = terminal_control_result_state(state)
-		elif event_type == "exploreTextResult":
+		elif event_type in {"exploreTextResult", "brailleExploreLineResult"}:
 			state = exploration_result_state(state)
+		elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
+			state = numbered_choice_state(state)
 		with self._state_lock:
 			self._state = state
+			if event_type == "numberedChoiceOpened":
+				self._active_numbered_choice = dict(payload)
+			elif (
+				event_type == "numberedChoiceClosed"
+				and self._active_numbered_choice is not None
+				and payload.get("choiceId") == self._active_numbered_choice.get("choiceId")
+			):
+				self._active_numbered_choice = None
 		if event_type == "fullState" and not self._authenticated:
 			self._authenticated = True
 			self.on_connection_state("connected")
@@ -222,6 +317,14 @@ class LocalTcpClient:
 			capabilities = list(self.capabilities)
 			if self._payload_supports(value, "exploration"):
 				capabilities.append("exploration")
+			if self._payload_supports(value, "numberedChoices"):
+				capabilities.append("numberedChoices")
+			if self._payload_supports(value, "brailleLineNavigation"):
+				capabilities.append("brailleLineNavigation")
+			if self._payload_supports(value, "brailleExploration"):
+				capabilities.append("brailleExploration")
+			if self._payload_supports(value, "brailleRoutingActions"):
+				capabilities.append("brailleRoutingActions")
 			value["_transport"] = {
 				"capabilities": capabilities,
 				"kind": "windows-loopback-tcp",
@@ -251,6 +354,20 @@ class LocalTcpClient:
 		capabilities = payload.get("pluginCapabilities")
 		return isinstance(capabilities, list) and capability in capabilities
 
+	@staticmethod
+	def _matches_numbered_choice(
+		payload: dict[str, Any],
+		choice: dict[str, Any] | None,
+	) -> bool:
+		if choice is None:
+			return False
+		return (
+			all(payload.get(field) == choice.get(field) for field in (
+				"choiceKind", "choiceId", "bufferId", "windowId", "tabpageId", "changedtick",
+			))
+			and payload["itemIndex"] < len(choice.get("items", ()))
+		)
+
 	def _on_nvim_connection(self, state: str) -> None:
 		if state == "connected":
 			# Authentication for the accessibility layer begins with fullState,
@@ -260,4 +377,5 @@ class LocalTcpClient:
 			self._authenticated = False
 			with self._state_lock:
 				self._state = None
+				self._active_numbered_choice = None
 		self.on_connection_state(state)

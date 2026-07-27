@@ -1,7 +1,7 @@
 # Feature and accessibility matrix
 
 This matrix describes implemented, primarily automated behavior in an
-alpha-to-beta build. It does not imply exhaustive practical verification.
+beta build. It does not imply exhaustive practical verification.
 
 Implemented areas include mode reporting; character/word/line navigation;
 editing and deletion; Visual character/line/block selection; indentation;
@@ -9,7 +9,18 @@ completion and signature help; search, pairs, diagnostics and spelling; folds,
 marks, registers and macros; command line; embedded terminal transitions; and
 adapters for common file managers.
 
-Contextual exploration uses six fixed Windows Terminal AppModule chords to
+Repeated presses of one Braille routing key have an optional, fixed editing
+path. The first press routes immediately. A double press may run `cw` or `dw`;
+a triple press may run `c$` or `d$` from the routed position, first non-blank
+character, or absolute line beginning. All actions default to “Route only”
+and are restricted to Normal and Insert modes. The recognizer requires the
+same target signature within NVDA's multiple-press timeout. Controller,
+settings, protocol, local/SSH transport, built-add-on, Lua, and real
+Insert-mode RPC tests cover the path. The reference workflow has been
+confirmed on the BRAILLEX EL 80c; the complete command, line-start, timeout,
+and multi-driver matrix remains open.
+
+Speech exploration mode uses six fixed Windows Terminal AppModule chords to
 read characters, lines, or words through an ephemeral Lua position. Exact
 control binding, authenticated instance, capability, editor origin, and reply
 correlation are required. The real cursor, buffer, mode, changed tick, and
@@ -22,6 +33,21 @@ under NVDA. Both word-detail choices and all four line-detail choices were also
 practically exercised independently for normal navigation and exploration
 release without an observed defect. This is evidence for the tested Windows
 and NVDA path, not an exhaustive claim across every environment.
+
+The built-in `z=` spelling list has a separate bounded path. A proven direct
+command and a consecutively numbered native UI event open transient local
+selection. `NVDA+j/k` cycles through labels without exposing numbers in speech
+or Braille, `NVDA+Enter` accepts only the internally validated index, and
+releasing NVDA discards only the local selection. Exact control, instance,
+prompt, capability, and editor identity are required. Parser, protocol,
+transport, controller, AppModule, Braille, built-package, and real Neovim RPC
+tests cover positive and negative paths. Practical Windows/NVDA acceptance,
+including one physical Braille display, succeeded; a broader hardware matrix
+remains pending. A profile-aware one-based setting shifts only the transient
+suggestion to an existing later Braille cell; a position beyond
+`braille.handler.displaySize` is ignored and cell 1 is used. If the translated
+suggestion does not fit to the right, its start moves left to the last cell
+where the complete result fits.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real
@@ -38,6 +64,9 @@ Windows/NVDA so far, using Neovim 0.12; it provides a solid foundation. netrw,
 mini.files, nvim-tree, and Neo-tree currently have automated or isolated
 coverage and will be accepted practically over time. Further real
 plugin/prompt versions and physical Braille remain open.
+The persistent semantic file-manager Braille region localizes typed kind and
+state labels at the NVDA boundary. Navigation and same-entry state speech no
+longer create a transient Braille message that covers this region.
 
 Message-producing Ex commands carry a one-shot semantic return marker on their
 immediate structured result. The matching mode cue plays once before that
@@ -84,6 +113,16 @@ matrix remains pending.
 
 File-manager output uses semantic name, type, and state instead of decoration.
 
+Spelling and grammar presentation follows NVDA's document-formatting bitmask:
+Speech is `1`, Sound is `2`, and Braille is `4`. Navigation and exploration
+share one presentation path for all values from `0` through `7`. Character
+movement reports entering and leaving an error. Each semantic word motion and
+word-exploration result carries only the error kind at the reached word,
+allowing NVDA's configured localized label and error sound without exposing
+diagnostic text. Label and word form one interruption-safe presentation.
+Opening a proven non-empty native spelling list produces one brief spoken
+availability message.
+
 The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
 Public plugin events start and stop the accessible-menu lifetime, but neither
 plugin currently provides a reliable event for every selection change. A
@@ -110,7 +149,50 @@ Real-TUI tests cover accepting and cancelling `vim.ui.input`, choosing from
 Neovim 0.10.1 and 0.12.3. Custom plugin floats and pager variants remain
 separate practical work.
 
-Braille state, indentation, selection dots 7/8, and routing are implemented in
-the model and automated tests, but no physical display has been tested. Bugs
-are very likely. Hardware coverage and fixes are explicitly important priority
-work before reliable Braille support can be claimed.
+Braille state, indentation, selection dots 7/8, virtual end cells, and routing
+are implemented in the model and automated tests. The persistent editor path
+and cursor routing were practically confirmed with one physical Braille
+display in Normal, Insert, and command-line modes, including Unicode, tabs, an
+empty line, and the position after the final character. The transient spelling
+suggestion was checked on the same display. This acceptance confirms the
+NVDA 2026.1.1 path in use; it does not replace a broader matrix of displays,
+drivers, translation tables, and NVDA major versions.
+
+Braille-display navigation now uses NVDA's standard scroll-back,
+scroll-forward, previous-line, and next-line commands. Horizontal movement
+stays inside NVDA's viewport until a line boundary: back then selects the
+previous line end and forward selects the next line start. Direct Up/Down
+instead changes the real Neovim cursor by exactly one line and retains
+Neovim's preferred virtual column across short lines. Protocol, local and SSH
+transport, controller, built-add-on, Lua, and real Insert-mode RPC coverage is
+automated, including empty lines, tabs, UTF-8/wide characters, and the
+one-shot direct-down marker. The correction has been confirmed practically
+with a BRAILLEX EL 80c. A separate freely assignable toggle now selects
+Braille cursor mode or Braille exploration mode. In Braille exploration mode,
+Up/Down changes only a virtual buffer line while routing commits the chosen
+position. The selected mode is stored in the individual Neovim-instance
+runtime, so concurrent local and remote sessions can choose independently.
+Changing controls or applications preserves that session's virtual position
+and horizontal NVDA viewport; returning restores both without adopting
+another session's view. Disconnect resets only the affected runtime. Later
+real-cursor and mode changes, as well as edits on other lines, do not replace
+this virtual position. An edit on the explored real-cursor line
+refreshes its complete content and current mode without re-anchoring the
+virtual line, reading column, or viewport. The structured region also clears
+NVDA's public pending caret-update marker in this mode, preventing a
+concurrent native terminal caret event from moving the selected viewport. The
+virtual position is not rendered as an apparent second Braille cursor. The
+initial request requires the complete real origin; continuation keeps its own
+exploration ID and action sequence while buffer, window, and tab remain
+unchanged and `changedtick` advances only to the validated current snapshot.
+Routing is accepted only when the displayed line snapshot matches the current
+buffer tick, and delayed multi-press actions revalidate immediately before
+dispatch. This state and its controls are independent of speech exploration
+mode. Automated coverage includes per-instance modes, targeted disconnect
+reset, transient focus-sequence cleanup, focus and instance correlation,
+UTF-8, Insert line ends, an unchanged real cursor, cursor and text-input
+decoupling, complete line refresh after edits and mode changes, viewport
+retention, rejection of stale routing, deferred revalidation, and cursor
+visibility. The principal hardware path has been confirmed with a BRAILLEX EL
+80c; the latest edit/routing edge cases, multi-session mode isolation, and a
+broader hardware matrix remain to be exercised practically.

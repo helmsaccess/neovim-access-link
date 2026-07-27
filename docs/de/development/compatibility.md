@@ -71,11 +71,19 @@ PuTTY und weitere Frontends benötigen jeweils einen
 eigenen Identitäts-, Fokus-, Ausgabe- und Fail-open-Adapter mit praktischer
 Prüfung.
 
-Es wurde bislang keine echte Braillezeile getestet. Die automatisierten
-Brailletests bestätigen nur Zustandsmodell und Ausgabeplanung;
-hardwarespezifische Probleme können deshalb noch unentdeckt sein. Insgesamt ist
-der Stand Alpha bis Beta, weil auch weitere Add-on-Funktionen noch keine
-erschöpfende praktische Abnahme besitzen.
+Der `z=`-Vorschlagspfad einschließlich Rückkehr zur Editorzeile wurde mit einer
+physischen Braillezeile erfolgreich geprüft. Automatisierte Brailletests
+bestätigen weitere Zustands- und Planungsfälle; hardwarespezifische Probleme
+außerhalb des praktisch geprüften Pfads können trotzdem unentdeckt sein.
+Der neutrale Brailleplan löst Tabulatoren anhand von `tabstop` und der
+vorhergehenden Unicode-Codepointposition auf. Stehen vor einem Tabulator
+Zeichen mit Terminalbreite null oder zwei, kann die Anzahl der angezeigten
+Leerzellen deshalb von Neovims virtueller Bildschirmspalte abweichen. Die
+Routingzuordnung zur UTF-8-Textposition bleibt dabei korrekt. Eine spätere
+exakte Bildschirmbreitenabbildung muss als semantische Neovim-Angabe erfolgen,
+nicht durch Screen-Scraping oder eine zweite Unicode-Breitentabelle im Add-on.
+Insgesamt ist der Stand Beta. Auch in diesem Reifegrad besitzen weitere
+Add-on-Funktionen noch keine erschöpfende praktische Abnahme.
 
 Dateimanager-Unterstützung verwendet die öffentlichen APIs der zum 12. Juli
 2026 geprüften Hauptzweige von Oil, nvim-tree, Neo-tree und mini.files. Adapter

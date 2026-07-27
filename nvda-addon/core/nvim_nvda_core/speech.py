@@ -345,8 +345,6 @@ class SpeechPlanner:
             self._terminal_entry_waiting_line = False
             self._terminal_entry_suppress_updates = False
             format_action = self._format_error_change(state, kind)
-            if format_action is not None:
-                actions.append(format_action)
             action = self._navigation(state, announce_full=kind == "fullState")
             if action is not None:
                 if kind != "cursorMoved" and kind != "fullState":
@@ -364,7 +362,15 @@ class SpeechPlanner:
                         action.typed, action.spelling, action.force_symbols, action.character_suffix,
                         action.indentation_tones,
                     )
+                if format_action is not None:
+                    action = replace(
+                        action,
+                        format_error=format_action.format_error,
+                        typed_format_error=format_action.typed_format_error,
+                    )
                 actions.append(action)
+            elif format_action is not None:
+                actions.append(format_action)
         elif kind == "textChanged":
             if self._terminal_entry_suppress_updates and state.get("buftype") == "terminal":
                 line = state.get("lineText")
@@ -899,6 +905,12 @@ class SpeechPlanner:
             ((self._previous or {}).get("cursor") or {}).get("line"), previous.get("startByteColumn"),
             previous.get("endByteColumn"), previous_kind
         ) if isinstance(previous, dict) else None
+        if event_kind == "wordMoved" and current_kind:
+            # A semantic word motion may remain inside one misspelled range
+            # (for example, motions to different word boundaries). Each
+            # explicit word target should still carry NVDA's configured error
+            # feedback.
+            return SpeechAction("", Priority.NAVIGATION, format_error=current_kind)
         if current_range == previous_range:
             return None
         if current_kind:
@@ -924,7 +936,7 @@ class SpeechPlanner:
             if location:
                 parts.append(location)
             text = ", ".join(parts)
-            return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+            return SpeechAction(text, Priority.STATUS, interrupt=True)
         previous = previous if previous is not None else self._previous or {}
         window_type = state.get("windowType")
         line = state.get("lineText")
@@ -1022,7 +1034,12 @@ class SpeechPlanner:
         if not parts:
             return None
         text = ", ".join(parts)
-        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+        return SpeechAction(
+            text,
+            Priority.STATUS,
+            interrupt=True,
+            braille_message=None if isinstance(manager, dict) else text,
+        )
 
     def _context_focus_change(
         self, state: dict[str, Any], previous: dict[str, Any],
@@ -1050,7 +1067,12 @@ class SpeechPlanner:
         if not location:
             return None
         text = ", ".join(location)
-        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+        return SpeechAction(
+            text,
+            Priority.STATUS,
+            interrupt=True,
+            braille_message=None if isinstance(state.get("fileManager"), dict) else text,
+        )
 
     def _focus_line(self, state: dict[str, Any]) -> SpeechAction | None:
         line = state.get("lineText")
@@ -1060,7 +1082,7 @@ class SpeechPlanner:
         return SpeechAction(
             text, Priority.STATUS, interrupt=True,
             indentation_tones=indentation_quarter_tones(line),
-            braille_message=text,
+            braille_message=None if isinstance(state.get("fileManager"), dict) else text,
         )
 
     @staticmethod
@@ -1112,7 +1134,7 @@ class SpeechPlanner:
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
-            force_symbols=True, braille_message=text,
+            force_symbols=True,
         )
 
     def _file_manager_change(self, state: dict[str, Any]) -> SpeechAction | None:
@@ -1177,7 +1199,7 @@ class SpeechPlanner:
         text = ", ".join([name, *changes])
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
-            sound=sound, force_symbols=True, braille_message=text,
+            sound=sound, force_symbols=True,
         )
 
     def _file_manager_motion_sound(

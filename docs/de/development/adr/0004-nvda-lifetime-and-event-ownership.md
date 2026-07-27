@@ -7,7 +7,8 @@ Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden.
 Terminalereignisse, Overlayauswahl und `nextHandler` liegen im
 Windows-Terminal-AppModule. Diese Stufe ist automatisiert sowie praktisch mit
 lokalen und entfernten Verbindungen in mehreren WT-Fenstern, Tabs und Panes
-bestätigt; eine praktische Brailleprüfung war nicht möglich. Frei belegbare
+bestätigt. Der strukturierte Regions- und Routingpfad wurde inzwischen
+zusätzlich mit einer physischen Braillezeile geprüft. Frei belegbare
 Terminalbefehle liegen nun ebenfalls unter automatisierter und praktischer
 Abdeckung im Windows-Terminal-AppModule. Der abschließende Praxismeilenstein
 ergab keinen gemeldeten Fehler in den aktuellen lokalen, SSH-, Fokus-,
@@ -64,19 +65,48 @@ Kompositionswurzel behält direkte Sichten auf Gate und Instanzmanager, weil
 diese ihre häufig verwendeten Abhängigkeiten und keine eigenen
 Zustandseigentümer sind.
 
-## F12-Ausnahme
+## Begrenzter prozessweiter Gestenbeobachter
 
-F12 bleibt das ausdrückliche Zuordnungssignal und ist kein NVDA-Skript. Das
-Windows-Terminal-AppModule besitzt die Registrierung am öffentlichen, aber
+Das Windows-Terminal-AppModule besitzt die Registrierung am öffentlichen, aber
 prozessweit aufgerufenen `inputCore.decide_executeGesture`-Decider. Sie besteht
-nur, solange mindestens eine Instanz dieses AppModules geladen ist, und kehrt
-außerhalb der Claim-Taste sofort ohne Fokusabfrage zurück. Nach einem
-F12-Treffer müssen NVDAs aktuelles Fokusobjekt, dessen konkrete registrierte
-AppModule-Instanz und die daraus gebildete Control-Identität mit dem Gate
-übereinstimmen; ein bloß einzig vorhandenes AppModule ist kein Ersatznachweis.
-Die Zuordnung darf erst beginnen, wenn zusätzlich erneut auf NVDAs Hauptthread
-dasselbe konkrete fokussierte Windows-Terminal-Control bestätigt ist. Jede
-Abweichung fällt ohne Zuordnung auf native Verarbeitung zurück.
+nur, solange mindestens eine Instanz dieses AppModules geladen ist, wird
+symmetrisch entfernt und darf ausschließlich drei eng begrenzte Fälle
+beobachten:
+
+- F12 als ausdrückliches Zuordnungssignal, das kein NVDA-Skript ist;
+- `NVDA+j/k/Eingabe` sowie die noch gehaltene nackte
+  `j/k`-Autorepeat-Fortsetzung einer bereits autorisierten nummerierten
+  Auswahlliste;
+- NVDAs öffentlichen, über Skriptname und Skriptort exakt bestätigten
+  `globalCommands.GlobalCommands.braille_nextLine`-Befehl.
+
+Alle anderen Gesten kehren unverändert zurück. Der Beobachter fragt nur für
+einen der genannten Kandidaten das Fokusobjekt ab und arbeitet anschließend
+ausschließlich mit dessen konkret registrierter AppModule-Instanz.
+
+Nach einem F12-Treffer müssen NVDAs aktuelles Fokusobjekt, dessen konkrete
+registrierte AppModule-Instanz und die daraus gebildete Control-Identität mit
+dem Gate übereinstimmen; ein bloß einzig vorhandenes AppModule ist kein
+Ersatznachweis. Die Zuordnung darf erst beginnen, wenn zusätzlich erneut auf
+NVDAs Hauptthread dasselbe konkrete fokussierte Windows-Terminal-Control
+bestätigt ist. Jede Abweichung fällt ohne Zuordnung auf native Verarbeitung
+zurück. Die nummerierte Auswahl besitzt dieselben Identitäts- und
+Generationsprüfungen und darf nur ihre festen Navigations- oder
+Annahmeaktionen verbrauchen.
+
+Die Braillezeilenbeobachtung verbraucht die Geste nicht, führt keine
+Transportaktion aus und liest weder Treiberzustand noch private
+Braillepuffer. Sie setzt nach exakter Fokus-, AppModule-, Ereignistoken- und
+Dienstgenerationsprüfung lediglich eine einmalige Markierung für denselben
+NVDA-Ereigniszug. Die Markierung wird nach Verwendung oder spätestens über
+NVDAs Ereigniswarteschlange verworfen. Sie ist nötig, weil NVDAs öffentliche
+`TextInfoRegion.nextLine()`-Methode sowohl für einen direkten
+Zeilenwechselbefehl als auch beim horizontalen Wechsel über eine
+Regionsgrenze aufgerufen wird, aber weder Geste noch Richtung erhält. Ohne
+diese Markierung könnte das Add-on die gewünschte semantische Zielspalte bei
+direktem Abwärtsnavigieren nicht zuverlässig von horizontalem Weiterblättern
+unterscheiden. Treiber-Hooks oder private NVDA-Zustände werden dadurch
+vermieden.
 
 ## Nicht verhandelbare Invarianten
 

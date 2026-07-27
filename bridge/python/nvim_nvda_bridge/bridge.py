@@ -13,6 +13,13 @@ from nvim_nvda_protocol import (
     valid_copy_text_request, valid_paste_text_request,
     terminal_control_result_state, valid_leave_terminal_input_request,
     valid_set_register_request,
+    numbered_choice_state, valid_accept_numbered_choice_request,
+    valid_numbered_choice_closed, valid_numbered_choice_opened,
+    valid_route_cursor_request,
+    valid_move_braille_line_request,
+    valid_braille_explore_line_request, valid_braille_explore_line_result,
+    valid_braille_route_action_request,
+    valid_end_braille_exploration_request,
 )
 
 
@@ -22,6 +29,13 @@ _SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
 _LEAVE_TERMINAL_INPUT_LUA = "return require('nvim_nvda').request_leave_terminal_input(...)"
 _EXPLORE_TEXT_LUA = "return require('nvim_nvda').request_explore_text(...)"
 _END_EXPLORATION_LUA = "return require('nvim_nvda').request_end_exploration(...)"
+_ROUTE_CURSOR_LUA = "return require('nvim_nvda').request_route_cursor(...)"
+_BRAILLE_ROUTE_ACTION_LUA = "return require('nvim_nvda').request_braille_route_action(...)"
+_MOVE_BRAILLE_LINE_LUA = "return require('nvim_nvda').request_move_braille_line(...)"
+_BRAILLE_EXPLORE_LINE_LUA = "return require('nvim_nvda').request_braille_explore_line(...)"
+_END_BRAILLE_EXPLORATION_LUA = (
+    "return require('nvim_nvda').request_end_braille_exploration(...)"
+)
 
 
 class Bridge:
@@ -34,6 +48,7 @@ class Bridge:
     ) -> None:
         self._state_lock = threading.Lock()
         self._state: dict[str, Any] = {"connection": {"neovim": "connecting"}}
+        self._active_numbered_choice: dict[str, Any] | None = None
         if transport is not None and stdio_streams is not None:
             raise ValueError("provide either stdio streams or a test transport")
         if transport is not None:
@@ -65,24 +80,45 @@ class Bridge:
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
         if event_type == "exploreTextResult" and not valid_explore_text_result(payload):
             return
+        if (
+            event_type == "brailleExploreLineResult"
+            and not valid_braille_explore_line_result(payload)
+        ):
+            return
+        if event_type == "numberedChoiceOpened" and not valid_numbered_choice_opened(payload):
+            return
+        if event_type == "numberedChoiceClosed" and not valid_numbered_choice_closed(payload):
+            return
         published = dict(payload)
         published["connection"] = {"neovim": "connected"}
         if event_type in {"copyTextResult", "pasteTextResult", "setRegisterResult"}:
             state = clipboard_result_state(payload)
         elif event_type == "leaveTerminalInputResult":
             state = terminal_control_result_state(payload)
-        elif event_type == "exploreTextResult":
+        elif event_type in {"exploreTextResult", "brailleExploreLineResult"}:
             state = exploration_result_state(payload)
+        elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
+            state = numbered_choice_state(payload)
         else:
             state = dict(payload)
         with self._state_lock:
             self._state = state
             self._state["connection"] = {"neovim": "connected"}
+            if event_type == "numberedChoiceOpened":
+                self._active_numbered_choice = dict(payload)
+            elif (
+                event_type == "numberedChoiceClosed"
+                and self._active_numbered_choice is not None
+                and payload.get("choiceId") == self._active_numbered_choice.get("choiceId")
+            ):
+                self._active_numbered_choice = None
         self.transport.publish(event_type, published)
 
     def _on_nvim_connection(self, state: str) -> None:
         with self._state_lock:
             self._state["connection"] = {"neovim": state}
+            if state == "disconnected":
+                self._active_numbered_choice = None
         if state != "connecting":
             self.transport.publish("connectionStateChanged", self.full_state())
 
@@ -111,27 +147,75 @@ class Bridge:
             if valid_end_exploration_request(payload):
                 self.nvim.notify("nvim_exec_lua", _END_EXPLORATION_LUA, [dict(payload)])
             return
+        if kind == "brailleExploreLineRequest":
+            if (
+                self._supports_plugin_capability("brailleExploration")
+                and valid_braille_explore_line_request(payload)
+            ):
+                self.nvim.notify("nvim_exec_lua", _BRAILLE_EXPLORE_LINE_LUA, [dict(payload)])
+            return
+        if kind == "endBrailleExplorationRequest":
+            if (
+                self._supports_plugin_capability("brailleExploration")
+                and valid_end_braille_exploration_request(payload)
+            ):
+                self.nvim.notify(
+                    "nvim_exec_lua",
+                    _END_BRAILLE_EXPLORATION_LUA,
+                    [dict(payload)],
+                )
+            return
+        if kind == "acceptNumberedChoiceRequest":
+            if (
+                not self._supports_plugin_capability("numberedChoices")
+                or not valid_accept_numbered_choice_request(payload)
+            ):
+                return
+            with self._state_lock:
+                choice = (
+                    dict(self._active_numbered_choice)
+                    if self._active_numbered_choice is not None
+                    else None
+                )
+            if not self._matches_numbered_choice(payload, choice):
+                return
+            self.nvim.notify("nvim_input", f"{payload['itemIndex'] + 1}\r")
+            return
+        if kind == "moveBrailleLine":
+            if (
+                self._supports_plugin_capability("brailleLineNavigation")
+                and valid_move_braille_line_request(payload)
+            ):
+                self.nvim.notify("nvim_exec_lua", _MOVE_BRAILLE_LINE_LUA, [dict(payload)])
+            return
+        if kind == "brailleRouteAction":
+            if (
+                self._supports_plugin_capability("brailleRoutingActions")
+                and valid_braille_route_action_request(payload)
+            ):
+                self.nvim.notify("nvim_exec_lua", _BRAILLE_ROUTE_ACTION_LUA, [dict(payload)])
+            return
         if kind != "routeCursor":
             return
-        required = ("bufferId", "windowId", "line", "byteColumn", "changedtick")
-        if any(not isinstance(payload.get(field), int) for field in required):
+        if not valid_route_cursor_request(payload):
             return
-        self.nvim.notify(
-            "nvim_exec_lua",
-            """
-              local p = ...
-              if vim.api.nvim_get_current_buf() ~= p.bufferId then return false end
-              if vim.api.nvim_get_current_win() ~= p.windowId then return false end
-              if vim.api.nvim_buf_get_changedtick(p.bufferId) ~= p.changedtick then return false end
-              if p.line < 1 or p.line > vim.api.nvim_buf_line_count(p.bufferId) then return false end
-              local line = vim.api.nvim_buf_get_lines(p.bufferId, p.line - 1, p.line, true)[1] or ''
-              if p.byteColumn < 0 or p.byteColumn > #line then return false end
-              if p.byteColumn < #line then
-                local byte = string.byte(line, p.byteColumn + 1)
-                if byte >= 0x80 and byte < 0xC0 then return false end
-              end
-              vim.api.nvim_win_set_cursor(p.windowId, { p.line, p.byteColumn })
-              return true
-            """,
-            [payload],
+        self.nvim.notify("nvim_exec_lua", _ROUTE_CURSOR_LUA, [dict(payload)])
+
+    @staticmethod
+    def _matches_numbered_choice(
+        payload: dict[str, Any],
+        choice: dict[str, Any] | None,
+    ) -> bool:
+        if choice is None:
+            return False
+        return (
+            all(payload.get(field) == choice.get(field) for field in (
+                "choiceKind", "choiceId", "bufferId", "windowId", "tabpageId", "changedtick",
+            ))
+            and payload["itemIndex"] < len(choice.get("items", ()))
         )
+
+    def _supports_plugin_capability(self, capability: str) -> bool:
+        with self._state_lock:
+            capabilities = self._state.get("pluginCapabilities")
+            return isinstance(capabilities, list) and capability in capabilities

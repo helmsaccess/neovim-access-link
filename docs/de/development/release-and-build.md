@@ -11,7 +11,7 @@ Enthalten sind:
 - interner NVDA-Identifier `NeovimAccessLink`,
 - sichtbarer Produktname „Neovim Access Link“,
 - Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
-- vom Benutzer bestimmte Produktversion `0.95.2`,
+- vom Benutzer bestimmte Produktversion `0.96.0`,
 - eine pro Featurebranch verwaltete Entwicklungsbuildnummer,
 - Releasekanal `beta`,
 - minimale und zuletzt getestete NVDA-Version.
@@ -26,9 +26,9 @@ Identifier ist kein zweiter sichtbarer Produktname.
 ## Abgeleitete Werte
 
 `buildVars.store_version()` liefert ausschließlich die normale numerische
-Produktversion `0.95.2` für `manifest.ini` und den NVDA Add-on Store.
+Produktversion `0.96.0` für `manifest.ini` und den NVDA Add-on Store.
 `buildVars.development_version()` ergänzt für Entwicklungsstände eine
-branchlokale SemVer-Kennung wie `0.95.2-dev.1` und nach Möglichkeit
+branchlokale SemVer-Kennung wie `0.96.0-dev.1` und nach Möglichkeit
 Build-Metadaten aus Branch und Commit. `buildVars.artifact_version()` verwendet
 diese vollständige Kennung für Pakete und Laufzeitdiagnosen. Der Store sieht
 damit keine interne Buildnummer.
@@ -42,9 +42,9 @@ Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
 - einen eindeutigen Archivnamen wie
-  `NeovimAccessLink-0.95.2-dev.1+feature.example.<commit>.nvda-addon`,
+  `NeovimAccessLink-0.96.0-dev.1+feature.example.<commit>.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-0.95.2-dev.1+feature.example.<commit>-user.tar.gz`,
+  `neovim-access-link-0.96.0-dev.1+feature.example.<commit>-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
 - die Version des gebündelten Linux-Komponentenpakets.
 
@@ -68,6 +68,12 @@ Vor einem neuen Build werden alte Artefakte aus `dist/` entfernt. Anschließend
 erzeugt `python3 tools/build_nvda_addon.py` das Add-on. Tests extrahieren das
 tatsächliche Archiv und vergleichen Manifest, Dateiname und Laufzeitmetadaten
 mit `buildVars.py`.
+
+`tools/build_documentation.sh` erzeugt die deutschen und englischen Fassungen
+von Quick Guide, Handbuch und Entwicklerdokumentation. Der Build prüft
+ausdrücklich, dass beide Handbücher ihr Braille-Kapitel enthalten, und bündelt
+alle sechs HTML-Dateien zusätzlich in genau einem versionierten
+Dokumentations-ZIP unter `dist/`.
 
 Das unveränderte GPL-v2-Lizenzdokument wird in das Add-on und das Paket der
 Benutzerkomponenten aufgenommen. Einzelheiten zu Projekt- und

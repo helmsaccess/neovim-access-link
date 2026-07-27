@@ -14,7 +14,7 @@ Das Add-on verwendet die üblichen öffentlichen Add-on-Einstiegspunkte:
 Konfigurationsprofil-Stack. Es verändert keine NVDA-Quelldatei und ersetzt
 keine globale NVDA-Funktion.
 
-Für drei eng begrenzte Aufgaben bietet NVDA 2026.1.1 jedoch keine gleichwertige,
+Für vier eng begrenzte Aufgaben bietet NVDA 2026.1.1 jedoch keine gleichwertige,
 ausdrücklich stabile Add-on-API. Diese Ausnahmen dürfen nicht stillschweigend
 ausgeweitet werden.
 
@@ -65,6 +65,59 @@ Erweiterungsschnittstellen zugesagt.
 - Ablöseplan: Offizielle registrierbare Settings-/Tools-Erweiterungspunkte
   übernehmen, sobald NVDA sie bereitstellt; bis dahin pro Zielversion mit dem
   echten NVDA-Paket und dem extrahierten gebauten Add-on testen.
+
+## Ausnahme 4: Sofortiges Beenden einer eigenen Braillemeldung
+
+Neovims Rechtschreibvorschlag wird über
+`braille.handler.message` ausgegeben. Dies ist derselbe öffentliche
+Nachrichtenpfad, den NVDA selbst unter anderem für Vorschlagslisten und
+ausgewählte Elemente verwendet. Beim Loslassen der NVDA-Taste muss diese
+vorübergehende Meldung sofort verschwinden, damit NVDAs bereits erhaltener
+Editorpuffer wieder sichtbar wird. NVDA 2026.1.1 bietet dafür keine öffentliche
+Gegenfunktion zu `message` und keine Laufzeitangabe pro einzelner Meldung.
+
+Das Add-on merkt deshalb die konkrete, von seinem Aufruf erzeugte
+Nachrichtenregion. Dazu liest es nach dem öffentlichen `message()`-Aufruf
+`BrailleHandler.messageBuffer`, `BrailleHandler.buffer` und
+`BrailleBuffer.regions`. Es beansprucht die Meldung nur, wenn der sichtbare
+Puffer der Nachrichtenpuffer ist und dessen letzte Region ein gegenüber dem
+Zustand vor dem Aufruf neues Objekt ist. Ein wirkungsloser `message()`-Aufruf,
+etwa bei deaktivierten Braillemeldungen oder im NVDA-Modus „Sprachausgabe
+anzeigen“, kann deshalb keine bereits sichtbare fremde Meldung übernehmen.
+
+Nur für diese nachgewiesene eigene Region beendet das Add-on über `Stop()` den
+aktuellen privaten `_messageCallLater`, damit die aktive Auswahl beim Lesen
+nicht nach dem allgemeinen Meldungszeitlimit verschwindet. Es überschreibt das
+Timerfeld nicht. Zum Beenden verwendet es
+`BrailleHandler._dismissMessage` ausschließlich dann, wenn derselbe
+Nachrichtenpuffer noch sichtbar und exakt dieselbe Region weiterhin dessen
+letzte Region ist. Eine inzwischen von NVDA oder einem anderen Add-on
+ausgegebene Meldung wird nicht geschlossen.
+
+- Private Berührungspunkte:
+  `BrailleHandler.messageBuffer`, `BrailleHandler.buffer`,
+  `BrailleBuffer.regions`, `BrailleHandler._messageCallLater`,
+  `CallLater.Stop()` und `BrailleHandler._dismissMessage`.
+- Risiko: Namen, Identitäten oder Lebensdauer von Puffer, Region, Methode und
+  Meldungstimer können sich mit NVDA ändern.
+- Begrenzung: Jeder Zugriff verwendet `getattr`, Identitätsvergleiche und eine
+  vollständige Ausnahmegrenze. Fehlende Pufferdaten, eine wirkungslose
+  öffentliche Ausgabe, eine fremde aktuelle Region oder jeder Fehler führen
+  nur dazu, dass NVDAs normales Meldungsverhalten zuständig bleibt.
+  Editorzustand, Eingabe, Transport und Sprachausgabe werden dadurch nicht
+  verändert.
+- Begründung: Der Vorschlag ist während der gehaltenen NVDA-Taste der aktive
+  Wert eines Bedienelements, keine Meldung, die beim Lesen veralten darf. Beim
+  Loslassen muss dagegen sofort wieder die bereits aufgebaute Editorregion
+  sichtbar sein. NVDA 2026.1.1 bietet weder eine öffentliche Laufzeit pro
+  Meldung noch eine öffentliche Operation zum gezielten Schließen genau der
+  eigenen Meldung. Ein allgemeiner Fokusneuaufbau beendet den aktiven
+  Nachrichtenpuffer nicht und das Abwarten des globalen Zeitlimits erfüllt
+  beide Anforderungen nicht.
+- Ablöseplan: Auf eine öffentliche API zum gezielten Beenden eigener
+  Braillemeldungen wechseln, sobald NVDA sie anbietet; bis dahin Quellprüfung,
+  Identitäts-/Fail-open-Pakettests und praktische Brailleprüfung für jede
+  unterstützte NVDA-Hauptversion.
 
 ## Nicht als Ausnahme zugelassen
 

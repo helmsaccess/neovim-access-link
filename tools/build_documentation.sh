@@ -6,6 +6,9 @@ product_name="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.addo
 product_slug="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.product_slug())')"
 output_dir="${1:-$root/build/docs}"
 output_dir="$(realpath -m "$output_dir")"
+archive_dir="${2:-$root/dist}"
+archive_dir="$(realpath -m "$archive_dir")"
+artifact_version="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.artifact_version())')"
 
 quick_output="$output_dir/$product_slug-quick-guide-de.html"
 handbook_output="$output_dir/$product_slug-handbook-de.html"
@@ -13,6 +16,7 @@ developer_output="$output_dir/$product_slug-developer-documentation-de.html"
 quick_en_output="$output_dir/$product_slug-quick-guide-en.html"
 handbook_en_output="$output_dir/$product_slug-handbook-en.html"
 developer_en_output="$output_dir/$product_slug-developer-documentation-en.html"
+documentation_archive="$archive_dir/$product_slug-$artifact_version-documentation.zip"
 
 quick_sources=(
   docs/de/manual/quick-guide.md
@@ -21,6 +25,7 @@ quick_sources=(
 handbook_sources=(
   docs/de/manual/README.md
   docs/de/manual/settings.md
+  docs/de/manual/speech-exploration.md
   docs/de/manual/communication.md
   docs/de/manual/ssh-and-tmux.md
   docs/de/manual/menus-and-completion.md
@@ -68,6 +73,7 @@ quick_en_sources=(
 handbook_en_sources=(
   docs/en/manual/README.md
   docs/en/manual/settings.md
+  docs/en/manual/speech-exploration.md
   docs/en/manual/communication.md
   docs/en/manual/ssh-and-tmux.md
   docs/en/manual/menus-and-completion.md
@@ -221,6 +227,15 @@ PY
   }
 }
 
+validate_required_section() {
+  local output="$1"
+  local section_id="$2"
+  [[ "$(grep -Fc "id=\"$section_id\"" "$output")" -eq 1 ]] || {
+    echo "error: generated HTML does not contain required section $section_id: $output" >&2
+    exit 1
+  }
+}
+
 build_html() {
   local output="$1"
   local title="$2"
@@ -275,3 +290,43 @@ build_html \
 build_html \
   "$developer_en_output" "$product_name – Developer Documentation" english \
   "${developer_en_sources[@]}"
+
+validate_required_section \
+  "$handbook_output" \
+  "docs__de__manual__braillemd__braille-unterstützung"
+validate_required_section \
+  "$handbook_output" \
+  "docs__de__manual__speech-explorationmd__sprachexplorationsmodus"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__braillemd__braille-support"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__speech-explorationmd__speech-exploration-mode"
+
+mkdir -p "$archive_dir"
+python3 - "$documentation_archive" \
+  "$quick_output" "$handbook_output" "$developer_output" \
+  "$quick_en_output" "$handbook_en_output" "$developer_en_output" <<'PY'
+from pathlib import Path
+import sys
+import zipfile
+
+output = Path(sys.argv[1])
+sources = [Path(value) for value in sys.argv[2:]]
+staged = output.with_name(f".{output.name}.tmp")
+with zipfile.ZipFile(
+    staged,
+    "w",
+    compression=zipfile.ZIP_DEFLATED,
+    compresslevel=9,
+) as archive:
+    for source in sources:
+        info = zipfile.ZipInfo(source.name, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o644 << 16
+        archive.writestr(info, source.read_bytes(), compresslevel=9)
+staged.replace(output)
+output.chmod(0o644)
+PY
+echo "built $documentation_archive ($(wc -c < "$documentation_archive") bytes) from 6 HTML files"

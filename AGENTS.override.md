@@ -31,8 +31,17 @@
 - `bridge/`
 - `nvda-addon/`
 
+## Tests
+
+- Use `tools/run_tests.py`: `quick` for fast feedback, `all-safe` for the sandbox-safe suite, `socket` separately where local listeners are permitted, and `all` for both phases.
+- Classify every test in `unit`, `package`, `lua`, `ssh` or `socket`; keep parallel jobs independent, with no shared mutable paths, processes or sessions.
+- Treat restricted-sandbox socket failures as environment limitations and validate affected socket, TUI or session code outside the sandbox.
+
 ## Additional rules
 
+- In `buildVars.py`, `development_build` is branch-local: set it to `1` for the first changed
+  installable state on every new non-release branch, even when the branch inherited another
+  `dev.N`.
 - GitHub releases publish the `.nvda-addon` plus one ZIP containing all German and English quick-guide, handbook, and developer-documentation HTML files; prerelease status also requires explicit user instruction.
 - When setting a release version, update `README.md`'s prominent release link and its versioned English and German changelog links; verify them again when publishing.
 - Prefer stable public NVDA and Neovim APIs.

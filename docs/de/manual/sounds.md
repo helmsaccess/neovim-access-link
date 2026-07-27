@@ -22,6 +22,17 @@ Der Kommandozeilenton benötigt keine Audiodatei. Die übrigen Dateien dieser
 Tabelle werden nicht in das Add-on kopiert. Dadurch bleiben die Klänge
 mit der jeweils installierten NVDA-Version konsistent.
 
+Der Rechtschreibklang wird nach Abschluss eines fehlerhaften Wortes sowie beim
+Erreichen eines betroffenen Worts durch normale Wortnavigation oder
+Wortexploration im Sprachexplorationsmodus ausgegeben. Maßgeblich bleiben NVDAs Einstellungen für
+Rechtschreib- und Grammatikfehler; das Add-on führt dafür keine abweichende
+Option ein. Dort sind Sprache, Klang und Braille unabhängig auswählbar:
+„Sprache“ steuert den lokalisierten Hinweis „Rechtschreibfehler“ oder
+„Grammatikfehler“, „Signaltöne“ steuert `textError.wav`, und „Braille“ steuert nur
+die Fehlermarkierung auf der Braillezeile. Normale Wortnavigation und
+Wortexploration im Sprachexplorationsmodus werten dieselbe Kombination aus; das erreichte Wort wird
+unabhängig davon weiterhin angesagt.
+
 ## Mitgelieferte CC0-Earcons
 
 Für Löschen, Ersetzen, Zeilen- und Dateigrenzen sowie einen Zeilenwechsel gibt

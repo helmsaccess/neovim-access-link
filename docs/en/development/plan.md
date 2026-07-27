@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 23, 2026.
+Status date: July 27, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -22,6 +22,9 @@ Ongoing:
 - keep durable reference, current status, active plan, changelog, and dated
   reports clearly separated;
 - keep German and English core chapters structurally parallel;
+- incrementally align older English user-manual and developer chapters that
+  are shorter than their German counterparts, starting with settings,
+  communication, component installation, SSH/tmux, and security;
 - verify claims about processes, session registry, assignment, gate, reverse
   controls, polling, and fallbacks against the current code;
 - validate the HTML build, internal links, and published sources
@@ -71,16 +74,41 @@ mini.files, nvim-tree, and Neo-tree incrementally, both locally and over SSH:
 Missing public plugin events must not be replaced with unbounded polling or
 general popup scraping.
 
-## 5. Test Braille on physical hardware
+## 5. Broaden the Braille hardware matrix
 
-- When hardware is available, exercise more than one representative display
-  or driver combination in practice.
+- Beyond the already confirmed display, exercise more than one representative
+  display or driver combination in practice.
 - Check cursor, selection, Unicode, tabs, file-manager segments, and routing.
+- Check standard horizontal panning plus Up/Down with retained columns across
+  multiple drivers and display widths.
+- Practically cover optional double/triple actions with all four commands,
+  three line starts, timeout, position changes, and the safe disabled default.
 - Ambiguous or synthetic cells must remain without invented routing targets.
 - Add hardware-specific behavior to the planner only after reproducible
   evidence.
 
-## 6. Increase robustness and compatibility breadth
+## 6. Practically accept the Braille navigation modes
+
+- Exercise the implemented freely assignable `Cursor`/`Exploration` toggle
+  with multiple Braille displays and drivers.
+- Confirm that Up/Down changes only the ephemeral read position in exploration
+  mode and that routing then moves the real cursor to the selected line.
+- Practically check independence from speech exploration mode, separate mode
+  selection across concurrent local and remote sessions, targeted reset of
+  only the disconnected session, and rejection in command-line and
+  direct-terminal modes.
+- After edits on the explored line, confirm in practice that the virtual line
+  and horizontal viewport stay in place, the content is refreshed completely,
+  and a subsequent routing command uses the current mode and buffer state.
+  After intervening changes while the real cursor is on another line, routing
+  from a no-longer-proven line snapshot must be rejected and work again after
+  that line has been fetched again.
+- Mode selection is already retained independently for the lifetime of each
+  connected session; new and disconnected sessions start safely in cursor
+  mode. Decide on additional profile-aware persistence across connections or
+  NVDA restarts only after hardware acceptance.
+
+## 7. Increase robustness and compatibility breadth
 
 - Test long runtimes, repeated SSH loss, and reconnects.
 - Measure high event load, large files, and many concurrent sessions.

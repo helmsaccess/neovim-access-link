@@ -8,6 +8,7 @@ local targets = {
   ["../README.md"] = "#docs__de__readmemd__deutsche-dokumentation",
 
   ["settings.md"] = "#docs__de__manual__settingsmd__handbuch-einstellungen-des-nvda-add-ons",
+  ["speech-exploration.md"] = "#docs__de__manual__speech-explorationmd__sprachexplorationsmodus",
   ["communication.md"] = "#docs__de__manual__communicationmd__handbuch-kommunikation-verbindung-und-sitzungszuordnung",
   ["../manual/communication.md"] = "#docs__de__manual__communicationmd__handbuch-kommunikation-verbindung-und-sitzungszuordnung",
   ["ssh-and-tmux.md"] = "#docs__de__manual__ssh-and-tmuxmd__betrieb-mit-ssh-tmux-und-neovim",

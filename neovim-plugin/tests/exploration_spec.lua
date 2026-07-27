@@ -71,6 +71,7 @@ local right = exploration.step(request("characterRight"))
 equal({ "l", 1, 1, 1 }, {
   right.text, right.line, right.byteColumn, right.characterColumn,
 }, "character navigation uses a virtual cursor")
+equal("alpha, beta", right.explorationLineText, "result carries the bounded virtual Braille line")
 truth(not right.atOrigin, "character movement leaves the origin")
 right = exploration.step(request("characterRight", { count = 3 }))
 equal({ "a", 4 }, { right.text, right.byteColumn }, "bounded repeat is applied in Lua")
@@ -99,6 +100,26 @@ equal({ ",", 5 }, { previous_word.text, previous_word.byteColumn }, "previous pu
 previous_word = exploration.step(request("wordPrevious"))
 equal({ "alpha", 0 }, { previous_word.text, previous_word.byteColumn }, "previous keyword finds its start")
 equal("boundary", exploration.step(request("wordPrevious")).resultCode, "buffer start is bounded")
+
+local spelling_namespace = vim.api.nvim_create_namespace("nvim_nvda_exploration_spelling")
+vim.diagnostic.set(spelling_namespace, 0, {
+  {
+    lnum = 0,
+    col = 7,
+    end_lnum = 0,
+    end_col = 11,
+    message = "Unknown word",
+    source = "cspell",
+  },
+})
+vim.api.nvim_win_set_cursor(0, { 1, 5 })
+begin()
+local misspelled_word = exploration.step(request("wordNext"))
+equal({ "beta", "spelling" }, {
+  misspelled_word.text, misspelled_word.formatError,
+}, "word exploration reports semantic spelling feedback")
+vim.diagnostic.reset(spelling_namespace, 0)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
 
 begin()
 local down = exploration.step(request("lineDown"))

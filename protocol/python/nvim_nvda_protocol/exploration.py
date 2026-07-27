@@ -23,9 +23,11 @@ _NONNEGATIVE_REQUEST_FIELDS = (
 )
 _RESULT_ONLY_FIELDS = frozenset({
     "requestId", "explorationId", "actionIndex", "action", "unit", "ok", "resultCode", "text",
-    "line", "byteColumn", "characterColumn", "virtualColumn", "atOrigin",
+    "line", "byteColumn", "characterColumn", "virtualColumn", "atOrigin", "formatError",
+    "explorationLineText",
 })
 _SUCCESS_CODES = frozenset({"moved", "boundary"})
+_FORMAT_ERRORS = frozenset({"spelling", "grammar"})
 _FAILURE_CODES = frozenset({
     "invalidOrStaleRequest", "outOfOrder", "scanLimit", "textTooLarge",
 })
@@ -89,11 +91,19 @@ def valid_explore_text_result(payload: Any) -> bool:
     result_code = payload.get("resultCode")
     if payload.get("ok") is False:
         return result_code in _FAILURE_CODES
+    unit = payload.get("unit")
+    format_error = payload.get("formatError")
+    exploration_line_text = payload.get("explorationLineText")
     return (
         result_code in _SUCCESS_CODES
-        and payload.get("unit") in EXPLORATION_UNITS
+        and unit in EXPLORATION_UNITS
+        and (
+            format_error is None
+            or (unit == "word" and format_error in _FORMAT_ERRORS)
+        )
         and isinstance(payload.get("atOrigin"), bool)
         and _valid_text(payload.get("text"))
+        and (exploration_line_text is None or _valid_text(exploration_line_text))
         and _positive_integer(payload.get("line"))
         and all(_nonnegative_integer(payload.get(field)) for field in (
             "byteColumn", "characterColumn", "virtualColumn",

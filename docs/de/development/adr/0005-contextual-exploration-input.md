@@ -1,4 +1,4 @@
-# ADR-0005: Kontextbezogene Eingabe für den Explorationsmodus
+# ADR-0005: Kontextbezogene Eingabe für den Sprachexplorationsmodus
 
 ## Status
 
@@ -8,7 +8,7 @@ rückwärtiger Wortbewegung und konfigurierbarer Abschlussansage liegen vor.
 
 ## Kontext
 
-Der Explorationsmodus soll `NVDA+h/j/k/l` sowie
+Der Sprachexplorationsmodus soll `NVDA+h/j/k/l` sowie
 `Umschalt+NVDA+h/l` innerhalb einer bestätigten Neovim-Pane als rein lesende
 Navigation verwenden. Derselbe Windows-Terminal-Prozess kann gleichzeitig
 andere Tabs und Panes mit PowerShell, einer gewöhnlichen SSH-Shell oder einer
@@ -41,9 +41,12 @@ normalisierte Kennungen sowie eine eng begrenzte Autorepeat-Sperre.
   Kombination still verbraucht. Sie wird nicht als nacktes `h/j/k/l` an
   Neovim weitergereicht und kann daher den echten Cursor nicht bewegen.
 
-Die Exploration registriert keinen Handler bei
-`inputCore.decide_executeGesture`. Dessen bestehende Nutzung bleibt auf die in
-ADR-0004 beschriebene F12-Zuordnung beschränkt.
+Der Sprachexplorationsmodus registriert keinen zusätzlichen Handler bei
+`inputCore.decide_executeGesture`. Das AppModule teilt sich den bereits
+registrierten, in ADR-0004 begrenzten Beobachter mit F12, nummerierten
+Auswahllisten und der direkten Braillezeilen-Abwärtsnavigation; die Auswahl
+der Sprachexplorationsskripte selbst erfolgt weiterhin ausschließlich über
+NVDAs normale `getScript`-Auflösung.
 
 Das AppModule registriert den öffentlichen
 `inputCore.decide_handleRawKey`-Erweiterungspunkt symmetrisch, solange

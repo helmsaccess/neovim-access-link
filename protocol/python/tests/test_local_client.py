@@ -97,16 +97,147 @@ class LocalTcpClientTests(unittest.TestCase):
 		client, source, _events, _states, diagnostics = self.make_client()
 		self.assertFalse(client.send_control("routeCursor", {"line": 1}))
 		payload = {
+			"target": "editor",
 			"bufferId": 1,
 			"windowId": 2,
 			"line": 3,
 			"byteColumn": 4,
 			"changedtick": 5,
+			"modeRaw": "i",
 		}
 		self.assertTrue(client.send_control("routeCursor", payload))
 		self.assertEqual("nvim_exec_lua", source.notifications[0][0])
+		self.assertIn("request_route_cursor", source.notifications[0][1][0])
 		self.assertEqual([payload], source.notifications[0][1][1])
+		command_line = {
+			"target": "commandLine",
+			"bufferId": 1,
+			"windowId": 2,
+			"byteColumn": 1,
+			"changedtick": 5,
+			"modeRaw": "c",
+			"commandLine": "a界z",
+			"commandLineType": ":",
+		}
+		self.assertTrue(client.send_control("routeCursor", command_line))
+		self.assertFalse(client.send_control("routeCursor", {**command_line, "byteColumn": 2}))
 		self.assertEqual("controlRejected", diagnostics[0][0])
+
+	def test_braille_line_control_requires_negotiated_plugin_capability(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"changedtick": 4,
+			"modeRaw": "i",
+			"direction": "next",
+			"targetColumn": "preferred",
+			"preferredVirtualColumn": 79,
+		}
+		source.on_event("fullState", {"pluginCapabilities": []})
+		self.assertFalse(client.send_control("moveBrailleLine", payload))
+		source.on_event("fullState", {"pluginCapabilities": ["brailleLineNavigation"]})
+		self.assertIn(
+			"brailleLineNavigation",
+			events[-1]["payload"]["_transport"]["capabilities"],
+		)
+		self.assertTrue(client.send_control("moveBrailleLine", payload))
+		self.assertIn("request_move_braille_line", source.notifications[-1][1][0])
+		self.assertEqual([payload], source.notifications[-1][1][1])
+		self.assertFalse(client.send_control("moveBrailleLine", {**payload, "modeRaw": "c"}))
+		self.assertEqual(2, sum(category == "controlRejected" for category, _ in diagnostics))
+
+	def test_repeated_braille_routing_action_is_fixed_validated_and_capability_gated(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		payload = {
+			"bufferId": 1,
+			"windowId": 2,
+			"line": 3,
+			"byteColumn": 4,
+			"changedtick": 5,
+			"modeRaw": "i",
+			"action": "deleteLine",
+			"lineStart": "indentation",
+		}
+		source.on_event("fullState", {"pluginCapabilities": []})
+		self.assertNotIn(
+			"brailleRoutingActions",
+			events[-1]["payload"]["_transport"]["capabilities"],
+		)
+		self.assertFalse(client.send_control("brailleRouteAction", payload))
+		source.on_event("fullState", {"pluginCapabilities": ["brailleRoutingActions"]})
+		self.assertIn(
+			"brailleRoutingActions",
+			events[-1]["payload"]["_transport"]["capabilities"],
+		)
+		self.assertTrue(client.send_control("brailleRouteAction", payload))
+		self.assertIn("request_braille_route_action", source.notifications[-1][1][0])
+		self.assertEqual([payload], source.notifications[-1][1][1])
+		self.assertFalse(
+			client.send_control(
+				"brailleRouteAction",
+				{**payload, "action": "dd"},
+			)
+		)
+		self.assertEqual(2, sum(category == "controlRejected" for category, _ in diagnostics))
+
+	def test_braille_exploration_has_independent_capability_controls_and_results(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		payload = {
+			"requestId": 1,
+			"explorationId": 2,
+			"actionIndex": 1,
+			"action": "lineDown",
+			"count": 1,
+			"bufferId": 3,
+			"windowId": 4,
+			"tabpageId": 5,
+			"changedtick": 6,
+			"modeRaw": "n",
+			"cursorLine": 7,
+			"cursorByteColumn": 0,
+			"cursorVirtualColumn": 0,
+			"desiredVirtualColumn": 79,
+			"targetColumn": "preferred",
+		}
+		source.on_event("fullState", {"pluginCapabilities": ["exploration"]})
+		self.assertFalse(client.send_control("brailleExploreLineRequest", payload))
+		source.on_event("fullState", {"pluginCapabilities": ["brailleExploration"]})
+		self.assertIn(
+			"brailleExploration",
+			events[-1]["payload"]["_transport"]["capabilities"],
+		)
+		self.assertNotIn("exploration", events[-1]["payload"]["_transport"]["capabilities"])
+		self.assertTrue(client.send_control("brailleExploreLineRequest", payload))
+		self.assertTrue(
+			client.send_control(
+				"endBrailleExplorationRequest",
+				{"requestId": 2, "explorationId": 2},
+			)
+		)
+		self.assertIn("request_braille_explore_line", source.notifications[-2][1][0])
+		self.assertIn("request_end_braille_exploration", source.notifications[-1][1][0])
+
+		result = {
+			**payload,
+			"mode": "normal",
+			"ok": True,
+			"resultCode": "moved",
+			"unit": "line",
+			"text": "private virtual line",
+			"line": 8,
+			"byteColumn": 0,
+			"characterColumn": 0,
+			"virtualColumn": 0,
+			"atOrigin": False,
+		}
+		source.on_event("brailleExploreLineResult", result)
+		self.assertEqual("private virtual line", events[-1]["payload"]["text"])
+		self.assertTrue(client.send_control("requestFullState", {}))
+		self.assertNotIn("text", events[-1]["payload"])
+		source.on_event("brailleExploreLineResult", {**result, "unit": "word"})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
 
 	def test_clipboard_controls_are_fixed_validated_rpc_calls(self) -> None:
 		client, source, _events, _states, diagnostics = self.make_client()
@@ -307,6 +438,95 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertNotIn("explorationId", events[-1]["payload"])
 		source.on_event("exploreTextResult", {**result, "text": "x" * (16 * 1024 + 1)})
 		self.assertEqual("localEventRejected", diagnostics[-1][0])
+
+	def test_numbered_choice_accepts_only_the_exact_active_native_item(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		source.on_event(
+			"fullState",
+			{"mode": "normal", "pluginCapabilities": ["numberedChoices"]},
+		)
+		opened = {
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"items": ["misspelled", "misapplied"],
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+			"pluginCapabilities": ["numberedChoices"],
+		}
+		source.on_event("numberedChoiceOpened", opened)
+		request = {
+			"requestId": 8,
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"itemIndex": 1,
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+
+		self.assertTrue(client.send_control("acceptNumberedChoiceRequest", request))
+		self.assertEqual(("nvim_input", ("2\r",)), source.notifications[-1])
+		self.assertFalse(
+			client.send_control(
+				"acceptNumberedChoiceRequest",
+				{**request, "changedtick": 5},
+			)
+		)
+		self.assertEqual("staleState", diagnostics[-1][1]["reason"])
+		self.assertTrue(client.send_control("requestFullState", {}))
+		self.assertNotIn("items", events[-1]["payload"])
+		self.assertNotIn("choiceId", events[-1]["payload"])
+
+	def test_numbered_choice_requires_capability_and_is_cleared_on_close(self) -> None:
+		client, source, _events, _states, diagnostics = self.make_client()
+		request = {
+			"requestId": 8,
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"itemIndex": 0,
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+		client._on_nvim_event("fullState", {"mode": "normal"})
+		self.assertFalse(client.send_control("acceptNumberedChoiceRequest", request))
+		self.assertEqual("capabilityMissing", diagnostics[-1][1]["reason"])
+
+		client._on_nvim_event(
+			"fullState",
+			{"mode": "normal", "pluginCapabilities": ["numberedChoices"]},
+		)
+		client._on_nvim_event(
+			"numberedChoiceOpened",
+			{
+				"choiceKind": "spellSuggestions",
+				"choiceId": 7,
+				"items": ["one"],
+				"bufferId": 1,
+				"windowId": 2,
+				"tabpageId": 3,
+				"changedtick": 4,
+				"pluginCapabilities": ["numberedChoices"],
+			},
+		)
+		client._on_nvim_event(
+			"numberedChoiceClosed",
+			{
+				"choiceKind": "spellSuggestions",
+				"choiceId": 7,
+				"bufferId": 1,
+				"windowId": 2,
+				"tabpageId": 3,
+				"changedtick": 4,
+				"pluginCapabilities": ["numberedChoices"],
+			},
+		)
+		self.assertFalse(client.send_control("acceptNumberedChoiceRequest", request))
+		self.assertEqual("staleState", diagnostics[-1][1]["reason"])
 
 	def test_clipboard_result_text_never_enters_cached_full_state(self) -> None:
 		client, source, events, _states, _diagnostics = self.make_client()

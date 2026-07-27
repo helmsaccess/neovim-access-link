@@ -49,28 +49,61 @@ test accounts.
 Run from the repository root:
 
 ```bash
-export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPATH=protocol/python:bridge/python:nvda-addon/core
 ruff check .
 ruff format --check .
-python3 -m unittest discover -s protocol/python/tests -v
-python3 -m unittest discover -s bridge/python/tests -v
-python3 -m unittest discover -s nvda-addon/tests -v
-tools/test_neovim_plugin.sh
+tools/run_tests.py all-safe
 python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
 git diff --check
 ```
 
+`tools/run_tests.py` starts independent files or integration cases in separate
+processes. Every process receives its own temporary directory and
+`XDG_RUNTIME_DIR`; up to eight jobs run concurrently by default. The
+import-intensive package shards additionally use their own Python bytecode
+cache, while short jobs produce no bytecode files. Use `-j N` to limit
+concurrency and `--list` to inspect selection without running it.
+
+| Group or preset | Contents |
+|---|---|
+| `unit` | pure and mock-isolated Python tests |
+| `package` | built add-on, package contents, and NVDA integration doubles in two isolated process shards; serial within each shard |
+| `lua` | headless-Neovim specifications that do not open listeners |
+| `ssh` | separately runnable SSH command, Askpass, and failure paths; all external processes are replaced in these automated tests |
+| `socket` | real disposable Neovim TUI, RPC, TCP, and Unix-socket cases |
+| `quick` | fast feedback; equivalent to `unit` |
+| `safe` | default: `quick`, `package`, and `lua` |
+| `all-safe` | `safe` plus replaced SSH cases |
+| `all` | every group; real socket cases run in a separate phase |
+
+Each package shard builds and extracts exactly one actual add-on. Normal tests
+share that unchanged extraction; a fingerprint over names and contents detects
+unintended writes. Only the two tests that deliberately change configuration
+or remove bundled sounds receive their own fresh extraction.
+
+The `socket` run requires an environment that permits local listeners and Unix
+sockets, so it is deliberately separate:
+
+```bash
+tools/run_tests.py socket
+```
+
+In a restricted sandbox, an `operation not permitted` failure must not be
+reinterpreted as a product defect. Running outside the sandbox remains
+mandatory before a push or release when socket, session, or TUI code is
+affected. The automated `ssh` group opens no real SSH connection; practical
+SSH checks continue to use a disposable test account under this chapter's
+rules.
+
 The two Ruff commands use Ruff 0.14.5, matching NVDA 2026.1. Configuration in
 `pyproject.toml` limits them to Python modules loaded directly by NVDA under
 `nvda-addon/addon/`; other components retain their own consistent styles.
 
-`tools/test_neovim_plugin.sh` uses an available supported Neovim. Changes to
-version boundaries should additionally run Lua and TUI suites with Neovim
-0.10.1 and 0.12.3. An installed plugin must not shadow the checkout, so test
-scripts isolate `packpath`.
+`tools/test_neovim_plugin.sh` remains the serial compatibility run with an
+available supported Neovim. Changes to version boundaries should additionally
+run Lua and TUI suites with Neovim 0.10.1 and 0.12.3. An installed plugin must
+not shadow the checkout, so test scripts isolate `packpath`.
 
 ## What automated suites prove
 
@@ -266,7 +299,7 @@ Move among all controls slowly and rapidly. Expected behavior:
 Record the UIA class and complete runtime ID in redacted form so tabs, panes,
 and windows are not confused.
 
-### Exploration mode
+### Speech exploration mode
 
 Update components and restart every running Neovim instance. While physically
 holding NVDA, exercise `h/l`, `k/j`, and `Shift+h/l`. Expected behavior:
@@ -302,6 +335,166 @@ choices for normal navigation and exploration produced no observed defect.
 This evidence complements the automated matrix; it does not replace testing
 with other keyboard layouts, languages, GlobalPlugins, or physical Braille
 hardware.
+
+### Built-in spelling suggestions
+
+Update the Neovim components, restart Neovim, and enable `:set spell` in a
+disposable buffer. Focus a misspelled word and press `z=`. Expected behavior:
+
+- one brief spoken message announces the available non-empty list;
+- while NVDA remains held, `NVDA+j/k` cycles through suggestions; speech and
+  Braille contain the suggestion but no number;
+- in NVDA's “follow cursors” Braille mode, NVDA's transient Braille message
+  changes immediately on every step; enable Braille messages in NVDA for this
+  test. “Display speech output” follows spoken output instead and does not
+  test a fixed start cell;
+- the default Braille start cell 1 adds no padding; a configured in-range cell
+  such as 40 starts the transient suggestion there, while a value beyond the
+  connected display is ignored and falls back to cell 1; if the suggestion
+  translated with the active Braille table does not fit to the right, its
+  start is limited leftward to the last position where it fits completely;
+- releasing the final NVDA key discards only the local selection, restores
+  the editor Braille line, and leaves Neovim's prompt open;
+- exploring again and pressing `NVDA+Enter` accepts exactly the selected item;
+- `NVDA+Enter` without a local selection reports “No item selected” and in
+  particular does not run a gesture assigned to clipboard paste;
+- NVDA Input Help describes gestures without moving or accepting a choice;
+- `Escape` cancels the native prompt, while focus, mode, buffer, tab, pane, or
+  connection changes leave no transient selection behind;
+- outside the proven `z=` prompt, in a shell, or in another control, J, K,
+  Enter, and user-assigned add-on gestures retain their previous behavior.
+
+Also set NVDA's spelling and grammar formatting to “sound” or “speech and
+sound”: normal word navigation and `Shift+NVDA+h/l` word exploration play
+`textError.wav` when they reach an erroneous word. A correct word does not
+trigger the cue.
+
+Automated parser, protocol, transport, controller, AppModule, Braille, and
+built-add-on tests cover positive and negative paths. This includes the
+immediate message buffer, cell-accurate positioning, targeted restoration of
+the editor buffer, and preservation of a newer Braille message from another
+source. A real TUI/RPC matrix
+also covers the blocking Neovim 0.10 prompt and the scheduled Neovim 0.12
+path, including acceptance of the native index. Practical Windows/NVDA
+acceptance of the suggestion path succeeded with one physical Braille display;
+a broader hardware matrix remains pending.
+
+The post-acceptance Braille architecture audit adds two fail-open regressions.
+First, `StructuredLineRegion.routeTo` must call neither the local nor the SSH
+client directly; it must submit an immutable `routeCursor` payload to the
+bounded `ControlDispatcher`. The test therefore supplies a client whose
+`send_control` must not be called and verifies only the dispatcher submission.
+Second, a no-op public `braille.handler.message()` call must not claim an
+already visible foreign Braille message, stop its timer, or dismiss it later.
+Only a newly created last message region which remains identical proves
+ownership.
+
+Automatic caret following has a package regression: a semantic cursor change
+must use public `braille.handler.handleCaretMove`, while content-only updates
+remain on `handleUpdate`. The structured region must be a `TextInfoRegion` but
+translate its Neovim content through `Region.update()`. NVDA's own buffer can
+therefore restore the viewport first and scroll to the Braille cursor only
+when needed.
+
+Braille-display line navigation has coverage at four levels:
+
+- protocol tests reject extra fields, unknown directions, command-line or
+  target rules, terminal modes, and oversized virtual columns;
+- local and SSH transports negotiate `brailleLineNavigation` only with a
+  matching new plugin and forward only the fixed `moveBrailleLine` entry
+  point;
+- the built-add-on test calls NVDA's public `previousLine()` and `nextLine()`
+  region methods, distinguishes direct Up/Down from horizontal line
+  transitions, and expects dispatcher jobs rather than main-thread I/O. The
+  down-command marker is exactly bound, one-shot, input-help safe, and expires
+  in the next event turn;
+- Lua and real RPC tests move across a short intermediate line in Normal and
+  Insert modes. `curswant` must retain the preferred virtual column and
+  restore it on the next longer line. Horizontal line transitions instead
+  select the previous end or next start. Empty lines, tabs, UTF-8/wide
+  characters, buffer boundaries, stale changed ticks, and Normal/Insert end
+  positions are included.
+
+Practical BRAILLEX EL 80c coverage must check horizontal panning of a long
+line, Up/Down in Normal and Insert modes, short intermediate lines, and buffer
+boundaries. This hardware check is not recorded as passed before user
+feedback.
+
+The separate Braille exploration mode adds these automated layers:
+
+- validators accept only fixed line actions, complete origin identity, a
+  bounded desired column, one of three fixed target rules, and correlated
+  results;
+- controller tests cover the toggle, boundaries, UTF-8, stale or superseded
+  replies, bounded pending queues, dispatch failure, and unchanged canonical
+  editor position. They retain the virtual display across real-cursor and
+  mode movements and edits on other lines. On the explored real-cursor line,
+  they adopt the complete new line-derived state, including a subsequent
+  return from Insert to Normal mode, without re-anchoring the virtual line,
+  reading column, or viewport. Routing requires the displayed content and
+  canonical state to share one current `changedtick`; stale content from an
+  edit elsewhere remains visible but cannot be routed. They advance
+  `changedtick` only within the same context and still reject navigation in
+  command-line and terminal modes;
+- transport tests cover independent capability negotiation, fixed plugin
+  entry points only, and removal of one-shot results from state caches;
+- package tests cover the freely assignable AppModule script, absence of a
+  default gesture, off-thread dispatch, exact focus/instance binding, Braille
+  mode and numbered-choice controllers isolated across concurrently tracked
+  instances, restoration of each session's mode, virtual line, and horizontal
+  NVDA viewport on return from a control or application switch, clamping of a
+  stored viewport against shorter content, an audible focus announcement
+  without a covering Braille message in exploration mode, targeted reset of only the
+  disconnected runtime, and cancellation of repeated-routing and focus
+  sequences when the control changes,
+  refresh, routing from the virtual line, suppression of an apparent virtual
+  cursor, retention of the real cursor after routing and then editing that
+  line, clearing of a concurrently set follow-caret marker only in Braille
+  exploration mode, and pass-through of native caret
+  navigation keys only in the exactly suppressed Neovim control;
+- Lua and real Insert-mode RPC cover a short then longer line, the Insert line
+  end, a subsequently moved real cursor, and interleaving with separate
+  speech exploration. The general navigation specification requires exactly
+  one semantic movement event for one arrow-key press.
+
+Practical hardware acceptance must additionally confirm the toggle, its
+unambiguous mode message, Up/Down without real-cursor movement, routing from
+the virtual line, independent mode selection across local and remote sessions,
+loss of the transient position only on an internal Neovim buffer, window, or
+tab change, restoration of position and horizontal viewport after session and
+application switches, targeted reset only when that session disconnects, and
+independence from `NVDA+h/j/k/l`.
+
+For optional speech-exploration following, protocol and Lua tests cover the
+bounded complete virtual line. Core and package tests verify that it replaces
+the derived Braille view only when configured, disappears on release, and
+never mutates canonical editor state. Separate Braille exploration must retain
+priority; invalid, absent, or oversized lines must not take over the Braille
+plan.
+
+Repeated presses of the same routing key add a separate automated matrix:
+
+- the pure recognizer covers an immediate first press, an immediate word
+  action without a configured triple action, a deferred word action with a
+  triple action, replacement by the third press, token invalidation, timeout,
+  and changed target signature. The service revalidates a deferred action
+  against the current instance and editor state immediately before dispatch;
+- settings and package tests cover safe zero defaults, every choice value,
+  profile persistence, NVDA's multiple-press timeout, and dispatcher-only
+  transport;
+- protocol and transport tests reject extra fields, arbitrary commands,
+  invalid modes, actions, and line starts, missing capability, and stale
+  state;
+- Lua tests cover `dw`, `^d$`, `0d$`, whitespace, read-only buffers, UTF-8
+  boundaries, and changed tick. A real socket test covers deleting a word in
+  the middle of a line while returning to Insert mode, plus `^c$` entering
+  Insert mode.
+
+The reference repeated-routing workflow has been accepted on the BRAILLEX
+EL 80c. Broader practical coverage must still exercise every combination of
+the three line starts, `cw`, `dw`, `c$`, `d$`, an intentionally slow double
+press, a routing-position change, unchanged command-line behavior, and more
+than one display driver.
 
 ### Focus presentation, buffers, and terminal
 
@@ -383,9 +576,11 @@ activation, errors, focus presentation, modes, clipboard, and file managers.
 Document content and third-party Neovim messages are not translated by the
 add-on.
 
-When hardware is available, check current line, selection, Unicode, tabs,
-messages, file-manager segments, and routing on multiple Braille displays.
-Until then, every hardware claim remains explicitly unconfirmed.
+One physical Braille display confirms current line, Unicode, tabs, an empty
+line, the virtual end position, initial-region rebuild, messages, and routing
+in Normal, Insert, and command-line modes. Selection, file-manager segments,
+different translation tables and drivers, and additional displays remain in
+the broader matrix.
 
 ## Classifying a failure
 
