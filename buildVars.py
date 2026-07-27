@@ -15,8 +15,9 @@ addon_info = {
     "name": "NeovimAccessLink",
     "summary": "Neovim Access Link",
     "description": (
-        "Structured, low-latency Neovim navigation for local Windows and "
-        "remote Linux sessions."
+        "Accessible Neovim integration for NVDA with structured speech, sound, and Braille feedback "
+        "for editing, navigation, and spelling suggestions. Supports separate local Windows and "
+        "remote SSH sessions across Windows Terminal windows, tabs, and panes."
     ),
     "author": "Emanuel Helms <emanuel@helmsaccess.de>",
     "minimumNVDAVersion": "2026.1",
