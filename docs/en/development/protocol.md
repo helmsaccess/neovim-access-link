@@ -141,7 +141,8 @@ client exists.
 Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
-`menuSelectionChanged`, `menuClosed`, `signatureChanged`,
+`menuSelectionChanged`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
+`signatureClosed`,
 `diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -150,6 +151,11 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
+`menuItemUpdated` retains selection, index, and count while updating only
+metadata such as documentation resolved later. NVDA uses it to refresh the
+per-instance documentation cache without a second selection announcement.
+`signatureClosed` ends transient signature state when its editor context is
+left and has no speech presentation of its own.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only

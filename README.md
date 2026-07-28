@@ -22,7 +22,8 @@ Practically tested workflows include:
 - character, word, and line navigation with configurable cursor context;
 - read-only speech exploration of characters and lines with `NVDA+h/j/k/l`,
   plus words with `Shift+NVDA+h/l`, without moving Neovim's real cursor;
-- selections, editing, messages, built-in completion, and buffer changes;
+- selections, editing, messages, built-in completion plus `nvim-cmp` and
+  `blink.cmp`, and buffer changes;
 - Neovim's command line and embedded terminal;
 - copying Visual selections or register 0 to Windows and sending Windows
   clipboard text back to Neovim, locally and over SSH;

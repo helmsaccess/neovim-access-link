@@ -701,7 +701,7 @@ class EditorSessionController:
 					value for value in transport["capabilities"] if isinstance(value, str)
 				)
 
-		if event_type == "menuSelectionChanged" and payload is not None:
+		if event_type in {"menuSelectionChanged", "menuItemUpdated"} and payload is not None:
 			item = payload.get("item", {})
 			documentation = item.get("documentation", "") if isinstance(item, dict) else ""
 			self._coordinator.menu_documentation = documentation if isinstance(documentation, str) else ""

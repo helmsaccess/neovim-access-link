@@ -259,6 +259,7 @@ def jobs() -> tuple[Job, ...]:
         "menu_spec.lua",
         "navigation_spec.lua",
         "selection_spec.lua",
+        "signature_help_spec.lua",
         "spelling_spec.lua",
     ):
         result.append(lua_spec("lua", f"neovim-plugin/tests/{file_name}"))

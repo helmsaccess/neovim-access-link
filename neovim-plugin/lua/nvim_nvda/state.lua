@@ -1,6 +1,7 @@
 local selection = require("nvim_nvda.selection")
 local spelling = require("nvim_nvda.spelling")
 local file_manager = require("nvim_nvda.file_manager")
+local text = require("nvim_nvda.text")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
@@ -80,7 +81,7 @@ local function diagnostic_state(buf, line_number, byte_column)
   end
   if not current then return nil, #all end
   return {
-    message = type(current.message) == "string" and current.message:sub(1, 2048) or "",
+    message = text.bounded(current.message, 2048),
     severity = severity_names[current.severity] or "error",
     source = current.source,
     code = current.code,

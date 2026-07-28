@@ -7,11 +7,26 @@ the standard opening and closing cues.
 
 Neovim's built-in popup menu is supported, including completion sources that
 use `complete()`, `completefunc`, or `omnifunc`. Explicit adapters are included
-for `nvim-cmp` and `blink.cmp`; test them with the installed plugin version and
-configuration. Completion, command-line completion, LSP signature help, and
-supported menus are announced from Neovim APIs or explicit adapters, not by
-reading screen rows. Very custom floating interfaces require a supported
-public adapter and are not automatically accessible.
+for `nvim-cmp` and `blink.cmp`. Automated API-contract tests cover the current
+`nvim-cmp` main branch, `blink.cmp` v1.10.2, and the provisional v2 branch.
+`blink.cmp` v2 requires Neovim 0.12 and `blink.lib`; v1 remains the stable
+recommendation. These checks do not replace practical acceptance of every
+source, formatting, and key configuration.
+
+The selected label, position, localized LSP kind, parameters, and source are
+reported when available. Only the selected candidate is processed, including
+selections beyond the first 200 list entries. Documentation resolved later
+updates the documentation command silently instead of repeating the selection.
+`nvim-cmp` exposes that resolved item. `blink.cmp` currently does not expose its
+internally resolved copy through a public API, so documentation present on the
+original item works while resolve-only documentation may remain unavailable.
+Ghost text without a visible completion menu is not reported as a selectable
+menu.
+
+Completion, command-line completion, LSP signature help, and supported menus
+are announced from Neovim APIs or explicit adapters, not by reading screen
+rows. Very custom floating interfaces require a supported public adapter and
+are not automatically accessible.
 
 Open, move through, confirm, and close a menu with the keys configured in
 Neovim or the completion plugin; Access Link does not replace those mappings.

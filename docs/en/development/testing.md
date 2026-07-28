@@ -141,6 +141,13 @@ available supported Neovim. Changes to version boundaries should additionally
 run Lua and TUI suites with Neovim 0.10.1 and 0.12.3. An installed plugin must
 not shadow the checkout, so test scripts isolate `packpath`.
 
+`tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
+[BLINK_LIB_CHECKOUT]` loads real, locally available upstream modules in an
+isolated Neovim process. It proves the public API, event registration, and
+adapter normalization while injecting selection values deliberately. It is a
+reproducible API-contract test, not complete TUI or Windows/NVDA acceptance.
+Test `blink.cmp` v2 with Neovim 0.12 and the third `blink.lib` checkout.
+
 ## What automated suites prove
 
 ### Protocol and transport

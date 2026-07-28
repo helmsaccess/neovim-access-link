@@ -1,4 +1,5 @@
 local M = {}
+local text = require("nvim_nvda.text")
 
 local function lower(value)
   return type(value) == "string" and value:lower() or ""
@@ -55,7 +56,7 @@ function M.for_line(buf, line_number, line, cursor_column)
       table.insert(errors, {
         kind = kind, startByteColumn = math.min(start_column, #line),
         endByteColumn = math.min(end_column, #line), source = diagnostic.source,
-        message = type(diagnostic.message) == "string" and diagnostic.message:sub(1, 1024) or "",
+        message = text.bounded(diagnostic.message, 1024),
       })
     end
   end

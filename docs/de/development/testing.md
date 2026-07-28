@@ -152,6 +152,14 @@ sollten die Lua- und TUI-Suiten zusätzlich mit Neovim 0.10.1 und 0.12.3
 laufen. Eine installierte Pluginversion darf den Checkout nicht überdecken;
 die Testskripte isolieren deshalb `packpath`.
 
+`tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
+[BLINK_LIB_CHECKOUT]` lädt echte, lokal vorhandene Upstream-Module in einen
+isolierten Neovim-Prozess. Der Test belegt öffentliche API,
+Ereignisregistrierung und Adapter-Normalisierung; die Auswahlwerte werden
+gezielt injiziert. Er ist deshalb ein reproduzierbarer API-Vertragstest, keine
+vollständige TUI- oder Windows-/NVDA-Abnahme. `blink.cmp` v2 wird mit Neovim
+0.12 und dem dritten `blink.lib`-Checkout geprüft.
+
 ## Was die automatisierten Suiten belegen
 
 ### Protokoll und Transport

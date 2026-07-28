@@ -2,59 +2,131 @@ local root = vim.fn.getcwd()
 package.path = root .. "/neovim-plugin/lua/?.lua;" .. root .. "/neovim-plugin/lua/?/init.lua;" .. package.path
 local adapters = dofile(root .. "/neovim-plugin/lua/nvim_nvda/completion_adapters.lua")
 
+local assertions = 0
 local function equal(expected, actual, label)
-  assert(expected == actual, string.format("%s: expected %s, got %s", label, vim.inspect(expected), vim.inspect(actual)))
+  assertions = assertions + 1
+  assert(vim.deep_equal(expected, actual), string.format(
+    "%s: expected %s, got %s", label, vim.inspect(expected), vim.inspect(actual)
+  ))
 end
 
 local lsp = adapters.normalize_item({
   label = "printf", kind = 3, detail = "stdio", documentation = { value = "Print formatted output" },
-})
+}, "nvim_lsp", "entry:1")
 equal("printf", lsp.word, "LSP label")
 equal("function", lsp.kind, "numeric LSP kind")
 equal("stdio", lsp.menu, "LSP detail")
+equal("nvim_lsp", lsp.source, "source name")
 equal("Print formatted output", lsp.info, "markup documentation")
+equal("entry:1", lsp.stableId, "stable ID")
+
+local all_kinds = {
+  "text", "method", "function", "constructor", "field", "variable", "class",
+  "interface", "module", "property", "unit", "value", "enum", "keyword",
+  "snippet", "color", "file", "reference", "folder", "enum member", "constant",
+  "struct", "event", "operator", "type parameter",
+}
+for index, expected in ipairs(all_kinds) do
+  equal(expected, adapters.normalize_item({ label = "item", kind = index }).kind,
+    "adapter kind " .. tostring(index))
+end
 
 local cmp = adapters.normalize_item({
   abbr = "print(value)", word = "print", kind = "function", menu = "[LSP]", info = "docs",
 })
 equal("print", cmp.word, "cmp word")
 equal("print(value)", cmp.abbr, "cmp abbreviation")
-equal("[LSP]", cmp.menu, "cmp source")
+equal("[LSP]", cmp.menu, "cmp menu")
 equal("docs", cmp.info, "cmp docs")
-
-local empty = adapters.normalize_item(nil)
-equal("", empty.word, "nil item")
+equal("", adapters.normalize_item(nil).word, "nil item")
 
 local callbacks, calls = {}, {}
-local first = { get_completion_item = function() return { label = "printf", kind = 3 } end }
-local second = { get_completion_item = function() return { label = "print", kind = 3 } end }
+local first = {
+  id = 41,
+  completion_item = { label = "printf", kind = 3 },
+  source = { name = "nvim_lsp" },
+  get_completion_item = function() error("deprecated accessor used") end,
+}
+local second = {
+  id = 42,
+  completion_item = { label = "print", kind = 3 },
+  source = { name = "buffer" },
+  get_completion_item = function() error("deprecated accessor used") end,
+}
 local selected = first
 package.loaded.cmp = {
   event = { on = function(_, name, callback) callbacks[name] = callback end },
   get_entries = function() return { first, second } end,
   get_selected_entry = function() return selected end,
-  visible = function() return true end,
 }
 local owner = {
-  accessible_menu_open = function(items, options)
-    table.insert(calls, { type = "open", items = items, selected = options.selected })
+  accessible_menu_update = function(item, options)
+    calls[#calls + 1] = {
+      type = "update", item = item, selected = options.selected,
+      item_count = options.item_count, kind = options.kind,
+    }
   end,
-  accessible_menu_close = function() table.insert(calls, { type = "close" }) end,
+  accessible_menu_close = function() calls[#calls + 1] = { type = "close" } end,
 }
 local group = vim.api.nvim_create_augroup("NvimNvdaAdapterTest", { clear = true })
 adapters.setup(owner, group)
 callbacks.menu_opened()
 vim.wait(200, function() return #calls >= 1 end)
-equal("open", calls[1].type, "cmp opens adapter menu")
-equal(2, #calls[1].items, "cmp item count")
+equal("update", calls[1].type, "cmp opens adapter menu")
 equal(1, calls[1].selected, "cmp initial selection")
+equal(2, calls[1].item_count, "cmp full item count")
+equal("nvim_lsp", calls[1].item.source, "cmp selected source")
+equal("entry:41", calls[1].item.stableId, "cmp entry identity")
+
+local call_count = #calls
+vim.wait(80)
+equal(call_count, #calls, "unchanged cmp selection suppressed")
+
+first.completion_item.documentation = { value = "resolved later" }
+vim.wait(200, function() return #calls > call_count end)
+equal("resolved later", calls[#calls].item.info, "cmp resolved documentation republished")
+
 selected = second
-vim.wait(200, function() return #calls >= 2 end)
-equal(2, calls[#calls].selected, "cmp selection polling")
+vim.wait(200, function() return calls[#calls].selected == 2 end)
+equal("buffer", calls[#calls].item.source, "cmp moved selection source")
 callbacks.menu_closed()
 equal("close", calls[#calls].type, "cmp closes adapter menu")
+
+local blink_items = {
+  { label = "alpha", kind = 6, source_id = "lsp", source_name = "LSP" },
+  { label = "beta", kind = 15, source_id = "snippets", source_name = "Snippets" },
+}
+local blink_selected = 1
+package.loaded["blink.cmp"] = {
+  is_menu_visible = function() return true end,
+  get_items = function() return blink_items end,
+  get_selected_item_idx = function() return blink_selected end,
+  get_selected_item = function() error("identity fallback used") end,
+}
+vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuOpen" })
+vim.wait(200, function()
+  return calls[#calls].kind == "blink.cmp" and calls[#calls].selected == 1
+end)
+equal("LSP", calls[#calls].item.source, "blink source")
+equal(2, calls[#calls].item_count, "blink item count")
+
+callbacks.menu_closed()
+equal("update", calls[#calls].type, "stale cmp close does not close blink")
+blink_selected = 2
+vim.wait(200, function() return calls[#calls].selected == 2 end)
+equal("snippet", calls[#calls].item.kind, "blink selected kind")
+equal("Snippets", calls[#calls].item.source, "blink selected source")
+vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuClose" })
+equal("close", calls[#calls].type, "blink closes adapter menu")
+
+local diagnostics = adapters.diagnostics()
+equal(nil, diagnostics.activeKind, "diagnostics report inactive adapter")
+equal("public-selected-index", diagnostics.apiVariant, "diagnostics report API variant")
+equal(35, diagnostics.pollIntervalMilliseconds, "diagnostics report poll interval")
+
 adapters.stop()
 package.loaded.cmp = nil
+package.loaded["blink.cmp"] = nil
 
-print("completion adapter tests: 14 assertions passed")
+print(string.format("completion adapter tests: %d assertions passed", assertions))
 vim.cmd("qa!")

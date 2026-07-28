@@ -18,6 +18,8 @@ class SpeechPlannerTests(unittest.TestCase):
         translations = {
             "insert mode": "Einfügemodus",
             "deleted {text}": "{text} gelöscht",
+            "function": "Funktion",
+            "source {source}": "Quelle {source}",
         }
         planner = SpeechPlanner(translate=lambda message: translations.get(message, message))
         mode = planner.plan(event("modeChanged", mode="insert", modeRaw="i"))[0]
@@ -26,6 +28,15 @@ class SpeechPlannerTests(unittest.TestCase):
             "textDeleted", beforeText="abc", lineText="", linewise=False,
         ))[0]
         self.assertEqual("abc gelöscht", deleted.text)
+        completion = planner.plan({
+            "type": "menuSelectionChanged",
+            "payload": {
+                "item": {"label": "print", "kind": "function", "source": "LSP"},
+                "itemIndex": 1,
+                "itemCount": 2,
+            },
+        })[0]
+        self.assertEqual("print, 1 of 2, Funktion, Quelle LSP", completion.text)
 
     def test_full_state_and_line_movement_speak_line(self) -> None:
         planner = SpeechPlanner()
@@ -1209,11 +1220,19 @@ class SpeechPlannerTests(unittest.TestCase):
         selected = planner.plan({"type": "menuSelectionChanged", "payload": {
             "itemIndex": 1,
             "itemCount": 5,
-            "item": {"label": "printf", "kind": "function", "parameters": "format, ..."},
+            "item": {
+                "label": "printf",
+                "kind": "function",
+                "parameters": "format, ...",
+                "source": "nvim_lsp",
+            },
         }})[0]
         closed = planner.plan({"type": "menuClosed", "payload": {}})[0]
         self.assertEqual("suggestionsOpen", opened.sound)
-        self.assertEqual("printf, 1 of 5, function, parameter format, ...", selected.text)
+        self.assertEqual(
+            "printf, 1 of 5, function, parameter format, ..., source nvim_lsp",
+            selected.text,
+        )
         self.assertEqual(selected.text, selected.braille_message)
         self.assertEqual("suggestionsClose", closed.sound)
 

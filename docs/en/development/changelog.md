@@ -3,6 +3,18 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Hardens native and plugin completion by normalizing only the selected
+  candidate, including selections beyond item 200, and carrying all 25 LSP
+  kinds, source, and UTF-8-safe bounds. Documentation resolved later by
+  `nvim-cmp` updates the per-instance command without a second selection
+  announcement.
+- Moves `nvim-cmp` to the public `entry.completion_item` API and uses
+  `blink.cmp`'s public selected index. Ownership tokens, tick diagnostics, and
+  real-module tests cover current `nvim-cmp`, `blink.cmp` v1.10.2, and the
+  provisional v2 branch on Neovim 0.10.1/0.12.3.
+- Observes signature help through both Neovim 0.10's handler path and the
+  combined 0.11/0.12 response path, including UTF-16 ranges, multiple clients,
+  deduplication, and silent closing.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
   the runner, documentation, and GitHub Actions. Three independent CI jobs run
   these phases without private infrastructure or real SSH targets.

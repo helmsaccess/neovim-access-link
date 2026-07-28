@@ -22,6 +22,36 @@ def _identity(message: str) -> str:
     return message
 
 
+# Translators: Spoken labels for standardized LSP completion item kinds.
+COMPLETION_KIND_LABELS = {
+    "text": translatable("text"),
+    "method": translatable("method"),
+    "function": translatable("function"),
+    "constructor": translatable("constructor"),
+    "field": translatable("field"),
+    "variable": translatable("variable"),
+    "class": translatable("class"),
+    "interface": translatable("interface"),
+    "module": translatable("module"),
+    "property": translatable("property"),
+    "unit": translatable("unit"),
+    "value": translatable("value"),
+    "enum": translatable("enum"),
+    "keyword": translatable("keyword"),
+    "snippet": translatable("snippet"),
+    "color": translatable("color"),
+    "file": translatable("file"),
+    "reference": translatable("reference"),
+    "folder": translatable("folder"),
+    "enum member": translatable("enum member"),
+    "constant": translatable("constant"),
+    "struct": translatable("struct"),
+    "event": translatable("event"),
+    "operator": translatable("operator"),
+    "type parameter": translatable("type parameter"),
+}
+
+
 class Priority(IntEnum):
     NAVIGATION = 10
     STATUS = 20
@@ -680,10 +710,14 @@ class SpeechPlanner:
             parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         kind = item.get("kind")
         if isinstance(kind, str) and kind:
-            parts.append(kind)
+            parts.append(self._translate(COMPLETION_KIND_LABELS.get(kind, kind)))
         parameters = item.get("parameters")
         if isinstance(parameters, str) and parameters:
             parts.append(self._translate("parameter {parameter}").format(parameter=parameters))
+        source = item.get("source")
+        if isinstance(source, str) and source:
+            # Translators: A completion provider name, for example "source pyright".
+            parts.append(self._translate("source {source}").format(source=source))
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,

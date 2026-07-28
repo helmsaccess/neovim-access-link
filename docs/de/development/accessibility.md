@@ -40,20 +40,31 @@ breite Hardware-, Treiber- und Übersetzungstabellenmatrix bleibt offen.
 | Braille-Explorationsmodus | frei belegbares Windows-Terminal-AppModule-Skript und dieselben öffentlichen Regionsmethoden | pro Neovim-Instanz eigener Modus, vollständige Echtcursor-Ursprungsidentität für den Start; danach eigene Explorations-ID und Aktionsfolge bei unverändertem Buffer/Fenster/Tab sowie validiert fortgeschriebenem `changedtick`; virtuelle Zeile und gewünschte Spalte; öffentlicher `BrailleBuffer.windowStartPos`; öffentliche `TextInfoRegion.pendingCaretUpdate`-Markierung | Auf/Ab liest benachbarte Pufferzeilen ohne Echtcursorbewegung; lokale und entfernte Sessions wählen Modus, virtuelle Position und horizontalen Ausschnitt unabhängig; Control- und Anwendungswechsel stellen die Ansicht der jeweiligen Session wieder her; echte Cursor- und Modusbewegungen sowie Änderungen auf anderen Zeilen verändern die virtuelle Position nicht; Bearbeitungen auf der explorierten echten Cursorzeile aktualisieren vollständigen Inhalt und aktuellen Modus ohne Neuverankerung oder Ausschnittsprung; der gewählte Ausschnitt folgt keinem parallelen nativen Caretereignis; kein scheinbarer virtueller Braillecursor; Routing übernimmt die gewählte virtuelle Position nur aus einem zum aktuellen `changedtick` passenden Zeilenstand und wird unmittelbar vor verzögerten Mehrfachaktionen erneut validiert; unabhängig vom Sprachexplorationsmodus | ja | Validator, Controller, Capability, lokaler/SSH-Transport, gebautes Add-on, Lua und echter Insert-RPC einschließlich Interleaving, Instanzisolation, positions- und ausschnittstreuer Rückkehr, gezieltem Disconnect-Reset, Cursor- und Texteingabeentkopplung, vollständiger Zeilenaktualisierung nach Bearbeitung und Moduswechsel, Ausschnittserhalt, Ablehnung veralteten Routings und verzögerter Neuvalidierung automatisiert; grundlegender Hardwarepfad auf BRAILLEX EL 80c bestätigt, jüngste Editier-/Routing-Randfälle, praktische Mehrsession-Abnahme und breitere Hardwarematrix offen |
 | Modus-Earcons | `modeChanged`, `commandLineChanged`, Terminal-`contextChanged` oder bestätigter `focusContext` | kanonischer Modus einschließlich `terminalNormal` und `commandLine` | NVDA `focusMode.wav` für Insert/direkte Terminaleingabe, `browseMode.wav` für Normal/Terminal-Normal und kurzer 600-Hz-Kommandozeilenton | ja | automatisiert; Gate-Reihenfolge und Ereignisdeduplizierung geprüft |
 | Einrückung | Zeilentext + `shiftwidth` | vorherige/neue Einrückung | NVDA-Modus Sprache/Töne/Beides, semantische Ebene | ja | automatisiert |
-| Completion-Menü | `CompleteChanged`/`complete_info()` | Kandidat, Index, Anzahl, Typ, Parameter | Sprache, Braille, NVDA-Vorschlagsklänge | ja | echtes TUI und Windows/NVDA |
+| Completion-Menü | `CompleteChanged`/`complete_info()` | ausgewählter Kandidat, Index, Anzahl, lokalisierter Typ, Parameter, Quelle und Dokumentation | Sprache, Braille, NVDA-Vorschlagsklänge; stille Aktualisierung nachgeladener Dokumentation | ja | echtes TUI, Auswahl jenseits von Eintrag 200, UTF-8-Grenzen, alle 25 LSP-Typen und Windows/NVDA |
 | Command-line-Wildmenu | `ext_popupmenu` | Kandidat, Index, Anzahl | Standard-Menüausgabe und Klänge | ja | echtes TUI automatisiert |
 | `vim.ui.select/input` | zentrale Neovim-API | Prompt, Einträge, Ergebnis/Abbruch | Sprache, Braille und Menüklänge | ja | echtes TUI automatisiert |
-| LSP-Signatur | `textDocument/signatureHelp` | Signatur, aktiver Parameter, Alternativen | Signatur und Parameter | ja | automatisiert |
-| nvim-cmp/blink.cmp | Öffnen/Schließen per Pluginereignis; öffentliche Auswahlabfrage alle 35 ms nur solange das Menü offen ist | Kandidaten, Auswahl, Typ, Dokumentation | Standard-Menüausgabe | ja | begrenzter Polling-Fallback wegen fehlendem zuverlässigem Auswahlereignis; API-Attrappen, reale Pluginprüfung offen |
+| LSP-Signatur | enger Beobachter für den Handlerpfad von Neovim 0.10 und den `buf_request_all`-Antwortcallback von 0.11/0.12 | Signatur, aktiver Parameter als Text oder UTF-16-Offsetpaar, Alternativen mehrerer Clients | Signatur und Parameter, dedupliziert; stiller Schließzustand | ja | listenerfreie Kompatibilitätstests auf Neovim 0.10.1 und 0.12.3; realer LSP-Server und Windows/NVDA noch praktisch zu prüfen |
+| nvim-cmp/blink.cmp | Öffnen/Schließen per Pluginereignis; öffentliche Auswahlabfrage alle 35 ms nur solange das Menü offen ist | nur ausgewählter Kandidat, vollständige Anzahl, alle LSP-Typen, Quelle und vorhandene Dokumentation | Standard-Menüausgabe und stiller Dokumentationscache | ja | Attrappentests plus echte Modulanbindung: aktueller `nvim-cmp` und `blink.cmp` v1.10.2 auf Neovim 0.10.1/0.12.3, vorläufiger `blink.cmp`-v2-Zweig mit `blink.lib` auf 0.12.3; vollständige TUI-/Windows-/NVDA-Abnahme offen |
+| Quickfix/Location List | stabile Fensterdaten | Listentyp, aktuelle Zeile | Typ und Eintrag | ja | echtes TUI und Speech-Test |
+| Ex-Fehler bei `:q` | `CmdlineLeave` + Bufferstatus | Kommando, `modified` | E37 mit Hinweis auf Speichern oder `:q!` | ja | echtes TUI automatisiert |
 
 Der Timer in den `nvim-cmp`- und `blink.cmp`-Adaptern ist eine dokumentierte
 Notlösung. Er beginnt erst nach dem jeweiligen öffentlichen Menü-Öffnen-
 Ereignis und endet beim Schließen oder bei unsichtbarem Menü. Er ersetzt nicht
 den eingebauten Neovim-Menüpfad und läuft nie außerhalb eines geöffneten
-Pluginmenüs. Sobald ein verlässliches öffentliches Ereignis jede
+Pluginmenüs. Pro Tick wird nur der ausgewählte Kandidat normalisiert.
+`nvim-cmp` benötigt weiterhin zwei mit `cmp.sync()` umwickelte öffentliche
+Abfragen. Fehler, langsame Ticks, maximale Tickdauer und aktive API-Variante
+erscheinen deshalb ohne Kandidateninhalt in Diagnosebericht und
+`:checkhealth`. Sobald ein verlässliches öffentliches Ereignis jede
 Auswahländerung liefert, soll diese Abfrage entfallen.
-| Quickfix/Location List | stabile Fensterdaten | Listentyp, aktuelle Zeile | Typ und Eintrag | ja | echtes TUI und Speech-Test |
-| Ex-Fehler bei `:q` | `CmdlineLeave` + Bufferstatus | Kommando, `modified` | E37 mit Hinweis auf Speichern oder `:q!` | ja | echtes TUI automatisiert |
+
+Bei `nvim-cmp` wird die öffentlich zugängliche `entry.completion_item`-Tabelle
+beobachtet; eine spätere Resolve-Antwort aktualisiert die Dokumentation ohne
+erneute Ansage. `blink.cmp` liefert die intern aufgelöste Kopie nicht über
+seine öffentliche Item-API. Ursprüngliche Dokumentation funktioniert dort,
+reine Resolve-Dokumentation bleibt eine dokumentierte Upstream-Abhängigkeit.
+Ghost-Text-only ohne geöffnetes Menü gehört nicht zum Adaptervertrag.
 
 ## Einrückung
 

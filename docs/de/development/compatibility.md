@@ -17,6 +17,15 @@
 Neovim 0.10.1 ist vorläufig die Mindestversion. Jede neuere optionale API muss
 per Featuretest abgesichert werden.
 
+Completion-API-Vertragstests verwenden `nvim-cmp`
+`2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3` und `blink.cmp` v1.10.2 auf
+Neovim 0.10.1 sowie 0.12.3. Der vorläufige `blink.cmp`-v2-Stand
+`d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3` wird zusammen mit `blink.lib`
+`5876dd95deeb70aadbe9f1c0b7117a135061cdac` ausschließlich auf Neovim 0.12.3
+geprüft. Die Checkouts werden nicht mit dem Add-on ausgeliefert. Der Test
+bestätigt Modul- und API-Anbindung mit injizierten Auswahlwerten, nicht jede
+praktische Darstellung oder NVDA-Konfiguration.
+
 ## NVDA und Windows
 
 Ziel ist NVDA 2026.1.x; die offizielle Downloadablage führt 2026.1.1 als

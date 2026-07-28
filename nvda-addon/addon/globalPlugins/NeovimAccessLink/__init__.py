@@ -2500,6 +2500,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		if not isinstance(keyObserverDiagnostics, dict):
 			keyObserverDiagnostics = {}
+		completionAdapterDiagnostics = (
+			payload.get("completionAdapterDiagnostics", {}) if isinstance(payload, dict) else {}
+		)
+		if not isinstance(completionAdapterDiagnostics, dict):
+			completionAdapterDiagnostics = {}
 		self._diagnostics.record(
 			"eventDispatch",
 			type=event.get("type"),
@@ -2532,6 +2537,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			keyPromptKind=keyObserverDiagnostics.get("promptKind"),
 			keyPromptClass=keyObserverDiagnostics.get("promptClass"),
 			keyPromptLength=keyObserverDiagnostics.get("promptLength"),
+			completionAdapterActive=completionAdapterDiagnostics.get("activeKind"),
+			completionAdapterApi=completionAdapterDiagnostics.get("apiVariant"),
+			completionAdapterErrors=completionAdapterDiagnostics.get("errorCount"),
+			completionAdapterSlowTicks=completionAdapterDiagnostics.get("slowTickCount"),
+			completionAdapterMaximumTickNs=completionAdapterDiagnostics.get("maximumTickNanoseconds"),
 		)
 		mode = transition.mode
 		previous_mode = transition.previous_mode

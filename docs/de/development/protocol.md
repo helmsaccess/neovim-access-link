@@ -221,7 +221,8 @@ stdio-Sitzung keine Ereignisse für spätere Wiedergabe.
 Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
-`menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
+`menuItemUpdated`, `menuClosed`, `signatureChanged`, `signatureClosed`,
+`diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -233,6 +234,12 @@ rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
 Kommandozeilentyp, insbesondere `:`, `/` oder `?`; `commandLine` enthält den
 Inhalt ohne dieses Präfix. Dadurch werden Ex-Befehle nicht aus Textmustern
 erraten und gleich geschriebene Suchmuster bleiben unabhängig.
+`menuItemUpdated` behält Auswahl, Index und Anzahl bei und aktualisiert nur
+Metadaten wie eine nachträglich aufgelöste Dokumentation. NVDA aktualisiert
+damit den instanzbezogenen Dokumentationscache ohne eine zweite Auswahlansage.
+`signatureClosed` beendet den flüchtigen Signaturzustand beim Verlassen seines
+Editor-Kontexts und erzeugt keine eigene Sprachmeldung.
+
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren
 Ex-Befehls. Das Feld wird nach genau dieser Ausgabe verworfen; spätere

@@ -127,9 +127,35 @@ The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
 Public plugin events start and stop the accessible-menu lifetime, but neither
 plugin currently provides a reliable event for every selection change. A
 35 ms timer therefore queries the public selection API only while that plugin
-menu is open and stops on close or invisibility. Built-in Neovim completion
-remains fully event-driven. This fallback should be removed when a reliable
-public selection event becomes available.
+menu is open and stops on close or invisibility. Each tick normalizes only the
+selected candidate. `nvim-cmp` still needs two public calls wrapped in
+`cmp.sync()`, so content-free diagnostics expose errors, slow ticks, maximum
+duration, and the active API variant in the diagnostic report and
+`:checkhealth`. Built-in Neovim completion remains fully event-driven. This
+fallback should be removed when a reliable public selection event becomes
+available.
+
+All 25 LSP completion kinds, sources, UTF-8-safe limits, selections beyond item
+200, and silent resolved-documentation updates have automated coverage.
+`nvim-cmp` exposes its mutable `entry.completion_item`, allowing resolve results
+to update the documentation command without another announcement. `blink.cmp`
+does not expose its internally resolved copy through the public item API;
+original documentation works, while resolve-only documentation remains an
+upstream dependency. Ghost-text-only configurations without an open menu are
+outside the adapter contract.
+
+Real-module contract tests cover current `nvim-cmp` and `blink.cmp` v1.10.2 on
+Neovim 0.10.1 and 0.12.3, plus the provisional `blink.cmp` v2 branch with
+`blink.lib` on 0.12.3. They exercise the actual modules and event registration
+with injected selection data; complete TUI and Windows/NVDA acceptance remains
+open.
+
+Signature help observes Neovim 0.10's handler path and only the
+`textDocument/signatureHelp` callback through `buf_request_all` on 0.11/0.12.
+It supports UTF-16 parameter ranges, multiple-client alternatives,
+deduplication, and a silent close state. Listener-free tests pass on Neovim
+0.10.1 and 0.12.3; a real language server and Windows/NVDA remain practical
+acceptance work.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.

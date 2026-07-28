@@ -53,6 +53,11 @@ class GettextCatalogTests(unittest.TestCase):
             "Treffer 2 von 4",
             translations.gettext("match {index} of {count}").format(index=2, count=4),
         )
+        self.assertEqual("Funktion", translations.gettext("function"))
+        self.assertEqual(
+            "Quelle pyright",
+            translations.gettext("source {source}").format(source="pyright"),
+        )
 
     def test_nvda_modules_initialize_their_gettext_builtins(self) -> None:
         for path in NVDA_TRANSLATION_MODULES:

@@ -8,6 +8,18 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Härtet native und pluginbasierte Completion: Es wird nur noch der ausgewählte
+  Kandidat normalisiert, auch hinter Eintrag 200; alle 25 LSP-Typen, Quelle und
+  UTF-8-sichere Grenzen werden übertragen. Nachträglich aufgelöste
+  `nvim-cmp`-Dokumentation aktualisiert den instanzbezogenen Abrufbefehl ohne
+  zweite Auswahlansage.
+- Stellt `nvim-cmp` auf die öffentliche `entry.completion_item`-API um und
+  verwendet bei `blink.cmp` den öffentlichen Auswahlindex. Besitzer-Token,
+  Tickdiagnostik und echte Modultests decken aktuellen `nvim-cmp`, `blink.cmp`
+  v1.10.2 sowie den vorläufigen v2-Zweig auf Neovim 0.10.1/0.12.3 ab.
+- Erfasst Signaturhilfe sowohl über Neovim 0.10s Handlerpfad als auch über den
+  kombinierten Antwortpfad von 0.11/0.12, einschließlich UTF-16-Offsetpaaren,
+  mehreren Clients, Deduplizierung und stillem Schließen.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
   diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.

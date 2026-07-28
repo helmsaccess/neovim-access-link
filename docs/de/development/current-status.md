@@ -224,11 +224,21 @@ Der semantische Pfad deckt unter anderem ab:
 - Normal-, Insert-, Replace-, Visual-, Kommandozeilen- und Terminalmodi;
 - zeichen-, wort- und zeilenweise Navigation sowie Datei- und Zeilengrenzen;
 - Eingabe, Löschen, Ersetzen, Auswahl und Suchtreffer;
-- eingebaute Completion, Signaturhilfe, Diagnosen, Folds und Meldungen;
+- eingebaute Completion, `nvim-cmp`, `blink.cmp`, versionsübergreifende
+  Signaturhilfe, Diagnosen, Folds und Meldungen;
 - typisierte Kommandozeile und korrelierte Rückkehrmeldung eines Ex-Befehls;
 - konfigurierbare Fokusausgabe: keine Ansage, aktuelle Zeile oder Kontext mit
   Modus und gespeichertem Verbindungsnamen;
 - getrennte Sprach-, Klang- und dauerhafte Brailleplanung.
+
+Completion verarbeitet nur den ausgewählten Kandidaten und meldet dessen
+Position, lokalisierten LSP-Typ, Parameter und Quelle. Nachgeladene
+`nvim-cmp`-Dokumentation aktualisiert den instanzbezogenen Abrufbefehl still.
+Echte Modulanbindung ist automatisiert gegen den aktuellen `nvim-cmp`-Stand,
+`blink.cmp` v1.10.2 und den vorläufigen v2-Zweig geprüft; eine vollständige
+TUI-/Windows-/NVDA-Konfigurationsmatrix bleibt offen. `blink.cmp` kann
+ausschließlich intern aufgelöste Dokumentation noch nicht öffentlich liefern;
+Ghost Text ohne Menü ist kein zugängliches Auswahlmenü.
 
 Die dauerhafte Brailleausgabe folgt derselben semantischen Editorquelle wie
 Sprache und Klang, besitzt aber eine getrennte Planung. Eine öffentliche

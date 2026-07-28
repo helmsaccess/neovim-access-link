@@ -2,8 +2,8 @@
 
 Neovim Access Link gibt Vervollständigungslisten als zugängliche Menüs aus.
 NVDA meldet den ausgewählten Eintrag, seine Position und – soweit vorhanden –
-Typ, Signatur und Kurzbeschreibung. Sprache und Braille verwenden denselben
-Menüzustand.
+Typ, Signatur, Quelle und Kurzbeschreibung. Die standardisierten LSP-Typen
+werden lokalisiert. Sprache und Braille verwenden denselben Menüzustand.
 
 ## Unterstützte Menüs
 
@@ -16,9 +16,12 @@ anderem:
 - Neovims LSP-Vervollständigung,
 - Plugins, die ihre Kandidaten über Neovims Funktion `complete()` anzeigen.
 
-Zusätzliche Adapter sind für `nvim-cmp` und `blink.cmp` enthalten. Da diese
-Plugins eigene Oberflächen und unterschiedliche Versionen besitzen, sollte ihr
-Verhalten mit der konkret installierten Konfiguration geprüft werden.
+Zusätzliche Adapter sind für `nvim-cmp` und `blink.cmp` enthalten.
+Automatisierte API-Vertragstests decken den aktuellen `nvim-cmp`-Hauptzweig,
+`blink.cmp` v1.10.2 und den vorläufigen v2-Zweig ab. `blink.cmp` v2 benötigt
+Neovim 0.12 und `blink.lib`; v1 bleibt die stabile Empfehlung. Diese Tests
+ersetzen keine praktische Abnahme jeder individuellen Quellen-, Darstellungs-
+und Tastenkonfiguration.
 
 Beliebige frei gezeichnete Floating Windows sind nicht automatisch ein
 zugängliches Menü. Das erzeugende Plugin muss dafür Neovims Standardmenü oder
@@ -58,6 +61,11 @@ Identische Auswahlereignisse werden nicht wiederholt. Dadurch wird derselbe
 Eintrag nicht mehrfach gesprochen, wenn ein Completion-Plugin seine Oberfläche
 ohne tatsächlichen Auswahlwechsel neu zeichnet.
 
+Nur der ausgewählte Kandidat wird verarbeitet. Auch eine Auswahl jenseits der
+ersten 200 Listeneinträge bleibt dadurch zugänglich. Später eintreffende
+Dokumentation aktualisiert den Dokumentationsbefehl still und wiederholt die
+Auswahlansage nicht.
+
 ## Ausführliche Dokumentation lesen
 
 Längere Dokumentation wird nicht bei jedem Auswahlwechsel vollständig
@@ -67,6 +75,15 @@ Vervollständigungseintrags eine eigene Tastenkombination zugewiesen werden.
 
 Der Befehl funktioniert nur, solange ein Eintrag ausgewählt ist und das
 Completion-System Dokumentation bereitstellt.
+
+Bei `nvim-cmp` wird auch nachträglich über `completionItem/resolve` ergänzte
+Dokumentation übernommen. `blink.cmp` stellt seine intern aufgelöste Kopie
+derzeit nicht über eine öffentliche API bereit. Dort ist ursprünglich am
+Kandidaten vorhandene Dokumentation zugänglich; ausschließlich nachgeladene
+Dokumentation kann bis zu einer Upstream-Erweiterung fehlen.
+
+Ghost Text ohne sichtbares Completion-Menü ist kein zugängliches Auswahlmenü
+und wird von den beiden Adaptern nicht angesagt.
 
 ## Wenn keine Auswahl angesagt wird
 

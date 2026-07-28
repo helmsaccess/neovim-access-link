@@ -17,6 +17,14 @@ Input Gestures and does not resolve them in unrelated applications. Its user
 map may still display a saved assignment elsewhere after the class has loaded;
 dispatch also revalidates the concrete AppModule and control identity.
 
+Completion API-contract tests use `nvim-cmp`
+`2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3` and `blink.cmp` v1.10.2 on
+Neovim 0.10.1 and 0.12.3. Provisional `blink.cmp` v2 commit
+`d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3` is tested with `blink.lib`
+`5876dd95deeb70aadbe9f1c0b7117a135061cdac` only on Neovim 0.12.3. The
+checkouts are not bundled. This proves module/API attachment with injected
+selection values, not every practical rendering or NVDA configuration.
+
 The local Windows CLI and parallel local/SSH tabs were tested. Automatic F12
 binding and the following RPC connection were also confirmed practically with
 Neovim 0.12.3 on Windows. Windows Terminal is the only approved front end.

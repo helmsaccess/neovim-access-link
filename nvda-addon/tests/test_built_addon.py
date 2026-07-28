@@ -941,6 +941,18 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["first"], coordinator.typed_word)
         self.assertEqual("first documentation", coordinator.menu_documentation)
 
+        transition = controller.apply_event({
+            "type": "menuItemUpdated",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "terminal",
+                "item": {"documentation": "resolved documentation"},
+            },
+        })
+        self.assertEqual("menuItemUpdated", transition.event_type)
+        self.assertEqual("resolved documentation", coordinator.menu_documentation)
+
         connection = controller.apply_connection_state("disconnected", reset_runtime=True)
         self.assertEqual("connected", connection.previous)
         self.assertTrue(connection.connection_lost)
