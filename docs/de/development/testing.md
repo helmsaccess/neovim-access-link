@@ -120,6 +120,11 @@ drei unabhängige Jobs aus:
 2. simulierte SSH- und Askpass-Pfade mit `ssh`;
 3. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
 
+Jeder Job richtet dieselbe festgelegte Python-Version ein und installiert
+anschließend die in `tools/requirements-ci.txt` versionsfest aufgeführten
+Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von zufällig auf
+dem Runner vorinstallierten Python-Versionen oder Paketen ab.
+
 Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
 von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
 Entpacken wird die Prüfsumme verifiziert. Der SSH-Job besitzt keine

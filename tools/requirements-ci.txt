@@ -1,0 +1,6 @@
+# Python dependencies required by the repository test workflow.
+configobj==5.0.8
+msgpack==1.1.1
+pexpect==4.9.0
+ptyprocess==0.7.0
+six==1.17.0

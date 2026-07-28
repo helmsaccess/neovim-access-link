@@ -40,12 +40,15 @@ Für die vollständige lokale Prüfung werden benötigt:
 
 - Python 3;
 - `msgpack` exakt in Version 1.1.1 für Protokolltests und Paketbau;
-- ConfigObj für die NVDA-kompatible Manifestprüfung im Add-on-Build; die
-  bestätigte Umgebung verwendet 5.0.8;
+- ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im Add-on-Build;
+- Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
 - Ruff 0.14.5 entsprechend NVDA 2026.1;
 - Neovim für die echten Lua-Suiten;
 - Pandoc für den HTML-Build; bestätigt ist 3.1.11.1;
 - Git für Diff- und Whitespace-Prüfungen.
+
+Die Python-Abhängigkeiten des GitHub-Testworkflows stehen versionsfest in
+`tools/requirements-ci.txt`.
 
 NVDA selbst wird für die reinen Python- und Lua-Tests nicht importiert. Die
 NVDA-nahen Tests verwenden kontrollierte Testdoubles und prüfen zusätzlich den

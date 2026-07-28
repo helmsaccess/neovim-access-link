@@ -114,6 +114,11 @@ pushes and pull requests:
 2. mocked SSH and Askpass paths through `ssh`;
 3. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
 
+Each job sets up the same fixed Python version and then installs the
+version-pinned Python test dependencies from `tools/requirements-ci.txt`.
+This keeps results independent of Python versions or packages that happen to
+be preinstalled on the runner.
+
 The safe and socket jobs download the official Neovim 0.10.1 Linux archive
 from GitHub. The workflow pins its URL and SHA-256 digest and verifies the
 archive before extraction. The SSH job receives no credentials and contacts

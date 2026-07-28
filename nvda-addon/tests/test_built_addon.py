@@ -17,7 +17,7 @@ import wave
 from unittest import mock
 import zipfile
 
-from tools.build_nvda_addon import build, validate_manifest
+from tools.build_nvda_addon import build, find_msgpack_license, validate_manifest
 from tools import build_user_package
 import buildVars
 
@@ -115,6 +115,40 @@ class BuiltAddonTests(unittest.TestCase):
         if hasattr(builtins, "_"):
             del builtins._
         self.temporary.cleanup()
+
+    def test_msgpack_license_is_found_in_flat_distribution_layout(self) -> None:
+        root = pathlib.Path(self.temporary.name)
+        expected = root / "msgpack-1.1.1.dist-info" / "COPYING"
+        expected.parent.mkdir()
+        expected.write_text("license", encoding="utf-8")
+        distribution = types.SimpleNamespace(
+            version="1.1.1",
+            locate_file=lambda relative: root / relative,
+        )
+
+        self.assertEqual(find_msgpack_license(distribution), expected)
+
+    def test_msgpack_license_is_found_in_wheel_distribution_layout(self) -> None:
+        root = pathlib.Path(self.temporary.name)
+        expected = root / "msgpack-1.1.1.dist-info" / "licenses" / "COPYING"
+        expected.parent.mkdir(parents=True)
+        expected.write_text("license", encoding="utf-8")
+        distribution = types.SimpleNamespace(
+            version="1.1.1",
+            locate_file=lambda relative: root / relative,
+        )
+
+        self.assertEqual(find_msgpack_license(distribution), expected)
+
+    def test_msgpack_license_requires_one_supported_distribution_layout(self) -> None:
+        root = pathlib.Path(self.temporary.name)
+        distribution = types.SimpleNamespace(
+            version="1.1.1",
+            locate_file=lambda relative: root / relative,
+        )
+
+        with self.assertRaises(RuntimeError):
+            find_msgpack_license(distribution)
 
     def _focusPlugin(self, plugin, obj=None) -> None:
         obj = obj or self.focus

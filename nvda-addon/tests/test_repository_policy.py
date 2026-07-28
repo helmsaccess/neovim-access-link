@@ -102,6 +102,12 @@ class RepositoryPolicyTests(unittest.TestCase):
         ):
             with self.subTest(command=command):
                 self.assertEqual(1, workflow.count(command))
+        self.assertEqual(
+            3,
+            workflow.count(
+                "python3 -m pip install --requirement tools/requirements-ci.txt"
+            ),
+        )
 
 
 if __name__ == "__main__":

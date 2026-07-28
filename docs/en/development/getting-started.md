@@ -39,12 +39,16 @@ Complete local verification requires:
 
 - Python 3;
 - `msgpack` exactly 1.1.1 for protocol tests and package builds;
-- ConfigObj for NVDA-compatible manifest validation during the add-on build;
-  the confirmed environment uses 5.0.8;
+- ConfigObj 5.0.8 for NVDA-compatible manifest validation during the add-on
+  build;
+- Pexpect 4.9.0 for bridge and TUI integration tests;
 - Ruff 0.14.5, matching NVDA 2026.1;
 - Neovim for real Lua suites;
 - Pandoc for HTML builds; 3.1.11.1 is confirmed;
 - Git for diff and whitespace checks.
+
+The Python dependencies used by the GitHub test workflow are version-pinned
+in `tools/requirements-ci.txt`.
 
 Pure Python and Lua tests do not import NVDA. NVDA-facing tests use controlled
 test doubles and additionally inspect the built add-on.

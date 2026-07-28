@@ -43,6 +43,25 @@ API_VERSION = re.compile(r"^(0|\d{4})\.\d(?:\.\d)?$")
 ADDON_VERSION = re.compile(r"^\d+\.\d+(?:\.\d+)?$")
 
 
+def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathlib.Path:
+    distribution_directory = f"msgpack-{distribution.version}.dist-info"
+    candidates = (
+        pathlib.Path(distribution.locate_file(pathlib.Path(distribution_directory) / "COPYING")),
+        pathlib.Path(
+            distribution.locate_file(
+                pathlib.Path(distribution_directory) / "licenses" / "COPYING"
+            )
+        ),
+    )
+    existing = tuple(path for path in candidates if path.is_file())
+    if len(existing) != 1:
+        raise RuntimeError(
+            "expected exactly one msgpack COPYING file in a supported distribution layout, "
+            f"found {existing!r}"
+        )
+    return existing[0]
+
+
 def write_manifest(path: pathlib.Path) -> None:
     """Generate the NVDA manifest from the central product metadata."""
     manifest = buildVars.manifest()
@@ -143,7 +162,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         vendor.mkdir(parents=True)
         for source in msgpack_source.glob("*.py"):
             shutil.copy2(source, vendor / source.name)
-        license_source = pathlib.Path(msgpack_distribution.locate_file("msgpack-1.1.1.dist-info/COPYING"))
+        license_source = find_msgpack_license(msgpack_distribution)
         shutil.copy2(license_source, plugin / "vendor" / "MSGPACK-LICENSE.txt")
         (plugin / "vendor" / "THIRD_PARTY_NOTICES.txt").write_text(
             "msgpack-python 1.1.1, Apache License 2.0, https://msgpack.org/\n",
