@@ -222,7 +222,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuItemUpdated`, `menuClosed`, `signatureChanged`, `signatureClosed`,
-`diagnosticChanged`, `foldChanged`,
+`hoverChanged`, `hoverClosed`, `diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -239,6 +239,10 @@ Metadaten wie eine nachträglich aufgelöste Dokumentation. NVDA aktualisiert
 damit den instanzbezogenen Dokumentationscache ohne eine zweite Auswahlansage.
 `signatureClosed` beendet den flüchtigen Signaturzustand beim Verlassen seines
 Editor-Kontexts und erzeugt keine eigene Sprachmeldung.
+`hoverChanged` enthält eine kurze Zusammenfassung und die begrenzte
+vollständige Dokumentation; Sprache und Braille verwenden automatisch nur die
+Zusammenfassung. `hoverClosed` verwirft die instanzbezogene
+Hover-Dokumentation ohne eigene Meldung.
 
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren

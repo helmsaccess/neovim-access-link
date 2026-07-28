@@ -203,7 +203,7 @@ The semantic path covers, among other features:
 - character, word, and line navigation plus file and line boundaries;
 - typing, deletion, replacement, selection, and search matches;
 - built-in completion, `nvim-cmp`, `blink.cmp`, cross-version signature help,
-  diagnostics, folds, and messages;
+  semantic LSP hover, diagnostics, folds, and messages;
 - typed command-line state and the correlated return message of an Ex command;
 - configurable focus output: no announcement, current line, or context with
   mode and saved connection name;
@@ -217,6 +217,11 @@ the provisional v2 branch; a complete TUI and Windows/NVDA configuration
 matrix remains open. `blink.cmp` cannot yet expose documentation available
 only in its internally resolved copy, and ghost text without a menu is not an
 accessible selection menu.
+
+LSP hover automatically presents only its first meaningful line. Complete
+per-instance documentation is available through the same configurable command
+as completion documentation and is discarded silently when cursor, mode, or
+buffer context changes.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

@@ -142,7 +142,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
 `menuSelectionChanged`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
-`signatureClosed`,
+`signatureClosed`, `hoverChanged`, `hoverClosed`,
 `diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -156,6 +156,9 @@ metadata such as documentation resolved later. NVDA uses it to refresh the
 per-instance documentation cache without a second selection announcement.
 `signatureClosed` ends transient signature state when its editor context is
 left and has no speech presentation of its own.
+`hoverChanged` carries a short summary and bounded complete documentation;
+speech and Braille automatically use only the summary. `hoverClosed` discards
+the per-instance hover documentation without its own presentation.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only

@@ -540,7 +540,8 @@ class AppModule(appModuleHandler.AppModule):
 		)
 
 	@scriptHandler.script(
-		description=_("Read documentation for the selected Neovim completion item"),
+		# Translators: Input Help description for reading completion or LSP hover details.
+		description=_("Read documentation for the selected Neovim completion item or LSP hover"),
 		category=scriptCategory,
 	)
 	def script_readCompletionDocumentation(self, gesture):

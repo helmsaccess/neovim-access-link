@@ -1308,6 +1308,17 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("printf(format, ...), parameter format, 1 of 2", action.text)
         self.assertEqual(action.text, action.braille_message)
 
+    def test_lsp_hover_announces_only_summary(self) -> None:
+        planner = SpeechPlanner()
+        action = planner.plan({"type": "hoverChanged", "payload": {
+            "summary": "print(value)",
+            "documentation": "print(value)\n\nPrint one value in full detail.",
+            "sourceCount": 1,
+        }})[0]
+        self.assertEqual("print(value)", action.text)
+        self.assertEqual(action.text, action.braille_message)
+        self.assertNotIn("full detail", action.text)
+
     def test_new_unindented_line_ticks_without_boundary_speech(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState", line="old", row=1))

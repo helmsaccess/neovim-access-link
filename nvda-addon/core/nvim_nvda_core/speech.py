@@ -548,6 +548,15 @@ class SpeechPlanner:
             action = self._signature(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "hoverChanged":
+            summary = state.get("summary")
+            if isinstance(summary, str) and summary:
+                actions.append(SpeechAction(
+                    summary,
+                    Priority.NAVIGATION,
+                    interrupt=True,
+                    braille_message=summary,
+                ))
         elif kind == "searchMatchChanged":
             action = self._search_match(state)
             if action is not None:

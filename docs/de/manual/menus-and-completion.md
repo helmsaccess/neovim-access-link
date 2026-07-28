@@ -71,10 +71,14 @@ Auswahlansage nicht.
 Längere Dokumentation wird nicht bei jedem Auswahlwechsel vollständig
 gesprochen. Unter „NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link“
 kann dem Befehl zum Lesen der Dokumentation des ausgewählten
-Vervollständigungseintrags eine eigene Tastenkombination zugewiesen werden.
+Vervollständigungseintrags oder des aktuellen LSP-Hovers eine eigene
+Tastenkombination zugewiesen werden. Beim LSP-Hover wird nur die erste
+aussagekräftige Zeile automatisch gesprochen und auf Braille angezeigt; der
+Befehl liest den vollständigen Inhalt.
 
 Der Befehl funktioniert nur, solange ein Eintrag ausgewählt ist und das
-Completion-System Dokumentation bereitstellt.
+Completion-System Dokumentation bereitstellt oder der aktuelle LSP-Hover
+Inhalt enthält.
 
 Bei `nvim-cmp` wird auch nachträglich über `completionItem/resolve` ergänzte
 Dokumentation übernommen. `blink.cmp` stellt seine intern aufgelöste Kopie

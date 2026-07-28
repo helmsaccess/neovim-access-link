@@ -156,6 +156,15 @@ It supports UTF-16 parameter ranges, multiple-client alternatives,
 deduplication, and a silent close state. Listener-free tests pass on Neovim
 0.10.1 and 0.12.3; a real language server and Windows/NVDA remain practical
 acceptance work.
+
+LSP hover follows the same version split while observing only
+`textDocument/hover`. It normalizes MarkupContent and MarkedString forms,
+deduplicates multiple clients, speaks and Brailles the first meaningful line,
+and stores bounded complete documentation per instance for the existing
+documentation command. Cursor, Insert, or buffer context changes close it
+silently. Listener-free parser and compatibility tests pass on Neovim 0.10.1
+and 0.12.3; a real language server and Windows/NVDA remain practical
+acceptance work.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.

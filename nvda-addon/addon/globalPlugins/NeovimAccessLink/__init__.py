@@ -1137,7 +1137,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if documentation:
 			speech.speakText(documentation, priority=NvdaSpeechPriority.NOW)
 		else:
-			ui.message(_("No completion documentation available"))
+			# Translators: Shown when neither completion nor LSP hover provides details.
+			ui.message(_("No completion or hover documentation available"))
 
 	def action_startConnectionInstance(self, gesture):
 		identity = self._gate.focused

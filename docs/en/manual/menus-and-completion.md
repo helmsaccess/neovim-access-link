@@ -31,9 +31,10 @@ are not automatically accessible.
 Open, move through, confirm, and close a menu with the keys configured in
 Neovim or the completion plugin; Access Link does not replace those mappings.
 Under `NVDA menu → Preferences → Input gestures... → Neovim Access Link`, a
-gesture can be assigned only to read the longer documentation for the currently
-selected completion item. It works while a selected item provides such
-documentation.
+gesture can be assigned to read the longer documentation for the currently
+selected completion item or LSP hover. Hover reports only its first meaningful
+line automatically in speech and Braille; the command reads the full content.
+It works while either source provides documentation.
 
 If a menu is silent, first verify that the editor tab is bound and that native
 terminal fragments are not being mistaken for semantic output. Then copy the

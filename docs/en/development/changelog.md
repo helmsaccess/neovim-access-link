@@ -15,6 +15,9 @@
 - Observes signature help through both Neovim 0.10's handler path and the
   combined 0.11/0.12 response path, including UTF-16 ranges, multiple clients,
   deduplication, and silent closing.
+- Presents LSP hover semantically through the same version split: only the
+  first meaningful line is automatic in speech/Braille, while the existing
+  documentation command reads complete per-instance content.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
   the runner, documentation, and GitHub Actions. Three independent CI jobs run
   these phases without private infrastructure or real SSH targets.

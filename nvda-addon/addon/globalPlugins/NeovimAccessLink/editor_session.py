@@ -707,6 +707,13 @@ class EditorSessionController:
 			self._coordinator.menu_documentation = documentation if isinstance(documentation, str) else ""
 		elif event_type == "menuClosed":
 			self._coordinator.menu_documentation = ""
+		if event_type == "hoverChanged" and payload is not None:
+			documentation = payload.get("documentation", "")
+			self._coordinator.runtime_extension_state["lspHoverDocumentation"] = (
+				documentation if isinstance(documentation, str) else ""
+			)
+		elif event_type == "hoverClosed":
+			self._coordinator.runtime_extension_state.pop("lspHoverDocumentation", None)
 
 		reset_typed_echo = event_type == "fullState" or (
 			event_type == "modeChanged" and mode != previous_mode
@@ -823,7 +830,10 @@ class EditorSessionController:
 		self.reset_typed_echo()
 
 	def completion_documentation(self) -> str:
-		"""Return the current instance's validated completion documentation."""
+		"""Return the current instance's validated completion or hover documentation."""
+		hover = self._coordinator.runtime_extension_state.get("lspHoverDocumentation", "")
+		if isinstance(hover, str) and hover:
+			return hover
 		return self._coordinator.menu_documentation
 
 	def mark_disconnected(self) -> None:

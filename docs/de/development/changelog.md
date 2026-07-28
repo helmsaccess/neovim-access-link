@@ -20,6 +20,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Erfasst Signaturhilfe sowohl über Neovim 0.10s Handlerpfad als auch über den
   kombinierten Antwortpfad von 0.11/0.12, einschließlich UTF-16-Offsetpaaren,
   mehreren Clients, Deduplizierung und stillem Schließen.
+- Gibt LSP-Hover semantisch über denselben Versionssplit aus: automatisch nur
+  die erste aussagekräftige Zeile in Sprache/Braille, vollständige
+  instanzbezogene Dokumentation über den vorhandenen Dokumentationsbefehl.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
   diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.

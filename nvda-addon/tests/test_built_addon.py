@@ -925,11 +925,21 @@ class BuiltAddonTests(unittest.TestCase):
                 "item": {"documentation": "first documentation"},
             },
         })
+        controller.apply_event({
+            "type": "hoverChanged",
+            "payload": {
+                "bufferId": 1,
+                "mode": "insert",
+                "buftype": "terminal",
+                "documentation": "first hover documentation",
+            },
+        })
         coordinator.typed_word = ["first"]
         self.assertTrue(controller.switch_instance("second"))
         self.assertEqual({}, coordinator.current_state)
         self.assertEqual([], coordinator.typed_word)
         self.assertEqual("", coordinator.menu_documentation)
+        self.assertEqual("", controller.completion_documentation())
 
         controller.apply_event({
             "type": "modeChanged",
@@ -940,6 +950,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("insert", coordinator.last_mode)
         self.assertEqual(["first"], coordinator.typed_word)
         self.assertEqual("first documentation", coordinator.menu_documentation)
+        self.assertEqual("first hover documentation", controller.completion_documentation())
+        controller.apply_event({"type": "hoverClosed", "payload": {}})
+        self.assertEqual("first documentation", controller.completion_documentation())
 
         transition = controller.apply_event({
             "type": "menuItemUpdated",
@@ -9947,10 +9960,20 @@ class BuiltAddonTests(unittest.TestCase):
             }})
             plugin.action_readCompletionDocumentation(None)
             plugin._handleEvent({"type": "menuClosed", "payload": {"mode": "insert"}})
+            plugin._handleEvent({"type": "hoverChanged", "payload": {
+                "mode": "normal",
+                "summary": "printf(format, ...)",
+                "documentation": "Detailed hover documentation",
+            }})
+            plugin.action_readCompletionDocumentation(None)
+            plugin._handleEvent({"type": "hoverClosed", "payload": {"mode": "normal"}})
         expected = "printf, 1 of 5, function, parameter format, ..."
         self.assertIn(expected, self.spoken)
         self.assertIn("Print formatted output", self.spoken)
-        self.assertEqual(expected, self.brailleMessages[-1])
+        self.assertIn("printf(format, ...)", self.spoken)
+        self.assertIn("Detailed hover documentation", self.spoken)
+        self.assertIn(expected, self.brailleMessages)
+        self.assertIn("printf(format, ...)", self.brailleMessages)
         self.assertEqual(2, len(self.soundFeeds))
         plugin.terminate()
 
