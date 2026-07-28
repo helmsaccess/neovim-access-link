@@ -8,6 +8,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Konsolidiert die zuvor konkurrierenden Root-Agentenanweisungen in einer
+  tatsächlich aktiven `AGENTS.md` und ergänzt kurze, pfadbezogene Regeln für
+  NVDA-Add-on, Neovim-Plugin, Bridge, Protokoll und Dokumentation.
+- Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
+  Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
+  diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.
 
 ## 0.96.0
 
@@ -483,7 +489,7 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   weiter aus.
 
 - Der neue isolierte Test-Runner parallelisiert unabhängige Python- und
-  Headless-Neovim-Suiten und trennt echte Socket- sowie ersetzte SSH-Fälle in
+  Headless-Neovim-Suiten und trennt echte Socket- sowie simulierte SSH-Fälle in
   gezielt ausführbare Gruppen.
 - Paket-Builds schreiben erst ein vollständiges temporäres Artefakt und
   ersetzen das Ziel atomar. Built-Add-on-Tests bauen und entpacken ihr

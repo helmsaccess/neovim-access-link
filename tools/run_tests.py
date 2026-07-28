@@ -60,7 +60,7 @@ GROUPS = ("unit", "package", "lua", "ssh", "socket")
 PRESETS = {
     "quick": ("unit",),
     "safe": ("unit", "package", "lua"),
-    "all-safe": ("unit", "package", "lua", "ssh"),
+    "all-safe": ("unit", "package", "lua"),
     "all": GROUPS,
 }
 
@@ -377,15 +377,20 @@ def main() -> int:
     results: list[Result] = []
     batches = (selected,)
     socket_jobs = tuple(job for job in selected if job.group == "socket")
-    other_jobs = tuple(job for job in selected if job.group != "socket")
-    if socket_jobs and other_jobs:
-        batches = (other_jobs, socket_jobs)
+    ssh_jobs = tuple(job for job in selected if job.group == "ssh")
+    safe_jobs = tuple(job for job in selected if job.group not in {"ssh", "socket"})
+    separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
+    if len(separated_batches) > 1:
+        batches = separated_batches
     with tempfile.TemporaryDirectory(prefix="nvim-nvda-tests-") as temporary_name:
         temporary_root = Path(temporary_name)
         submitted_index = 0
         for batch_index, batch in enumerate(batches, start=1):
             if len(batches) > 1:
-                phase = "isolated socket phase" if batch[0].group == "socket" else "sandbox-safe phase"
+                phase = {
+                    "ssh": "isolated SSH phase",
+                    "socket": "isolated socket phase",
+                }.get(batch[0].group, "sandbox-safe phase")
                 print(f"Phase {batch_index}/{len(batches)}: {phase}", flush=True)
             with concurrent.futures.ThreadPoolExecutor(max_workers=arguments.jobs) as executor:
                 futures = {}

@@ -65,6 +65,7 @@ Der normale vollständige, sandbox-taugliche Ablauf ist:
 ruff check .
 ruff format --check .
 tools/run_tests.py all-safe
+tools/run_tests.py ssh
 python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
@@ -78,22 +79,22 @@ laufen deshalb separat:
 tools/run_tests.py socket
 ```
 
-`tools/run_tests.py all` führt erst die sandbox-taugliche Phase und danach die
-Socket-Phase aus. Ohne Gruppenargument entspricht der Runner dem Preset
-`safe`. `-j N` begrenzt die parallelen Prozesse; `--list` zeigt die Auswahl
-ohne Ausführung.
+`tools/run_tests.py all` führt die sandbox-taugliche, die simulierte SSH- und die
+Socket-Phase nacheinander aus. Ohne Gruppenargument entspricht der Runner dem
+Preset `safe`. `-j N` begrenzt die parallelen Prozesse; `--list` zeigt die
+Auswahl ohne Ausführung.
 
 | Gruppe oder Preset | Kompakter Zweck |
 | --- | --- |
 | `unit` | reine und mit Attrappen isolierte Python-Tests |
 | `package` | gebautes Add-on, Paketinhalt und NVDA-Integrationsattrappen |
 | `lua` | Headless-Neovim-Spezifikationen ohne Listener |
-| `ssh` | ersetzte SSH-Kommando-, Askpass- und Fehlerpfade, ohne echte Verbindung |
+| `ssh` | simulierte SSH-Kommando-, Askpass- und Fehlerpfade, ohne echte Verbindung |
 | `socket` | echte wegwerfbare TUI-, RPC-, TCP- und Unix-Socket-Fälle |
 | `quick` | schnelle Rückmeldung; entspricht `unit` |
 | `safe` | Standard ohne Argument: `quick`, `package` und `lua` |
-| `all-safe` | `safe` plus `ssh` |
-| `all` | alle Gruppen; `socket` läuft in einer eigenen zweiten Phase |
+| `all-safe` | vollständige listenerfreie Suite; Alias von `safe` |
+| `all` | alle Gruppen in getrennten Phasen: `all-safe`, `ssh`, `socket` |
 
 Der Add-on-Build ist selbst Teil der Prüfung: Pakettests untersuchen das
 tatsächlich erzeugte Archiv und nicht nur den Quellbaum. Details zu Isolation,

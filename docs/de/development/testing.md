@@ -56,6 +56,7 @@ Vom Repository-Wurzelverzeichnis:
 ruff check .
 ruff format --check .
 tools/run_tests.py all-safe
+tools/run_tests.py ssh
 python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
@@ -79,8 +80,16 @@ ohne Ausführung.
 | `socket` | echte wegwerfbare Neovim-TUI-, RPC-, TCP- und Unix-Socket-Fälle |
 | `quick` | schnelle Rückmeldung; entspricht `unit` |
 | `safe` | Standard: `quick`, `package` und `lua` |
-| `all-safe` | `safe` plus die ersetzten SSH-Fälle |
-| `all` | alle Gruppen; echte Socket-Fälle folgen in einer eigenen Phase |
+| `all-safe` | vollständige listenerfreie Suite aus `unit`, `package` und `lua`; Alias von `safe` für CI und dokumentierte Komplettläufe |
+| `all` | alle Gruppen in drei aufeinanderfolgenden Phasen: `all-safe`, `ssh`, danach `socket` |
+
+Die Gruppe `ssh` bleibt trotz vollständig simulierter externer Prozesse eine
+eigene Phase. Dadurch sind SSH-, Askpass- und Prozessfehler klar von den
+listenerfreien Standardtests getrennt:
+
+```bash
+tools/run_tests.py ssh
+```
 
 Die beiden Paket-Shards bauen und entpacken jeweils genau ein tatsächliches
 Add-on. Normale Tests verwenden diese unveränderte Extraktion gemeinsam; ein
@@ -101,6 +110,31 @@ Sandbox bleibt vor Push oder Release verpflichtend, wenn Socket-, Sitzungs-
 oder TUI-Code betroffen ist. Die Gruppe `ssh` öffnet in der automatisierten
 Suite keine echte SSH-Verbindung; praktische SSH-Prüfungen verwenden weiterhin
 ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
+
+## GitHub Actions
+
+`.github/workflows/repository-tests.yml` führt bei Pushes und Pull Requests
+drei unabhängige Jobs aus:
+
+1. Unit-, Paket- und listenerfreie Lua-Tests mit `all-safe`;
+2. simulierte SSH- und Askpass-Pfade mit `ssh`;
+3. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
+
+Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
+von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
+Entpacken wird die Prüfsumme verifiziert. Der SSH-Job besitzt keine
+Zugangsdaten und kontaktiert keinen SSH-Host. Jeder Job hat eine begrenzte
+Laufzeit; ein neuer Lauf für denselben Branch beendet außerdem einen noch
+laufenden älteren Lauf.
+
+GitHub Actions ersetzt die praktische Prüfung unter NVDA und Windows Terminal
+nicht. Die Jobs liefern reproduzierbares Linux-Feedback und verhindern, dass
+ein fehlgeschlagener Spezialpfad in einer allgemeinen Testsuite verborgen
+bleibt. Die Socket-Fälle laufen im CI bewusst seriell, damit mehrere echte
+Neovim-TUIs nicht um knappe Runnerzeit konkurrieren. Auf GitHub zeigt die
+Registerkarte **Actions** jeden Lauf; ein
+fehlgeschlagener Job lässt sich öffnen und zeigt den Namen der betroffenen
+Testdatei oder des isolierten Falls.
 
 Für die beiden Ruff-Befehle wird wie in NVDA 2026.1 Ruff 0.14.5 verwendet.
 Die Konfiguration in `pyproject.toml` begrenzt die Prüfung auf die direkt von

@@ -3,7 +3,8 @@
 Thank you for considering a contribution. Please discuss substantial features,
 protocol changes, new dependencies, or additional terminal front ends before
 implementation. Bug fixes should include a regression test. Follow
-`AGENTS.md`, the architecture documents, and the test strategy.
+the root `AGENTS.md`, any more specific `AGENTS.md` in the component being
+changed, the architecture documents, and the test strategy.
 
 ## Contribution workflow
 
@@ -11,7 +12,8 @@ implementation. Bug fixes should include a regression test. Follow
 2. Keep unrelated cleanup out of the change.
 3. Add or update tests and German and English documentation as appropriate.
 4. Run the relevant Python, Lua, packaging, and documentation checks from
-   `docs/en/development/testing.md`.
+   `docs/en/development/testing.md`. Run the `ssh` and `socket` groups as
+   separate phases when they apply.
 5. Open a pull request describing behavior, risks, tests, and known limits.
 
 Do not submit passwords, tokens, private editor text, real infrastructure

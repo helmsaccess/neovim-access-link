@@ -20,6 +20,11 @@ This chapter is a snapshot. See `changelog.md` for feature history and
 development builds are not descriptions of the current product and are
 therefore not repeated chronologically here.
 
+GitHub Actions repository checks separate the listener-free standard suite,
+mocked SSH/Askpass paths, and real disposable TCP/Unix-socket cases into
+three independent jobs. They use neither production SSH targets nor private
+infrastructure and do not replace practical Windows/NVDA verification.
+
 ## Reference environment
 
 The main practical path has been exercised with:

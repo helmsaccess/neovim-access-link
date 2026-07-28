@@ -63,6 +63,7 @@ The normal complete sandbox-compatible workflow is:
 ruff check .
 ruff format --check .
 tools/run_tests.py all-safe
+tools/run_tests.py ssh
 python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
 tools/build_documentation.sh
@@ -76,22 +77,22 @@ therefore run separately:
 tools/run_tests.py socket
 ```
 
-`tools/run_tests.py all` runs the sandbox-compatible phase first and the socket
-phase afterward. With no group argument, the runner uses the `safe` preset.
-Use `-j N` to limit parallel processes and `--list` to inspect selection
-without running it.
+`tools/run_tests.py all` runs the sandbox-compatible, mocked SSH, and socket
+phases sequentially. With no group argument, the runner uses the `safe`
+preset. Use `-j N` to limit parallel processes and `--list` to inspect
+selection without running it.
 
 | Group or preset | Compact purpose |
 | --- | --- |
 | `unit` | pure and mock-isolated Python tests |
 | `package` | built add-on, package contents, and NVDA integration doubles |
 | `lua` | headless-Neovim specifications without listeners |
-| `ssh` | replaced SSH command, Askpass, and failure paths, without a real connection |
+| `ssh` | mocked SSH command, Askpass, and failure paths, without a real connection |
 | `socket` | real disposable TUI, RPC, TCP, and Unix-socket cases |
 | `quick` | fast feedback; equivalent to `unit` |
 | `safe` | default without arguments: `quick`, `package`, and `lua` |
-| `all-safe` | `safe` plus `ssh` |
-| `all` | every group; `socket` runs in a separate second phase |
+| `all-safe` | complete listener-free suite; an alias of `safe` |
+| `all` | every group in separate `all-safe`, `ssh`, and `socket` phases |
 
 The add-on build is itself part of verification: package tests inspect the
 actual generated archive rather than only the source tree. See

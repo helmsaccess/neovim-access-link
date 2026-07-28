@@ -6,6 +6,8 @@ Describe the user-visible or architectural change.
 
 - [ ] Relevant Python tests
 - [ ] Relevant Lua/Neovim tests
+- [ ] Separate mocked SSH checks when SSH behavior changed
+- [ ] Separate socket/TUI checks when listeners or sessions changed
 - [ ] Packaging checks when shipped content changed
 - [ ] German and English documentation updated
 - [ ] `git diff --check`

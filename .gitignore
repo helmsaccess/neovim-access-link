@@ -27,3 +27,4 @@ debug/incoming/
 /build/
 /dist/
 /tmp/
+/AGENTS.override.md

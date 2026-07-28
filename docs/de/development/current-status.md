@@ -23,6 +23,11 @@ steht im `changelog.md`; geplante Arbeit steht in `plan.md`. Alte
 Featurebranch-Berichte und zwischenzeitliche Testbuilds sind keine Beschreibung
 des aktuellen Produkts und werden hier deshalb nicht chronologisch wiederholt.
 
+Repositoryprüfungen in GitHub Actions trennen die listenerfreie Standardsuite,
+simulierte SSH-/Askpass-Pfade und echte wegwerfbare TCP-/Unix-Socket-Fälle in
+drei unabhängige Jobs. Sie verwenden weder produktive SSH-Ziele noch private
+Infrastruktur und ersetzen keine praktische Windows-/NVDA-Prüfung.
+
 ## Referenzumgebung
 
 Der hauptsächliche praktische Pfad wurde mit dieser Umgebung geprüft:

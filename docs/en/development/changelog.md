@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Consolidates the previously competing root agent instructions into one
+  effective `AGENTS.md` and adds concise path-scoped rules for the NVDA add-on,
+  Neovim plugin, bridge, protocol, and documentation.
+- Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
+  the runner, documentation, and GitHub Actions. Three independent CI jobs run
+  these phases without private infrastructure or real SSH targets.
 
 ## 0.96.0
 
@@ -423,7 +429,7 @@
   for the suggestion path; broader hardware-Braille checks remain pending.
 
 - A new isolated test runner parallelizes independent Python and
-  headless-Neovim suites and separates real socket and replaced SSH cases into
+  headless-Neovim suites and separates real socket and mocked SSH cases into
   explicitly runnable groups.
 - Package builds first write a complete temporary artifact and atomically
   replace the destination. Built-add-on tests build and extract their baseline

@@ -4,6 +4,10 @@ This documentation explains how Neovim Access Link is built, how to develop a
 change safely, and which claims are actually supported by code or tests. See
 the [user manual](../manual/README.md) for operation of the installed add-on.
 
+The German developer documentation is the technical source of truth. Its
+English mirror is updated in the same change and must preserve the same claims,
+limits, and evidence.
+
 ## Recommended starting path
 
 New contributors should read these pages in order:
@@ -68,6 +72,8 @@ are neither user instructions nor substitutes for the current code.
 - `protocol.md` is the reference for messages, validation, and controls.
 - `security.md` defines trust boundaries and fail-open requirements.
 - `testing.md` contains reproducible evidence and manual acceptance steps.
+- `release-and-build.md` describes versions, reproducible artifacts, and
+  publication steps.
 - `current-status.md` records confirmed platforms and remaining coverage gaps.
 - `plan.md` describes intended work; a plan is not an implemented feature.
 - `changelog.md` preserves chronology; an older entry does not automatically

@@ -5,6 +5,10 @@ Diese Dokumentation erklärt, wie Neovim Access Link aufgebaut ist, wie eine
 oder Tests belegt sind. Die Bedienung des fertigen Add-ons steht im
 [Anwenderhandbuch](../manual/README.md).
 
+Die deutsche Entwicklerdokumentation ist die fachliche Referenz. Ihre
+englische Entsprechung wird bei inhaltlichen Änderungen im selben Arbeitsschritt
+aktualisiert und muss dieselben Aussagen, Grenzen und Nachweise enthalten.
+
 ## Empfohlener Einstieg
 
 Wer das Projekt noch nicht kennt, liest diese Seiten in der folgenden
@@ -72,6 +76,8 @@ Code.
 - `protocol.md` ist die Referenz für Nachrichten, Validierung und Steuerbefehle.
 - `security.md` beschreibt Vertrauensgrenzen und Fail-open-Anforderungen.
 - `testing.md` enthält reproduzierbare Nachweise und manuelle Prüfschritte.
+- `release-and-build.md` beschreibt Versionen, reproduzierbare Artefakte und
+  Veröffentlichungsschritte.
 - `current-status.md` nennt bestätigte Plattformen und noch offene Breite.
 - `plan.md` enthält beabsichtigte Arbeit; eine Planung ist keine bereits
   implementierte Funktion.
