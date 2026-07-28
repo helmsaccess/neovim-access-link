@@ -109,6 +109,21 @@ equal(1, #closed, "one close event")
 equal("menuClosed", closed[1].type, "close type")
 equal(0, #model:close("again"), "duplicate close suppressed")
 
+local lifecycle = menu.new()
+local lifecycle_opened = lifecycle:begin({ mode = "nvim-cmp", item_count = 0 })
+equal(1, #lifecycle_opened, "explicit lifecycle opens before items arrive")
+equal("menuOpened", lifecycle_opened[1].type, "explicit lifecycle open type")
+equal("nvim-cmp", lifecycle_opened[1].payload.menuKind, "explicit lifecycle menu kind")
+equal(0, lifecycle_opened[1].payload.itemCount, "explicit lifecycle permits unknown count")
+equal(0, #lifecycle:begin({ mode = "nvim-cmp" }), "duplicate explicit open suppressed")
+local lifecycle_selection = lifecycle:update({
+  mode = "nvim-cmp", pum_visible = true, selected = 0,
+  selected_item = { word = "ready" }, item_count = 1,
+})
+equal(1, #lifecycle_selection, "first delayed item does not reopen lifecycle")
+equal("menuSelectionChanged", lifecycle_selection[1].type, "delayed item is selection only")
+equal("menuClosed", lifecycle:close("pluginClosed")[1].type, "explicit lifecycle closes once")
+
 local no_selection = menu.new():update({
   mode = "keyword", pum_visible = true, selected = -1,
   items = {{ word = "one" }, { word = "two" }},

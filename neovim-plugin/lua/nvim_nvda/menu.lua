@@ -112,6 +112,23 @@ end
 function M.new()
   local self = { open = false, selection_key = nil, detail_key = nil }
 
+  function self:begin(info)
+    if self.open then return {} end
+    info = type(info) == "table" and info or {}
+    local item_count = tonumber(info.item_count) or 0
+    item_count = math.max(0, math.min(math.floor(item_count), 2147483647))
+    self.open = true
+    self.selection_key = nil
+    self.detail_key = nil
+    return {{
+      type = "menuOpened",
+      payload = {
+        menuKind = bounded_string(info.mode, 64),
+        itemCount = item_count,
+      },
+    }}
+  end
+
   function self:update(info)
     info = type(info) == "table" and info or {}
     local raw_items = type(info.items) == "table" and info.items or {}
@@ -120,14 +137,7 @@ function M.new()
     if not info.pum_visible or item_count == 0 then
       return self:close("hidden")
     end
-    local events = {}
-    if not self.open then
-      self.open = true
-      events[#events + 1] = {
-        type = "menuOpened",
-        payload = { menuKind = bounded_string(info.mode, 64), itemCount = item_count },
-      }
-    end
+    local events = self:begin({ mode = info.mode, item_count = item_count })
     local selected = tonumber(info.selected) or -1
     local raw_item = type(info.selected_item) == "table" and info.selected_item
       or raw_items[selected + 1]

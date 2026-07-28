@@ -12,6 +12,9 @@
   `blink.cmp`'s public selected index. Ownership tokens, tick diagnostics, and
   real-module tests cover current `nvim-cmp`, `blink.cmp` v1.10.2, and the
   provisional v2 branch on Neovim 0.10.1/0.12.3.
+- Ties the standard NVDA opening and closing cues for `nvim-cmp` and
+  `blink.cmp` directly to their public menu events. Briefly delayed candidates
+  can no longer suppress the opening cue or produce a false close/open pair.
 - Observes signature help through both Neovim 0.10's handler path and the
   combined 0.11/0.12 response path, including UTF-16 ranges, multiple clients,
   deduplication, and silent closing.

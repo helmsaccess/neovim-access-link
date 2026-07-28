@@ -17,6 +17,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   verwendet bei `blink.cmp` den öffentlichen Auswahlindex. Besitzer-Token,
   Tickdiagnostik und echte Modultests decken aktuellen `nvim-cmp`, `blink.cmp`
   v1.10.2 sowie den vorläufigen v2-Zweig auf Neovim 0.10.1/0.12.3 ab.
+- Bindet die üblichen NVDA-Öffnen-/Schließen-Klänge für `nvim-cmp` und
+  `blink.cmp` direkt an deren öffentliche Menüereignisse. Kurz verzögert
+  verfügbare Kandidaten können den Öffnungsklang damit nicht mehr unterdrücken
+  oder ein falsches Schließen-/Öffnen-Paar auslösen.
 - Erfasst Signaturhilfe sowohl über Neovim 0.10s Handlerpfad als auch über den
   kombinierten Antwortpfad von 0.11/0.12, einschließlich UTF-16-Offsetpaaren,
   mehreren Clients, Deduplizierung und stillem Schließen.

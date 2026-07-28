@@ -40,7 +40,7 @@ equal("[LSP]", cmp.menu, "cmp menu")
 equal("docs", cmp.info, "cmp docs")
 equal("", adapters.normalize_item(nil).word, "nil item")
 
-local callbacks, calls = {}, {}
+local callbacks, calls, lifecycle_calls = {}, {}, {}
 local first = {
   id = 41,
   completion_item = { label = "printf", kind = 3 },
@@ -54,12 +54,16 @@ local second = {
   get_completion_item = function() error("deprecated accessor used") end,
 }
 local selected = first
+local cmp_entries = {}
 package.loaded.cmp = {
   event = { on = function(_, name, callback) callbacks[name] = callback end },
-  get_entries = function() return { first, second } end,
+  get_entries = function() return cmp_entries end,
   get_selected_entry = function() return selected end,
 }
 local owner = {
+  accessible_menu_begin = function(options)
+    lifecycle_calls[#lifecycle_calls + 1] = { type = "begin", kind = options.kind }
+  end,
   accessible_menu_update = function(item, options)
     calls[#calls + 1] = {
       type = "update", item = item, selected = options.selected,
@@ -71,6 +75,13 @@ local owner = {
 local group = vim.api.nvim_create_augroup("NvimNvdaAdapterTest", { clear = true })
 adapters.setup(owner, group)
 callbacks.menu_opened()
+equal("begin", lifecycle_calls[#lifecycle_calls].type, "cmp lifecycle opens immediately")
+equal("nvim-cmp", lifecycle_calls[#lifecycle_calls].kind, "cmp lifecycle kind")
+callbacks.menu_opened()
+equal(1, #lifecycle_calls, "duplicate cmp open does not restart lifecycle")
+vim.wait(80)
+equal(0, #calls, "empty initial cmp data does not close accessible lifecycle")
+cmp_entries = { first, second }
 vim.wait(200, function() return #calls >= 1 end)
 equal("update", calls[1].type, "cmp opens adapter menu")
 equal(1, calls[1].selected, "cmp initial selection")
@@ -97,13 +108,24 @@ local blink_items = {
   { label = "beta", kind = 15, source_id = "snippets", source_name = "Snippets" },
 }
 local blink_selected = 1
+local blink_visible = false
+local blink_error = false
 package.loaded["blink.cmp"] = {
-  is_menu_visible = function() return true end,
+  is_menu_visible = function()
+    if blink_error then error("simulated item API failure") end
+    return blink_visible
+  end,
   get_items = function() return blink_items end,
   get_selected_item_idx = function() return blink_selected end,
   get_selected_item = function() error("identity fallback used") end,
 }
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuOpen" })
+equal("begin", lifecycle_calls[#lifecycle_calls].type, "blink lifecycle opens immediately")
+equal("blink.cmp", lifecycle_calls[#lifecycle_calls].kind, "blink lifecycle kind")
+local calls_before_blink_items = #calls
+vim.wait(80)
+equal(calls_before_blink_items, #calls, "invisible initial blink data does not close lifecycle")
+blink_visible = true
 vim.wait(200, function()
   return calls[#calls].kind == "blink.cmp" and calls[#calls].selected == 1
 end)
@@ -116,6 +138,10 @@ blink_selected = 2
 vim.wait(200, function() return calls[#calls].selected == 2 end)
 equal("snippet", calls[#calls].item.kind, "blink selected kind")
 equal("Snippets", calls[#calls].item.source, "blink selected source")
+local calls_before_blink_error = #calls
+blink_error = true
+vim.wait(200, function() return adapters.diagnostics().errorCount > 0 end)
+equal(calls_before_blink_error, #calls, "poll error does not invent close lifecycle")
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuClose" })
 equal("close", calls[#calls].type, "blink closes adapter menu")
 

@@ -85,22 +85,30 @@ local function publish(kind, raw_item, source_name, stable_id, selected, item_co
   end
 end
 
+local function stop_timer()
+  if timer then timer:stop(); timer:close(); timer = nil end
+end
+
 local function close(kind, generation)
   if kind and active_kind ~= kind then return end
   if generation and active_generation ~= generation then return end
-  if timer then timer:stop(); timer:close(); timer = nil end
+  stop_timer()
   if active_kind then owner.accessible_menu_close() end
   active_kind, last_signature = nil, nil
   diagnostics.activeKind = nil
 end
 
 local function start_poll(kind, api_variant, callback)
+  if active_kind == kind then return end
   if active_kind then close() end
   active_generation = active_generation + 1
   local generation = active_generation
   active_kind = kind
   diagnostics.activeKind = kind
   diagnostics.apiVariant = api_variant
+  if type(owner.accessible_menu_begin) == "function" then
+    owner.accessible_menu_begin({ kind = kind })
+  end
   timer = vim.uv.new_timer()
   timer:start(0, diagnostics.pollIntervalMilliseconds, vim.schedule_wrap(function()
     if generation ~= active_generation or kind ~= active_kind then return end
@@ -113,13 +121,15 @@ local function start_poll(kind, api_variant, callback)
     end
     if not ok then
       diagnostics.errorCount = diagnostics.errorCount + 1
-      close(kind, generation)
+      -- Stop content polling, but keep the lifetime owned by the public close
+      -- event so an adapter failure cannot invent a closing cue.
+      stop_timer()
       return
     end
-    if not visible then
-      close(kind, generation)
-      return
-    end
+    -- The public menu open/close events own the accessible lifetime. Item
+    -- APIs may briefly report an empty or invisible view while the plugin is
+    -- populating it; wait instead of producing a false close/open pair.
+    if not visible then return end
     publish(
       kind, item, source_name, stable_id, tonumber(selected) or 0,
       math.max(0, tonumber(item_count) or 0)
@@ -143,8 +153,9 @@ local function setup_nvim_cmp()
   local ok, cmp = pcall(require, "cmp")
   if not ok or type(cmp) ~= "table" or type(cmp.event) ~= "table" then return false end
   cmp.event:on("menu_opened", function()
+    if vim.fn.pumvisible() == 1 then return end -- native_menu uses the standard path.
     start_poll("nvim-cmp", "public-entry", function()
-      if vim.fn.pumvisible() == 1 then return false end -- native_menu uses the standard path.
+      if vim.fn.pumvisible() == 1 then return false end
       local entries = type(cmp.get_entries) == "function" and cmp.get_entries() or {}
       local selected_entry = type(cmp.get_selected_entry) == "function"
         and cmp.get_selected_entry() or nil
@@ -154,7 +165,7 @@ local function setup_nvim_cmp()
       end
       local item, source, stable_id = cmp_entry_item(selected_entry)
       -- menu_closed is the authoritative lifetime event. An empty retained
-      -- view still closes defensively without a third cmp.sync() call.
+      -- view can occur while nvim-cmp is still populating the custom menu.
       return #entries > 0, item, source, stable_id, selected, #entries
     end)
   end)

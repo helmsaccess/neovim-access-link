@@ -46,15 +46,19 @@ breite Hardware-, Treiber- und Übersetzungstabellenmatrix bleibt offen.
 | LSP-Signatur | enger Beobachter für den Handlerpfad von Neovim 0.10 und den `buf_request_all`-Antwortcallback von 0.11/0.12 | Signatur, aktiver Parameter als Text oder UTF-16-Offsetpaar, Alternativen mehrerer Clients | Signatur und Parameter, dedupliziert; stiller Schließzustand | ja | listenerfreie Kompatibilitätstests auf Neovim 0.10.1 und 0.12.3; realer LSP-Server und Windows/NVDA noch praktisch zu prüfen |
 | LSP-Hover | enger Beobachter für den Handlerpfad von Neovim 0.10 und ausschließlich `textDocument/hover` im kombinierten Antwortcallback von 0.11/0.12 | erste aussagekräftige Zeile, begrenzte vollständige Markup-/MarkedString-Dokumentation, Quellenanzahl | kurze automatische Sprache/Braille; vollständiger Inhalt über den vorhandenen Dokumentationsbefehl; stilles Schließen bei Kontextwechsel | ja | listenerfreie Parser-, Deduplizierungs-, Mehrclient- und Kompatibilitätstests auf Neovim 0.10.1/0.12.3; realer LSP-Server und Windows/NVDA offen |
 | LSP-Serverstatus | expliziter Befehl `:NvimNvdaLspStatus` und `vim.lsp.get_clients()` | höchstens 32 eindeutige, UTF-8-sichere Clientnamen des aktuellen Buffers | kurze Sprache/Braille oder ausdrückliche Meldung ohne Client | ja | listenerfreier Lua- und Speech-Test auf Neovim 0.10.1/0.12.3; automatische Fortschrittsansagen bewusst vermieden |
-| nvim-cmp/blink.cmp | Öffnen/Schließen per Pluginereignis; öffentliche Auswahlabfrage alle 35 ms nur solange das Menü offen ist | nur ausgewählter Kandidat, vollständige Anzahl, alle LSP-Typen, Quelle und vorhandene Dokumentation | Standard-Menüausgabe und stiller Dokumentationscache | ja | Attrappentests plus echte Modulanbindung: aktueller `nvim-cmp` und `blink.cmp` v1.10.2 auf Neovim 0.10.1/0.12.3, vorläufiger `blink.cmp`-v2-Zweig mit `blink.lib` auf 0.12.3; vollständige TUI-/Windows-/NVDA-Abnahme offen |
+| nvim-cmp/blink.cmp | Öffnen/Schließen per Pluginereignis; öffentliche Auswahlabfrage alle 35 ms nur solange das Menü offen ist | nur ausgewählter Kandidat, vollständige Anzahl, alle LSP-Typen, Quelle und vorhandene Dokumentation | unmittelbare Standard-Öffnen-/Schließen-Klänge, Standard-Menüausgabe und stiller Dokumentationscache | ja | Attrappentests mit verzögert verfügbaren Kandidaten plus echte Modulanbindung: aktueller `nvim-cmp` und `blink.cmp` v1.10.2 auf Neovim 0.10.1/0.12.3, vorläufiger `blink.cmp`-v2-Zweig mit `blink.lib` auf 0.12.3; vollständige TUI-/Windows-/NVDA-Abnahme offen |
 | Quickfix/Location List | stabile Fensterdaten | Listentyp, aktuelle Zeile | Typ und Eintrag | ja | echtes TUI und Speech-Test |
 | Ex-Fehler bei `:q` | `CmdlineLeave` + Bufferstatus | Kommando, `modified` | E37 mit Hinweis auf Speichern oder `:q!` | ja | echtes TUI automatisiert |
 
 Der Timer in den `nvim-cmp`- und `blink.cmp`-Adaptern ist eine dokumentierte
 Notlösung. Er beginnt erst nach dem jeweiligen öffentlichen Menü-Öffnen-
-Ereignis und endet beim Schließen oder bei unsichtbarem Menü. Er ersetzt nicht
-den eingebauten Neovim-Menüpfad und läuft nie außerhalb eines geöffneten
-Pluginmenüs. Pro Tick wird nur der ausgewählte Kandidat normalisiert.
+Ereignis und endet beim öffentlichen Schließen-Ereignis. Öffnen und Schließen
+des zugänglichen Menüzustands und damit die Standardklänge hängen nicht vom
+ersten erfolgreichen Tick ab. Eine während des Aufbaus kurz leere oder
+unsichtbare öffentliche Itemansicht erzeugt deshalb kein falsches
+Schließen-/Öffnen-Paar. Der Timer ersetzt nicht den eingebauten
+Neovim-Menüpfad und läuft nie außerhalb eines geöffneten Pluginmenüs. Pro Tick
+wird nur der ausgewählte Kandidat normalisiert.
 `nvim-cmp` benötigt weiterhin zwei mit `cmp.sync()` umwickelte öffentliche
 Abfragen. Fehler, langsame Ticks, maximale Tickdauer und aktive API-Variante
 erscheinen deshalb ohne Kandidateninhalt in Diagnosebericht und

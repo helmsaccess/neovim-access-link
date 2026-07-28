@@ -62,7 +62,11 @@ blink.get_items = function() return { blink_item } end
 blink.get_selected_item_idx = function() return 1 end
 
 local calls = {}
+local lifecycle_calls = {}
 local owner = {
+  accessible_menu_begin = function(options)
+    lifecycle_calls[#lifecycle_calls + 1] = { type = "begin", kind = options.kind }
+  end,
   accessible_menu_update = function(item, options)
     calls[#calls + 1] = { type = "update", item = item, options = options }
   end,
@@ -74,6 +78,8 @@ local setup = adapters.setup(owner, group)
 truth(setup.nvim_cmp == true and setup.blink_cmp == true, "both real modules attach")
 
 cmp.event:emit("menu_opened", {})
+truth(lifecycle_calls[#lifecycle_calls].kind == "nvim-cmp",
+  "real nvim-cmp open event begins accessible lifetime")
 truth(vim.wait(500, function()
   return calls[#calls] and calls[#calls].item
     and calls[#calls].item.word == "actual_cmp_api"
@@ -83,6 +89,8 @@ cmp.event:emit("menu_closed", {})
 truth(calls[#calls].type == "close", "real nvim-cmp close event reaches adapter")
 
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuOpen" })
+truth(lifecycle_calls[#lifecycle_calls].kind == "blink.cmp",
+  "real blink.cmp open event begins accessible lifetime")
 truth(vim.wait(500, function()
   return calls[#calls] and calls[#calls].item
     and calls[#calls].item.word == "actual_blink_api"

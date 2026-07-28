@@ -44,7 +44,10 @@ wirksam.
 
 Beim Öffnen und Schließen können NVDAs übliche Vorschlagsklänge abgespielt
 werden. Dafür gilt NVDAs Einstellung zur akustischen Meldung automatischer
-Vorschläge.
+Vorschläge. Das gilt gleichermaßen für Neovims eingebautes Menü, `nvim-cmp`
+und `blink.cmp`. Bei den beiden Pluginadaptern folgt der jeweilige Klang direkt
+dem öffentlichen Öffnen- beziehungsweise Schließen-Ereignis, auch wenn die
+Kandidaten erst kurz danach verfügbar sind.
 
 ## Gesprochene Informationen
 

@@ -1557,6 +1557,20 @@ end
 
 -- Public adapter for plugins which draw a custom menu instead of using
 -- Neovim's built-in completion popup. Items use complete-item fields.
+function M.accessible_menu_begin(options)
+  options = options or {}
+  adapter_info = {
+    mode = options.kind or "plugin",
+    pum_visible = true,
+    selected = -1,
+    item_count = 0,
+  }
+  emit_menu_events(adapter_menu:begin({
+    mode = adapter_info.mode,
+    item_count = options.item_count or 0,
+  }), "pluginMenu")
+end
+
 function M.accessible_menu_open(items, options)
   options = options or {}
   adapter_info = {

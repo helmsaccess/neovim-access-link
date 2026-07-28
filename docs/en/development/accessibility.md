@@ -127,8 +127,11 @@ The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
 Public plugin events start and stop the accessible-menu lifetime, but neither
 plugin currently provides a reliable event for every selection change. A
 35 ms timer therefore queries the public selection API only while that plugin
-menu is open and stops on close or invisibility. Each tick normalizes only the
-selected candidate. `nvim-cmp` still needs two public calls wrapped in
+menu is open and stops on the public close event. The accessible lifetime and
+standard opening/closing cues do not depend on the first successful tick, so a
+briefly empty or invisible item view while the plugin populates its menu does
+not produce a false close/open pair. Each tick normalizes only the selected
+candidate. `nvim-cmp` still needs two public calls wrapped in
 `cmp.sync()`, so content-free diagnostics expose errors, slow ticks, maximum
 duration, and the active API variant in the diagnostic report and
 `:checkhealth`. Built-in Neovim completion remains fully event-driven. This

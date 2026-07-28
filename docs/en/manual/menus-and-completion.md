@@ -3,7 +3,9 @@
 The plugin reports Neovim completion items, selection changes, confirmation,
 closing, and available details as structured events. NVDA's own “Report
 automatic suggestions with sound” setting under Object Presentation controls
-the standard opening and closing cues.
+the standard opening and closing cues for Neovim's built-in menu, `nvim-cmp`,
+and `blink.cmp`. Both plugin adapters tie the cue directly to the public open
+or close event, even when candidates become available shortly afterwards.
 
 Neovim's built-in popup menu is supported, including completion sources that
 use `complete()`, `completefunc`, or `omnifunc`. Explicit adapters are included
