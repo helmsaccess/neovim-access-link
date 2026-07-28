@@ -11,9 +11,9 @@ Enthalten sind:
 - interner NVDA-Identifier `NeovimAccessLink`,
 - sichtbarer Produktname „Neovim Access Link“,
 - Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
-- vom Benutzer bestimmte Produktversion `0.96.0`,
+- bewusst festgelegte Produktversion,
 - eine pro Featurebranch verwaltete Entwicklungsbuildnummer,
-- Releasekanal `beta`,
+- bewusst festgelegter Releasekanal,
 - minimale und zuletzt getestete NVDA-Version.
 
 Seit dem Cleanup für 0.94 lautet der interne Identifier `NeovimAccessLink`.
@@ -25,26 +25,26 @@ Identifier ist kein zweiter sichtbarer Produktname.
 
 ## Abgeleitete Werte
 
-`buildVars.store_version()` liefert ausschließlich die normale numerische
-Produktversion `0.96.0` für `manifest.ini` und den NVDA Add-on Store.
-`buildVars.development_version()` ergänzt für Entwicklungsstände eine
-branchlokale SemVer-Kennung wie `0.96.0-dev.1` und nach Möglichkeit
+`buildVars.store_version()` liefert ausschließlich die in `buildVars.py`
+eingetragene numerische Produktversion für `manifest.ini` und den NVDA Add-on
+Store. `buildVars.development_version()` ergänzt für Entwicklungsstände eine
+branchlokale SemVer-Kennung wie `1.2.3-dev.1` und nach Möglichkeit
 Build-Metadaten aus Branch und Commit. `buildVars.artifact_version()` verwendet
 diese vollständige Kennung für Pakete und Laufzeitdiagnosen. Der Store sieht
 damit keine interne Buildnummer.
 
-`development_build = None` ist ausschließlich für ein vom Benutzer
-freigegebenes Release vorgesehen. Dann entspricht auch die Artefaktversion der
-normalen Produktversion. Coding Agents dürfen diesen Wechsel nicht selbst als
-Stabilitäts- oder Releaseentscheidung vornehmen.
+`development_build = None` kennzeichnet ausschließlich einen bewusst
+freigegebenen Releasezustand. Dann entspricht auch die Artefaktversion der
+normalen Produktversion. Der Wert darf nicht beiläufig aus Branchname,
+Buildumgebung oder bisherigem Versionsverlauf abgeleitet werden.
 
 Der Add-on-Builder erzeugt aus den zentralen Daten:
 
 - `manifest.ini` im installierbaren Archiv,
 - einen eindeutigen Archivnamen wie
-  `NeovimAccessLink-0.96.0-dev.1+feature.example.<commit>.nvda-addon`,
+  `NeovimAccessLink-1.2.3-dev.1+feature.example.<commit>.nvda-addon`,
 - den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-0.96.0-dev.1+feature.example.<commit>-user.tar.gz`,
+  `neovim-access-link-1.2.3-dev.1+feature.example.<commit>-user.tar.gz`,
 - die Laufzeitversion in Diagnosebericht und Log,
 - die Version des gebündelten Linux-Komponentenpakets.
 
@@ -53,16 +53,17 @@ duplizierten Werten. Zur Laufzeit verwendet das Add-on die öffentliche
 `addonHandler.getCodeAddon()`-Schnittstelle und liest sein von NVDA geladenes
 Manifest.
 
-## Zuständigkeiten
+## Versions- und Freigaberegeln
 
-- Der Benutzer bestimmt Produktversion und Releasekanal.
-- Der Coding Agent erhöht die Entwicklungsbuildnummer innerhalb des jeweiligen
-  Branches, sobald sich der bereitgestellte installierbare Inhalt ändert.
+- Produktversion und Releasekanal werden als ausdrückliche
+  Freigabeentscheidung festgelegt und nicht automatisch hergeleitet.
+- Die Entwicklungsbuildnummer wird innerhalb des jeweiligen Branches erhöht,
+  sobald sich der bereitgestellte installierbare Inhalt ändert.
 - Ein neuer Featurebranch beginnt mit einer eigenen Buildfolge; Branch- und
   Commit-Metadaten verhindern Verwechslungen zwischen parallelen Branches.
 - Ein unverändert reproduzierter Stand darf denselben Namen behalten.
 - Tags, stabile Releases und Änderungen der Produktversion benötigen eine
-  ausdrückliche Freigabe des Benutzers.
+  ausdrückliche Freigabeentscheidung.
 
 Vor einem neuen Build werden alte Artefakte aus `dist/` entfernt. Anschließend
 erzeugt `python3 tools/build_nvda_addon.py` das Add-on. Tests extrahieren das

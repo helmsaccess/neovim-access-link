@@ -38,7 +38,6 @@ local targets = {
   ["changelog.md"] = "#docs__de__development__changelogmd__changelog",
 
   ["../../../nvda-addon/DEPENDENCIES.md"] = "#nvda-addon__dependenciesmd__gebündelte-abhängigkeiten",
-  ["../../../AGENTS.md"] = "#agentsmd__repository-instructions-for-coding-agents",
 }
 
 function Link(link)

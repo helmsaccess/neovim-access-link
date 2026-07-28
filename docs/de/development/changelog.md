@@ -8,9 +8,6 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
-- Konsolidiert die zuvor konkurrierenden Root-Agentenanweisungen in einer
-  tatsächlich aktiven `AGENTS.md` und ergänzt kurze, pfadbezogene Regeln für
-  NVDA-Add-on, Neovim-Plugin, Bridge, Protokoll und Dokumentation.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
   diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.

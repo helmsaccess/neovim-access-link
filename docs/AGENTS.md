@@ -7,6 +7,10 @@
 - Identify the audience before editing. User documentation is task-oriented and omits internal
   implementation detail that users do not need; developer documentation explains necessary
   context, reasoning, boundaries, and consequences without assuming expert prior knowledge.
+- Do not copy prompts, user-to-agent instructions, conversation history, or temporary working
+  directions into documentation. Include a decision or process rule only when it has independent
+  value for the document's audience; otherwise keep it in `AGENTS.md`, an issue, a commit, or
+  ignored `tmp/`.
 - Keep the architecture understandable from a concise overview before presenting details. Update
   it whenever component ownership, data flow, trust boundaries, or lifecycle responsibilities
   change.

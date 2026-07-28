@@ -1,36 +1,36 @@
 # Release, version, and build process
 
 `buildVars.py` is the single maintained source for internal add-on ID, visible
-product name, author, user-chosen product version and channel, branch-local
-development build number, and NVDA compatibility values.
+product name, author, explicitly selected product version and channel,
+branch-local development build number, and NVDA compatibility values.
 
 `store_version()` supplies only the normal numeric `MAJOR.MINOR.PATCH` product
 version to the NVDA manifest and Store. `development_version()` adds a SemVer
-pre-release identifier such as `0.96.0-dev.1` plus branch/commit metadata when
+pre-release identifier such as `1.2.3-dev.1` plus branch/commit metadata when
 available. `artifact_version()` uses that traceable identifier for archive
 names, embedded components, runtime diagnostics, and logs. The Store therefore
 sees no internal build number.
 
-`development_build = None` is reserved for a user-approved release; in that
-case the artifact version also equals the normal product version. Coding agents
-must not make that switch as an independent stability or release decision.
+`development_build = None` is reserved for an explicitly approved release
+state; in that case the artifact version also equals the normal product
+version. It must not be inferred from the branch name, build environment, or
+previous version history.
 
 The visible product is “Neovim Access Link”, author Emanuel Helms
 `<emanuel@helmsaccess.de>`. The internal ID is `NeovimAccessLink`. Its change
 from the former `nvimNvdaAccess` ID is an intentional clean break: uninstall
 the old add-on and restart NVDA before testing a new build. Settings, profiles,
 and gesture assignments stored under the old ID are not imported. The
-user-chosen product version is 0.96.0 and the configured release channel and
-product maturity are `beta`. Only explicit user direction may change the
-version, channel, prerelease status, or stability classification.
+current product version, release channel, and product maturity are read from
+`buildVars.py`.
 
-The user controls product version and release channel. The coding agent
-increments the development build number only within the current branch when
-shipped content changes. Parallel branches have independent sequences and
-remain distinguishable through branch/commit metadata. Stable tags,
-releases, or product-version changes require explicit approval. Old `dist/`
-artifacts are removed before a new user-testable build, and tests inspect the
-actual resulting archive.
+Product version and release channel are explicit release decisions rather than
+derived values. The development build number increases only within the current
+branch when shipped content changes. Parallel branches have independent
+sequences and remain distinguishable through branch/commit metadata. Stable
+tags, releases, or product-version changes require explicit approval. Old
+`dist/` artifacts are removed before a new testable build, and tests inspect
+the actual resulting archive.
 
 `tools/build_documentation.sh` builds the German and English quick guide, user
 manual, and developer documentation. The build explicitly verifies that both

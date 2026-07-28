@@ -26,6 +26,14 @@ IGNORED_DIRECTORY_NAMES = {
     "dist",
     "tmp",
 }
+FORBIDDEN_DOCUMENTATION_WORKFLOW_PHRASES = {
+    "agent instructions",
+    "agentenanweisung",
+    "coding agent",
+    "conversation history",
+    "root-agentenanweisung",
+    "user-to-agent",
+}
 
 
 def discover_agents_paths() -> set[pathlib.Path]:
@@ -59,6 +67,18 @@ class RepositoryPolicyTests(unittest.TestCase):
                     f"{agents_path} is {size} bytes; keep it at or below "
                     f"{MAX_AGENTS_BYTES} bytes (12 KiB)",
                 )
+
+    def test_published_documentation_excludes_agent_workflow_instructions(self) -> None:
+        documentation_roots = (
+            REPOSITORY_ROOT / "docs/de",
+            REPOSITORY_ROOT / "docs/en",
+        )
+        for documentation_root in documentation_roots:
+            for path in sorted(documentation_root.rglob("*.md")):
+                content = path.read_text(encoding="utf-8").casefold()
+                for phrase in FORBIDDEN_DOCUMENTATION_WORKFLOW_PHRASES:
+                    with self.subTest(path=str(path), phrase=phrase):
+                        self.assertNotIn(phrase, content)
 
     def test_ssh_and_socket_presets_remain_separate(self) -> None:
         runner = runpy.run_path(
