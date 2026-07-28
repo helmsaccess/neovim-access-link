@@ -1048,6 +1048,7 @@ function M.setup()
   signature_help.setup(emit, group)
   lsp_hover.setup(emit, group)
   lsp_status.setup(emit)
+  require("nvim_nvda.diagnostics").setup(emit, group)
   setup_notifications()
   setup_ui_functions()
   completion_adapters.stop()
@@ -1264,7 +1265,8 @@ function M.setup()
       pending_bracket = translated
       return
     elseif operator_context and pending_bracket then
-      if translated == "d" then
+      if (translated == "d" or translated == "D")
+        and not require("nvim_nvda.diagnostics").has_native_jump_hook() then
         pending_motion = "diagnosticMoved"
       elseif translated == "s" then
         pending_motion = "wordMoved"
@@ -1318,6 +1320,9 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,
     callback = function(event)
+      if require("nvim_nvda.diagnostics").consume_navigation() then
+        pending_motion = "diagnosticMoved"
+      end
       schedule_navigation(event.event)
     end,
   })

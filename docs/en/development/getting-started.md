@@ -44,11 +44,16 @@ Complete local verification requires:
 - Pexpect 4.9.0 for bridge and TUI integration tests;
 - Ruff 0.14.5, matching NVDA 2026.1;
 - Neovim for real Lua suites;
+- for the extended real-linter matrix, Go, Rust with Clippy, Ruby, and Node.js
+  in the versions fixed by `testing.md`;
 - Pandoc for HTML builds; 3.1.11.1 is confirmed;
 - Git for diff and whitespace checks.
 
-The Python dependencies used by the GitHub test workflow are version-pinned
-in `tools/requirements-ci.txt`.
+General Python dependencies used by the GitHub test workflow are
+version-pinned in `tools/requirements-ci.txt`; Python tools used only by the
+real linter matrix are separated into `tools/requirements-linter-ci.txt`.
+The GitHub workflow explicitly versions its Go, Rust, Ruby, and Node
+dependencies as well.
 
 Pure Python and Lua tests do not import NVDA. NVDA-facing tests use controlled
 test doubles and additionally inspect the built add-on.

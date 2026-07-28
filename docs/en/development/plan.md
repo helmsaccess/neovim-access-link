@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 27, 2026.
+Status date: July 28, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -118,6 +118,33 @@ general popup scraping.
   concrete support target is chosen.
 - Plan portable layouts, `NVIM_APPNAME`, other terminal frontends, and Neovim
   GUIs only with their own identity, focus, security, and fail-open design.
+
+## 8. Broaden diagnostic providers and languages according to risk
+
+The shared `vim.diagnostic` layer, real nvim-lint/ALE contracts for C, Python,
+Bash, Go, Rust, Ruby, and Markdown, and the real `none-ls.nvim` LSP-bridge
+contract are implemented. Add combinations according to adoption and
+reproducible defects without hard-coding languages into the add-on:
+
+- in addition to the proven Staticcheck path, exercise Go through `gopls` in
+  the combined practical LSP round; pin golangci-lint only for additional real
+  demand;
+- in addition to the proven Cargo/Clippy path, exercise Rust through
+  `rust-analyzer` and its Clippy diagnostics in practice;
+- add `ruby-lsp`, alternative Ruby analyzers, or other Markdown checkers only
+  for demonstrated use; RuboCop and `markdownlint-cli2` are the automated
+  baseline;
+- pin extracted none-ls sources only with a concrete common tool and every
+  commit they actually require;
+- integrate navigation from Trouble, Telescope, ALE lists, or other diagnostic
+  views only through public semantic APIs;
+- consider a dedicated adapter only when a common provider demonstrably cannot
+  mirror diagnostics to `vim.diagnostic`.
+
+Every added combination still requires a real tool invocation, pinned
+provider, correct UTF-8 byte ranges, source/code/message coverage, both
+supported Neovim versions, and a clear distinction between automated and
+practical acceptance.
 
 ## Priority for new work
 

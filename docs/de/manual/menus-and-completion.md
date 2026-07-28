@@ -99,6 +99,46 @@ Buffer hängen. Ohne Client meldet der Befehl diesen Zustand ausdrücklich.
 Automatischer LSP-Fortschritt wird nicht fortlaufend gesprochen; Fehler und
 Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
 
+## Linter und Diagnostics
+
+Access Link verarbeitet Diagnosen aus Neovims öffentlicher
+`vim.diagnostic`-API. Dabei ist unerheblich, ob sie von einem LSP-Server,
+`nvim-lint`, ALE, `none-ls.nvim` oder einem anderen Diagnoseproduzenten
+stammen. Das Add-on installiert und startet selbst keine Linter. Der Linter,
+seine ausführbare Datei und die Zuordnung zu Dateitypen werden in Neovim
+eingerichtet.
+
+Automatisierte reale Läufe decken derzeit diese Mindestmatrix ab:
+
+- C mit Clang-Tidy;
+- Python mit Ruff;
+- Bash mit ShellCheck;
+- Go mit Staticcheck;
+- Rust mit Clippy;
+- Ruby mit RuboCop;
+- Markdown mit `markdownlint-cli2`;
+- jeweils über `nvim-lint` und ALE unter Neovim 0.10.1 und 0.12.3;
+- außerdem den LSP-Brückenpfad von `none-ls.nvim` mit einer eingebauten
+  Diagnosequelle auf beiden Neovim-Versionen.
+
+Quelle, Schwere, vorhandener Code, Meldung und Position werden beim
+Diagnosesprung gemeinsam in Sprache und Braille ausgegeben. Änderungen eines
+Linters im Hintergrund lösen keine fortlaufende Sprachmeldung aus.
+
+Für eigene Neovim-Mappings stehen folgende Befehle bereit:
+
+- `:NvimNvdaDiagnosticPrevious`;
+- `:NvimNvdaDiagnosticNext`;
+- `:NvimNvdaDiagnosticFirst`;
+- `:NvimNvdaDiagnosticLast`;
+- `:NvimNvdaDiagnosticCurrent`.
+
+Sie ändern keine vorhandenen Mappings. Unter neueren Neovim-Versionen werden
+auch Sprünge über die öffentliche native Diagnostic-API erkannt. Produzenten,
+die Ergebnisse ausschließlich in einer privaten Liste oder nur als
+Bildschirmdekoration halten, sind erst zugänglich, wenn sie diese nach
+`vim.diagnostic` spiegeln.
+
 ## Wenn keine Auswahl angesagt wird
 
 1. Prüfen, ob die Neovim-Sitzung tatsächlich verbunden ist.

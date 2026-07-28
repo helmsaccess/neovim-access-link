@@ -123,6 +123,35 @@ diagnostic text. Label and word form one interruption-safe presentation.
 Opening a proven non-empty native spelling list produces one brief spoken
 availability message.
 
+General diagnostics use Neovim's public `vim.diagnostic` API as the sole
+provider boundary. Access Link neither reads private nvim-lint/ALE tables nor
+starts their processes. It validates types and ranges, applies UTF-8-safe
+bounds, orders all namespaces deterministically, and selects overlapping
+ranges by severity, smallest containing range, then a stable provider-neutral
+key. A missing source falls back to the bounded Neovim namespace name. The
+ordered list is retained per buffer and discarded on `DiagnosticChanged` or
+`BufWipeout`, so ordinary cursor movement does not repeatedly sort large
+diagnostic sets.
+
+Pinned real-provider contracts run Clang-Tidy, Ruff, ShellCheck, Staticcheck,
+Clippy, RuboCop, and `markdownlint-cli2` through both `nvim-lint` and ALE on
+Neovim 0.10.1 and 0.12.3, and additionally exercise the real `none-ls.nvim`
+LSP bridge with a built-in source. All three plugins publish to
+`vim.diagnostic`, so no plugin-specific diagnostic adapter is needed. ALE
+selects `markdownlint-cli2` through its public executable configuration
+because the existing Markdownlint handler understands its output. The same
+contract can later consume `gopls`, `rust-analyzer`, `ruby-lsp`, or other
+linters through an appropriate diagnostic provider. A language alone does not
+require an Access Link change; only a relevant provider without semantic
+mirroring would justify evaluating an adapter.
+
+`DiagnosticChanged` refreshes state without automatic speech flooding. Five
+commands provide previous, next, first, last, and current diagnostic output
+without changing user mappings. Neovim 0.12 native jumps are observed through
+the public `jump.on_jump` hook; the 0.10 path uses compatible
+`goto_prev()`/`goto_next()` calls and observes its native previous/next
+navigation.
+
 The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
 Public plugin events start and stop the accessible-menu lifetime, but neither
 plugin currently provides a reliable event for every selection change. A

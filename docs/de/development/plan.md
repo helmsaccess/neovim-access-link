@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 27. Juli 2026.
+Stand: 28. Juli 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -125,6 +125,35 @@ Polling oder allgemeines Popup-Scraping ersetzt.
 - Portable Layouts, `NVIM_APPNAME`, andere Terminalfrontends und Neovim-GUIs
   erst mit eigener Identitäts-, Fokus-, Sicherheits- und Fail-open-Architektur
   planen.
+
+## 8. Diagnose-Provider und Sprachen risikobasiert verbreitern
+
+Die gemeinsame `vim.diagnostic`-Schicht, reale nvim-lint-/ALE-Verträge für C,
+Python, Bash, Go, Rust, Ruby und Markdown sowie der echte
+`none-ls.nvim`-LSP-Brückenvertrag sind implementiert. Weitere Kombinationen
+werden nach Verbreitung und nach reproduzierbaren Problemen ergänzt, ohne
+Sprachen im Add-on fest zu verdrahten:
+
+- Go zusätzlich zu dem belegten Staticcheck-Pfad mit `gopls` in der
+  gebündelten LSP-Praxisrunde prüfen; golangci-lint nur bei zusätzlichem
+  realem Bedarf pinnen;
+- Rust zusätzlich zu dem belegten Cargo-/Clippy-Pfad mit `rust-analyzer` und
+  dessen Clippy-Diagnostics praktisch prüfen;
+- `ruby-lsp`, alternative Ruby-Analysatoren oder weitere Markdown-Prüfer nur
+  bei belegter Nutzung ergänzen; RuboCop und `markdownlint-cli2` bilden die
+  automatisierte Ausgangsbasis;
+- ausgelagerte none-ls-Zusatzquellen erst zusammen mit einem konkreten
+  verbreiteten Werkzeug und allen tatsächlich benötigten Commits pinnen;
+- Navigation aus Trouble, Telescope, ALE-eigenen Listen oder anderen
+  Diagnoseansichten nur über öffentliche semantische APIs anbinden;
+- einen eigenen Adapter ausschließlich dann erwägen, wenn ein verbreiteter
+  Provider seine Diagnosen nachweislich nicht nach `vim.diagnostic` spiegeln
+  kann.
+
+Für jede neue Kombination bleiben echte Werkzeugausführung, gepinnter
+Provider, korrekte UTF-8-Bytebereiche, Quelle/Code/Meldung, beide unterstützten
+Neovim-Versionen und die klare Trennung von automatisierter und praktischer
+Abnahme erforderlich.
 
 ## Reihenfolge für neue Funktionen
 

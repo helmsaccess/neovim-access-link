@@ -31,7 +31,7 @@ breite Hardware-, Treiber- und Übersetzungstabellenmatrix bleibt offen.
 | Marks | `m`, `'`, `` ` `` + `getpos()` | Name, Zeile, Spalte, exakter Sprung | Setzen oder Zielzeile | ja | echtes TUI und Speech-Test |
 | Register/Makros | `TextYankPost`, `RecordingEnter/Leave`, `@` | Register, Typ, Aufnahme-/Wiedergabestatus | kurze Statusausgabe | ja | echtes TUI und Speech-Test |
 | Rechtschreibung/Grammatik | Neovim `spell` + `DiagnosticChanged` | Art, Quelle, Bytebereich, Wort | NVDA Sprache/Sound/Braille | ja | natives Spell, Diagnostics, TUI und NVDA-Mocks |
-| allgemeine Diagnostics | `DiagnosticChanged`/Diagnostic-Navigation | Quelle, Schwere, Code, Bereich, Text, Position | vollständige Diagnose in Sprache/Braille | ja | ShellCheck-Modell, echtes Neovim und Speech-Test |
+| allgemeine Diagnostics | `vim.diagnostic`, `DiagnosticChanged`, native Diagnostic-Navigation und fünf Access-Link-Befehle | Quelle beziehungsweise Namespace, Schwere, optionaler Code, Bytebereich, Text, Index und Anzahl | vollständige Diagnose in Sprache/Braille; Hintergrundänderungen stumm | ja | gehärteter Vertrag, Navigation und Speech; reale gepinnte nvim-lint-/ALE-Läufe für C, Python, Bash, Go, Rust, Ruby und Markdown sowie none-ls-LSP-Brücke auf Neovim 0.10.1/0.12.3; Windows/NVDA-Praxis offen |
 | Braille aktuelle Zeile | strukturierter Zustand | Zeilentext, tabstop, Cursor | Liblouis-Region; im Insert-Modus virtuelle Leerzelle für Cursorpunkte 7+8 direkt hinter dem Zeilenende; auf leerer Normalmoduszeile eine einzelne cursortragende Zelle bei Bytespalte 0; Windows-Terminal-Fokuskontexte werden ausgeblendet | ja | automatisiert einschließlich Unicode, Tabs, leerer Insert-/Normalzeile und erstem authentifiziertem Fokusaufbau; mit einer physischen Braillezeile praktisch bestätigt |
 | Braille Auswahl | `selectionChanged` + `vim.region()` | zeilenlokale Bytegrenzen | feste Auswahlpunkte 7+8 durch NVDA; Sichtbarkeit nach NVDAs Einstellung | ja | automatisiert; breitere praktische Auswahlmatrix offen |
 | Braille Routing | Routingtaste | Braille-zu-Text-Offset, festes Ziel Editor/Befehlszeile, exakter Rohmodus, validierter Rückkanal und UTF-8-sicheres Quellzeichen | unmittelbare Cursorbewegung in Normal-, Insert- und Befehlszeilenmodus, einschließlich der virtuellen Endzelle hinter dem letzten Zeichen; bei NVDAs aktivierter Einstellung „Zeichen beim Cursor-Routing in Text sprechen“ Ansage des erreichten Zeichens | ja | automatisiert für Normal/Insert/Befehlszeile, Unicode, Tabs, leere Zeilen, Endposition, semantische Dateimanagerzeilen, deaktivierte Zeichenansage, Ablehnungswege und ausgelagerten Transport; alle drei Modi, Endposition und Startregions-Neuaufbau praktisch mit einer physischen Braillezeile bestätigt |
@@ -132,6 +132,40 @@ Andere Diagnostic-Produzenten können Fehler eindeutig kennzeichnen:
 ```lua
 user_data = { nvim_nvda_kind = "spelling" } -- oder "grammar"
 ```
+
+## Allgemeine Diagnostics und Linter
+
+Der gemeinsame Vertrag endet an Neovims öffentlicher `vim.diagnostic`-API.
+Access Link liest keine privaten Tabellen von `nvim-lint` oder ALE und startet
+keine Prozesse. Diagnosen werden UTF-8-sicher begrenzt, Bereiche und Typen
+validiert und über alle Namespaces deterministisch geordnet. Bei
+überlappenden Bereichen entscheidet zuerst die höchste Schwere, dann der
+kleinste einschließende Bereich und anschließend ein stabiler
+anbieterneutraler Schlüssel. Eine fehlende Quelle fällt auf den begrenzten
+Neovim-Namespace-Namen zurück. Die geordnete Liste wird pro Buffer gehalten
+und bei `DiagnosticChanged` beziehungsweise `BufWipeout` verworfen; normale
+Cursorbewegungen sortieren große Diagnosemengen daher nicht erneut.
+
+Die realen Providerverträge führen Clang-Tidy, Ruff, ShellCheck, Staticcheck,
+Clippy, RuboCop und `markdownlint-cli2` über `nvim-lint` sowie ALE aus und
+prüfen zusätzlich die echte `none-ls.nvim`-LSP-Brücke mit einer eingebauten
+Quelle. Alle drei Plugins publizieren die Ergebnisse in `vim.diagnostic`; ein
+pluginspezifischer Adapter ist deshalb weder vorhanden noch erforderlich.
+ALE wählt `markdownlint-cli2` über seine öffentliche
+Executable-Konfiguration, da der vorhandene Markdownlint-Handler dessen
+Ausgabe versteht. Dasselbe Modell kann später LSP-Diagnosen von `gopls`,
+`rust-analyzer` oder `ruby-lsp` sowie weitere Linter über geeignete
+Diagnoseproduzenten aufnehmen. Eine neue Sprache allein erfordert keine
+Änderung an Access Link. Ein Adapter wird erst geprüft, wenn ein relevanter
+Produzent nachweislich keine semantische Spiegelung anbietet.
+
+`DiagnosticChanged` aktualisiert den Zustand ohne automatische Sprachflut.
+Die fünf Befehle `:NvimNvdaDiagnosticPrevious`, `Next`, `First`, `Last` und
+`Current` erzeugen eine eindeutige vollständige Ansage und verändern keine
+Benutzermappings. Neovim 0.12 wird zusätzlich über den öffentlichen
+`jump.on_jump`-Hook beobachtet; Neovim 0.10 verwendet die kompatiblen
+`goto_prev()`-/`goto_next()`-Aufrufe und die bestehende Beobachtung seiner
+nativen Vorwärts-/Rückwärtsnavigation.
 
 ## Textpositionen
 

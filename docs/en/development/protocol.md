@@ -143,7 +143,8 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
 `menuSelectionChanged`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
 `signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
-`diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
+`diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
+`messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
@@ -161,6 +162,16 @@ speech and Braille automatically use only the summary. `hoverClosed` discards
 the per-instance hover documentation without its own presentation.
 `lspStatus` contains only bounded names of LSP clients attached to the current
 buffer and is emitted only by `:NvimNvdaLspStatus`.
+`diagnosticChanged` refreshes canonical state after `DiagnosticChanged` but
+has no automatic presentation. `diagnosticMoved` follows an explicitly
+observed diagnostic jump or an Access Link diagnostic command. Its snapshot
+carries at most one diagnostic containing the cursor plus `diagnosticCount`.
+The record contains a message bounded to 2,048 valid UTF-8 bytes, severity, a
+source bounded to 256 bytes, an optional 256-byte string or integer code,
+one-based lines, zero-based UTF-8 byte columns, index, and count. A missing
+source may fall back to the bounded Neovim namespace name. Invalid provider
+records are discarded and are never executed or interpreted as Neovim or
+linter commands.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only

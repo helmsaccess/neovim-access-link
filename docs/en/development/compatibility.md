@@ -25,6 +25,26 @@ Neovim 0.10.1 and 0.12.3. Provisional `blink.cmp` v2 commit
 checkouts are not bundled. This proves module/API attachment with injected
 selection values, not every practical rendering or NVDA configuration.
 
+Diagnostic-provider contract tests use `nvim-lint`
+`a219b2c9e5b4765e5c845aba119dad55806fcaf1` and ALE
+`9e2efaa4d348b1f93200b24e5540c670eb6fdd3f`, plus `none-ls.nvim`
+`01f8e62ea11603e59ad9ff7afcfa94fd183f76d6` with `plenary.nvim`
+`74b06c6c75e4eeb3108ec01852001636d85a932b`, on Neovim 0.10.1 and 0.12.3.
+They actually run Clang-Tidy 22.1.8 for C, Ruff 0.15.4 for Python, ShellCheck
+0.11.0 for Bash, Staticcheck 2026.1 for Go, Clippy from Rust 1.97.1, RuboCop
+1.88.2 for Ruby, and `markdownlint-cli2` 0.23.2 for Markdown and publish
+through `vim.diagnostic`. The checkouts, runtimes, and tools are test-only
+dependencies and are not bundled. A built-in none-ls source additionally
+confirms the LSP bridge without an external tool. This proves the semantic
+Linux contract, not installation, project configuration, or practical
+Windows/NVDA output.
+
+Languages are not hard-coded into the add-on. The standalone Go and Rust
+linters are now covered by automation; `gopls` and `rust-analyzer`, reserved
+for the later combined practical LSP round, use the same contract. Another
+combination is described as covered by real automation only after a pinned
+contract test exists.
+
 The local Windows CLI and parallel local/SSH tabs were tested. Automatic F12
 binding and the following RPC connection were also confirmed practically with
 Neovim 0.12.3 on Windows. Windows Terminal is the only approved front end.

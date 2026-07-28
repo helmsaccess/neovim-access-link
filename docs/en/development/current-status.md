@@ -1,7 +1,7 @@
 # Current status
 
 Status date: July 28, 2026. Product version in the source tree:
-0.97.0 development build 1.
+0.97.0 development build 3.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -21,10 +21,13 @@ development builds are not descriptions of the current product and are
 therefore not repeated chronologically here.
 
 GitHub Actions repository checks separate the listener-free standard suite,
-real pinned completion-plugin contracts, mocked SSH/Askpass paths, and real
-disposable TCP/Unix-socket cases into independent jobs. The completion matrix
-covers Neovim 0.10.1/0.12.3, `nvim-cmp`, `blink.cmp` v1, and the provisional v2
-revision. The jobs use neither production SSH targets nor private
+real pinned completion-plugin contracts, real diagnostic providers and linter
+processes, mocked SSH/Askpass paths, and real disposable TCP/Unix-socket cases
+into independent jobs. The completion matrix covers Neovim 0.10.1/0.12.3,
+`nvim-cmp`, `blink.cmp` v1, and the provisional v2 revision. The diagnostic
+matrix covers `nvim-lint` and ALE with seven real linters for C, Python, Bash,
+Go, Rust, Ruby, and Markdown, plus the `none-ls.nvim` LSP bridge, on both
+Neovim versions. The jobs use neither production SSH targets nor private
 infrastructure and do not replace practical Windows/NVDA verification.
 
 ## Reference environment
@@ -226,6 +229,18 @@ as completion documentation and is discarded silently when cursor, mode, or
 buffer context changes.
 `:NvimNvdaLspStatus` reports bounded current-buffer client status on demand.
 Progress is not announced automatically to avoid an unbounded speech stream.
+
+General diagnostics are validated, bounded, and selected deterministically
+through `vim.diagnostic`, independent of their origin. Five freely mappable
+Neovim commands report or reach the previous, next, first, last, and current
+diagnostic without changing existing mappings. Pinned real Linux tests confirm
+`nvim-lint` and ALE with Clang-Tidy for C, Ruff for Python, ShellCheck for
+Bash, Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
+`markdownlint-cli2` for Markdown, plus the `none-ls.nvim` LSP-bridge path, on
+Neovim 0.10.1/0.12.3. This automated provider coverage is not practical
+Windows/NVDA acceptance. Native LSP paths such as `gopls` and
+`rust-analyzer` use the same contract but remain part of the later combined
+practical round.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

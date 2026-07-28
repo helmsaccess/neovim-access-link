@@ -114,19 +114,25 @@ ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
 ## GitHub Actions
 
 `.github/workflows/repository-tests.yml` führt bei Pushes und Pull Requests
-vier unabhängige Jobtypen aus:
+fünf unabhängige Jobtypen aus:
 
 1. Unit-, Paket- und listenerfreie Lua-Tests mit `all-safe`;
 2. echte Completion-Plugin-API-Verträge in drei getrennten
    Neovim-/Plugin-Konfigurationen;
-3. simulierte SSH- und Askpass-Pfade mit `ssh`;
-4. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
+3. echte Diagnose-Provider-Verträge mit `nvim-lint`, ALE und `none-ls.nvim`
+   sowie sieben realen Lintern in zwei Neovim-Versionen;
+4. simulierte SSH- und Askpass-Pfade mit `ssh`;
+5. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
 
-Die drei Python-Testjobs richten dieselbe festgelegte Python-Version ein und
-installieren anschließend die in `tools/requirements-ci.txt` versionsfest
-aufgeführten Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von
-zufällig auf dem Runner vorinstallierten Python-Versionen oder Paketen ab. Der
-reine Neovim-/Lua-Vertragsjob benötigt diese Python-Abhängigkeiten nicht.
+Der sichere, der SSH- und der Socket-Python-Testjob richten dieselbe
+festgelegte Python-Version ein und installieren anschließend die in
+`tools/requirements-ci.txt` versionsfest aufgeführten
+Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von zufällig auf
+dem Runner vorinstallierten Python-Versionen oder Paketen ab. Der
+Diagnose-Provider-Job verwendet getrennt
+`tools/requirements-linter-ci.txt`; diese Pakete liefern die Python-basierten
+Werkzeuge Clang-Tidy, Ruff und ShellCheck. Der reine Completion-Vertragsjob
+benötigt keine Python-Abhängigkeiten.
 
 Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
 von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
@@ -137,9 +143,18 @@ Neovim 0.10.1 und 0.12.3 sowie `nvim-cmp` und der vorläufige
 durch SHA-256-Prüfsummen und alle drei externen Lua-Repositories durch exakte
 Commit-IDs festgelegt. Der Job benötigt weder einen Compiler noch
 Python-Pakete, Netzwerkzugang zur Laufzeit der Tests oder private
-Zugangsdaten. Der SSH-Job besitzt ebenfalls keine Zugangsdaten und kontaktiert
-keinen SSH-Host. Jeder Job hat eine begrenzte Laufzeit; ein neuer Lauf für
-denselben Branch beendet außerdem einen noch laufenden älteren Lauf.
+Zugangsdaten. Die Diagnosematrix lädt ebenfalls geprüfte Neovim-Archive,
+gepinntes `nvim-lint`, ALE, `none-ls.nvim` und dessen einzige Testabhängigkeit
+`plenary.nvim` sowie exakt versionierte Python-Wheels für Clang-Tidy, Ruff und
+ShellCheck. Zusätzlich richtet sie Go 1.26.5 mit Staticcheck 2026.1, Rust
+1.97.1 mit Clippy, Ruby 3.4.10 mit RuboCop 1.88.2 sowie Node.js 24.18.0 mit
+`markdownlint-cli2` 0.23.2 ein. Setup-Actions und Lua-Plugins sind auf exakte
+Commit-IDs festgelegt; Sprachlaufzeiten und direkte Linter verwenden exakte
+Versionen. Nach der Installation läuft die Matrix ohne Testzeit-Netzwerkzugriff
+und ohne Listener.
+Der SSH-Job besitzt ebenfalls keine Zugangsdaten und kontaktiert keinen
+SSH-Host. Jeder Job hat eine begrenzte Laufzeit; ein neuer Lauf für denselben
+Branch beendet außerdem einen noch laufenden älteren Lauf.
 
 GitHub Actions ersetzt die praktische Prüfung unter NVDA und Windows Terminal
 nicht. Die Jobs liefern reproduzierbares Linux-Feedback und verhindern, dass
@@ -168,6 +183,27 @@ Ereignisregistrierung und Adapter-Normalisierung; die Auswahlwerte werden
 gezielt injiziert. Er ist deshalb ein reproduzierbarer API-Vertragstest, keine
 vollständige TUI- oder Windows-/NVDA-Abnahme. `blink.cmp` v2 wird mit Neovim
 0.12 und dem dritten `blink.lib`-Checkout geprüft.
+
+`bash tools/test_linter_plugins.sh NVIM_LINT_CHECKOUT ALE_CHECKOUT` lädt beide
+echten Provider nacheinander in vollständig isolierte
+Headless-Neovim-Prozesse. Clang-Tidy 22.1.8, Ruff 0.15.4, ShellCheck 0.11.0,
+Staticcheck 2026.1, Clippy aus Rust 1.97.1, RuboCop 1.88.2 und
+`markdownlint-cli2` 0.23.2 müssen im `PATH` liegen; fehlende oder abweichende
+Versionen führen zu einem klaren Fehler. Der Test erzeugt nur wegwerfbare C-,
+Python-, Bash-, Go-, Rust-, Ruby- und Markdown-Fixtures, wartet auf den
+wirklichen Linterprozess und `DiagnosticChanged` und prüft danach
+ausschließlich `vim.diagnostic` sowie den Access-Link-Snapshot. ALE verwendet
+für `markdownlint-cli2` seinen dokumentierten Executable-Schalter; dessen
+Ausgabeformat ist mit dem vorhandenen Markdownlint-Handler kompatibel. Der
+Test liest keine privaten Providerdaten und öffnet keine Listener.
+
+`bash tools/test_none_ls.sh NONE_LS_CHECKOUT PLENARY_CHECKOUT` lädt die echte
+LSP-Brücke und ihre deklarierte Lua-Abhängigkeit in einen weiteren isolierten
+Headless-Prozess. Die eingebaute Quelle `trail-space` veröffentlicht eine
+echte Diagnose über den none-ls-LSP-Client und `DiagnosticChanged`; anschließend
+werden Clientbindung, Bereich, Quelle und der anbieterneutrale
+Access-Link-Snapshot geprüft. Der Test benötigt kein externes Linterprogramm
+und keine ausgelagerte none-ls-Zusatzquelle.
 
 ## Was die automatisierten Suiten belegen
 

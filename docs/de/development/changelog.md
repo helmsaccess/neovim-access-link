@@ -30,6 +30,26 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Ergänzt `:NvimNvdaLspStatus` für einen begrenzten, inhaltsfreien
   Clientstatus des aktuellen Buffers in Sprache/Braille; fortlaufender
   LSP-Fortschritt bleibt zur Vermeidung von Sprachfluten stumm.
+- Härtet den gemeinsamen `vim.diagnostic`-Vertrag providerneutral: ungültige
+  oder übergroße Felder werden verworfen beziehungsweise UTF-8-sicher
+  begrenzt, mehrere Namespaces deterministisch geordnet und überlappende
+  Diagnosen nach Schwere und kleinstem Bereich ausgewählt. Ein nur bei
+  Diagnoseänderung verworfener Bufferindex vermeidet wiederholtes Sortieren
+  bei Cursorbewegungen.
+- Ergänzt frei belegbare Befehle für vorherige, nächste, erste, letzte und
+  aktuelle Diagnose. Neovim 0.12s öffentlicher `jump.on_jump`-Hook und der
+  kompatible 0.10-Pfad liefern genau eine vollständige Sprach-/Brailleausgabe,
+  ohne Standard- oder Benutzermappings zu ersetzen.
+- Zertifiziert den semantischen Linterpfad automatisiert mit realen gepinnten
+  `nvim-lint`- und ALE-Läufen: Clang-Tidy für C, Ruff für Python, ShellCheck
+  für Bash, Staticcheck für Go, Clippy für Rust, RuboCop für Ruby und
+  `markdownlint-cli2` für Markdown auf Neovim 0.10.1/0.12.3. Plugins,
+  Sprachlaufzeiten und Werkzeuge bleiben reine Test- beziehungsweise
+  Benutzerabhängigkeiten; weitere Sprachen verwenden denselben
+  `vim.diagnostic`-Vertrag.
+- Prüft zusätzlich die echte gepinnte `none-ls.nvim`-LSP-Brücke mit
+  `plenary.nvim` und einer eingebauten Diagnosequelle. Auch hierfür ist kein
+  Adapter oder ausgeliefertes Plugin erforderlich.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Ergänzt eine unabhängige
   CI-Matrix für die gepinnten realen `nvim-cmp`-/`blink.cmp`-API-Verträge auf

@@ -30,6 +30,25 @@ buffer and explicitly reports when none is attached. Ongoing LSP progress is
 not spoken continuously; errors and results remain available through
 diagnostics and Neovim messages.
 
+Access Link consumes diagnostics through Neovim's public `vim.diagnostic`
+API, whether an LSP server, `nvim-lint`, ALE, `none-ls.nvim`, or another
+provider produced them. It does not install or start linters. Real automated
+runs currently cover Clang-Tidy for C, Ruff for Python, ShellCheck for Bash,
+Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
+`markdownlint-cli2` for Markdown through both `nvim-lint` and ALE on Neovim
+0.10.1 and 0.12.3. A built-in diagnostic source additionally exercises the
+`none-ls.nvim` LSP bridge on both versions. Background lint updates stay
+silent; an explicit diagnostic jump reports source, severity, optional code,
+message, and position together in speech and Braille.
+
+The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
+`:NvimNvdaDiagnosticFirst`, `:NvimNvdaDiagnosticLast`, and
+`:NvimNvdaDiagnosticCurrent` can be used in custom Neovim mappings without
+replacing existing mappings. Newer Neovim versions also expose native
+diagnostic jumps through their public hook. A provider that keeps results only
+in a private list or screen decoration must mirror them to `vim.diagnostic`
+before Access Link can consume them.
+
 Completion, command-line completion, LSP signature help, and supported menus
 are announced from Neovim APIs or explicit adapters, not by reading screen
 rows. Very custom floating interfaces require a supported public adapter and

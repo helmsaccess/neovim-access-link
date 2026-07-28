@@ -24,6 +24,25 @@
 - Adds `:NvimNvdaLspStatus` for bounded, content-free current-buffer client
   status in speech/Braille; continuous LSP progress remains silent to avoid
   speech flooding.
+- Hardens the shared provider-neutral `vim.diagnostic` contract: invalid or
+  oversized fields are discarded or bounded safely on UTF-8 boundaries,
+  multiple namespaces are ordered deterministically, and overlapping
+  diagnostics are selected by severity and smallest range. A per-buffer index
+  invalidated only by diagnostic changes avoids repeated sorting during cursor
+  movement.
+- Adds freely mappable commands for previous, next, first, last, and current
+  diagnostics. Neovim 0.12's public `jump.on_jump` hook and the compatible
+  0.10 path produce exactly one complete speech/Braille presentation without
+  replacing default or user mappings.
+- Certifies the semantic linter path in automation with real pinned nvim-lint
+  and ALE runs: Clang-Tidy for C, Ruff for Python, ShellCheck for Bash,
+  Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
+  `markdownlint-cli2` for Markdown on Neovim 0.10.1/0.12.3. Plugins, language
+  runtimes, and tools remain test or user dependencies; further languages use
+  the same `vim.diagnostic` contract.
+- Additionally exercises the real pinned `none-ls.nvim` LSP bridge with
+  `plenary.nvim` and a built-in diagnostic source. This likewise needs no
+  adapter or bundled plugin.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
   the runner, documentation, and GitHub Actions. Adds an independent CI matrix
   for pinned real `nvim-cmp`/`blink.cmp` API contracts on Neovim

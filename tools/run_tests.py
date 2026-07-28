@@ -252,6 +252,8 @@ def jobs() -> tuple[Job, ...]:
         "braille_routing_actions_spec.lua",
         "clipboard_spec.lua",
         "completion_adapters_spec.lua",
+        "diagnostic_navigation_spec.lua",
+        "diagnostics_spec.lua",
         "exploration_spec.lua",
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",

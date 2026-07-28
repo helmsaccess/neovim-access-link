@@ -107,20 +107,24 @@ rules.
 
 ## GitHub Actions
 
-`.github/workflows/repository-tests.yml` runs four independent job types for
+`.github/workflows/repository-tests.yml` runs five independent job types for
 pushes and pull requests:
 
 1. unit, package, and listener-free Lua tests through `all-safe`;
 2. real completion-plugin API contracts in three separate Neovim/plugin
    configurations;
-3. mocked SSH and Askpass paths through `ssh`;
-4. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
+3. real diagnostic-provider contracts with nvim-lint, ALE, and
+   `none-ls.nvim`, plus seven real linters on two Neovim versions;
+4. mocked SSH and Askpass paths through `ssh`;
+5. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
 
-The three Python test jobs set up the same fixed Python version and then
-install the version-pinned Python test dependencies from
+The safe, SSH, and socket Python test jobs set up the same fixed Python version
+and then install the version-pinned Python test dependencies from
 `tools/requirements-ci.txt`. This keeps results independent of Python versions
-or packages that happen to be preinstalled on the runner. The Neovim/Lua-only
-contract job does not need those Python dependencies.
+or packages that happen to be preinstalled on the runner. The diagnostic
+provider job separately uses `tools/requirements-linter-ci.txt`; those
+packages supply the Python-based Clang-Tidy, Ruff, and ShellCheck tools. The
+completion contract job needs no Python dependencies.
 
 The safe and socket jobs download the official Neovim 0.10.1 Linux archive
 from GitHub. The workflow pins its URL and SHA-256 digest and verifies the
@@ -129,10 +133,18 @@ matrix configurations: `nvim-cmp` and `blink.cmp` v1 on Neovim 0.10.1 and
 0.12.3, plus `nvim-cmp` and the provisional `blink.cmp` v2 revision with
 `blink.lib` on Neovim 0.12.3. SHA-256 digests pin the Neovim archives and exact
 commit IDs pin all three external Lua repositories. The job needs no compiler,
-Python packages, test-time network access, or private credentials. The SSH job
-also receives no credentials and contacts no SSH host. Every job has a time
-limit, and a new run for the same branch cancels an older run that is still in
-progress.
+Python packages, test-time network access, or private credentials. The
+diagnostic matrix likewise downloads verified Neovim archives, pinned
+nvim-lint, ALE, `none-ls.nvim`, and its sole test dependency `plenary.nvim`,
+plus exact Python wheels for Clang-Tidy, Ruff, and ShellCheck. Exact commit IDs
+pin every Lua plugin. It additionally sets up Go 1.26.5 with Staticcheck
+2026.1, Rust 1.97.1 with Clippy, Ruby 3.4.10 with RuboCop 1.88.2, and Node.js
+24.18.0 with `markdownlint-cli2` 0.23.2. Setup actions and Lua plugins use
+exact commit IDs; language runtimes and direct linters use exact versions.
+After installation the matrix runs without test-time network access or
+listeners. The SSH job also receives no credentials and contacts no SSH host.
+Every job has a time limit, and a new run for the same branch cancels an older
+run that is still in progress.
 
 GitHub Actions does not replace practical NVDA and Windows Terminal
 verification. It supplies reproducible Linux feedback and prevents a failed
@@ -156,6 +168,25 @@ isolated Neovim process. It proves the public API, event registration, and
 adapter normalization while injecting selection values deliberately. It is a
 reproducible API-contract test, not complete TUI or Windows/NVDA acceptance.
 Test `blink.cmp` v2 with Neovim 0.12 and the third `blink.lib` checkout.
+
+`bash tools/test_linter_plugins.sh NVIM_LINT_CHECKOUT ALE_CHECKOUT` loads both
+real providers sequentially in fully isolated headless Neovim processes.
+Clang-Tidy 22.1.8, Ruff 0.15.4, ShellCheck 0.11.0, Staticcheck 2026.1, Clippy
+from Rust 1.97.1, RuboCop 1.88.2, and `markdownlint-cli2` 0.23.2 must be on
+`PATH`; a missing or mismatched version fails clearly. The test creates only
+disposable C, Python, Bash, Go, Rust, Ruby, and Markdown fixtures, waits for
+the actual linter process and `DiagnosticChanged`, then inspects only
+`vim.diagnostic` and the Access Link snapshot. ALE selects
+`markdownlint-cli2` through its documented executable option; its output is
+compatible with ALE's existing Markdownlint handler. The test reads no private
+provider state and opens no listener.
+
+`bash tools/test_none_ls.sh NONE_LS_CHECKOUT PLENARY_CHECKOUT` loads the real
+LSP bridge and its declared Lua dependency in another isolated headless
+process. Its built-in `trail-space` source publishes a real diagnostic through
+the none-ls LSP client and `DiagnosticChanged`; the test then checks client
+attachment, range, source, and the provider-neutral Access Link snapshot. It
+needs neither an external linter executable nor an extracted none-ls source.
 
 ## What automated suites prove
 

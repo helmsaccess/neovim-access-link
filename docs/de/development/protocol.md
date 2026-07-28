@@ -222,7 +222,8 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuItemUpdated`, `menuClosed`, `signatureChanged`, `signatureClosed`,
-`hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`, `foldChanged`,
+`hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`,
+`diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -245,6 +246,18 @@ Zusammenfassung. `hoverClosed` verwirft die instanzbezogene
 Hover-Dokumentation ohne eigene Meldung.
 `lspStatus` enthält ausschließlich die begrenzten Namen der am aktuellen
 Buffer hängenden LSP-Clients und wird nur durch `:NvimNvdaLspStatus` erzeugt.
+`diagnosticChanged` aktualisiert den kanonischen Zustand nach
+`DiagnosticChanged`, bleibt aber ohne automatische Präsentation.
+`diagnosticMoved` wird nach einer ausdrücklich beobachteten oder über einen
+Access-Link-Befehl ausgelösten Diagnosenavigation erzeugt. Sein Snapshot trägt
+höchstens eine aktuell einschließende Diagnose sowie `diagnosticCount`.
+Die Diagnose enthält eine auf 2048 gültige UTF-8-Bytes begrenzte Meldung,
+Schwere, eine auf 256 Bytes begrenzte Quelle, optional einen auf 256 Bytes
+begrenzten String- oder ganzzahligen Code, einsbasierte Zeilen,
+nullbasierte UTF-8-Bytespalten sowie Index und Anzahl. Fehlende Quellen dürfen
+auf den begrenzten Neovim-Namespace-Namen zurückfallen. Ungültige
+Produzentendatensätze werden verworfen; sie werden weder ausgeführt noch als
+Neovim- oder Linterbefehl interpretiert.
 
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren

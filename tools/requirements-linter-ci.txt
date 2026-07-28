@@ -1,0 +1,4 @@
+# Pinned command-line linters used by the real provider integration tests.
+clang-tidy==22.1.8
+ruff==0.15.4
+shellcheck-py==0.11.0.1

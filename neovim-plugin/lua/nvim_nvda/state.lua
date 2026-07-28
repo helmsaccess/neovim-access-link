@@ -2,6 +2,7 @@ local selection = require("nvim_nvda.selection")
 local spelling = require("nvim_nvda.spelling")
 local file_manager = require("nvim_nvda.file_manager")
 local text = require("nvim_nvda.text")
+local diagnostics = require("nvim_nvda.diagnostics")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
@@ -57,41 +58,6 @@ local function current_word(line, byte_column)
   end
   local ok, word = pcall(vim.fn.expand, "<cword>")
   return ok and type(word) == "string" and word or ""
-end
-
-local severity_names = { [1] = "error", [2] = "warning", [3] = "information", [4] = "hint" }
-
-local function diagnostic_state(buf, line_number, byte_column)
-  local all = vim.diagnostic.get(buf)
-  table.sort(all, function(a, b)
-    if a.lnum ~= b.lnum then return a.lnum < b.lnum end
-    return (a.col or 0) < (b.col or 0)
-  end)
-  local current, current_index
-  for index, diagnostic in ipairs(all) do
-    local last_line = diagnostic.end_lnum or diagnostic.lnum
-    local start_column = diagnostic.col or 0
-    local end_column = diagnostic.end_col or start_column + 1
-    local inside = line_number - 1 >= diagnostic.lnum and line_number - 1 <= last_line
-    if inside and (line_number - 1 ~= diagnostic.lnum or byte_column >= start_column)
-      and (line_number - 1 ~= last_line or byte_column < math.max(end_column, start_column + 1)) then
-      current, current_index = diagnostic, index
-      break
-    end
-  end
-  if not current then return nil, #all end
-  return {
-    message = text.bounded(current.message, 2048),
-    severity = severity_names[current.severity] or "error",
-    source = current.source,
-    code = current.code,
-    line = current.lnum + 1,
-    byteColumn = current.col or 0,
-    endLine = (current.end_lnum or current.lnum) + 1,
-    endByteColumn = current.end_col or current.col or 0,
-    index = current_index,
-    count = #all,
-  }, #all
 end
 
 function M.snapshot(reason)
@@ -165,7 +131,7 @@ function M.snapshot(reason)
     fileManager = file_manager.current(),
   }
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
-  result.diagnostic, result.diagnosticCount = diagnostic_state(buf, cursor[1], cursor[2])
+  result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])
   if visual_modes[mode_raw] then
     local position = vim.fn.getpos("v")
     local anchor = { line = position[2], byteColumn = math.max(0, position[3] - 1) }
