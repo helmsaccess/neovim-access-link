@@ -58,6 +58,10 @@ class GettextCatalogTests(unittest.TestCase):
             "Quelle pyright",
             translations.gettext("source {source}").format(source="pyright"),
         )
+        self.assertEqual(
+            "LSP-Clients: lua_ls",
+            translations.gettext("LSP clients: {clients}").format(clients="lua_ls"),
+        )
 
     def test_nvda_modules_initialize_their_gettext_builtins(self) -> None:
         for path in NVDA_TRANSLATION_MODULES:

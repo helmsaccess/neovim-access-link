@@ -142,7 +142,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
 `menuSelectionChanged`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
-`signatureClosed`, `hoverChanged`, `hoverClosed`,
+`signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
 `diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -159,6 +159,8 @@ left and has no speech presentation of its own.
 `hoverChanged` carries a short summary and bounded complete documentation;
 speech and Braille automatically use only the summary. `hoverClosed` discards
 the per-instance hover documentation without its own presentation.
+`lspStatus` contains only bounded names of LSP clients attached to the current
+buffer and is emitted only by `:NvimNvdaLspStatus`.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only

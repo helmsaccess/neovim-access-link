@@ -222,7 +222,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuItemUpdated`, `menuClosed`, `signatureChanged`, `signatureClosed`,
-`hoverChanged`, `hoverClosed`, `diagnosticChanged`, `foldChanged`,
+`hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
@@ -243,6 +243,8 @@ Editor-Kontexts und erzeugt keine eigene Sprachmeldung.
 vollständige Dokumentation; Sprache und Braille verwenden automatisch nur die
 Zusammenfassung. `hoverClosed` verwirft die instanzbezogene
 Hover-Dokumentation ohne eigene Meldung.
+`lspStatus` enthält ausschließlich die begrenzten Namen der am aktuellen
+Buffer hängenden LSP-Clients und wird nur durch `:NvimNvdaLspStatus` erzeugt.
 
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren

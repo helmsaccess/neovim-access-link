@@ -222,6 +222,8 @@ LSP hover automatically presents only its first meaningful line. Complete
 per-instance documentation is available through the same configurable command
 as completion documentation and is discarded silently when cursor, mode, or
 buffer context changes.
+`:NvimNvdaLspStatus` reports bounded current-buffer client status on demand.
+Progress is not announced automatically to avoid an unbounded speech stream.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

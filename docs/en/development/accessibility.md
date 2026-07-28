@@ -165,6 +165,12 @@ documentation command. Cursor, Insert, or buffer context changes close it
 silently. Listener-free parser and compatibility tests pass on Neovim 0.10.1
 and 0.12.3; a real language server and Windows/NVDA remain practical
 acceptance work.
+
+`:NvimNvdaLspStatus` reports up to 32 unique bounded names from public
+`vim.lsp.get_clients()` for the current buffer. It explicitly reports an empty
+state in speech and Braille. Continuous `LspProgress` events are deliberately
+not announced because routine indexing would create an unbounded speech stream;
+errors and results remain covered by diagnostics and Neovim messages.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.

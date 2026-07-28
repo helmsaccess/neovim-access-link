@@ -89,6 +89,13 @@ Dokumentation kann bis zu einer Upstream-Erweiterung fehlen.
 Ghost Text ohne sichtbares Completion-Menü ist kein zugängliches Auswahlmenü
 und wird von den beiden Adaptern nicht angesagt.
 
+## LSP-Serverstatus
+
+`:NvimNvdaLspStatus` gibt die Namen der LSP-Clients aus, die am aktuellen
+Buffer hängen. Ohne Client meldet der Befehl diesen Zustand ausdrücklich.
+Automatischer LSP-Fortschritt wird nicht fortlaufend gesprochen; Fehler und
+Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
+
 ## Wenn keine Auswahl angesagt wird
 
 1. Prüfen, ob die Neovim-Sitzung tatsächlich verbunden ist.

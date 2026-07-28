@@ -18,6 +18,9 @@
 - Presents LSP hover semantically through the same version split: only the
   first meaningful line is automatic in speech/Braille, while the existing
   documentation command reads complete per-instance content.
+- Adds `:NvimNvdaLspStatus` for bounded, content-free current-buffer client
+  status in speech/Braille; continuous LSP progress remains silent to avoid
+  speech flooding.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
   the runner, documentation, and GitHub Actions. Three independent CI jobs run
   these phases without private infrastructure or real SSH targets.

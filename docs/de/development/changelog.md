@@ -23,6 +23,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Gibt LSP-Hover semantisch über denselben Versionssplit aus: automatisch nur
   die erste aussagekräftige Zeile in Sprache/Braille, vollständige
   instanzbezogene Dokumentation über den vorhandenen Dokumentationsbefehl.
+- Ergänzt `:NvimNvdaLspStatus` für einen begrenzten, inhaltsfreien
+  Clientstatus des aktuellen Buffers in Sprache/Braille; fortlaufender
+  LSP-Fortschritt bleibt zur Vermeidung von Sprachfluten stumm.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
   diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.

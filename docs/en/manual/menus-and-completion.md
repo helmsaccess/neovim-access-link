@@ -23,6 +23,11 @@ original item works while resolve-only documentation may remain unavailable.
 Ghost text without a visible completion menu is not reported as a selectable
 menu.
 
+`:NvimNvdaLspStatus` reports the names of LSP clients attached to the current
+buffer and explicitly reports when none is attached. Ongoing LSP progress is
+not spoken continuously; errors and results remain available through
+diagnostics and Neovim messages.
+
 Completion, command-line completion, LSP signature help, and supported menus
 are announced from Neovim APIs or explicit adapters, not by reading screen
 rows. Very custom floating interfaces require a supported public adapter and

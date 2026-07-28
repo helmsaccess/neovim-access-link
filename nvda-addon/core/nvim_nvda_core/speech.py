@@ -557,6 +557,25 @@ class SpeechPlanner:
                     interrupt=True,
                     braille_message=summary,
                 ))
+        elif kind == "lspStatus":
+            clients = state.get("clients")
+            names = (
+                [name for name in clients if isinstance(name, str) and name]
+                if isinstance(clients, list)
+                else []
+            )
+            if names:
+                # Translators: Followed by a comma-separated list of attached LSP server names.
+                text = self._translate("LSP clients: {clients}").format(clients=", ".join(names))
+            else:
+                # Translators: Reported by the explicit LSP status command for the current buffer.
+                text = self._translate("No LSP client attached")
+            actions.append(SpeechAction(
+                text,
+                Priority.STATUS,
+                interrupt=True,
+                braille_message=text,
+            ))
         elif kind == "searchMatchChanged":
             action = self._search_match(state)
             if action is not None:

@@ -1319,6 +1319,20 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual(action.text, action.braille_message)
         self.assertNotIn("full detail", action.text)
 
+    def test_lsp_status_lists_clients_or_reports_none(self) -> None:
+        planner = SpeechPlanner()
+        attached = planner.plan({"type": "lspStatus", "payload": {
+            "clients": ["lua_ls", "null-ls"],
+            "clientCount": 2,
+        }})[0]
+        empty = planner.plan({"type": "lspStatus", "payload": {
+            "clients": [],
+            "clientCount": 0,
+        }})[0]
+        self.assertEqual("LSP clients: lua_ls, null-ls", attached.text)
+        self.assertEqual(attached.text, attached.braille_message)
+        self.assertEqual("No LSP client attached", empty.text)
+
     def test_new_unindented_line_ticks_without_boundary_speech(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState", line="old", row=1))
