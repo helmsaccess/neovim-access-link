@@ -21,8 +21,10 @@ development builds are not descriptions of the current product and are
 therefore not repeated chronologically here.
 
 GitHub Actions repository checks separate the listener-free standard suite,
-mocked SSH/Askpass paths, and real disposable TCP/Unix-socket cases into
-three independent jobs. They use neither production SSH targets nor private
+real pinned completion-plugin contracts, mocked SSH/Askpass paths, and real
+disposable TCP/Unix-socket cases into independent jobs. The completion matrix
+covers Neovim 0.10.1/0.12.3, `nvim-cmp`, `blink.cmp` v1, and the provisional v2
+revision. The jobs use neither production SSH targets nor private
 infrastructure and do not replace practical Windows/NVDA verification.
 
 ## Reference environment

@@ -107,23 +107,32 @@ rules.
 
 ## GitHub Actions
 
-`.github/workflows/repository-tests.yml` runs three independent jobs for
+`.github/workflows/repository-tests.yml` runs four independent job types for
 pushes and pull requests:
 
 1. unit, package, and listener-free Lua tests through `all-safe`;
-2. mocked SSH and Askpass paths through `ssh`;
-3. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
+2. real completion-plugin API contracts in three separate Neovim/plugin
+   configurations;
+3. mocked SSH and Askpass paths through `ssh`;
+4. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
 
-Each job sets up the same fixed Python version and then installs the
-version-pinned Python test dependencies from `tools/requirements-ci.txt`.
-This keeps results independent of Python versions or packages that happen to
-be preinstalled on the runner.
+The three Python test jobs set up the same fixed Python version and then
+install the version-pinned Python test dependencies from
+`tools/requirements-ci.txt`. This keeps results independent of Python versions
+or packages that happen to be preinstalled on the runner. The Neovim/Lua-only
+contract job does not need those Python dependencies.
 
 The safe and socket jobs download the official Neovim 0.10.1 Linux archive
 from GitHub. The workflow pins its URL and SHA-256 digest and verifies the
-archive before extraction. The SSH job receives no credentials and contacts
-no SSH host. Every job has a time limit, and a new run for the same branch
-cancels an older run that is still in progress.
+archive before extraction. The completion contract job expands into three
+matrix configurations: `nvim-cmp` and `blink.cmp` v1 on Neovim 0.10.1 and
+0.12.3, plus `nvim-cmp` and the provisional `blink.cmp` v2 revision with
+`blink.lib` on Neovim 0.12.3. SHA-256 digests pin the Neovim archives and exact
+commit IDs pin all three external Lua repositories. The job needs no compiler,
+Python packages, test-time network access, or private credentials. The SSH job
+also receives no credentials and contacts no SSH host. Every job has a time
+limit, and a new run for the same branch cancels an older run that is still in
+progress.
 
 GitHub Actions does not replace practical NVDA and Windows Terminal
 verification. It supplies reproducible Linux feedback and prevents a failed
@@ -141,7 +150,7 @@ available supported Neovim. Changes to version boundaries should additionally
 run Lua and TUI suites with Neovim 0.10.1 and 0.12.3. An installed plugin must
 not shadow the checkout, so test scripts isolate `packpath`.
 
-`tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
+`bash tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
 [BLINK_LIB_CHECKOUT]` loads real, locally available upstream modules in an
 isolated Neovim process. It proves the public API, event registration, and
 adapter normalization while injecting selection values deliberately. It is a

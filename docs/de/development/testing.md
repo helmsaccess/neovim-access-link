@@ -114,23 +114,32 @@ ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
 ## GitHub Actions
 
 `.github/workflows/repository-tests.yml` führt bei Pushes und Pull Requests
-drei unabhängige Jobs aus:
+vier unabhängige Jobtypen aus:
 
 1. Unit-, Paket- und listenerfreie Lua-Tests mit `all-safe`;
-2. simulierte SSH- und Askpass-Pfade mit `ssh`;
-3. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
+2. echte Completion-Plugin-API-Verträge in drei getrennten
+   Neovim-/Plugin-Konfigurationen;
+3. simulierte SSH- und Askpass-Pfade mit `ssh`;
+4. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
 
-Jeder Job richtet dieselbe festgelegte Python-Version ein und installiert
-anschließend die in `tools/requirements-ci.txt` versionsfest aufgeführten
-Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von zufällig auf
-dem Runner vorinstallierten Python-Versionen oder Paketen ab.
+Die drei Python-Testjobs richten dieselbe festgelegte Python-Version ein und
+installieren anschließend die in `tools/requirements-ci.txt` versionsfest
+aufgeführten Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von
+zufällig auf dem Runner vorinstallierten Python-Versionen oder Paketen ab. Der
+reine Neovim-/Lua-Vertragsjob benötigt diese Python-Abhängigkeiten nicht.
 
 Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
 von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
-Entpacken wird die Prüfsumme verifiziert. Der SSH-Job besitzt keine
-Zugangsdaten und kontaktiert keinen SSH-Host. Jeder Job hat eine begrenzte
-Laufzeit; ein neuer Lauf für denselben Branch beendet außerdem einen noch
-laufenden älteren Lauf.
+Entpacken wird die Prüfsumme verifiziert. Der Completion-Vertragsjob wird in
+drei Matrixkonfigurationen erweitert: `nvim-cmp` und `blink.cmp` v1 mit
+Neovim 0.10.1 und 0.12.3 sowie `nvim-cmp` und der vorläufige
+`blink.cmp`-v2-Stand mit `blink.lib` unter Neovim 0.12.3. Neovim-Archive werden
+durch SHA-256-Prüfsummen und alle drei externen Lua-Repositories durch exakte
+Commit-IDs festgelegt. Der Job benötigt weder einen Compiler noch
+Python-Pakete, Netzwerkzugang zur Laufzeit der Tests oder private
+Zugangsdaten. Der SSH-Job besitzt ebenfalls keine Zugangsdaten und kontaktiert
+keinen SSH-Host. Jeder Job hat eine begrenzte Laufzeit; ein neuer Lauf für
+denselben Branch beendet außerdem einen noch laufenden älteren Lauf.
 
 GitHub Actions ersetzt die praktische Prüfung unter NVDA und Windows Terminal
 nicht. Die Jobs liefern reproduzierbares Linux-Feedback und verhindern, dass
@@ -152,7 +161,7 @@ sollten die Lua- und TUI-Suiten zusätzlich mit Neovim 0.10.1 und 0.12.3
 laufen. Eine installierte Pluginversion darf den Checkout nicht überdecken;
 die Testskripte isolieren deshalb `packpath`.
 
-`tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
+`bash tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
 [BLINK_LIB_CHECKOUT]` lädt echte, lokal vorhandene Upstream-Module in einen
 isolierten Neovim-Prozess. Der Test belegt öffentliche API,
 Ereignisregistrierung und Adapter-Normalisierung; die Auswahlwerte werden

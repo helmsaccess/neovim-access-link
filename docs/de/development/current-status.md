@@ -24,9 +24,11 @@ Featurebranch-Berichte und zwischenzeitliche Testbuilds sind keine Beschreibung
 des aktuellen Produkts und werden hier deshalb nicht chronologisch wiederholt.
 
 Repositoryprüfungen in GitHub Actions trennen die listenerfreie Standardsuite,
-simulierte SSH-/Askpass-Pfade und echte wegwerfbare TCP-/Unix-Socket-Fälle in
-drei unabhängige Jobs. Sie verwenden weder produktive SSH-Ziele noch private
-Infrastruktur und ersetzen keine praktische Windows-/NVDA-Prüfung.
+echte gepinnte Completion-Plugin-Verträge, simulierte SSH-/Askpass-Pfade und
+echte wegwerfbare TCP-/Unix-Socket-Fälle in unabhängige Jobs. Die
+Completion-Matrix prüft Neovim 0.10.1/0.12.3, `nvim-cmp`, `blink.cmp` v1 und
+den vorläufigen v2-Stand. Die Jobs verwenden weder produktive SSH-Ziele noch
+private Infrastruktur und ersetzen keine praktische Windows-/NVDA-Prüfung.
 
 ## Referenzumgebung
 

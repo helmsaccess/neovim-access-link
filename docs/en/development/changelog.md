@@ -25,8 +25,10 @@
   status in speech/Braille; continuous LSP progress remains silent to avoid
   speech flooding.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
-  the runner, documentation, and GitHub Actions. Three independent CI jobs run
-  these phases without private infrastructure or real SSH targets.
+  the runner, documentation, and GitHub Actions. Adds an independent CI matrix
+  for pinned real `nvim-cmp`/`blink.cmp` API contracts on Neovim
+  0.10.1/0.12.3; every phase runs without private infrastructure or real SSH
+  targets.
 
 ## 0.96.0
 

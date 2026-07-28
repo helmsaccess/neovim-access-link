@@ -43,6 +43,82 @@ jobs:
       - name: Run sandbox-safe tests
         run: python3 tools/run_tests.py all-safe
 
+  completion-plugins:
+    name: Completion APIs (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Neovim 0.10.1 / blink.cmp v1
+            neovim_archive: nvim-linux64.tar.gz
+            neovim_directory: nvim-linux64
+            neovim_sha256: 4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.10.1/nvim-linux64.tar.gz
+            blink_revision: 78336bc89ee5365633bcf754d93df01678b5c08f
+            blink_lib_revision: ""
+          - name: Neovim 0.12.3 / blink.cmp v1
+            neovim_archive: nvim-linux-x86_64.tar.gz
+            neovim_directory: nvim-linux-x86_64
+            neovim_sha256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+            blink_revision: 78336bc89ee5365633bcf754d93df01678b5c08f
+            blink_lib_revision: ""
+          - name: Neovim 0.12.3 / blink.cmp v2
+            neovim_archive: nvim-linux-x86_64.tar.gz
+            neovim_directory: nvim-linux-x86_64
+            neovim_sha256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+            blink_revision: d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3
+            blink_lib_revision: 5876dd95deeb70aadbe9f1c0b7117a135061cdac
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check out pinned nvim-cmp
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: hrsh7th/nvim-cmp
+          ref: 2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3
+          path: .ci-deps/nvim-cmp
+          persist-credentials: false
+      - name: Check out pinned blink.cmp
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: Saghen/blink.cmp
+          ref: ${{ matrix.blink_revision }}
+          path: .ci-deps/blink-cmp
+          persist-credentials: false
+      - name: Check out pinned blink.lib
+        if: matrix.blink_lib_revision != ''
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: Saghen/blink.lib
+          ref: ${{ matrix.blink_lib_revision }}
+          path: .ci-deps/blink-lib
+          persist-credentials: false
+      - name: Install pinned Neovim
+        env:
+          MATRIX_NEOVIM_ARCHIVE: ${{ matrix.neovim_archive }}
+          MATRIX_NEOVIM_DIRECTORY: ${{ matrix.neovim_directory }}
+          MATRIX_NEOVIM_SHA256: ${{ matrix.neovim_sha256 }}
+          MATRIX_NEOVIM_URL: ${{ matrix.neovim_url }}
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$MATRIX_NEOVIM_URL" --output "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$MATRIX_NEOVIM_SHA256  $MATRIX_NEOVIM_ARCHIVE" | sha256sum --check -
+          tar --extract --gzip --file "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$PWD/$MATRIX_NEOVIM_DIRECTORY/bin" >> "$GITHUB_PATH"
+      - name: Test real completion plugin APIs
+        env:
+          BLINK_LIB_REVISION: ${{ matrix.blink_lib_revision }}
+        run: |
+          arguments=(.ci-deps/nvim-cmp .ci-deps/blink-cmp)
+          if [[ -n "$BLINK_LIB_REVISION" ]]; then
+            arguments+=(.ci-deps/blink-lib)
+          fi
+          bash tools/test_completion_plugins.sh "${arguments[@]}"
+
   ssh:
     name: Mocked SSH and Askpass tests
     runs-on: ubuntu-24.04

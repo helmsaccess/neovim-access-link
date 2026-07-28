@@ -109,6 +109,28 @@ class RepositoryPolicyTests(unittest.TestCase):
             ),
         )
 
+    def test_ci_pins_real_completion_plugin_matrix(self) -> None:
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
+            encoding="utf-8"
+        )
+        for expected in (
+            "Neovim 0.10.1 / blink.cmp v1",
+            "Neovim 0.12.3 / blink.cmp v1",
+            "Neovim 0.12.3 / blink.cmp v2",
+            "2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3",
+            "78336bc89ee5365633bcf754d93df01678b5c08f",
+            "d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3",
+            "5876dd95deeb70aadbe9f1c0b7117a135061cdac",
+            "4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793",
+            "c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, workflow)
+        self.assertEqual(
+            1,
+            workflow.count("bash tools/test_completion_plugins.sh"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,8 +31,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Clientstatus des aktuellen Buffers in Sprache/Braille; fortlaufender
   LSP-Fortschritt bleibt zur Vermeidung von Sprachfluten stumm.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
-  Runner, Dokumentation und GitHub Actions. Drei unabhängige CI-Jobs führen
-  diese Phasen ohne private Infrastruktur oder echte SSH-Ziele aus.
+  Runner, Dokumentation und GitHub Actions. Ergänzt eine unabhängige
+  CI-Matrix für die gepinnten realen `nvim-cmp`-/`blink.cmp`-API-Verträge auf
+  Neovim 0.10.1/0.12.3; alle Phasen laufen ohne private Infrastruktur oder
+  echte SSH-Ziele.
 
 ## 0.96.0
 
