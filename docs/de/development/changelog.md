@@ -5,6 +5,10 @@ dateibasierte Neovim-Sitzungsregistrierung aus kurzlebigen JSON-Dateien, niemals
 die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 `HKLM`.
 
+## Unveröffentlicht
+
+- Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+
 ## 0.96.0
 
 - Ergänzt strukturierte Braillezeilen, Cursor-Routing und -Nachlauf,

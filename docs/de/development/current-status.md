@@ -1,10 +1,12 @@
 # Aktueller Status
 
-Stand: 27. Juli 2026. Produktversion im Quellstand: 0.96.0.
+Stand: 28. Juli 2026. Produktversion im Quellstand:
+0.97.0, Entwicklungsbuild 1.
 
-Der Quellstand ist für Version 0.96.0 vorbereitet. Der zugehörige
+Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
+veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
 GitHub-Veröffentlichungslink und die versionsbezogenen deutschen und
-englischen Changelog-Links stehen prominent in `README.md`. Die vom Projekt
+englischen Changelog-Links bleiben prominent in `README.md`. Die vom Projekt
 festgelegte Reife ist Beta. Diese Dokumentation leitet aus Testumfang,
 Versionsnummer oder Funktionsmenge keine darüber hinausgehende
 Stabilitätseinstufung ab.

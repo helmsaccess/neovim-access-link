@@ -1,12 +1,13 @@
 # Current status
 
-Status date: July 27, 2026. Product version in the source tree: 0.96.0.
+Status date: July 28, 2026. Product version in the source tree:
+0.97.0 development build 1.
 
-The source tree is prepared for version 0.96.0. Its GitHub release link and
-version-specific English and German changelog links are kept prominently in
-`README.md`. Project-defined maturity is beta. This documentation does not
-infer a higher stability classification from test coverage, version number, or
-feature count.
+The source tree has started the 0.97.0 development line. The current published
+beta pre-release remains 0.96.0; its GitHub release link and version-specific
+English and German changelog links remain prominent in `README.md`.
+Project-defined maturity is beta. This documentation does not infer a higher
+stability classification from test coverage, version number, or feature count.
 
 Verification is risk-based and best-effort, not exhaustive. Automated suites
 and practical reference workflows cannot anticipate every combination of NVDA,

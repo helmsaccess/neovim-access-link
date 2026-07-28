@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+
 ## 0.96.0
 
 - Adds structured Braille lines, cursor routing and following, standard display
