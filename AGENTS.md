@@ -70,6 +70,10 @@ take precedence.
   independent with no shared mutable paths, processes, or sessions.
 - Treat restricted-sandbox listener failures as environment limitations; validate affected
   socket, TUI, or session code in a permitted environment before push or release.
+- Before handing changes back to the user, rebuild every affected distributable artifact from
+  the final worktree state. Documentation-only changes require a fresh documentation build;
+  changes only to installable add-on or component code require a fresh `.nvda-addon` build; when
+  both areas changed, rebuild both. Do not rebuild an unaffected artifact merely to refresh it.
 - Full prerequisites and build checks are documented in `docs/de/development/testing.md`.
 
 ## Git, versioning, and releases
