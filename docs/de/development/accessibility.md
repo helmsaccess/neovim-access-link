@@ -40,7 +40,7 @@ breite Hardware-, Treiber- und Übersetzungstabellenmatrix bleibt offen.
 | Braille-Explorationsmodus | frei belegbares Windows-Terminal-AppModule-Skript und dieselben öffentlichen Regionsmethoden | pro Neovim-Instanz eigener Modus, vollständige Echtcursor-Ursprungsidentität für den Start; danach eigene Explorations-ID und Aktionsfolge bei unverändertem Buffer/Fenster/Tab sowie validiert fortgeschriebenem `changedtick`; virtuelle Zeile und gewünschte Spalte; öffentlicher `BrailleBuffer.windowStartPos`; öffentliche `TextInfoRegion.pendingCaretUpdate`-Markierung | Auf/Ab liest benachbarte Pufferzeilen ohne Echtcursorbewegung; lokale und entfernte Sessions wählen Modus, virtuelle Position und horizontalen Ausschnitt unabhängig; Control- und Anwendungswechsel stellen die Ansicht der jeweiligen Session wieder her; echte Cursor- und Modusbewegungen sowie Änderungen auf anderen Zeilen verändern die virtuelle Position nicht; Bearbeitungen auf der explorierten echten Cursorzeile aktualisieren vollständigen Inhalt und aktuellen Modus ohne Neuverankerung oder Ausschnittsprung; der gewählte Ausschnitt folgt keinem parallelen nativen Caretereignis; kein scheinbarer virtueller Braillecursor; Routing übernimmt die gewählte virtuelle Position nur aus einem zum aktuellen `changedtick` passenden Zeilenstand und wird unmittelbar vor verzögerten Mehrfachaktionen erneut validiert; unabhängig vom Sprachexplorationsmodus | ja | Validator, Controller, Capability, lokaler/SSH-Transport, gebautes Add-on, Lua und echter Insert-RPC einschließlich Interleaving, Instanzisolation, positions- und ausschnittstreuer Rückkehr, gezieltem Disconnect-Reset, Cursor- und Texteingabeentkopplung, vollständiger Zeilenaktualisierung nach Bearbeitung und Moduswechsel, Ausschnittserhalt, Ablehnung veralteten Routings und verzögerter Neuvalidierung automatisiert; grundlegender Hardwarepfad auf BRAILLEX EL 80c bestätigt, jüngste Editier-/Routing-Randfälle, praktische Mehrsession-Abnahme und breitere Hardwarematrix offen |
 | Modus-Earcons | `modeChanged`, `commandLineChanged`, Terminal-`contextChanged` oder bestätigter `focusContext` | kanonischer Modus einschließlich `terminalNormal` und `commandLine` | NVDA `focusMode.wav` für Insert/direkte Terminaleingabe, `browseMode.wav` für Normal/Terminal-Normal und kurzer 600-Hz-Kommandozeilenton | ja | automatisiert; Gate-Reihenfolge und Ereignisdeduplizierung geprüft |
 | Einrückung | Zeilentext + `shiftwidth` | vorherige/neue Einrückung | NVDA-Modus Sprache/Töne/Beides, semantische Ebene | ja | automatisiert |
-| Completion-Menü | `CompleteChanged`/`complete_info()` | ausgewählter Kandidat, Index, Anzahl, lokalisierter Typ, Parameter, Quelle und Dokumentation | Sprache, Braille, NVDA-Vorschlagsklänge; stille Aktualisierung nachgeladener Dokumentation | ja | echtes TUI, Auswahl jenseits von Eintrag 200, UTF-8-Grenzen, alle 25 LSP-Typen und Windows/NVDA |
+| Completion-Menü | Lebenszyklus und Auswahl per `CompleteChanged`/`CompleteDonePre`/`InsertLeave`; bei fehlender Dokumentation ein zusätzlicher öffentlicher `completionItem/resolve`-Aufruf für den ausgewählten ursprünglichen LSP-Kandidaten | ausgewählter Kandidat, Index, Anzahl, lokalisierter Typ, Parameter, Quelle und Dokumentation | Sprache, Braille, NVDA-Vorschlagsklänge; stille Aktualisierung nachgeladener Dokumentation | ja | echtes TUI, Auswahl jenseits von Eintrag 200, UTF-8-Grenzen und alle 25 LSP-Typen; Resolve-Vertrag und Abbruch listenerfrei auf Neovim 0.10.1/0.12.3, echte Pyright-Antwort separat bestätigt, erneute Windows/NVDA-Abnahme offen |
 | Command-line-Wildmenu | `ext_popupmenu` | Kandidat, Index, Anzahl | Standard-Menüausgabe und Klänge | ja | echtes TUI automatisiert |
 | `vim.ui.select/input` | zentrale Neovim-API | Prompt, Einträge, Ergebnis/Abbruch | Sprache, Braille und Menüklänge | ja | echtes TUI automatisiert |
 | LSP-Signatur | enger Beobachter für den Handlerpfad von Neovim 0.10 und den `buf_request_all`-Antwortcallback von 0.11/0.12 | Signatur, aktiver Parameter als Text oder UTF-16-Offsetpaar, Alternativen mehrerer Clients | Signatur und Parameter, dedupliziert; stiller Schließzustand | ja | listenerfreie Kompatibilitätstests auf Neovim 0.10.1 und 0.12.3; realer LSP-Server und Windows/NVDA noch praktisch zu prüfen |
@@ -64,6 +64,23 @@ Abfragen. Fehler, langsame Ticks, maximale Tickdauer und aktive API-Variante
 erscheinen deshalb ohne Kandidateninhalt in Diagnosebericht und
 `:checkhealth`. Sobald ein verlässliches öffentliches Ereignis jede
 Auswahländerung liefert, soll diese Abfrage entfallen.
+
+Neovims eingebaute LSP-Completion schreibt aufgelöste Dokumentation über die
+experimentelle interne Funktion `nvim__complete_set()` in das Vorschaufenster.
+Eine reale TUI-Reproduktion bestätigt, dass der gesetzte `info`-Text danach
+nicht in `complete_info().items` erscheint. Wiederholtes Lesen dieser
+öffentlichen Menüansicht kann die Dokumentation daher nicht gewinnen.
+
+Der native Access-Link-Pfad verwendet stattdessen den von Neovim im
+ausgewählten Menüeintrag bereitgestellten ursprünglichen LSP-Kandidaten und
+den Clientbezug. Fehlt dort Dokumentation und unterstützt der Client Resolve,
+wird genau eine zusätzliche Access-Link-eigene, öffentliche und asynchrone
+`completionItem/resolve`-Anfrage gestellt. Auswahlwechsel, `CompleteDonePre`
+und `InsertLeave` invalidieren und stornieren eine noch laufende Anfrage. Nur
+eine Antwort für die weiterhin aktuelle sichtbare Auswahl ergänzt die
+Modellkopie und erzeugt ein stilles `menuItemUpdated`. Der zusätzliche
+Resolve-Pfad besitzt weder
+Menülebenszyklus noch Klänge und blockiert Neovim oder NVDA nicht.
 
 Bei `nvim-cmp` wird die öffentlich zugängliche `entry.completion_item`-Tabelle
 beobachtet; eine spätere Resolve-Antwort aktualisiert die Dokumentation ohne

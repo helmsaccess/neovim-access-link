@@ -261,6 +261,7 @@ def jobs() -> tuple[Job, ...]:
         "lsp_hover_spec.lua",
         "lsp_status_spec.lua",
         "menu_spec.lua",
+        "native_completion_spec.lua",
         "navigation_spec.lua",
         "selection_spec.lua",
         "signature_help_spec.lua",

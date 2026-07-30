@@ -67,7 +67,14 @@ ohne tatsächlichen Auswahlwechsel neu zeichnet.
 Nur der ausgewählte Kandidat wird verarbeitet. Auch eine Auswahl jenseits der
 ersten 200 Listeneinträge bleibt dadurch zugänglich. Später eintreffende
 Dokumentation aktualisiert den Dokumentationsbefehl still und wiederholt die
-Auswahlansage nicht.
+Auswahlansage nicht. Bei Neovims eingebauter LSP-Completion kann diese
+Dokumentation nach dem letzten `CompleteChanged`-Ereignis eintreffen und nur
+im internen Vorschaufenster landen. Wenn der ursprüngliche LSP-Kandidat noch
+keine Dokumentation enthält, löst Access Link deshalb genau den ausgewählten
+Kandidaten zusätzlich über die öffentliche LSP-Schnittstelle
+`completionItem/resolve` auf. Ein Auswahlwechsel oder das Schließen des Menüs
+verwirft die alte Anfrage. Öffnen, Auswahl, Schließen und Klänge bleiben
+vollständig an Neovims Menüereignisse gebunden.
 
 ## Ausführliche Dokumentation lesen
 
@@ -83,11 +90,12 @@ Der Befehl funktioniert nur, solange ein Eintrag ausgewählt ist und das
 Completion-System Dokumentation bereitstellt oder der aktuelle LSP-Hover
 Inhalt enthält.
 
-Bei `nvim-cmp` wird auch nachträglich über `completionItem/resolve` ergänzte
-Dokumentation übernommen. `blink.cmp` stellt seine intern aufgelöste Kopie
-derzeit nicht über eine öffentliche API bereit. Dort ist ursprünglich am
-Kandidaten vorhandene Dokumentation zugänglich; ausschließlich nachgeladene
-Dokumentation kann bis zu einer Upstream-Erweiterung fehlen.
+Bei Neovims eingebauter LSP-Completion und bei `nvim-cmp` wird auch
+nachträglich über `completionItem/resolve` ergänzte Dokumentation übernommen.
+`blink.cmp` stellt seine intern aufgelöste Kopie derzeit nicht über eine
+öffentliche API bereit. Dort ist ursprünglich am Kandidaten vorhandene
+Dokumentation zugänglich; ausschließlich nachgeladene Dokumentation kann bis
+zu einer Upstream-Erweiterung fehlen.
 
 Ghost Text ohne sichtbares Completion-Menü ist kein zugängliches Auswahlmenü
 und wird von den beiden Adaptern nicht angesagt.

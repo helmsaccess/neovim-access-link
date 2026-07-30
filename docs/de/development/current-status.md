@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 28. Juli 2026. Produktversion im Quellstand:
-0.97.0, Entwicklungsbuild 3.
+Stand: 30. Juli 2026. Produktversion im Quellstand:
+0.97.0, Entwicklungsbuild 5.
 
 Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
 veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
@@ -239,7 +239,12 @@ Der semantische Pfad deckt unter anderem ab:
 
 Completion verarbeitet nur den ausgewählten Kandidaten und meldet dessen
 Position, lokalisierten LSP-Typ, Parameter und Quelle. Nachgeladene
-`nvim-cmp`-Dokumentation aktualisiert den instanzbezogenen Abrufbefehl still.
+Dokumentation von Neovims eingebauter LSP-Completion und `nvim-cmp`
+aktualisiert den instanzbezogenen Abrufbefehl still. Neovims interne
+Vorschauaktualisierung erscheint nicht nachträglich in `complete_info()`.
+Fehlt die Dokumentation am ursprünglichen Kandidaten, löst der native Pfad
+deshalb nur die aktuelle Auswahl zusätzlich über den öffentlichen
+`completionItem/resolve`-Vertrag auf und verwirft veraltete Antworten.
 Echte Modulanbindung ist automatisiert gegen den aktuellen `nvim-cmp`-Stand,
 `blink.cmp` v1.10.2 und den vorläufigen v2-Zweig geprüft; eine vollständige
 TUI-/Windows-/NVDA-Konfigurationsmatrix bleibt offen. `blink.cmp` kann

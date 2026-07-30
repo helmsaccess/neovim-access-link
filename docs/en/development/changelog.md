@@ -8,6 +8,12 @@
   kinds, source, and UTF-8-safe bounds. Documentation resolved later by
   `nvim-cmp` updates the per-instance command without a second selection
   announcement.
+- Resolves exactly the selected original native LSP completion item through
+  the public `completionItem/resolve` method when documentation is absent.
+  This is necessary because Neovim's internal preview update does not flow
+  back into `complete_info().items`. Selection changes and menu closing cancel
+  or invalidate stale requests; the current response updates the command
+  silently.
 - Moves `nvim-cmp` to the public `entry.completion_item` API and uses
   `blink.cmp`'s public selected index. Ownership tokens, tick diagnostics, and
   real-module tests cover current `nvim-cmp`, `blink.cmp` v1.10.2, and the

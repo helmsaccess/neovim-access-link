@@ -19,11 +19,17 @@ The selected label, position, localized LSP kind, parameters, and source are
 reported when available. Only the selected candidate is processed, including
 selections beyond the first 200 list entries. Documentation resolved later
 updates the documentation command silently instead of repeating the selection.
-`nvim-cmp` exposes that resolved item. `blink.cmp` currently does not expose its
-internally resolved copy through a public API, so documentation present on the
-original item works while resolve-only documentation may remain unavailable.
-Ghost text without a visible completion menu is not reported as a selectable
-menu.
+For built-in LSP completion, that documentation can arrive after the final
+`CompleteChanged` event and remain available only in Neovim's internal preview
+window. When the original LSP item has no documentation, Access Link therefore
+resolves exactly the selected candidate through the public
+`completionItem/resolve` method as well. A selection change or menu close
+discards the stale request. Menu opening, selection, closing, and sounds remain
+owned by Neovim's events. `nvim-cmp` exposes its resolved item directly.
+`blink.cmp` currently does not expose its internally resolved copy through a
+public API, so documentation present on the original item works while
+resolve-only documentation may remain unavailable. Ghost text without a
+visible completion menu is not reported as a selectable menu.
 
 `:NvimNvdaLspStatus` reports the names of LSP clients attached to the current
 buffer and explicitly reports when none is attached. Ongoing LSP progress is

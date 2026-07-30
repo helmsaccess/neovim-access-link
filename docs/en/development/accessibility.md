@@ -163,9 +163,27 @@ not produce a false close/open pair. Each tick normalizes only the selected
 candidate. `nvim-cmp` still needs two public calls wrapped in
 `cmp.sync()`, so content-free diagnostics expose errors, slow ticks, maximum
 duration, and the active API variant in the diagnostic report and
-`:checkhealth`. Built-in Neovim completion remains fully event-driven. This
-fallback should be removed when a reliable public selection event becomes
-available.
+`:checkhealth`. This fallback should be removed when a reliable public
+selection event becomes available.
+
+Built-in LSP completion writes resolved documentation into its preview window
+through the experimental internal `nvim__complete_set()` function. A real TUI
+reproduction confirms that the assigned `info` text does not subsequently
+appear in `complete_info().items`, so repeatedly reading the public menu view
+cannot recover it.
+
+The native Access Link path instead uses the original LSP candidate and client
+reference carried by Neovim's selected menu item. When that item has no
+documentation and the client supports resolve, it sends exactly one additional
+Access-Link-owned public asynchronous `completionItem/resolve` request. A
+selection change, `CompleteDonePre`, or `InsertLeave` invalidates and cancels
+a pending request.
+Only a response for the still-current visible selection augments the model
+copy and emits a silent `menuItemUpdated`. This additional resolve path owns
+neither menu lifetime nor sounds and blocks neither Neovim nor NVDA.
+Listener-free tests cover resolve and cancellation on Neovim 0.10.1 and
+0.12.3, and a separate real Pyright request confirms the expected
+`calculate_total` documentation. Renewed Windows/NVDA acceptance remains open.
 
 All 25 LSP completion kinds, sources, UTF-8-safe limits, selections beyond item
 200, and silent resolved-documentation updates have automated coverage.

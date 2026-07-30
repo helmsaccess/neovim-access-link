@@ -13,6 +13,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   UTF-8-sichere Grenzen werden übertragen. Nachträglich aufgelöste
   `nvim-cmp`-Dokumentation aktualisiert den instanzbezogenen Abrufbefehl ohne
   zweite Auswahlansage.
+- Löst bei nativer LSP-Completion genau den ausgewählten ursprünglichen
+  Kandidaten zusätzlich über die öffentliche `completionItem/resolve`-Methode
+  auf, wenn Dokumentation fehlt. Das ist erforderlich, weil Neovims interne
+  Vorschauaktualisierung nicht in `complete_info().items` zurückfließt.
+  Auswahlwechsel und Menüschluss stornieren beziehungsweise entwerten alte
+  Anfragen; die aktuelle Antwort aktualisiert den Abrufbefehl still.
 - Stellt `nvim-cmp` auf die öffentliche `entry.completion_item`-API um und
   verwendet bei `blink.cmp` den öffentlichen Auswahlindex. Besitzer-Token,
   Tickdiagnostik und echte Modultests decken aktuellen `nvim-cmp`, `blink.cmp`

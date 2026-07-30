@@ -1,7 +1,7 @@
 # Current status
 
-Status date: July 28, 2026. Product version in the source tree:
-0.97.0 development build 3.
+Status date: July 30, 2026. Product version in the source tree:
+0.97.0 development build 5.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -216,12 +216,17 @@ The semantic path covers, among other features:
 
 Completion processes only the selected candidate and reports its position,
 localized LSP kind, parameters, and source. Documentation resolved later by
-`nvim-cmp` updates the per-instance documentation command silently. Real-module
-attachment is automated against current `nvim-cmp`, `blink.cmp` v1.10.2, and
-the provisional v2 branch; a complete TUI and Windows/NVDA configuration
-matrix remains open. `blink.cmp` cannot yet expose documentation available
-only in its internally resolved copy, and ghost text without a menu is not an
-accessible selection menu.
+built-in LSP completion or `nvim-cmp` updates the per-instance documentation
+command silently. Neovim's internal preview update does not subsequently
+appear in `complete_info()`. When the original candidate has no documentation,
+the native path therefore resolves only the current selection through the
+public `completionItem/resolve` contract and discards stale responses.
+Real-module attachment is
+automated against current `nvim-cmp`, `blink.cmp` v1.10.2, and the provisional
+v2 branch; a complete TUI and Windows/NVDA configuration matrix remains open.
+`blink.cmp` cannot yet expose documentation available only in its internally
+resolved copy, and ghost text without a menu is not an accessible selection
+menu.
 
 LSP hover automatically presents only its first meaningful line. Complete
 per-instance documentation is available through the same configurable command

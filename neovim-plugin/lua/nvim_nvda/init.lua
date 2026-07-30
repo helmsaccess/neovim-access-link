@@ -1043,7 +1043,9 @@ function M.request_end_braille_exploration(payload)
 end
 
 function M.setup()
+  local native_completion = require("nvim_nvda.native_completion")
   local component_config = require("nvim_nvda.component_config").load()
+  native_completion.stop()
   group = vim.api.nvim_create_augroup("NvimNvda", { clear = true })
   signature_help.setup(emit, group)
   lsp_hover.setup(emit, group)
@@ -1429,17 +1431,29 @@ function M.setup()
     callback = function(event)
       local info = vim.fn.complete_info({ "mode", "pum_visible", "items", "selected" })
       emit_menu_events(completion_menu:update(info), event.event)
+      if (tonumber(info.selected) or -1) >= 0 then
+        native_completion.resolve(info, function(refreshed_info)
+          emit_menu_events(
+            completion_menu:update(refreshed_info),
+            "completionDetailRefresh"
+          )
+        end, event.buf)
+      else
+        native_completion.stop()
+      end
     end,
   })
   vim.api.nvim_create_autocmd("CompleteDonePre", {
     group = group,
     callback = function(event)
+      native_completion.stop()
       emit_menu_events(completion_menu:close("completionDone"), event.event)
     end,
   })
   vim.api.nvim_create_autocmd("InsertLeave", {
     group = group,
     callback = function(event)
+      native_completion.stop()
       emit_menu_events(completion_menu:close("insertLeave"), event.event)
     end,
   })
