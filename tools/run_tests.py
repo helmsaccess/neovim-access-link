@@ -30,6 +30,8 @@ PYTHON_TEST_PATH = os.pathsep.join(
     )
 )
 DEFAULT_JOBS = min(8, os.cpu_count() or 1)
+UNIX_SOCKET_PATH_MAX = 107
+TEMPORARY_NAME_SAMPLE = "tmp12345678"
 REAL_BRIDGE_TESTS = (
     "test_real_tui_f12_claim_preserves_normal_and_insert_input",
     "test_real_tui_spell_choices_are_structured_and_accept_the_native_index",
@@ -306,9 +308,32 @@ def selected_groups(arguments: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(selected)
 
 
+def nested_socket_path_probe(repository_root: Path, job_index: int = 99) -> Path:
+    """Model the longest nested socket path created by the real TUI tests."""
+    return (
+        repository_root
+        / "tmp"
+        / "r-12345678"
+        / f"j{job_index}"
+        / "t"
+        / TEMPORARY_NAME_SAMPLE
+        / "nvim.sock"
+    )
+
+
+def validate_socket_path_budget(repository_root: Path) -> None:
+    probe = nested_socket_path_probe(repository_root)
+    byte_length = len(os.fsencode(probe))
+    if byte_length > UNIX_SOCKET_PATH_MAX:
+        raise ValueError(
+            f"checkout path is too long for disposable Unix sockets "
+            f"({byte_length} > {UNIX_SOCKET_PATH_MAX} bytes): {probe}"
+        )
+
+
 def run_job(job: Job, job_directory: Path) -> Result:
-    runtime = job_directory / "runtime"
-    temporary = job_directory / "tmp"
+    runtime = job_directory / "r"
+    temporary = job_directory / "t"
     runtime.mkdir(parents=True)
     runtime.chmod(0o700)
     temporary.mkdir()
@@ -394,10 +419,12 @@ def main() -> int:
     separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
     if len(separated_batches) > 1:
         batches = separated_batches
-    temporary_parent = ROOT / "tmp" / "test-runs"
+    if socket_jobs:
+        validate_socket_path_budget(ROOT)
+    temporary_parent = ROOT / "tmp"
     temporary_parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
-        prefix="nvim-nvda-tests-",
+        prefix="r-",
         dir=temporary_parent,
     ) as temporary_name:
         temporary_root = Path(temporary_name)
@@ -417,7 +444,7 @@ def main() -> int:
                         executor.submit(
                             run_job,
                             job,
-                            temporary_root / f"job-{submitted_index:02d}",
+                            temporary_root / f"j{submitted_index}",
                         )
                     ] = job
                 for future in concurrent.futures.as_completed(futures):

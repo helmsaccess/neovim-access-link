@@ -91,6 +91,24 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertNotIn("socket", presets["all-safe"])
         self.assertEqual(("unit", "package", "lua", "ssh", "socket"), presets["all"])
 
+    def test_runner_keeps_nested_ci_socket_paths_below_the_unix_limit(self) -> None:
+        runner = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/run_tests.py"),
+            run_name="repository_test_runner",
+        )
+        representative_ci_root = pathlib.Path("/") / ("r" * 54)
+        probe = runner["nested_socket_path_probe"](representative_ci_root)
+        self.assertEqual(55, len(os.fsencode(representative_ci_root)))
+        self.assertLessEqual(
+            len(os.fsencode(probe)),
+            runner["UNIX_SOCKET_PATH_MAX"],
+        )
+        runner["validate_socket_path_budget"](representative_ci_root)
+        with self.assertRaisesRegex(ValueError, "checkout path is too long"):
+            runner["validate_socket_path_budget"](
+                pathlib.Path("/") / ("r" * 90),
+            )
+
     def test_ci_runs_safe_ssh_and_socket_groups_as_separate_jobs(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
             encoding="utf-8"
