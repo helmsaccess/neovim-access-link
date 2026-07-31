@@ -70,7 +70,8 @@ steps nor character exploration.
 Feedback also contains a profile-aware copy/paste success setting using the
 same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
 `diagnosticLine` and `diagnosticPosition` independently gate passive error or
-warning cues on entering an affected line or exact range. The settings UI
+warning cues on entering an affected line or at every position reached by
+explicit navigation within an exact range. The settings UI
 offers only Off and Tones for these keys; complete text remains available
 through explicit diagnostic inspection and navigation.
 The four clipboard commands have no default gestures and are assigned through

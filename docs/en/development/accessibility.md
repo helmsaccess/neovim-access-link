@@ -59,8 +59,9 @@ restores the editor region. Exact control and instance binding, request ID,
 buffer, window, tab, changed tick, mode, and cursor must still match.
 Validator, protocol, Lua, controller, AppModule, and built-package tests cover
 the path; practical Windows/NVDA acceptance remains open. Diagnostic error and
-warning cues use attributed MIT-licensed VS Code sounds only on deliberate
-line/range entry; typing and background refresh remain silent.
+warning cues use attributed MIT-licensed VS Code sounds on deliberate line
+entry and at every position reached by explicit navigation within a diagnostic
+range; typing and background refresh remain silent.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real

@@ -260,7 +260,8 @@ diagnostic-jump hook.
 `NVDA+Shift+E` holds a bounded list of diagnostics under the cursor and on
 the current line; `NVDA+k/j` cycles without moving the real cursor. A
 text-free diagnostic summary enables separately configurable error and
-warning cues when entering a diagnostic line or exact range. The two signals
+warning cues when entering a diagnostic line and at every position reached by
+explicit navigation within an exact range. The two signals
 come from the MIT-licensed Visual Studio Code Code - OSS source; the add-on
 records the commit, hashes, conversion, and license.
 

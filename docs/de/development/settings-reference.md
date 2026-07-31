@@ -76,7 +76,8 @@ Option besitzt:
 - Hinweis beim Überschreiten einer Zeilengrenze
 - fehlendes passendes Klammerzeichen
 - Diagnosefehler oder -warnung beim Eintritt in eine betroffene Zeile
-- Diagnosefehler oder -warnung beim Eintritt in einen exakten Bereich
+- Diagnosefehler oder -warnung an jeder durch ausdrückliche Navigation
+  erreichten Position in einem exakten Bereich
 - Erfolg beim expliziten Kopieren und Einfügen
 
 Für die beiden reinen Diagnoseklänge bietet die Oberfläche nur `Aus` und

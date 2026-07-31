@@ -65,10 +65,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Adapter oder ausgeliefertes Plugin erforderlich.
 - Ergänzt `NVDA+Umschalt+E` für eine gehaltene, lokal durchschaltbare Liste
   der Diagnosen am Cursor und auf der Zeile. Fehler und Warnungen erhalten
-  getrennt konfigurierbare Zeilen- und Positionsklänge, ohne Klangflut beim
-  Tippen oder bei Hintergrundupdates. Die zwei übernommenen Visual-Studio-
-  Code-Code-OSS-Signale sind MIT-lizenziert; Quellcommit, Prüfsummen,
-  Konvertierung und Lizenztext werden mitgeliefert.
+  getrennt konfigurierbare Zeilen- und Positionsklänge. Wie in Visual Studio
+  Code erklingt das Positionssignal bei jeder ausdrücklichen Bewegung im
+  Diagnosebereich und auch bei einem Diagnosesprung; Tippen und asynchrone
+  Hintergrundupdates bleiben stumm. Die zwei übernommenen Code-OSS-Signale
+  sind MIT-lizenziert; Quellcommit, Prüfsummen, Konvertierung und Lizenztext
+  werden mitgeliefert.
 - Fügt eine eigene profilfähige Braille-Startzelle für temporäre
   Entwicklerinformationen hinzu und verwirft gehaltene Anzeigen bei jedem
   Fokus-, Buffer-, Text- oder Cursorwechsel.

@@ -286,7 +286,8 @@ Diagnosesprung-Hook ersetzt.
 `NVDA+Umschalt+E` hält eine begrenzte Liste der Diagnosen am Cursor und auf
 der aktuellen Zeile; `NVDA+k/j` schaltet ohne echte Cursorbewegung. Eine
 textfreie Diagnosezusammenfassung ermöglicht getrennt konfigurierbare Fehler-
-und Warnklänge beim Betreten einer Diagnosezeile oder eines exakten Bereichs.
+und Warnklänge beim Betreten einer Diagnosezeile und an jeder durch
+ausdrückliche Navigation erreichten Position in einem exakten Bereich.
 Die zwei Signale stammen aus dem MIT-lizenzierten Code-OSS-Quellstand von
 Visual Studio Code; Commit, Prüfsummen, Konvertierung und Lizenz sind im
 Add-on dokumentiert.

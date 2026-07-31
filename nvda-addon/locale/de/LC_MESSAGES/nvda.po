@@ -381,7 +381,7 @@ msgstr "{text} gelöscht"
 msgid "Developer information"
 msgstr "Entwicklerinformationen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2818 nvda-addon/core/nvim_nvda_core/speech.py:1519
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2822 nvda-addon/core/nvim_nvda_core/speech.py:1519
 msgid "diagnostic"
 msgstr "Diagnose"
 
@@ -421,7 +421,7 @@ msgstr "leer"
 msgid "end of file"
 msgstr "Dateiende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2905
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2909
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr "Geben Sie das SSH-Passwort für {profile} ein. Es wird nicht gespeichert."
@@ -434,7 +434,7 @@ msgstr "Aufzählung"
 msgid "enum member"
 msgstr "Aufzählungselement"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2814
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2818
 msgid "error"
 msgstr "Fehler"
 
@@ -536,7 +536,7 @@ msgstr "Grammatikfehler"
 msgid "help"
 msgstr "Hilfe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2817
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2821
 msgid "hint"
 msgstr "Hinweis"
 
@@ -544,7 +544,7 @@ msgstr "Hinweis"
 msgid "Individual actions"
 msgstr "Einzelne Aktionen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2816
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2820
 msgid "information"
 msgstr "Information"
 
@@ -876,7 +876,7 @@ msgstr "Neovim befindet sich nicht in der direkten Terminaleingabe"
 msgid "Neovim session"
 msgstr "Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2906
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2910
 msgid "Neovim SSH password"
 msgstr "Neovim-SSH-Passwort"
 
@@ -914,11 +914,11 @@ msgstr "Keine Completion- oder Hover-Dokumentation verfügbar"
 msgid "no diagnostic"
 msgstr "keine Diagnose"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2781
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2785
 msgid "No diagnostics on this line"
 msgstr "Keine Diagnosen in dieser Zeile"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2778
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2782
 msgid "No function parameters or hover information available"
 msgstr "Keine Funktionsparameter oder Hover-Informationen verfügbar"
 
@@ -1007,7 +1007,7 @@ msgstr "Rechtschreibfehler-Ende"
 msgid "paragraph separator"
 msgstr "Absatztrenner"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2788
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2792
 #, python-brace-format
 msgid "Parameter {parameterIndex} of {parameterCount}: {parameter}. Signature {signatureIndex} of {signatureCount}: {signature}"
 msgstr "Parameter {parameterIndex} von {parameterCount}: {parameter}. Signatur {signatureIndex} von {signatureCount}: {signature}"
@@ -1211,7 +1211,7 @@ msgstr "Funktionsparameter anzeigen, solange die NVDA-Taste gedrückt bleibt"
 msgid "Sign-in method:"
 msgstr "Anmeldemethode:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2801
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2805
 #, python-brace-format
 msgid "Signature {index} of {count}: {signature}"
 msgstr "Signatur {index} von {count}: {signature}"
@@ -1257,7 +1257,7 @@ msgstr "Rechtschreibfehler"
 msgid "Spelling suggestions"
 msgstr "Rechtschreibvorschläge"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2764
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2768
 msgid "Spelling suggestions available"
 msgstr "Rechtschreibvorschläge verfügbar"
 
@@ -1509,7 +1509,7 @@ msgstr "visueller Zeichenmodus"
 msgid "visual line mode"
 msgstr "visueller Zeilenmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2815
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2819
 msgid "warning"
 msgstr "Warnung"
 
@@ -1559,12 +1559,12 @@ msgstr "{action}, Zeilen {start} bis {end}"
 msgid "{boundary}, {line}"
 msgstr "{boundary}, {line}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2807
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2811
 #, python-brace-format
 msgid "{context}. Documentation: {documentation}"
 msgstr "{context}. Dokumentation: {documentation}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2830
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2834
 #, python-brace-format
 msgid "{context}. Source: {source}"
 msgstr "{context}. Quelle: {source}"
@@ -1634,7 +1634,7 @@ msgstr "{name}, {action}"
 msgid "{name}: {target}, port {port}, {method}"
 msgstr "{name}: {target}, Port {port}, {method}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2823
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2827
 #, python-brace-format
 msgid "{severity}, diagnostic {index} of {count}: {message}"
 msgstr "{severity}, Diagnose {index} von {count}: {message}"

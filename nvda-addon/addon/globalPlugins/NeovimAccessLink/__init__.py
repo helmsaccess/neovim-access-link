@@ -2635,6 +2635,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _playDiagnosticNavigationCue(self, event_type, previous_payload, payload):
 		navigation_events = {
 			"characterMoved",
+			"diagnosticMoved",
 			"wordMoved",
 			"lineChanged",
 			"lineStart",
@@ -2650,9 +2651,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		summary = payload.get("diagnosticSummary")
 		if not all(isinstance(value, dict) for value in (previous_cursor, cursor, previous_summary, summary)):
 			return
-		previous_identity = previous_summary.get("positionIdentity", "")
 		position_identity = summary.get("positionIdentity", "")
-		at_position = bool(position_identity and position_identity != previous_identity)
+		# Match VS Code's positional accessibility signal: deliberate cursor
+		# navigation emits the cue at every position covered by a diagnostic,
+		# not only on the first cell of a range. Text changes and asynchronous
+		# DiagnosticChanged refreshes never enter this navigation-only path.
+		at_position = bool(position_identity)
 		line_changed = cursor.get("line") != previous_cursor.get("line")
 		severity = (
 			summary.get("positionSeverity")

@@ -151,8 +151,9 @@ Mit `NVDA+Umschalt+E` werden zuerst Diagnosen direkt am Cursor und danach
 weitere Diagnosen auf derselben Zeile abgefragt. Solange die NVDA-Taste
 gehalten wird, schaltet `NVDA+k/j` zyklisch durch die Einträge, ohne den
 Editorcursor zu bewegen. Fehler und Warnungen können außerdem beim Betreten
-einer betroffenen Zeile oder eines exakten Diagnosebereichs einen kurzen
-Klang auslösen; Tippen und reine Hintergrundaktualisierungen bleiben stumm.
+einer betroffenen Zeile und an jeder durch ausdrückliche Cursornavigation
+erreichten Position innerhalb eines exakten Diagnosebereichs einen kurzen
+Klang auslösen. Tippen und reine Hintergrundaktualisierungen bleiben stumm.
 
 Für eigene Neovim-Mappings stehen folgende Befehle bereit:
 

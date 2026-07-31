@@ -10774,7 +10774,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("visual character mode", self.spoken)
         plugin.terminate()
 
-    def test_diagnostic_navigation_sounds_only_on_line_and_range_entry(self) -> None:
+    def test_diagnostic_navigation_sounds_on_line_entry_and_each_explicit_position(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         plugin = GlobalPlugin()
@@ -10838,7 +10838,22 @@ class BuiltAddonTests(unittest.TestCase):
                 "diagnosticSummary": position_summary,
             },
         })
-        self.assertEqual(1, played.count("diagnosticWarning"))
+        self.assertEqual(2, played.count("diagnosticWarning"))
+        plugin._handleEvent({
+            "type": "diagnosticMoved",
+            "payload": {
+                **base,
+                "lineText": "other bad",
+                "cursor": {"line": 4, "byteColumn": 1},
+                "diagnosticSummary": {
+                    **line_summary,
+                    "positionCount": 1,
+                    "positionSeverity": "error",
+                    "positionIdentity": "4:1:4:4:error",
+                },
+            },
+        })
+        self.assertEqual(2, played.count("diagnosticError"))
         plugin._handleEvent({
             "type": "textChanged",
             "payload": {
@@ -10852,7 +10867,7 @@ class BuiltAddonTests(unittest.TestCase):
                 },
             },
         })
-        self.assertEqual(1, played.count("diagnosticError"))
+        self.assertEqual(2, played.count("diagnosticError"))
 
         self._updateSettings(plugin, {
             "feedback": {
@@ -10874,7 +10889,7 @@ class BuiltAddonTests(unittest.TestCase):
                 },
             },
         })
-        self.assertEqual(1, played.count("diagnosticError"))
+        self.assertEqual(2, played.count("diagnosticError"))
 
         self._updateSettings(plugin, {
             "feedback": {

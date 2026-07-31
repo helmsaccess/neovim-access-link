@@ -57,10 +57,11 @@
   adapter or bundled plugin.
 - Adds `NVDA+Shift+E` for a held, locally navigable list of diagnostics under
   the cursor and on its line. Errors and warnings gain independently
-  configurable line and position cues without flooding while typing or
-  during background refreshes. The two adopted Visual Studio Code Code - OSS
-  signals are MIT-licensed; source commit, hashes, conversion, and license
-  text are bundled.
+  configurable line and position cues. As in Visual Studio Code, the position
+  signal plays at every explicit movement within a diagnostic range and on a
+  diagnostic jump; typing and asynchronous background refreshes stay silent.
+  The two adopted Code - OSS signals are MIT-licensed; source commit, hashes,
+  conversion, and license text are bundled.
 - Adds a separate profile-aware Braille start cell for temporary developer
   information and discards held views after any focus, buffer, text, or
   cursor change.

@@ -49,10 +49,15 @@ Für Diagnosefehler und -warnungen werden zwei kurze Accessibility Signals aus
 dem MIT-lizenzierten Code-OSS-Quellstand von Visual Studio Code verwendet.
 Der genaue Commit, Quell- und Zielprüfsummen, die WAV-Dekodierung
 sowie der vollständige MIT-Lizenztext liegen im Add-on unter
-`resources/sounds/`. Die Klänge werden nur bei ausdrücklicher Cursornavigation
-beim Eintritt in eine Diagnosezeile oder einen Diagnosebereich abgespielt.
-Die Einstellungen „Diagnosezeile“ und „Diagnoseposition“ können sie getrennt
-abschalten.
+`resources/sounds/`. Wie in VS Code verwenden Zeilen- und Positionssignal je
+Schweregrad dieselbe Datei. Bei ausdrücklicher Cursornavigation erklingt das
+Zeilensignal einmal beim Eintritt in eine Diagnosezeile und das Positionssignal
+an jeder erreichten Cursorposition innerhalb eines Diagnosebereichs. Tippen
+und asynchrone `DiagnosticChanged`-Aktualisierungen bleiben stumm: Anders als
+VS Code erhält das Add-on über das Terminal keine gleichwertige
+editorinterne Information für dessen Marker-Timer und Tipp-Debounce. Die
+Einstellungen „Diagnosezeile“ und „Diagnoseposition“ können beide Signalarten
+getrennt abschalten.
 
 ## Einrückung
 

@@ -60,8 +60,8 @@ Press `NVDA+Shift+E` to inspect diagnostics under the cursor followed by the
 remaining diagnostics on the current line. While NVDA remains held,
 `NVDA+k/j` cycles through the entries without moving the editor cursor.
 Errors and warnings can also produce a short cue when explicit navigation
-enters an affected line or exact diagnostic range. Typing and background
-diagnostic refreshes remain silent.
+enters an affected line and at every reached cursor position within an exact
+diagnostic range. Typing and background diagnostic refreshes remain silent.
 
 The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
 `:NvimNvdaDiagnosticFirst`, `:NvimNvdaDiagnosticLast`, and
