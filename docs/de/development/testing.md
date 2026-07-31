@@ -147,15 +147,17 @@ ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
 ## GitHub Actions
 
 `.github/workflows/repository-tests.yml` führt bei Pushes und Pull Requests
-fünf unabhängige Jobtypen aus:
+sechs unabhängige Jobtypen aus:
 
 1. Unit-, Paket- und listenerfreie Lua-Tests mit `all-safe`;
-2. echte Completion-Plugin-API-Verträge in drei getrennten
+2. Runner-, Sprach- und Ergebnisvertragstests des geführten Human-Test-
+   Frameworks unter Windows PowerShell und Neovim 0.12.3;
+3. echte Completion-Plugin-API-Verträge in drei getrennten
    Neovim-/Plugin-Konfigurationen;
-3. echte Diagnose-Provider-Verträge mit `nvim-lint`, ALE und `none-ls.nvim`
+4. echte Diagnose-Provider-Verträge mit `nvim-lint`, ALE und `none-ls.nvim`
    sowie sieben realen Lintern in zwei Neovim-Versionen;
-4. simulierte SSH- und Askpass-Pfade mit `ssh`;
-5. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
+5. simulierte SSH- und Askpass-Pfade mit `ssh`;
+6. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
 
 Der sichere, der SSH- und der Socket-Python-Testjob richten dieselbe
 festgelegte Python-Version ein und installieren anschließend die in
@@ -165,7 +167,9 @@ dem Runner vorinstallierten Python-Versionen oder Paketen ab. Der
 Diagnose-Provider-Job verwendet getrennt
 `tools/requirements-linter-ci.txt`; diese Pakete liefern die Python-basierten
 Werkzeuge Clang-Tidy, Ruff und ShellCheck. Der reine Completion-Vertragsjob
-benötigt keine Python-Abhängigkeiten.
+benötigt keine Python-Abhängigkeiten. Der Windows-Job verwendet die
+festgelegte Python-Version ohne zusätzliche Pakete, lädt das festgelegte
+Neovim-0.12.3-Archiv und prüft vor dem Entpacken dessen SHA-256-Prüfsumme.
 
 Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
 von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
@@ -376,7 +380,8 @@ Geprüft werden mindestens:
 - deutsches Manifest und `locale/de/LC_MESSAGES/nvda.mo`, aber keine PO/POT-
   Quellen im Archiv;
 - bytegleiche wiederholte MO-Kompilierung und gleiche benannte Platzhalter;
-- Quick Guide, Handbuch und Entwicklerdokumentation auf Deutsch und Englisch;
+- Quick Guide, Handbuch, Entwicklerdokumentation und geführter
+  Praxistest-Leitfaden auf Deutsch und Englisch;
 - genau eine H1 pro HTML, gültige interne Sprungziele und keine verbliebenen
   `.md`-Links;
 - ausdrückliche Zuordnung jeder veröffentlichten Markdown-Quelle zu einem

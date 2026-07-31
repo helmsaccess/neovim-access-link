@@ -71,10 +71,11 @@ tatsächliche Archiv und vergleichen Manifest, Dateiname und Laufzeitmetadaten
 mit `buildVars.py`.
 
 `tools/build_documentation.sh` erzeugt die deutschen und englischen Fassungen
-von Quick Guide, Handbuch und Entwicklerdokumentation. Der Build prüft
-ausdrücklich, dass beide Handbücher ihr Braille-Kapitel enthalten, und bündelt
-alle sechs HTML-Dateien zusätzlich in genau einem versionierten
-Dokumentations-ZIP unter `dist/`.
+von Quick Guide, Handbuch, Entwicklerdokumentation und dem eigenständigen
+Leitfaden für geführte Praxistests. Der Build prüft ausdrücklich, dass beide
+Handbücher ihr Braille-Kapitel und beide Testleitfäden ihren erwarteten
+Hauptabschnitt enthalten. Alle acht HTML-Dateien werden zusätzlich in genau
+einem versionierten Dokumentations-ZIP unter `dist/` gebündelt.
 
 Das unveränderte GPL-v2-Lizenzdokument wird in das Add-on und das Paket der
 Benutzerkomponenten aufgenommen. Einzelheiten zu Projekt- und

@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 31. Juli 2026. Produktversion im Quellstand:
-0.97.0, Entwicklungsbuild 8.
+0.97.0, Entwicklungsbuild 9.
 
 Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
 veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
@@ -25,8 +25,11 @@ des aktuellen Produkts und werden hier deshalb nicht chronologisch wiederholt.
 
 Repositoryprüfungen in GitHub Actions trennen die listenerfreie Standardsuite,
 echte gepinnte Completion-Plugin-Verträge, reale Diagnose-Provider- und
-Linterprozesse, simulierte SSH-/Askpass-Pfade und echte wegwerfbare
-TCP-/Unix-Socket-Fälle in unabhängige Jobs. Die
+Linterprozesse, den geführten Human-Test-Runner unter Windows PowerShell,
+simulierte SSH-/Askpass-Pfade und echte wegwerfbare TCP-/Unix-Socket-Fälle in
+unabhängige Jobs. Der Windows-Job prüft Runner, beide Sprachen,
+Testdefinitionen und Ergebnisvertrag, erklärt aber keine Wahrnehmungsaufgabe
+als menschlich bestanden. Die
 Completion-Matrix prüft Neovim 0.10.1/0.12.3, `nvim-cmp`, `blink.cmp` v1 und
 den vorläufigen v2-Stand. Die Diagnosematrix prüft auf beiden
 Neovim-Versionen `nvim-lint` und ALE mit sieben echten Lintern für C, Python,
@@ -420,8 +423,9 @@ andernorts weiter auflisten, ohne ihre Ausführung global zu machen.
   deutscher NVDA-gettext-Katalog wird mitgebaut.
 - Manifest, Einstellungen, Werkzeugdialoge, Meldungen und Speech-Plannertexte
   durchlaufen die Übersetzungsprüfung.
-- Quick Guide, Handbuch und Entwicklerdokumentation werden jeweils als
-  deutsches und englisches HTML erzeugt.
+- Quick Guide, Handbuch, Entwicklerdokumentation und geführter
+  Praxistest-Leitfaden werden jeweils als deutsches und englisches HTML
+  erzeugt.
 - Die neu bearbeiteten Braille-, Sprachexplorations- und Statustexte sind in
   beiden Sprachen inhaltlich abgeglichen. Ältere englische Handbuch- und
   Entwicklerkapitel sind teilweise Kurzfassungen und noch nicht vollständig

@@ -33,9 +33,10 @@ tags, releases, or product-version changes require explicit approval. Old
 the actual resulting archive.
 
 `tools/build_documentation.sh` builds the German and English quick guide, user
-manual, and developer documentation. The build explicitly verifies that both
-user manuals contain their Braille chapter and also bundles all six HTML files
-in exactly one versioned documentation ZIP under `dist/`.
+manual, developer documentation, and separate guided-practical-test guide. The
+build explicitly verifies that both user manuals contain their Braille chapter
+and both tester guides contain their expected main section. It bundles all
+eight HTML files in exactly one versioned documentation ZIP under `dist/`.
 
 The unmodified GPL v2 license is included in both the add-on and the user
 component package. See [Licensing and contributions](licensing-and-contributions.md)

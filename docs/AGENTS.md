@@ -26,5 +26,5 @@
   retrieval. Never copy private environment details into versioned documentation.
 - Update relevant indexes, links, changelog entries, and release references with the content they
   describe.
-- Build all six German and English HTML documents with `tools/build_documentation.sh` when
+- Build all eight German and English HTML documents with `tools/build_documentation.sh` when
   documentation packaging or release output changes.

@@ -90,8 +90,9 @@ Der Befehl funktioniert nur, solange ein Eintrag ausgewählt ist und das
 Completion-System Dokumentation bereitstellt oder der aktuelle LSP-Hover
 Inhalt enthält.
 
-Bei Neovims eingebauter LSP-Completion und bei `nvim-cmp` wird auch
-nachträglich über `completionItem/resolve` ergänzte Dokumentation übernommen.
+Bei Neovims eingebauter LSP-Completion löst Access Link fehlende Dokumentation
+selbst über `completionItem/resolve` auf. Der `nvim-cmp`-Adapter liest dagegen
+den vom Plugin bereits aufgelösten öffentlichen `entry.completion_item`.
 `blink.cmp` stellt seine intern aufgelöste Kopie derzeit nicht über eine
 öffentliche API bereit. Dort ist ursprünglich am Kandidaten vorhandene
 Dokumentation zugänglich; ausschließlich nachgeladene Dokumentation kann bis

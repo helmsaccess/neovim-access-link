@@ -137,16 +137,18 @@ rules.
 
 ## GitHub Actions
 
-`.github/workflows/repository-tests.yml` runs five independent job types for
+`.github/workflows/repository-tests.yml` runs six independent job types for
 pushes and pull requests:
 
 1. unit, package, and listener-free Lua tests through `all-safe`;
-2. real completion-plugin API contracts in three separate Neovim/plugin
+2. runner, locale, and result-contract tests for the guided human-test
+   framework on Windows PowerShell and Neovim 0.12.3;
+3. real completion-plugin API contracts in three separate Neovim/plugin
    configurations;
-3. real diagnostic-provider contracts with nvim-lint, ALE, and
+4. real diagnostic-provider contracts with nvim-lint, ALE, and
    `none-ls.nvim`, plus seven real linters on two Neovim versions;
-4. mocked SSH and Askpass paths through `ssh`;
-5. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
+5. mocked SSH and Askpass paths through `ssh`;
+6. disposable TUI, TCP, and Unix-socket cases serially through `socket -j 1`.
 
 The safe, SSH, and socket Python test jobs set up the same fixed Python version
 and then install the version-pinned Python test dependencies from
@@ -154,7 +156,9 @@ and then install the version-pinned Python test dependencies from
 or packages that happen to be preinstalled on the runner. The diagnostic
 provider job separately uses `tools/requirements-linter-ci.txt`; those
 packages supply the Python-based Clang-Tidy, Ruff, and ShellCheck tools. The
-completion contract job needs no Python dependencies.
+completion contract job needs no Python dependencies. The Windows job uses the
+pinned Python version without additional packages, downloads the pinned
+Neovim 0.12.3 archive, and verifies its SHA-256 digest before extraction.
 
 The safe and socket jobs download the official Neovim 0.10.1 Linux archive
 from GitHub. The workflow pins its URL and SHA-256 digest and verifies the
@@ -349,7 +353,8 @@ Verify at least:
 - German manifest and `locale/de/LC_MESSAGES/nvda.mo`, with no PO/POT sources
   in the archive;
 - byte-identical repeated MO compilation and matching named placeholders;
-- German and English quick guide, user manual, and developer documentation;
+- German and English quick guide, user manual, developer documentation, and
+  guided practical-test guide;
 - exactly one H1 per HTML file, valid internal targets, and no remaining `.md`
   links;
 - explicit assignment of every published Markdown source to an HTML build.

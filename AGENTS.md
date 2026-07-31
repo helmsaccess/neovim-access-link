@@ -94,8 +94,8 @@ take precedence.
   changed installable states on that branch; an unchanged reproducible rebuild may reuse it.
 - Keep version metadata in `buildVars.py`. A release-version change also updates README release
   and German/English changelog links in the same change.
-- GitHub releases contain the `.nvda-addon` plus one ZIP with all six German and English
-  quick-guide, handbook, and developer-documentation HTML files.
+- GitHub releases contain the `.nvda-addon` plus one ZIP with all eight German and English
+  quick-guide, handbook, developer-documentation, and guided-human-testing HTML files.
 
 ## Documentation and publication
 

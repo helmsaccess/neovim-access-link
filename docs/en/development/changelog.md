@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Publishes the guided practical-test guide separately from the developer
+  documentation as the fourth independent HTML file per language; the
+  versioned documentation ZIP therefore contains eight rather than six files.
 - Hardens native and plugin completion by normalizing only the selected
   candidate, including selections beyond item 200, and carrying all 25 LSP
   kinds, source, and UTF-8-safe bounds. Documentation resolved later by

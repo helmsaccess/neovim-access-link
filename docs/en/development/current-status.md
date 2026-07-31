@@ -1,7 +1,7 @@
 # Current status
 
 Status date: July 31, 2026. Product version in the source tree:
-0.97.0 development build 8.
+0.97.0 development build 9.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -22,8 +22,11 @@ therefore not repeated chronologically here.
 
 GitHub Actions repository checks separate the listener-free standard suite,
 real pinned completion-plugin contracts, real diagnostic providers and linter
-processes, mocked SSH/Askpass paths, and real disposable TCP/Unix-socket cases
-into independent jobs. The completion matrix covers Neovim 0.10.1/0.12.3,
+processes, the guided human-test runner on Windows PowerShell, mocked
+SSH/Askpass paths, and real disposable TCP/Unix-socket cases into independent
+jobs. The Windows job checks the runner, both locales, test definitions, and
+the result contract, but never declares a perception task as having passed a
+human check. The completion matrix covers Neovim 0.10.1/0.12.3,
 `nvim-cmp`, `blink.cmp` v1, and the provisional v2 revision. The diagnostic
 matrix covers `nvim-lint` and ALE with seven real linters for C, Python, Bash,
 Go, Rust, Ruby, and Markdown, plus the `none-ls.nvim` LSP bridge, on both
@@ -381,8 +384,8 @@ saved mapping elsewhere for that run without making its execution global.
   NVDA gettext catalog is built with it.
 - The manifest, settings, tool dialogs, messages, and Speech Planner strings
   pass translation checks.
-- The quick guide, user manual, and developer documentation are each built as
-  German and English HTML.
+- The quick guide, user manual, developer documentation, and guided
+  practical-test guide are each built as German and English HTML.
 - The revised Braille, speech-exploration, and status text is aligned between
   both languages. Some older English user-manual and developer chapters are
   condensed versions and are not yet fully equivalent; their alignment is in

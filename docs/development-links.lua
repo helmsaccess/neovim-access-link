@@ -1,5 +1,5 @@
 -- Rewrite links between the ordered German developer sources to their scoped
--- H1 targets. Links into the separately built handbook stay external.
+-- H1 targets. Links into separately built user and tester documents stay external.
 local targets = {
   ["overview.md"] = "#docs__de__development__overviewmd__überblick-für-neue-entwickler",
   ["getting-started.md"] = "#docs__de__development__getting-startedmd__einstieg-für-entwicklung-und-tests",
@@ -19,7 +19,7 @@ local targets = {
   ["settings-reference.md"] = "#docs__de__development__settings-referencemd__add-on-einstellungen",
   ["component-installation.md"] = "#docs__de__development__component-installationmd__rootlose-installation-und-ssh-stdio-transport",
   ["testing.md"] = "#docs__de__development__testingmd__teststrategie",
-  ["human-testing.md"] = "#docs__de__development__human-testingmd__geführte-praxistests-mit-nvda",
+  ["human-testing.md"] = "neovim-access-link-human-testing-de.html",
   ["accessibility.md"] = "#docs__de__development__accessibilitymd__funktionsmatrix",
   ["release-and-build.md"] = "#docs__de__development__release-and-buildmd__release--versions--und-buildprozess",
   ["nvda-2026.1-api-notes.md"] = "#docs__de__development__nvda-20261-api-notesmd__nvda-202611-api-untersuchung",

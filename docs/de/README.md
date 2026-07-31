@@ -8,7 +8,10 @@ Die deutsche Dokumentation ist nach Zweck und Zielgruppe getrennt:
    Bedienung, Braille und Fehlerdiagnose.
 3. [Entwicklungsdokumentation](development/README.md) – Architektur,
    Protokoll, Sicherheit, Tests, Kompatibilität, Planung und Änderungsverlauf.
+4. [Geführte Praxistests mit NVDA](development/human-testing.md) – ein
+   eigenständiger, einsteigerfreundlicher Ablauf für die wenigen Prüfungen,
+   die echte Sprache, Klänge, Braillehardware oder Windows-Fokus benötigen.
 
-Der Dokumentations-Build erzeugt Quick Guide, Handbuch und
-Entwicklerdokumentation als getrennte, vollständig eigenständige HTML-Dateien.
-Die gepflegten Quellen bleiben Markdown.
+Der Dokumentations-Build erzeugt diese vier Bereiche als getrennte,
+vollständig eigenständige HTML-Dateien. Die gepflegten Quellen bleiben
+Markdown.

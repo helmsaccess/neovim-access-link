@@ -8,6 +8,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Veröffentlicht den Leitfaden für geführte Praxistests getrennt von der
+  Entwicklerdokumentation als viertes eigenständiges HTML je Sprache; das
+  versionierte Dokumentations-ZIP enthält damit acht statt sechs Dateien.
 - Härtet native und pluginbasierte Completion: Es wird nur noch der ausgewählte
   Kandidat normalisiert, auch hinter Eintrag 200; alle 25 LSP-Typen, Quelle und
   UTF-8-sichere Grenzen werden übertragen. Nachträglich aufgelöste

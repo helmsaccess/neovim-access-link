@@ -13,9 +13,11 @@ artifact_version="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.
 quick_output="$output_dir/$product_slug-quick-guide-de.html"
 handbook_output="$output_dir/$product_slug-handbook-de.html"
 developer_output="$output_dir/$product_slug-developer-documentation-de.html"
+human_testing_output="$output_dir/$product_slug-human-testing-de.html"
 quick_en_output="$output_dir/$product_slug-quick-guide-en.html"
 handbook_en_output="$output_dir/$product_slug-handbook-en.html"
 developer_en_output="$output_dir/$product_slug-developer-documentation-en.html"
+human_testing_en_output="$output_dir/$product_slug-human-testing-en.html"
 documentation_archive="$archive_dir/$product_slug-$artifact_version-documentation.zip"
 
 quick_sources=(
@@ -55,7 +57,6 @@ developer_sources=(
   docs/de/development/settings-reference.md
   docs/de/development/component-installation.md
   docs/de/development/testing.md
-  docs/de/development/human-testing.md
   docs/de/development/accessibility.md
   docs/de/development/release-and-build.md
   docs/de/development/nvda-2026.1-api-notes.md
@@ -65,6 +66,10 @@ developer_sources=(
   docs/de/development/changelog.md
   docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
+)
+
+human_testing_sources=(
+  docs/de/development/human-testing.md
 )
 
 quick_en_sources=(
@@ -104,7 +109,6 @@ developer_en_sources=(
   docs/en/development/settings-reference.md
   docs/en/development/component-installation.md
   docs/en/development/testing.md
-  docs/en/development/human-testing.md
   docs/en/development/accessibility.md
   docs/en/development/release-and-build.md
   docs/en/development/nvda-2026.1-api-notes.md
@@ -114,6 +118,10 @@ developer_en_sources=(
   docs/en/development/changelog.md
   docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
+)
+
+human_testing_en_sources=(
+  docs/en/development/human-testing.md
 )
 
 command -v pandoc >/dev/null || {
@@ -137,7 +145,8 @@ validate_source() {
 }
 
 for source in "${quick_sources[@]}" "${handbook_sources[@]}" "${developer_sources[@]}" \
-  "${quick_en_sources[@]}" "${handbook_en_sources[@]}" "${developer_en_sources[@]}"; do
+  "${human_testing_sources[@]}" "${quick_en_sources[@]}" "${handbook_en_sources[@]}" \
+  "${developer_en_sources[@]}" "${human_testing_en_sources[@]}"; do
   validate_source "$source"
 done
 
@@ -154,7 +163,7 @@ while IFS= read -r discovered; do
 done < <(cd "$root" && find docs/de/manual -maxdepth 1 -type f -name '*.md' | sort)
 
 declare -A included_developer=()
-for source in "${developer_sources[@]}"; do
+for source in "${developer_sources[@]}" "${human_testing_sources[@]}"; do
   [[ "$source" == docs/de/development/* ]] && included_developer["$source"]=1
 done
 while IFS= read -r discovered; do
@@ -178,7 +187,7 @@ while IFS= read -r discovered; do
 done < <(cd "$root" && find docs/en/manual -maxdepth 1 -type f -name '*.md' | sort)
 
 declare -A included_en_developer=()
-for source in "${developer_en_sources[@]}"; do
+for source in "${developer_en_sources[@]}" "${human_testing_en_sources[@]}"; do
   included_en_developer["$source"]=1
 done
 while IFS= read -r discovered; do
@@ -284,6 +293,9 @@ build_html \
   "$developer_output" "$product_name – Entwicklerdokumentation" development \
   "${developer_sources[@]}"
 build_html \
+  "$human_testing_output" "$product_name – Geführte Praxistests mit NVDA" no \
+  "${human_testing_sources[@]}"
+build_html \
   "$quick_en_output" "$product_name – Quick Guide" no \
   "${quick_en_sources[@]}"
 build_html \
@@ -292,6 +304,9 @@ build_html \
 build_html \
   "$developer_en_output" "$product_name – Developer Documentation" english \
   "${developer_en_sources[@]}"
+build_html \
+  "$human_testing_en_output" "$product_name – Guided Practical Tests with NVDA" no \
+  "${human_testing_en_sources[@]}"
 
 validate_required_section \
   "$handbook_output" \
@@ -305,11 +320,25 @@ validate_required_section \
 validate_required_section \
   "$handbook_en_output" \
   "docs__en__manual__speech-explorationmd__speech-exploration-mode"
+validate_required_section \
+  "$human_testing_output" \
+  "geführte-praxistests-mit-nvda"
+validate_required_section \
+  "$human_testing_en_output" \
+  "guided-practical-tests-with-nvda"
 
 mkdir -p "$archive_dir"
-python3 - "$documentation_archive" \
-  "$quick_output" "$handbook_output" "$developer_output" \
-  "$quick_en_output" "$handbook_en_output" "$developer_en_output" <<'PY'
+published_outputs=(
+  "$quick_output"
+  "$handbook_output"
+  "$developer_output"
+  "$human_testing_output"
+  "$quick_en_output"
+  "$handbook_en_output"
+  "$developer_en_output"
+  "$human_testing_en_output"
+)
+python3 - "$documentation_archive" "${published_outputs[@]}" <<'PY'
 from pathlib import Path
 import sys
 import zipfile
@@ -331,4 +360,4 @@ with zipfile.ZipFile(
 staged.replace(output)
 output.chmod(0o644)
 PY
-echo "built $documentation_archive ($(wc -c < "$documentation_archive") bytes) from 6 HTML files"
+echo "built $documentation_archive ($(wc -c < "$documentation_archive") bytes) from ${#published_outputs[@]} HTML files"
