@@ -51,9 +51,10 @@ The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
 `:NvimNvdaDiagnosticFirst`, `:NvimNvdaDiagnosticLast`, and
 `:NvimNvdaDiagnosticCurrent` can be used in custom Neovim mappings without
 replacing existing mappings. Newer Neovim versions also expose native
-diagnostic jumps through their public hook. A provider that keeps results only
-in a private list or screen decoration must mirror them to `vim.diagnostic`
-before Access Link can consume them.
+diagnostic jumps through their public hook. Directly typed `[d`/`]d` jumps
+remain observable when the mapping supplies a per-call callback. A provider
+that keeps results only in a private list or screen decoration must mirror
+them to `vim.diagnostic` before Access Link can consume them.
 
 Completion, command-line completion, LSP signature help, and supported menus
 are announced from Neovim APIs or explicit adapters, not by reading screen

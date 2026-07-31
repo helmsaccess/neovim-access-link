@@ -142,7 +142,9 @@ Für eigene Neovim-Mappings stehen folgende Befehle bereit:
 - `:NvimNvdaDiagnosticCurrent`.
 
 Sie ändern keine vorhandenen Mappings. Unter neueren Neovim-Versionen werden
-auch Sprünge über die öffentliche native Diagnostic-API erkannt. Produzenten,
+auch Sprünge über die öffentliche native Diagnostic-API erkannt. Direkt
+getippte `[d`-/`]d`-Sprünge bleiben erkennbar, wenn das Mapping einen
+aufrufspezifischen Callback verwendet. Produzenten,
 die Ergebnisse ausschließlich in einer privaten Liste oder nur als
 Bildschirmdekoration halten, sind erst zugänglich, wenn sie diese nach
 `vim.diagnostic` spiegeln.

@@ -1267,8 +1267,10 @@ function M.setup()
       pending_bracket = translated
       return
     elseif operator_context and pending_bracket then
-      if (translated == "d" or translated == "D")
-        and not require("nvim_nvda.diagnostics").has_native_jump_hook() then
+      if translated == "d" or translated == "D" then
+        -- A per-call on_jump callback (including Neovim 0.12's deprecated
+        -- float option) overrides the global diagnostic jump hook. Keep the
+        -- directly typed native mappings observable in that case as well.
         pending_motion = "diagnosticMoved"
       elseif translated == "s" then
         pending_motion = "wordMoved"

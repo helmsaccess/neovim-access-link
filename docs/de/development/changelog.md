@@ -45,7 +45,9 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Ergänzt frei belegbare Befehle für vorherige, nächste, erste, letzte und
   aktuelle Diagnose. Neovim 0.12s öffentlicher `jump.on_jump`-Hook und der
   kompatible 0.10-Pfad liefern genau eine vollständige Sprach-/Brailleausgabe,
-  ohne Standard- oder Benutzermappings zu ersetzen.
+  ohne Standard- oder Benutzermappings zu ersetzen. Direkt getippte
+  `[d`-/`]d`-Sprünge behalten einen semantischen Fallback, wenn ein
+  aufrufspezifischer Callback den globalen Hook ersetzt.
 - Zertifiziert den semantischen Linterpfad automatisiert mit realen gepinnten
   `nvim-lint`- und ALE-Läufen: Clang-Tidy für C, Ruff für Python, ShellCheck
   für Bash, Staticcheck für Go, Clippy für Rust, RuboCop für Ruby und

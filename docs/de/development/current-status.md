@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 30. Juli 2026. Produktversion im Quellstand:
-0.97.0, Entwicklungsbuild 5.
+Stand: 31. Juli 2026. Produktversion im Quellstand:
+0.97.0, Entwicklungsbuild 6.
 
 Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
 veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
@@ -270,6 +270,9 @@ den `none-ls.nvim`-LSP-Brückenpfad auf Neovim 0.10.1/0.12.3. Diese
 automatisierte Providerabdeckung ist keine praktische Windows-/NVDA-Abnahme.
 Native LSP-Wege wie `gopls` und `rust-analyzer` verwenden denselben Vertrag,
 bleiben aber Teil der später gebündelten Praxisrunde.
+Direkt getippte native `[d`-/`]d`-Sprünge bleiben auch dann semantisch
+beobachtbar, wenn ein aufrufspezifischer Callback Neovims globalen
+Diagnosesprung-Hook ersetzt.
 
 Die dauerhafte Brailleausgabe folgt derselben semantischen Editorquelle wie
 Sprache und Klang, besitzt aber eine getrennte Planung. Eine öffentliche

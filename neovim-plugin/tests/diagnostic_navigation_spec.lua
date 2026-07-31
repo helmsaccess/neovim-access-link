@@ -94,6 +94,18 @@ if type(vim.diagnostic.jump) == "function" then
   equal(1, #diagnostic_events(), "native next mapping emits one diagnostic event")
   equal("last", diagnostic_events()[1].payload.diagnostic.message, "native mapping target")
 
+  vim.keymap.set("n", "]d", function()
+    vim.diagnostic.jump({ count = 1, on_jump = function() end })
+  end)
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  events = {}
+  vim.api.nvim_feedkeys("]d", "xt", false)
+  vim.wait(500, function() return #diagnostic_events() > 0 end)
+  equal(1, #diagnostic_events(), "per-call jump callback still emits one diagnostic event")
+  equal("last", diagnostic_events()[1].payload.diagnostic.message,
+    "per-call jump callback target")
+  vim.keymap.del("n", "]d")
+
   events = {}
   vim.api.nvim_feedkeys("]D", "xt", false)
   vim.wait(500, function() return #diagnostic_events() > 0 end)

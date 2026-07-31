@@ -39,7 +39,8 @@
 - Adds freely mappable commands for previous, next, first, last, and current
   diagnostics. Neovim 0.12's public `jump.on_jump` hook and the compatible
   0.10 path produce exactly one complete speech/Braille presentation without
-  replacing default or user mappings.
+  replacing default or user mappings. Directly typed `[d`/`]d` jumps retain a
+  semantic fallback when a per-call callback replaces the global hook.
 - Certifies the semantic linter path in automation with real pinned nvim-lint
   and ALE runs: Clang-Tidy for C, Ruff for Python, ShellCheck for Bash,
   Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and

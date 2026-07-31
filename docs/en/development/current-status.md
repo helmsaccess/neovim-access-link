@@ -1,7 +1,7 @@
 # Current status
 
-Status date: July 30, 2026. Product version in the source tree:
-0.97.0 development build 5.
+Status date: July 31, 2026. Product version in the source tree:
+0.97.0 development build 6.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -245,7 +245,9 @@ Bash, Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
 Neovim 0.10.1/0.12.3. This automated provider coverage is not practical
 Windows/NVDA acceptance. Native LSP paths such as `gopls` and
 `rust-analyzer` use the same contract but remain part of the later combined
-practical round.
+practical round. Directly typed native `[d`/`]d` jumps remain semantically
+observable even when a per-call callback replaces Neovim's global
+diagnostic-jump hook.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

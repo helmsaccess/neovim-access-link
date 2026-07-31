@@ -286,13 +286,6 @@ function M.consume_navigation()
   return token.line == cursor[1] and token.byte_column == cursor[2]
 end
 
-function M.has_native_jump_hook()
-  if not jump_callback or type(vim.diagnostic.jump) ~= "function" then return false end
-  local ok, config = pcall(vim.diagnostic.config)
-  return ok and type(config) == "table" and type(config.jump) == "table"
-    and config.jump.on_jump == jump_callback
-end
-
 local function install_jump_hook()
   if type(vim.diagnostic.jump) ~= "function" then return end
   local ok, config = pcall(vim.diagnostic.config)
