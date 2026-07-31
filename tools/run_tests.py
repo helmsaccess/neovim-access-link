@@ -186,9 +186,11 @@ def validate_inventory(configured: tuple[Job, ...]) -> None:
         *ROOT.glob("nvda-addon/tests/test_*.py"),
     }
     expected_lua = set(ROOT.glob("neovim-plugin/tests/*_spec.lua"))
+    expected_human = set(ROOT.glob("tests/human/test_*.py"))
     configured_sources = {job.source for job in configured}
-    missing = sorted((expected_python | expected_lua) - configured_sources)
-    unexpected = sorted(configured_sources - (expected_python | expected_lua))
+    expected = expected_python | expected_lua | expected_human
+    missing = sorted(expected - configured_sources)
+    unexpected = sorted(configured_sources - expected)
     if missing or unexpected:
         raise RuntimeError(
             f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}"
@@ -223,6 +225,7 @@ def jobs() -> tuple[Job, ...]:
     for file_name in ("test_cli.py", "test_session_registry.py", "test_stdio.py"):
         result.append(python_file("unit", "bridge", f"bridge/python/tests/{file_name}"))
     result.append(bridge_methods("unit", "mocked-nvim", MOCK_BRIDGE_TESTS))
+    result.append(python_file("unit", "human", "tests/human/test_framework.py"))
     for file_name in (
         "test_braille_exploration.py",
         "test_braille_routing_repeats.py",
@@ -266,6 +269,7 @@ def jobs() -> tuple[Job, ...]:
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",
         "file_manager_workflows_spec.lua",
+        "human_test_config_spec.lua",
         "lsp_hover_spec.lua",
         "lsp_status_spec.lua",
         "menu_spec.lua",

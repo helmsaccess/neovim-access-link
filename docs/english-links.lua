@@ -27,6 +27,7 @@ local targets = {
   ["settings-reference.md"] = "#docs__en__development__settings-referencemd__add-on-settings-reference",
   ["component-installation.md"] = "#docs__en__development__component-installationmd__rootless-component-installation-and-ssh-stdio",
   ["testing.md"] = "#docs__en__development__testingmd__test-strategy",
+  ["human-testing.md"] = "#docs__en__development__human-testingmd__guided-practical-tests-with-nvda",
   ["accessibility.md"] = "#docs__en__development__accessibilitymd__feature-and-accessibility-matrix",
   ["release-and-build.md"] = "#docs__en__development__release-and-buildmd__release-version-and-build-process",
   ["nvda-2026.1-api-notes.md"] = "#docs__en__development__nvda-20261-api-notesmd__nvda-202611-api-review",

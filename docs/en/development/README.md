@@ -32,6 +32,7 @@ snapshot and must not be used as an architecture specification.
 
 - [Feature and accessibility matrix](accessibility.md)
 - [Test strategy](testing.md)
+- [Guided practical tests with NVDA](human-testing.md)
 - [Compatibility](compatibility.md)
 - [NVDA 2026.1 API review](nvda-2026.1-api-notes.md)
 

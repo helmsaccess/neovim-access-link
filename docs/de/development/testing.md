@@ -42,11 +42,44 @@ realen Plugins, Terminalfrontends oder Brailletreibers.
 | Lua-Spezifikationen | echte Neovim-APIs, Zustandsereignisse und Adapter | `neovim-plugin/tests/*_spec.lua` |
 | TUI-/RPC-Integration | echte wegwerfbare Neovim-Instanz, Pseudoterminal und dauerhafter RPC-Kanal | `bridge/python/tests/` und Plugin-Tests |
 | Build | tatsächlich gebautes Add-on, eingebettetes Linux-Paket, gettext und HTML | Build- und Pakettests |
-| Praxis | NVDA, Windows Terminal, lokales Neovim, SSH, tmux und später Braillehardware | dokumentierte manuelle Matrix |
+| Praxis | reale Sprache, Klänge, Braillehardware, gehaltene NVDA-Gesten und Windows-Fokus | `tests/human/` und [geführte Praxistests](human-testing.md) |
 
 TUI-, Socket- und SSH-Tests dürfen niemals an eine bestehende Neovim- oder
 tmux-Sitzung des Anwenders angehängt werden. Sie verwenden eigene temporäre
 Verzeichnisse, Sockets, Prozesse und Testkonten.
+
+## Schlanke geführte Praxistests
+
+Das Framework unter `tests/human/` ergänzt die automatisierten Suiten nur an
+Grenzen, die reale Hilfstechnologie benötigen. Jede menschliche Assertion
+nennt deshalb einen Grund wie wahrgenommene Sprache oder Klänge, physische
+Braillehardware, eine gehaltene NVDA-Geste oder echten Windows-Fokus. Sie
+verweist außerdem auf die verwandte automatisierte Evidenz. Technische Werte,
+die Python oder Lua eindeutig vergleichen können, dürfen nicht zusätzlich von
+Menschen abgefragt werden.
+
+Der kurze `smoke`-Lauf umfasst nativen LSP/Completion,
+Diagnosepräsentation sowie Fokusisolation und Fail-open. nvim-cmp und blink.cmp
+liegen in einer optionalen `compatibility`-Suite. Versionierte DE/EN-Testkarten
+werden durch einen isolierten PowerShell-Runner angezeigt; dieser verändert
+keine private `init.lua`. Jede offene Aufgabe erhält eine frische
+Test-Neovim-Sitzung und kann dort mit `F2` erneut angezeigt werden. Ergebnisse
+werden nach jeder Aufgabe als validierbares JSON unter dem ignorierten `tmp/`
+gesichert. Eine technische Vorprüfung realer Provider und ein Windows-CI-Lauf
+des PowerShell-Runners fangen maschinell erkennbare Fehler ab. Einrichtung,
+Bedienung, Fortsetzen und maschinelle Exitcodes beschreibt die
+[Testerdokumentation](human-testing.md).
+
+Definitionen und Ergebnisvertrag gehören weiterhin zur schnellen
+automatisierten Prüfung:
+
+```bash
+python3 tests/human/framework/validate.py plans
+python3 tools/run_tests.py quick
+```
+
+Ein CI-Erfolg darf niemals als bestandene reale NVDA-, Audio- oder
+Brailleprüfung ausgegeben werden.
 
 ## Standardprüfung eines Checkouts
 

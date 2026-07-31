@@ -55,6 +55,7 @@ developer_sources=(
   docs/de/development/settings-reference.md
   docs/de/development/component-installation.md
   docs/de/development/testing.md
+  docs/de/development/human-testing.md
   docs/de/development/accessibility.md
   docs/de/development/release-and-build.md
   docs/de/development/nvda-2026.1-api-notes.md
@@ -103,6 +104,7 @@ developer_en_sources=(
   docs/en/development/settings-reference.md
   docs/en/development/component-installation.md
   docs/en/development/testing.md
+  docs/en/development/human-testing.md
   docs/en/development/accessibility.md
   docs/en/development/release-and-build.md
   docs/en/development/nvda-2026.1-api-notes.md

@@ -35,6 +35,7 @@ Architekturbeschreibung verwendet werden.
 
 - [Funktions- und Accessibility-Matrix](accessibility.md)
 - [Teststrategie](testing.md)
+- [Geführte Praxistests mit NVDA](human-testing.md)
 - [Kompatibilität](compatibility.md)
 - [NVDA-2026.1-API-Prüfung](nvda-2026.1-api-notes.md)
 

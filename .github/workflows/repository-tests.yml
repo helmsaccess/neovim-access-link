@@ -50,6 +50,41 @@ jobs:
       - name: Run sandbox-safe tests
         run: python3 tools/run_tests.py all-safe
 
+  human-test-runner-windows:
+    name: Guided human-test runner on Windows PowerShell
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install verified Neovim 0.12.3 for Windows
+        shell: powershell
+        env:
+          WINDOWS_NEOVIM_SHA256: 63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad
+          WINDOWS_NEOVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-win64.zip
+        run: |
+          Invoke-WebRequest -Uri $env:WINDOWS_NEOVIM_URL -OutFile nvim-win64.zip
+          $actual = (Get-FileHash -LiteralPath nvim-win64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:WINDOWS_NEOVIM_SHA256) {
+            throw "Neovim archive SHA-256 mismatch: $actual"
+          }
+          Expand-Archive -LiteralPath nvim-win64.zip -DestinationPath .
+          "$PWD\nvim-win64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Exercise the PowerShell runner and both locales
+        shell: powershell
+        run: |
+          .\tests\human\framework\run.ps1 list -Suite all -Language de
+          .\tests\human\framework\run.ps1 list -Suite all -Language en
+          .\tests\human\framework\run.ps1 run -Suite all -Language en -DryRun `
+            -AccessLinkPlugin "$PWD\neovim-plugin"
+      - name: Validate plans, fingerprints, and result assessment
+        shell: powershell
+        run: python -m unittest tests.human.test_framework
+
   completion-plugins:
     name: Completion APIs (${{ matrix.name }})
     runs-on: ubuntu-24.04

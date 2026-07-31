@@ -18,6 +18,7 @@ for SSH, and the NVDA process on Windows. `protocol/python/` and
 | `nvda-addon/addon/` | NVDA Global Plugin, Windows Terminal AppModule, UI and presentation services, resources, and locale catalogs | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | Rootless installation of Linux user components | `install_user.py` |
 | `tools/` | Reproducible package, documentation, catalog, and test tools | `run_tests.py`, `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `tests/human/` | small guided practical checks for real NVDA, audio, Braille, and focus boundaries | `framework/run.ps1`, `framework/validate.py`, `plans/` |
 | `docs/de/` | Maintained German user and developer documentation | `README.md` |
 | `docs/en/manual/` | English user documentation | `README.md`, `quick-guide.md` |
 | `docs/en/development/` | English developer explanation, reference, and evidence | this file and `README.md` |
@@ -56,6 +57,8 @@ These directories are not alternative sources of truth.
 - `bridge/python/tests/` covers discovery, the RPC bridge, and stdio transport.
 - `nvda-addon/tests/` covers core, speech/Braille, package contents, and
   NVDA-facing adapters through test doubles.
+- `tests/human/` contains only practically perceptible assertions; plans,
+  translations, and the JSON result contract are validated automatically.
 
 See [testing.md](testing.md) for suite selection and commands.
 

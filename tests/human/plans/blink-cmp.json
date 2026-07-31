@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "id": "blink-cmp",
+  "order": 50,
+  "titleKey": "plan.blinkCmp.title",
+  "descriptionKey": "plan.blinkCmp.description",
+  "suites": ["compatibility"],
+  "profile": "blink",
+  "fixture": "lsp_features.py",
+  "steps": [
+    {
+      "id": "menu-presentation",
+      "titleKey": "plan.blinkCmp.menu.title",
+      "contextKey": "plan.completionPlugin.context",
+      "actionKey": "plan.blinkCmp.menu.action",
+      "expectedKey": "plan.blinkCmp.menu.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
+    },
+    {
+      "id": "menu-earcons",
+      "titleKey": "plan.blinkCmp.earcons.title",
+      "contextKey": "plan.completionPlugin.context",
+      "actionKey": "plan.blinkCmp.earcons.action",
+      "expectedKey": "plan.blinkCmp.earcons.expected",
+      "manualReasons": ["audioPerception"],
+      "requires": ["audio"],
+      "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
+    }
+  ]
+}

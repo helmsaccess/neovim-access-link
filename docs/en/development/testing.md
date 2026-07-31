@@ -38,11 +38,41 @@ terminal frontend, or Braille driver.
 | Lua specifications | Real Neovim APIs, state events, and adapters | `neovim-plugin/tests/*_spec.lua` |
 | TUI/RPC integration | Disposable real Neovim, pseudoterminal, and persistent RPC channel | bridge and plugin tests |
 | Build | Actual add-on, embedded Linux package, gettext, and HTML | build and package tests |
-| Practical | NVDA, Windows Terminal, local Neovim, SSH, tmux, and later Braille hardware | recorded manual matrix |
+| Practical | real speech, sounds, Braille hardware, held NVDA gestures, and Windows focus | `tests/human/` and [guided practical tests](human-testing.md) |
 
 TUI, socket, and SSH tests must never attach to a user's existing Neovim or
 tmux session. They use separate temporary directories, sockets, processes, and
 test accounts.
+
+## Lean guided practical tests
+
+The framework below `tests/human/` supplements automated suites only at
+boundaries that need real assistive technology. Every human assertion therefore
+names a reason such as perceived speech or sounds, physical Braille hardware, a
+held NVDA gesture, or real Windows focus. It also references related automated
+evidence. Technical values that Python or Lua can compare unambiguously must
+not be requested from a person as well.
+
+The short `smoke` run covers native LSP/completion, diagnostic presentation,
+focus isolation, and fail-open behavior. nvim-cmp and blink.cmp live in an
+optional `compatibility` suite. Versioned German and English cards are shown
+by an isolated PowerShell runner that never changes a private `init.lua`.
+Each pending task gets a fresh test Neovim session and can be repeated there
+with `F2`. After every task, the runner stores a validatable JSON result below
+ignored `tmp/`. A technical preflight of real providers and a Windows CI run
+of the PowerShell runner catch machine-decidable errors. See the
+[tester documentation](human-testing.md) for setup, operation, resume, and
+machine-readable exit codes.
+
+Definitions and the result contract remain part of quick automated checking:
+
+```bash
+python3 tests/human/framework/validate.py plans
+python3 tools/run_tests.py quick
+```
+
+A CI pass must never be reported as a passed real NVDA, audio, or Braille
+check.
 
 ## Standard checkout verification
 

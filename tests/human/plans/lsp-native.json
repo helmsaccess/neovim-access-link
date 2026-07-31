@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "id": "lsp-native",
+  "order": 10,
+  "titleKey": "plan.lspNative.title",
+  "descriptionKey": "plan.lspNative.description",
+  "suites": ["smoke"],
+  "profile": "native",
+  "fixture": "lsp_features.py",
+  "steps": [
+    {
+      "id": "status-presentation",
+      "titleKey": "plan.lspNative.status.title",
+      "contextKey": "plan.lspNative.context",
+      "actionKey": "plan.lspNative.status.action",
+      "expectedKey": "plan.lspNative.status.expected",
+      "manualReasons": ["speechPerception"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/lsp_status_spec.lua"]
+    },
+    {
+      "id": "held-parameters",
+      "titleKey": "plan.lspNative.parameters.title",
+      "contextKey": "plan.lspNative.parameters.context",
+      "actionKey": "plan.lspNative.parameters.action",
+      "expectedKey": "plan.lspNative.parameters.expected",
+      "manualReasons": ["physicalNvdaKey", "physicalBraille"],
+      "requires": ["braille"],
+      "automatedEvidence": [
+        "neovim-plugin/tests/developer_context_lsp_integration_spec.lua",
+        "nvda-addon/tests/test_held_context.py"
+      ]
+    },
+    {
+      "id": "completion-presentation",
+      "titleKey": "plan.lspNative.completion.title",
+      "contextKey": "plan.lspNative.completion.context",
+      "actionKey": "plan.lspNative.completion.action",
+      "expectedKey": "plan.lspNative.completion.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/native_completion_spec.lua"]
+    },
+    {
+      "id": "completion-earcons",
+      "titleKey": "plan.lspNative.earcons.title",
+      "contextKey": "plan.lspNative.completion.context",
+      "actionKey": "plan.lspNative.earcons.action",
+      "expectedKey": "plan.lspNative.earcons.expected",
+      "manualReasons": ["audioPerception"],
+      "requires": ["audio"],
+      "automatedEvidence": ["neovim-plugin/tests/native_completion_spec.lua"]
+    }
+  ]
+}

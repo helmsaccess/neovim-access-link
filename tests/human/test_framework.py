@@ -1,0 +1,239 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+
+HUMAN_ROOT = Path(__file__).resolve().parent
+VALIDATOR_PATH = HUMAN_ROOT / "framework" / "validate.py"
+SPEC = importlib.util.spec_from_file_location("human_test_validator", VALIDATOR_PATH)
+assert SPEC is not None and SPEC.loader is not None
+validator = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = validator
+SPEC.loader.exec_module(validator)
+
+
+def timestamp() -> str:
+	return datetime.now(timezone.utc).isoformat()
+
+
+def complete_result(
+	suite: str = "smoke",
+	*,
+	audio: bool = True,
+	braille: bool = True,
+	status: str = "pass",
+) -> dict[str, object]:
+	plans = validator.load_plans()
+	selected = {plan_id: plan for plan_id, plan in plans.items() if suite == "all" or suite in plan["suites"]}
+	result_plans = []
+	for plan_id, plan in selected.items():
+		steps = []
+		for step in plan["steps"]:
+			missing = any(
+				not {"audio": audio, "braille": braille}[requirement] for requirement in step["requires"]
+			)
+			step_status = "notApplicable" if missing else status
+			steps.append(
+				{
+					"id": step["id"],
+					"status": step_status,
+					"note": "test note" if step_status in {"fail", "blocked", "skipped"} else "",
+				}
+			)
+		result_plans.append({"id": plan_id, "profile": plan["profile"], "steps": steps})
+	incomplete = status in {"pending", "blocked", "skipped"}
+	return {
+		"schemaVersion": 2,
+		"runId": "3bc529a4-d12c-44de-b581-6dc09696ab4f",
+		"createdAt": timestamp(),
+		"completedAt": "" if incomplete else timestamp(),
+		"repository": {"commit": "a" * 40, "dirty": False},
+		"environment": {
+			"language": "de",
+			"suite": suite,
+			"neovimVersion": "NVIM v0.12.3",
+			"audio": audio,
+			"braille": braille,
+			"definitionSha256": validator.definition_fingerprint(),
+			"accessLinkPluginSha256": validator.component_fingerprint(
+				validator.REPOSITORY_ROOT / "neovim-plugin"
+			),
+			"addonVersion": "development-build-under-test",
+			"nvdaVersion": "2026.1.1",
+		},
+		"plans": result_plans,
+	}
+
+
+class HumanTestFrameworkTests(unittest.TestCase):
+	def write_result(self, directory: str, value: dict[str, object]) -> Path:
+		path = Path(directory) / "result.json"
+		path.write_text(json.dumps(value), encoding="utf-8")
+		return path
+
+	def test_repository_plans_locales_dependencies_and_evidence_are_valid(self) -> None:
+		plans = validator.load_plans()
+		self.assertEqual(
+			{"blink-cmp", "diagnostics", "focus-isolation", "lsp-native", "nvim-cmp"},
+			set(plans),
+		)
+		self.assertEqual(set(validator.load_locales()["de"]), set(validator.load_locales()["en"]))
+		dependencies = validator.validate_dependencies()
+		for plugin in dependencies["plugins"].values():
+			self.assertRegex(plugin["revision"], r"^[0-9a-f]{40}$")
+		smoke = sorted(
+			(plan for plan in plans.values() if "smoke" in plan["suites"]),
+			key=lambda plan: plan["order"],
+		)
+		self.assertEqual(
+			["lsp-native", "diagnostics", "focus-isolation"],
+			[plan["id"] for plan in smoke],
+		)
+		self.assertEqual(
+			["navigation-presentation", "navigation-earcons", "held-diagnostics"],
+			[step["id"] for step in plans["diagnostics"]["steps"]],
+		)
+		self.assertEqual(1, len(plans["focus-isolation"]["steps"]))
+
+	def test_every_human_step_has_reason_and_automated_evidence(self) -> None:
+		for plan in validator.load_plans().values():
+			for step in plan["steps"]:
+				with self.subTest(plan=plan["id"], step=step["id"]):
+					self.assertTrue(step["manualReasons"])
+					self.assertTrue(step["automatedEvidence"])
+					self.assertTrue(step["titleKey"])
+					self.assertTrue(step["contextKey"])
+					for relative in step["automatedEvidence"]:
+						self.assertTrue((validator.REPOSITORY_ROOT / relative).is_file())
+
+	def test_runner_is_isolated_and_plans_are_not_executable(self) -> None:
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn('"-u", $TestInitPath', runner)
+		self.assertIn('"tmp\\human-test-state"', runner)
+		self.assertNotIn("Copy-Item", runner)
+		self.assertNotIn("Invoke-Expression", runner)
+		self.assertIn("Sort-Object { [int]$_.order }", runner)
+		self.assertIn("Invoke-TestNvim -Profile ([string]$plan.profile)", runner)
+		for plan in validator.load_plans().values():
+			self.assertEqual(validator.PLAN_FIELDS, set(plan))
+			for step in plan["steps"]:
+				self.assertEqual(validator.STEP_FIELDS, set(step))
+
+	def test_test_neovim_repeats_one_task_and_starts_diagnostics_on_error(self) -> None:
+		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
+		self.assertIn('"<F2>"', configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
+		self.assertIn("{ 1, 7 }", configuration)
+		self.assertNotIn('"<F4>"', configuration)
+
+	def test_windows_ci_exercises_powershell_runner_and_dry_run(self) -> None:
+		workflow = (validator.REPOSITORY_ROOT / ".github" / "workflows" / "repository-tests.yml").read_text(
+			encoding="utf-8"
+		)
+		self.assertIn("human-test-runner-windows:", workflow)
+		self.assertIn("runs-on: windows-2025", workflow)
+		self.assertIn("-DryRun", workflow)
+		self.assertIn("63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad", workflow)
+
+	def test_definition_fingerprint_changes_with_human_test_inputs(self) -> None:
+		fingerprint = validator.definition_fingerprint()
+		self.assertRegex(fingerprint, r"^[0-9a-f]{64}$")
+		result = complete_result()
+		result["environment"]["definitionSha256"] = "0" * 64
+		with tempfile.TemporaryDirectory() as directory:
+			path = self.write_result(directory, result)
+			with self.assertRaisesRegex(validator.ValidationError, "definition revision"):
+				validator.validate_result(path)
+
+	def test_result_from_a_different_plugin_runtime_is_rejected(self) -> None:
+		result = complete_result()
+		result["environment"]["accessLinkPluginSha256"] = "0" * 64
+		with tempfile.TemporaryDirectory() as directory:
+			path = self.write_result(directory, result)
+			with self.assertRaisesRegex(validator.ValidationError, "plugin runtime revision"):
+				validator.validate_result(path)
+
+	def test_plugin_runtime_fingerprint_ignores_non_runtime_files(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			(root / "lua").mkdir()
+			(root / "plugin").mkdir()
+			(root / "lua" / "module.lua").write_text("return {}\n", encoding="utf-8")
+			(root / "plugin" / "entry.lua").write_text("return true\n", encoding="utf-8")
+			before = validator.component_fingerprint(root)
+			(root / "README.md").write_text("ignored\n", encoding="utf-8")
+			self.assertEqual(before, validator.component_fingerprint(root))
+			(root / "lua" / "module.lua").write_text("return { changed = true }\n", encoding="utf-8")
+			self.assertNotEqual(before, validator.component_fingerprint(root))
+
+	def test_passing_result_is_machine_checkable(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			assessment = validator.validate_result(self.write_result(directory, complete_result()))
+		self.assertEqual("pass", assessment.state)
+		self.assertEqual(0, assessment.exit_code)
+
+	def test_failed_result_has_distinct_machine_exit(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			assessment = validator.validate_result(
+				self.write_result(directory, complete_result(status="fail"))
+			)
+		self.assertEqual("fail", assessment.state)
+		self.assertEqual(2, assessment.exit_code)
+
+	def test_pending_or_blocked_result_is_incomplete(self) -> None:
+		for status in ("pending", "blocked", "skipped"):
+			with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
+				assessment = validator.validate_result(
+					self.write_result(directory, complete_result(status=status))
+				)
+				self.assertEqual("incomplete", assessment.state)
+				self.assertEqual(3, assessment.exit_code)
+
+	def test_failure_does_not_hide_an_incomplete_step(self) -> None:
+		result = complete_result(status="fail")
+		result["plans"][0]["steps"][0]["status"] = "blocked"
+		result["completedAt"] = ""
+		with tempfile.TemporaryDirectory() as directory:
+			assessment = validator.validate_result(self.write_result(directory, result))
+		self.assertEqual("incomplete", assessment.state)
+		self.assertEqual(3, assessment.exit_code)
+
+	def test_absent_optional_capabilities_are_not_failures(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			assessment = validator.validate_result(
+				self.write_result(
+					directory,
+					complete_result(audio=False, braille=False),
+				)
+			)
+		self.assertEqual("pass", assessment.state)
+		self.assertGreater(assessment.counts["notApplicable"], 0)
+
+	def test_not_applicable_is_rejected_when_capability_exists(self) -> None:
+		result = complete_result()
+		result["plans"][0]["steps"][0]["status"] = "notApplicable"
+		with tempfile.TemporaryDirectory() as directory:
+			path = self.write_result(directory, result)
+			with self.assertRaisesRegex(validator.ValidationError, "requirements are met"):
+				validator.validate_result(path)
+
+	def test_failure_block_and_skip_require_a_note(self) -> None:
+		for status in ("fail", "blocked", "skipped"):
+			result = complete_result(status=status)
+			result["plans"][0]["steps"][0]["note"] = ""
+			with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
+				path = self.write_result(directory, result)
+				with self.assertRaisesRegex(validator.ValidationError, "needs a note"):
+					validator.validate_result(path)
+
+
+if __name__ == "__main__":
+	unittest.main()

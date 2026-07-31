@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "focus-isolation",
+  "order": 30,
+  "titleKey": "plan.focus.title",
+  "descriptionKey": "plan.focus.description",
+  "suites": ["smoke"],
+  "profile": "focus",
+  "fixture": "lsp_features.py",
+  "steps": [
+    {
+      "id": "focus-and-disconnect",
+      "titleKey": "plan.focus.workflow.title",
+      "contextKey": "plan.focus.context",
+      "actionKey": "plan.focus.workflow.action",
+      "expectedKey": "plan.focus.workflow.expected",
+      "manualReasons": ["windowsFocus", "speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": [
+        "nvda-addon/tests/test_frontend_policy.py",
+        "nvda-addon/tests/test_connection_coordinator.py"
+      ]
+    }
+  ]
+}
