@@ -357,10 +357,11 @@ verwenden diese Controllergrenze. NVDAs eigener Wortpuffer und die
 Sprachausgabe bleiben am NVDA-Rand.
 
 Die Runtime jeder verwalteten Neovim-Instanz enthält außerdem ihren eigenen
-Braille-Explorationscontroller und ihren eigenen Controller für nummerierte
-native Auswahllisten. Damit kann ein Tab oder Pane den gewählten Braillemodus
-oder den Vorschlagszustand einer anderen lokalen oder entfernten Sitzung weder
-anzeigen noch verändern. Ein Runtimewechsel aktiviert nur den Zustand der
+Braille-Explorationscontroller, ihren eigenen Controller für nummerierte
+native Auswahllisten und einen `HeldContextController` für lesende Funktions-
+und Diagnoseabfragen. Damit kann ein Tab oder Pane den gewählten Braillemodus,
+Vorschlagszustand oder gehaltenen Entwicklerkontext einer anderen lokalen oder
+entfernten Sitzung weder anzeigen noch verändern. Ein Runtimewechsel aktiviert nur den Zustand der
 zugeordneten Sitzung. Virtuelle Zeile, Lesespalte und NVDAs öffentlicher
 `windowStartPos` bleiben in dieser Runtime erhalten. Mehrfach-Routingfolgen und
 Fokusmeldungen werden beim Controlwechsel verworfen. Ein Disconnect setzt
@@ -692,6 +693,18 @@ nullbasierte Index wird bestätigt; angezeigter Text wird niemals als Eingabe
 zurückgesendet. Loslassen der NVDA-Taste verwirft die lokale Auswahl, nicht
 Neovims Prompt. Weitere Abfragetypen benötigen jeweils einen eigenen strikten
 Adapter.
+
+### Gehaltene Entwicklerkontexte
+
+Das Windows-Terminal-AppModule besitzt den physischen Lebenszyklus der
+NVDA-Taste und fängt nur die festen Gesten für Parameter- oder
+Diagnosenavigation ab. Der instanzbezogene `HeldContextController` korreliert
+die lesende Anfrage mit Fokus, Terminal-Control, Instanz, Buffer, Fenster,
+Tab, `changedtick`, Zeile und UTF-8-Bytespalte. Das Lua-Plugin liest
+Signaturhilfe, Hover oder `vim.diagnostic`, verändert aber weder Cursor noch
+Buffer. Jede Abweichung vor der Antwort oder während der Anzeige verwirft den
+Zustand und stellt die normale Braillezeile wieder her. Transport-I/O bleibt
+im begrenzten `ControlDispatcher`.
 
 Für Braille verwendet der NVDA-Adapter den von NVDA vorgesehenen
 vorübergehenden Nachrichtenpuffer. Derselbe öffentliche Pfad wird im

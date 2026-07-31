@@ -351,7 +351,7 @@ class BuiltAddonTests(unittest.TestCase):
         sys.modules["appModuleHandler"] = app_module_handler
 
         keyboard_handler = types.ModuleType("keyboardHandler")
-        keyboard_handler.isNVDAModifierKey = lambda vkCode, extended: vkCode == 45
+        keyboard_handler.isNVDAModifierKey = lambda vkCode, extended: vkCode in {20, 45}
         sys.modules["keyboardHandler"] = keyboard_handler
 
         input_core = types.ModuleType("inputCore")
@@ -2491,6 +2491,8 @@ class BuiltAddonTests(unittest.TestCase):
             "exploration_details": mock.Mock(return_value=(True, False, True)),
             "present_numbered_choice": mock.Mock(),
             "dismiss_numbered_choice": mock.Mock(),
+            "present_developer_context": mock.Mock(return_value=True),
+            "dismiss_developer_context": mock.Mock(),
             "refresh_braille": mock.Mock(),
             "no_item_selected_message": "No item selected",
             "record_diagnostic": mock.Mock(),
@@ -2530,6 +2532,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(True, False, True)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=dismiss_numbered_choice,
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -2586,6 +2590,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(True, False, True)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=record,
@@ -2642,6 +2648,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -2725,6 +2733,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -2837,6 +2847,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=record,
@@ -2907,6 +2919,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -3007,6 +3021,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=refresh_braille,
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -3096,6 +3112,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=exploration_details,
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -3131,6 +3149,149 @@ class BuiltAddonTests(unittest.TestCase):
             },
             editor_session.release_exploration.call_args.kwargs,
         )
+
+    def test_held_context_no_result_remains_releasable_and_stale_results_cancel(self) -> None:
+        from globalPlugins.NeovimAccessLink import HeldContextKind
+        from globalPlugins.NeovimAccessLink.terminal_integration import (
+            TerminalCommand,
+            TerminalIntegrationService,
+        )
+
+        app_module = object()
+        adapter_token = object()
+        identity = object()
+        focus = types.SimpleNamespace(appModule=app_module)
+        focus_service = mock.Mock(
+            focused_app_module=app_module,
+            focused_adapter_token=adapter_token,
+        )
+        focus_service.identity.return_value = identity
+        focus_service.is_active_neovim_context.return_value = True
+        location = types.SimpleNamespace(
+            instance_id="connection-1",
+            identity=identity,
+            adapter_token=adapter_token,
+        )
+        editor_session = mock.Mock()
+        editor_session.active_held_context_location.return_value = location
+        editor_session.held_context_result_is_current.return_value = True
+        editor_session.consume_held_context.return_value = None
+        editor_session.invalidate_held_context.return_value = True
+        present = mock.Mock(return_value=True)
+        dismiss = mock.Mock()
+        refresh_braille = mock.Mock()
+        control_dispatcher = mock.Mock()
+        control_dispatcher.submit.return_value = True
+        service = TerminalIntegrationService(
+            focus_service,
+            mock.Mock(),
+            editor_session,
+            command_actions={command: mock.Mock() for command in TerminalCommand},
+            copy_diagnostic_report=mock.Mock(),
+            claim_focused_session=mock.Mock(),
+            present_braille_route_character=mock.Mock(),
+            control_dispatcher=control_dispatcher,
+            present_exploration=mock.Mock(),
+            exploration_details=mock.Mock(return_value=(False, False, False)),
+            present_numbered_choice=mock.Mock(),
+            dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=present,
+            dismiss_developer_context=dismiss,
+            refresh_braille=refresh_braille,
+            no_item_selected_message="No item selected",
+            record_diagnostic=mock.Mock(),
+            fail_open_event=mock.Mock(),
+        )
+        location.service_generation = service._generation
+        editor_session.active_numbered_choice_context.return_value = None
+        editor_session.held_context_instance.return_value = ("connection-1", object())
+        editor_session.begin_held_context.return_value = types.SimpleNamespace(
+            request_id=8,
+            control="callableContextRequest",
+            payload={"requestId": 8},
+        )
+        self.assertTrue(
+            service.start_held_context(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        editor_session.invalidate_held_context.assert_called_once_with()
+        dismiss.assert_called_once_with()
+        refresh_braille.assert_called_once_with()
+        control_dispatcher.submit.assert_called_once()
+        editor_session.invalidate_held_context.reset_mock()
+        dismiss.reset_mock()
+        refresh_braille.reset_mock()
+        event = {
+            "type": "callableContextResult",
+            "payload": {"requestId": 9, "ok": False, "resultCode": "noResult"},
+        }
+
+        self.assertTrue(
+            service.handle_held_context_result("connection-1", identity, event),
+        )
+        present.assert_called_once_with(None, HeldContextKind.CALLABLE)
+        editor_session.invalidate_held_context.assert_not_called()
+        self.assertTrue(
+            service.release_held_context(focus, app_module, adapter_token),
+        )
+        editor_session.invalidate_held_context.assert_called_once_with()
+        dismiss.assert_called_once_with()
+        refresh_braille.assert_called_once_with()
+
+        editor_session.invalidate_held_context.reset_mock()
+        dismiss.reset_mock()
+        refresh_braille.reset_mock()
+        editor_session.held_context_result_is_current.return_value = False
+        self.assertFalse(
+            service.handle_held_context_result("connection-1", identity, event),
+        )
+        editor_session.invalidate_held_context.assert_called_once_with()
+        dismiss.assert_called_once_with()
+        refresh_braille.assert_called_once_with()
+
+        control_dispatcher.submit.reset_mock()
+        control_dispatcher.submit.return_value = False
+        editor_session.held_context_result_is_current.return_value = True
+        editor_session.invalidate_held_context.reset_mock()
+        self.assertFalse(
+            service.start_held_context(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        control_dispatcher.submit.assert_called_once()
+        self.assertGreaterEqual(editor_session.invalidate_held_context.call_count, 1)
+
+        control_dispatcher.submit.reset_mock()
+        editor_session.active_numbered_choice_context.return_value = object()
+        self.assertFalse(
+            service.start_held_context(
+                HeldContextKind.DIAGNOSTIC,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        control_dispatcher.submit.assert_not_called()
+
+        editor_session.active_numbered_choice_context.return_value = None
+        editor_session.begin_held_context.return_value = None
+        editor_session.held_context_instance.return_value = None
+        self.assertFalse(
+            service.start_held_context(
+                HeldContextKind.DIAGNOSTIC,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        control_dispatcher.submit.assert_not_called()
 
     def test_speech_exploration_refreshes_braille_only_when_following_is_enabled(self) -> None:
         from globalPlugins.NeovimAccessLink.core.exploration_state import ExplorationResultPlan
@@ -3172,6 +3333,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=mock.Mock(),
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=refresh_braille,
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -3224,6 +3387,8 @@ class BuiltAddonTests(unittest.TestCase):
             exploration_details=mock.Mock(return_value=(False, False, False)),
             present_numbered_choice=present,
             dismiss_numbered_choice=mock.Mock(),
+            present_developer_context=mock.Mock(return_value=True),
+            dismiss_developer_context=mock.Mock(),
             refresh_braille=mock.Mock(),
             no_item_selected_message="No item selected",
             record_diagnostic=mock.Mock(),
@@ -3576,7 +3741,7 @@ class BuiltAddonTests(unittest.TestCase):
         for pattern in ("*.py", "*.sh"):
             for source in pathlib.Path(".").rglob(pattern):
                 if source == pathlib.Path("buildVars.py") or any(
-                    part in {"dist", "build", ".git"} for part in source.parts
+                    part in {"dist", "build", "tmp", ".git"} for part in source.parts
                 ):
                     continue
                 contents = source.read_text(encoding="utf-8")
@@ -3617,14 +3782,19 @@ class BuiltAddonTests(unittest.TestCase):
 
         self.assertEqual("kb:f9", NeovimAccessLink._SESSION_CLAIM_GESTURE)
 
-    def test_addon_reuses_nvda_sounds_and_bundles_only_cc0_editor_earcons(self) -> None:
+    def test_addon_reuses_nvda_sounds_and_bundles_redistributable_editor_earcons(self) -> None:
         with zipfile.ZipFile(self.archive_path) as archive:
             waves = sorted(name.rsplit("/", 1)[-1] for name in archive.namelist() if name.endswith(".wav"))
             self.assertEqual([
-                "delete.wav", "fileEnd.wav", "fileStart.wav", "lineCrossed.wav",
-                "lineEnd.wav", "lineStart.wav", "replace.wav",
+                "delete.wav", "diagnosticError.wav", "diagnosticWarning.wav",
+                "fileEnd.wav", "fileStart.wav", "lineCrossed.wav", "lineEnd.wav",
+                "lineStart.wav", "replace.wav",
             ], waves)
             self.assertIn("globalPlugins/NeovimAccessLink/resources/sounds/LICENSE.txt", archive.namelist())
+            self.assertIn(
+                "globalPlugins/NeovimAccessLink/resources/sounds/MICROSOFT-VSCODE-MIT.txt",
+                archive.namelist(),
+            )
             self.assertIn("LICENSE", archive.namelist())
             self.assertIn("globalPlugins/NeovimAccessLink/resources/ssh-askpass.cmd", archive.namelist())
 
@@ -4200,6 +4370,179 @@ class BuiltAddonTests(unittest.TestCase):
                 types.SimpleNamespace(mainKeyName="k", modifierNames=("NVDA", "shift")),
             ),
         )
+
+    def test_held_developer_context_uses_nvda_lifetime_and_local_navigation(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        service.start_held_context.return_value = True
+        service.authorize_numbered_choice_accept.return_value = None
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            observer = self.inputDecider.handlers[0]
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True)
+            raw_observer(vkCode=20, scanCode=0, extended=False, pressed=True)
+
+            adapter.script_holdCallableContext(types.SimpleNamespace())
+            self.assertTrue(
+                adapter.script_holdCallableContext._test_script_kwargs["speakOnDemand"],
+            )
+            self.assertTrue(
+                adapter.script_holdDiagnosticContext._test_script_kwargs["speakOnDemand"],
+            )
+            service.start_held_context.assert_called_once_with(
+                addon_module.HeldContextKind.CALLABLE,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertTrue(adapter._developerContextActive)
+
+            for key, expected in (
+                ("h", addon_module.HeldContextDirection.PREVIOUS_PARAMETER),
+                ("l", addon_module.HeldContextDirection.NEXT_PARAMETER),
+                ("k", addon_module.HeldContextDirection.PREVIOUS_ITEM),
+                ("j", addon_module.HeldContextDirection.NEXT_ITEM),
+            ):
+                gesture = types.SimpleNamespace(
+                    mainKeyName=key,
+                    modifierNames=("NVDA",),
+                    vkCode=ord(key.upper()),
+                    isExtended=False,
+                    normalizedIdentifiers=(f"kb:NVDA+{key}",),
+                )
+                self.assertFalse(observer(gesture))
+                service.navigate_held_context.assert_called_with(
+                    expected,
+                    self.focus,
+                    adapter,
+                    adapter._eventToken,
+                )
+
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
+            service.release_held_context.assert_not_called()
+            self.assertTrue(adapter._developerContextActive)
+            raw_observer(vkCode=20, scanCode=0, extended=False, pressed=False)
+            service.release_held_context.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertFalse(adapter._developerContextActive)
+
+            service.start_held_context.reset_mock()
+            service.navigate_held_context.reset_mock()
+            service.release_held_context.reset_mock()
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=True)
+            adapter.script_holdDiagnosticContext(types.SimpleNamespace())
+            service.start_held_context.assert_called_once_with(
+                addon_module.HeldContextKind.DIAGNOSTIC,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            forbidden_parameter = types.SimpleNamespace(
+                mainKeyName="h",
+                modifierNames=("NVDA",),
+                vkCode=72,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+h",),
+            )
+            self.assertTrue(observer(forbidden_parameter))
+            service.navigate_held_context.assert_not_called()
+            next_diagnostic = types.SimpleNamespace(
+                mainKeyName="j",
+                modifierNames=("NVDA",),
+                vkCode=74,
+                isExtended=False,
+                normalizedIdentifiers=("kb:NVDA+j",),
+            )
+            raw_observer(vkCode=74, scanCode=0, extended=False, pressed=True)
+            self.assertFalse(observer(next_diagnostic))
+            repeat = types.SimpleNamespace(
+                mainKeyName="j",
+                modifierNames=(),
+                vkCode=74,
+                isExtended=False,
+                normalizedIdentifiers=("kb:j",),
+            )
+            self.assertFalse(observer(repeat))
+            self.assertEqual(2, service.navigate_held_context.call_count)
+            service.navigate_held_context.assert_called_with(
+                addon_module.HeldContextDirection.NEXT_ITEM,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            raw_observer(vkCode=74, scanCode=0, extended=False, pressed=False)
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
+            service.release_held_context.assert_called_once()
+            adapter.terminate()
+
+    def test_held_developer_context_presents_callable_diagnostic_and_empty_states(self) -> None:
+        import braille
+        from globalPlugins.NeovimAccessLink import GlobalPlugin, HeldContextKind
+        from globalPlugins.NeovimAccessLink.core.held_context_state import (
+            HeldContextPresentation,
+        )
+
+        plugin = GlobalPlugin()
+        callable_presentation = HeldContextPresentation(
+            HeldContextKind.CALLABLE,
+            {
+                "signature": "calculate_total(price, quantity)",
+                "parameters": ["price", "quantity"],
+                "documentation": "Calculate the total.",
+            },
+            0,
+            2,
+            "quantity",
+            1,
+            2,
+        )
+        self.assertTrue(
+            plugin._presentDeveloperContext(
+                callable_presentation,
+                HeldContextKind.CALLABLE,
+            ),
+        )
+        self.assertIn("Parameter 2 of 2: quantity", self.spoken[-1])
+        self.assertIn("Signature 1 of 2", self.spoken[-1])
+        self.assertIn("Documentation: Calculate the total.", self.spoken[-1])
+        self.assertEqual(self.spoken[-1], self.brailleMessages[-1])
+        self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
+
+        diagnostic_presentation = HeldContextPresentation(
+            HeldContextKind.DIAGNOSTIC,
+            {
+                "message": "Undefined name",
+                "severity": "error",
+                "source": "ruff",
+                "code": "F821",
+            },
+            1,
+            3,
+        )
+        plugin._presentDeveloperContext(
+            diagnostic_presentation,
+            HeldContextKind.DIAGNOSTIC,
+        )
+        self.assertIn("error, diagnostic 2 of 3: Undefined name", self.spoken[-1])
+        self.assertIn("Source: ruff F821", self.spoken[-1])
+
+        plugin._presentDeveloperContext(None, HeldContextKind.CALLABLE)
+        self.assertEqual(
+            "No function parameters or hover information available",
+            self.spoken[-1],
+        )
+        plugin._presentDeveloperContext(None, HeldContextKind.DIAGNOSTIC)
+        self.assertEqual("No diagnostics on this line", self.spoken[-1])
+        plugin._dismissDeveloperContext()
+        self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
+        plugin.terminate()
 
     def test_numbered_spell_choice_overrides_j_k_and_enter_only_in_the_exact_prompt(self) -> None:
         import globalPlugins.NeovimAccessLink as addon_module
@@ -5241,6 +5584,8 @@ class BuiltAddonTests(unittest.TestCase):
                 "script_copyNeovimSelection",
                 "script_disconnectConnectionInstance",
                 "script_forgetTemporaryTerminalBinding",
+                "script_holdCallableContext",
+                "script_holdDiagnosticContext",
                 "script_leaveDirectTerminalInput",
                 "script_pasteWindowsClipboard",
                 "script_readCompletionDocumentation",
@@ -7939,10 +8284,13 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([
             "Global action feedback", "Session focus",
             "Speech exploration mode", "Routing keys", "Spelling suggestions",
+            "Developer information",
             "Individual actions", "Normal navigation", "Speech exploration mode release",
             "Saved SSH connections",
         ], self.staticBoxLabels)
-        self.assertEqual(9, len(panel.feedbackControls))
+        self.assertEqual(11, len(panel.feedbackControls))
+        self.assertEqual((0, 2), panel.feedbackValueMaps["diagnosticLine"])
+        self.assertEqual((0, 2), panel.feedbackValueMaps["diagnosticPosition"])
         self.assertEqual({
             "navigationWord": 1,
             "navigationLine": 2,
@@ -7954,6 +8302,7 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertEqual(2, panel.focusAnnouncement.GetSelection())
         self.assertEqual(1, panel.brailleSuggestionStart.GetValue())
+        self.assertEqual(1, panel.brailleDeveloperStart.GetValue())
         self.assertTrue(panel.brailleFollowSpeechExploration.IsChecked())
         self.assertEqual(0, panel.brailleRoutingWordAction.GetSelection())
         self.assertEqual(0, panel.brailleRoutingLineAction.GetSelection())
@@ -10425,6 +10774,125 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("visual character mode", self.spoken)
         plugin.terminate()
 
+    def test_diagnostic_navigation_sounds_only_on_line_and_range_entry(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        plugin._gate.manual_enabled = True
+        played = []
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
+        base = {
+            "mode": "normal",
+            "lineText": "old",
+            "cursor": {"line": 1, "byteColumn": 0},
+            "diagnosticSummary": {
+                "lineCount": 0,
+                "lineSeverity": "",
+                "positionCount": 0,
+                "positionSeverity": "",
+                "positionIdentity": "",
+            },
+        }
+        plugin._handleEvent({"type": "fullState", "payload": base})
+        played.clear()
+        line_summary = {
+            "lineCount": 1,
+            "lineSeverity": "error",
+            "positionCount": 0,
+            "positionSeverity": "",
+            "positionIdentity": "",
+        }
+        plugin._handleEvent({
+            "type": "lineChanged",
+            "payload": {
+                **base,
+                "lineText": "bad",
+                "cursor": {"line": 2, "byteColumn": 0},
+                "diagnosticSummary": line_summary,
+            },
+        })
+        self.assertEqual(1, played.count("diagnosticError"))
+
+        position_summary = {
+            **line_summary,
+            "positionCount": 1,
+            "positionSeverity": "warning",
+            "positionIdentity": "2:3:2:6:warning",
+        }
+        plugin._handleEvent({
+            "type": "characterMoved",
+            "payload": {
+                **base,
+                "lineText": "bad",
+                "cursor": {"line": 2, "byteColumn": 3},
+                "diagnosticSummary": position_summary,
+            },
+        })
+        self.assertEqual(1, played.count("diagnosticWarning"))
+        plugin._handleEvent({
+            "type": "characterMoved",
+            "payload": {
+                **base,
+                "lineText": "bad",
+                "cursor": {"line": 2, "byteColumn": 4},
+                "diagnosticSummary": position_summary,
+            },
+        })
+        self.assertEqual(1, played.count("diagnosticWarning"))
+        plugin._handleEvent({
+            "type": "textChanged",
+            "payload": {
+                **base,
+                "lineText": "bad!",
+                "cursor": {"line": 2, "byteColumn": 4},
+                "diagnosticSummary": {
+                    **position_summary,
+                    "positionIdentity": "2:4:2:7:error",
+                    "positionSeverity": "error",
+                },
+            },
+        })
+        self.assertEqual(1, played.count("diagnosticError"))
+
+        self._updateSettings(plugin, {
+            "feedback": {
+                "diagnosticLine": 0,
+                "diagnosticPosition": 0,
+            },
+        })
+        plugin._handleEvent({
+            "type": "lineChanged",
+            "payload": {
+                **base,
+                "lineText": "disabled",
+                "cursor": {"line": 3, "byteColumn": 0},
+                "diagnosticSummary": {
+                    **line_summary,
+                    "positionCount": 1,
+                    "positionSeverity": "error",
+                    "positionIdentity": "disabled-position",
+                },
+            },
+        })
+        self.assertEqual(1, played.count("diagnosticError"))
+
+        self._updateSettings(plugin, {
+            "feedback": {
+                "diagnosticLine": 2,
+                "diagnosticPosition": 2,
+            },
+        })
+        plugin._presentation.editor_sounds.play = lambda cue: False
+        self.beeps.clear()
+        self.assertTrue(
+            plugin._presentation.play_diagnostic_sound("warning", at_position=True),
+        )
+        self.assertEqual([(420, 35)], self.beeps)
+        self.assertFalse(
+            plugin._presentation.play_diagnostic_sound("information", at_position=True),
+        )
+        plugin.terminate()
+
     def test_old_addon_identity_configuration_is_ignored(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         import config
@@ -10604,6 +11072,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "explorationWord": 1, "explorationLine": 2,
             },
             "brailleSuggestionStart": 1,
+            "brailleDeveloperStart": 1,
             "brailleFollowSpeechExploration": True,
             "brailleRouting": {
                 "wordAction": 0, "lineAction": 0, "lineStart": 0,
@@ -10639,6 +11108,7 @@ class BuiltAddonTests(unittest.TestCase):
             "explorationLine": 2,
         }, normalized["navigationDetails"])
         self.assertEqual(1, normalized["brailleSuggestionStart"])
+        self.assertEqual(1, normalized["brailleDeveloperStart"])
         self.assertTrue(normalized["brailleFollowSpeechExploration"])
         self.assertEqual({
             "wordAction": 0, "lineAction": 0, "lineStart": 0,

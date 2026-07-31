@@ -72,6 +72,9 @@ class AppModule(appModuleHandler.AppModule):
 		self._explorationHeldKeys = {}
 		self._numberedChoiceActive = False
 		self._numberedChoiceHeldKeys = set()
+		self._developerContextActive = False
+		self._developerContextKind = None
+		self._developerContextHeldKeys = set()
 		self._heldNvdaModifiers = set()
 		self._physicallyHeldExplorationKeys = set()
 		self._explorationScript = types.MethodType(script_exploreText, self)
@@ -103,10 +106,17 @@ class AppModule(appModuleHandler.AppModule):
 				service.cancel_numbered_choice(self._eventToken)
 			except Exception:
 				pass
+			try:
+				service.cancel_held_context(self._eventToken)
+			except Exception:
+				pass
 		self._explorationActive = False
 		self._explorationHeldKeys.clear()
 		self._numberedChoiceActive = False
 		self._numberedChoiceHeldKeys.clear()
+		self._developerContextActive = False
+		self._developerContextKind = None
+		self._developerContextHeldKeys.clear()
 		self._heldNvdaModifiers.clear()
 		self._physicallyHeldExplorationKeys.clear()
 		cls = type(self)
@@ -128,7 +138,7 @@ class AppModule(appModuleHandler.AppModule):
 			not cls._isClaimGesture(gesture)
 			and not cls._isNumberedChoiceGesture(gesture)
 			and not direct_braille_next_line
-			and (not isinstance(main_key, str) or main_key.lower() not in {"j", "k"})
+			and (not isinstance(main_key, str) or main_key.lower() not in {"h", "j", "k", "l"})
 		):
 			return True
 		try:
@@ -320,6 +330,15 @@ class AppModule(appModuleHandler.AppModule):
 						self._handleNumberedChoiceModifierRelease,
 						service,
 					)
+			if self._developerContextActive and not self._heldNvdaModifiers:
+				self._developerContextActive = False
+				service = self._service()
+				if service is not None:
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._handleDeveloperContextModifierRelease,
+						service,
+					)
 			return
 		if vk_code in self._EXPLORATION_VK_CODES:
 			if pressed:
@@ -327,6 +346,7 @@ class AppModule(appModuleHandler.AppModule):
 			else:
 				self._physicallyHeldExplorationKeys.discard(key)
 				self._numberedChoiceHeldKeys.discard(key)
+				self._developerContextHeldKeys.discard(key)
 		if not pressed:
 			self._explorationHeldKeys.pop(key, None)
 
@@ -366,6 +386,29 @@ class AppModule(appModuleHandler.AppModule):
 		except Exception:
 			try:
 				service.cancel_exploration(self._eventToken)
+			except Exception:
+				pass
+
+	def _handleDeveloperContextModifierRelease(self, originating_service):
+		service = self._service()
+		if service is not originating_service:
+			try:
+				originating_service.cancel_held_context(self._eventToken)
+			except Exception:
+				pass
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			focus_obj = None
+		try:
+			if focus_obj is None:
+				service.cancel_held_context(self._eventToken)
+			else:
+				service.release_held_context(focus_obj, self, self._eventToken)
+		except Exception:
+			try:
+				service.cancel_held_context(self._eventToken)
 			except Exception:
 				pass
 
@@ -466,6 +509,9 @@ class AppModule(appModuleHandler.AppModule):
 		self._explorationHeldKeys.clear()
 		self._numberedChoiceActive = False
 		self._numberedChoiceHeldKeys.clear()
+		self._developerContextActive = False
+		self._developerContextKind = None
+		self._developerContextHeldKeys.clear()
 		self._physicallyHeldExplorationKeys.clear()
 		self._heldNvdaModifiers.clear()
 		service = self._service()
@@ -476,6 +522,10 @@ class AppModule(appModuleHandler.AppModule):
 				pass
 			try:
 				service.cancel_numbered_choice(self._eventToken)
+			except Exception:
+				pass
+			try:
+				service.cancel_held_context(self._eventToken)
 			except Exception:
 				pass
 			try:
@@ -643,6 +693,53 @@ class AppModule(appModuleHandler.AppModule):
 			except Exception:
 				pass
 
+	@scriptHandler.script(
+		# Translators: Input Help description for held callable parameter inspection.
+		description=_("Show function parameters while the NVDA key remains pressed"),
+		category=scriptCategory,
+		gesture="kb:NVDA+shift+p",
+		speakOnDemand=True,
+	)
+	def script_holdCallableContext(self, gesture):
+		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.CALLABLE)
+
+	@scriptHandler.script(
+		# Translators: Input Help description for held diagnostic inspection.
+		description=_("Show diagnostics while the NVDA key remains pressed"),
+		category=scriptCategory,
+		gesture="kb:NVDA+shift+e",
+		speakOnDemand=True,
+	)
+	def script_holdDiagnosticContext(self, gesture):
+		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.DIAGNOSTIC)
+
+	def _startDeveloperContext(self, kind):
+		service = self._service()
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			focus_obj = None
+		started = False
+		if service is not None and focus_obj is not None:
+			try:
+				started = service.start_held_context(
+					kind,
+					focus_obj,
+					self,
+					self._eventToken,
+				)
+			except Exception:
+				started = False
+		if not started:
+			return
+		self._developerContextKind = kind
+		self._developerContextActive = bool(self._heldNvdaModifiers)
+		if not self._developerContextActive:
+			try:
+				service.cancel_held_context(self._eventToken)
+			except Exception:
+				pass
+
 	def _executeExploration(self, gesture):
 		action = self._explorationAction(gesture)
 		service = self._service()
@@ -679,10 +776,12 @@ class AppModule(appModuleHandler.AppModule):
 		numbered_choice_accept = self._isNumberedChoiceGesture(gesture) and (
 			getattr(gesture, "mainKeyName", "").lower() == "enter"
 		)
+		developer_context_action = self._developerContextAction(gesture)
 		if (
 			not self._isClaimGesture(gesture)
 			and numbered_choice_action is None
 			and not numbered_choice_accept
+			and developer_context_action is None
 		):
 			return True
 		if focus_obj is None:
@@ -705,27 +804,42 @@ class AppModule(appModuleHandler.AppModule):
 					self._eventToken,
 				)
 			except Exception:
-				return True
+				authorization = None
 			if authorization is None:
-				return True
-			if numbered_choice_action is not None:
-				physical_key = self._physicalKey(gesture)
-				if physical_key is not None:
-					self._numberedChoiceHeldKeys.add(physical_key)
-				self._numberedChoiceActive = bool(self._heldNvdaModifiers)
-				queueHandler.queueFunction(
-					queueHandler.eventQueue,
-					self._handleObservedNumberedChoiceNavigation,
-					service,
-					numbered_choice_action,
-				)
+				if developer_context_action is None:
+					return True
 			else:
-				queueHandler.queueFunction(
-					queueHandler.eventQueue,
-					self._handleObservedNumberedChoiceAccept,
-					service,
-					authorization,
-				)
+				if numbered_choice_action is not None:
+					physical_key = self._physicalKey(gesture)
+					if physical_key is not None:
+						self._numberedChoiceHeldKeys.add(physical_key)
+					self._numberedChoiceActive = bool(self._heldNvdaModifiers)
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._handleObservedNumberedChoiceNavigation,
+						service,
+						numbered_choice_action,
+					)
+				else:
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._handleObservedNumberedChoiceAccept,
+						service,
+						authorization,
+					)
+				return False
+		if developer_context_action is not None:
+			if getattr(inputCore.manager, "isInputHelpActive", False):
+				return True
+			physical_key = self._physicalKey(gesture)
+			if physical_key is not None:
+				self._developerContextHeldKeys.add(physical_key)
+			queueHandler.queueFunction(
+				queueHandler.eventQueue,
+				self._handleDeveloperContextNavigation,
+				service,
+				developer_context_action,
+			)
 			return False
 		try:
 			authorization = service.authorize_session_claim(focus_obj, self)
@@ -760,6 +874,59 @@ class AppModule(appModuleHandler.AppModule):
 			if main_key.lower() == "j"
 			else NeovimAccessLink.NumberedChoiceDirection.PREVIOUS
 		)
+
+	def _developerContextAction(self, gesture):
+		if not self._developerContextActive or self._developerContextKind is None:
+			return None
+		main_key = getattr(gesture, "mainKeyName", "")
+		if not isinstance(main_key, str):
+			return None
+		key_name = main_key.lower()
+		allowed = (
+			{"h", "j", "k", "l"}
+			if self._developerContextKind is NeovimAccessLink.HeldContextKind.CALLABLE
+			else {"j", "k"}
+		)
+		if key_name not in allowed:
+			return None
+		try:
+			names = frozenset(
+				name.lower() for name in getattr(gesture, "modifierNames", ()) if isinstance(name, str)
+			)
+		except TypeError:
+			return None
+		physical_key = self._physicalKey(gesture)
+		if names != {"nvda"} and not (
+			not names and self._heldNvdaModifiers and physical_key in self._developerContextHeldKeys
+		):
+			return None
+		if key_name == "h":
+			return NeovimAccessLink.HeldContextDirection.PREVIOUS_PARAMETER
+		if key_name == "l":
+			return NeovimAccessLink.HeldContextDirection.NEXT_PARAMETER
+		return (
+			NeovimAccessLink.HeldContextDirection.NEXT_ITEM
+			if key_name == "j"
+			else NeovimAccessLink.HeldContextDirection.PREVIOUS_ITEM
+		)
+
+	def _handleDeveloperContextNavigation(self, originating_service, direction):
+		service = self._service()
+		if service is not originating_service:
+			return
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception:
+			return
+		try:
+			service.navigate_held_context(
+				direction,
+				focus_obj,
+				self,
+				self._eventToken,
+			)
+		except Exception:
+			pass
 
 	def _handleObservedNumberedChoiceNavigation(self, originating_service, direction):
 		service = self._service()

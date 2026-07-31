@@ -129,6 +129,9 @@ Insert-/Fokusklang folgt weiterhin den Feedbackeinstellungen.
 Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Aus`,
 `Sprache`, `Töne` und `Sprache und Töne`. Ihre tatsächliche Ausgabe wird
 zusätzlich durch `Globale Aktionsrückmeldung` begrenzt.
+Die beiden reinen Klangoptionen für Diagnosezeile und Diagnoseposition bieten
+bewusst nur `Aus` und `Töne`; vollständiger Diagnosetext bleibt über die
+ausdrückliche Abfrage und Diagnosenavigation verfügbar.
 
 ### Wechsel zwischen Einfüge- und Normalmodus
 
@@ -385,6 +388,16 @@ unverändert. Passt der vollständig in Braille übersetzte Vorschlag ab dem
 gewünschten Modul nicht mehr auf die Zeile, verschiebt ihn das Add-on nur so
 weit nach links, dass er rechtsbündig vollständig dargestellt werden kann.
 Ist der Vorschlag selbst länger als die Zeile, beginnt er am ersten Modul.
+
+### Gruppe Entwicklerinformationen
+
+#### Temporäre Entwicklerinformationen ab Braillemodul anzeigen
+
+Diese profilfähige Einstellung positioniert die gehaltene Anzeige von
+Funktionsparametern und Diagnosen. Sie folgt denselben Regeln für kurze
+Braillezeilen und rechtsbündiges Einpassen wie die Rechtschreibvorschläge,
+besitzt aber einen eigenen Wert. Der Standard 1 verwendet das erste
+Braillemodul.
 
 ## Registerkarte Verbindungen
 

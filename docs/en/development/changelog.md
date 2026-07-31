@@ -30,6 +30,11 @@
 - Adds `:NvimNvdaLspStatus` for bounded, content-free current-buffer client
   status in speech/Braille; continuous LSP progress remains silent to avoid
   speech flooding.
+- Adds `NVDA+Shift+P` for a held read-only parameter view: `NVDA+h/l` cycles
+  parameters locally and `NVDA+k/j` cycles signatures. Signature help and
+  the hover fallback are fully correlated with focus, instance, editor
+  identity, changed tick, and cursor position; releasing NVDA restores the
+  editor Braille line.
 - Hardens the shared provider-neutral `vim.diagnostic` contract: invalid or
   oversized fields are discarded or bounded safely on UTF-8 boundaries,
   multiple namespaces are ordered deterministically, and overlapping
@@ -50,6 +55,22 @@
 - Additionally exercises the real pinned `none-ls.nvim` LSP bridge with
   `plenary.nvim` and a built-in diagnostic source. This likewise needs no
   adapter or bundled plugin.
+- Adds `NVDA+Shift+E` for a held, locally navigable list of diagnostics under
+  the cursor and on its line. Errors and warnings gain independently
+  configurable line and position cues without flooding while typing or
+  during background refreshes. The two adopted Visual Studio Code Code - OSS
+  signals are MIT-licensed; source commit, hashes, conversion, and license
+  text are bundled.
+- Adds a separate profile-aware Braille start cell for temporary developer
+  information and discards held views after any focus, buffer, text, or
+  cursor change.
+- Extends LSP and diagnostic coverage across every layer: a deterministic
+  stdio test server exercises signature help, parameter documentation, and
+  the hover fallback through Neovim's real LSP client. Additional bounds,
+  correlation, protocol, bridge, gesture, Braille, and cue tests cover stale
+  replies and fail-open paths. Synchronous Neovim LSP failures now return a
+  bounded failure result, and exclusive end positions of multiline
+  diagnostics are no longer attributed to the following line.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
   the runner, documentation, and GitHub Actions. Adds an independent CI matrix
   for pinned real `nvim-cmp`/`blink.cmp` API contracts on Neovim

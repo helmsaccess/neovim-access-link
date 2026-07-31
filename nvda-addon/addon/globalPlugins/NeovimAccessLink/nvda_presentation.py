@@ -242,6 +242,19 @@ class NvdaPresentation:
 		elif sound == "suggestionsClose":
 			self.suggestion_sounds.play("close")
 
+	def play_diagnostic_sound(self, severity, *, at_position):
+		"""Play one passive diagnostic cue according to the active profile."""
+		if severity not in {"error", "warning"}:
+			return False
+		feedback_key = "diagnosticPosition" if at_position else "diagnosticLine"
+		if not (self.feedback_mode(feedback_key) & 2):
+			return False
+		cue = "diagnosticError" if severity == "error" else "diagnosticWarning"
+		if self.editor_sounds.play(cue):
+			return True
+		tones.beep(180 if severity == "error" else 420, 45 if severity == "error" else 35)
+		return True
+
 	def _present_format_error(self, action, format_error, priority):
 		formatting = config.conf.get("documentFormatting", {})
 		report_mode = int(formatting.get("reportSpellingErrors2", 0))

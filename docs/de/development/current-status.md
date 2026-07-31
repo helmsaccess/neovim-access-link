@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 31. Juli 2026. Produktversion im Quellstand:
-0.97.0, Entwicklungsbuild 6.
+0.97.0, Entwicklungsbuild 8.
 
 Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
 veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
@@ -31,8 +31,11 @@ Completion-Matrix prüft Neovim 0.10.1/0.12.3, `nvim-cmp`, `blink.cmp` v1 und
 den vorläufigen v2-Stand. Die Diagnosematrix prüft auf beiden
 Neovim-Versionen `nvim-lint` und ALE mit sieben echten Lintern für C, Python,
 Bash, Go, Rust, Ruby und Markdown sowie die LSP-Brücke `none-ls.nvim`. Die
-Jobs verwenden weder produktive SSH-Ziele noch private Infrastruktur und
-ersetzen keine praktische Windows-/NVDA-Prüfung.
+listenerfreie Standardsuite startet außerdem einen kleinen deterministischen
+LSP-Server über stdio und prüft damit Signaturhilfe, Parameterdokumentation und
+Hover-Rückfall durch Neovims echten LSP-Client. Die Jobs verwenden weder
+produktive SSH-Ziele noch private Infrastruktur und ersetzen keine praktische
+Windows-/NVDA-Prüfung.
 
 ## Referenzumgebung
 
@@ -259,6 +262,13 @@ Bufferkontextwechsel still verworfen.
 Anforderung aus. Fortschritt wird zur Vermeidung einer Sprachflut nicht
 automatisch angesagt.
 
+`NVDA+Umschalt+P` startet eine korrelierte, rein lesende Abfrage von
+LSP-Signaturhilfe mit Hover-Rückfall. Solange die NVDA-Taste gehalten wird,
+schalten `NVDA+h/l` lokal durch Parameter und `NVDA+k/j` durch Signaturen.
+Ein eigener instanzgetrennter Controller bindet die Anzeige an die exakte
+Fokus-, Buffer-, Fenster-, Tab-, `changedtick`- und Cursoridentität; jede
+Abweichung verwirft Antwort und Braillemeldung.
+
 Allgemeine Diagnostics werden unabhängig von ihrer Herkunft über
 `vim.diagnostic` validiert, begrenzt und deterministisch ausgewählt. Fünf
 frei belegbare Neovim-Befehle lesen beziehungsweise erreichen vorherige,
@@ -273,6 +283,13 @@ bleiben aber Teil der später gebündelten Praxisrunde.
 Direkt getippte native `[d`-/`]d`-Sprünge bleiben auch dann semantisch
 beobachtbar, wenn ein aufrufspezifischer Callback Neovims globalen
 Diagnosesprung-Hook ersetzt.
+`NVDA+Umschalt+E` hält eine begrenzte Liste der Diagnosen am Cursor und auf
+der aktuellen Zeile; `NVDA+k/j` schaltet ohne echte Cursorbewegung. Eine
+textfreie Diagnosezusammenfassung ermöglicht getrennt konfigurierbare Fehler-
+und Warnklänge beim Betreten einer Diagnosezeile oder eines exakten Bereichs.
+Die zwei Signale stammen aus dem MIT-lizenzierten Code-OSS-Quellstand von
+Visual Studio Code; Commit, Prüfsummen, Konvertierung und Lizenz sind im
+Add-on dokumentiert.
 
 Die dauerhafte Brailleausgabe folgt derselben semantischen Editorquelle wie
 Sprache und Klang, besitzt aber eine getrennte Planung. Eine öffentliche

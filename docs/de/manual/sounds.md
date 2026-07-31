@@ -33,7 +33,7 @@ die Fehlermarkierung auf der Braillezeile. Normale Wortnavigation und
 Wortexploration im Sprachexplorationsmodus werten dieselbe Kombination aus; das erreichte Wort wird
 unabhängig davon weiterhin angesagt.
 
-## Mitgelieferte CC0-Earcons
+## Mitgelieferte Earcons
 
 Für Löschen, Ersetzen, Zeilen- und Dateigrenzen sowie einen Zeilenwechsel gibt
 es in NVDA keine eindeutig passenden öffentlichen Standardsounds. Das Add-on
@@ -44,6 +44,15 @@ mitgelieferten `resources/sounds/LICENSE.txt`.
 Der Lösch- und Backspace-Klang verwendet den bewusst dezenten `click3`: rund
 86 ms lang und mit etwa −27,6 dB RMS deutlich leiser als der zuvor verwendete
 `click2`.
+
+Für Diagnosefehler und -warnungen werden zwei kurze Accessibility Signals aus
+dem MIT-lizenzierten Code-OSS-Quellstand von Visual Studio Code verwendet.
+Der genaue Commit, Quell- und Zielprüfsummen, die WAV-Dekodierung
+sowie der vollständige MIT-Lizenztext liegen im Add-on unter
+`resources/sounds/`. Die Klänge werden nur bei ausdrücklicher Cursornavigation
+beim Eintritt in eine Diagnosezeile oder einen Diagnosebereich abgespielt.
+Die Einstellungen „Diagnosezeile“ und „Diagnoseposition“ können sie getrennt
+abschalten.
 
 ## Einrückung
 

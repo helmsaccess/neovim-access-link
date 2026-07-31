@@ -111,5 +111,61 @@ equal(true, vim.wait(500, function()
   return diagnostics.snapshot(0, 1, 0).message == "after update"
 end, 10), "DiagnosticChanged invalidates buffer cache")
 
+vim.diagnostic.set(namespace, 0, {
+  {
+    lnum = 0, col = 0, end_lnum = 0, end_col = 6,
+    message = "at cursor", severity = vim.diagnostic.severity.ERROR,
+  },
+  {
+    lnum = 0, col = 8, end_lnum = 0, end_col = 11,
+    message = "elsewhere", severity = vim.diagnostic.severity.WARN,
+  },
+})
+equal(true, vim.wait(500, function()
+  return diagnostics.summary(0, 1, 0).lineCount == 2
+end, 10), "summary cache invalidated")
+local context = diagnostics.context(0, 1, 0)
+equal(2, #context, "context includes cursor range before remaining line items")
+equal(true, context[1].atCursor, "cursor diagnostic marked")
+equal(false, context[2].atCursor, "line diagnostic marked")
+local summary = diagnostics.summary(0, 1, 0)
+equal(2, summary.lineCount, "line diagnostic count")
+equal("error", summary.lineSeverity, "line severity uses highest priority")
+equal(1, summary.positionCount, "position diagnostic count")
+equal("error", summary.positionSeverity, "position severity")
+equal(true, summary.positionIdentity ~= "", "position identity is opaque and present")
+
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "first line", "second line" })
+vim.diagnostic.set(namespace, 0, {
+  {
+    lnum = 0, col = 2, end_lnum = 1, end_col = 0,
+    message = "ends before second line", severity = vim.diagnostic.severity.ERROR,
+  },
+})
+equal(true, vim.wait(500, function()
+  return diagnostics.summary(0, 1, 2).lineCount == 1
+    and diagnostics.summary(0, 2, 0).lineCount == 0
+end, 10), "exclusive multiline end is not attributed to the following line")
+equal(0, #diagnostics.context(0, 2, 0), "exclusive end line has no held diagnostic")
+
+local crowded = {}
+for index = 1, 100 do
+  crowded[index] = {
+    lnum = 0, col = index - 1, end_lnum = 0, end_col = index,
+    message = "line " .. index,
+  }
+end
+crowded[101] = {
+  lnum = 0, col = 100, end_lnum = 0, end_col = 110,
+  message = "cursor priority",
+}
+vim.diagnostic.set(namespace, 0, crowded)
+equal(true, vim.wait(500, function()
+  local values_at_cursor = diagnostics.context(0, 1, 100)
+  return #values_at_cursor == 100
+    and values_at_cursor[1].message == "cursor priority"
+    and values_at_cursor[1].atCursor
+end, 10), "cursor diagnostics take priority within the bounded result")
+
 print(string.format("diagnostic contract tests: %d assertions passed", assertions))
 vim.cmd("qa!")

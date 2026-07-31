@@ -11,6 +11,7 @@ local file_manager_prompt = require("nvim_nvda.file_manager_prompt")
 local clipboard = require("nvim_nvda.clipboard")
 local exploration = require("nvim_nvda.exploration")
 local numbered_choice = require("nvim_nvda.numbered_choice")
+local developer_context = require("nvim_nvda.developer_context")
 local M = {}
 
 local channel
@@ -1040,6 +1041,14 @@ end
 
 function M.request_end_braille_exploration(payload)
   return exploration.finish(payload, "braille")
+end
+
+function M.request_callable_context(payload)
+  return developer_context.request_callable(payload, emit)
+end
+
+function M.request_diagnostic_context(payload)
+  return developer_context.request_diagnostics(payload, emit)
 end
 
 function M.setup()

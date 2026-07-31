@@ -49,6 +49,19 @@ suggestion to an existing later Braille cell; a position beyond
 suggestion does not fit to the right, its start moves left to the last cell
 where the complete result fits.
 
+Held developer context uses two fixed Windows Terminal AppModule gestures.
+`NVDA+Shift+P` requests bounded LSP signature help, with hover as an
+unstructured fallback; `NVDA+Shift+E` requests diagnostics under the cursor
+and then on its line. While NVDA remains held, parameter, signature, or
+diagnostic selection changes locally and never moves the editor cursor.
+Releasing the final NVDA key removes the owned temporary Braille message and
+restores the editor region. Exact control and instance binding, request ID,
+buffer, window, tab, changed tick, mode, and cursor must still match.
+Validator, protocol, Lua, controller, AppModule, and built-package tests cover
+the path; practical Windows/NVDA acceptance remains open. Diagnostic error and
+warning cues use attributed MIT-licensed VS Code sounds only on deliberate
+line/range entry; typing and background refresh remain silent.
+
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real
 same-entry state changes with distinct mark, Copy, Cut, expansion, and clear

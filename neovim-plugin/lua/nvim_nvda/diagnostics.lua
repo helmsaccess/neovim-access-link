@@ -24,6 +24,7 @@ local previous_jump_callback
 local pending_navigation
 local navigation_sequence = 0
 local buffer_cache = {}
+local buffer_line_cache = {}
 local cache_enabled = false
 
 local function bounded_integer(value, minimum)
@@ -195,8 +196,95 @@ local function normalized_for_buffer(buf)
   return cached
 end
 
+local function normalized_for_line(buf, line_number)
+  if buf == 0 then buf = vim.api.nvim_get_current_buf() end
+  local cursor_line = line_number - 1
+  local cached = cache_enabled and buffer_line_cache[buf] or nil
+  if cached and cached.line == cursor_line then return cached.values end
+  local values = {}
+  for _, diagnostic in ipairs(normalized_for_buffer(buf)) do
+    local ends_after_line = diagnostic.end_lnum > cursor_line
+      or (diagnostic.end_lnum == cursor_line
+        and (diagnostic.end_col > 0 or diagnostic.end_lnum == diagnostic.lnum))
+    if diagnostic.lnum <= cursor_line and ends_after_line then
+      values[#values + 1] = diagnostic
+    end
+  end
+  if cache_enabled then
+    buffer_line_cache[buf] = { line = cursor_line, values = values }
+  end
+  return values
+end
+
 function M.snapshot(buf, line_number, byte_column)
   return snapshot_normalized(normalized_for_buffer(buf), line_number, byte_column)
+end
+
+local function public_diagnostic(diagnostic, at_cursor)
+  return {
+    message = diagnostic.message,
+    severity = severity_names[diagnostic.severity],
+    source = diagnostic.source,
+    code = diagnostic.code == nil and vim.NIL or diagnostic.code,
+    line = diagnostic.lnum + 1,
+    byteColumn = diagnostic.col,
+    endLine = diagnostic.end_lnum + 1,
+    endByteColumn = diagnostic.end_col,
+    atCursor = at_cursor,
+  }
+end
+
+function M.context(buf, line_number, byte_column)
+  local all = normalized_for_line(buf, line_number)
+  local cursor_line = line_number - 1
+  local at_cursor, on_line = {}, {}
+  for _, diagnostic in ipairs(all) do
+    if contains(diagnostic, cursor_line, byte_column) then
+      at_cursor[#at_cursor + 1] = public_diagnostic(diagnostic, true)
+    else
+      on_line[#on_line + 1] = public_diagnostic(diagnostic, false)
+    end
+  end
+  while #at_cursor > 100 do table.remove(at_cursor) end
+  for _, diagnostic in ipairs(on_line) do
+    if #at_cursor >= 100 then break end
+    at_cursor[#at_cursor + 1] = diagnostic
+  end
+  return at_cursor
+end
+
+function M.summary(buf, line_number, byte_column)
+  local all = normalized_for_line(buf, line_number)
+  local cursor_line = line_number - 1
+  local line_count, position_count = 0, 0
+  local line_severity, position_severity
+  local position_identity = ""
+  for _, diagnostic in ipairs(all) do
+    line_count = line_count + 1
+    if not line_severity or diagnostic.severity < line_severity then
+      line_severity = diagnostic.severity
+    end
+    if contains(diagnostic, cursor_line, byte_column) then
+      position_count = position_count + 1
+      if not position_severity or diagnostic.severity < position_severity then
+        position_severity = diagnostic.severity
+        position_identity = table.concat({
+          tostring(diagnostic.severity),
+          tostring(diagnostic.lnum),
+          tostring(diagnostic.col),
+          tostring(diagnostic.end_lnum),
+          tostring(diagnostic.end_col),
+        }, ":")
+      end
+    end
+  end
+  return {
+    lineCount = line_count,
+    lineSeverity = severity_names[line_severity] or "",
+    positionCount = position_count,
+    positionSeverity = severity_names[position_severity] or "",
+    positionIdentity = position_identity,
+  }
 end
 
 local function emit_moved(reason)
@@ -306,11 +394,15 @@ end
 function M.setup(emit, group)
   current_emit = emit
   buffer_cache = {}
+  buffer_line_cache = {}
   cache_enabled = group ~= nil
   if group then
     vim.api.nvim_create_autocmd({ "DiagnosticChanged", "BufWipeout" }, {
       group = group,
-      callback = function(event) buffer_cache[event.buf] = nil end,
+      callback = function(event)
+        buffer_cache[event.buf] = nil
+        buffer_line_cache[event.buf] = nil
+      end,
     })
   end
   install_jump_hook()

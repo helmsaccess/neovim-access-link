@@ -43,7 +43,9 @@ Generated or private files have fixed locations:
 
 - `dist/`: installable, uniquely versioned packages;
 - `build/`: generated HTML documentation and other reproducible output;
-- `tmp/`: local, private, and short-lived investigations.
+- `tmp/`: local, private, and short-lived investigations, test workspaces,
+  and downloaded project tools; project-specific temporary files do not
+  belong in the system-wide `/tmp`.
 
 These directories are not alternative sources of truth.
 

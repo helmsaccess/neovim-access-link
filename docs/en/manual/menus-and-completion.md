@@ -36,6 +36,15 @@ buffer and explicitly reports when none is attached. Ongoing LSP progress is
 not spoken continuously; errors and results remain available through
 diagnostics and Neovim messages.
 
+Press `NVDA+Shift+P` to request callable information at the current cursor.
+While at least one NVDA key remains held, the result stays on the Braille
+display. `NVDA+h/l` cycles through parameters and `NVDA+k/j` through multiple
+signatures without moving the real editor cursor. Releasing the final NVDA
+key closes the view and restores the editor line. Access Link prefers public
+LSP signature help and uses LSP hover as an unstructured fallback. A reply is
+accepted only while instance, terminal, buffer, window, tab, changed tick,
+and cursor position still match the request.
+
 Access Link consumes diagnostics through Neovim's public `vim.diagnostic`
 API, whether an LSP server, `nvim-lint`, ALE, `none-ls.nvim`, or another
 provider produced them. It does not install or start linters. Real automated
@@ -46,6 +55,13 @@ Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
 `none-ls.nvim` LSP bridge on both versions. Background lint updates stay
 silent; an explicit diagnostic jump reports source, severity, optional code,
 message, and position together in speech and Braille.
+
+Press `NVDA+Shift+E` to inspect diagnostics under the cursor followed by the
+remaining diagnostics on the current line. While NVDA remains held,
+`NVDA+k/j` cycles through the entries without moving the editor cursor.
+Errors and warnings can also produce a short cue when explicit navigation
+enters an affected line or exact diagnostic range. Typing and background
+diagnostic refreshes remain silent.
 
 The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
 `:NvimNvdaDiagnosticFirst`, `:NvimNvdaDiagnosticLast`, and

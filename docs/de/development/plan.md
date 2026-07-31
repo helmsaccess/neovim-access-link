@@ -120,6 +120,11 @@ Polling oder allgemeines Popup-Scraping ersetzt.
 - Große Ereignislast, große Dateien und viele parallele Sitzungen messen.
 - Weitere repräsentative Windows-, NVDA-, Neovim-, Sprach- und
   SSH-Konfigurationen risikobasiert in die praktische Matrix aufnehmen.
+- Die implementierten gehaltenen Parameter- und Diagnoseansichten mit
+  Pyright sowie weiteren repräsentativen LSP-Servern praktisch auf
+  20-/40-/80-Modul-Braillezeilen prüfen. Dabei Mehrfachsignaturen,
+  Hover-Rückfall, überlappende Diagnosen, jede NVDA-Tasten-Release-Reihenfolge
+  und Klangunterdrückung beim Tippen bestätigen.
 - Die ungeklärte ältere Rocky-Linux-/Neovim-Kombination nur untersuchen, wenn
   dafür ein konkretes Unterstützungsziel festgelegt wird.
 - Portable Layouts, `NVIM_APPNAME`, andere Terminalfrontends und Neovim-GUIs

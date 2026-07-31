@@ -119,6 +119,15 @@ only in the exact connected Neovim pane; NVDA remains unchanged in shells and
 other tabs or panes. A short two-note cue marks when the virtual position
 returns to the character, word, or line where speech exploration mode started.
 
+Callable parameters can be inspected without moving the editor cursor: press
+`NVDA+Shift+P` and keep NVDA held. `NVDA+h/l` cycles parameters and
+`NVDA+k/j` cycles multiple signatures. `NVDA+Shift+E` uses the same held
+interaction for diagnostics under the cursor and on the current line; here
+`NVDA+k/j` cycles entries. Releasing the final NVDA key removes the temporary
+Braille view. Errors and warnings can produce a short cue when deliberate
+navigation enters their line or range; background updates and typing stay
+silent.
+
 Independently, the Braille display's navigation controls have Braille cursor
 mode and Braille exploration mode. In Braille cursor mode, Up and Down move
 the real Neovim cursor. In Braille exploration mode, you can read several

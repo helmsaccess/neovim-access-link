@@ -107,6 +107,20 @@ Buffer hängen. Ohne Client meldet der Befehl diesen Zustand ausdrücklich.
 Automatischer LSP-Fortschritt wird nicht fortlaufend gesprochen; Fehler und
 Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
 
+## Funktionsparameter auf Abruf
+
+Mit `NVDA+Umschalt+P` fragt Access Link die Signaturhilfe an der aktuellen
+Cursorposition ab. Solange mindestens eine NVDA-Taste gedrückt bleibt, stehen
+die Informationen dauerhaft auf der Braillezeile. `NVDA+h/l` schaltet durch
+die Parameter, `NVDA+k/j` durch mehrere Signaturen. Die echte Cursorposition
+bleibt unverändert. Beim Loslassen der letzten NVDA-Taste wird die Anzeige
+geschlossen und die normale Editorzeile wiederhergestellt.
+
+Access Link verwendet zuerst die öffentliche LSP-Signaturhilfe. Liefert sie
+nichts, dient LSP-Hover als unstrukturierter Rückfall. Die Antwort wird nur
+angenommen, wenn Instanz, Terminal, Buffer, Fenster, Tab, Textstand und
+Cursorposition noch exakt der Anfrage entsprechen.
+
 ## Linter und Diagnostics
 
 Access Link verarbeitet Diagnosen aus Neovims öffentlicher
@@ -132,6 +146,13 @@ Automatisierte reale Läufe decken derzeit diese Mindestmatrix ab:
 Quelle, Schwere, vorhandener Code, Meldung und Position werden beim
 Diagnosesprung gemeinsam in Sprache und Braille ausgegeben. Änderungen eines
 Linters im Hintergrund lösen keine fortlaufende Sprachmeldung aus.
+
+Mit `NVDA+Umschalt+E` werden zuerst Diagnosen direkt am Cursor und danach
+weitere Diagnosen auf derselben Zeile abgefragt. Solange die NVDA-Taste
+gehalten wird, schaltet `NVDA+k/j` zyklisch durch die Einträge, ohne den
+Editorcursor zu bewegen. Fehler und Warnungen können außerdem beim Betreten
+einer betroffenen Zeile oder eines exakten Diagnosebereichs einen kurzen
+Klang auslösen; Tippen und reine Hintergrundaktualisierungen bleiben stumm.
 
 Für eigene Neovim-Mappings stehen folgende Befehle bereit:
 

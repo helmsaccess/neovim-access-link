@@ -32,6 +32,14 @@ from .core.exploration_state import (
 	ExplorationResultPlan,
 )
 from .core.gate import TerminalIdentity
+from .core.held_context_state import (
+	HeldContextController,
+	HeldContextDirection,
+	HeldContextKind,
+	HeldContextLocation,
+	HeldContextPresentation,
+	HeldContextRequest,
+)
 from .core.numbered_choice_state import (
 	NumberedChoiceAcceptPlan,
 	NumberedChoiceContext,
@@ -345,6 +353,9 @@ class EditorSessionController:
 					lambda: self._coordinator.next_request_id("brailleExploration"),
 				),
 				"numberedChoice": NumberedChoiceController(),
+				"heldContext": HeldContextController(
+					lambda: self._coordinator.next_request_id("developerContext"),
+				),
 			},
 		}
 
@@ -374,6 +385,89 @@ class EditorSessionController:
 		if not self.exploration_available():
 			return None
 		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def held_context_instance(self, kind: HeldContextKind) -> tuple[str, object] | None:
+		capability = "callableContextQuery" if kind is HeldContextKind.CALLABLE else "diagnosticContextQuery"
+		if (
+			self._coordinator.active_client is None
+			or self._coordinator.active_instance_id is None
+			or not self._coordinator.connected
+			or capability not in self._coordinator.transport_capabilities
+		):
+			return None
+		return self._coordinator.active_instance_id, self._coordinator.active_client
+
+	def begin_held_context(
+		self,
+		kind: HeldContextKind,
+		identity: object,
+		adapter_token: object,
+		service_generation: object,
+	) -> HeldContextRequest | None:
+		selected = self.held_context_instance(kind)
+		controller = self._active_held_context()
+		if selected is None or controller is None:
+			return None
+		location = HeldContextLocation.from_state(
+			selected[0],
+			identity,
+			adapter_token,
+			service_generation,
+			self._coordinator.current_state,
+		)
+		return controller.begin(kind, location) if location is not None else None
+
+	def consume_held_context(
+		self,
+		kind: HeldContextKind,
+		event: Mapping[str, Any],
+	) -> HeldContextPresentation | None:
+		controller = self._active_held_context()
+		if controller is None or not self.held_context_result_is_current(kind, event):
+			return None
+		return controller.consume(kind, event)
+
+	def held_context_result_is_current(
+		self,
+		kind: HeldContextKind,
+		event: Mapping[str, Any],
+	) -> bool:
+		controller = self._active_held_context()
+		return (
+			controller is not None
+			and controller.location is not None
+			and controller.location.matches_state(self._coordinator.current_state)
+			and controller.accepts(kind, event)
+		)
+
+	def navigate_held_context(
+		self,
+		direction: HeldContextDirection,
+	) -> HeldContextPresentation | None:
+		controller = self._active_held_context()
+		return controller.navigate(direction) if controller is not None else None
+
+	def active_held_context_location(self) -> HeldContextLocation | None:
+		controller = self._active_held_context()
+		return controller.location if controller is not None else None
+
+	def held_context_matches_current_state(self) -> bool:
+		controller = self._active_held_context()
+		return (
+			controller is not None
+			and controller.location is not None
+			and controller.location.matches_state(self._coordinator.current_state)
+		)
+
+	def invalidate_held_context(self) -> bool:
+		controller = self._active_held_context()
+		return controller.cancel() if controller is not None else False
+
+	def _active_held_context(self) -> HeldContextController | None:
+		if self._coordinator.active_instance_id is None:
+			return None
+		controller = self._coordinator.runtime_extension_state.get("heldContext")
+		return controller if isinstance(controller, HeldContextController) else None
 
 	def braille_route_instance(self) -> tuple[str, object] | None:
 		"""Return the selected routable instance without performing transport I/O."""

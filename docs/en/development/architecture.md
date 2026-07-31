@@ -334,9 +334,11 @@ instance's completion documentation use the same controller boundary. NVDA's
 own typed-word buffer and speech delivery remain at the NVDA boundary.
 
 Each managed Neovim instance runtime also owns its own Braille exploration
-controller and its own controller for numbered native choices. A tab or pane
-therefore cannot display or mutate another local or remote session's selected
-Braille mode or suggestion state. A runtime switch activates only the state
+controller, its own controller for numbered native choices, and a
+`HeldContextController` for read-only callable and diagnostic queries. A tab
+or pane therefore cannot display or mutate another local or remote session's
+selected Braille mode, suggestion state, or held developer context. A runtime
+switch activates only the state
 owned by the assigned session. Its virtual line, reading column, and NVDA's
 public `windowStartPos` remain in that runtime. Repeated-routing sequences and
 focus messages are discarded when the control changes. Disconnect resets
@@ -619,6 +621,18 @@ control, instance, capability, and editor identity. Only the internal
 zero-based index is confirmed; displayed text is never sent back as input.
 Releasing NVDA discards the local selection, not Neovim's prompt. Each future
 prompt type requires its own strict adapter.
+
+### Held developer contexts
+
+The Windows Terminal AppModule owns the physical NVDA-key lifetime and
+captures only the fixed parameter or diagnostic navigation gestures. The
+per-instance `HeldContextController` correlates each read-only query with
+focus, terminal control, instance, buffer, window, tab, changed tick, line,
+and UTF-8 byte column. The Lua plugin reads signature help, hover, or
+`vim.diagnostic` without moving the cursor or changing the buffer. Any
+mismatch before the reply or during presentation discards the state and
+restores the ordinary Braille line. Transport I/O remains in the bounded
+`ControlDispatcher`.
 
 For Braille, the NVDA adapter uses NVDA's transient message buffer. NVDA's own
 source uses the same public path for suggestion and selection feedback, and it

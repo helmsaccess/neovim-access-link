@@ -24,6 +24,26 @@ local snapshot = status.snapshot()
 equal({ "null-ls", "pyright" }, snapshot.clients, "client names bounded, unique and sorted")
 equal(2, snapshot.clientCount, "client count")
 
+vim.lsp.get_clients = function()
+  local clients = {}
+  for index = 1, 40 do clients[index] = { name = string.format("client-%02d", index) } end
+  return clients
+end
+snapshot = status.snapshot()
+equal(32, snapshot.clientCount, "attached client list is bounded")
+equal("client-32", snapshot.clients[32], "client bound is deterministic")
+
+vim.lsp.get_clients = function() error("simulated LSP client query failure") end
+snapshot = status.snapshot()
+equal({}, snapshot.clients, "LSP client query failure is contained")
+equal(0, snapshot.clientCount, "failed client query reports an empty state")
+
+vim.lsp.get_clients = function()
+  return {
+    { name = "pyright" },
+    { name = "null-ls" },
+  }
+end
 local events = {}
 status.setup(function(event_type, reason, payload)
   events[#events + 1] = { type = event_type, reason = reason, payload = payload }

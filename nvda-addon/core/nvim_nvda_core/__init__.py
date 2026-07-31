@@ -33,6 +33,10 @@ from .numbered_choice_state import (
     NumberedChoiceAcceptPlan, NumberedChoiceContext, NumberedChoiceController,
     NumberedChoiceDirection, NumberedChoicePresentation, NumberedChoiceRejection,
 )
+from .held_context_state import (
+    HeldContextController, HeldContextDirection, HeldContextKind, HeldContextLocation,
+    HeldContextPresentation, HeldContextRequest,
+)
 from .gate import SessionGate, TerminalIdentity
 from .local_sessions import LocalSessionLister, LocalWindowsSession, local_registry_directory
 from .local_install import LocalPluginInstaller, default_local_plugin_directory
@@ -55,6 +59,8 @@ __all__ = [
     "NumberedChoiceAcceptPlan", "NumberedChoiceContext", "NumberedChoiceController",
     "NumberedChoiceDirection", "NumberedChoicePresentation", "NumberedChoiceRejection",
     "FrontendDescriptor", "FrontendPolicy",
+    "HeldContextController", "HeldContextDirection", "HeldContextKind", "HeldContextLocation",
+    "HeldContextPresentation", "HeldContextRequest",
     "LocalPluginInstaller", "LocalSessionLister", "LocalWindowsSession", "PendingControlRequest",
     "PendingFocusContext", "Priority", "SessionGate",
     "ServiceRegistrar", "SpeechAction", "SpeechPlanner",

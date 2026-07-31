@@ -109,7 +109,7 @@ class SpellingSoundCache(SuggestionSoundCache):
 
 
 class EditorSoundCache(SuggestionSoundCache):
-	"""Preload NVDA-native and bundled CC0 editor earcons."""
+	"""Preload NVDA-native and bundled redistributable editor earcons."""
 
 	_PREFIX = "editorSound"
 	_NVDA_FILES = {
@@ -125,6 +125,8 @@ class EditorSoundCache(SuggestionSoundCache):
 		"fileStart": "fileStart.wav",
 		"fileEnd": "fileEnd.wav",
 		"lineCrossed": "lineCrossed.wav",
+		"diagnosticError": "diagnosticError.wav",
+		"diagnosticWarning": "diagnosticWarning.wav",
 	}
 
 	def __init__(self, nvda_wave_directory, bundled_directory, on_diagnostic=None, player_factory=None):

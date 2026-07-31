@@ -16,6 +16,11 @@ from .core.braille_routing_repeats import (
 )
 from .core.exploration_state import ExplorationAction, ExplorationContext
 from .core.gate import TerminalIdentity
+from .core.held_context_state import (
+	HeldContextDirection,
+	HeldContextKind,
+	HeldContextPresentation,
+)
 from .core.numbered_choice_state import (
 	NumberedChoiceContext,
 	NumberedChoiceDirection,
@@ -97,6 +102,11 @@ class TerminalIntegrationService:
 		exploration_details: Callable[[], tuple[bool, bool, bool]],
 		present_numbered_choice: Callable[[str], bool],
 		dismiss_numbered_choice: Callable[[], None],
+		present_developer_context: Callable[
+			[HeldContextPresentation | None, HeldContextKind],
+			bool,
+		],
+		dismiss_developer_context: Callable[[], None],
 		refresh_braille: Callable[[], None],
 		no_item_selected_message: str,
 		record_diagnostic: Callable[..., None],
@@ -121,6 +131,8 @@ class TerminalIntegrationService:
 			exploration_details,
 			present_numbered_choice,
 			dismiss_numbered_choice,
+			present_developer_context,
+			dismiss_developer_context,
 			refresh_braille,
 			record_diagnostic,
 			fail_open_event,
@@ -145,6 +157,8 @@ class TerminalIntegrationService:
 		self._explorationDetails = exploration_details
 		self._presentNumberedChoice = present_numbered_choice
 		self._dismissNumberedChoice = dismiss_numbered_choice
+		self._presentDeveloperContext = present_developer_context
+		self._dismissDeveloperContext = dismiss_developer_context
 		self._refreshBraille = refresh_braille
 		self._noItemSelectedMessage = no_item_selected_message
 		self._numberedChoiceBrailleStart = numbered_choice_braille_start or (lambda: 1)
@@ -178,6 +192,8 @@ class TerminalIntegrationService:
 		self._pendingBrailleRoutingAction = None
 		self._editorSession.invalidate_numbered_choice()
 		self._dismissNumberedChoice()
+		self._editorSession.invalidate_held_context()
+		self._dismissDeveloperContext()
 		self._controlDispatcher.close()
 		return True
 
@@ -361,6 +377,164 @@ class TerminalIntegrationService:
 			self._fail_open("numberedChoiceAuthorization", error)
 			return None
 
+	def start_held_context(
+		self,
+		kind: HeldContextKind,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		if not isinstance(kind, HeldContextKind):
+			return False
+		identity = self._active_identity(focus_obj, app_module, adapter_token)
+		if identity is None or self._editorSession.active_numbered_choice_context() is not None:
+			return False
+		# A focus or runtime handoff can leave the previous adapter's transient
+		# Braille message visible until the next editor event. Starting a newly
+		# authorized context owns that handoff and must dismiss the old view now.
+		self.cancel_held_context()
+		request = self._editorSession.begin_held_context(
+			kind,
+			identity,
+			adapter_token,
+			self._generation,
+		)
+		selected = self._editorSession.held_context_instance(kind)
+		if request is None or selected is None:
+			return False
+		accepted = self._controlDispatcher.submit(
+			selected[1],
+			request.control,
+			dict(request.payload),
+		)
+		if not accepted:
+			self._editorSession.invalidate_held_context()
+		else:
+			self.cancel_exploration(adapter_token)
+		self._record(
+			"developerContextRequestQueued",
+			accepted=accepted,
+			kind=kind.value,
+			requestId=request.request_id,
+		)
+		return accepted
+
+	def navigate_held_context(
+		self,
+		direction: HeldContextDirection,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		if not isinstance(direction, HeldContextDirection):
+			return False
+		location = self._editorSession.active_held_context_location()
+		identity = self._active_identity(focus_obj, app_module, adapter_token)
+		if (
+			location is None
+			or identity is None
+			or location.identity != identity
+			or location.adapter_token is not adapter_token
+			or location.service_generation is not self._generation
+		):
+			return False
+		presentation = self._editorSession.navigate_held_context(direction)
+		return presentation is not None and self._presentDeveloperContext(presentation, presentation.kind)
+
+	def release_held_context(
+		self,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		location = self._editorSession.active_held_context_location()
+		identity = self._active_identity(focus_obj, app_module, adapter_token)
+		if (
+			location is None
+			or identity is None
+			or location.identity != identity
+			or location.adapter_token is not adapter_token
+		):
+			return False
+		return self.cancel_held_context(adapter_token)
+
+	def cancel_held_context(self, adapter_token: object | None = None) -> bool:
+		location = self._editorSession.active_held_context_location()
+		if location is None or (adapter_token is not None and location.adapter_token is not adapter_token):
+			return False
+		changed = self._editorSession.invalidate_held_context()
+		if changed:
+			self._dismissDeveloperContext()
+			self._refreshBraille()
+		return changed
+
+	def cancel_stale_held_context(self) -> bool:
+		"""Dismiss held information after its exact editor location changes."""
+		if (
+			self._editorSession.active_held_context_location() is None
+			or self._editorSession.held_context_matches_current_state()
+		):
+			return False
+		return self.cancel_held_context()
+
+	def handle_held_context_result(
+		self,
+		instance_id: str,
+		identity: object,
+		event: Mapping[str, Any],
+	) -> bool:
+		event_type = event.get("type")
+		kind = (
+			HeldContextKind.CALLABLE
+			if event_type == "callableContextResult"
+			else HeldContextKind.DIAGNOSTIC
+			if event_type == "diagnosticContextResult"
+			else None
+		)
+		location = self._editorSession.active_held_context_location()
+		if (
+			self._closed
+			or kind is None
+			or location is None
+			or location.instance_id != instance_id
+			or location.identity != identity
+			or location.service_generation is not self._generation
+		):
+			return False
+		if not self._editorSession.held_context_result_is_current(kind, event):
+			self.cancel_held_context(location.adapter_token)
+			return False
+		presentation = self._editorSession.consume_held_context(kind, event)
+		handled = self._presentDeveloperContext(presentation, kind)
+		return handled
+
+	def _active_identity(
+		self,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> object | None:
+		if (
+			self._closed
+			or focus_obj is None
+			or app_module is None
+			or adapter_token is None
+			or getattr(focus_obj, "appModule", None) is not app_module
+			or self._focusService.focused_app_module is not app_module
+			or self._focusService.focused_adapter_token is not adapter_token
+		):
+			return None
+		try:
+			identity = self._focusService.identity(focus_obj)
+			return (
+				identity
+				if identity is not None and self._focusService.is_active_neovim_context(focus_obj)
+				else None
+			)
+		except Exception as error:
+			self._fail_open("developerContextAuthorization", error)
+			return None
+
 	def exploration_script_available(
 		self,
 		focus_obj: object,
@@ -466,6 +640,7 @@ class TerminalIntegrationService:
 		self._pendingBrailleRoutingAction = None
 		self._directBrailleNextLineIntent = None
 		self._dismissNumberedChoice()
+		self.cancel_held_context()
 
 	def handle_exploration_result(
 		self,

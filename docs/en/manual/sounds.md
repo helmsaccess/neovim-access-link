@@ -16,6 +16,13 @@ only the error markers on the display. Normal word navigation and word
 speech exploration mode interpret the same combination; the reached word remains spoken
 independently.
 
+Diagnostic errors and warnings use two short accessibility signals from the
+MIT-licensed Code - OSS source of Visual Studio Code. The bundled sound
+license records the pinned source commit, source and WAV hashes, WAV decoding,
+and the complete MIT license. The cues play only when explicit
+cursor navigation enters a diagnostic line or exact range; the Diagnostic
+line and Diagnostic position feedback settings can disable them separately.
+
 Select Off, Speech, Tones, or Both Speech and Tones under `NVDA menu → Preferences
 → Settings... → Neovim Access Link`. Sounds are bundled resources and are
 played on NVDA's main thread through its audio facilities. A missing sound must

@@ -52,6 +52,8 @@ MOCK_BRIDGE_TESTS = (
     "test_clipboard_control_uses_only_fixed_plugin_entry_points",
     "test_terminal_control_uses_only_its_fixed_plugin_entry_point",
     "test_exploration_uses_only_fixed_bounded_plugin_entry_points",
+    "test_developer_context_uses_only_fixed_capability_gated_entry_points",
+    "test_bridge_publishes_developer_context_once_but_never_caches_it",
     "test_bridge_publishes_clipboard_text_once_but_never_caches_it",
     "test_bridge_publishes_braille_exploration_once_but_never_caches_it",
     "test_bridge_publishes_valid_exploration_once_but_never_caches_it",
@@ -207,6 +209,7 @@ def jobs() -> tuple[Job, ...]:
         "test_braille_navigation.py",
         "test_braille_routing_actions.py",
         "test_clipboard.py",
+        "test_developer_context.py",
         "test_exploration.py",
         "test_local_client.py",
         "test_numbered_choice.py",
@@ -229,6 +232,7 @@ def jobs() -> tuple[Job, ...]:
         "test_exploration.py",
         "test_frontend_policy.py",
         "test_gettext_catalog.py",
+        "test_held_context.py",
         "test_local_install.py",
         "test_local_sessions.py",
         "test_numbered_choice.py",
@@ -254,6 +258,8 @@ def jobs() -> tuple[Job, ...]:
         "completion_adapters_spec.lua",
         "diagnostic_navigation_spec.lua",
         "diagnostics_spec.lua",
+        "developer_context_spec.lua",
+        "developer_context_lsp_integration_spec.lua",
         "exploration_spec.lua",
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",
@@ -388,7 +394,12 @@ def main() -> int:
     separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
     if len(separated_batches) > 1:
         batches = separated_batches
-    with tempfile.TemporaryDirectory(prefix="nvim-nvda-tests-") as temporary_name:
+    temporary_parent = ROOT / "tmp" / "test-runs"
+    temporary_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="nvim-nvda-tests-",
+        dir=temporary_parent,
+    ) as temporary_name:
         temporary_root = Path(temporary_name)
         submitted_index = 0
         for batch_index, batch in enumerate(batches, start=1):

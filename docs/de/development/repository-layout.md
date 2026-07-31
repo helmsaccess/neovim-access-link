@@ -44,7 +44,9 @@ Erzeugte oder private Dateien haben feste Orte:
 
 - `dist/`: installierbare, eindeutig versionierte Pakete;
 - `build/`: erzeugte HTML-Dokumentation und andere reproduzierbare Ergebnisse;
-- `tmp/`: lokale, private und kurzlebige Untersuchungen.
+- `tmp/`: lokale, private und kurzlebige Untersuchungen, Testarbeitsbereiche
+  und heruntergeladene Projektwerkzeuge; projektspezifische temporäre Dateien
+  gehören nicht in das systemweite `/tmp`.
 
 Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 

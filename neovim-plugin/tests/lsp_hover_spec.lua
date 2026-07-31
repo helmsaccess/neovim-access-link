@@ -51,6 +51,15 @@ equal("vim.api.nvim_get_current_buf()", events[#events].payload.summary, "legacy
 equal(1, events[#events].payload.sourceCount, "legacy source count")
 
 local event_count = #events
+vim.lsp.handlers[method]({ message = "simulated hover failure" }, {
+  contents = "must not be emitted",
+}, { bufnr = vim.api.nvim_get_current_buf() }, {})
+equal(event_count, #events, "legacy hover error is ignored")
+vim.lsp.handlers[method](nil, {
+  contents = "other buffer",
+}, { bufnr = vim.api.nvim_get_current_buf() + 1 }, {})
+equal(event_count, #events, "legacy hover for another buffer is ignored")
+
 hover._test_single_result({
   contents = {
     { language = "lua", value = "vim.api.nvim_get_current_buf()" },

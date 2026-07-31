@@ -20,6 +20,10 @@ from nvim_nvda_protocol import (
     valid_braille_explore_line_request, valid_braille_explore_line_result,
     valid_braille_route_action_request,
     valid_end_braille_exploration_request,
+    developer_context_result_state,
+    valid_callable_context_result,
+    valid_context_request,
+    valid_diagnostic_context_result,
 )
 
 
@@ -36,6 +40,8 @@ _BRAILLE_EXPLORE_LINE_LUA = "return require('nvim_nvda').request_braille_explore
 _END_BRAILLE_EXPLORATION_LUA = (
     "return require('nvim_nvda').request_end_braille_exploration(...)"
 )
+_CALLABLE_CONTEXT_LUA = "return require('nvim_nvda').request_callable_context(...)"
+_DIAGNOSTIC_CONTEXT_LUA = "return require('nvim_nvda').request_diagnostic_context(...)"
 
 
 class Bridge:
@@ -78,6 +84,10 @@ class Bridge:
             return dict(self._state)
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        if (event_type == "callableContextResult" and not valid_callable_context_result(payload)) or (
+            event_type == "diagnosticContextResult" and not valid_diagnostic_context_result(payload)
+        ):
+            return
         if event_type == "exploreTextResult" and not valid_explore_text_result(payload):
             return
         if (
@@ -97,6 +107,8 @@ class Bridge:
             state = terminal_control_result_state(payload)
         elif event_type in {"exploreTextResult", "brailleExploreLineResult"}:
             state = exploration_result_state(payload)
+        elif event_type in {"callableContextResult", "diagnosticContextResult"}:
+            state = developer_context_result_state(payload)
         elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
             state = numbered_choice_state(payload)
         else:
@@ -146,6 +158,14 @@ class Bridge:
         if kind == "endExplorationRequest":
             if valid_end_exploration_request(payload):
                 self.nvim.notify("nvim_exec_lua", _END_EXPLORATION_LUA, [dict(payload)])
+            return
+        if kind == "callableContextRequest":
+            if self._supports_plugin_capability("callableContextQuery") and valid_context_request(payload):
+                self.nvim.notify("nvim_exec_lua", _CALLABLE_CONTEXT_LUA, [dict(payload)])
+            return
+        if kind == "diagnosticContextRequest":
+            if self._supports_plugin_capability("diagnosticContextQuery") and valid_context_request(payload):
+                self.nvim.notify("nvim_exec_lua", _DIAGNOSTIC_CONTEXT_LUA, [dict(payload)])
             return
         if kind == "brailleExploreLineRequest":
             if (

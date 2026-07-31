@@ -64,6 +64,15 @@ equal("signatureChanged", events[#events].type, "legacy signature emitted")
 equal("😀x", events[#events].payload.parameter, "UTF-16 parameter range decoded")
 
 local event_count = #events
+vim.lsp.handlers[method]({ message = "simulated signature failure" }, {
+  signatures = {{ label = "must_not_emit()" }},
+}, { bufnr = vim.api.nvim_get_current_buf() }, {})
+equal(event_count, #events, "legacy signature error is ignored")
+vim.lsp.handlers[method](nil, {
+  signatures = {{ label = "other_buffer()" }},
+}, { bufnr = vim.api.nvim_get_current_buf() + 1 }, {})
+equal(event_count, #events, "legacy signature for another buffer is ignored")
+
 vim.lsp.handlers[method](nil, {
   signatures = {{
     label = "call(😀x, y)",

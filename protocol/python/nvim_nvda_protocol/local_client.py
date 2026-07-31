@@ -21,6 +21,12 @@ from .clipboard import (
 	valid_set_register_request,
 )
 from .cursor_routing import valid_route_cursor_request
+from .developer_context import (
+	developer_context_result_state,
+	valid_callable_context_result,
+	valid_context_request,
+	valid_diagnostic_context_result,
+)
 from .exploration import (
 	exploration_result_state,
 	valid_end_exploration_request,
@@ -55,6 +61,8 @@ _SET_REGISTER_LUA = "return require('nvim_nvda').request_set_register(...)"
 _LEAVE_TERMINAL_INPUT_LUA = "return require('nvim_nvda').request_leave_terminal_input(...)"
 _EXPLORE_TEXT_LUA = "return require('nvim_nvda').request_explore_text(...)"
 _END_EXPLORATION_LUA = "return require('nvim_nvda').request_end_exploration(...)"
+_CALLABLE_CONTEXT_LUA = "return require('nvim_nvda').request_callable_context(...)"
+_DIAGNOSTIC_CONTEXT_LUA = "return require('nvim_nvda').request_diagnostic_context(...)"
 
 
 class LocalTcpClient:
@@ -167,6 +175,26 @@ class LocalTcpClient:
 				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
 				return False
 			return self._source.notify("nvim_exec_lua", _END_EXPLORATION_LUA, [dict(payload)])
+		if kind == "callableContextRequest":
+			if not self._supports_plugin_capability("callableContextQuery"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_context_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify("nvim_exec_lua", _CALLABLE_CONTEXT_LUA, [dict(payload)])
+		if kind == "diagnosticContextRequest":
+			if not self._supports_plugin_capability("diagnosticContextQuery"):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
+				return False
+			if not valid_context_request(payload):
+				self.on_diagnostic("controlRejected", {"type": kind, "reason": "invalidControl"})
+				return False
+			return self._source.notify(
+				"nvim_exec_lua",
+				_DIAGNOSTIC_CONTEXT_LUA,
+				[dict(payload)],
+			)
 		if kind == "brailleExploreLineRequest":
 			if not self._supports_plugin_capability("brailleExploration"):
 				self.on_diagnostic("controlRejected", {"type": kind, "reason": "capabilityMissing"})
@@ -238,6 +266,18 @@ class LocalTcpClient:
 		return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
 	def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+		if (event_type == "callableContextResult" and not valid_callable_context_result(payload)) or (
+			event_type == "diagnosticContextResult" and not valid_diagnostic_context_result(payload)
+		):
+			self.on_diagnostic(
+				"localEventRejected",
+				{
+					"type": event_type,
+					"errorType": "ProtocolError",
+					"error": "invalid developer context result",
+				},
+			)
+			return
 		if event_type == "exploreTextResult" and not valid_explore_text_result(payload):
 			self.on_diagnostic(
 				"localEventRejected",
@@ -283,6 +323,8 @@ class LocalTcpClient:
 			state = terminal_control_result_state(state)
 		elif event_type in {"exploreTextResult", "brailleExploreLineResult"}:
 			state = exploration_result_state(state)
+		elif event_type in {"callableContextResult", "diagnosticContextResult"}:
+			state = developer_context_result_state(state)
 		elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
 			state = numbered_choice_state(state)
 		with self._state_lock:
@@ -325,6 +367,12 @@ class LocalTcpClient:
 				capabilities.append("brailleExploration")
 			if self._payload_supports(value, "brailleRoutingActions"):
 				capabilities.append("brailleRoutingActions")
+			if self._payload_supports(value, "callableContextQuery"):
+				capabilities.append("callableContextQuery")
+			if self._payload_supports(value, "diagnosticContextQuery"):
+				capabilities.append("diagnosticContextQuery")
+			if self._payload_supports(value, "diagnosticCursorSummary"):
+				capabilities.append("diagnosticCursorSummary")
 			value["_transport"] = {
 				"capabilities": capabilities,
 				"kind": "windows-loopback-tcp",

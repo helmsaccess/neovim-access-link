@@ -224,6 +224,16 @@ NVDA unverändert. Ein kurzer Doppelton meldet, wenn die virtuelle Position
 wieder das Zeichen, Wort oder die Zeile erreicht, an dem der
 Sprachexplorationsmodus begann.
 
+Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
+`NVDA+Umschalt+P` drücken und die NVDA-Taste weiter halten. `NVDA+h/l`
+schaltet durch die Parameter, `NVDA+k/j` durch mehrere Signaturen. Mit
+`NVDA+Umschalt+E` funktioniert derselbe gehaltene Ablauf für Diagnosen am
+Cursor und auf der aktuellen Zeile; hier schaltet `NVDA+k/j` durch die
+Einträge. Beim Loslassen der letzten NVDA-Taste verschwindet die
+vorübergehende Brailleanzeige. Fehler und Warnungen können beim gezielten
+Betreten ihrer Zeile oder ihres Bereichs einen kurzen Klang auslösen;
+Hintergrundaktualisierungen und Tippen bleiben stumm.
+
 Die Navigationstasten der Braillezeile besitzen davon unabhängig einen
 Braille-Cursormodus und einen Braille-Explorationsmodus. Im
 Braille-Cursormodus versetzen Oben und Unten den echten Neovim-Cursor. Im

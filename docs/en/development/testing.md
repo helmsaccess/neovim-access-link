@@ -70,7 +70,7 @@ concurrency and `--list` to inspect selection without running it.
 |---|---|
 | `unit` | pure and mock-isolated Python tests |
 | `package` | built add-on, package contents, and NVDA integration doubles in two isolated process shards; serial within each shard |
-| `lua` | headless-Neovim specifications that do not open listeners |
+| `lua` | headless-Neovim specifications that do not open listeners, including a deterministic stdio LSP server through Neovim's real LSP client |
 | `ssh` | separately runnable SSH command, Askpass, and failure paths; all external processes are replaced in these automated tests |
 | `socket` | real disposable Neovim TUI, RPC, TCP, and Unix-socket cases |
 | `quick` | fast feedback; equivalent to `unit` |

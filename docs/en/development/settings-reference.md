@@ -29,6 +29,11 @@ start at which the translated result completely fits then limits the requested
 cell to the left; a longer suggestion starts at cell 1. The setting never
 changes speech or the persistent editor Braille plan.
 
+The top-level profile-aware integer `brailleDeveloperStart` follows the same
+validation and fit rules. It positions only held function-parameter and
+diagnostic views and remains independent of `brailleSuggestionStart`. Both
+values default to 1.
+
 The top-level profile-aware Boolean `brailleFollowSpeechExploration` defaults
 to `true`. It allows the Braille plan to present the contextual speech
 exploration controller's validated virtual line while canonical editor state
@@ -64,6 +69,10 @@ steps nor character exploration.
 
 Feedback also contains a profile-aware copy/paste success setting using the
 same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
+`diagnosticLine` and `diagnosticPosition` independently gate passive error or
+warning cues on entering an affected line or exact range. The settings UI
+offers only Off and Tones for these keys; complete text remains available
+through explicit diagnostic inspection and navigation.
 The four clipboard commands have no default gestures and are assigned through
 NVDA's Input Gestures dialog after Windows Terminal was focused before opening
 it. Like the other configurable terminal commands, they belong to that

@@ -13,6 +13,8 @@ from .core.connection_profiles import parse_profiles
 
 BRAILLE_SUGGESTION_START_DEFAULT = 1
 BRAILLE_SUGGESTION_START_MAXIMUM = 1000
+BRAILLE_DEVELOPER_START_DEFAULT = BRAILLE_SUGGESTION_START_DEFAULT
+BRAILLE_DEVELOPER_START_MAXIMUM = BRAILLE_SUGGESTION_START_MAXIMUM
 BRAILLE_ROUTING_WORD_ACTIONS = ("none", "changeWord", "deleteWord")
 BRAILLE_ROUTING_LINE_ACTIONS = ("none", "changeLine", "deleteLine")
 BRAILLE_ROUTING_LINE_STARTS = ("routing", "indentation", "beginning")
@@ -31,6 +33,7 @@ class SettingsChange:
 	feedback_changed: bool
 	navigation_details_changed: bool
 	braille_suggestion_start_changed: bool
+	braille_developer_start_changed: bool
 	braille_routing_changed: bool
 	braille_follow_speech_exploration_changed: bool
 	focus_announcement_changed: bool
@@ -132,6 +135,21 @@ class SettingsService:
 				option="brailleSuggestionStart",
 			)
 			braille_suggestion_start = BRAILLE_SUGGESTION_START_DEFAULT
+		braille_developer_start = settings.get(
+			"brailleDeveloperStart",
+			braille_suggestion_start,
+		)
+		if not (
+			isinstance(braille_developer_start, int)
+			and not isinstance(braille_developer_start, bool)
+			and BRAILLE_DEVELOPER_START_DEFAULT <= braille_developer_start <= BRAILLE_DEVELOPER_START_MAXIMUM
+		):
+			self._recordDiagnostic(
+				"configError",
+				error="invalid Braille developer information start",
+				option="brailleDeveloperStart",
+			)
+			braille_developer_start = braille_suggestion_start
 		braille_routing = dict(BRAILLE_ROUTING_DEFAULTS)
 		for key, maximum in (
 			("wordAction", len(BRAILLE_ROUTING_WORD_ACTIONS) - 1),
@@ -170,6 +188,7 @@ class SettingsService:
 			"feedback": feedback,
 			"navigationDetails": navigation_details,
 			"brailleSuggestionStart": braille_suggestion_start,
+			"brailleDeveloperStart": braille_developer_start,
 			"brailleRouting": braille_routing,
 			"brailleFollowSpeechExploration": braille_follow_speech_exploration,
 			"focusAnnouncement": focus_announcement,
@@ -194,6 +213,7 @@ class SettingsService:
 			feedbackChanged=change.feedback_changed,
 			navigationDetailsChanged=change.navigation_details_changed,
 			brailleSuggestionStartChanged=change.braille_suggestion_start_changed,
+			brailleDeveloperStartChanged=change.braille_developer_start_changed,
 			brailleRoutingChanged=change.braille_routing_changed,
 			brailleFollowSpeechExplorationChanged=(change.braille_follow_speech_exploration_changed),
 			focusAnnouncementChanged=change.focus_announcement_changed,
@@ -229,6 +249,17 @@ class SettingsService:
 		):
 			return value
 		return BRAILLE_SUGGESTION_START_DEFAULT
+
+	def braille_developer_start(self) -> int:
+		"""Return the one-based Braille cell for held developer information."""
+		value = self._values.get("brailleDeveloperStart", self.braille_suggestion_start())
+		if (
+			isinstance(value, int)
+			and not isinstance(value, bool)
+			and BRAILLE_DEVELOPER_START_DEFAULT <= value <= BRAILLE_DEVELOPER_START_MAXIMUM
+		):
+			return value
+		return self.braille_suggestion_start()
 
 	def braille_routing_actions(self) -> BrailleRoutingActions:
 		"""Return fixed repeated-routing actions selected for the active profile."""
@@ -285,6 +316,10 @@ class SettingsService:
 					"brailleSuggestionStart",
 					BRAILLE_SUGGESTION_START_DEFAULT,
 				),
+				"brailleDeveloperStart": section.get(
+					"brailleDeveloperStart",
+					section.get("brailleSuggestionStart", BRAILLE_SUGGESTION_START_DEFAULT),
+				),
 				"brailleFollowSpeechExploration": section.get(
 					"brailleFollowSpeechExploration",
 					BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
@@ -310,6 +345,9 @@ class SettingsService:
 		section["focusAnnouncement"] = int(settings.get("focusAnnouncement", self._focusAnnouncementDefault))
 		section["brailleSuggestionStart"] = int(
 			settings.get("brailleSuggestionStart", BRAILLE_SUGGESTION_START_DEFAULT)
+		)
+		section["brailleDeveloperStart"] = int(
+			settings.get("brailleDeveloperStart", settings["brailleSuggestionStart"])
 		)
 		section["brailleFollowSpeechExploration"] = bool(
 			settings.get(
@@ -342,6 +380,9 @@ class SettingsService:
 		braille_suggestion_start_changed = previous.get("brailleSuggestionStart") != values.get(
 			"brailleSuggestionStart"
 		)
+		braille_developer_start_changed = previous.get("brailleDeveloperStart") != values.get(
+			"brailleDeveloperStart"
+		)
 		braille_routing_changed = previous.get("brailleRouting") != values.get("brailleRouting")
 		braille_follow_speech_exploration_changed = previous.get(
 			"brailleFollowSpeechExploration"
@@ -363,6 +404,7 @@ class SettingsService:
 			feedback_changed=feedback_changed,
 			navigation_details_changed=navigation_details_changed,
 			braille_suggestion_start_changed=braille_suggestion_start_changed,
+			braille_developer_start_changed=braille_developer_start_changed,
 			braille_routing_changed=braille_routing_changed,
 			braille_follow_speech_exploration_changed=(braille_follow_speech_exploration_changed),
 			focus_announcement_changed=focus_changed,

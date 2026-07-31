@@ -55,6 +55,7 @@ class ConnectionCoordinator:
         "terminalControl",
         "numberedChoice",
         "brailleExploration",
+        "developerContext",
     })
     _PENDING_CHANNELS = frozenset({"clipboard", "terminalControl"})
 

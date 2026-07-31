@@ -75,7 +75,7 @@ ohne Ausführung.
 |---|---|
 | `unit` | reine und mit Attrappen isolierte Python-Tests |
 | `package` | gebautes Add-on, Paketinhalt und NVDA-Integrationsattrappen in zwei isolierten Prozess-Shards; innerhalb jedes Shards seriell |
-| `lua` | Headless-Neovim-Spezifikationen ohne Listener |
+| `lua` | Headless-Neovim-Spezifikationen ohne Listener, einschließlich eines deterministischen stdio-LSP-Servers über Neovims echten LSP-Client |
 | `ssh` | separat ausführbare SSH-Kommando-, Askpass- und Fehlerpfade; alle externen Prozesse sind in diesen automatisierten Tests ersetzt |
 | `socket` | echte wegwerfbare Neovim-TUI-, RPC-, TCP- und Unix-Socket-Fälle |
 | `quick` | schnelle Rückmeldung; entspricht `unit` |

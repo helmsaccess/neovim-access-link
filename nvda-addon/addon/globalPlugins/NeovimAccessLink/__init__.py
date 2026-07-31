@@ -91,6 +91,10 @@ from .core.exploration_state import ExplorationAction as ExplorationAction  # no
 from .core.numbered_choice_state import (  # noqa: E402
 	NumberedChoiceDirection as NumberedChoiceDirection,
 )
+from .core.held_context_state import (  # noqa: E402
+	HeldContextDirection as HeldContextDirection,
+	HeldContextKind as HeldContextKind,
+)
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
@@ -101,6 +105,8 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import (  # noqa: E402
+	BRAILLE_DEVELOPER_START_DEFAULT,
+	BRAILLE_DEVELOPER_START_MAXIMUM,
 	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
@@ -302,6 +308,8 @@ _FEEDBACK_DEFAULTS = {
 	"fileBoundary": 3,
 	"lineCrossed": 2,
 	"matchingError": 3,
+	"diagnosticLine": 2,
+	"diagnosticPosition": 2,
 	"clipboard": 3,
 }
 _FEEDBACK_FOR_SOUND = {
@@ -330,6 +338,10 @@ _NVDA_CONFIG_SPEC = {
 	"brailleSuggestionStart": (
 		f"integer(default={BRAILLE_SUGGESTION_START_DEFAULT}, "
 		f"min={BRAILLE_SUGGESTION_START_DEFAULT}, max={BRAILLE_SUGGESTION_START_MAXIMUM})"
+	),
+	"brailleDeveloperStart": (
+		f"integer(default={BRAILLE_DEVELOPER_START_DEFAULT}, "
+		f"min={BRAILLE_DEVELOPER_START_DEFAULT}, max={BRAILLE_DEVELOPER_START_MAXIMUM})"
 	),
 	"brailleFollowSpeechExploration": (
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
@@ -394,6 +406,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
 		self._numberedChoiceBrailleMessageToken = None
+		self._developerContextBrailleMessageToken = None
 		managed_client_factory = ManagedClientFactory(
 			local_client_constructor=lambda *args, **kwargs: LocalTcpClient(*args, **kwargs),
 			ssh_client_constructor=lambda *args, **kwargs: SshStdioClient(*args, **kwargs),
@@ -480,6 +493,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			exploration_details=lambda: self._settingsService.navigation_details(exploration=True),
 			present_numbered_choice=self._presentNumberedChoice,
 			dismiss_numbered_choice=self._dismissNumberedChoice,
+			present_developer_context=self._presentDeveloperContext,
+			dismiss_developer_context=self._dismissDeveloperContext,
 			# Rebuild because NVDA's incremental update only finds an already visible
 			# region for the identical focus object. Contextual input can otherwise
 			# leave the transient choice outside that update set.
@@ -2148,6 +2163,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					reason="staleOrUnbound",
 				)
 			return
+		if event.get("type") in {"callableContextResult", "diagnosticContextResult"}:
+			if not self._terminalIntegrationService.handle_held_context_result(
+				instance_id,
+				identity,
+				event,
+			):
+				self._diagnostics.record(
+					"developerContextResultIgnored",
+					instanceId=instance_id,
+					reason="staleOrUnbound",
+				)
+			return
 		if event.get("type") == "brailleExploreLineResult":
 			if not self._terminalIntegrationService.handle_braille_exploration_result(
 				instance_id,
@@ -2482,6 +2509,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _handleEvent(self, event, *, connection_label=None):
 		activated = False
 		payload = event.get("payload")
+		previous_payload = self._editorSessionController.exploration_state()
 		word_character, line_word, line_character = self._settingsService.navigation_details(
 			exploration=False
 		)
@@ -2496,6 +2524,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			line_character=line_character,
 		)
 		transition = plan.transition
+		self._terminalIntegrationService.cancel_stale_held_context()
 		keyObserverDiagnostics = (
 			payload.get("keyObserverDiagnostics", {}) if isinstance(payload, dict) else {}
 		)
@@ -2572,6 +2601,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				activated = True
 		if not self._gate.manual_enabled:
 			return
+		self._playDiagnosticNavigationCue(
+			event_type,
+			previous_payload,
+			payload if isinstance(payload, dict) else {},
+		)
 		self._presentation.deliver_actions(
 			plan.speech_actions,
 			event_type=event.get("type"),
@@ -2597,6 +2631,48 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					and not self._editorSessionController.braille_exploration_enabled()
 				),
 			)
+
+	def _playDiagnosticNavigationCue(self, event_type, previous_payload, payload):
+		navigation_events = {
+			"characterMoved",
+			"wordMoved",
+			"lineChanged",
+			"lineStart",
+			"lineEnd",
+			"searchMatchChanged",
+			"matchingPairMoved",
+		}
+		if event_type not in navigation_events:
+			return
+		previous_cursor = previous_payload.get("cursor")
+		cursor = payload.get("cursor")
+		previous_summary = previous_payload.get("diagnosticSummary")
+		summary = payload.get("diagnosticSummary")
+		if not all(isinstance(value, dict) for value in (previous_cursor, cursor, previous_summary, summary)):
+			return
+		previous_identity = previous_summary.get("positionIdentity", "")
+		position_identity = summary.get("positionIdentity", "")
+		at_position = bool(position_identity and position_identity != previous_identity)
+		line_changed = cursor.get("line") != previous_cursor.get("line")
+		severity = (
+			summary.get("positionSeverity")
+			if at_position
+			else summary.get("lineSeverity")
+			if line_changed
+			else None
+		)
+		if severity not in {"error", "warning"}:
+			return
+		played = self._presentation.play_diagnostic_sound(
+			severity,
+			at_position=at_position,
+		)
+		self._diagnostics.record(
+			"diagnosticNavigationSound",
+			severity=severity,
+			scope="position" if at_position else "line",
+			played=played,
+		)
 
 	def _reportIndentation(self, quarterTones, level):
 		self._presentation.report_indentation(quarterTones, level)
@@ -2694,6 +2770,85 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._numberedChoiceBrailleMessageToken = None
 		dismissed = dismiss_numbered_choice_message(message_token)
 		self._diagnostics.record("numberedChoiceBrailleMessageDismissed", dismissed=dismissed)
+
+	def _presentDeveloperContext(self, presentation, kind):
+		if presentation is None:
+			text = (
+				# Translators: Spoken when no callable information is available at the cursor.
+				_("No function parameters or hover information available")
+				if kind is HeldContextKind.CALLABLE
+				# Translators: Spoken when no diagnostic is available on the current line.
+				else _("No diagnostics on this line")
+			)
+		elif kind is HeldContextKind.CALLABLE:
+			signature = presentation.item.get("signature", "")
+			documentation = presentation.item.get("documentation", "")
+			if presentation.parameter_count:
+				# Translators: Held callable context. All numbers are one-based positions.
+				text = _(
+					"Parameter {parameterIndex} of {parameterCount}: {parameter}. "
+					"Signature {signatureIndex} of {signatureCount}: {signature}"
+				).format(
+					parameterIndex=presentation.parameter_index + 1,
+					parameterCount=presentation.parameter_count,
+					parameter=presentation.parameter,
+					signatureIndex=presentation.item_index + 1,
+					signatureCount=presentation.item_count,
+					signature=signature,
+				)
+			else:
+				# Translators: Held callable context when the server only supplies a signature.
+				text = _("Signature {index} of {count}: {signature}").format(
+					index=presentation.item_index + 1,
+					count=presentation.item_count,
+					signature=signature,
+				)
+			if documentation:
+				text = _("{context}. Documentation: {documentation}").format(
+					context=text,
+					documentation=documentation,
+				)
+		else:
+			item = presentation.item
+			severity = {
+				"error": _("error"),
+				"warning": _("warning"),
+				"information": _("information"),
+				"hint": _("hint"),
+			}.get(item.get("severity"), _("diagnostic"))
+			source = item.get("source", "")
+			code = item.get("code")
+			provider = " ".join(part for part in (source, str(code) if code is not None else "") if part)
+			# Translators: Held diagnostic context. The provider may contain a linter name and code.
+			text = _("{severity}, diagnostic {index} of {count}: {message}").format(
+				severity=severity,
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				message=item.get("message", ""),
+			)
+			if provider:
+				text = _("{context}. Source: {source}").format(context=text, source=provider)
+		speech.cancelSpeech()
+		speech.speakText(text)
+		self._dismissDeveloperContext()
+		self._developerContextBrailleMessageToken = present_numbered_choice_message(
+			text,
+			start_cell=self._settingsService.braille_developer_start(),
+		)
+		self._diagnostics.record(
+			"developerContextPresented",
+			kind=kind.value,
+			braille=self._developerContextBrailleMessageToken is not None,
+		)
+		return True
+
+	def _dismissDeveloperContext(self):
+		message_token = self._developerContextBrailleMessageToken
+		if message_token is None:
+			return
+		self._developerContextBrailleMessageToken = None
+		dismissed = dismiss_numbered_choice_message(message_token)
+		self._diagnostics.record("developerContextBrailleMessageDismissed", dismissed=dismissed)
 
 	def _queueBrailleRefresh(self, rebuild, follow_cursor=False):
 		self._queueRuntimeCallback(self._refreshBraille, rebuild, follow_cursor)

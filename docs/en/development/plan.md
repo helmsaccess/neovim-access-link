@@ -114,6 +114,11 @@ general popup scraping.
 - Measure high event load, large files, and many concurrent sessions.
 - Add more representative Windows, NVDA, Neovim, language, and SSH
   configurations to the practical matrix according to risk.
+- Practically exercise the implemented held parameter and diagnostic views
+  with Pyright and other representative language servers on 20-, 40-, and
+  80-cell Braille displays. Confirm multiple signatures, the hover fallback,
+  overlapping diagnostics, every NVDA-key release order, and sound
+  suppression while typing.
 - Investigate the unresolved older Rocky Linux/Neovim combination only when a
   concrete support target is chosen.
 - Plan portable layouts, `NVIM_APPNAME`, other terminal frontends, and Neovim

@@ -33,6 +33,11 @@ Start begrenzt anschließend den eingestellten Wert nach links; ein längerer
 Vorschlag beginnt auf Modul 1. Sprache und dauerhafte Editor-Brailleplanung
 bleiben unverändert.
 
+Der profilfähige Ganzzahlwert `brailleDeveloperStart` folgt denselben
+Validierungs- und Einpassregeln. Er positioniert ausschließlich die gehaltene
+Anzeige von Funktionsparametern und Diagnosen und ist von
+`brailleSuggestionStart` unabhängig. Beide Werte verwenden standardmäßig 1.
+
 Der profilfähige boolesche Wert `brailleFollowSpeechExploration` ist
 standardmäßig `true`. Er erlaubt dem Brailleplan, die validierte virtuelle
 Zeile des Controllers für den Sprachexplorationsmodus anzuzeigen. Der
@@ -70,7 +75,12 @@ Option besitzt:
 - Dateianfang und Dateiende
 - Hinweis beim Überschreiten einer Zeilengrenze
 - fehlendes passendes Klammerzeichen
+- Diagnosefehler oder -warnung beim Eintritt in eine betroffene Zeile
+- Diagnosefehler oder -warnung beim Eintritt in einen exakten Bereich
 - Erfolg beim expliziten Kopieren und Einfügen
+
+Für die beiden reinen Diagnoseklänge bietet die Oberfläche nur `Aus` und
+`Töne`; sie erzeugen keine beiläufige Sprachausgabe.
 
 Folgende Funktionen werden bewusst nicht dupliziert:
 

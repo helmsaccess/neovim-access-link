@@ -25,7 +25,7 @@ from tools.gettext_catalog import compile_catalogs
 PROTOCOL_MODULES = (
     "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
     "clipboard.py", "codec.py",
-    "cursor_routing.py", "exploration.py",
+    "cursor_routing.py", "developer_context.py", "exploration.py",
     "local_client.py", "messages.py",
     "numbered_choice.py", "nvim_rpc.py", "reconnect.py", "session.py", "stdio_client.py",
     "terminal_control.py", "text.py",
@@ -35,7 +35,8 @@ CORE_MODULES = (
     "braille_routing_repeats.py", "connection_coordinator.py",
     "connection_instances.py",
     "connection_profiles.py",
-    "connection_targets.py", "diagnostics.py", "exploration_state.py", "numbered_choice_state.py",
+    "connection_targets.py", "diagnostics.py", "exploration_state.py", "held_context_state.py",
+    "numbered_choice_state.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",
     "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )

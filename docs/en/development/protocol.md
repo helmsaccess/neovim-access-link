@@ -94,6 +94,10 @@ It independently adds `brailleExploration` only when the plugin reports the
 separate ephemeral Braille line channel.
 It adds `brailleRoutingActions` only when the plugin reports the fixed
 repeated-routing actions and their complete state validation.
+It adds `callableContextQuery` and `diagnosticContextQuery` only when the
+plugin reports the correlated read-only queries.
+`diagnosticCursorSummary` additionally marks the compact text-free diagnostic
+summary in normal snapshots.
 Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
 are not supported.
 
@@ -148,7 +152,8 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
-`numberedChoiceClosed`, and `connectionStateChanged`.
+`numberedChoiceClosed`, `callableContextResult`,
+`diagnosticContextResult`, and `connectionStateChanged`.
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
@@ -172,6 +177,9 @@ one-based lines, zero-based UTF-8 byte columns, index, and count. A missing
 source may fall back to the bounded Neovim namespace name. Invalid provider
 records are discarded and are never executed or interpreted as Neovim or
 linter commands.
+`diagnosticSummary` carries only the count and highest severity on the line
+and at the cursor plus an opaque text-free range identity for passive cues.
+Messages, source code, and quick-fix data are not part of this summary.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only
@@ -257,6 +265,17 @@ Only these add-on-to-Neovim controls are permitted:
 - `acceptNumberedChoiceRequest` with a correlated request ID, choice kind,
   choice ID, zero-based item index, and exact buffer, window, tab, and changed
   tick identity.
+- `callableContextRequest` and `diagnosticContextRequest` with a correlated
+  request ID and exact buffer, window, tab, changed-tick, line, and UTF-8 byte
+  column identity.
+
+Both context results repeat the complete identity. A diagnostic result
+contains at most 100 entries from the current line; a callable result contains
+at most 100 signatures with at most 100 parameters each. Individual text
+fields are bounded to 16 KiB and all text in one result to 256 KiB. Add-on and
+plugin discard replies after any focus, instance, buffer, text, or cursor
+change. Neither query moves the editor cursor or Neovim's diagnostic
+selection.
 
 `requestFocusContext` is sent only to an authenticated instance bound exactly
 to the focused terminal control. A mismatched request ID, instance, binding, or

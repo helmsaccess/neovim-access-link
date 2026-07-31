@@ -1,7 +1,7 @@
 # Current status
 
 Status date: July 31, 2026. Product version in the source tree:
-0.97.0 development build 6.
+0.97.0 development build 8.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -27,8 +27,11 @@ into independent jobs. The completion matrix covers Neovim 0.10.1/0.12.3,
 `nvim-cmp`, `blink.cmp` v1, and the provisional v2 revision. The diagnostic
 matrix covers `nvim-lint` and ALE with seven real linters for C, Python, Bash,
 Go, Rust, Ruby, and Markdown, plus the `none-ls.nvim` LSP bridge, on both
-Neovim versions. The jobs use neither production SSH targets nor private
-infrastructure and do not replace practical Windows/NVDA verification.
+Neovim versions. The listener-free standard suite also starts a small
+deterministic LSP server over stdio and exercises signature help, parameter
+documentation, and the hover fallback through Neovim's real LSP client. The
+jobs use neither production SSH targets nor private infrastructure and do not
+replace practical Windows/NVDA verification.
 
 ## Reference environment
 
@@ -235,6 +238,12 @@ buffer context changes.
 `:NvimNvdaLspStatus` reports bounded current-buffer client status on demand.
 Progress is not announced automatically to avoid an unbounded speech stream.
 
+`NVDA+Shift+P` starts a correlated read-only LSP signature-help query with a
+hover fallback. While NVDA remains held, `NVDA+h/l` cycles parameters locally
+and `NVDA+k/j` cycles signatures. A separate per-instance controller binds the
+view to exact focus, buffer, window, tab, changed-tick, and cursor identity;
+any mismatch discards both reply and Braille message.
+
 General diagnostics are validated, bounded, and selected deterministically
 through `vim.diagnostic`, independent of their origin. Five freely mappable
 Neovim commands report or reach the previous, next, first, last, and current
@@ -248,6 +257,12 @@ Windows/NVDA acceptance. Native LSP paths such as `gopls` and
 practical round. Directly typed native `[d`/`]d` jumps remain semantically
 observable even when a per-call callback replaces Neovim's global
 diagnostic-jump hook.
+`NVDA+Shift+E` holds a bounded list of diagnostics under the cursor and on
+the current line; `NVDA+k/j` cycles without moving the real cursor. A
+text-free diagnostic summary enables separately configurable error and
+warning cues when entering a diagnostic line or exact range. The two signals
+come from the MIT-licensed Visual Studio Code Code - OSS source; the add-on
+records the commit, hashes, conversion, and license.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

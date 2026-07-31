@@ -282,6 +282,116 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertIn("request_explore_text", notifications[0][1][0])
 		self.assertIn("request_end_exploration", notifications[1][1][0])
 
+	def test_developer_context_uses_only_fixed_capability_gated_entry_points(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {
+			"pluginCapabilities": [
+				"callableContextQuery",
+				"diagnosticContextQuery",
+			],
+		}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append(
+					(method, parameters)
+				),
+			},
+		)()
+		payload = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		bridge._on_client_control("callableContextRequest", payload)
+		bridge._on_client_control("diagnosticContextRequest", payload)
+		bridge._on_client_control("callableContextRequest", {**payload, "line": 0})
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_client_control("diagnosticContextRequest", payload)
+		self.assertEqual(2, len(notifications))
+		self.assertIn("request_callable_context", notifications[0][1][0])
+		self.assertIn("request_diagnostic_context", notifications[1][1][0])
+		self.assertEqual([payload], notifications[0][1][1])
+		self.assertEqual([payload], notifications[1][1][1])
+
+	def test_bridge_publishes_developer_context_once_but_never_caches_it(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {}
+		bridge.transport = transport
+		request = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		result = {
+			**request,
+			"ok": True,
+			"resultCode": "ok",
+			"items": [
+				{
+					"signature": "calculate_total(price, quantity)",
+					"parameters": ["price", "quantity"],
+					"documentation": "",
+				},
+			],
+			"activeItem": 0,
+			"activeParameter": 0,
+		}
+		bridge._on_nvim_event("callableContextResult", result)
+		self.assertEqual(result["items"], transport.events[-1]["payload"]["items"])
+		self.assertNotIn("items", bridge.full_state())
+		self.assertNotIn("requestId", bridge.full_state())
+		diagnostic = {
+			"message": "Undefined name",
+			"severity": "error",
+			"source": "ruff",
+			"code": "F821",
+			"line": 6,
+			"byteColumn": 7,
+			"endLine": 6,
+			"endByteColumn": 12,
+			"atCursor": True,
+		}
+		bridge._on_nvim_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic],
+				"activeItem": 0,
+				"activeParameter": 0,
+			},
+		)
+		self.assertEqual([diagnostic], transport.events[-1]["payload"]["items"])
+		self.assertNotIn("items", bridge.full_state())
+		bridge._on_nvim_event("callableContextResult", {**result, "bufferId": 0})
+		bridge._on_nvim_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic],
+				"activeItem": 0,
+				"activeParameter": 1,
+			},
+		)
+		self.assertEqual(2, len(transport.events))
+
 	def test_bridge_publishes_clipboard_text_once_but_never_caches_it(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)

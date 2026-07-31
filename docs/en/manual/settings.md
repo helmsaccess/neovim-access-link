@@ -59,6 +59,9 @@ of that entry choice; the Insert/focus cue still follows feedback settings.
 Global action feedback and individual actions use Off, Speech, Tones, or
 Both Speech and Tones. Individual settings cover mode changes, deletion, replace,
 line/file boundaries, crossing a line, and unmatched pairs.
+The two sound-only diagnostic line and diagnostic position settings
+deliberately offer only Off and Tones. Complete diagnostic text remains
+available through explicit inspection and diagnostic navigation.
 
 The mode setting also governs the focus cue for direct embedded-terminal input,
 the Normal cue for canonical Terminal-Normal, and the short command-line tone.
@@ -194,6 +197,13 @@ fully translated suggestion would not fit from the requested cell, the add-on
 moves it left only as far as needed to fit it right-aligned. A suggestion
 longer than the display starts at cell 1. The value uses NVDA's normal
 configuration profiles.
+
+### Developer information
+
+“Start temporary developer information at Braille cell” positions the held
+function-parameter and diagnostic views. It follows the same short-display
+and right-alignment rules as spelling suggestions but has an independent,
+profile-aware value. The default is cell 1.
 
 ## Connections
 

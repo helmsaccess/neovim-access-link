@@ -90,6 +90,9 @@ function M.snapshot(reason)
       "brailleLineNavigation",
       "brailleExploration",
       "brailleRoutingActions",
+      "callableContextQuery",
+      "diagnosticContextQuery",
+      "diagnosticCursorSummary",
     },
     reason = reason,
     mode = M.normalize_mode(mode_raw),
@@ -132,6 +135,7 @@ function M.snapshot(reason)
   }
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
   result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])
+  result.diagnosticSummary = diagnostics.summary(buf, cursor[1], cursor[2])
   if visual_modes[mode_raw] then
     local position = vim.fn.getpos("v")
     local anchor = { line = position[2], byteColumn = math.max(0, position[3] - 1) }

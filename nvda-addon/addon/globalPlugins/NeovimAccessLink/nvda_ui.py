@@ -18,6 +18,8 @@ from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_
 from .core.local_install import LocalPluginInstaller
 from .core.ssh_install import InstallResult, SshUserInstaller
 from .settings_service import (
+	BRAILLE_DEVELOPER_START_DEFAULT,
+	BRAILLE_DEVELOPER_START_MAXIMUM,
 	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
@@ -240,6 +242,8 @@ class NvdaUiManager:
 				("fileBoundary", _("&File boundaries:")),
 				("lineCrossed", _("Crossing into another &line:")),
 				("matchingError", _("Missing matching &bracket:")),
+				("diagnosticLine", _("Diagnostics when entering a &line:")),
+				("diagnosticPosition", _("Diagnostics at the cursor &position:")),
 				("clipboard", _("Copy and &paste:")),
 			)
 
@@ -307,11 +311,13 @@ class NvdaUiManager:
 					global_group = guiHelper.BoxSizerHelper(general_page, sizer=global_sizer)
 					choices = [_("Off"), _("Speech"), _("Tones"), _("Both Speech and Tones")]
 					self.feedbackControls = {}
+					self.feedbackValueMaps = {}
 					feedback = settings.get("feedback", feedback_defaults)
 					key, label = labels[0]
 					control = global_group.addLabeledControl(label, wx.Choice, choices=choices)
 					control.SetSelection(int(feedback.get(key, feedback_defaults[key])))
 					self.feedbackControls[key] = control
+					self.feedbackValueMaps[key] = (0, 1, 2, 3)
 
 					focus_sizer = wx.StaticBoxSizer(
 						wx.VERTICAL,
@@ -451,6 +457,35 @@ class NvdaUiManager:
 							)
 						)
 					)
+					# Translators: Group for Braille presentation of temporary developer information.
+					braille_developer_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						braille_page,
+						label=_("Developer information"),
+					)
+					braille_helper.addItem(braille_developer_sizer)
+					braille_developer_group = guiHelper.BoxSizerHelper(
+						braille_page,
+						sizer=braille_developer_sizer,
+					)
+					# Translators: One-based Braille cell where held parameters or diagnostics begin.
+					self.brailleDeveloperStart = braille_developer_group.addLabeledControl(
+						_("Start temporary &developer information at Braille cell:"),
+						wx.SpinCtrl,
+						min=BRAILLE_DEVELOPER_START_DEFAULT,
+						max=BRAILLE_DEVELOPER_START_MAXIMUM,
+					)
+					self.brailleDeveloperStart.SetValue(
+						int(
+							settings.get(
+								"brailleDeveloperStart",
+								settings.get(
+									"brailleSuggestionStart",
+									BRAILLE_DEVELOPER_START_DEFAULT,
+								),
+							)
+						)
+					)
 
 					actions_sizer = wx.StaticBoxSizer(
 						wx.VERTICAL,
@@ -460,9 +495,19 @@ class NvdaUiManager:
 					feedback_helper.addItem(actions_sizer)
 					actions_group = guiHelper.BoxSizerHelper(feedback_page, sizer=actions_sizer)
 					for key, label in labels[1:]:
-						control = actions_group.addLabeledControl(label, wx.Choice, choices=choices)
-						control.SetSelection(int(feedback.get(key, feedback_defaults[key])))
+						value_map = (
+							(0, 2) if key in {"diagnosticLine", "diagnosticPosition"} else (0, 1, 2, 3)
+						)
+						control_choices = [_("Off"), _("Tones")] if len(value_map) == 2 else choices
+						control = actions_group.addLabeledControl(
+							label,
+							wx.Choice,
+							choices=control_choices,
+						)
+						value = int(feedback.get(key, feedback_defaults[key]))
+						control.SetSelection(value_map.index(value) if value in value_map else 0)
 						self.feedbackControls[key] = control
+						self.feedbackValueMaps[key] = value_map
 					note = wx.StaticText(
 						feedback_page,
 						label=_(
@@ -677,6 +722,7 @@ class NvdaUiManager:
 						{
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
 							"brailleSuggestionStart": self.brailleSuggestionStart.GetValue(),
+							"brailleDeveloperStart": self.brailleDeveloperStart.GetValue(),
 							"brailleFollowSpeechExploration": (
 								self.brailleFollowSpeechExploration.GetValue()
 							),
@@ -686,7 +732,8 @@ class NvdaUiManager:
 								"lineStart": self.brailleRoutingLineStart.GetSelection(),
 							},
 							"feedback": {
-								key: control.GetSelection() for key, control in self.feedbackControls.items()
+								key: self.feedbackValueMaps[key][control.GetSelection()]
+								for key, control in self.feedbackControls.items()
 							},
 							"navigationDetails": {
 								key: control.GetSelection()

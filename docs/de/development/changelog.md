@@ -36,6 +36,11 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Ergänzt `:NvimNvdaLspStatus` für einen begrenzten, inhaltsfreien
   Clientstatus des aktuellen Buffers in Sprache/Braille; fortlaufender
   LSP-Fortschritt bleibt zur Vermeidung von Sprachfluten stumm.
+- Ergänzt `NVDA+Umschalt+P` für eine gehaltene, rein lesende Parameteransicht:
+  `NVDA+h/l` schaltet lokal durch Parameter, `NVDA+k/j` durch Signaturen.
+  Signaturhilfe und Hover-Rückfall sind vollständig mit Fokus, Instanz,
+  Editoridentität, Textstand und Cursorposition korreliert; Loslassen der
+  NVDA-Taste stellt die Editorbraillezeile wieder her.
 - Härtet den gemeinsamen `vim.diagnostic`-Vertrag providerneutral: ungültige
   oder übergroße Felder werden verworfen beziehungsweise UTF-8-sicher
   begrenzt, mehrere Namespaces deterministisch geordnet und überlappende
@@ -58,6 +63,23 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Prüft zusätzlich die echte gepinnte `none-ls.nvim`-LSP-Brücke mit
   `plenary.nvim` und einer eingebauten Diagnosequelle. Auch hierfür ist kein
   Adapter oder ausgeliefertes Plugin erforderlich.
+- Ergänzt `NVDA+Umschalt+E` für eine gehaltene, lokal durchschaltbare Liste
+  der Diagnosen am Cursor und auf der Zeile. Fehler und Warnungen erhalten
+  getrennt konfigurierbare Zeilen- und Positionsklänge, ohne Klangflut beim
+  Tippen oder bei Hintergrundupdates. Die zwei übernommenen Visual-Studio-
+  Code-Code-OSS-Signale sind MIT-lizenziert; Quellcommit, Prüfsummen,
+  Konvertierung und Lizenztext werden mitgeliefert.
+- Fügt eine eigene profilfähige Braille-Startzelle für temporäre
+  Entwicklerinformationen hinzu und verwirft gehaltene Anzeigen bei jedem
+  Fokus-, Buffer-, Text- oder Cursorwechsel.
+- Erweitert die LSP-/Diagnoseabdeckung über alle Schichten: Ein
+  deterministischer stdio-Testserver durchläuft Neovims echten LSP-Client für
+  Signaturhilfe, Parameterdokumentation und Hover-Rückfall. Zusätzliche
+  Grenz-, Korrelation-, Protokoll-, Bridge-, Gesten-, Braille- und
+  Klangtests sichern Begrenzungen, veraltete Antworten und Fail-open-Pfade.
+  Synchrone Neovim-LSP-Fehler liefern nun ein begrenztes Fehlerergebnis;
+  exklusive Endpositionen mehrzeiliger Diagnosen werden nicht mehr der
+  folgenden Zeile zugerechnet.
 - Trennt listenerfreie, simulierte SSH-/Askpass- und echte Socket-/TUI-Tests in
   Runner, Dokumentation und GitHub Actions. Ergänzt eine unabhängige
   CI-Matrix für die gepinnten realen `nvim-cmp`-/`blink.cmp`-API-Verträge auf

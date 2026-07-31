@@ -168,6 +168,10 @@ unterstützt.
 getrennten flüchtigen Braille-Zeilenkanal bestätigt.
 `brailleRoutingActions` wird nur ergänzt, wenn das Plugin die festen
 Mehrfachbetätigungsaktionen und ihre vollständige Zustandsprüfung bestätigt.
+`callableContextQuery` und `diagnosticContextQuery` werden nur ergänzt, wenn
+das Plugin die korrelierten, lesenden Kontextabfragen bestätigt.
+`diagnosticCursorSummary` kennzeichnet zusätzlich die kleine, textfreie
+Diagnosezusammenfassung im normalen Snapshot.
 
 ## Dateibasierte Sitzungsregistrierung und ausdrückliche Zuordnung
 
@@ -228,7 +232,8 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult` und
-`numberedChoiceOpened`, `numberedChoiceClosed` und
+`numberedChoiceOpened`, `numberedChoiceClosed`,
+`callableContextResult`, `diagnosticContextResult` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
 `commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
@@ -258,6 +263,10 @@ nullbasierte UTF-8-Bytespalten sowie Index und Anzahl. Fehlende Quellen dürfen
 auf den begrenzten Neovim-Namespace-Namen zurückfallen. Ungültige
 Produzentendatensätze werden verworfen; sie werden weder ausgeführt noch als
 Neovim- oder Linterbefehl interpretiert.
+`diagnosticSummary` enthält für passive Klänge nur Anzahl und höchste Schwere
+auf der Zeile beziehungsweise an der Cursorposition sowie eine opake,
+textfreie Bereichsidentität. Diagnosemeldung, Quellcode und Quick-Fix-Daten
+gehören nicht in diese Zusammenfassung.
 
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren
@@ -318,6 +327,17 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `acceptNumberedChoiceRequest` mit korrelierter Anfrage-ID, Auswahlart,
   Auswahl-ID, nullbasiertem Eintragsindex sowie exakter
   Buffer-/Fenster-/Tab-/`changedtick`-Identität.
+- `callableContextRequest` und `diagnosticContextRequest` mit korrelierter
+  Anfrage-ID sowie exakter Buffer-, Fenster-, Tab-, `changedtick`-, Zeilen-
+  und UTF-8-Bytespaltenidentität.
+
+Beide Kontextantworten wiederholen diese vollständige Identität. Die
+Diagnoseantwort enthält höchstens 100 Einträge der aktuellen Zeile; die
+Signaturantwort höchstens 100 Signaturen mit jeweils höchstens 100 Parametern.
+Einzeltexte sind auf 16 KiB, die Summe aller Texte einer Antwort auf 256 KiB
+begrenzt. Add-on und Plugin verwerfen verspätete Antworten nach Fokus-,
+Instanz-, Buffer-, Text- oder Cursorwechsel. Die Abfragen verändern weder den
+Editorcursor noch Neovims Diagnoseauswahl.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort
