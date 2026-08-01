@@ -152,7 +152,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
-		self.assertIn("{ 1, 7 }", configuration)
+		self.assertIn("{ 1, 15 }", configuration)
 		self.assertIn('lint.try_lint("ruff", { cwd = process_directory })', configuration)
 		self.assertIn('diagnostics_ready = "Diagnosen bereit:', configuration)
 		self.assertIn("local readiness_pending = false", configuration)
@@ -162,8 +162,19 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('table.insert(lint.linters.ruff.args, 2, "--isolated")', configuration)
 		self.assertIn('tostring(diagnostic.code) == "F401"', configuration)
 		self.assertIn('diagnostic.severity == vim.diagnostic.severity.WARN', configuration)
+		self.assertIn("warning_count >= 2", configuration)
+		self.assertIn("first_line_warnings >= 2", configuration)
 		self.assertIn('tostring(diagnostic.code) == "F821"', configuration)
 		self.assertIn('diagnostic.severity == vim.diagnostic.severity.ERROR', configuration)
+		self.assertIn('reportUnusedImport = "none"', configuration)
+		self.assertIn("warning_starts_at_cursor", configuration)
+		self.assertIn('prepare_insert_probe("completion_probe = calculate_")', configuration)
+		self.assertIn('assert_callable_choices_ready()', configuration)
+		self.assertIn('assert_completion_choices_ready()', configuration)
+		self.assertIn("rich_signatures >= 2", configuration)
+		self.assertIn("#item.parameters >= 3", configuration)
+		for candidate in ("calculate_total", "calculate_tax", "calculate_tip"):
+			self.assertIn(f'"{candidate}"', configuration)
 		self.assertIn('cmp_config.get().mapping[cmp_keymap.normalize("<F5>")]', configuration)
 		self.assertIn('cmp_config.get_source_config("nvim_lsp")', configuration)
 		self.assertIn('require("blink.cmp.keymap").get_mappings(', configuration)
@@ -173,6 +184,33 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
 		)
 		self.assertNotIn('"<F4>"', configuration)
+
+	def test_human_fixtures_offer_real_choices_for_every_cycle_instruction(self) -> None:
+		lsp_fixture = (HUMAN_ROOT / "fixtures" / "lsp_features.py").read_text(encoding="utf-8")
+		diagnostic_fixture = (HUMAN_ROOT / "fixtures" / "diagnostics.py").read_text(
+			encoding="utf-8"
+		)
+		self.assertEqual(2, lsp_fixture.count("@overload"))
+		self.assertGreaterEqual(lsp_fixture.count("discount: float"), 3)
+		for candidate in ("calculate_total", "calculate_tax", "calculate_tip"):
+			self.assertIn(f"def {candidate}(", lsp_fixture)
+		self.assertEqual("from os import path, sep", diagnostic_fixture.splitlines()[0])
+
+		locales = validator.load_locales()
+		for language in ("de", "en"):
+			with self.subTest(language=language):
+				parameter_expectation = locales[language]["plan.lspNative.parameters.expected"]
+				diagnostic_expectation = locales[language]["plan.diagnostics.held.expected"]
+				earcon_expectation = locales[language]["plan.diagnostics.earcons.expected"]
+				for value in ("price", "quantity", "discount", "j/k", "l/h"):
+					self.assertIn(value, parameter_expectation)
+				for value in ("path", "sep", "j/k"):
+					self.assertIn(value, diagnostic_expectation)
+				for value in ("four", "vier"):
+					if value in earcon_expectation.lower():
+						break
+				else:
+					self.fail(f"{language} earcon expectation does not name all four sounds")
 
 	def test_windows_ci_exercises_powershell_runner_and_dry_run(self) -> None:
 		workflow = (validator.REPOSITORY_ROOT / ".github" / "workflows" / "repository-tests.yml").read_text(

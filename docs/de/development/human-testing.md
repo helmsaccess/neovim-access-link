@@ -10,6 +10,16 @@ genau eine solche Beobachtung bewertet. LSP-Antworten, Diagnosebereiche,
 Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
 überlassen.
 
+Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
+drei Completion-Kandidaten, zwei Funktionssignaturen mit jeweils drei
+Parametern sowie zwei Diagnosen auf der ersten Diagnosezeile. Dadurch bedeutet
+„durchschalten“ in einer Aufgabe immer einen sichtbaren Inhaltswechsel. Die
+Audioaufgaben der Smoke-Suite prüfen alle vier unterschiedlichen Klänge dieses
+Bereichs: Completion-Menü geöffnet, Completion-Menü geschlossen,
+Diagnosewarnung und Diagnosefehler. Informationen und Hinweise besitzen
+absichtlich keinen eigenen Diagnoseklang und werden deshalb nicht als weitere
+Klangart ausgegeben.
+
 Der Runner ist auch für Tester gedacht, die Neovim kaum kennen. Vor jeder
 Aufgabe zeigt er diese Orientierung:
 
@@ -150,7 +160,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 | --- | --- |
 | `Escape`, dann `F2` | aktuelle Aufgabe jederzeit erneut anzeigen und ausgeben |
 | `F1` | aktiven LSP-Status durch Access Link ausgeben |
-| `F3`, danach `F5` | vorbereitete Completion-Stelle öffnen; `F3` wechselt automatisch in den Einfügemodus |
+| `F3`, danach `F5` | vorbereitete Completion-Stelle mit mindestens drei Kandidaten öffnen; `F3` wechselt automatisch in den Einfügemodus |
 | `F6` | Ruff für die Diagnose-Fixture erneut ausführen |
 | `F7` | Diagnose an der aktuellen Position ausgeben |
 | `F8` / `F9` | zur vorherigen beziehungsweise nächsten Diagnose springen |
@@ -178,10 +188,13 @@ Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
 Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
 
 Danach startet eine technische Vorprüfung jedes Testprofils. Sie wartet
-tatsächlich auf einen angehängten Pyright-Client, prüft dessen
-Completion-Fähigkeit und erwartet im Diagnoseprofil eine reale
-Ruff-Diagnose. Ein menschlicher Tester wird erst zu einer Wahrnehmungsaufgabe
-geführt, wenn diese maschinell entscheidbaren Grundlagen funktionieren.
+tatsächlich auf einen angehängten Pyright-Client. In den Completion-Profilen
+fordert sie die drei benannten Kandidaten ab; im nativen LSP-Profil zusätzlich
+mindestens zwei Signaturen mit jeweils drei Parametern. Im Diagnoseprofil
+erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
+einen Ruff-F821-Fehler. Ein menschlicher Tester wird erst zu einer
+Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren Grundlagen
+funktionieren.
 
 **Testabhängigkeiten einrichten oder reparieren** installiert die verwalteten
 Plugin-Revisionen neu und wiederholt diese Vorprüfung. Die persönliche

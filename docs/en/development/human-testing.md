@@ -9,6 +9,15 @@ Terminal. Each task assesses exactly one such observation. LSP responses,
 diagnostic ranges, jump targets, adapter state, and file formats remain the
 responsibility of automated tests.
 
+The fixtures nevertheless provide deliberate real choices: at least three
+completion candidates, two function signatures with three parameters each,
+and two diagnostics on the first diagnostic line. Thus, an instruction to
+cycle always causes a visible content change. The smoke suite's audio tasks
+cover all four distinct sounds in this area: completion menu opened,
+completion menu closed, diagnostic warning, and diagnostic error. Information
+and hint diagnostics intentionally have no dedicated diagnostic sound and are
+therefore not presented as additional sound types.
+
 The runner is intended even for testers with little Neovim experience. Before
 every task, it provides this orientation:
 
@@ -143,7 +152,7 @@ Each task names only the keys it needs. This table is a reference:
 | --- | --- |
 | `Escape`, then `F2` | repeat the current task at any time |
 | `F1` | report the active LSP status through Access Link |
-| `F3`, then `F5` | prepare a completion location and open its menu; `F3` enters Insert mode automatically |
+| `F3`, then `F5` | prepare a completion location with at least three candidates and open its menu; `F3` enters Insert mode automatically |
 | `F6` | run Ruff again for the diagnostic fixture |
 | `F7` | report the diagnostic at the current position |
 | `F8` / `F9` | jump to the previous or next diagnostic |
@@ -169,10 +178,13 @@ Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
 mounted directories on Windows.
 
-A technical preflight then starts every test profile. It waits for an attached
-Pyright client, verifies its completion capability, and requires a real Ruff
-diagnostic from the diagnostic profile. A human tester only sees a perception
-task after these machine-decidable foundations work.
+A technical preflight then starts every test profile and waits for an attached
+Pyright client. In the completion profiles it requests the three named
+candidates; in the native LSP profile it additionally requires at least two
+signatures with three parameters each. In the diagnostic profile, it requires
+two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
+A human tester only sees a perception task after these machine-decidable
+foundations work.
 
 **Set up or repair test dependencies** reinstalls managed plugin revisions and
 repeats this preflight. The personal Neovim environment remains untouched.

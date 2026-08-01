@@ -6,11 +6,11 @@ local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
 local human_messages = language == "de" and {
   diagnostics_waiting = "Ruff-Diagnosen werden ermittelt. Bitte warten.",
-  diagnostics_ready = "Diagnosen bereit: %d Ruff-Diagnosen. Jetzt F7 drücken.",
+  diagnostics_ready = "Diagnosen bereit: %d Ruff-Diagnosen, davon %d in der ersten Zeile. Jetzt F7 drücken.",
   diagnostics_not_ready = "Ruff-Diagnosen wurden nicht rechtzeitig bereit.",
 } or {
   diagnostics_waiting = "Waiting for Ruff diagnostics.",
-  diagnostics_ready = "Diagnostics ready: %d Ruff diagnostics. Press F7 now.",
+  diagnostics_ready = "Diagnostics ready: %d Ruff diagnostics, including %d on the first line. Press F7 now.",
   diagnostics_not_ready = "Ruff diagnostics did not become ready in time.",
 }
 local valid_profiles = {
@@ -146,7 +146,7 @@ end, { desc = "Access Link human test: LSP status" })
 vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
   { desc = "Access Link human test: repeat current task" })
 vim.keymap.set("n", "<F3>", function()
-  prepare_insert_probe("completion_probe = calc")
+  prepare_insert_probe("completion_probe = calculate_")
 end, { desc = "Access Link human test: prepare completion" })
 vim.keymap.set("n", "<F6>", function()
   if run_linter_with_feedback then
@@ -245,6 +245,9 @@ vim.lsp.config("pyright", {
       analysis = {
         autoSearchPaths = true,
         diagnosticMode = "openFilesOnly",
+        diagnosticSeverityOverrides = {
+          reportUnusedImport = "none",
+        },
         typeCheckingMode = "strict",
         useLibraryCodeForTypes = true,
       },
@@ -270,7 +273,7 @@ if profile == "diagnostics" then
   end
 
   ruff_categories_ready = function()
-    local warning_found = false
+    local warning_count = 0
     local error_found = false
     local count = 0
     for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
@@ -278,14 +281,30 @@ if profile == "diagnostics" then
         count = count + 1
         if tostring(diagnostic.code) == "F401"
             and diagnostic.severity == vim.diagnostic.severity.WARN then
-          warning_found = true
+          warning_count = warning_count + 1
         elseif tostring(diagnostic.code) == "F821"
             and diagnostic.severity == vim.diagnostic.severity.ERROR then
           error_found = true
         end
       end
     end
-    return warning_found and error_found, count
+    local first_line_warnings = 0
+    local context = require("nvim_nvda.diagnostics").context(0, 1, 15)
+    for _, diagnostic in ipairs(context) do
+      if tostring(diagnostic.source):lower():find("ruff", 1, true)
+          and tostring(diagnostic.code) == "F401"
+          and diagnostic.severity == "warning" then
+        first_line_warnings = first_line_warnings + 1
+      end
+    end
+    local current = context[1]
+    local warning_starts_at_cursor = type(current) == "table"
+      and tostring(current.source):lower():find("ruff", 1, true) ~= nil
+      and tostring(current.code) == "F401"
+      and current.severity == "warning"
+    return warning_count >= 2 and error_found and first_line_warnings >= 2
+        and warning_starts_at_cursor,
+      count, first_line_warnings
   end
 
   local readiness_pending = false
@@ -303,8 +322,10 @@ if profile == "diagnostics" then
       end, 50)
       readiness_pending = false
       if ready then
-        local _, count = ruff_categories_ready()
-        vim.notify(string.format(human_messages.diagnostics_ready, count))
+        local _, count, first_line_count = ruff_categories_ready()
+        vim.notify(string.format(
+          human_messages.diagnostics_ready, count, first_line_count
+        ))
       else
         vim.notify(human_messages.diagnostics_not_ready, vim.log.levels.ERROR)
       end
@@ -323,6 +344,96 @@ if profile == "diagnostics" then
       end)
     end,
   })
+end
+
+local function request_payload(request_id)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local buffer = vim.api.nvim_get_current_buf()
+  return {
+    requestId = request_id,
+    bufferId = buffer,
+    windowId = vim.api.nvim_get_current_win(),
+    tabpageId = vim.api.nvim_get_current_tabpage(),
+    changedtick = vim.api.nvim_buf_get_changedtick(buffer),
+    line = cursor[1],
+    byteColumn = cursor[2],
+  }
+end
+
+local function fixture_cursor(name)
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
+  if name == "lsp_features.py" then
+    for line_number, line in ipairs(lines) do
+      local byte = line:find("total = calculate_total", 1, true)
+      if byte then
+        return { line_number, byte - 1 + #"total = " }
+      end
+    end
+  elseif name == "diagnostics.py" then
+    return { 1, 15 }
+  end
+  return nil
+end
+
+local function move_to_fixture_cursor(name)
+  local cursor = fixture_cursor(name)
+  assert(cursor, "the human-test fixture does not contain its cursor marker")
+  vim.api.nvim_win_set_cursor(0, cursor)
+end
+
+local function assert_callable_choices_ready()
+  move_to_fixture_cursor("lsp_features.py")
+  local result = nil
+  local accepted = require("nvim_nvda.developer_context").request_callable(
+    request_payload(1),
+    function(_, _, payload) result = payload end
+  )
+  assert(accepted, "Access Link did not accept the callable fixture request")
+  assert(vim.wait(15000, function() return result ~= nil end, 50),
+    "Pyright did not answer the callable fixture request")
+  assert(result.ok, "the callable fixture did not produce signature help")
+  local rich_signatures = 0
+  for _, item in ipairs(result.items) do
+    if #item.parameters >= 3 then rich_signatures = rich_signatures + 1 end
+  end
+  assert(rich_signatures >= 2,
+    "the callable fixture did not produce two signatures with three parameters")
+end
+
+local function completion_labels(results)
+  local labels = {}
+  for _, response in pairs(type(results) == "table" and results or {}) do
+    local result = type(response) == "table" and response.result or nil
+    local items = type(result) == "table" and (result.items or result) or {}
+    for _, item in ipairs(type(items) == "table" and items or {}) do
+      if type(item) == "table" and type(item.label) == "string" then
+        labels[item.label] = true
+      end
+    end
+  end
+  return labels
+end
+
+local function assert_completion_choices_ready()
+  local line_count = vim.api.nvim_buf_line_count(0)
+  local original_cursor = vim.api.nvim_win_get_cursor(0)
+  local probe = "completion_probe = calculate_"
+  vim.api.nvim_buf_set_lines(0, line_count, line_count, false, { "", probe })
+  vim.api.nvim_win_set_cursor(0, { line_count + 2, #probe })
+  local results = nil
+  local params = vim.lsp.util.make_position_params(0, "utf-16")
+  params.context = { triggerKind = vim.lsp.protocol.CompletionTriggerKind.Invoked }
+  vim.lsp.buf_request_all(0, "textDocument/completion", params, function(value)
+    results = value
+  end)
+  local answered = vim.wait(15000, function() return results ~= nil end, 50)
+  vim.api.nvim_buf_set_lines(0, line_count, line_count + 2, false, {})
+  vim.api.nvim_win_set_cursor(0, original_cursor)
+  assert(answered, "Pyright did not answer the completion fixture request")
+  local labels = completion_labels(results)
+  for _, expected in ipairs({ "calculate_total", "calculate_tax", "calculate_tip" }) do
+    assert(labels[expected], "the completion fixture is missing candidate " .. expected)
+  end
 end
 
 local function assert_completion_profile_ready()
@@ -370,6 +481,12 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   assert(client:supports_method("textDocument/completion"),
     "Pyright does not advertise completion support")
   assert_completion_profile_ready()
+  if profile == "native" then
+    assert_callable_choices_ready()
+  end
+  if profile == "native" or profile == "cmp" or profile == "blink" then
+    assert_completion_choices_ready()
+  end
   if profile == "diagnostics" then
     assert(run_linter, "the diagnostic profile did not configure Ruff")
     run_linter()
@@ -377,7 +494,7 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
       return ruff_categories_ready()
     end, 50)
     assert(categorized,
-      "Ruff did not publish the expected F401 warning and F821 error")
+      "Ruff did not publish two first-line F401 warnings and an F821 error")
   end
   vim.g.access_link_human_preflight_ready = 1
 end, { desc = "Verify real providers for the guided human-test profile" })
@@ -391,10 +508,8 @@ vim.api.nvim_create_autocmd("BufWinEnter", {
         return
       end
       local name = vim.fs.basename(vim.api.nvim_buf_get_name(event.buf))
-      if name == "lsp_features.py" then
-        vim.api.nvim_win_set_cursor(0, { 6, 8 })
-      elseif name == "diagnostics.py" then
-        vim.api.nvim_win_set_cursor(0, { 1, 7 })
+      if name == "lsp_features.py" or name == "diagnostics.py" then
+        move_to_fixture_cursor(name)
       end
     end)
   end,
