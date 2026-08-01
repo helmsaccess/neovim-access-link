@@ -5950,6 +5950,8 @@ class BuiltAddonTests(unittest.TestCase):
         for answer, should_remember in ((wx.YES, True), (0, False)):
             with self.subTest(answer=answer):
                 plugin = GlobalPlugin()
+                adapter = self._terminalAdapter()
+                self.focus.appModule = adapter
                 identity = plugin._identity(self.focus)
                 client = Client()
                 instance = add_remote_instance(
@@ -5960,6 +5962,7 @@ class BuiltAddonTests(unittest.TestCase):
                     client,
                 )
                 plugin._instanceManager.bind(identity, instance.identifier)
+                adapter.event_gainFocus(self.focus, lambda: None)
                 plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
                 plugin._connectionCoordinator.confirm_foreground_instance(
                     instance.identifier,
@@ -5970,8 +5973,7 @@ class BuiltAddonTests(unittest.TestCase):
                 original_message_box = wx.MessageBox
 
                 def modal_message_box(*_args, **_kwargs):
-                    plugin._gate.disconnect()
-                    plugin._gate.focused = None
+                    adapter.event_appModule_loseFocus()
                     return answer
 
                 wx.MessageBox = modal_message_box
@@ -5984,8 +5986,6 @@ class BuiltAddonTests(unittest.TestCase):
                     should_remember,
                     plugin._sessionClaimService.is_temporary_binding_remembered(identity),
                 )
-                adapter = self._terminalAdapter()
-                adapter.event_gainFocus(self.focus, lambda: None)
                 self.assertEqual("requestFocusContext", client.controls[-1][0])
                 request_id = client.controls[-1][1]["requestId"]
                 plugin._handleManagedEvent(instance.identifier, {
@@ -6004,6 +6004,205 @@ class BuiltAddonTests(unittest.TestCase):
                     self.assertEqual(controls, client.controls)
                     self.assertFalse(plugin._gate.suppression_active)
                 plugin.terminate()
+
+    def test_temporary_binding_focus_recovery_waits_for_the_original_terminal(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        terminal = self.focus
+        adapter = self._terminalAdapter()
+        terminal.appModule = adapter
+        plugin = GlobalPlugin()
+        identity = plugin._identity(terminal)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        adapter.event_gainFocus(terminal, lambda: None)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.confirm_foreground_instance(
+            instance.identifier,
+            identity,
+            plugin._editorSessionController.new_runtime,
+        )
+        plugin._gate.manual_enabled = True
+        scheduled = []
+        plugin._scheduleMainThreadCall = (
+            lambda delay, callback, *args: scheduled.append((delay, callback, args))
+        )
+        dialog = types.SimpleNamespace(
+            processID=100,
+            windowHandle=999,
+            role=4,
+            parent=None,
+            appModule=types.SimpleNamespace(appName="nvda"),
+        )
+        original_message_box = wx.MessageBox
+
+        def modal_message_box(*_args, **_kwargs):
+            adapter.event_appModule_loseFocus()
+            self.focus = dialog
+            return 0
+
+        wx.MessageBox = modal_message_box
+        try:
+            plugin._offerTemporaryTerminalBinding(identity, instance.identifier)
+        finally:
+            wx.MessageBox = original_message_box
+
+        self.assertEqual(1, len(scheduled))
+        _delay, callback, args = scheduled.pop(0)
+        callback(*args)
+        self.assertEqual([], client.controls)
+        self.assertEqual(1, len(scheduled))
+
+        self.focus = terminal
+        _delay, callback, args = scheduled.pop(0)
+        callback(*args)
+        request_index = next(
+            index
+            for index, (_delay, pending_callback, _args) in enumerate(scheduled)
+            if pending_callback.__name__ == "_requestRememberedBindingState"
+        )
+        _delay, callback, args = scheduled.pop(request_index)
+        callback(*args)
+        self.assertEqual("requestFocusContext", client.controls[-1][0])
+        self.assertTrue(any(
+            '"category": "temporaryTerminalBindingFocusRecovered"' in line
+            for line in plugin._diagnostics.report().splitlines()
+        ))
+        plugin.terminate()
+
+    def test_temporary_binding_focus_recovery_rejects_another_terminal(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        expected = self.focus
+        adapter = self._terminalAdapter()
+        expected.appModule = adapter
+        other = types.SimpleNamespace(
+            processID=100,
+            windowHandle=200,
+            role=3,
+            parent=None,
+            appModule=adapter,
+            UIAElement=types.SimpleNamespace(
+                cachedClassName="TermControl",
+                getRuntimeId=lambda: (42, 200, 4, 99),
+            ),
+        )
+        plugin = GlobalPlugin()
+        identity = plugin._identity(expected)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        adapter.event_gainFocus(expected, lambda: None)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.confirm_foreground_instance(
+            instance.identifier,
+            identity,
+            plugin._editorSessionController.new_runtime,
+        )
+        plugin._gate.manual_enabled = True
+        scheduled = []
+        plugin._scheduleMainThreadCall = (
+            lambda delay, callback, *args: scheduled.append((delay, callback, args))
+        )
+        original_message_box = wx.MessageBox
+
+        def modal_message_box(*_args, **_kwargs):
+            adapter.event_appModule_loseFocus()
+            self.focus = other
+            return 0
+
+        wx.MessageBox = modal_message_box
+        try:
+            plugin._offerTemporaryTerminalBinding(identity, instance.identifier)
+        finally:
+            wx.MessageBox = original_message_box
+
+        _delay, callback, args = scheduled.pop(0)
+        callback(*args)
+        self.assertEqual([], client.controls)
+        self.focus = expected
+        adapter.event_gainFocus(expected, lambda: None)
+        self.assertEqual([], client.controls)
+        self.assertFalse(plugin._gate.suppression_active)
+        plugin.terminate()
+
+    def test_regular_gain_focus_wins_over_scheduled_binding_recovery(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self): inner_self.controls = []
+            def start(inner_self): pass
+            def stop(inner_self): pass
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        adapter = self._terminalAdapter()
+        self.focus.appModule = adapter
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "one", "1", "First", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        adapter.event_gainFocus(self.focus, lambda: None)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.confirm_foreground_instance(
+            instance.identifier,
+            identity,
+            plugin._editorSessionController.new_runtime,
+        )
+        plugin._gate.manual_enabled = True
+        scheduled = []
+        plugin._scheduleMainThreadCall = (
+            lambda delay, callback, *args: scheduled.append((delay, callback, args))
+        )
+        original_message_box = wx.MessageBox
+
+        def modal_message_box(*_args, **_kwargs):
+            adapter.event_appModule_loseFocus()
+            return 0
+
+        wx.MessageBox = modal_message_box
+        try:
+            plugin._offerTemporaryTerminalBinding(identity, instance.identifier)
+        finally:
+            wx.MessageBox = original_message_box
+
+        adapter.event_gainFocus(self.focus, lambda: None)
+        _delay, callback, args = scheduled.pop(0)
+        callback(*args)
+        request_index = next(
+            index
+            for index, (_delay, pending_callback, _args) in enumerate(scheduled)
+            if pending_callback.__name__ == "_requestRememberedBindingState"
+        )
+        _delay, callback, args = scheduled.pop(request_index)
+        callback(*args)
+        self.assertEqual(1, len(client.controls))
+        _delay, callback, args = scheduled.pop(0)
+        callback(*args)
+        self.assertEqual(1, len(client.controls))
+        plugin.terminate()
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin

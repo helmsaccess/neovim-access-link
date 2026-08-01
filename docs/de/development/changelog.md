@@ -8,6 +8,15 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Behebt den unzuverlässigen Wiederanlauf nach der optionalen F12-Rückfrage zum
+  Merken einer Terminalbindung. Falls Windows Terminal nach dem Schließen kein
+  `gainFocus` liefert, prüft ein kurzer begrenzter Hauptthread-Ablauf den
+  aktuellen NVDA-Fokus und startet ausschließlich für dieselbe
+  Terminalidentität, dasselbe AppModule, denselben Adapter-Token und dieselbe
+  Instanzauswahl den vorhandenen korrelierten Fokuskontext-Handshake. Ein
+  fremdes Terminal, eine geänderte Auswahl oder ein Zeitablauf bleiben
+  fail-open; ein doch eintreffendes reguläres Fokusereignis gewinnt ohne
+  doppelte Anfrage.
 - Veröffentlicht den Leitfaden für geführte Praxistests getrennt von der
   Entwicklerdokumentation als viertes eigenständiges HTML je Sprache; das
   versionierte Dokumentations-ZIP enthält damit acht statt sechs Dateien.

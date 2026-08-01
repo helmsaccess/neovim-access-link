@@ -109,8 +109,10 @@ See `compatibility.md` for complete platform boundaries.
   also owns pending offers to remember temporary terminal bindings and
   revalidates focus, control, instance, and selection after the modal question.
   Dialogs, messages, and diagnostics remain NVDA-side. A one-shot correlated
-  reactivation bridges only this question's focus loss; declining does not
-  create a persistent binding. An injected
+  reactivation bridges only this question's focus loss. If the expected
+  Windows Terminal focus event is absent, a short bounded recovery checks
+  NVDA's current focus and still uses the correlated focus-context request for
+  the exact same control; declining does not create a persistent binding. An injected
   `ManagedClientFactory` constructs local TCP and remote SSH clients with
   instance-correlated callbacks. The claim service connects this construction
   to its transactional start transition; profiles, passwords, and translated

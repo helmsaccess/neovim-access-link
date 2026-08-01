@@ -326,7 +326,13 @@ Plugin verbindet seine unveränderlichen Ergebnisse nur mit NVDAs
 Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Es hält keine
 schreibbare Kopie des Claimzustands. Der Fokusverlust der optionalen modalen
 Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
-Reaktivierung überbrückt; ein abweichender Terminalfokus verwirft sie.
+Reaktivierung überbrückt. Falls Windows Terminal nach dem Schließen kein
+neues Fokusereignis liefert, prüft ein kurzer, begrenzter Hauptthread-Ablauf
+den aktuellen NVDA-Fokus und stößt nur für dasselbe Control, dasselbe
+AppModule, denselben Adapter-Token und dieselbe Instanzauswahl den normalen
+Fokuskontext-Handshake an. Ein abweichender Terminalfokus verwirft die
+Reaktivierung; ein ausbleibender oder unklarer Fokus lässt die native Ausgabe
+offen.
 
 Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
 `ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren

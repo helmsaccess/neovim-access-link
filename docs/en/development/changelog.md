@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Fixes unreliable recovery after the optional F12 question that remembers a
+  terminal binding. If Windows Terminal emits no `gainFocus` after the question
+  closes, a short bounded main-thread sequence checks NVDA's current focus and
+  starts the existing correlated focus-context handshake only for the same
+  terminal identity, AppModule, adapter token, and instance selection. A
+  foreign terminal, changed selection, or timeout stays fail-open; a regular
+  focus event that does arrive wins without a duplicate request.
 - Publishes the guided practical-test guide separately from the developer
   documentation as the fourth independent HTML file per language; the
   versioned documentation ZIP therefore contains eight rather than six files.

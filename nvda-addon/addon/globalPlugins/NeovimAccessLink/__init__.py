@@ -24,6 +24,7 @@ from speech.priorities import SpeechPriority as NvdaSpeechPriority
 
 
 _TERMINAL_LIFECYCLE_INTERVAL_MS = 5 * 60 * 1_000
+_TEMPORARY_BINDING_RECOVERY_DELAYS_MS = (50, 150, 350, 750)
 
 
 def _windowIdentityExists(identity):
@@ -1973,6 +1974,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if offer.kind != TemporaryBindingOfferKind.OFFER or offer.instance is None:
 			return
+		recovery_app_module = self._terminalFocusService.focused_app_module
+		recovery_adapter_token = self._terminalFocusService.focused_adapter_token
 		import gui
 		import wx
 
@@ -1985,35 +1988,170 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			wx.YES_NO | wx.ICON_QUESTION,
 			gui.mainFrame,
 		)
-		focused = self._gate.focused
-		if focused is not None:
-			selected = self._instanceManager.selected_for(focused)
-			self._sessionClaimService.consume_temporary_binding_reactivation(
-				focused,
-				selected.identifier if selected is not None else None,
-			)
 		if answer != wx.YES:
 			self._diagnostics.record(
 				"temporaryTerminalBindingDeclined",
 				instanceId=instance_id,
 				terminal=self._identityFields(identity),
 			)
-			return
-		remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
-		if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+		else:
+			remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
+			if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+				self._diagnostics.record(
+					"temporaryTerminalBindingOfferIgnored",
+					instanceId=instance_id,
+					reason=remembered.kind.value,
+				)
+			else:
+				self._diagnostics.record(
+					"temporaryTerminalBindingRemembered",
+					instanceId=instance_id,
+					transportKind=remembered.instance.transport_kind,
+					terminal=self._identityFields(identity),
+				)
+				ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
+		self._scheduleTemporaryBindingRecovery(
+			identity,
+			instance_id,
+			recovery_app_module,
+			recovery_adapter_token,
+		)
+
+	def _scheduleTemporaryBindingRecovery(
+		self,
+		identity,
+		instance_id,
+		app_module,
+		adapter_token,
+	):
+		if app_module is None or adapter_token is None:
+			self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
 			self._diagnostics.record(
-				"temporaryTerminalBindingOfferIgnored",
+				"temporaryTerminalBindingFocusRecoveryStopped",
 				instanceId=instance_id,
-				reason=remembered.kind.value,
+				reason="adapterUnavailable",
 			)
 			return
 		self._diagnostics.record(
-			"temporaryTerminalBindingRemembered",
+			"temporaryTerminalBindingFocusRecoveryScheduled",
+			attempts=len(_TEMPORARY_BINDING_RECOVERY_DELAYS_MS),
 			instanceId=instance_id,
-			transportKind=remembered.instance.transport_kind,
-			terminal=self._identityFields(identity),
 		)
-		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
+		self._scheduleMainThreadCall(
+			_TEMPORARY_BINDING_RECOVERY_DELAYS_MS[0],
+			self._recoverTemporaryBindingFocus,
+			identity,
+			instance_id,
+			app_module,
+			adapter_token,
+			0,
+		)
+
+	def _recoverTemporaryBindingFocus(
+		self,
+		identity,
+		instance_id,
+		app_module,
+		adapter_token,
+		attempt,
+	):
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception as error:
+			focus_obj = None
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryFocusError",
+				errorType=type(error).__name__,
+				instanceId=instance_id,
+			)
+		focus_identity = self._terminalFocusService.identity(focus_obj) if focus_obj is not None else None
+		if focus_identity is not None and focus_identity != identity:
+			selected = self._instanceManager.selected_for(focus_identity)
+			self._sessionClaimService.consume_temporary_binding_reactivation(
+				focus_identity,
+				selected.identifier if selected is not None else None,
+			)
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryStopped",
+				instanceId=instance_id,
+				reason="focusChanged",
+			)
+			return
+		if focus_identity == identity and getattr(focus_obj, "appModule", None) is app_module:
+			selected = self._instanceManager.selected_for(identity)
+			if selected is None or selected.identifier != instance_id:
+				self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecoveryStopped",
+					instanceId=instance_id,
+					reason="selectionChanged",
+				)
+				return
+			focus_already_current = (
+				self._gate.focused == identity
+				and self._terminalFocusService.focused_app_module is app_module
+				and self._terminalFocusService.focused_adapter_token is adapter_token
+			)
+			if not focus_already_current:
+				allowed = self._sessionClaimService.is_temporary_binding_remembered(
+					identity
+				) or self._sessionClaimService.has_temporary_binding_reactivation(
+					identity,
+					instance_id,
+				)
+				try:
+					recovered = allowed and self._terminalFocusService.recover_after_modal(
+						focus_obj,
+						identity,
+						instance_id,
+						app_module,
+						adapter_token,
+					)
+				except Exception as error:
+					self._gate.disconnect()
+					self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusRecoveryStopped",
+						errorType=type(error).__name__,
+						instanceId=instance_id,
+						reason="error",
+					)
+					return
+				if not recovered:
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusRecoveryStopped",
+						instanceId=instance_id,
+						reason="authorizationChanged",
+					)
+					return
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecovered",
+					attempt=attempt + 1,
+					instanceId=instance_id,
+					terminal=self._identityFields(identity),
+				)
+		if attempt + 1 < len(_TEMPORARY_BINDING_RECOVERY_DELAYS_MS):
+			next_attempt = attempt + 1
+			self._scheduleMainThreadCall(
+				_TEMPORARY_BINDING_RECOVERY_DELAYS_MS[next_attempt],
+				self._recoverTemporaryBindingFocus,
+				identity,
+				instance_id,
+				app_module,
+				adapter_token,
+				next_attempt,
+			)
+			return
+		self._sessionClaimService.consume_temporary_binding_reactivation(
+			identity if focus_identity == identity else None,
+			instance_id if focus_identity == identity else None,
+		)
+		if focus_identity != identity:
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryStopped",
+				instanceId=instance_id,
+				reason="timeout",
+			)
 
 	def _switchInstanceRuntime(self, instance_id):
 		self._editorSessionController.switch_instance(instance_id)

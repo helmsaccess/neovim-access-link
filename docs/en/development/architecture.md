@@ -305,7 +305,11 @@ remembered bindings. The Global Plugin only joins its immutable results to
 NVDA's main-thread, dialog, message, and transport boundaries; it keeps no
 writable copy of claim state. Focus loss caused by the optional modal remember
 question is bridged by exactly one terminal- and instance-correlated
-reactivation; a different terminal focus discards it.
+reactivation. If Windows Terminal emits no new focus event after the question
+closes, a short bounded main-thread sequence checks NVDA's current focus and
+starts the normal focus-context handshake only for the same control, AppModule,
+adapter token, and instance selection. A different terminal focus discards the
+reactivation; missing or uncertain focus keeps native output open.
 
 The V2-5 `EditorSessionController` uses the active runtime managed by
 `ConnectionCoordinator` but is solely responsible for its domain mutation. It

@@ -120,6 +120,11 @@ sollte unmittelbar nach dem unerwünschten Fragment kopiert werden.
 
 ## NVDA reagiert nach einem Dialog nicht
 
+Die optionale Rückfrage zum Merken einer F12-Zuordnung stellt die Verbindung
+nach dem Schließen selbst wieder her; ein Fensterwechsel sollte dafür nicht
+erforderlich sein. Bleibt Access Link danach still, den Diagnosebericht noch
+im betroffenen Windows-Terminal-Tab kopieren, bevor der Fokus gewechselt wird.
+
 Komponenteninstallation und SSH-Abfragen laufen im Hintergrund. Ein sichtbarer
 Ergebnisdialog darf NVDA nicht blockieren. Falls NVDA dennoch nicht reagiert:
 

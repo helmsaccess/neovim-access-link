@@ -994,6 +994,14 @@ class SessionClaimService:
 		self._pendingBindingReactivation = None
 		return pending is not None and pending == (identity, instance_id)
 
+	def has_temporary_binding_reactivation(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> bool:
+		"""Return whether the exact modal focus allowance is still pending."""
+		return self._pendingBindingReactivation == (identity, instance_id)
+
 	def _validate_temporary_binding_offer(
 		self,
 		identity: TerminalIdentity,

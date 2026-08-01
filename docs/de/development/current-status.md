@@ -116,7 +116,10 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
   Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
   Diagnostik bleiben NVDA-seitig. Eine einmalige, korrelierte Reaktivierung
-  überbrückt ausschließlich den Fokusverlust dieser Rückfrage; eine Ablehnung
+  überbrückt ausschließlich den Fokusverlust dieser Rückfrage. Bleibt das
+  erwartete Windows-Terminal-Fokusereignis aus, prüft ein kurzer begrenzter
+  Wiederanlauf den aktuellen NVDA-Fokus und verwendet für das exakt gleiche
+  Control weiterhin die korrelierte Fokuskontext-Anfrage; eine Ablehnung
   erzeugt keine dauerhafte Bindung. Eine injizierte `ManagedClientFactory`
   konstruiert lokale TCP- und entfernte SSH-Clients mit instanzkorrelierten
   Callbacks. Der Claimdienst verbindet diese Konstruktion mit seinem
