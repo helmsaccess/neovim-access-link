@@ -629,9 +629,12 @@ captures only the fixed parameter or diagnostic navigation gestures. The
 per-instance `HeldContextController` correlates each read-only query with
 focus, terminal control, instance, buffer, window, tab, changed tick, line,
 and UTF-8 byte column. The Lua plugin reads signature help, hover, or
-`vim.diagnostic` without moving the cursor or changing the buffer. Any
-mismatch before the reply or during presentation discards the state and
-restores the ordinary Braille line. Transport I/O remains in the bounded
+`vim.diagnostic` without moving the cursor or changing the buffer. When the
+real cursor is on a callable name immediately followed by `(`, the plugin
+places only the LSP query position after that delimiter so servers such as
+Pyright return structured parameters rather than only hover text. Any mismatch
+before the reply or during presentation discards the state and restores the
+ordinary Braille line. Transport I/O remains in the bounded
 `ControlDispatcher`.
 
 For Braille, the NVDA adapter uses NVDA's transient message buffer. NVDA's own

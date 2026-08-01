@@ -68,6 +68,12 @@
 - Adds a separate profile-aware Braille start cell for temporary developer
   information and discards held views after any focus, buffer, text, or
   cursor change.
+- Recovers an NVDA key-down missed by the raw observer when a held parameter
+  or diagnostic view starts, using the executing gesture and the physical
+  Windows key state. A latched rather than physically held NVDA key therefore
+  cannot create an unbounded view. The guided diagnostic test now waits for
+  an explicit Ruff readiness announcement instead of an estimated fixed
+  pause.
 - Extends LSP and diagnostic coverage across every layer: a deterministic
   stdio test server exercises signature help, parameter documentation, and
   the hover fallback through Neovim's real LSP client. Additional bounds,

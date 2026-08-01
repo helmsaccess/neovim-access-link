@@ -562,6 +562,7 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_CONTEXT",
         "ACCESS_LINK_HUMAN_TASK",
         "ACCESS_LINK_HUMAN_EXPECTED",
+        "ACCESS_LINK_HUMAN_LANGUAGE",
         "NVIM_NVDA_SESSION_NAME",
         "GIT_CONFIG_GLOBAL",
         "XDG_CONFIG_HOME",
@@ -583,6 +584,7 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_CONTEXT = $Context
         $env:ACCESS_LINK_HUMAN_TASK = $Task
         $env:ACCESS_LINK_HUMAN_EXPECTED = $Expected
+        $env:ACCESS_LINK_HUMAN_LANGUAGE = $Language
         $env:NVIM_NVDA_SESSION_NAME = "Access Link human test: $Profile"
         $env:GIT_CONFIG_GLOBAL = $TestGitConfig
         $env:XDG_CONFIG_HOME = Join-Path $StateRoot "config"

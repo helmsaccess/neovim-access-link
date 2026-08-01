@@ -36,9 +36,12 @@ local original_request_all = vim.lsp.buf_request_all
 local position_ok, actual_position = pcall(original_params, 0, "utf-16")
 equal(true, position_ok, "public position parameters work on this Neovim version")
 equal("table", type(actual_position), "public position parameters are a table")
-vim.lsp.util.make_position_params = function() return {} end
-vim.lsp.buf_request_all = function(_, method, _, handler)
+vim.lsp.util.make_position_params = function()
+  return { position = { line = 0, character = 0 } }
+end
+vim.lsp.buf_request_all = function(_, method, params, handler)
   equal("textDocument/signatureHelp", method, "signature requested first")
+  equal(16, params.position.character, "callable name queries inside opening parenthesis")
   handler({
     [3] = {
       result = {

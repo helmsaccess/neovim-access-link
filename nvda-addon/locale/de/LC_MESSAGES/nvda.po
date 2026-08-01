@@ -174,7 +174,7 @@ msgstr "Zeichengerät"
 msgid "Checking local and saved Neovim connections"
 msgstr "Lokale und gespeicherte Neovim-Verbindungen werden geprüft"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:654
+#: nvda-addon/addon/appModules/windowsterminal.py:655
 msgid "Choose a server and connect this terminal to a new Neovim session"
 msgstr "Einen Server auswählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden"
 
@@ -279,15 +279,15 @@ msgstr "Kopieren"
 msgid "Copy and &paste:"
 msgstr "Kopieren und &Einfügen:"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:684
+#: nvda-addon/addon/appModules/windowsterminal.py:685
 msgid "Copy Neovim accessibility diagnostic report"
 msgstr "Diagnosebericht zur Neovim-Barrierefreiheit kopieren"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:614
+#: nvda-addon/addon/appModules/windowsterminal.py:615
 msgid "Copy Neovim's last yank to the Windows clipboard"
 msgstr "Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertragen"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:604
+#: nvda-addon/addon/appModules/windowsterminal.py:605
 msgid "Copy the active Neovim Visual selection to the Windows clipboard"
 msgstr "Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen"
 
@@ -397,7 +397,7 @@ msgstr "Diagnosen beim Betreten einer &Zeile:"
 msgid "directory"
 msgstr "Verzeichnis"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:664
+#: nvda-addon/addon/appModules/windowsterminal.py:665
 msgid "Disconnect the selected Neovim connection instance"
 msgstr "Ausgewählte Neovim-Verbindungsinstanz trennen"
 
@@ -512,7 +512,7 @@ msgstr "Faltungen geschlossen"
 msgid "folds opened"
 msgstr "Faltungen geöffnet"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:674
+#: nvda-addon/addon/appModules/windowsterminal.py:675
 msgid "Forget the temporary Neovim connection for the focused terminal"
 msgstr "Temporäre Neovim-Verbindung für das fokussierte Terminal vergessen"
 
@@ -576,7 +576,7 @@ msgstr "ungültige Cursorposition"
 msgid "keyword"
 msgstr "Schlüsselwort"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:644
+#: nvda-addon/addon/appModules/windowsterminal.py:645
 msgid "Leave direct input in the active Neovim terminal"
 msgstr "Direkte Eingabe im aktiven Neovim-Terminal verlassen"
 
@@ -1025,7 +1025,7 @@ msgstr "Passwortabfrage"
 msgid "Paste is available only in Normal or Insert mode"
 msgstr "Einfügen ist nur im Normal- oder Einfügemodus verfügbar"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:624
+#: nvda-addon/addon/appModules/windowsterminal.py:625
 msgid "Paste Windows clipboard text into the active Neovim buffer"
 msgstr "Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen"
 
@@ -1049,7 +1049,7 @@ msgstr "Eigenschaft"
 msgid "quickfix"
 msgstr "Fehlerliste"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:594
+#: nvda-addon/addon/appModules/windowsterminal.py:595
 msgid "Read documentation for the selected Neovim completion item or LSP hover"
 msgstr "Dokumentation für den ausgewählten Neovim-Completion-Eintrag oder LSP-Hover lesen"
 
@@ -1199,11 +1199,11 @@ msgstr "Servername, Adresse oder SSH-Alias:"
 msgid "Session focus"
 msgstr "Sitzungsfokus"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:708
+#: nvda-addon/addon/appModules/windowsterminal.py:709
 msgid "Show diagnostics while the NVDA key remains pressed"
 msgstr "Diagnosen anzeigen, solange die NVDA-Taste gedrückt bleibt"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:698
+#: nvda-addon/addon/appModules/windowsterminal.py:699
 msgid "Show function parameters while the NVDA key remains pressed"
 msgstr "Funktionsparameter anzeigen, solange die NVDA-Taste gedrückt bleibt"
 
@@ -1245,7 +1245,7 @@ msgstr "Sprachexplorationsmodus"
 msgid "Speech exploration mode release"
 msgstr "Abschluss des Sprachexplorationsmodus"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:25
+#: nvda-addon/addon/appModules/windowsterminal.py:26
 msgid "Speech exploration mode: read Neovim text without moving the cursor"
 msgstr "Sprachexplorationsmodus: Neovim-Text lesen, ohne den Cursor zu bewegen"
 
@@ -1285,7 +1285,7 @@ msgstr "Temporäre &Entwicklerinformationen ab Braillemodul anzeigen:"
 msgid "Starting a connection instance requires a focused terminal"
 msgstr "Zum Starten einer Verbindungsinstanz muss ein Terminal fokussiert sein"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:634
+#: nvda-addon/addon/appModules/windowsterminal.py:635
 msgid "Store Windows clipboard text in Neovim's unnamed register"
 msgstr "Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern"
 
@@ -1436,7 +1436,7 @@ msgstr "Für die Erkennung gilt NVDAs Zeitlimit für Mehrfachbetätigung aus den
 msgid "To install or update components, use the add-on command in NVDA's Tools menu and select this computer or saved Linux connections."
 msgstr "Verwenden Sie zum Installieren oder Aktualisieren von Komponenten den Add-on-Befehl im NVDA-Menü Werkzeuge und wählen Sie diesen Computer oder gespeicherte Linux-Verbindungen aus."
 
-#: nvda-addon/addon/appModules/windowsterminal.py:583
+#: nvda-addon/addon/appModules/windowsterminal.py:584
 msgid "Toggle Braille navigation between Braille cursor mode and Braille exploration mode"
 msgstr "Braillezeilen-Navigation zwischen Braille-Cursormodus und Braille-Explorationsmodus umschalten"
 
@@ -1448,7 +1448,7 @@ msgstr "Töne"
 msgid "Triple routing press on a &line:"
 msgstr "Routingtaste auf einer &Zeile dreimal drücken:"
 
-#: nvda-addon/addon/appModules/windowsterminal.py:572
+#: nvda-addon/addon/appModules/windowsterminal.py:573
 msgid "Turn Neovim accessibility on or off and discover configured connections"
 msgstr "Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen"
 

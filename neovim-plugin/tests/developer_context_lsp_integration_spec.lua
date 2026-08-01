@@ -73,6 +73,13 @@ equal(
 equal(1, emitted.payload.activeParameter, "real active parameter is retained")
 equal({ 1, 0 }, vim.api.nvim_win_get_cursor(0), "signature query does not move cursor")
 
+emitted = nil
+equal(true, developer_context.request_callable(request(), emit), "repeated signature request accepted")
+equal(true, vim.wait(5000, function() return emitted ~= nil end, 10), "repeated result arrives")
+equal(true, emitted.payload.ok, "repeated signature result succeeds")
+equal(2, #emitted.payload.items[1].parameters, "repeated result retains parameters")
+equal({ 1, 0 }, vim.api.nvim_win_get_cursor(0), "repeated query still does not move cursor")
+
 vim.api.nvim_win_set_cursor(0, { 1, 20 })
 emitted = nil
 equal(true, developer_context.request_callable(request(), emit), "real hover fallback accepted")

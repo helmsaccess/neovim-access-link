@@ -385,9 +385,22 @@ class TerminalIntegrationService:
 		adapter_token: object,
 	) -> bool:
 		if not isinstance(kind, HeldContextKind):
+			self._record("developerContextRequestRejected", reason="invalidKind")
 			return False
 		identity = self._active_identity(focus_obj, app_module, adapter_token)
-		if identity is None or self._editorSession.active_numbered_choice_context() is not None:
+		if identity is None:
+			self._record(
+				"developerContextRequestRejected",
+				kind=kind.value,
+				reason="inactiveContext",
+			)
+			return False
+		if self._editorSession.active_numbered_choice_context() is not None:
+			self._record(
+				"developerContextRequestRejected",
+				kind=kind.value,
+				reason="numberedChoiceActive",
+			)
 			return False
 		# A focus or runtime handoff can leave the previous adapter's transient
 		# Braille message visible until the next editor event. Starting a newly
@@ -400,7 +413,20 @@ class TerminalIntegrationService:
 			self._generation,
 		)
 		selected = self._editorSession.held_context_instance(kind)
-		if request is None or selected is None:
+		if request is None:
+			self._record(
+				"developerContextRequestRejected",
+				kind=kind.value,
+				reason="requestUnavailable",
+			)
+			return False
+		if selected is None:
+			self._editorSession.invalidate_held_context()
+			self._record(
+				"developerContextRequestRejected",
+				kind=kind.value,
+				reason="providerUnavailable",
+			)
 			return False
 		accepted = self._controlDispatcher.submit(
 			selected[1],

@@ -77,6 +77,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Fügt eine eigene profilfähige Braille-Startzelle für temporäre
   Entwicklerinformationen hinzu und verwirft gehaltene Anzeigen bei jedem
   Fokus-, Buffer-, Text- oder Cursorwechsel.
+- Rekonstruiert beim Start einer gehaltenen Parameter- oder Diagnoseansicht
+  eine vom Rohbeobachter verpasste NVDA-Taste aus der ausführenden Geste und
+  dem tatsächlichen Windows-Tastenstatus. Eingerastete statt physisch
+  gehaltene NVDA-Tasten öffnen dadurch keine unbegrenzt bestehende Anzeige.
+  Der geführte Diagnosetest wartet außerdem auf eine eindeutige
+  Bereitschaftsansage von Ruff statt auf eine geschätzte feste Pause.
 - Erweitert die LSP-/Diagnoseabdeckung über alle Schichten: Ein
   deterministischer stdio-Testserver durchläuft Neovims echten LSP-Client für
   Signaturhilfe, Parameterdokumentation und Hover-Rückfall. Zusätzliche

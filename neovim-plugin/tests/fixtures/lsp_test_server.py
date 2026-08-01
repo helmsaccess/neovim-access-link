@@ -48,7 +48,9 @@ def result_for(message: dict[str, Any]) -> Any:
 		}
 	if method == "textDocument/signatureHelp":
 		position = message.get("params", {}).get("position", {})
-		if position.get("character", 0) > 5:
+		# The test cursor remains on the callable name. Access Link must ask
+		# just after the opening parenthesis without moving that real cursor.
+		if position.get("character") != 16:
 			return None
 		return {
 			"activeSignature": 0,

@@ -15,6 +15,7 @@ import keyboardHandler
 import queueHandler
 import scriptHandler
 import types
+import winUser
 
 from globalPlugins import NeovimAccessLink
 
@@ -701,7 +702,7 @@ class AppModule(appModuleHandler.AppModule):
 		speakOnDemand=True,
 	)
 	def script_holdCallableContext(self, gesture):
-		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.CALLABLE)
+		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.CALLABLE, gesture)
 
 	@scriptHandler.script(
 		# Translators: Input Help description for held diagnostic inspection.
@@ -711,9 +712,33 @@ class AppModule(appModuleHandler.AppModule):
 		speakOnDemand=True,
 	)
 	def script_holdDiagnosticContext(self, gesture):
-		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.DIAGNOSTIC)
+		self._startDeveloperContext(NeovimAccessLink.HeldContextKind.DIAGNOSTIC, gesture)
 
-	def _startDeveloperContext(self, kind):
+	@staticmethod
+	def _physicallyHeldNvdaModifiers(gesture):
+		"""Recover physically held NVDA keys from the executing gesture."""
+		held = set()
+		try:
+			modifiers = tuple(getattr(gesture, "modifiers", ()))
+		except TypeError:
+			return held
+		for modifier in modifiers:
+			if not isinstance(modifier, tuple) or len(modifier) != 2:
+				continue
+			vk_code, extended = modifier
+			if not isinstance(vk_code, int):
+				continue
+			try:
+				if (
+					keyboardHandler.isNVDAModifierKey(vk_code, bool(extended))
+					and winUser.getAsyncKeyState(vk_code) & 32768
+				):
+					held.add((vk_code, bool(extended)))
+			except Exception:
+				continue
+		return held
+
+	def _startDeveloperContext(self, kind, gesture):
 		service = self._service()
 		try:
 			focus_obj = api.getFocusObject()
@@ -732,6 +757,14 @@ class AppModule(appModuleHandler.AppModule):
 				started = False
 		if not started:
 			return
+		# The process-wide raw observer normally records the NVDA key-down first.
+		# Recover from observer ordering or a late AppModule registration using
+		# the physical modifiers carried by the gesture. GetAsyncKeyState is
+		# required here: GetKeyState reflects the calling thread's message-queue
+		# state, which can lag behind NVDA's global keyboard hook. The physical
+		# check still prevents a latched Sticky Keys modifier from creating an
+		# unbounded view.
+		self._heldNvdaModifiers.update(self._physicallyHeldNvdaModifiers(gesture))
 		self._developerContextKind = kind
 		self._developerContextActive = bool(self._heldNvdaModifiers)
 		if not self._developerContextActive:

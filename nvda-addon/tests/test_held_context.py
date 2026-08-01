@@ -215,6 +215,31 @@ class HeldContextControllerTests(unittest.TestCase):
 		self.assertEqual(self.location, self.controller.location)
 		self.assertTrue(self.controller.cancel(self.location.adapter_token))
 
+	def test_callable_can_be_requested_again_after_release(self):
+		first = self.controller.begin(HeldContextKind.CALLABLE, self.location)
+		self.assertTrue(self.controller.cancel(self.location.adapter_token))
+		second = self.controller.begin(HeldContextKind.CALLABLE, self.location)
+		self.assertGreater(second.request_id, first.request_id)
+		event = {
+			"type": "callableContextResult",
+			"payload": {
+				**editor_state(),
+				"requestId": second.request_id,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [{
+					"signature": "calculate_total(price, quantity)",
+					"parameters": ["price", "quantity"],
+					"documentation": "",
+				}],
+				"activeItem": 0,
+				"activeParameter": 0,
+			},
+		}
+		presentation = self.controller.consume(HeldContextKind.CALLABLE, event)
+		self.assertIsNotNone(presentation)
+		self.assertEqual("price", presentation.parameter)
+
 
 if __name__ == "__main__":
 	unittest.main()

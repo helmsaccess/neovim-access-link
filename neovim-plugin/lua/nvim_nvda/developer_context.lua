@@ -9,6 +9,7 @@ local MAX_DOCUMENTATION = 8192
 local MAX_TOTAL_TEXT = 256 * 1024
 local METHOD_SIGNATURE = "textDocument/signatureHelp"
 local METHOD_HOVER = "textDocument/hover"
+local MODERN_STRING_INDICES = vim.fn.has("nvim-0.11") == 1
 
 local function integer(value, minimum)
   return type(value) == "number" and value % 1 == 0
@@ -171,6 +172,48 @@ local function position_params()
   return ok and params or nil
 end
 
+local function utf16_index(value, byte_column)
+  if MODERN_STRING_INDICES then
+    local ok, index = pcall(vim.str_utfindex, value, "utf-16", byte_column, false)
+    return ok and index or nil
+  end
+  local ok, _, index = pcall(vim.str_utfindex, value, byte_column)
+  return ok and index or nil
+end
+
+local function identifier_byte(value)
+  return value and (
+    value >= 128
+    or value >= string.byte("0") and value <= string.byte("9")
+    or value >= string.byte("A") and value <= string.byte("Z")
+    or value == string.byte("_")
+    or value >= string.byte("a") and value <= string.byte("z")
+  )
+end
+
+-- Language servers commonly return signature help only inside an argument
+-- list. When the real cursor is on a callable name immediately followed by
+-- `(`, query just after that delimiter without moving or editing the buffer.
+-- Hover still uses the real cursor position as its unstructured fallback.
+local function callable_position_params(payload, params)
+  if type(params) ~= "table" or type(params.position) ~= "table" then return params end
+  local lines = vim.api.nvim_buf_get_lines(
+    payload.bufferId, payload.line - 1, payload.line, true
+  )
+  local line = type(lines) == "table" and lines[1] or nil
+  if type(line) ~= "string" or payload.byteColumn >= #line then return params end
+  local offset = payload.byteColumn + 1
+  if not identifier_byte(line:byte(offset)) then return params end
+  while identifier_byte(line:byte(offset)) do offset = offset + 1 end
+  while line:sub(offset, offset):match("%s") do offset = offset + 1 end
+  if line:sub(offset, offset) ~= "(" then return params end
+  local character = utf16_index(line, offset)
+  if type(character) ~= "number" then return params end
+  local adjusted = vim.deepcopy(params)
+  adjusted.position.character = character
+  return adjusted
+end
+
 local function request_all(buf, method, params, handler)
   return pcall(vim.lsp.buf_request_all, buf, method, params, handler)
 end
@@ -195,12 +238,13 @@ function M.request_callable(payload, emit)
     end
     return false
   end
-  local params = position_params()
-  if not params or type(vim.lsp.buf_request_all) ~= "function" then
+  local hover_params = position_params()
+  if not hover_params or type(vim.lsp.buf_request_all) ~= "function" then
     emit("callableContextResult", "callableContextRequest", failure(payload, "requestFailed"))
     return false
   end
-  local requested = request_all(payload.bufferId, METHOD_SIGNATURE, params, function(results)
+  local signature_params = callable_position_params(payload, hover_params)
+  local requested = request_all(payload.bufferId, METHOD_SIGNATURE, signature_params, function(results)
     if not exact_context(payload) then
       emit("callableContextResult", "callableContextRequest", failure(
         payload, "invalidOrStaleRequest"
@@ -219,23 +263,25 @@ function M.request_callable(payload, emit)
       })
       return
     end
-    local hover_requested = request_all(payload.bufferId, METHOD_HOVER, params, function(hover_results)
-      if not exact_context(payload) then
-        emit("callableContextResult", "callableContextRequest", failure(
-          payload, "invalidOrStaleRequest"
-        ))
-        return
+    local hover_requested = request_all(
+      payload.bufferId, METHOD_HOVER, hover_params, function(hover_results)
+        if not exact_context(payload) then
+          emit("callableContextResult", "callableContextRequest", failure(
+            payload, "invalidOrStaleRequest"
+          ))
+          return
+        end
+        local hover = hover_items(hover_results)
+        emit("callableContextResult", "callableContextRequest", #hover > 0 and {
+          requestId = payload.requestId,
+          ok = true,
+          resultCode = "ok",
+          items = hover,
+          activeItem = 0,
+          activeParameter = 0,
+        } or failure(payload, "noResult"))
       end
-      local hover = hover_items(hover_results)
-      emit("callableContextResult", "callableContextRequest", #hover > 0 and {
-        requestId = payload.requestId,
-        ok = true,
-        resultCode = "ok",
-        items = hover,
-        activeItem = 0,
-        activeParameter = 0,
-      } or failure(payload, "noResult"))
-    end)
+    )
     if not hover_requested then
       emit("callableContextResult", "callableContextRequest", failure(
         payload, "requestFailed"

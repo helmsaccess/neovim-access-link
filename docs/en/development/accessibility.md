@@ -51,14 +51,18 @@ where the complete result fits.
 
 Held developer context uses two fixed Windows Terminal AppModule gestures.
 `NVDA+Shift+P` requests bounded LSP signature help, with hover as an
-unstructured fallback; `NVDA+Shift+E` requests diagnostics under the cursor
-and then on its line. While NVDA remains held, parameter, signature, or
-diagnostic selection changes locally and never moves the editor cursor.
+unstructured fallback. If the real cursor is on a callable name immediately
+followed by `(`, only the LSP query position is placed just after that
+delimiter so servers can return structured parameters. `NVDA+Shift+E`
+requests diagnostics under the cursor and then on its line. While NVDA remains
+held, parameter, signature, or diagnostic selection changes locally and never
+moves the editor cursor.
 Releasing the final NVDA key removes the owned temporary Braille message and
 restores the editor region. Exact control and instance binding, request ID,
 buffer, window, tab, changed tick, mode, and cursor must still match.
-Validator, protocol, Lua, controller, AppModule, and built-package tests cover
-the path; practical Windows/NVDA acceptance remains open. Diagnostic error and
+Validator, protocol, Lua, real-LSP, controller, AppModule, and built-package
+tests cover the path, including repeated requests after release; practical
+Windows/NVDA acceptance remains open. Diagnostic error and
 warning cues use attributed MIT-licensed VS Code sounds on deliberate line
 entry and at every position reached by explicit navigation within a diagnostic
 range; typing and background refresh remain silent.

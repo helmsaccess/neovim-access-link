@@ -354,6 +354,16 @@ class BuiltAddonTests(unittest.TestCase):
         keyboard_handler.isNVDAModifierKey = lambda vkCode, extended: vkCode in {20, 45}
         sys.modules["keyboardHandler"] = keyboard_handler
 
+        self.physicallyHeldKeys = set()
+        win_user = types.ModuleType("winUser")
+        # The synchronous state deliberately stays stale. Physical lifetime must
+        # use the asynchronous state observed by Windows' global input path.
+        win_user.getKeyState = lambda _vkCode: 0
+        win_user.getAsyncKeyState = (
+            lambda vkCode: 32768 if vkCode in self.physicallyHeldKeys else 0
+        )
+        sys.modules["winUser"] = win_user
+
         input_core = types.ModuleType("inputCore")
         class Decider:
             def __init__(inner_self): inner_self.handlers = []
@@ -3182,6 +3192,7 @@ class BuiltAddonTests(unittest.TestCase):
         refresh_braille = mock.Mock()
         control_dispatcher = mock.Mock()
         control_dispatcher.submit.return_value = True
+        record_diagnostic = mock.Mock()
         service = TerminalIntegrationService(
             focus_service,
             mock.Mock(),
@@ -3199,7 +3210,7 @@ class BuiltAddonTests(unittest.TestCase):
             dismiss_developer_context=dismiss,
             refresh_braille=refresh_braille,
             no_item_selected_message="No item selected",
-            record_diagnostic=mock.Mock(),
+            record_diagnostic=record_diagnostic,
             fail_open_event=mock.Mock(),
         )
         location.service_generation = service._generation
@@ -3279,6 +3290,11 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
         control_dispatcher.submit.assert_not_called()
+        record_diagnostic.assert_any_call(
+            "developerContextRequestRejected",
+            kind="diagnostic",
+            reason="numberedChoiceActive",
+        )
 
         editor_session.active_numbered_choice_context.return_value = None
         editor_session.begin_held_context.return_value = None
@@ -3292,6 +3308,11 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
         control_dispatcher.submit.assert_not_called()
+        record_diagnostic.assert_any_call(
+            "developerContextRequestRejected",
+            kind="diagnostic",
+            reason="requestUnavailable",
+        )
 
     def test_speech_exploration_refreshes_braille_only_when_following_is_enabled(self) -> None:
         from globalPlugins.NeovimAccessLink.core.exploration_state import ExplorationResultPlan
@@ -4480,6 +4501,41 @@ class BuiltAddonTests(unittest.TestCase):
             raw_observer(vkCode=74, scanCode=0, extended=False, pressed=False)
             raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
             service.release_held_context.assert_called_once()
+            adapter.terminate()
+
+    def test_held_developer_context_recovers_a_missed_raw_nvda_key_down(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        from appModules.windowsterminal import AppModule
+
+        service = mock.Mock()
+        service.start_held_context.return_value = True
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+            raw_observer = self.rawKeyDecider.handlers[0]
+            gesture = types.SimpleNamespace(modifiers={(45, False)})
+
+            self.physicallyHeldKeys.add(45)
+            adapter.script_holdCallableContext(gesture)
+            self.assertEqual({(45, False)}, adapter._heldNvdaModifiers)
+            self.assertTrue(adapter._developerContextActive)
+            service.cancel_held_context.assert_not_called()
+
+            self.physicallyHeldKeys.clear()
+            raw_observer(vkCode=45, scanCode=0, extended=False, pressed=False)
+            service.release_held_context.assert_called_once_with(
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            self.assertFalse(adapter._developerContextActive)
+
+            service.start_held_context.reset_mock()
+            service.cancel_held_context.reset_mock()
+            adapter.script_holdDiagnosticContext(gesture)
+            service.start_held_context.assert_called_once()
+            service.cancel_held_context.assert_called_once_with(adapter._eventToken)
+            self.assertFalse(adapter._developerContextActive)
             adapter.terminate()
 
     def test_held_developer_context_presents_callable_diagnostic_and_empty_states(self) -> None:

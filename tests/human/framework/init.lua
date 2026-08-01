@@ -3,6 +3,16 @@
 
 local profile = (vim.env.ACCESS_LINK_HUMAN_PROFILE or "native"):lower()
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
+local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
+local human_messages = language == "de" and {
+  diagnostics_waiting = "Ruff-Diagnosen werden ermittelt. Bitte warten.",
+  diagnostics_ready = "Diagnosen bereit: %d Ruff-Diagnosen. Jetzt F7 drücken.",
+  diagnostics_not_ready = "Ruff-Diagnosen wurden nicht rechtzeitig bereit.",
+} or {
+  diagnostics_waiting = "Waiting for Ruff diagnostics.",
+  diagnostics_ready = "Diagnostics ready: %d Ruff diagnostics. Press F7 now.",
+  diagnostics_not_ready = "Ruff diagnostics did not become ready in time.",
+}
 local valid_profiles = {
   setup = true,
   native = true,
@@ -126,6 +136,10 @@ local function show_current_task()
   })
 end
 
+local run_linter = nil
+local run_linter_with_feedback = nil
+local ruff_categories_ready = nil
+
 vim.keymap.set("n", "<F1>", function()
   access_link_command("NvimNvdaLspStatus")
 end, { desc = "Access Link human test: LSP status" })
@@ -135,8 +149,8 @@ vim.keymap.set("n", "<F3>", function()
   prepare_insert_probe("completion_probe = calc")
 end, { desc = "Access Link human test: prepare completion" })
 vim.keymap.set("n", "<F6>", function()
-  if vim.fn.exists(":AccessLinkHumanLint") == 2 then
-    vim.cmd("AccessLinkHumanLint")
+  if run_linter_with_feedback then
+    run_linter_with_feedback()
   else
     vim.notify("This test profile does not configure a linter")
   end
@@ -239,7 +253,6 @@ vim.lsp.config("pyright", {
 })
 vim.lsp.enable("pyright")
 
-local run_linter = nil
 if profile == "diagnostics" then
   local lint = require("lint")
   local ruff = assert(vim.env.ACCESS_LINK_HUMAN_RUFF,
@@ -254,6 +267,48 @@ if profile == "diagnostics" then
     -- directory does not change which file or contents are checked.
     local process_directory = vim.env.TEMP or vim.env.TMP or vim.uv.cwd()
     lint.try_lint("ruff", { cwd = process_directory })
+  end
+
+  ruff_categories_ready = function()
+    local warning_found = false
+    local error_found = false
+    local count = 0
+    for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
+      if tostring(diagnostic.source):lower():find("ruff", 1, true) then
+        count = count + 1
+        if tostring(diagnostic.code) == "F401"
+            and diagnostic.severity == vim.diagnostic.severity.WARN then
+          warning_found = true
+        elseif tostring(diagnostic.code) == "F821"
+            and diagnostic.severity == vim.diagnostic.severity.ERROR then
+          error_found = true
+        end
+      end
+    end
+    return warning_found and error_found, count
+  end
+
+  local readiness_pending = false
+  run_linter_with_feedback = function()
+    if readiness_pending then
+      vim.notify(human_messages.diagnostics_waiting)
+      return
+    end
+    readiness_pending = true
+    vim.notify(human_messages.diagnostics_waiting)
+    run_linter()
+    vim.schedule(function()
+      local ready = vim.wait(15000, function()
+        return ruff_categories_ready()
+      end, 50)
+      readiness_pending = false
+      if ready then
+        local _, count = ruff_categories_ready()
+        vim.notify(string.format(human_messages.diagnostics_ready, count))
+      else
+        vim.notify(human_messages.diagnostics_not_ready, vim.log.levels.ERROR)
+      end
+    end)
   end
   vim.api.nvim_create_user_command("AccessLinkHumanLint", run_linter, {
     desc = "Run the isolated Ruff diagnostic provider",
@@ -319,20 +374,7 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
     assert(run_linter, "the diagnostic profile did not configure Ruff")
     run_linter()
     local categorized = vim.wait(15000, function()
-      local warning_found = false
-      local error_found = false
-      for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
-        if tostring(diagnostic.source):lower():find("ruff", 1, true) then
-          if tostring(diagnostic.code) == "F401"
-              and diagnostic.severity == vim.diagnostic.severity.WARN then
-            warning_found = true
-          elseif tostring(diagnostic.code) == "F821"
-              and diagnostic.severity == vim.diagnostic.severity.ERROR then
-            error_found = true
-          end
-        end
-      end
-      return warning_found and error_found
+      return ruff_categories_ready()
     end, 50)
     assert(categorized,
       "Ruff did not publish the expected F401 warning and F821 error")
