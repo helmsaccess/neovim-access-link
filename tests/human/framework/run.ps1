@@ -36,7 +36,11 @@ $VenvPython = Join-Path $PythonScripts "python.exe"
 $RuffPath = Join-Path $PythonScripts "ruff.exe"
 $NodeRoot = Join-Path $StateRoot "node"
 $NodeBin = Join-Path $NodeRoot "node_modules\.bin"
+$PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
 $PyrightPath = Join-Path $NodeBin "pyright-langserver.cmd"
+$PackageRoot = Join-Path $StateRoot "packages"
+$ManagedPluginsRoot = Join-Path $StateRoot "data\nvim-data\site\pack\core\opt"
+$TestGitConfig = Join-Path $StateRoot "gitconfig"
 $SetupMarker = Join-Path $StateRoot "setup.json"
 
 if ([string]::IsNullOrWhiteSpace($AccessLinkPlugin)) {
@@ -118,10 +122,11 @@ function Get-PythonInvocation {
             Prefix = @()
         }
     }
-    $global:LASTEXITCODE = 0
     $versionArguments = @($result.Prefix) + @("--version")
-    $version = [string](& $result.Command @versionArguments 2>&1)
-    if ($LASTEXITCODE -ne 0 -or $version.Trim() -notmatch "^Python 3\.12\.") {
+    $versionResult = Invoke-ExternalText -Command $result.Command `
+        -Arguments $versionArguments
+    if ($versionResult.ExitCode -ne 0 -or
+        $versionResult.Text -notmatch "^Python 3\.12\.") {
         throw (Get-Message "runner.requirementMissing" @(
             "Python 3.12",
             (Get-Message "runner.installPython")
@@ -148,6 +153,57 @@ function Invoke-External {
     }
 }
 
+function Invoke-ExternalText {
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [string[]]$Arguments = @()
+    )
+    # Windows PowerShell turns redirected native stderr into ErrorRecord
+    # objects. With the runner's Stop preference, those records can otherwise
+    # abort the script before LASTEXITCODE is inspected. Keep stderr captured
+    # and let each caller decide whether the exit code is fatal.
+    $previousErrorActionPreference = $ErrorActionPreference
+    $nativePreference = Get-Variable -Name PSNativeCommandUseErrorActionPreference `
+        -ErrorAction SilentlyContinue
+    try {
+        $ErrorActionPreference = "Continue"
+        if ($null -ne $nativePreference) {
+            Set-Variable -Name PSNativeCommandUseErrorActionPreference `
+                -Value $false -Scope Local
+        }
+        $global:LASTEXITCODE = 0
+        $output = @(& $Command @Arguments 2>&1)
+        $code = $LASTEXITCODE
+    } catch {
+        $output = @($_)
+        $code = -1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($null -ne $nativePreference) {
+            Set-Variable -Name PSNativeCommandUseErrorActionPreference `
+                -Value $nativePreference.Value -Scope Local
+        }
+    }
+    $separator = [Environment]::NewLine
+    $text = (($output | ForEach-Object { [string]$_ }) -join $separator).Trim()
+    return [PSCustomObject]@{ ExitCode = [int]$code; Text = $text }
+}
+
+function Invoke-OptionalExternalText {
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [string[]]$Arguments = @()
+    )
+    $result = Invoke-ExternalText -Command $Command -Arguments $Arguments
+    if ($result.ExitCode -ne 0) {
+        # Repository metadata is useful evidence but not a test prerequisite.
+        # In particular, Windows cannot resolve a linked Linux worktree's
+        # absolute gitdir path. Never expose Git's stderr or abort the run.
+        return [PSCustomObject]@{ Succeeded = $false; Text = "" }
+    }
+    return [PSCustomObject]@{ Succeeded = $true; Text = $result.Text }
+}
+
 function Invoke-Python {
     param(
         [Parameter(Mandatory = $true)][string[]]$Arguments,
@@ -163,12 +219,146 @@ function Invoke-PythonText {
     param([Parameter(Mandatory = $true)][string[]]$Arguments)
     $python = Get-PythonInvocation
     $combined = @($python.Prefix) + $Arguments
-    $global:LASTEXITCODE = 0
-    $output = @(& $python.Command @combined 2>&1)
-    if ($LASTEXITCODE -ne 0) {
-        throw (($output | Out-String).Trim())
+    $result = Invoke-ExternalText -Command $python.Command -Arguments $combined
+    if ($result.ExitCode -ne 0) {
+        throw $result.Text
     }
-    return (($output | Out-String).Trim())
+    return $result.Text
+}
+
+function Install-PyrightPackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Npm,
+        [Parameter(Mandatory = $true)][string]$Node,
+        [Parameter(Mandatory = $true)][string]$Tar,
+        [Parameter(Mandatory = $true)][object]$Dependencies
+    )
+    $version = [string]$Dependencies.tools.pyright
+    $expectedSha512 = [string]$Dependencies.tools.pyrightSha512
+    $packageJson = Join-Path $PyrightRoot "package.json"
+    $langserver = Join-Path $PyrightRoot "langserver.index.js"
+    $cli = Join-Path $PyrightRoot "index.js"
+    $current = $false
+    if ((Test-Path -LiteralPath $PyrightPath -PathType Leaf) -and
+        (Test-Path -LiteralPath $packageJson -PathType Leaf) -and
+        (Test-Path -LiteralPath $langserver -PathType Leaf) -and
+        (Test-Path -LiteralPath $cli -PathType Leaf)) {
+        try {
+            $metadata = Get-Content -LiteralPath $packageJson -Raw -Encoding UTF8 |
+                ConvertFrom-Json
+            $current = [string]$metadata.version -eq $version
+        } catch {
+            $current = $false
+        }
+    }
+    if ($current) {
+        Write-Host (Get-Message "runner.setup.pyrightCurrent" @($version))
+        $null = Invoke-External -Command $Node -Arguments @($cli, "--version")
+        return
+    }
+
+    New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
+    $archive = Join-Path $PackageRoot "pyright-$version.tgz"
+    $archiveValid = $false
+    if (Test-Path -LiteralPath $archive -PathType Leaf) {
+        $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA512).Hash
+        $archiveValid = $archiveHash.ToLowerInvariant() -eq $expectedSha512
+        if (-not $archiveValid) {
+            Remove-Item -LiteralPath $archive -Force
+        }
+    }
+    if (-not $archiveValid) {
+        Write-Step (Get-Message "runner.setup.pyrightArchive" @($version))
+        $null = Invoke-External -Command $Npm -Arguments @(
+            "pack", "--pack-destination", $PackageRoot, "--ignore-scripts",
+            "--loglevel=info", "pyright@$version"
+        )
+    }
+    if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
+        throw (Get-Message "runner.setup.pyrightArchiveMissing" @($archive))
+    }
+    $actualSha512 = (Get-FileHash -LiteralPath $archive -Algorithm SHA512).Hash.ToLowerInvariant()
+    if ($actualSha512 -ne $expectedSha512) {
+        throw (Get-Message "runner.setup.pyrightIntegrity" @($expectedSha512, $actualSha512))
+    }
+
+    Write-Step (Get-Message "runner.setup.pyrightExtract")
+    $extractRoot = Join-Path $PackageRoot "pyright-extract"
+    if (Test-Path -LiteralPath $extractRoot -PathType Container) {
+        Remove-Item -LiteralPath $extractRoot -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $PyrightRoot -PathType Container) {
+        Remove-Item -LiteralPath $PyrightRoot -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path (Split-Path $PyrightRoot -Parent) -Force |
+        Out-Null
+    $null = Invoke-External -Command $Tar -Arguments @(
+        "-xzf", $archive, "-C", $extractRoot
+    )
+    $extractedPackage = Join-Path $extractRoot "package"
+    if (-not (Test-Path -LiteralPath $extractedPackage -PathType Container)) {
+        throw (Get-Message "runner.setup.pyrightArchiveInvalid")
+    }
+    Move-Item -LiteralPath $extractedPackage -Destination $PyrightRoot
+    Remove-Item -LiteralPath $extractRoot -Recurse -Force
+    New-Item -ItemType Directory -Path $NodeBin -Force | Out-Null
+    $shim = "@ECHO OFF`r`nnode `"%~dp0..\pyright\langserver.index.js`" %*`r`n"
+    $ascii = New-Object Text.ASCIIEncoding
+    [IO.File]::WriteAllText($PyrightPath, $shim, $ascii)
+    $null = Invoke-External -Command $Node -Arguments @($cli, "--version")
+}
+
+function Get-EquivalentPaths {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $fullRoot = [IO.Path]::GetFullPath($Path)
+    $roots = @($fullRoot.Replace("\", "/"))
+    if ($fullRoot -match "^([A-Za-z]):[\\/](.*)$") {
+        $driveName = $Matches[1]
+        $relative = $Matches[2]
+        $drive = Get-PSDrive -Name $driveName -ErrorAction SilentlyContinue
+        if ($null -ne $drive) {
+            $displayRootProperty = $drive.PSObject.Properties["DisplayRoot"]
+            if ($null -ne $displayRootProperty -and
+                -not [string]::IsNullOrWhiteSpace([string]$displayRootProperty.Value)) {
+                $displayRoot = ([string]$displayRootProperty.Value).TrimEnd(
+                    [char[]]@('\', '/')
+                )
+                $roots += "$displayRoot\$relative".Replace("\", "/")
+            }
+        }
+    }
+    return $roots
+}
+
+function Get-TestGitSafeDirectories {
+    $names = @("nvim-lint", "nvim-cmp", "cmp-nvim-lsp", "blink.cmp")
+    $directories = @(Get-EquivalentPaths -Path $RepositoryRoot)
+    $roots = @(Get-EquivalentPaths -Path $ManagedPluginsRoot)
+    foreach ($root in $roots) {
+        foreach ($name in $names) {
+            $directory = (Join-Path $root $name).Replace("\", "/")
+            if ($directories -notcontains $directory) {
+                $directories += $directory
+            }
+        }
+    }
+    return $directories
+}
+
+function Initialize-TestGitConfig {
+    New-Item -ItemType Directory -Path (Split-Path $TestGitConfig -Parent) -Force |
+        Out-Null
+    $lines = @("[safe]")
+    foreach ($safeDirectory in Get-TestGitSafeDirectories) {
+        if ($safeDirectory.Contains('"')) {
+            throw "Test Git safe directory contains an unsupported quote character"
+        }
+        $lines += "`tdirectory = `"$safeDirectory`""
+    }
+    $utf8 = New-Object Text.UTF8Encoding($false)
+    $content = ($lines -join [Environment]::NewLine) + [Environment]::NewLine
+    [IO.File]::WriteAllText($TestGitConfig, $content, $utf8)
 }
 
 function Assert-Definitions {
@@ -373,6 +563,7 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_TASK",
         "ACCESS_LINK_HUMAN_EXPECTED",
         "NVIM_NVDA_SESSION_NAME",
+        "GIT_CONFIG_GLOBAL",
         "XDG_CONFIG_HOME",
         "XDG_DATA_HOME",
         "XDG_STATE_HOME",
@@ -393,6 +584,7 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_TASK = $Task
         $env:ACCESS_LINK_HUMAN_EXPECTED = $Expected
         $env:NVIM_NVDA_SESSION_NAME = "Access Link human test: $Profile"
+        $env:GIT_CONFIG_GLOBAL = $TestGitConfig
         $env:XDG_CONFIG_HOME = Join-Path $StateRoot "config"
         $env:XDG_DATA_HOME = Join-Path $StateRoot "data"
         $env:XDG_STATE_HOME = Join-Path $StateRoot "nvim-state"
@@ -406,6 +598,7 @@ function Invoke-TestNvim {
         )) {
             New-Item -ItemType Directory -Path $directory -Force | Out-Null
         }
+        Initialize-TestGitConfig
         $arguments = @("-u", $TestInitPath, "-n", "-i", "NONE")
         if ($Headless) {
             $arguments += "--headless"
@@ -471,27 +664,29 @@ function Install-TestEnvironment {
     $null = Get-Nvim
     $null = Get-RequiredCommand "git" (Get-Message "runner.installGit")
     $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
+    $node = Get-RequiredCommand "node" (Get-Message "runner.installNode")
+    $tar = Get-RequiredCommand "tar" (Get-Message "runner.installTar")
     $python = Get-PythonInvocation
     $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     $currentHash = (Get-FileHash -LiteralPath $DependenciesPath -Algorithm SHA256).Hash
-    $managedPlugins = Join-Path $StateRoot "data\nvim\site\pack\core\opt"
-    if (Test-Path -LiteralPath $managedPlugins -PathType Container) {
-        Remove-Item -LiteralPath $managedPlugins -Recurse -Force
+    if (Test-Path -LiteralPath $ManagedPluginsRoot -PathType Container) {
+        Remove-Item -LiteralPath $ManagedPluginsRoot -Recurse -Force
     }
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
+        Write-Step (Get-Message "runner.setup.python")
         $arguments = @($python.Prefix) + @("-m", "venv", $PythonRoot)
         $null = Invoke-External -Command $python.Command -Arguments $arguments
     }
+    Write-Step (Get-Message "runner.setup.ruff")
     $null = Invoke-External -Command $VenvPython -Arguments @(
         "-m", "pip", "install", "--disable-pip-version-check",
         "ruff==$($dependencies.tools.ruff)"
     )
-    $null = Invoke-External -Command $npm -Arguments @(
-        "install", "--prefix", $NodeRoot, "--no-audit", "--no-fund",
-        "pyright@$($dependencies.tools.pyright)"
-    )
+    Write-Step (Get-Message "runner.setup.pyright")
+    Install-PyrightPackage -Npm $npm -Node $node -Tar $tar `
+        -Dependencies $dependencies
     Invoke-TestNvim -Profile "setup" -Headless
     foreach ($probe in @(
         [PSCustomObject]@{ Profile = "native"; Fixture = "lsp_features.py" },
@@ -533,14 +728,28 @@ function Get-RepositoryState {
     $git = Get-Command "git" -CommandType Application -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if ($null -ne $git) {
-        $global:LASTEXITCODE = 0
-        $value = [string](& $git.Source -C $RepositoryRoot rev-parse HEAD)
-        if ($LASTEXITCODE -eq 0 -and $value.Trim() -match "^[0-9a-f]{40}$") {
-            $commit = $value.Trim()
-        }
-        $changes = @(& $git.Source -C $RepositoryRoot status --porcelain=v1)
-        if ($LASTEXITCODE -eq 0) {
-            $dirty = $changes.Count -gt 0
+        Initialize-TestGitConfig
+        $savedGitConfig = [Environment]::GetEnvironmentVariable(
+            "GIT_CONFIG_GLOBAL", "Process"
+        )
+        try {
+            $env:GIT_CONFIG_GLOBAL = $TestGitConfig
+            $head = Invoke-OptionalExternalText -Command $git.Source -Arguments @(
+                "-C", $RepositoryRoot, "rev-parse", "HEAD"
+            )
+            if ($head.Succeeded -and $head.Text -match "^[0-9a-f]{40}$") {
+                $commit = $head.Text
+            }
+            $status = Invoke-OptionalExternalText -Command $git.Source -Arguments @(
+                "-C", $RepositoryRoot, "status", "--porcelain=v1"
+            )
+            if ($status.Succeeded) {
+                $dirty = -not [string]::IsNullOrWhiteSpace($status.Text)
+            }
+        } finally {
+            [Environment]::SetEnvironmentVariable(
+                "GIT_CONFIG_GLOBAL", $savedGitConfig, "Process"
+            )
         }
     }
     return [PSCustomObject]@{

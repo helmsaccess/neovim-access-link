@@ -190,11 +190,15 @@ def validate_dependencies() -> dict[str, Any]:
 		if not re.fullmatch(r"[0-9a-f]{40}", revision):
 			raise ValidationError(f"dependency plugin {name} revision must be a full commit ID")
 	tools = _object(dependencies["tools"], "dependencies tools")
-	_exact_fields(tools, {"pyright", "ruff"}, "dependencies tools")
-	for name, version in tools.items():
+	_exact_fields(tools, {"pyright", "pyrightSha512", "ruff"}, "dependencies tools")
+	for name in ("pyright", "ruff"):
+		version = tools[name]
 		value = _string(version, f"dependency tool {name} version")
 		if not VERSION_PATTERN.fullmatch(value):
 			raise ValidationError(f"dependency tool {name} must use an exact X.Y.Z version")
+	pyright_sha512 = _string(tools["pyrightSha512"], "Pyright archive SHA-512")
+	if not re.fullmatch(r"[0-9a-f]{128}", pyright_sha512):
+		raise ValidationError("Pyright archive SHA-512 must be 128 lowercase hexadecimal characters")
 	return dependencies
 
 

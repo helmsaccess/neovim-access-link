@@ -85,6 +85,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		)
 		self.assertEqual(set(validator.load_locales()["de"]), set(validator.load_locales()["en"]))
 		dependencies = validator.validate_dependencies()
+		self.assertRegex(dependencies["tools"]["pyrightSha512"], r"^[0-9a-f]{128}$")
 		for plugin in dependencies["plugins"].values():
 			self.assertRegex(plugin["revision"], r"^[0-9a-f]{40}$")
 		smoke = sorted(
@@ -120,6 +121,26 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn("Invoke-Expression", runner)
 		self.assertIn("Sort-Object { [int]$_.order }", runner)
 		self.assertIn("Invoke-TestNvim -Profile ([string]$plan.profile)", runner)
+		self.assertNotIn('"install", "--prefix", $NodeRoot', runner)
+		self.assertIn('"pack", "--pack-destination", $PackageRoot, "--ignore-scripts"', runner)
+		self.assertIn("Get-FileHash -LiteralPath $archive -Algorithm SHA512", runner)
+		self.assertLess(runner.index("Get-FileHash -LiteralPath $archive"), runner.index('"-xzf"'))
+		self.assertIn('"data\\nvim-data\\site\\pack\\core\\opt"', runner)
+		self.assertIn('"GIT_CONFIG_GLOBAL"', runner)
+		self.assertIn('$lines = @("[safe]")', runner)
+		self.assertIn("Get-EquivalentPaths -Path $RepositoryRoot", runner)
+		self.assertIn('directory = `"$safeDirectory`"', runner)
+		self.assertNotIn('"config", "--global"', runner)
+		self.assertIn("function Invoke-ExternalText", runner)
+		self.assertIn("function Invoke-OptionalExternalText", runner)
+		self.assertIn("Windows cannot resolve a linked Linux worktree", runner)
+		self.assertIn('$output = @(& $Command @Arguments 2>&1)', runner)
+		self.assertEqual(1, runner.count("2>&1"))
+		self.assertIn('$versionResult = Invoke-ExternalText', runner)
+		self.assertIn('$result = Invoke-ExternalText -Command $python.Command', runner)
+		self.assertIn('$head = Invoke-OptionalExternalText', runner)
+		self.assertIn('$status = Invoke-OptionalExternalText', runner)
+		self.assertNotIn('& $git.Source -C $RepositoryRoot', runner)
 		for plan in validator.load_plans().values():
 			self.assertEqual(validator.PLAN_FIELDS, set(plan))
 			for step in plan["steps"]:
@@ -132,6 +153,21 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
 		self.assertIn("{ 1, 7 }", configuration)
+		self.assertIn('lint.try_lint("ruff", { cwd = process_directory })', configuration)
+		self.assertIn('vim.env.TEMP or vim.env.TMP', configuration)
+		self.assertIn('table.insert(lint.linters.ruff.args, 2, "--isolated")', configuration)
+		self.assertIn('tostring(diagnostic.code) == "F401"', configuration)
+		self.assertIn('diagnostic.severity == vim.diagnostic.severity.WARN', configuration)
+		self.assertIn('tostring(diagnostic.code) == "F821"', configuration)
+		self.assertIn('diagnostic.severity == vim.diagnostic.severity.ERROR', configuration)
+		self.assertIn('cmp_config.get().mapping[cmp_keymap.normalize("<F5>")]', configuration)
+		self.assertIn('cmp_config.get_source_config("nvim_lsp")', configuration)
+		self.assertIn('require("blink.cmp.keymap").get_mappings(', configuration)
+		self.assertIn('vim.tbl_contains(blink_config.sources.default, "lsp")', configuration)
+		self.assertLess(
+			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
+			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
+		)
 		self.assertNotIn('"<F4>"', configuration)
 
 	def test_windows_ci_exercises_powershell_runner_and_dry_run(self) -> None:

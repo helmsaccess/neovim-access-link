@@ -173,6 +173,10 @@ referenzierten Dateien. Beim ersten Lauf richtet er unter
 | festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und blink.cmp | reproduzierbare Provider- und Completion-Kompatibilität |
 | eigene Neovim-Konfigurations-, Daten-, Zustands- und Cacheverzeichnisse | vollständige Trennung von der persönlichen Neovim-Umgebung |
 
+Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
+Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
+Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
+
 Danach startet eine technische Vorprüfung jedes Testprofils. Sie wartet
 tatsächlich auf einen angehängten Pyright-Client, prüft dessen
 Completion-Fähigkeit und erwartet im Diagnoseprofil eine reale
@@ -181,7 +185,10 @@ geführt, wenn diese maschinell entscheidbaren Grundlagen funktionieren.
 
 **Testabhängigkeiten einrichten oder reparieren** installiert die verwalteten
 Plugin-Revisionen neu und wiederholt diese Vorprüfung. Die persönliche
-Neovim-Umgebung bleibt auch dabei unberührt.
+Neovim-Umgebung bleibt auch dabei unberührt. Für Git verwendet allein die
+Test-Neovim-Sitzung eine temporäre globale Konfigurationsdatei, die nur die
+verwalteten Pluginverzeichnisse unter `tmp/human-test-state/` als sicher
+zulässt. Die persönliche globale Git-Konfiguration wird nicht verändert.
 
 ## Ergebnisauswahl
 

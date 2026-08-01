@@ -246,10 +246,14 @@ if profile == "diagnostics" then
     "ACCESS_LINK_HUMAN_RUFF is required")
   lint.linters_by_ft = { python = { "ruff" } }
   lint.linters.ruff.cmd = ruff
+  table.insert(lint.linters.ruff.args, 2, "--isolated")
+  table.insert(lint.linters.ruff.args, 3, "--no-cache")
   run_linter = function()
-    local filename = vim.api.nvim_buf_get_name(0)
-    local directory = filename ~= "" and vim.fs.dirname(filename) or vim.uv.cwd()
-    lint.try_lint(nil, { cwd = directory })
+    -- cmd.exe cannot reliably use a UNC directory as its working directory.
+    -- nvim-lint passes the absolute buffer name to Ruff, so a local process
+    -- directory does not change which file or contents are checked.
+    local process_directory = vim.env.TEMP or vim.env.TMP or vim.uv.cwd()
+    lint.try_lint("ruff", { cwd = process_directory })
   end
   vim.api.nvim_create_user_command("AccessLinkHumanLint", run_linter, {
     desc = "Run the isolated Ruff diagnostic provider",
@@ -266,6 +270,42 @@ if profile == "diagnostics" then
   })
 end
 
+local function assert_completion_profile_ready()
+  if profile == "cmp" then
+    -- nvim-cmp intentionally installs its real insert-mode keymaps on the
+    -- first InsertEnter.  Inspect the effective configuration here so the
+    -- normal-mode preflight does not reject that deferred setup.
+    local cmp_config = require("cmp.config")
+    local cmp_keymap = require("cmp.utils.keymap")
+    local mapping = cmp_config.get().mapping[cmp_keymap.normalize("<F5>")]
+    assert(type(mapping) == "table" and type(mapping.i) == "function",
+      "nvim-cmp did not configure its F5 completion mapping")
+    assert(cmp_config.get_source_config("nvim_lsp") ~= nil,
+      "nvim-cmp did not configure its LSP completion source")
+    return
+  end
+
+  if profile == "blink" then
+    -- blink.cmp also applies buffer-local insert mappings on InsertEnter.
+    -- Resolve its preset plus overrides without forcing a synthetic mode
+    -- transition during the provider preflight.
+    local blink_config = require("blink.cmp.config")
+    local mappings = require("blink.cmp.keymap").get_mappings(
+      blink_config.keymap, "default")
+    local f5 = mappings["<F5>"]
+    assert(type(f5) == "table" and vim.tbl_contains(f5, "show"),
+      "blink.cmp did not configure its F5 completion mapping")
+    assert(type(blink_config.sources.default) == "table"
+        and vim.tbl_contains(blink_config.sources.default, "lsp"),
+      "blink.cmp did not configure its LSP completion source")
+    return
+  end
+
+  local insert_f5 = vim.fn.maparg("<F5>", "i", false, true)
+  assert(type(insert_f5) == "table" and next(insert_f5) ~= nil,
+    "the native completion profile did not install its F5 mapping")
+end
+
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   local attached = vim.wait(15000, function()
     return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
@@ -274,22 +314,28 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
   assert(client:supports_method("textDocument/completion"),
     "Pyright does not advertise completion support")
-  local insert_f5 = vim.fn.maparg("<F5>", "i", false, true)
-  assert(type(insert_f5) == "table" and next(insert_f5) ~= nil,
-    "the selected completion profile did not install its F5 mapping")
+  assert_completion_profile_ready()
   if profile == "diagnostics" then
     assert(run_linter, "the diagnostic profile did not configure Ruff")
     run_linter()
-    local diagnosed = vim.wait(15000, function()
+    local categorized = vim.wait(15000, function()
+      local warning_found = false
+      local error_found = false
       for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
-        if tostring(diagnostic.source):lower():find("ruff", 1, true)
-            or tostring(diagnostic.code) == "F401" then
-          return true
+        if tostring(diagnostic.source):lower():find("ruff", 1, true) then
+          if tostring(diagnostic.code) == "F401"
+              and diagnostic.severity == vim.diagnostic.severity.WARN then
+            warning_found = true
+          elseif tostring(diagnostic.code) == "F821"
+              and diagnostic.severity == vim.diagnostic.severity.ERROR then
+            error_found = true
+          end
         end
       end
-      return false
+      return warning_found and error_found
     end, 50)
-    assert(diagnosed, "Ruff did not publish a diagnostic for diagnostics.py")
+    assert(categorized,
+      "Ruff did not publish the expected F401 warning and F821 error")
   end
   vim.g.access_link_human_preflight_ready = 1
 end, { desc = "Verify real providers for the guided human-test profile" })

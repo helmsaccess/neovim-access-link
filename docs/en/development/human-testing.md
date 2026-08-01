@@ -165,6 +165,10 @@ file. On the first run, it creates an isolated environment below
 | pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, and blink.cmp | reproducible provider and completion compatibility |
 | separate Neovim configuration, data, state, and cache directories | complete isolation from the personal Neovim environment |
 
+Pyright is provided as a pinned npm package archive and verified with SHA-512
+before extraction. This avoids the `npm install` path that can stall in
+mounted directories on Windows.
+
 A technical preflight then starts every test profile. It waits for an attached
 Pyright client, verifies its completion capability, and requires a real Ruff
 diagnostic from the diagnostic profile. A human tester only sees a perception
@@ -172,6 +176,9 @@ task after these machine-decidable foundations work.
 
 **Set up or repair test dependencies** reinstalls managed plugin revisions and
 repeats this preflight. The personal Neovim environment remains untouched.
+Only the test Neovim process uses a temporary global Git configuration that
+marks the managed plugin directories below `tmp/human-test-state/` as safe.
+The personal global Git configuration is not modified.
 
 ## Outcome choices
 
