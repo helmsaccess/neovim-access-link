@@ -1333,8 +1333,12 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,
     callback = function(event)
-      if require("nvim_nvda.diagnostics").consume_navigation() then
+      local diagnostic_navigation = require("nvim_nvda.diagnostics").consume_navigation()
+      if diagnostic_navigation then
         pending_motion = "diagnosticMoved"
+        if type(diagnostic_navigation) == "table" then
+          pending_motion_details = diagnostic_navigation
+        end
       end
       schedule_navigation(event.event)
     end,

@@ -315,7 +315,7 @@ class SpeechPlannerTests(unittest.TestCase):
             action.text,
         )
         self.assertEqual(action.text, action.braille_message)
-        self.assertEqual("lineCrossed", action.sound)
+        self.assertIsNone(action.sound)
 
     def test_context_changes_announce_tabs_windows_buffers_and_special_lists(self) -> None:
         planner = SpeechPlanner()

@@ -180,7 +180,9 @@ Produzent nachweislich keine semantische Spiegelung anbietet.
 `DiagnosticChanged` aktualisiert den Zustand ohne automatische Sprachflut.
 Die fünf Befehle `:NvimNvdaDiagnosticPrevious`, `Next`, `First`, `Last` und
 `Current` erzeugen eine eindeutige vollständige Ansage und verändern keine
-Benutzermappings. Neovim 0.12 wird zusätzlich über den öffentlichen
+Benutzermappings. Sie durchlaufen die geordnete Diagnosemenge eintragsweise,
+sodass auch überlappende Meldungen verschiedener Provider an derselben
+Cursorposition einzeln erreichbar bleiben. Neovim 0.12 wird zusätzlich über den öffentlichen
 `jump.on_jump`-Hook beobachtet; Neovim 0.10 verwendet die kompatiblen
 `goto_prev()`-/`goto_next()`-Aufrufe und die bestehende Beobachtung seiner
 nativen Vorwärts-/Rückwärtsnavigation.

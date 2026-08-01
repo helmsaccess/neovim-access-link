@@ -164,7 +164,7 @@ local function netrw_displayed_name(line)
   if style == 0 then
     displayed = line:gsub("\t%s*%-%->.*$", "")
   elseif style == 1 then
-    displayed = line:match("^(.*%S)%s%s+%-?%d+%s")
+    displayed = line:match("^(.-%S)%s%s+%-?%d+%s")
   elseif style == 2 then
     displayed = netrw_wide_column(line)
   elseif style == 3 then

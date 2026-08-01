@@ -10854,6 +10854,7 @@ class BuiltAddonTests(unittest.TestCase):
             },
         })
         self.assertEqual(2, played.count("diagnosticError"))
+        self.assertNotIn("lineCrossed", played)
         plugin._handleEvent({
             "type": "textChanged",
             "payload": {

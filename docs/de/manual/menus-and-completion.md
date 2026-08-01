@@ -167,7 +167,11 @@ Für eigene Neovim-Mappings stehen folgende Befehle bereit:
 Sie ändern keine vorhandenen Mappings. Unter neueren Neovim-Versionen werden
 auch Sprünge über die öffentliche native Diagnostic-API erkannt. Direkt
 getippte `[d`-/`]d`-Sprünge bleiben erkennbar, wenn das Mapping einen
-aufrufspezifischen Callback verwendet. Produzenten,
+aufrufspezifischen Callback verwendet. Die Access-Link-Befehle durchlaufen
+jede einzelne Diagnose in der angekündigten Reihenfolge. Liefern mehrere
+Provider Diagnosen an derselben Position, bleiben diese deshalb einzeln mit
+Quelle, Index und Gesamtzahl erreichbar. Nach dem letzten Eintrag wird zum
+ersten umgebrochen und umgekehrt. Produzenten,
 die Ergebnisse ausschließlich in einer privaten Liste oder nur als
 Bildschirmdekoration halten, sind erst zugänglich, wenn sie diese nach
 `vim.diagnostic` spiegeln.

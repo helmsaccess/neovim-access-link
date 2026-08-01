@@ -23,6 +23,7 @@ local jump_callback
 local previous_jump_callback
 local pending_navigation
 local navigation_sequence = 0
+local command_selection
 local buffer_cache = {}
 local buffer_line_cache = {}
 local cache_enabled = false
@@ -174,6 +175,21 @@ local function snapshot_normalized(all, line_number, byte_column)
   }, #all
 end
 
+local function selected_snapshot(diagnostic, index, count)
+  return {
+    message = diagnostic.message,
+    severity = severity_names[diagnostic.severity],
+    source = diagnostic.source,
+    code = diagnostic.code,
+    line = diagnostic.lnum + 1,
+    byteColumn = diagnostic.col,
+    endLine = diagnostic.end_lnum + 1,
+    endByteColumn = diagnostic.end_col,
+    index = index,
+    count = count,
+  }
+end
+
 function M.snapshot_values(values, line_number, byte_column, resolve_namespace)
   return snapshot_normalized(
     M.normalized(values, resolve_namespace),
@@ -287,12 +303,12 @@ function M.summary(buf, line_number, byte_column)
   }
 end
 
-local function emit_moved(reason)
+local function emit_moved(reason, extra)
   if type(current_emit) ~= "function" then return end
-  vim.schedule(function() current_emit("diagnosticMoved", reason) end)
+  vim.schedule(function() current_emit("diagnosticMoved", reason, extra) end)
 end
 
-local function record_navigation(reason)
+local function record_navigation(reason, extra)
   navigation_sequence = navigation_sequence + 1
   local cursor = vim.api.nvim_win_get_cursor(0)
   local token = {
@@ -302,12 +318,15 @@ local function record_navigation(reason)
     line = cursor[1],
     byte_column = cursor[2],
     reason = reason,
+    extra = extra,
   }
   pending_navigation = token
   vim.defer_fn(function()
     if pending_navigation ~= token then return end
     pending_navigation = nil
-    if type(current_emit) == "function" then current_emit("diagnosticMoved", reason) end
+    if type(current_emit) == "function" then
+      current_emit("diagnosticMoved", reason, extra)
+    end
   end, 20)
 end
 
@@ -325,37 +344,128 @@ local function direct_cursor_jump(diagnostic)
   return ok
 end
 
+local function same_diagnostic(left, right)
+  return left and right
+    and left.lnum == right.lnum
+    and left.col == right.col
+    and left.end_lnum == right.end_lnum
+    and left.end_col == right.end_col
+    and left.severity == right.severity
+    and left.source == right.source
+    and left.code == right.code
+    and left.message == right.message
+end
+
+local function diagnostic_at_cursor(all, line, byte_column)
+  local current, current_index
+  for index, diagnostic in ipairs(all) do
+    if contains(diagnostic, line, byte_column)
+      and preferred_current(diagnostic, current) then
+      current, current_index = diagnostic, index
+    end
+  end
+  return current_index
+end
+
+local function selected_index(all, line, byte_column)
+  local selection = command_selection
+  if selection
+    and selection.buffer == vim.api.nvim_get_current_buf()
+    and selection.window == vim.api.nvim_get_current_win()
+    and selection.line == line
+    and selection.byte_column == byte_column
+    and same_diagnostic(all[selection.index], selection.diagnostic) then
+    return selection.index
+  end
+  return diagnostic_at_cursor(all, line, byte_column)
+end
+
+local function target_index(all, kind, line, byte_column)
+  if kind == "first" then return 1 end
+  if kind == "last" then return #all end
+  local current = selected_index(all, line, byte_column)
+  if kind == "current" then return current end
+  if current then
+    if kind == "next" then return current == #all and 1 or current + 1 end
+    return current == 1 and #all or current - 1
+  end
+  if kind == "next" then
+    for index, diagnostic in ipairs(all) do
+      if diagnostic.lnum > line
+        or (diagnostic.lnum == line and diagnostic.col > byte_column) then
+        return index
+      end
+    end
+    return 1
+  end
+  for index = #all, 1, -1 do
+    local diagnostic = all[index]
+    if diagnostic.lnum < line
+      or (diagnostic.lnum == line and diagnostic.col < byte_column) then
+      return index
+    end
+  end
+  return #all
+end
+
+local function navigation_extra(buf, diagnostic, index, count)
+  local summary = M.summary(buf, diagnostic.lnum + 1, diagnostic.col)
+  summary.positionSeverity = severity_names[diagnostic.severity]
+  summary.positionIdentity = table.concat({
+    "diagnosticCommand",
+    tostring(index),
+    tostring(diagnostic.lnum),
+    tostring(diagnostic.col),
+    tostring(diagnostic.end_lnum),
+    tostring(diagnostic.end_col),
+    tostring(diagnostic.severity),
+  }, ":")
+  return {
+    diagnostic = selected_snapshot(diagnostic, index, count),
+    diagnosticCount = count,
+    diagnosticSummary = summary,
+  }
+end
+
 local function move(kind)
   local all = diagnostics_for_current_buffer()
-  if kind == "current" or #all == 0 then
+  if #all == 0 then
+    command_selection = nil
     emit_moved("diagnosticCommand")
     return
   end
-  local moved = false
-  if kind == "first" or kind == "last" then
-    local target = kind == "first" and all[1] or all[#all]
-    if type(vim.diagnostic.jump) == "function" then
-      moved = pcall(vim.diagnostic.jump, {
-        diagnostic = target.raw,
-        on_jump = function() end,
-      })
-    else
-      moved = direct_cursor_jump(target)
-    end
-  elseif type(vim.diagnostic.jump) == "function" then
-    moved = pcall(vim.diagnostic.jump, {
-      count = kind == "next" and 1 or -1,
-      on_jump = function() end,
-      wrap = true,
-    })
-  else
-    local legacy = kind == "next" and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
-    if type(legacy) == "function" then
-      moved = pcall(legacy, { float = false, wrap = true })
-    end
+  local buf = vim.api.nvim_get_current_buf()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local index = target_index(all, kind, cursor[1] - 1, cursor[2])
+  if not index then
+    command_selection = nil
+    emit_moved("diagnosticCommand")
+    return
   end
-  if moved then
-    record_navigation("diagnosticCommand")
+  local target = all[index]
+  local extra = navigation_extra(buf, target, index, #all)
+  if kind == "current" then
+    command_selection = {
+      buffer = buf,
+      window = vim.api.nvim_get_current_win(),
+      line = cursor[1] - 1,
+      byte_column = cursor[2],
+      index = index,
+      diagnostic = target,
+    }
+    emit_moved("diagnosticCommand", extra)
+    return
+  end
+  if direct_cursor_jump(target) then
+    command_selection = {
+      buffer = buf,
+      window = vim.api.nvim_get_current_win(),
+      line = target.lnum,
+      byte_column = target.col,
+      index = index,
+      diagnostic = target,
+    }
+    record_navigation("diagnosticCommand", extra)
   else
     emit_moved("diagnosticCommandFailed")
   end
@@ -371,7 +481,8 @@ function M.consume_navigation()
   end
   local cursor = vim.api.nvim_win_get_cursor(0)
   pending_navigation = nil
-  return token.line == cursor[1] and token.byte_column == cursor[2]
+  if token.line ~= cursor[1] or token.byte_column ~= cursor[2] then return false end
+  return token.extra or true
 end
 
 local function install_jump_hook()
@@ -393,6 +504,7 @@ end
 
 function M.setup(emit, group)
   current_emit = emit
+  command_selection = nil
   buffer_cache = {}
   buffer_line_cache = {}
   cache_enabled = group ~= nil
@@ -400,6 +512,7 @@ function M.setup(emit, group)
     vim.api.nvim_create_autocmd({ "DiagnosticChanged", "BufWipeout" }, {
       group = group,
       callback = function(event)
+        command_selection = nil
         buffer_cache[event.buf] = nil
         buffer_line_cache[event.buf] = nil
       end,

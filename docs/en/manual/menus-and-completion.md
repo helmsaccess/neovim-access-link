@@ -68,7 +68,11 @@ The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
 `:NvimNvdaDiagnosticCurrent` can be used in custom Neovim mappings without
 replacing existing mappings. Newer Neovim versions also expose native
 diagnostic jumps through their public hook. Directly typed `[d`/`]d` jumps
-remain observable when the mapping supplies a per-call callback. A provider
+remain observable when the mapping supplies a per-call callback. The Access
+Link commands visit every individual diagnostic in the announced order. If
+several providers publish diagnostics at the same position, each remains
+reachable with its source, index, and total. Navigation wraps from the last
+entry to the first and vice versa. A provider
 that keeps results only in a private list or screen decoration must mirror
 them to `vim.diagnostic` before Access Link can consume them.
 

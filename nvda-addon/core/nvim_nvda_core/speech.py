@@ -1519,7 +1519,6 @@ class SpeechPlanner:
             text = ", ".join(parts) if parts else self._translate("diagnostic")
             return SpeechAction(
                 text, Priority.NAVIGATION, interrupt=True,
-                sound="lineCrossed" if self._line_changed(state) else None,
                 braille_message=text,
             )
         return fallback

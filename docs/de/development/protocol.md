@@ -256,6 +256,9 @@ Buffer hängenden LSP-Clients und wird nur durch `:NvimNvdaLspStatus` erzeugt.
 `diagnosticMoved` wird nach einer ausdrücklich beobachteten oder über einen
 Access-Link-Befehl ausgelösten Diagnosenavigation erzeugt. Sein Snapshot trägt
 höchstens eine aktuell einschließende Diagnose sowie `diagnosticCount`.
+Bei Access-Link-Befehlen ist dies der ausdrücklich ausgewählte Eintrag der
+geordneten Diagnosemenge; dadurch können mehrere Diagnosen an derselben
+Position unterschiedliche Indizes und Klänge behalten.
 Die Diagnose enthält eine auf 2048 gültige UTF-8-Bytes begrenzte Meldung,
 Schwere, eine auf 256 Bytes begrenzte Quelle, optional einen auf 256 Bytes
 begrenzten String- oder ganzzahligen Code, einsbasierte Zeilen,

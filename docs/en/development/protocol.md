@@ -171,6 +171,9 @@ buffer and is emitted only by `:NvimNvdaLspStatus`.
 has no automatic presentation. `diagnosticMoved` follows an explicitly
 observed diagnostic jump or an Access Link diagnostic command. Its snapshot
 carries at most one diagnostic containing the cursor plus `diagnosticCount`.
+For an Access Link command this is the explicitly selected entry in the
+ordered diagnostic set, allowing multiple diagnostics at the same position
+to retain distinct indices and sounds.
 The record contains a message bounded to 2,048 valid UTF-8 bytes, severity, a
 source bounded to 256 bytes, an optional 256-byte string or integer code,
 one-based lines, zero-based UTF-8 byte columns, index, and count. A missing

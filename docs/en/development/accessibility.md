@@ -161,7 +161,9 @@ mirroring would justify evaluating an adapter.
 
 `DiagnosticChanged` refreshes state without automatic speech flooding. Five
 commands provide previous, next, first, last, and current diagnostic output
-without changing user mappings. Neovim 0.12 native jumps are observed through
+without changing user mappings. They traverse the ordered diagnostic set one
+entry at a time, so overlapping reports from different providers at the same
+cursor position remain individually reachable. Neovim 0.12 native jumps are observed through
 the public `jump.on_jump` hook; the 0.10 path uses compatible
 `goto_prev()`/`goto_next()` calls and observes its native previous/next
 navigation.

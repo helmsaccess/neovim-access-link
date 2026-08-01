@@ -372,7 +372,7 @@ msgstr ""
 msgid "deleted"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1581 nvda-addon/core/nvim_nvda_core/speech.py:1627 nvda-addon/core/nvim_nvda_core/speech.py:423
+#: nvda-addon/core/nvim_nvda_core/speech.py:1580 nvda-addon/core/nvim_nvda_core/speech.py:1626 nvda-addon/core/nvim_nvda_core/speech.py:423
 #, python-brace-format
 msgid "deleted {text}"
 msgstr ""

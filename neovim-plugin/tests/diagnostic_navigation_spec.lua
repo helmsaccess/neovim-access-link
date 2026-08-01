@@ -86,6 +86,51 @@ equal("first", first_event.payload.diagnostic.message, "first command")
 local current_event = run("NvimNvdaDiagnosticCurrent")
 equal("first", current_event.payload.diagnostic.message, "current command")
 
+vim.diagnostic.set(namespace, 0, {
+  {
+    lnum = 0, col = 0, end_lnum = 0, end_col = 4,
+    message = "overlapping error", source = "pyright", code = "reportError",
+    severity = vim.diagnostic.severity.ERROR,
+  },
+  {
+    lnum = 0, col = 0, end_lnum = 0, end_col = 4,
+    message = "overlapping warning", source = "ruff", code = "F401",
+    severity = vim.diagnostic.severity.WARN,
+  },
+  {
+    lnum = 2, col = 0, end_lnum = 2, end_col = 3,
+    message = "later error", source = "pyright", code = "reportLater",
+    severity = vim.diagnostic.severity.ERROR,
+  },
+})
+vim.wait(50)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+local overlapping_current = run("NvimNvdaDiagnosticCurrent")
+equal("overlapping error", overlapping_current.payload.diagnostic.message,
+  "current command selects the preferred overlapping diagnostic")
+equal(1, overlapping_current.payload.diagnostic.index,
+  "current overlapping diagnostic retains its global index")
+equal(3, overlapping_current.payload.diagnostic.count,
+  "current overlapping diagnostic retains the total count")
+local overlapping_next = run("NvimNvdaDiagnosticNext")
+equal("overlapping warning", overlapping_next.payload.diagnostic.message,
+  "next command reaches a second diagnostic at the same cursor position")
+equal(2, overlapping_next.payload.diagnostic.index,
+  "same-position navigation advances the diagnostic index")
+equal("warning", overlapping_next.payload.diagnosticSummary.positionSeverity,
+  "explicit navigation sound follows the selected diagnostic severity")
+local later_next = run("NvimNvdaDiagnosticNext")
+equal("later error", later_next.payload.diagnostic.message,
+  "next command advances after overlapping diagnostics")
+equal(3, later_next.payload.diagnostic.index,
+  "later diagnostic exposes the final index")
+local overlapping_wrapped = run("NvimNvdaDiagnosticNext")
+equal("overlapping error", overlapping_wrapped.payload.diagnostic.message,
+  "next command wraps after visiting every diagnostic")
+local overlapping_previous = run("NvimNvdaDiagnosticPrevious")
+equal("later error", overlapping_previous.payload.diagnostic.message,
+  "previous command wraps across overlapping diagnostics")
+
 if type(vim.diagnostic.jump) == "function" then
   vim.api.nvim_win_set_cursor(0, { 2, 0 })
   events = {}
