@@ -62,6 +62,28 @@ class GettextCatalogTests(unittest.TestCase):
             "LSP-Clients: lua_ls",
             translations.gettext("LSP clients: {clients}").format(clients="lua_ls"),
         )
+        self.assertEqual(
+            "S 1 von 2: calculate_total(price, quantity)",
+            translations.gettext("S {index} of {count}: {signature}").format(
+                index=1,
+                count=2,
+                signature="calculate_total(price, quantity)",
+            ),
+        )
+        self.assertEqual(
+            "P 1 von 3: price",
+            translations.gettext("P {index} of {count}: {parameter}").format(
+                index=1,
+                count=3,
+                parameter="price",
+            ),
+        )
+        self.assertEqual(
+            "D: Calculate the total.",
+            translations.gettext("D: {documentation}").format(
+                documentation="Calculate the total.",
+            ),
+        )
 
     def test_nvda_modules_initialize_their_gettext_builtins(self) -> None:
         for path in NVDA_TRANSLATION_MODULES:

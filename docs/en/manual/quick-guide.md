@@ -125,7 +125,10 @@ the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
 initial view contains only the signature and documentation; each signature
 starts independently at its first parameter. After that view or a signature
 change, the first `NVDA+h` or `NVDA+l` press reveals the selected parameter;
-only the next press moves. `NVDA+Shift+E` uses the same held
+only the next press moves. Speech keeps the full labels. Braille saves space
+with `S 1 of 2` for a signature, `P 1 of 3` for a parameter, and `D:` before
+documentation; function and parameter names remain complete.
+`NVDA+Shift+E` uses the same held
 interaction for diagnostics under the cursor and on the current line; here
 `NVDA+k/j` cycles entries. The normal forward/back controls page through long
 information without crossing into source text. Releasing the final NVDA key

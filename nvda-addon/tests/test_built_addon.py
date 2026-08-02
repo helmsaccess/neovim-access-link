@@ -4612,8 +4612,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("Parameter", self.spoken[-1])
         self.assertIn("Documentation: Calculate the total.", self.spoken[-1])
         self.assertEqual(
-            "Signature 1 of 2: calculate_total(price, quantity). "
-            "Documentation: Calculate the total.",
+            "S 1 of 2: calculate_total(price, quantity). D: Calculate the total.",
             self.brailleMessages[-1],
         )
         self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
@@ -4628,6 +4627,7 @@ class BuiltAddonTests(unittest.TestCase):
             HeldContextDirection.NEXT_PARAMETER,
         )
         self.assertEqual("Parameter 2 of 2: quantity", self.spoken[-1])
+        self.assertEqual("P 2 of 2: quantity", self.brailleMessages[-1])
         plugin._presentDeveloperContext(
             callable_presentation,
             HeldContextKind.CALLABLE,
@@ -4637,6 +4637,10 @@ class BuiltAddonTests(unittest.TestCase):
             "Signature 1 of 2: calculate_total(price, quantity). "
             "Documentation: Calculate the total.",
             self.spoken[-1],
+        )
+        self.assertEqual(
+            "S 1 of 2: calculate_total(price, quantity). D: Calculate the total.",
+            self.brailleMessages[-1],
         )
 
         diagnostic_presentation = HeldContextPresentation(

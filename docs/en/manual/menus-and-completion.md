@@ -59,7 +59,10 @@ parameter selection that starts at parameter 1 and is never mixed with another
 signature when switching. Speech and Braille therefore expose the same current
 navigation axis. Because the signature view exposes no parameter, the first
 `NVDA+h` or `NVDA+l` press reveals the parameter selected for that signature;
-only subsequent presses move backward or forward. If the content does not fit
+only subsequent presses move backward or forward. Speech keeps the full
+labels. On Braille, `S 1 of 2`, `P 1 of 3`, and `D:` shorten only the structural
+prefixes for signature, parameter, and documentation; function names,
+parameter names, and content remain complete. If the content does not fit
 on the display, both the normal
 pan controls and the next/previous Braille-line
 commands page only within this information. The view remains at its first or

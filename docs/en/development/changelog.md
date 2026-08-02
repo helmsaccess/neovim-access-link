@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Shortens only the repeated structural prefixes for signature, parameter,
+  and documentation to `S`, `P`, and `D` in the held Braille view. Speech,
+  function names, parameter names, and content remain complete.
 - Explicitly reports Neovim built-in completion's deliberate no-selected-
   candidate state between the last and first suggestion in speech and Braille.
   The originally typed text remains intact as Neovim intends, cached

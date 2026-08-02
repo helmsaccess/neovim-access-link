@@ -3048,7 +3048,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				count=presentation.item_count,
 				signature=signature,
 			)
+			# Translators: Compact Braille label for one selected callable signature. Keep the S short.
+			braille_signature_text = _("S {index} of {count}: {signature}").format(
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				signature=signature,
+			)
 			parameter_text = ""
+			braille_parameter_text = ""
 			if presentation.parameter_count:
 				# Translators: One selected parameter in a held callable context.
 				parameter_text = _("Parameter {index} of {count}: {parameter}").format(
@@ -3056,10 +3063,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					count=presentation.parameter_count,
 					parameter=presentation.parameter,
 				)
+				# Translators: Compact Braille label for one selected callable parameter. Keep the P short.
+				braille_parameter_text = _("P {index} of {count}: {parameter}").format(
+					index=presentation.parameter_index + 1,
+					count=presentation.parameter_count,
+					parameter=presentation.parameter,
+				)
 			documentation_text = ""
+			braille_documentation_text = ""
 			if documentation:
 				# Translators: Documentation belonging to a held callable signature.
 				documentation_text = _("Documentation: {documentation}").format(
+					documentation=documentation,
+				)
+				# Translators: Compact Braille label for callable documentation. Keep the D short.
+				braille_documentation_text = _("D: {documentation}").format(
 					documentation=documentation,
 				)
 			parameter_direction = direction in {
@@ -3069,11 +3087,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if parameter_direction:
 				# Translators: Spoken when the selected callable signature has no parameters.
 				speech_text = parameter_text or _("No parameters in this signature")
+				braille_text = braille_parameter_text or speech_text
 			else:
 				# Initial presentation and j/k navigation describe only the
 				# selected signature. Parameters form their own h/l axis.
 				speech_text = ". ".join(part for part in (signature_text, documentation_text) if part)
-			braille_text = speech_text
+				braille_text = ". ".join(
+					part for part in (braille_signature_text, braille_documentation_text) if part
+				)
 		else:
 			item = presentation.item
 			severity = {

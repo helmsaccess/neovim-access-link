@@ -134,7 +134,11 @@ mit einer anderen Signatur vermischt wird. Sprache und Braille zeigen damit
 immer dieselbe, gerade gewählte Achse. Da die Signaturansicht keinen Parameter
 zeigt, blendet der erste Druck auf `NVDA+h` oder `NVDA+l` zunächst den für
 diese Signatur ausgewählten Parameter ein; erst weitere Betätigungen wechseln
-vorwärts oder rückwärts. Passt der Inhalt nicht vollständig
+vorwärts oder rückwärts. Die Sprache verwendet die vollständigen
+Bezeichnungen. Auf Braille verkürzen `S 1 von 2`, `P 1 von 3` und `D:` nur die
+Strukturpräfixe für Signatur, Parameter und Dokumentation; Funktionsnamen,
+Parameternamen und die eigentlichen Inhalte bleiben vollständig. Passt der
+Inhalt nicht vollständig
 auf die Braillezeile, blättern sowohl
 die üblichen Vor-/Zurück-Tasten als auch die Befehle für die nächste oder
 vorherige Braillezeile ausschließlich innerhalb dieser Information. Am ersten

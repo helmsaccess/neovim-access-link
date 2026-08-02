@@ -231,7 +231,10 @@ schaltet ausschließlich durch die Parameter der gewählten Signatur,
 nur Signatur und Dokumentation; jede Signatur beginnt unabhängig bei ihrem
 ersten Parameter. Nach dieser Ansicht oder einem Signaturwechsel zeigt der
 erste Druck auf `NVDA+h` oder `NVDA+l` zunächst den ausgewählten Parameter;
-erst der nächste Druck schaltet weiter. Mit
+erst der nächste Druck schaltet weiter. Die Sprache verwendet dabei die
+vollständigen Bezeichnungen. Auf Braille stehen platzsparend `S 1 von 2` für
+eine Signatur, `P 1 von 3` für einen Parameter und `D:` vor der Dokumentation;
+Funktions- und Parameternamen bleiben vollständig. Mit
 `NVDA+Umschalt+E` funktioniert derselbe gehaltene Ablauf für Diagnosen am
 Cursor und auf der aktuellen Zeile; hier schaltet `NVDA+k/j` durch die
 Einträge. Lange Informationen lassen sich mit den üblichen Vor-/Zurück-Tasten

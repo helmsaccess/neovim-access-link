@@ -356,6 +356,11 @@ msgstr "Aktuelle Zeile"
 msgid "cut"
 msgstr "ausgeschnitten"
 
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3080
+#, python-brace-format
+msgid "D: {documentation}"
+msgstr "D: {documentation}"
+
 #: nvda-addon/core/nvim_nvda_core/speech.py:1320
 msgid "delete"
 msgstr "Löschen"
@@ -381,7 +386,7 @@ msgstr "{text} gelöscht"
 msgid "Developer information"
 msgstr "Entwicklerinformationen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3084 nvda-addon/core/nvim_nvda_core/speech.py:1525
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3105 nvda-addon/core/nvim_nvda_core/speech.py:1525
 msgid "diagnostic"
 msgstr "Diagnose"
 
@@ -405,7 +410,7 @@ msgstr "Ausgewählte Neovim-Verbindungsinstanz trennen"
 msgid "disconnected"
 msgstr "getrennt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3062
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3076
 #, python-brace-format
 msgid "Documentation: {documentation}"
 msgstr "Dokumentation: {documentation}"
@@ -426,7 +431,7 @@ msgstr "leer"
 msgid "end of file"
 msgstr "Dateiende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3175
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3196
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr "Geben Sie das SSH-Passwort für {profile} ein. Es wird nicht gespeichert."
@@ -439,7 +444,7 @@ msgstr "Aufzählung"
 msgid "enum member"
 msgstr "Aufzählungselement"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3080
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3101
 msgid "error"
 msgstr "Fehler"
 
@@ -541,7 +546,7 @@ msgstr "Grammatikfehler"
 msgid "help"
 msgstr "Hilfe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3083
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3104
 msgid "hint"
 msgstr "Hinweis"
 
@@ -549,7 +554,7 @@ msgstr "Hinweis"
 msgid "Individual actions"
 msgstr "Einzelne Aktionen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3082
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3103
 msgid "information"
 msgstr "Information"
 
@@ -881,7 +886,7 @@ msgstr "Neovim befindet sich nicht in der direkten Terminaleingabe"
 msgid "Neovim session"
 msgstr "Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3176
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3197
 msgid "Neovim SSH password"
 msgstr "Neovim-SSH-Passwort"
 
@@ -951,7 +956,7 @@ msgstr "kein zusammengehöriges Paar"
 msgid "No Neovim connection instance is selected for this terminal"
 msgstr "Für dieses Terminal ist keine Neovim-Verbindungsinstanz ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3071
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3089
 msgid "No parameters in this signature"
 msgstr "Keine Parameter in dieser Signatur"
 
@@ -1016,11 +1021,16 @@ msgstr "Grammatikfehler-Ende"
 msgid "out of spelling error"
 msgstr "Rechtschreibfehler-Ende"
 
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3067
+#, python-brace-format
+msgid "P {index} of {count}: {parameter}"
+msgstr "P {index} von {count}: {parameter}"
+
 #: nvda-addon/core/nvim_nvda_core/speech.py:803
 msgid "paragraph separator"
 msgstr "Absatztrenner"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3054
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3061
 #, python-brace-format
 msgid "Parameter {index} of {count}: {parameter}"
 msgstr "Parameter {index} von {count}: {parameter}"
@@ -1143,6 +1153,11 @@ msgstr "Routingposition"
 msgid "Routing keys"
 msgstr "Routingtasten"
 
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3052
+#, python-brace-format
+msgid "S {index} of {count}: {signature}"
+msgstr "S {index} von {count}: {signature}"
+
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:142
 msgid "Save the Linux account used for Neovim. The same connection is used to install the Linux components and to exchange accessibility data."
 msgstr "Speichern Sie das für Neovim verwendete Linux-Konto. Dieselbe Verbindung wird zum Installieren der Linux-Komponenten und zum Austauschen der Barrierefreiheitsdaten verwendet."
@@ -1242,7 +1257,7 @@ msgstr "Socket"
 msgid "source {source}"
 msgstr "Quelle {source}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3098
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3119
 #, python-brace-format
 msgid "Source: {source}"
 msgstr "Quelle: {source}"
@@ -1527,7 +1542,7 @@ msgstr "visueller Zeichenmodus"
 msgid "visual line mode"
 msgstr "visueller Zeilenmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3081
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3102
 msgid "warning"
 msgstr "Warnung"
 
@@ -1642,7 +1657,7 @@ msgstr "{name}, {action}"
 msgid "{name}: {target}, port {port}, {method}"
 msgstr "{name}: {target}, Port {port}, {method}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3089
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3110
 #, python-brace-format
 msgid "{severity}, diagnostic {index} of {count}: {message}"
 msgstr "{severity}, Diagnose {index} von {count}: {message}"

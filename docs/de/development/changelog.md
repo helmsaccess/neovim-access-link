@@ -8,6 +8,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Verkürzt in der gehaltenen Brailleansicht ausschließlich die wiederkehrenden
+  Strukturpräfixe für Signatur, Parameter und Dokumentation zu `S`, `P` und
+  `D`. Die Sprachausgabe sowie Funktionsnamen, Parameternamen und Inhalte
+  bleiben vollständig.
 - Meldet bei Neovims eingebauter Completion den absichtlichen Zustand ohne
   ausgewählten Kandidaten zwischen letztem und erstem Vorschlag ausdrücklich
   in Sprache und Braille. Der ursprünglich eingegebene Text bleibt wie von
