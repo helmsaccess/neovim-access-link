@@ -156,7 +156,11 @@ neue Neovim-Sitzung mit neuem Endpunkt und neuer Verbindungsinstanz. Ein frische
 F12-Druck bleibt deshalb als Freigabe erforderlich; die alte Instanz wird danach
 ersetzt. Das Merken des Tabs überspringt lediglich die erneute Merkfrage und
 ermöglicht spätere korrelierte Fokuswiederherstellung. Es vertraut keinem neu
-gestarteten Prozess automatisch.
+gestarteten Prozess automatisch. Sobald der erste gültige `fullState` die neue
+Instanz authentifiziert, bestätigt bei aktivierter globaler Klangrückmeldung
+NVDAs `connected.wav` genau diese Verbindung. Der Normalmodusklang ist dafür
+nicht zuständig und kann bei einer neuen Sitzung im bereits fokussierten Tab
+ausbleiben.
 
 ## Wechsel zwischen Fenstern, Tabs und Panes
 

@@ -8,6 +8,13 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Trennt Verbindungs- und Modusrückmeldung: Der erste authentifizierte
+  `fullState` einer neuen oder nach Transporttrennung wiederhergestellten
+  Instanz verwendet einmal NVDAs `connected.wav`; weitere Synchronisierungen
+  derselben Transportlaufzeit bleiben still. Ein nach der modalen F12-Rückfrage
+  verspätet gestarteter zweiter Fokuscallback erkennt eine inzwischen exakt
+  bestätigte Bindung und erzeugt weder eine zweite Fokusabfrage noch einen
+  doppelten Normalmodusklang.
 - Behebt verworfene Antworten der gehaltenen Parameter- und Diagnoseansicht:
   Das Neovim-Plugin liefert nun neben der Anfrage-ID auch den vollständigen
   korrelierten Editorstand, den die Protokollgrenze bereits vorgeschrieben

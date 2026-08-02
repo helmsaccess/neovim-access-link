@@ -63,6 +63,20 @@ class NvdaPresentation:
 	def mode_sound_kind(mode):
 		return editor_mode_sound_kind(mode)
 
+	def play_connection_sound(self):
+		"""Confirm one newly authenticated connection independently of editor mode."""
+		enabled = bool(self.feedback_mode(None) & 2)
+		if enabled and not self.editor_sounds.play("connectionEstablished"):
+			# Keep failure audible without relying on a second mode cue.
+			tones.beep(520, 25)
+			tones.beep(780, 35)
+		self._diagnostic(
+			"connectionEstablishedSound",
+			cue="connected.wav",
+			enabled=enabled,
+		)
+		return enabled
+
 	def play_mode_sound(self, mode, *, focus_context=False):
 		sound_kind = self.mode_sound_kind(mode)
 		if sound_kind == "insert":

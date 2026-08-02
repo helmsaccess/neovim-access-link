@@ -393,7 +393,7 @@ class BuiltAddonTests(unittest.TestCase):
         waves.mkdir()
         for file_name in (
             "suggestionsOpened.wav", "suggestionsClosed.wav", "textError.wav",
-            "focusMode.wav", "browseMode.wav", "error.wav",
+            "connected.wav", "focusMode.wav", "browseMode.wav", "error.wav",
         ):
             with wave.open(str(waves / file_name), "wb") as sound:
                 sound.setnchannels(1)
@@ -3932,7 +3932,7 @@ class BuiltAddonTests(unittest.TestCase):
             sound.unlink()
 
         cues = (
-            "insertMode", "normalMode", "matchingError", "delete", "replace",
+            "connectionEstablished", "insertMode", "normalMode", "matchingError", "delete", "replace",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
         )
         for cue in cues:
@@ -6654,6 +6654,86 @@ class BuiltAddonTests(unittest.TestCase):
                 identity,
             )
         )
+        plugin.terminate()
+
+    def test_confirmed_remembered_binding_skips_duplicate_focus_request_and_mode_cue(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self):
+                inner_self.controls = []
+
+            def start(inner_self): pass
+            def stop(inner_self): pass
+
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        plugin = GlobalPlugin()
+        identity = plugin._identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(plugin._instanceManager, "work", "22", "Work", client)
+        plugin._instanceManager.bind(identity, instance.identifier)
+        plugin._connectionCoordinator.authenticated_instances.add(instance.identifier)
+        plugin._connectionCoordinator.remembered_terminal_bindings.add(identity)
+        plugin._gate.focused = identity
+        plugin._gate.manual_enabled = True
+        plugin._sessionClaimService.activate_remembered_binding(
+            identity,
+            instance.identifier,
+            focus_regained=True,
+        )
+        played: list[str] = []
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
+
+        plugin._requestRememberedBindingState(identity, instance.identifier)
+        request_id = client.controls[-1][1]["requestId"]
+        plugin._handleManagedEvent(instance.identifier, {"type": "focusContext", "payload": {
+            "_focusRequestId": request_id,
+            "mode": "normal",
+            "lineText": "ready",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }})
+        plugin._requestRememberedBindingState(identity, instance.identifier)
+
+        self.assertEqual(1, len(client.controls))
+        self.assertEqual(["normalMode"], played)
+        self.assertIn('"reason": "alreadyConfirmed"', plugin._diagnostics.report())
+        plugin.terminate()
+
+    def test_connection_cue_plays_once_per_authenticated_transport_lifetime(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def start(self): pass
+            def stop(self): pass
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        identity = plugin._identity(self.focus)
+        instance = add_remote_instance(plugin._instanceManager, "work", "23", "Work", Client())
+        plugin._instanceManager.bind(identity, instance.identifier)
+        played: list[str] = []
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
+        full_state = {"type": "fullState", "payload": {
+            "mode": "normal",
+            "lineText": "ready",
+            "cursor": {"line": 1, "byteColumn": 0},
+        }}
+
+        plugin._handleManagedEvent(instance.identifier, full_state)
+        plugin._handleManagedEvent(instance.identifier, full_state)
+        self.assertEqual(["connectionEstablished"], played)
+
+        plugin._handleManagedState(instance.identifier, "disconnected")
+        plugin._handleManagedEvent(instance.identifier, full_state)
+        self.assertEqual(
+            ["connectionEstablished", "connectionEstablished"],
+            played,
+        )
+        self.assertEqual(2, plugin._diagnostics.report().count('"category": "connectionEstablished"'))
         plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:

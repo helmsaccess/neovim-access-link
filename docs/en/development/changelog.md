@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Separates connection and mode feedback. The first authenticated `fullState`
+  of a new instance, or one restored after transport loss, uses NVDA's
+  `connected.wav` once; further synchronization in the same transport
+  lifetime stays silent. A delayed second focus callback after the modal F12
+  question now recognizes an already confirmed exact binding and produces
+  neither another focus request nor a duplicate Normal-mode cue.
 - Fixes discarded held parameter and diagnostic replies: the Neovim plugin now
   returns the complete correlated editor snapshot alongside the request ID, as
   the protocol boundary already required. Repeated queries and `NVDA+h/j/k/l`

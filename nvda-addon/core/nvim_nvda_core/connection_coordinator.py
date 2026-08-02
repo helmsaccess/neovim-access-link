@@ -213,6 +213,21 @@ class ConnectionCoordinator:
         )
         return client
 
+    def is_foreground_instance_confirmed(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+    ) -> bool:
+        """Return whether the exact instance is already active for this foreground terminal."""
+        return (
+            isinstance(terminal, TerminalIdentity)
+            and self.active_instance_id == instance_id
+            and self.gate.focused == terminal
+            and self.gate.bound_terminal == terminal
+            and self.gate.authenticated
+            and self.gate.nvim_active
+        )
+
     def take_pending_request(
         self,
         channel: str,

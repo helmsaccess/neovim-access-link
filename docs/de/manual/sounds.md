@@ -11,6 +11,7 @@ Das Add-on verwendet direkt aus dem installierten NVDA-Verzeichnis:
 
 | Ereignis | NVDA-Datei |
 | --- | --- |
+| neue authentifizierte oder nach einer Trennung wiederhergestellte Neovim-Verbindung | `waves/connected.wav` |
 | Insert-Modus oder direkte Terminaleingabe | `waves/focusMode.wav` |
 | Normal- oder Terminal-Normalmodus nach Insert beziehungsweise direkter Terminaleingabe | `waves/browseMode.wav` |
 | Neovim-Kommandozeile | kurzer synthetischer Ton mit 600 Hz |
@@ -22,13 +23,20 @@ Der Kommandozeilenton benötigt keine Audiodatei. Die übrigen Dateien dieser
 Tabelle werden nicht in das Add-on kopiert. Dadurch bleiben die Klänge
 mit der jeweils installierten NVDA-Version konsistent.
 
-Die Modusklänge bestätigen einen tatsächlichen Moduswechsel oder einen
+`connected.wav` wird genau beim ersten authentifizierten vollständigen Zustand
+einer Verbindungsinstanz und erneut nach einer echten Transporttrennung
+ausgegeben. Er folgt der Klangkomponente von „Globale Aktionsrückmeldung“ und
+ist vom Editormodus unabhängig. Eine wiederholte `fullState`-Synchronisierung
+innerhalb derselben verbundenen Transportlaufzeit erzeugt ihn nicht erneut.
+
+Die Modusklänge bestätigen dagegen einen tatsächlichen Moduswechsel oder einen
 korrelierten Fokuskontext. Der erste vollständige Zustand einer nach F12 neu
-erzeugten Verbindungsinstanz ist kein solcher Wechsel und erzeugt daher nicht
-zwingend einen Normalmodusklang. Das Ausbleiben dieses Klangs allein bedeutet
-nicht, dass die Verbindung fehlt; maßgeblich sind die Ansage, dass die
-Neovim-Verbindung gestartet wurde, und anschließend funktionierende semantische
-Ausgaben des Add-ons.
+erzeugten Verbindungsinstanz ist kein solcher Wechsel und erzeugt daher keinen
+Normalmodusklang. Ein später bestätigter Fokuskontext darf höchstens einen
+zusätzlichen, semantisch getrennten Normal- oder Insertmodusklang auslösen.
+Wenn Klänge abgeschaltet sind, bleiben die Ansage, dass die Neovim-Verbindung
+gestartet wurde, und anschließend funktionierende semantische Ausgaben die
+maßgeblichen Prüfungen.
 
 Der Rechtschreibklang wird nach Abschluss eines fehlerhaften Wortes sowie beim
 Erreichen eines betroffenen Worts durch normale Wortnavigation oder

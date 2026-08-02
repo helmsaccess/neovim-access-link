@@ -51,7 +51,11 @@ If Neovim exits and restarts in the same remembered tab, it is a new Neovim
 session with a new endpoint and connection instance. A fresh F12 press is still
 required as authorization, after which the old instance is replaced. Remembering
 the tab only skips the repeated remember question and permits later correlated
-focus restoration; it never trusts a newly started process automatically.
+focus restoration; it never trusts a newly started process automatically. Once
+the first valid `fullState` authenticates that new instance, NVDA's
+`connected.wav` confirms the connection when Global action feedback permits
+sounds. The Normal-mode cue has no connection-status role and may be absent for
+a new session in an already focused tab.
 
 ## Local Windows path
 

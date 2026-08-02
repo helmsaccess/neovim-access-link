@@ -1,17 +1,27 @@
 # Sounds and earcons
 
 Sounds can supplement or replace speech for configured editor actions. Current
-cues cover Insert/direct terminal input, a short mid-pitch command-line tone,
+cues cover a newly authenticated or re-established connection through NVDA's
+installed `waves/connected.wav`, Insert/direct terminal input, a short mid-pitch command-line tone,
 and the transition to Normal or canonical Terminal-Normal,
 matching errors, deletion, replace,
 line/file boundaries, and crossing a line. Completion open/close and spelling
 cues follow the relevant NVDA settings.
 
-Mode sounds confirm an actual mode transition or a correlated focus context.
-The first full state of a new connection instance created after F12 is neither,
-so it does not necessarily produce a Normal-mode sound. Its absence alone does
-not mean that the connection failed; the spoken connection-started message and
-subsequent semantic add-on output are the authoritative checks.
+The connection cue plays exactly for the first authenticated full state of an
+instance and again after a real transport disconnection. It follows the sound
+component of Global action feedback, is independent of editor mode, and does
+not repeat for another `fullState` resynchronization during the same connected
+transport lifetime. Like the other NVDA-native files, `connected.wav` is read
+from the installed NVDA directory and is not redistributed by the add-on.
+
+Mode sounds instead confirm an actual mode transition or a correlated focus
+context. The first full state of a new connection instance created after F12
+is neither and therefore produces no Normal-mode sound. A subsequently
+confirmed focus context may produce at most one additional, semantically
+separate Normal- or Insert-mode cue. When sounds are disabled, the spoken
+connection-started message and subsequent semantic add-on output remain the
+authoritative checks.
 
 The spelling cue is emitted after completing a misspelled word and when normal
 word navigation or word speech exploration reaches an affected word. NVDA's spelling

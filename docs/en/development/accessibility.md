@@ -20,6 +20,15 @@ Insert-mode RPC tests cover the path. The reference workflow has been
 confirmed on the BRAILLEX EL 80c; the complete command, line-start, timeout,
 and multi-driver matrix remains open.
 
+Connection and mode earcons have separate contracts. The first authenticated
+`fullState` of one connection instance, and the first one after a real
+transport disconnection, uses NVDA's installed `connected.wav` at most once
+per connected transport lifetime. Repeated synchronization is silent. Insert,
+Normal, Terminal-Normal, and command-line cues continue to represent only
+mode transitions or a correlated focus context. Built-add-on regression tests
+cover resynchronization, disconnect/reconnect, and duplicate-focus
+deduplication.
+
 Speech exploration mode uses six fixed Windows Terminal AppModule chords to
 read characters, lines, or words through an ephemeral Lua position. Exact
 control binding, authenticated instance, capability, editor origin, and reply

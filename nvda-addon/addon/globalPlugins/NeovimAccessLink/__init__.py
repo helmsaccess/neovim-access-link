@@ -2235,6 +2235,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def _requestRememberedBindingState(self, identity, instance_id, attempt=0):
+		# A recovery callback and the normal delayed focus callback can overlap
+		# around a modal dialog. The first correlated reply may confirm the exact
+		# binding before the second callback runs. Do not turn that stale callback
+		# into another focusContext request and a duplicate mode cue.
+		if self._connectionCoordinator.is_foreground_instance_confirmed(instance_id, identity):
+			self._diagnostics.record(
+				"temporaryTerminalBindingStateSkipped",
+				instanceId=instance_id,
+				reason="alreadyConfirmed",
+			)
+			return
 		request = self._sessionClaimService.plan_remembered_state_request(identity, instance_id)
 		if request.kind == RememberedStateRequestKind.SKIP:
 			self._diagnostics.record(
@@ -2427,9 +2438,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			event = self._handleTerminalControlResult(instance_id, identity, event)
 			if event is None:
 				return
+		first_authenticated_state = (
+			event.get("type") == "fullState"
+			and instance_id not in self._connectionCoordinator.authenticated_instances
+		)
 		if event.get("type") == "fullState":
 			self._connectionCoordinator.authenticated_instances.add(instance_id)
 		self._handleEvent(event, connection_label=selected.context_label)
+		if first_authenticated_state and self._connectionCoordinator.is_foreground_instance_confirmed(
+			instance_id,
+			identity,
+		):
+			self._presentation.play_connection_sound()
+			self._diagnostics.record(
+				"connectionEstablished",
+				instanceId=instance_id,
+				terminal=self._identityFields(identity),
+			)
 		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
 			instance_id
 		):
