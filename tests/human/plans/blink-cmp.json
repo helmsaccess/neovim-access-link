@@ -14,18 +14,8 @@
       "contextKey": "plan.completionPlugin.context",
       "actionKey": "plan.blinkCmp.menu.action",
       "expectedKey": "plan.blinkCmp.menu.expected",
-      "manualReasons": ["speechPerception", "latencyUsability"],
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
       "requires": [],
-      "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
-    },
-    {
-      "id": "menu-earcons",
-      "titleKey": "plan.blinkCmp.earcons.title",
-      "contextKey": "plan.completionPlugin.context",
-      "actionKey": "plan.blinkCmp.earcons.action",
-      "expectedKey": "plan.blinkCmp.earcons.expected",
-      "manualReasons": ["audioPerception"],
-      "requires": ["audio"],
       "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
     }
   ]

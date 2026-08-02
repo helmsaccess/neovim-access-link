@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 HUMAN_ROOT = Path(__file__).resolve().parent
@@ -97,8 +98,12 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			[plan["id"] for plan in smoke],
 		)
 		self.assertEqual(
-			["navigation-presentation", "navigation-earcons", "held-diagnostics"],
+			["navigation-presentation", "held-diagnostics"],
 			[step["id"] for step in plans["diagnostics"]["steps"]],
+		)
+		self.assertEqual(
+			["status-presentation", "held-parameters", "completion-presentation"],
+			[step["id"] for step in plans["lsp-native"]["steps"]],
 		)
 		self.assertEqual(1, len(plans["focus-isolation"]["steps"]))
 
@@ -126,6 +131,17 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("Get-FileHash -LiteralPath $archive -Algorithm SHA512", runner)
 		self.assertLess(runner.index("Get-FileHash -LiteralPath $archive"), runner.index('"-xzf"'))
 		self.assertIn('"data\\nvim-data\\site\\pack\\core\\opt"', runner)
+		self.assertIn('"config\\nvim\\nvim-pack-lock.json"', runner)
+		self.assertIn('schemaVersion = 3', runner)
+		self.assertIn('environmentSha256 = Get-EnvironmentFingerprint', runner)
+		setup_cache = runner[
+			runner.index("function Test-SetupCurrent") : runner.index(
+				"function Install-TestEnvironment"
+			)
+		]
+		self.assertNotIn("Get-DefinitionFingerprint", setup_cache)
+		self.assertIn('$ruffVersion.Text.Trim() -eq "ruff $($dependencies.tools.ruff)"', runner)
+		self.assertIn('Install-TestEnvironment -Repair', runner)
 		self.assertIn('"GIT_CONFIG_GLOBAL"', runner)
 		self.assertIn('$lines = @("[safe]")', runner)
 		self.assertIn("Get-EquivalentPaths -Path $RepositoryRoot", runner)
@@ -201,7 +217,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			with self.subTest(language=language):
 				parameter_expectation = locales[language]["plan.lspNative.parameters.expected"]
 				diagnostic_expectation = locales[language]["plan.diagnostics.held.expected"]
-				earcon_expectation = locales[language]["plan.diagnostics.earcons.expected"]
+				earcon_expectation = locales[language]["plan.diagnostics.navigation.expected"]
 				for value in ("price", "quantity", "discount", "j/k", "h/l"):
 					self.assertIn(value, parameter_expectation)
 				for value in ("path", "sep", "j/k"):
@@ -230,6 +246,39 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			path = self.write_result(directory, result)
 			with self.assertRaisesRegex(validator.ValidationError, "definition revision"):
 				validator.validate_result(path)
+
+	def test_environment_fingerprint_is_separate_from_result_definition(self) -> None:
+		fingerprint = validator.environment_fingerprint()
+		self.assertRegex(fingerprint, r"^[0-9a-f]{64}$")
+		self.assertNotEqual(fingerprint, validator.definition_fingerprint())
+		with mock.patch.object(validator, "_sha256_tree", return_value="fingerprint") as digest:
+			self.assertEqual("fingerprint", validator.environment_fingerprint())
+			self.assertEqual(
+				{
+					validator.DEPENDENCIES_PATH,
+					validator.HUMAN_ROOT / "framework" / "init.lua",
+				},
+				set(digest.call_args.args[1]),
+			)
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn('Invoke-PythonText @($ValidatorPath, "environment-fingerprint")', runner)
+
+	def test_perception_workflows_do_not_relaunch_only_for_audio(self) -> None:
+		plans = validator.load_plans()
+		for plan_id in ("lsp-native", "diagnostics", "nvim-cmp", "blink-cmp"):
+			with self.subTest(plan=plan_id):
+				self.assertFalse(
+					any(step["requires"] == ["audio"] for step in plans[plan_id]["steps"])
+				)
+		combined = {
+			"lsp-native": "completion-presentation",
+			"diagnostics": "navigation-presentation",
+			"nvim-cmp": "menu-presentation",
+			"blink-cmp": "menu-presentation",
+		}
+		for plan_id, step_id in combined.items():
+			step = next(step for step in plans[plan_id]["steps"] if step["id"] == step_id)
+			self.assertIn("audioPerception", step["manualReasons"])
 
 	def test_result_from_a_different_plugin_runtime_is_rejected(self) -> None:
 		result = complete_result()

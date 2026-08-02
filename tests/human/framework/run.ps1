@@ -40,6 +40,7 @@ $PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
 $PyrightPath = Join-Path $NodeBin "pyright-langserver.cmd"
 $PackageRoot = Join-Path $StateRoot "packages"
 $ManagedPluginsRoot = Join-Path $StateRoot "data\nvim-data\site\pack\core\opt"
+$PackLockPath = Join-Path $StateRoot "config\nvim\nvim-pack-lock.json"
 $TestGitConfig = Join-Path $StateRoot "gitconfig"
 $SetupMarker = Join-Path $StateRoot "setup.json"
 
@@ -524,6 +525,10 @@ function Get-DefinitionFingerprint {
     return Invoke-PythonText @($ValidatorPath, "fingerprint")
 }
 
+function Get-EnvironmentFingerprint {
+    return Invoke-PythonText @($ValidatorPath, "environment-fingerprint")
+}
+
 function Get-PluginFingerprint {
     param([Parameter(Mandatory = $true)][string]$Path)
     return Invoke-PythonText @($ValidatorPath, "component-fingerprint", $Path)
@@ -648,11 +653,44 @@ function Test-SetupCurrent {
     try {
         $marker = Get-Content -LiteralPath $SetupMarker -Raw -Encoding UTF8 |
             ConvertFrom-Json
-        $currentHash = (Get-FileHash -LiteralPath $DependenciesPath -Algorithm SHA256).Hash
-        $definitionHash = Get-DefinitionFingerprint
+        if ([int]$marker.schemaVersion -ne 3) {
+            return $false
+        }
+        $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+        $metadata = Get-Content -LiteralPath `
+            (Join-Path $PyrightRoot "package.json") -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+        if ([string]$metadata.version -ne [string]$dependencies.tools.pyright) {
+            return $false
+        }
+        $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
+        if ($ruffVersion.ExitCode -ne 0 -or
+            $ruffVersion.Text.Trim() -ne "ruff $($dependencies.tools.ruff)") {
+            return $false
+        }
+        if (-not (Test-Path -LiteralPath $PackLockPath -PathType Leaf)) {
+            return $false
+        }
+        $lock = Get-Content -LiteralPath $PackLockPath -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+        $managedPlugins = @{
+            "nvim-lint" = $dependencies.plugins.nvimLint
+            "nvim-cmp" = $dependencies.plugins.nvimCmp
+            "cmp-nvim-lsp" = $dependencies.plugins.cmpNvimLsp
+            "blink.cmp" = $dependencies.plugins.blinkCmp
+        }
+        foreach ($name in $managedPlugins.Keys) {
+            $directory = Join-Path $ManagedPluginsRoot $name
+            $locked = $lock.plugins.PSObject.Properties[$name]
+            if (-not (Test-Path -LiteralPath $directory -PathType Container) -or
+                $null -eq $locked -or
+                [string]$locked.Value.rev -ne [string]$managedPlugins[$name].revision) {
+                return $false
+            }
+        }
         $pluginHash = Get-PluginFingerprint $AccessLinkPlugin
-        return [string]$marker.dependenciesSha256 -eq $currentHash -and
-            [string]$marker.definitionSha256 -eq $definitionHash -and
+        return [string]$marker.environmentSha256 -eq (Get-EnvironmentFingerprint) -and
             [string]$marker.accessLinkPluginSha256 -eq $pluginHash
     } catch {
         return $false
@@ -660,6 +698,7 @@ function Test-SetupCurrent {
 }
 
 function Install-TestEnvironment {
+    param([switch]$Repair)
     Write-Step (Get-Message "runner.setup.start")
     Write-Host (Get-Message "runner.setup.network")
     $null = Assert-AccessLinkPluginCurrent
@@ -672,8 +711,7 @@ function Install-TestEnvironment {
     $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-    $currentHash = (Get-FileHash -LiteralPath $DependenciesPath -Algorithm SHA256).Hash
-    if (Test-Path -LiteralPath $ManagedPluginsRoot -PathType Container) {
+    if ($Repair -and (Test-Path -LiteralPath $ManagedPluginsRoot -PathType Container)) {
         Remove-Item -LiteralPath $ManagedPluginsRoot -Recurse -Force
     }
     if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
@@ -682,10 +720,20 @@ function Install-TestEnvironment {
         $null = Invoke-External -Command $python.Command -Arguments $arguments
     }
     Write-Step (Get-Message "runner.setup.ruff")
-    $null = Invoke-External -Command $VenvPython -Arguments @(
-        "-m", "pip", "install", "--disable-pip-version-check",
-        "ruff==$($dependencies.tools.ruff)"
-    )
+    $ruffCurrent = $false
+    if (Test-Path -LiteralPath $RuffPath -PathType Leaf) {
+        $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
+        $ruffCurrent = $ruffVersion.ExitCode -eq 0 -and
+            $ruffVersion.Text.Trim() -eq "ruff $($dependencies.tools.ruff)"
+    }
+    if ($ruffCurrent) {
+        Write-Host (Get-Message "runner.setup.ruffCurrent" @($dependencies.tools.ruff))
+    } else {
+        $null = Invoke-External -Command $VenvPython -Arguments @(
+            "-m", "pip", "install", "--disable-pip-version-check",
+            "ruff==$($dependencies.tools.ruff)"
+        )
+    }
     Write-Step (Get-Message "runner.setup.pyright")
     Install-PyrightPackage -Npm $npm -Node $node -Tar $tar `
         -Dependencies $dependencies
@@ -701,9 +749,8 @@ function Install-TestEnvironment {
             -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
     }
     $marker = [PSCustomObject]@{
-        schemaVersion = 2
-        dependenciesSha256 = $currentHash
-        definitionSha256 = Get-DefinitionFingerprint
+        schemaVersion = 3
+        environmentSha256 = Get-EnvironmentFingerprint
         accessLinkPluginSha256 = Get-PluginFingerprint $AccessLinkPlugin
     }
     Write-JsonFile -Value $marker -Path $SetupMarker
@@ -1091,7 +1138,7 @@ if ($Action -ne "clean") {
 
 switch ($Action) {
     "setup" {
-        Install-TestEnvironment
+        Install-TestEnvironment -Repair
     }
     "list" {
         Show-Plans @(Get-Plans)

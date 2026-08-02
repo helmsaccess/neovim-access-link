@@ -5,8 +5,10 @@
 Diese Praxistests prüfen einen fertigen Neovim-Access-Link-Build nur dort, wo
 ein automatisierter Test nicht zuverlässig entscheiden kann: reale
 NVDA-Sprache, hörbare Klänge, eine physische Braillezeile, gehaltene
-NVDA-Gesten und den tatsächlichen Fokus in Windows Terminal. Pro Aufgabe wird
-genau eine solche Beobachtung bewertet. LSP-Antworten, Diagnosebereiche,
+NVDA-Gesten und den tatsächlichen Fokus in Windows Terminal. Eine Aufgabe
+bündelt zusammengehörige Wahrnehmungen derselben Bedienhandlung, damit Neovim
+nicht allein für Sprache und Klänge zweimal mit derselben Fixture gestartet
+werden muss. LSP-Antworten, Diagnosebereiche,
 Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
 überlassen.
 
@@ -14,7 +16,7 @@ Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
 drei Completion-Kandidaten, zwei Funktionssignaturen mit jeweils drei
 Parametern sowie zwei Diagnosen auf der ersten Diagnosezeile. Dadurch bedeutet
 „durchschalten“ in einer Aufgabe immer einen sichtbaren Inhaltswechsel. Die
-Audioaufgaben der Smoke-Suite prüfen alle vier unterschiedlichen Klänge dieses
+Audioanteile der Smoke-Suite prüfen alle vier unterschiedlichen Klänge dieses
 Bereichs: Completion-Menü geöffnet, Completion-Menü geschlossen,
 Diagnosewarnung und Diagnosefehler. Informationen und Hinweise besitzen
 absichtlich keinen eigenen Diagnoseklang und werden deshalb nicht als weitere
@@ -39,14 +41,16 @@ verändert.
 
 | Suite | Inhalt | Wann ausführen? |
 | --- | --- | --- |
-| `smoke` | nativer LSP und Completion, Ruff-Diagnosen, Fokusisolation und Fail-open | üblicher Praxistest; empfohlen, etwa 15 bis 20 Minuten |
+| `smoke` | nativer LSP und Completion, Ruff-Diagnosen, Fokusisolation und Fail-open | üblicher Praxistest; empfohlen, etwa 10 bis 15 Minuten |
 | `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp | nach Änderungen an diesen Plugins, ihren Adaptern oder Abhängigkeiten |
 | `all` | beide Suiten in einem Ergebnis | nur wenn beide Bereiche betroffen sind |
 
 Die Standardaufgaben laufen immer in dieser Reihenfolge: nativer LSP,
 Diagnosen, danach Fokusisolation. Fehlende Audioausgabe oder eine fehlende
-Braillezeile verhindert die übrigen Aufgaben nicht. Der Runner markiert nur
-die davon abhängigen Aufgaben automatisch als `notApplicable`.
+Braillezeile verhindert die übrigen Aufgaben nicht. Ohne Audio werden die
+ausdrücklich bedingten Klanganteile nicht bewertet; die JSON-Umgebung hält
+dies fest. Ausschließlich von Braillehardware abhängige Aufgaben markiert der
+Runner automatisch als `notApplicable`.
 
 ## Zwei Ansichten im selben Terminal-Tab
 
@@ -69,7 +73,7 @@ werden soll. Ansonsten bleibt der Tester immer im ursprünglichen Tab.
 | über das NVDA-Menü aktuell installierte lokale Neovim-Komponenten | Verbindung zwischen Neovim und Access Link |
 | Neovim 0.12.x, Git für Windows, Node.js LTS und Python 3.12 | isolierte Testumgebung, LSP, Linter und Completion-Plugins |
 | Internetzugang bei der ersten Einrichtung | Download der festgelegten Testabhängigkeiten |
-| Audioausgabe | nur Klangaufgaben; ohne Audio werden diese als `notApplicable` markiert |
+| Audioausgabe | Klanganteile der Completion- und Diagnoseabläufe; ohne Audio werden nur Sprache und Bedienbarkeit bewertet |
 | physische Braillezeile | nur Brailleaufgaben; ohne Braillezeile werden diese als `notApplicable` markiert |
 
 Der Runner vergleicht den Laufzeitcode des installierten Neovim-Plugins mit
@@ -106,7 +110,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\tests\human\framework\run.ps1
 ```
 
-Im Startmenü **Kurzen Standardtest starten** wählen. Bei einer falschen
+Im Startmenü **Neuen kurzen Standardtest starten** wählen. Dieser Menüpunkt
+beginnt bewusst eine neue JSON-Datei; nach einem Abbruch stattdessen
+**Unvollständigen Lauf fortsetzen** wählen. Bei einer falschen
 Eingabe bleibt das Menü geöffnet und bittet erneut um eine gültige Nummer.
 
 ### 3. Ausstattung angeben
@@ -187,6 +193,13 @@ Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
 Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
 Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
 
+Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die
+installierten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
+an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen deshalb keine neue
+Einrichtung aus. Stimmen Ruff, Pyright und Plugins bereits, werden sie ohne
+Paketinstallation wiederverwendet; nur die nötige technische Vorprüfung wird
+nach relevanten Laufzeitänderungen wiederholt.
+
 Danach startet eine technische Vorprüfung jedes Testprofils. Sie wartet
 tatsächlich auf einen angehängten Pyright-Client. In den Completion-Profilen
 fordert sie die drei benannten Kandidaten ab; im nativen LSP-Profil zusätzlich
@@ -196,8 +209,10 @@ einen Ruff-F821-Fehler. Ein menschlicher Tester wird erst zu einer
 Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren Grundlagen
 funktionieren.
 
-**Testabhängigkeiten einrichten oder reparieren** installiert die verwalteten
-Plugin-Revisionen neu und wiederholt diese Vorprüfung. Die persönliche
+**Testabhängigkeiten einrichten oder reparieren** ist die ausdrückliche
+Reparaturfunktion: Sie installiert die verwalteten Plugin-Revisionen neu und
+wiederholt diese Vorprüfung. Der normale Standardtest führt diese erzwungene
+Neuinstallation nicht aus. Die persönliche
 Neovim-Umgebung bleibt auch dabei unberührt. Für Git verwendet allein die
 Test-Neovim-Sitzung eine temporäre globale Konfigurationsdatei, die nur die
 verwalteten Pluginverzeichnisse unter `tmp/human-test-state/` als sicher
@@ -211,7 +226,7 @@ zulässt. Die persönliche globale Git-Konfiguration wird nicht verändert.
 | **fehlgeschlagen** | Die Aufgabe war ausführbar, verhielt sich aber falsch. Das vollständige Ergebnis erhält Zustand `fail`. |
 | **blockiert** | Eine äußere Voraussetzung oder ein technisches Problem verhinderte die Beobachtung. Der Lauf bleibt unvollständig. |
 | **übersprungen** | Eine anwendbare Aufgabe wurde bewusst nicht geprüft. Der Lauf bleibt unvollständig. |
-| `notApplicable` | Wird nur automatisch für nicht vorhandene Audio- oder Brailleausstattung gesetzt. |
+| `notApplicable` | Wird automatisch gesetzt, wenn eine Aufgabe zwingend nicht vorhandene Hardware benötigt, derzeit die Brailleaufgaben. |
 | `pending` | Die Aufgabe wurde noch nicht bewertet. |
 
 Nur **bestanden** ist positive menschliche Evidenz. Für alle anderen manuell

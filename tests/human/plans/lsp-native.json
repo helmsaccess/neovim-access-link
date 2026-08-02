@@ -37,18 +37,8 @@
       "contextKey": "plan.lspNative.completion.context",
       "actionKey": "plan.lspNative.completion.action",
       "expectedKey": "plan.lspNative.completion.expected",
-      "manualReasons": ["speechPerception", "latencyUsability"],
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
       "requires": [],
-      "automatedEvidence": ["neovim-plugin/tests/native_completion_spec.lua"]
-    },
-    {
-      "id": "completion-earcons",
-      "titleKey": "plan.lspNative.earcons.title",
-      "contextKey": "plan.lspNative.completion.context",
-      "actionKey": "plan.lspNative.earcons.action",
-      "expectedKey": "plan.lspNative.earcons.expected",
-      "manualReasons": ["audioPerception"],
-      "requires": ["audio"],
       "automatedEvidence": ["neovim-plugin/tests/native_completion_spec.lua"]
     }
   ]

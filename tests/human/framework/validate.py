@@ -345,6 +345,17 @@ def definition_fingerprint() -> str:
 	return _sha256_tree(HUMAN_ROOT, files)
 
 
+def environment_fingerprint() -> str:
+	"""Fingerprint only inputs that can change the isolated tool environment."""
+	return _sha256_tree(
+		HUMAN_ROOT,
+		[
+			DEPENDENCIES_PATH,
+			HUMAN_ROOT / "framework" / "init.lua",
+		],
+	)
+
+
 def component_fingerprint(path: Path) -> str:
 	root = path.resolve()
 	files: list[Path] = []
@@ -502,6 +513,10 @@ def _parse_args() -> argparse.Namespace:
 	result_parser.add_argument("path", type=Path)
 	result_parser.add_argument("--json", action="store_true", help="print assessment as JSON")
 	subparsers.add_parser("fingerprint", help="print the current test-definition SHA-256")
+	subparsers.add_parser(
+		"environment-fingerprint",
+		help="fingerprint inputs that affect the isolated tool environment",
+	)
 	component_parser = subparsers.add_parser(
 		"component-fingerprint", help="fingerprint the Lua runtime of one plugin tree"
 	)
@@ -518,6 +533,9 @@ def main() -> int:
 			return 0
 		if arguments.command == "fingerprint":
 			print(definition_fingerprint())
+			return 0
+		if arguments.command == "environment-fingerprint":
+			print(environment_fingerprint())
 			return 0
 		if arguments.command == "component-fingerprint":
 			print(component_fingerprint(arguments.path))

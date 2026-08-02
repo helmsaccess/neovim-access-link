@@ -5,14 +5,16 @@
 These practical tests check a finished Neovim Access Link build only where an
 automated test cannot decide reliably: real NVDA speech, audible sounds, a
 physical Braille display, held NVDA gestures, and actual focus in Windows
-Terminal. Each task assesses exactly one such observation. LSP responses,
+Terminal. One task combines related perceptions of the same interaction, so
+Neovim does not have to start twice with the same fixture merely to separate
+speech from sounds. LSP responses,
 diagnostic ranges, jump targets, adapter state, and file formats remain the
 responsibility of automated tests.
 
 The fixtures nevertheless provide deliberate real choices: at least three
 completion candidates, two function signatures with three parameters each,
 and two diagnostics on the first diagnostic line. Thus, an instruction to
-cycle always causes a visible content change. The smoke suite's audio tasks
+cycle always causes a visible content change. The smoke suite's audio portions
 cover all four distinct sounds in this area: completion menu opened,
 completion menu closed, diagnostic warning, and diagnostic error. Information
 and hint diagnostics intentionally have no dedicated diagnostic sound and are
@@ -36,14 +38,15 @@ configuration, and Neovim data directories are not changed.
 
 | Suite | Contents | When to run it |
 | --- | --- | --- |
-| `smoke` | native LSP and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 15 to 20 minutes |
+| `smoke` | native LSP and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 10 to 15 minutes |
 | `compatibility` | nvim-cmp and blink.cmp completion menus | after changes to these plugins, their adapters, or dependencies |
 | `all` | both suites in one result | only when both areas are affected |
 
 Standard tasks always run in this order: native LSP, diagnostics, then focus
 isolation. Missing audio or a missing Braille display does not prevent the
-other tasks. The runner automatically marks only dependent tasks as
-`notApplicable`.
+other tasks. Without audio, explicitly conditional sound portions are not
+assessed and the JSON environment records that fact. Tasks requiring physical
+Braille hardware are marked `notApplicable` automatically.
 
 ## Two views in the same terminal tab
 
@@ -65,7 +68,7 @@ exactly when to open and leave it. All other work stays in the original tab.
 | current local Neovim components installed through the NVDA menu | the connection between Neovim and Access Link |
 | Neovim 0.12.x, Git for Windows, Node.js LTS, and Python 3.12 | isolated test environment, LSP, linters, and completion plugins |
 | internet access during initial setup | downloading pinned test dependencies |
-| audio output | sound tasks only; without audio they are marked `notApplicable` |
+| audio output | sound portions of completion and diagnostic workflows; without audio only speech and usability are assessed |
 | physical Braille display | Braille tasks only; without one they are marked `notApplicable` |
 
 The runner compares the runtime code of the installed Neovim plugin with the
@@ -102,8 +105,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\tests\human\framework\run.ps1
 ```
 
-Select **Run the short standard test**. An invalid entry leaves the menu open
-and requests a valid number again.
+Select **Start a new short standard test**. This menu item deliberately starts
+a new JSON file; after an interruption, select **Resume an incomplete run**
+instead. An invalid entry leaves the menu open and requests a valid number
+again.
 
 ### 3. Declare available equipment
 
@@ -178,6 +183,13 @@ Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
 mounted directories on Windows.
 
+Later runs compare a separate environment fingerprint, installed tool
+versions, and all four plugin revisions. Changes only to task wording,
+translations, or result logic therefore do not trigger setup again. If Ruff,
+Pyright, and the plugins already match, they are reused without package
+installation; only the necessary technical preflight is repeated after a
+relevant runtime change.
+
 A technical preflight then starts every test profile and waits for an attached
 Pyright client. In the completion profiles it requests the three named
 candidates; in the native LSP profile it additionally requires at least two
@@ -186,8 +198,10 @@ two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
 A human tester only sees a perception task after these machine-decidable
 foundations work.
 
-**Set up or repair test dependencies** reinstalls managed plugin revisions and
-repeats this preflight. The personal Neovim environment remains untouched.
+**Set up or repair test dependencies** is the explicit repair operation: it
+reinstalls managed plugin revisions and repeats this preflight. The normal
+standard test does not perform this forced reinstall. The personal Neovim
+environment remains untouched.
 Only the test Neovim process uses a temporary global Git configuration that
 marks the managed plugin directories below `tmp/human-test-state/` as safe.
 The personal global Git configuration is not modified.
@@ -200,7 +214,7 @@ The personal global Git configuration is not modified.
 | **fail** | The task could be performed but behaved incorrectly. A complete result has state `fail`. |
 | **blocked** | An external prerequisite or technical problem prevented observation. The run remains incomplete. |
 | **skipped** | An applicable task was deliberately not checked. The run remains incomplete. |
-| `notApplicable` | Set automatically only for unavailable audio or Braille equipment. |
+| `notApplicable` | Set automatically when a task strictly needs unavailable hardware, currently the Braille tasks. |
 | `pending` | The task has not been assessed yet. |
 
 Only **pass** is positive human evidence. All other manually selected states

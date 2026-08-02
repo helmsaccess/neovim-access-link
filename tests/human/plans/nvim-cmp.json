@@ -14,18 +14,8 @@
       "contextKey": "plan.completionPlugin.context",
       "actionKey": "plan.nvimCmp.menu.action",
       "expectedKey": "plan.nvimCmp.menu.expected",
-      "manualReasons": ["speechPerception", "latencyUsability"],
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
       "requires": [],
-      "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
-    },
-    {
-      "id": "menu-earcons",
-      "titleKey": "plan.nvimCmp.earcons.title",
-      "contextKey": "plan.completionPlugin.context",
-      "actionKey": "plan.nvimCmp.earcons.action",
-      "expectedKey": "plan.nvimCmp.earcons.expected",
-      "manualReasons": ["audioPerception"],
-      "requires": ["audio"],
       "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
     }
   ]

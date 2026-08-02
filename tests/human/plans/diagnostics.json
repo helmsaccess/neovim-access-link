@@ -14,18 +14,8 @@
       "contextKey": "plan.diagnostics.context",
       "actionKey": "plan.diagnostics.navigation.action",
       "expectedKey": "plan.diagnostics.navigation.expected",
-      "manualReasons": ["speechPerception", "latencyUsability"],
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
       "requires": [],
-      "automatedEvidence": ["neovim-plugin/tests/diagnostic_navigation_spec.lua"]
-    },
-    {
-      "id": "navigation-earcons",
-      "titleKey": "plan.diagnostics.earcons.title",
-      "contextKey": "plan.diagnostics.context",
-      "actionKey": "plan.diagnostics.earcons.action",
-      "expectedKey": "plan.diagnostics.earcons.expected",
-      "manualReasons": ["audioPerception"],
-      "requires": ["audio"],
       "automatedEvidence": ["neovim-plugin/tests/diagnostic_navigation_spec.lua"]
     },
     {
