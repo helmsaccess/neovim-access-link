@@ -23,6 +23,12 @@
   Braille content remains pageable within the transient view. After a
   signature-only view, the first parameter command now reveals the selected
   parameter instead of invisibly skipping it.
+- Explicitly materializes the selected Braille page before NVDA's message
+  buffer collects a long held signature or diagnostic. The real
+  `BrailleBuffer` only aggregates already translated region cells and, unlike
+  the previous test double, does not call `Region.update()` again. The first
+  page therefore previously remained visible despite an advanced page number,
+  leaving content such as a return type clipped at “floa”.
 - Stabilizes binding after the optional F12 question that remembers a Windows
   Terminal tab. The question uses NVDA's managed modal-dialog lifecycle. If
   NVDA's focus cache still points at the dialog after it closes, the bounded

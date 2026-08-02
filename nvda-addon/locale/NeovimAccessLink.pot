@@ -381,7 +381,7 @@ msgstr ""
 msgid "Developer information"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3081 nvda-addon/core/nvim_nvda_core/speech.py:1519
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3079 nvda-addon/core/nvim_nvda_core/speech.py:1519
 msgid "diagnostic"
 msgstr ""
 
@@ -426,7 +426,7 @@ msgstr ""
 msgid "end of file"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3172
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3170
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr ""
@@ -439,7 +439,7 @@ msgstr ""
 msgid "enum member"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3077
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3075
 msgid "error"
 msgstr ""
 
@@ -541,7 +541,7 @@ msgstr ""
 msgid "help"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3080
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3078
 msgid "hint"
 msgstr ""
 
@@ -549,7 +549,7 @@ msgstr ""
 msgid "Individual actions"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3079
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3077
 msgid "information"
 msgstr ""
 
@@ -881,7 +881,7 @@ msgstr ""
 msgid "Neovim session"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3173
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3171
 msgid "Neovim SSH password"
 msgstr ""
 
@@ -1238,7 +1238,7 @@ msgstr ""
 msgid "source {source}"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3095
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3093
 #, python-brace-format
 msgid "Source: {source}"
 msgstr ""
@@ -1523,7 +1523,7 @@ msgstr ""
 msgid "visual line mode"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3078
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3076
 msgid "warning"
 msgstr ""
 
@@ -1638,7 +1638,7 @@ msgstr ""
 msgid "{name}: {target}, port {port}, {method}"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3086
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3084
 #, python-brace-format
 msgid "{severity}, diagnostic {index} of {count}: {message}"
 msgstr ""

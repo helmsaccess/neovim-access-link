@@ -502,8 +502,11 @@ intentionally narrow Braille display. It checks the semantically separated
 speech/Braille order, multiple local pages, forward and backward paging,
 containment at both boundaries, stopping the message timer that NVDA restarts
 after scrolling, and restoration of the editor line only on targeted close.
-The guided LSP practical test requires the same paging path on physical
-Braille hardware.
+The buffer double now mirrors real NVDA behavior: `BrailleBuffer.update()`
+aggregates already translated region cells but does not call
+`Region.update()` itself. The regression therefore detects an internally
+advanced page number whose cells were never materialized. The guided LSP
+practical test requires the same paging path on physical Braille hardware.
 
 The post-acceptance Braille architecture audit adds two fail-open regressions.
 First, `StructuredLineRegion.routeTo` must call neither the local nor the SSH

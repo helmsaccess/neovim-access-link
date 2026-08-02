@@ -191,6 +191,10 @@ class DeveloperContextMessageRegion(nvdaBraille.Region):
 		previous_page = self._pageIndex
 		self._pageIndex = min(max(0, self._pageIndex + delta), self._pageCount - 1)
 		try:
+			# Real NVDA's BrailleBuffer.update() aggregates already translated
+			# region cells; unlike the old test double, it does not call each
+			# Region.update(). Materialize this page before rebuilding the buffer.
+			self.update()
 			update_buffer = getattr(message_buffer, "update", None)
 			if callable(update_buffer):
 				update_buffer()

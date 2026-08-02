@@ -31,6 +31,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Brailleinhalte bleiben innerhalb der flüchtigen Ansicht blätterbar. Nach
   einer reinen Signaturansicht blendet der erste Parameterbefehl zunächst den
   ausgewählten Parameter ein; er überspringt ihn nicht mehr unsichtbar.
+- Materialisiert beim Blättern einer langen gehaltenen Signatur oder Diagnose
+  die gewählte Brailleseite ausdrücklich, bevor NVDAs Nachrichtenpuffer sie
+  übernimmt. Der reale `BrailleBuffer` sammelt nur bereits übersetzte
+  Regionszellen und ruft anders als die bisherige Testattrappe nicht erneut
+  `Region.update()` auf; deshalb blieb zuvor trotz geänderter Seitennummer der
+  erste Ausschnitt sichtbar und etwa ein Rückgabetyp bei „floa“ abgeschnitten.
 - Stabilisiert die Bindung nach der optionalen F12-Rückfrage zum Merken eines
   Windows-Terminal-Tabs. Die Rückfrage verwendet NVDAs verwalteten modalen
   Dialoglebenszyklus. Bleibt NVDAs Fokuscache nach dem Schließen beim Dialog,

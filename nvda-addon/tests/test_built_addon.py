@@ -4672,21 +4672,43 @@ class BuiltAddonTests(unittest.TestCase):
 
         braille.handler.displaySize = 12
         original_call_later = core.callLater
+        original_buffer_update = braille.handler.messageBuffer.update
         scheduled = []
         core.callLater = lambda _delay, callback: scheduled.append(callback)
+
+        def update_buffer_like_nvda():
+            # NVDA 2026.1's BrailleBuffer aggregates current region cells. It
+            # deliberately does not translate every region again.
+            message_buffer = braille.handler.messageBuffer
+            message_buffer.brailleCells = [
+                cell
+                for region in message_buffer.regions
+                for cell in region.brailleCells
+            ]
+
+        braille.handler.messageBuffer.update = update_buffer_like_nvda
         try:
             token = present_developer_context_message(
-                "Parameter 1 of 3: price | Signature 1 of 2: calculate_total(price, quantity)",
+                "Signature 1 of 2: calculate_total(price: float, quantity: int) -> float",
                 start_cell=1,
             )
             self.assertIsInstance(token, DeveloperContextMessageRegion)
+
             self.assertGreater(token._pageCount, 2)
             self.assertEqual(0, token._pageIndex)
             first_page = tuple(token.brailleCells)
+            self.assertEqual(
+                first_page,
+                tuple(braille.handler.messageBuffer.brailleCells),
+            )
 
             token.nextLine()
             self.assertEqual(1, token._pageIndex)
             self.assertNotEqual(first_page, tuple(token.brailleCells))
+            self.assertEqual(
+                tuple(token.brailleCells),
+                tuple(braille.handler.messageBuffer.brailleCells),
+            )
             self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
             self.assertIs(braille.handler.messageBuffer.regions[-1], token)
             self.assertEqual(1, len(scheduled))
@@ -4707,6 +4729,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
         finally:
             core.callLater = original_call_later
+            braille.handler.messageBuffer.update = original_buffer_update
             braille.handler.displaySize = 40
 
     def test_numbered_spell_choice_overrides_j_k_and_enter_only_in_the_exact_prompt(self) -> None:

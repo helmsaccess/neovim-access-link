@@ -3067,9 +3067,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			else:
 				# Initial presentation and j/k navigation describe only the
 				# selected signature. Parameters form their own h/l axis.
-				speech_text = ". ".join(
-					part for part in (signature_text, documentation_text) if part
-				)
+				speech_text = ". ".join(part for part in (signature_text, documentation_text) if part)
 			braille_text = speech_text
 		else:
 			item = presentation.item
