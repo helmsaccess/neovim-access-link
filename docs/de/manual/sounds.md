@@ -70,9 +70,15 @@ dem MIT-lizenzierten Code-OSS-Quellstand von Visual Studio Code verwendet.
 Der genaue Commit, Quell- und Zielprüfsummen, die WAV-Dekodierung
 sowie der vollständige MIT-Lizenztext liegen im Add-on unter
 `resources/sounds/`. Wie in VS Code verwenden Zeilen- und Positionssignal je
-Schweregrad dieselbe Datei. Bei ausdrücklicher Cursornavigation erklingt das
-Zeilensignal einmal beim Eintritt in eine Diagnosezeile und das Positionssignal
-an jeder erreichten Cursorposition innerhalb eines Diagnosebereichs. Tippen
+Schweregrad dieselbe Datei. Die in den dekodierten Dateien enthaltene rund
+0,9 Sekunden lange digitale Stille am Ende ist verlustfrei bis auf einen
+5-ms-Ausklang entfernt; kein von null verschiedenes PCM-Frame wurde verändert
+oder verworfen. Vor jedem gezielt ausgelösten Diagnosesignal wird außerdem
+der bereits im RAM gehaltene Player neu gestartet. Dadurch erhält auch
+der nächste gleichartige Eintrag derselben Zeile sofort einen eigenen Klang. Bei
+ausdrücklicher Cursornavigation erklingt das Zeilensignal einmal beim Eintritt
+in eine Diagnosezeile und das Positionssignal an jeder erreichten
+Cursorposition innerhalb eines Diagnosebereichs. Tippen
 und asynchrone `DiagnosticChanged`-Aktualisierungen bleiben stumm: Anders als
 VS Code erhält das Add-on über das Terminal keine gleichwertige
 editorinterne Information für dessen Marker-Timer und Tipp-Debounce. Die

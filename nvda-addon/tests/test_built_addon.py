@@ -406,8 +406,9 @@ class BuiltAddonTests(unittest.TestCase):
         nvwave.AudioPurpose = types.SimpleNamespace(SOUNDS="sounds")
         outer = self
         class WavePlayer:
-            def __init__(self, **_kwargs): pass
+            def __init__(self, **_kwargs): self.stopCalls = 0
             def feed(self, frames): outer.soundFeeds.append(frames)
+            def stop(self): self.stopCalls += 1
             def close(self): pass
         nvwave.WavePlayer = WavePlayer
         sys.modules["nvwave"] = nvwave
@@ -3857,6 +3858,24 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertIn("LICENSE", archive.namelist())
             self.assertIn("globalPlugins/NeovimAccessLink/resources/ssh-askpass.cmd", archive.namelist())
 
+            resource = "globalPlugins/NeovimAccessLink/resources/sounds/"
+            for name in ("diagnosticError.wav", "diagnosticWarning.wav"):
+                with self.subTest(diagnosticSound=name):
+                    with wave.open(io.BytesIO(archive.read(resource + name)), "rb") as sound:
+                        self.assertEqual(2, sound.getnchannels())
+                        self.assertEqual(2, sound.getsampwidth())
+                        self.assertEqual(48000, sound.getframerate())
+                        self.assertLess(sound.getnframes() / sound.getframerate(), 0.55)
+                        frame_size = sound.getnchannels() * sound.getsampwidth()
+                        frames = sound.readframes(sound.getnframes())
+                        last_nonzero = max(
+                            index
+                            for index in range(sound.getnframes())
+                            if any(frames[index * frame_size : (index + 1) * frame_size])
+                        )
+                        trailing_silence = sound.getnframes() - last_nonzero - 1
+                        self.assertLessEqual(trailing_silence / sound.getframerate(), 0.006)
+
     def test_built_addon_contains_compiled_german_gettext_catalog_only(self) -> None:
         locale = self.extract_path / "locale" / "de"
         mo_path = locale / "LC_MESSAGES" / "nvda.mo"
@@ -3941,10 +3960,30 @@ class BuiltAddonTests(unittest.TestCase):
         cues = (
             "connectionEstablished", "connectionLost", "insertMode", "normalMode", "matchingError", "delete", "replace",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
+            "diagnosticError", "diagnosticWarning",
         )
         for cue in cues:
             self.assertTrue(plugin._presentation.editor_sounds.play(cue), cue)
         self.assertEqual(len(cues), len(self.soundFeeds))
+        plugin.terminate()
+
+    def test_repeated_diagnostic_earcons_restart_cached_audio_without_file_io(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        players = plugin._presentation.editor_sounds._players
+        feeds_before = len(self.soundFeeds)
+        with mock.patch(
+            "globalPlugins.NeovimAccessLink.suggestion_sounds.wave.open",
+            side_effect=AssertionError("diagnostic playback must not reopen WAV files"),
+        ):
+            for severity, cue in (("warning", "diagnosticWarning"), ("error", "diagnosticError")):
+                player = players[cue]
+                stops_before = player.stopCalls
+                self.assertTrue(plugin._presentation.play_diagnostic_sound(severity, at_position=True))
+                self.assertTrue(plugin._presentation.play_diagnostic_sound(severity, at_position=True))
+                self.assertEqual(stops_before + 2, player.stopCalls)
+        self.assertEqual(feeds_before + 4, len(self.soundFeeds))
         plugin.terminate()
 
     def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
@@ -11499,6 +11538,27 @@ class BuiltAddonTests(unittest.TestCase):
             },
         })
         self.assertEqual(2, played.count("diagnosticWarning"))
+        for identity in ("diagnostic-command-1", "diagnostic-command-2"):
+            plugin._handleEvent({
+                "type": "diagnosticMoved",
+                "payload": {
+                    **base,
+                    "lineText": "same position",
+                    "cursor": {"line": 2, "byteColumn": 4},
+                    "diagnostic": {
+                        "message": identity,
+                        "severity": "warning",
+                        "index": 1,
+                        "count": 2,
+                        "line": 2,
+                    },
+                    "diagnosticSummary": {
+                        **position_summary,
+                        "positionIdentity": identity,
+                    },
+                },
+            })
+        self.assertEqual(4, played.count("diagnosticWarning"))
         plugin._handleEvent({
             "type": "diagnosticMoved",
             "payload": {

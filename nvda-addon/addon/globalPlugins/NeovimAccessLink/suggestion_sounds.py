@@ -112,6 +112,7 @@ class EditorSoundCache(SuggestionSoundCache):
 	"""Preload NVDA-native and bundled redistributable editor earcons."""
 
 	_PREFIX = "editorSound"
+	_RESTART_CUES = {"diagnosticError", "diagnosticWarning"}
 	_NVDA_FILES = {
 		"connectionEstablished": "connected.wav",
 		"connectionLost": "disconnected.wav",
@@ -148,6 +149,10 @@ class EditorSoundCache(SuggestionSoundCache):
 			self._diagnostic("editorSoundUnavailable", cue=cue)
 			return False
 		try:
+			if cue in self._RESTART_CUES:
+				# Repeated diagnostics of the same severity share one cached player.
+				# Restart it so every deliberate selection starts promptly.
+				player.stop()
 			player.feed(frames)
 			self._diagnostic("editorSoundPlayed", cue=cue, bytes=len(frames))
 			return True

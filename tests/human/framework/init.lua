@@ -274,6 +274,7 @@ if profile == "diagnostics" then
 
   ruff_categories_ready = function()
     local warning_count = 0
+    local first_line_warnings = 0
     local error_found = false
     local count = 0
     for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
@@ -282,28 +283,16 @@ if profile == "diagnostics" then
         if tostring(diagnostic.code) == "F401"
             and diagnostic.severity == vim.diagnostic.severity.WARN then
           warning_count = warning_count + 1
+          if diagnostic.lnum == 0 then
+            first_line_warnings = first_line_warnings + 1
+          end
         elseif tostring(diagnostic.code) == "F821"
             and diagnostic.severity == vim.diagnostic.severity.ERROR then
           error_found = true
         end
       end
     end
-    local first_line_warnings = 0
-    local context = require("nvim_nvda.diagnostics").context(0, 1, 15)
-    for _, diagnostic in ipairs(context) do
-      if tostring(diagnostic.source):lower():find("ruff", 1, true)
-          and tostring(diagnostic.code) == "F401"
-          and diagnostic.severity == "warning" then
-        first_line_warnings = first_line_warnings + 1
-      end
-    end
-    local current = context[1]
-    local warning_starts_at_cursor = type(current) == "table"
-      and tostring(current.source):lower():find("ruff", 1, true) ~= nil
-      and tostring(current.code) == "F401"
-      and current.severity == "warning"
-    return warning_count >= 2 and error_found and first_line_warnings >= 2
-        and warning_starts_at_cursor,
+    return warning_count >= 2 and error_found and first_line_warnings >= 2,
       count, first_line_warnings
   end
 

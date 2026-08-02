@@ -1,5 +1,9 @@
 # Sounds and earcons
 
+All audio files are read completely when the add-on starts. Triggering an
+event therefore performs no file access. If a file is missing or cannot be
+played, the add-on stays operational and uses its short synthesized fallback.
+
 Sounds can supplement or replace speech for configured editor actions. Current
 cues cover a newly authenticated or re-established connection through NVDA's
 installed `waves/connected.wav`, a real focused transport loss through
@@ -40,9 +44,15 @@ Diagnostic errors and warnings use two short accessibility signals from the
 MIT-licensed Code - OSS source of Visual Studio Code. The bundled sound
 license records the pinned source commit, source and WAV hashes, WAV decoding,
 and the complete MIT license. As in VS Code, the line and position signals
-reuse the same file for each severity. During explicit cursor navigation, the
-line cue plays once on entering a diagnostic line and the position cue plays
-at every cursor position reached within a diagnostic range. Typing and
+reuse the same file for each severity. The roughly 0.9 seconds of trailing
+digital silence contained in the decoded files is losslessly reduced to 5 ms;
+no non-zero PCM frame is changed or discarded. Before every deliberately
+triggered diagnostic signal, the already memory-resident player is also
+restarted. The next entry of the same severity on one line therefore gets its
+own immediate cue. During explicit
+cursor navigation, the line cue plays once on entering a diagnostic line and
+the position cue plays at every cursor position reached within a diagnostic
+range. Typing and
 asynchronous `DiagnosticChanged` refreshes stay silent: unlike VS Code, the
 terminal integration does not receive equivalent internal editor state for
 its marker timer and typing debounce. The Diagnostic line and Diagnostic

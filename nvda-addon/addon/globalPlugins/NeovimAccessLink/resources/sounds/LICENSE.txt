@@ -35,14 +35,21 @@ source tree:
 - diagnosticError.wav: error.mp3
   source SHA-256:
   b93c2a7618d0838c5e8a633d64d79f516c60bc48d9a0ae0b10cfc1bace9e7103
-  distributed SHA-256:
+  decoded WAV SHA-256:
   ad39919b8808357c033767640ef0d5e7bf3b6f0ffe9bb2e5ed64389eee1cf944
+  distributed trimmed WAV SHA-256:
+  5a5d05d784b38a43edb10d7e302167a12d265a83bf2bc588e53b4afd8f8a9894
 - diagnosticWarning.wav: warning.mp3
   source SHA-256:
   2687e2e7a28d78630f2ce47ae673223118545adb1d759cacc84f3fb8beab1f1a
-  distributed SHA-256:
+  decoded WAV SHA-256:
   e880551eaf9a7fdda168bf81432db883f691d8b8576ec5bf1f11e91d02de73e3
+  distributed trimmed WAV SHA-256:
+  9188aa163a2b77ab6fed9e193e454a77e0b8dc637d32c87d33af218ea8629f2d
 
 The MP3 files were decoded without creative modification to 48 kHz,
-16-bit, stereo PCM WAV using miniaudio 1.61. The source repository's
+16-bit, stereo PCM WAV using miniaudio 1.61. The decoded files contained about
+0.9 seconds of exact digital silence at the end. The distributed WAVs retain
+every frame through the final non-zero PCM frame plus 5 ms of zero padding;
+no non-zero PCM frame was removed or changed. The source repository's
 ThirdPartyNotices.txt contains no separate entry for either media file.
