@@ -22,15 +22,16 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   längere Inhalte vor und zurück, ohne an einer Grenze in die Quelltextzeile
   zu wechseln. Getrennte Parameterdokumentation erhält eine Satzgrenze statt
   eines mehrdeutigen zusätzlichen Doppelpunkts.
-- Behebt den unzuverlässigen Wiederanlauf nach der optionalen F12-Rückfrage zum
-  Merken einer Terminalbindung. Falls Windows Terminal nach dem Schließen kein
-  `gainFocus` liefert, prüft ein kurzer begrenzter Hauptthread-Ablauf den
-  aktuellen NVDA-Fokus und startet ausschließlich für dieselbe
-  Terminalidentität, dasselbe AppModule, denselben Adapter-Token und dieselbe
-  Instanzauswahl den vorhandenen korrelierten Fokuskontext-Handshake. Ein
-  fremdes Terminal, eine geänderte Auswahl oder ein Zeitablauf bleiben
-  fail-open; ein doch eintreffendes reguläres Fokusereignis gewinnt ohne
-  doppelte Anfrage.
+- Stabilisiert die Bindung nach der optionalen F12-Rückfrage zum Merken eines
+  Windows-Terminal-Tabs. Die Rückfrage verwendet NVDAs verwalteten modalen
+  Dialoglebenszyklus. Bleibt NVDAs Fokuscache nach dem Schließen beim Dialog,
+  prüft der begrenzte Wiederanlauf zusätzlich das tatsächlich fokussierte
+  NVDA-Objekt und übernimmt es nur bei vollständig gleicher Terminalidentität,
+  gleichem AppModule, Adapter-Token und gleicher Instanzauswahl. Ein fremdes
+  Terminal oder eine unsichere Abfrage bleibt fail-open. Die Merkentscheidung
+  gilt wie angekündigt für den Tab bis zum Ende von NVDA oder Windows Terminal:
+  Nach einem Neovim-Neustart autorisiert F12 weiterhin die neue Sitzung, öffnet
+  in diesem Tab aber nicht erneut denselben Dialog.
 - Veröffentlicht den Leitfaden für geführte Praxistests getrennt von der
   Entwicklerdokumentation als viertes eigenständiges HTML je Sprache; das
   versionierte Dokumentations-ZIP enthält damit acht statt sechs Dateien.

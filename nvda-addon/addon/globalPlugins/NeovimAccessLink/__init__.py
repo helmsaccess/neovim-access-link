@@ -25,6 +25,7 @@ from speech.priorities import SpeechPriority as NvdaSpeechPriority
 
 _TERMINAL_LIFECYCLE_INTERVAL_MS = 5 * 60 * 1_000
 _TEMPORARY_BINDING_RECOVERY_DELAYS_MS = (50, 150, 350, 750)
+_REMEMBERED_STATE_RETRY_DELAYS_MS = (150, 350, 750)
 
 
 def _windowIdentityExists(identity):
@@ -1980,14 +1981,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		import gui
 		import wx
 
-		answer = wx.MessageBox(
+		answer = gui.messageBox(
 			_(
 				"Remember this connection for this Windows Terminal tab until NVDA or "
 				"Windows Terminal closes?\n\n{connection}"
 			).format(connection=offer.instance.label),
 			_("Remember temporary terminal connection"),
 			wx.YES_NO | wx.ICON_QUESTION,
-			gui.mainFrame,
 		)
 		if answer != wx.YES:
 			self._diagnostics.record(
@@ -2066,6 +2066,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				instanceId=instance_id,
 			)
 		focus_identity = self._terminalFocusService.identity(focus_obj) if focus_obj is not None else None
+		focus_source = "cached"
+		try:
+			system_focus_obj = api.getDesktopObject().objectWithFocus()
+		except Exception as error:
+			system_focus_obj = None
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoverySystemFocusError",
+				errorType=type(error).__name__,
+				instanceId=instance_id,
+			)
+		if system_focus_obj is not None:
+			focus_obj = system_focus_obj
+			focus_identity = self._terminalFocusService.identity(system_focus_obj)
+			focus_source = "system"
 		if focus_identity is not None and focus_identity != identity:
 			selected = self._instanceManager.selected_for(focus_identity)
 			self._sessionClaimService.consume_temporary_binding_reactivation(
@@ -2093,13 +2107,48 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				and self._terminalFocusService.focused_app_module is app_module
 				and self._terminalFocusService.focused_adapter_token is adapter_token
 			)
-			if not focus_already_current:
+			foreground_confirmed = (
+				self._gate.bound_terminal == identity
+				and self._gate.authenticated
+				and self._gate.nvim_active
+				and self._connectionCoordinator.active_instance_id == instance_id
+			)
+			if focus_already_current and foreground_confirmed:
+				self._sessionClaimService.consume_temporary_binding_reactivation(
+					identity,
+					instance_id,
+				)
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecoveryStopped",
+					instanceId=instance_id,
+					reason="alreadyCurrent",
+				)
+				return
+			# A cached object may lag behind operating-system focus after a modal
+			# dialog. Only an exact live object may trigger a new handshake.
+			if focus_source == "system":
 				allowed = self._sessionClaimService.is_temporary_binding_remembered(
 					identity
 				) or self._sessionClaimService.has_temporary_binding_reactivation(
 					identity,
 					instance_id,
 				)
+				if focus_already_current and allowed:
+					# gainFocus can restore the adapter fields before its delayed
+					# foreground handshake has run. Retry that exact, idempotent
+					# request now instead of mistaking adapter focus for a confirmed
+					# Neovim binding. A later scheduled copy observes PENDING.
+					self._requestRememberedBindingState(identity, instance_id)
+					self._sessionClaimService.consume_temporary_binding_reactivation(
+						identity,
+						instance_id,
+					)
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusHandshakeRetried",
+						instanceId=instance_id,
+						terminal=self._identityFields(identity),
+					)
+					return
 				try:
 					recovered = allowed and self._terminalFocusService.recover_after_modal(
 						focus_obj,
@@ -2128,9 +2177,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				self._diagnostics.record(
 					"temporaryTerminalBindingFocusRecovered",
 					attempt=attempt + 1,
+					focusSource=focus_source,
 					instanceId=instance_id,
 					terminal=self._identityFields(identity),
 				)
+				return
 		if attempt + 1 < len(_TEMPORARY_BINDING_RECOVERY_DELAYS_MS):
 			next_attempt = attempt + 1
 			self._scheduleMainThreadCall(
@@ -2183,13 +2234,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			suppressionImmediate=False,
 		)
 
-	def _requestRememberedBindingState(self, identity, instance_id):
+	def _requestRememberedBindingState(self, identity, instance_id, attempt=0):
 		request = self._sessionClaimService.plan_remembered_state_request(identity, instance_id)
 		if request.kind == RememberedStateRequestKind.SKIP:
 			self._diagnostics.record(
 				"temporaryTerminalBindingStateSkipped",
 				instanceId=instance_id,
 				reason="focusChanged",
+			)
+			return
+		if request.kind == RememberedStateRequestKind.PENDING:
+			self._diagnostics.record(
+				"temporaryTerminalBindingStatePending",
+				instanceId=instance_id,
 			)
 			return
 		if request.kind == RememberedStateRequestKind.STALE or request.client is None:
@@ -2207,11 +2264,32 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				requestId=request.request_id,
 				sent=sent,
 			)
+			if not sent:
+				self._retryRememberedBindingState(identity, instance_id, attempt)
 			return
-		request.client.send_control("requestFullState", {})
+		sent = request.client.send_control("requestFullState", {})
 		self._diagnostics.record(
 			"temporaryTerminalBindingStateRequested",
 			instanceId=instance_id,
+			sent=sent,
+		)
+		if not sent:
+			self._retryRememberedBindingState(identity, instance_id, attempt)
+
+	def _retryRememberedBindingState(self, identity, instance_id, attempt):
+		if attempt >= len(_REMEMBERED_STATE_RETRY_DELAYS_MS):
+			self._diagnostics.record(
+				"temporaryTerminalBindingStateRetryStopped",
+				attempts=attempt,
+				instanceId=instance_id,
+			)
+			return
+		self._scheduleMainThreadCall(
+			_REMEMBERED_STATE_RETRY_DELAYS_MS[attempt],
+			self._requestRememberedBindingState,
+			identity,
+			instance_id,
+			attempt + 1,
 		)
 
 	def _onManagedEvent(self, instance_id, event):
@@ -2358,6 +2436,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# Activate the authenticated state immediately. Only the optional
 			# remember question is deferred out of NVDA's event queue; its answer
 			# must never control whether native terminal output is suppressed.
+			if self._sessionClaimService.is_temporary_binding_remembered(identity):
+				self._diagnostics.record(
+					"temporaryTerminalBindingRetained",
+					instanceId=instance_id,
+					terminal=self._identityFields(identity),
+				)
+				return
 			import wx
 
 			wx.CallAfter(

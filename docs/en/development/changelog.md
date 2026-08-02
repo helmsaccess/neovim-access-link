@@ -15,13 +15,15 @@
   separates sections, and pages longer content in both directions without
   crossing a boundary into the source line. Separate parameter documentation
   now has a sentence boundary instead of an ambiguous extra colon.
-- Fixes unreliable recovery after the optional F12 question that remembers a
-  terminal binding. If Windows Terminal emits no `gainFocus` after the question
-  closes, a short bounded main-thread sequence checks NVDA's current focus and
-  starts the existing correlated focus-context handshake only for the same
-  terminal identity, AppModule, adapter token, and instance selection. A
-  foreign terminal, changed selection, or timeout stays fail-open; a regular
-  focus event that does arrive wins without a duplicate request.
+- Stabilizes binding after the optional F12 question that remembers a Windows
+  Terminal tab. The question uses NVDA's managed modal-dialog lifecycle. If
+  NVDA's focus cache still points at the dialog after it closes, the bounded
+  recovery additionally queries the actually focused NVDA object and accepts
+  it only for the complete same terminal identity, AppModule, adapter token,
+  and instance selection. A foreign terminal or uncertain query remains
+  fail-open. As promised, the remembered choice lasts for the tab until NVDA
+  or Windows Terminal exits: after restarting Neovim, F12 still authorizes the
+  new session but does not open the same question again in that tab.
 - Publishes the guided practical-test guide separately from the developer
   documentation as the fourth independent HTML file per language; the
   versioned documentation ZIP therefore contains eight rather than six files.

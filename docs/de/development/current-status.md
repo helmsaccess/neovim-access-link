@@ -114,13 +114,21 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   Fokuskontext- oder Vollzustandsanforderung. Verzögerung und Transportaufruf
   bleiben am NVDA-Rand. Der Dienst besitzt außerdem den ausstehenden
   Merkvorgang für temporäre Terminalbindungen und prüft Fokus, Control,
-  Instanz und Auswahl nach der modalen Rückfrage erneut. Dialog, Meldung und
-  Diagnostik bleiben NVDA-seitig. Eine einmalige, korrelierte Reaktivierung
-  überbrückt ausschließlich den Fokusverlust dieser Rückfrage. Bleibt das
-  erwartete Windows-Terminal-Fokusereignis aus, prüft ein kurzer begrenzter
-  Wiederanlauf den aktuellen NVDA-Fokus und verwendet für das exakt gleiche
-  Control weiterhin die korrelierte Fokuskontext-Anfrage; eine Ablehnung
-  erzeugt keine dauerhafte Bindung. Eine injizierte `ManagedClientFactory`
+  Instanz und Auswahl nach NVDAs verwalteter modaler Rückfrage erneut. Dialog,
+  Meldung und Diagnostik bleiben NVDA-seitig. Eine einmalige, korrelierte
+  Reaktivierung überbrückt ausschließlich den Fokusverlust dieser Rückfrage.
+  Bleibt das erwartete Windows-Terminal-Fokusereignis aus oder zeigt NVDAs
+  Cache noch den geschlossenen Dialog, prüft ein kurzer begrenzter Wiederanlauf
+  zusätzlich das tatsächlich fokussierte NVDA-Objekt. Nur die vollständig
+  gleiche Terminalidentität verwendet die korrelierte Fokuskontext-Anfrage;
+  jede Unsicherheit bleibt fail-open. Dabei zählt ein wieder fokussiertes
+  Terminalobjekt erst nach bestätigtem Fokuskontext als aktive Bindung. Ein
+  noch nicht ausgeführter Handshake wird idempotent vorgezogen; lehnt der
+  Transport das Senden vorübergehend ab, folgen höchstens drei begrenzte
+  Wiederholungen. Eine bereits gemerkte Tab-Identität
+  behält ihre Merkentscheidung auch bei einer neuen, erneut mit F12
+  autorisierten Neovim-Instanz und erzeugt keinen redundanten Dialog. Eine
+  Ablehnung erzeugt keine dauerhafte Bindung. Eine injizierte `ManagedClientFactory`
   konstruiert lokale TCP- und entfernte SSH-Clients mit instanzkorrelierten
   Callbacks. Der Claimdienst verbindet diese Konstruktion mit seinem
   transaktionalen Startübergang; Profil, Passwort und übersetzte Ausgabe

@@ -122,8 +122,11 @@ sollte unmittelbar nach dem unerwünschten Fragment kopiert werden.
 
 Die optionale Rückfrage zum Merken einer F12-Zuordnung stellt die Verbindung
 nach dem Schließen selbst wieder her; ein Fensterwechsel sollte dafür nicht
-erforderlich sein. Bleibt Access Link danach still, den Diagnosebericht noch
-im betroffenen Windows-Terminal-Tab kopieren, bevor der Fokus gewechselt wird.
+erforderlich sein. Eine Zustimmung gilt für diesen Windows-Terminal-Tab bis
+NVDA oder Windows Terminal beendet wird. Wird Neovim während eines Testlaufs im
+gleichen Tab beendet und neu gestartet, verbindet F12 die neue Sitzung ohne
+erneute Merkfrage. Bleibt Access Link danach still, den Diagnosebericht noch im
+betroffenen Windows-Terminal-Tab kopieren, bevor der Fokus gewechselt wird.
 
 Komponenteninstallation und SSH-Abfragen laufen im Hintergrund. Ein sichtbarer
 Ergebnisdialog darf NVDA nicht blockieren. Falls NVDA dennoch nicht reagiert:

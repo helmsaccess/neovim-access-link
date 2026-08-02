@@ -107,12 +107,20 @@ See `compatibility.md` for complete platform boundaries.
   a correlated focus-context or full-state request according to authentication
   state. Delay and transport calls remain at the NVDA boundary. The service
   also owns pending offers to remember temporary terminal bindings and
-  revalidates focus, control, instance, and selection after the modal question.
-  Dialogs, messages, and diagnostics remain NVDA-side. A one-shot correlated
-  reactivation bridges only this question's focus loss. If the expected
-  Windows Terminal focus event is absent, a short bounded recovery checks
-  NVDA's current focus and still uses the correlated focus-context request for
-  the exact same control; declining does not create a persistent binding. An injected
+  revalidates focus, control, instance, and selection after NVDA's managed
+  modal question. Dialogs, messages, and diagnostics remain NVDA-side. A
+  one-shot correlated reactivation bridges only this question's focus loss. If
+  the expected Windows Terminal focus event is absent or NVDA's cache still
+  points at the closed dialog, a short bounded recovery additionally queries
+  the actually focused NVDA object. Only the complete same terminal identity
+  uses the correlated focus-context request; uncertainty remains fail-open. A
+  refocused terminal object counts as active only after its focus context is
+  confirmed. An outstanding handshake is advanced idempotently; when the
+  transport temporarily rejects sending it, at most three bounded retries
+  follow. An
+  already remembered tab identity retains that choice for a new Neovim
+  instance authorized again with F12 and does not create a redundant dialog.
+  Declining does not create a persistent binding. An injected
   `ManagedClientFactory` constructs local TCP and remote SSH clients with
   instance-correlated callbacks. The claim service connects this construction
   to its transactional start transition; profiles, passwords, and translated

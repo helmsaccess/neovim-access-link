@@ -151,6 +151,15 @@ class ConnectionCoordinator:
             return False
         return self.pending_focus_contexts.get(instance_id) == expected
 
+    def has_pending_focus_context(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+    ) -> bool:
+        """Return whether the exact instance already awaits this terminal's reply."""
+        pending = self.pending_focus_contexts.get(instance_id)
+        return pending is not None and pending.terminal == terminal
+
     def discard_focus_context(self, instance_id: str | None = None) -> None:
         if instance_id is None:
             self.pending_focus_contexts.clear()
