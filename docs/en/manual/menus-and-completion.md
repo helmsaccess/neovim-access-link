@@ -45,12 +45,17 @@ LSP signature help and uses LSP hover as an unstructured fallback. A reply is
 accepted only while instance, terminal, buffer, window, tab, changed tick,
 and cursor position still match the request.
 
-On opening, speech follows the semantic order signature, selected parameter,
-and available documentation. A parameter change then speaks only the new
-parameter; a signature change speaks the new signature and its selected
-parameter. On Braille, the selected parameter comes first, followed by the
-signature and documentation separated with `|`. If that content does not fit
-on the display, both the normal pan controls and the next/previous Braille-line
+On opening, Access Link speaks and shows only the selected signature and its
+available documentation. `NVDA+h/l` speaks and shows only the previous or next
+parameter of that signature; `NVDA+k/j` speaks and shows only the previous or
+next signature with its documentation. Each signature has an independent
+parameter selection that starts at parameter 1 and is never mixed with another
+signature when switching. Speech and Braille therefore expose the same current
+navigation axis. Because the signature view exposes no parameter, the first
+`NVDA+h` or `NVDA+l` press reveals the parameter selected for that signature;
+only subsequent presses move backward or forward. If the content does not fit
+on the display, both the normal
+pan controls and the next/previous Braille-line
 commands page only within this information. The view remains at its first or
 last page instead of returning to source text; releasing NVDA restores the
 editor line.

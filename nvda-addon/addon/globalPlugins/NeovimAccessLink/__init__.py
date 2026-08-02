@@ -3032,30 +3032,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				documentation_text = _("Documentation: {documentation}").format(
 					documentation=documentation,
 				)
-			if (
-				direction
-				in {
-					HeldContextDirection.PREVIOUS_PARAMETER,
-					HeldContextDirection.NEXT_PARAMETER,
-				}
-				and parameter_text
-			):
-				speech_text = parameter_text
-			elif direction in {
-				HeldContextDirection.PREVIOUS_ITEM,
-				HeldContextDirection.NEXT_ITEM,
-			}:
-				speech_text = ". ".join(part for part in (signature_text, parameter_text) if part)
+			parameter_direction = direction in {
+				HeldContextDirection.PREVIOUS_PARAMETER,
+				HeldContextDirection.NEXT_PARAMETER,
+			}
+			if parameter_direction:
+				# Translators: Spoken when the selected callable signature has no parameters.
+				speech_text = parameter_text or _("No parameters in this signature")
 			else:
+				# Initial presentation and j/k navigation describe only the
+				# selected signature. Parameters form their own h/l axis.
 				speech_text = ". ".join(
-					part for part in (signature_text, parameter_text, documentation_text) if part
+					part for part in (signature_text, documentation_text) if part
 				)
-			# Put the locally selected parameter first on Braille so h/l changes
-			# remain immediately visible. Explicit separators preserve the hierarchy
-			# while the complete signature and documentation remain pageable.
-			braille_text = " | ".join(
-				part for part in (parameter_text, signature_text, documentation_text) if part
-			)
+			braille_text = speech_text
 		else:
 			item = presentation.item
 			severity = {

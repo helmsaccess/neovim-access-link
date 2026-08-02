@@ -9,12 +9,14 @@
   therefore reach the locally held signatures, parameters, and diagnostics
   instead of falling back to other NVDA commands. The technical preflight now
   checks the editor snapshot as well.
-- Makes the held parameter view coherent: initial speech reports signature,
-  selected parameter, and documentation, while local parameter changes speak
-  only the new parameter. Braille puts the selected parameter first, visibly
-  separates sections, and pages longer content in both directions without
-  crossing a boundary into the source line. Separate parameter documentation
-  now has a sentence boundary instead of an ambiguous extra colon.
+- Separates both axes of the held parameter view. The initial view and
+  `NVDA+k/j` show only signature and documentation; `NVDA+h/l` shows only
+  parameters of the selected signature. Every signature has an independent
+  selection beginning at parameter 1, so the LSP active call-site parameter
+  neither shifts inspection nor leaks into another signature. Long speech and
+  Braille content remains pageable within the transient view. After a
+  signature-only view, the first parameter command now reveals the selected
+  parameter instead of invisibly skipping it.
 - Stabilizes binding after the optional F12 question that remembers a Windows
   Terminal tab. The question uses NVDA's managed modal-dialog lifecycle. If
   NVDA's focus cache still points at the dialog after it closes, the bounded
@@ -24,6 +26,10 @@
   fail-open. As promised, the remembered choice lasts for the tab until NVDA
   or Windows Terminal exits: after restarting Neovim, F12 still authorizes the
   new session but does not open the same question again in that tab.
+  A refocused terminal object now counts as an active Neovim binding only after
+  a confirmed focus context. Recovery starts an outstanding handshake
+  immediately and idempotently, and retries a control that the transport could
+  not initially send within a fixed bound.
 - Publishes the guided practical-test guide separately from the developer
   documentation as the fourth independent HTML file per language; the
   versioned documentation ZIP therefore contains eight rather than six files.

@@ -22,6 +22,14 @@ Der Kommandozeilenton benötigt keine Audiodatei. Die übrigen Dateien dieser
 Tabelle werden nicht in das Add-on kopiert. Dadurch bleiben die Klänge
 mit der jeweils installierten NVDA-Version konsistent.
 
+Die Modusklänge bestätigen einen tatsächlichen Moduswechsel oder einen
+korrelierten Fokuskontext. Der erste vollständige Zustand einer nach F12 neu
+erzeugten Verbindungsinstanz ist kein solcher Wechsel und erzeugt daher nicht
+zwingend einen Normalmodusklang. Das Ausbleiben dieses Klangs allein bedeutet
+nicht, dass die Verbindung fehlt; maßgeblich sind die Ansage, dass die
+Neovim-Verbindung gestartet wurde, und anschließend funktionierende semantische
+Ausgaben des Add-ons.
+
 Der Rechtschreibklang wird nach Abschluss eines fehlerhaften Wortes sowie beim
 Erreichen eines betroffenen Worts durch normale Wortnavigation oder
 Wortexploration im Sprachexplorationsmodus ausgegeben. Maßgeblich bleiben NVDAs Einstellungen für

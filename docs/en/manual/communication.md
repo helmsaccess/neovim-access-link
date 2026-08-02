@@ -47,6 +47,12 @@ Titles, terminal text, current directory, user name, and wall-clock
 synchronization are not used. Each additional window, tab, or pane is claimed
 independently with its own physical F12 press.
 
+If Neovim exits and restarts in the same remembered tab, it is a new Neovim
+session with a new endpoint and connection instance. A fresh F12 press is still
+required as authorization, after which the old instance is replaced. Remembering
+the tab only skips the repeated remember question and permits later correlated
+focus restoration; it never trusts a newly started process automatically.
+
 ## Local Windows path
 
 The plugin starts a dynamic Neovim RPC endpoint bound exactly to `127.0.0.1`

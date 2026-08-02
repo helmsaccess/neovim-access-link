@@ -4602,11 +4602,10 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
         self.assertTrue(self.spoken[-1].startswith("Signature 1 of 2"))
-        self.assertIn("Parameter 2 of 2: quantity", self.spoken[-1])
+        self.assertNotIn("Parameter", self.spoken[-1])
         self.assertIn("Documentation: Calculate the total.", self.spoken[-1])
         self.assertEqual(
-            "Parameter 2 of 2: quantity | "
-            "Signature 1 of 2: calculate_total(price, quantity) | "
+            "Signature 1 of 2: calculate_total(price, quantity). "
             "Documentation: Calculate the total.",
             self.brailleMessages[-1],
         )
@@ -4629,7 +4628,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertEqual(
             "Signature 1 of 2: calculate_total(price, quantity). "
-            "Parameter 2 of 2: quantity",
+            "Documentation: Calculate the total.",
             self.spoken[-1],
         )
 

@@ -202,7 +202,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				parameter_expectation = locales[language]["plan.lspNative.parameters.expected"]
 				diagnostic_expectation = locales[language]["plan.diagnostics.held.expected"]
 				earcon_expectation = locales[language]["plan.diagnostics.earcons.expected"]
-				for value in ("price", "quantity", "discount", "j/k", "l/h"):
+				for value in ("price", "quantity", "discount", "j/k", "h/l"):
 					self.assertIn(value, parameter_expectation)
 				for value in ("path", "sep", "j/k"):
 					self.assertIn(value, diagnostic_expectation)

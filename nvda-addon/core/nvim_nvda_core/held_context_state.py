@@ -132,7 +132,8 @@ class HeldContextController:
         self._request_id: int | None = None
         self._items: tuple[Mapping[str, Any], ...] = ()
         self._item_index = 0
-        self._parameter_index = 0
+        self._parameter_indices: list[int] = []
+        self._parameter_visible = False
 
     @property
     def location(self) -> HeldContextLocation | None:
@@ -149,7 +150,8 @@ class HeldContextController:
         self._request_id = request_id
         self._items = ()
         self._item_index = 0
-        self._parameter_index = 0
+        self._parameter_indices = []
+        self._parameter_visible = False
         return HeldContextRequest(kind, request_id, location.request_payload(request_id))
 
     def consume(
@@ -170,18 +172,18 @@ class HeldContextController:
         if not self._items:
             return None
         selected = payload.get("activeItem")
-        parameter = payload.get("activeParameter")
         self._item_index = (
             selected
             if isinstance(selected, int) and not isinstance(selected, bool)
             and 0 <= selected < len(self._items)
             else 0
         )
-        self._parameter_index = (
-            parameter
-            if isinstance(parameter, int) and not isinstance(parameter, bool) and parameter >= 0
-            else 0
-        )
+        # The LSP active parameter describes the editor's call-site state. This
+        # held view is a separate, explicit inspection surface and therefore
+        # starts each signature at its first parameter. Keeping one index per
+        # signature prevents parameter navigation from leaking across items.
+        self._parameter_indices = [0] * len(self._items)
+        self._parameter_visible = False
         return self.current()
 
     def accepts(
@@ -204,16 +206,24 @@ class HeldContextController:
             return None
         if direction is HeldContextDirection.PREVIOUS_ITEM:
             self._item_index = (self._item_index - 1) % len(self._items)
-            self._parameter_index = 0
+            self._parameter_visible = False
         elif direction is HeldContextDirection.NEXT_ITEM:
             self._item_index = (self._item_index + 1) % len(self._items)
-            self._parameter_index = 0
+            self._parameter_visible = False
         else:
             parameters = self._parameters()
             if not parameters:
                 return self.current()
-            delta = -1 if direction is HeldContextDirection.PREVIOUS_PARAMETER else 1
-            self._parameter_index = (self._parameter_index + delta) % len(parameters)
+            if self._parameter_visible:
+                delta = -1 if direction is HeldContextDirection.PREVIOUS_PARAMETER else 1
+                self._parameter_indices[self._item_index] = (
+                    self._parameter_indices[self._item_index] + delta
+                ) % len(parameters)
+            else:
+                # The signature-only view exposes no current parameter. The
+                # first h/l press therefore reveals this signature's current
+                # parameter instead of silently skipping over it.
+                self._parameter_visible = True
         return self.current()
 
     def current(self) -> HeldContextPresentation | None:
@@ -221,8 +231,11 @@ class HeldContextController:
             return None
         item = self._items[self._item_index]
         parameters = self._parameters()
-        parameter_index = min(self._parameter_index, max(0, len(parameters) - 1))
-        self._parameter_index = parameter_index
+        parameter_index = min(
+            self._parameter_indices[self._item_index],
+            max(0, len(parameters) - 1),
+        )
+        self._parameter_indices[self._item_index] = parameter_index
         return HeldContextPresentation(
             self._kind,
             item,
@@ -243,7 +256,8 @@ class HeldContextController:
         self._request_id = None
         self._items = ()
         self._item_index = 0
-        self._parameter_index = 0
+        self._parameter_indices = []
+        self._parameter_visible = False
         return True
 
     def _parameters(self) -> tuple[str, ...]:

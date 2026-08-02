@@ -104,14 +104,68 @@ class HeldContextControllerTests(unittest.TestCase):
 			},
 		}
 		presentation = self.controller.consume(HeldContextKind.CALLABLE, event)
-		self.assertEqual("b", presentation.parameter)
+		self.assertEqual("a", presentation.parameter)
 		presentation = self.controller.navigate(HeldContextDirection.NEXT_PARAMETER)
 		self.assertEqual("a", presentation.parameter)
+		presentation = self.controller.navigate(HeldContextDirection.NEXT_PARAMETER)
+		self.assertEqual("b", presentation.parameter)
 		presentation = self.controller.navigate(HeldContextDirection.NEXT_ITEM)
 		self.assertEqual("second(value)", presentation.item["signature"])
+		self.assertEqual("value", presentation.parameter)
+		self.assertEqual(
+			"value",
+			self.controller.navigate(HeldContextDirection.PREVIOUS_PARAMETER).parameter,
+		)
 		self.assertEqual(
 			"first(a, b)",
 			self.controller.navigate(HeldContextDirection.NEXT_ITEM).item["signature"],
+		)
+		self.assertEqual("b", self.controller.current().parameter)
+		self.assertEqual(
+			"b",
+			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
+		)
+
+	def test_each_signature_keeps_an_independent_parameter_selection(self):
+		request = self.controller.begin(HeldContextKind.CALLABLE, self.location)
+		event = {
+			"type": "callableContextResult",
+			"payload": {
+				**editor_state(),
+				"requestId": request.request_id,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [
+					{"signature": "first(a, b, c)", "parameters": ["a", "b", "c"]},
+					{"signature": "second(x, y, z)", "parameters": ["x", "y", "z"]},
+				],
+				"activeItem": 0,
+				"activeParameter": 2,
+			},
+		}
+
+		self.assertEqual("a", self.controller.consume(HeldContextKind.CALLABLE, event).parameter)
+		self.assertEqual(
+			"a",
+			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
+		)
+		self.assertEqual(
+			"b",
+			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
+		)
+		self.assertEqual("x", self.controller.navigate(HeldContextDirection.NEXT_ITEM).parameter)
+		self.assertEqual(
+			"x",
+			self.controller.navigate(HeldContextDirection.PREVIOUS_PARAMETER).parameter,
+		)
+		self.assertEqual(
+			"z",
+			self.controller.navigate(HeldContextDirection.PREVIOUS_PARAMETER).parameter,
+		)
+		self.assertEqual("b", self.controller.navigate(HeldContextDirection.PREVIOUS_ITEM).parameter)
+		self.assertEqual(
+			"b",
+			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
 		)
 
 	def test_diagnostic_items_wrap(self):

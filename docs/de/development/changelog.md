@@ -15,13 +15,15 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   gehaltenen Signaturen, Parameter und Diagnosen, statt auf andere
   NVDA-Funktionen zurückzufallen. Die technische Vorprüfung kontrolliert den
   Editorstand jetzt ebenfalls.
-- Ordnet die gehaltene Parameteransicht verständlich: Die Erstansage nennt
-  Signatur, ausgewählten Parameter und Dokumentation, während lokale
-  Parameterwechsel nur den neuen Parameter sprechen. Braille stellt den
-  ausgewählten Parameter voran, trennt die Abschnitte sichtbar und blättert
-  längere Inhalte vor und zurück, ohne an einer Grenze in die Quelltextzeile
-  zu wechseln. Getrennte Parameterdokumentation erhält eine Satzgrenze statt
-  eines mehrdeutigen zusätzlichen Doppelpunkts.
+- Trennt die beiden Achsen der gehaltenen Parameteransicht. Erstansicht und
+  `NVDA+k/j` zeigen ausschließlich Signatur und Dokumentation; `NVDA+h/l`
+  zeigt ausschließlich Parameter der gewählten Signatur. Jede Signatur besitzt
+  einen eigenen, bei Parameter 1 beginnenden Auswahlstand, sodass der vom LSP
+  gemeldete aktive Aufrufparameter weder die Erkundung verschiebt noch beim
+  Signaturwechsel in eine andere Signatur hineinwirkt. Lange Sprache- und
+  Brailleinhalte bleiben innerhalb der flüchtigen Ansicht blätterbar. Nach
+  einer reinen Signaturansicht blendet der erste Parameterbefehl zunächst den
+  ausgewählten Parameter ein; er überspringt ihn nicht mehr unsichtbar.
 - Stabilisiert die Bindung nach der optionalen F12-Rückfrage zum Merken eines
   Windows-Terminal-Tabs. Die Rückfrage verwendet NVDAs verwalteten modalen
   Dialoglebenszyklus. Bleibt NVDAs Fokuscache nach dem Schließen beim Dialog,
@@ -30,6 +32,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   gleichem AppModule, Adapter-Token und gleicher Instanzauswahl. Ein fremdes
   Terminal oder eine unsichere Abfrage bleibt fail-open. Die Merkentscheidung
   gilt wie angekündigt für den Tab bis zum Ende von NVDA oder Windows Terminal:
+  Ein bereits wieder fokussiertes Terminalobjekt gilt erst nach bestätigtem
+  Fokuskontext als aktive Neovim-Bindung. Der Wiederanlauf stößt einen noch
+  ausstehenden Handshake sofort und idempotent an; ein vom Transport zunächst
+  nicht gesendeter Steuerbefehl wird begrenzt erneut versucht.
   Nach einem Neovim-Neustart autorisiert F12 weiterhin die neue Sitzung, öffnet
   in diesem Tab aber nicht erneut denselben Dialog.
 - Veröffentlicht den Leitfaden für geführte Praxistests getrennt von der

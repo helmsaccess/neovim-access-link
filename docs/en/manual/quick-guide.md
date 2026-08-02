@@ -120,8 +120,12 @@ other tabs or panes. A short two-note cue marks when the virtual position
 returns to the character, word, or line where speech exploration mode started.
 
 Callable parameters can be inspected without moving the editor cursor: press
-`NVDA+Shift+P` and keep NVDA held. `NVDA+h/l` cycles parameters and
-`NVDA+k/j` cycles multiple signatures. `NVDA+Shift+E` uses the same held
+`NVDA+Shift+P` and keep NVDA held. `NVDA+h/l` cycles only the parameters of
+the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
+initial view contains only the signature and documentation; each signature
+starts independently at its first parameter. After that view or a signature
+change, the first `NVDA+h` or `NVDA+l` press reveals the selected parameter;
+only the next press moves. `NVDA+Shift+E` uses the same held
 interaction for diagnostics under the cursor and on the current line; here
 `NVDA+k/j` cycles entries. The normal forward/back controls page through long
 information without crossing into source text. Releasing the final NVDA key

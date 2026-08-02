@@ -7,6 +7,12 @@ matching errors, deletion, replace,
 line/file boundaries, and crossing a line. Completion open/close and spelling
 cues follow the relevant NVDA settings.
 
+Mode sounds confirm an actual mode transition or a correlated focus context.
+The first full state of a new connection instance created after F12 is neither,
+so it does not necessarily produce a Normal-mode sound. Its absence alone does
+not mean that the connection failed; the spoken connection-started message and
+subsequent semantic add-on output are the authoritative checks.
+
 The spelling cue is emitted after completing a misspelled word and when normal
 word navigation or word speech exploration reaches an affected word. NVDA's spelling
 and grammar settings remain authoritative; the add-on introduces no separate

@@ -117,12 +117,18 @@ die Parameter, `NVDA+k/j` durch mehrere Signaturen. Die echte Cursorposition
 bleibt unverändert. Beim Loslassen der letzten NVDA-Taste wird die Anzeige
 geschlossen und die normale Editorzeile wiederhergestellt.
 
-Beim Öffnen spricht Access Link in der fachlichen Reihenfolge Signatur,
-ausgewählten Parameter und vorhandene Dokumentation. Ein Parameterwechsel
-spricht danach nur den neuen Parameter; ein Signaturwechsel spricht die neue
-Signatur und deren ausgewählten Parameter. Auf Braille steht der ausgewählte
-Parameter zuerst, danach folgen durch `|` getrennt Signatur und Dokumentation.
-Passt dieser Inhalt nicht vollständig auf die Braillezeile, blättern sowohl
+Beim Öffnen spricht Access Link nur die ausgewählte Signatur und ihre
+vorhandene Dokumentation. `NVDA+h/l` spricht und zeigt ausschließlich den
+vorherigen beziehungsweise nächsten Parameter dieser Signatur;
+`NVDA+k/j` spricht und zeigt ausschließlich die vorherige beziehungsweise
+nächste Signatur samt ihrer Dokumentation. Jede Signatur besitzt eine eigene
+Parameterauswahl, die bei Parameter 1 beginnt und beim Signaturwechsel nicht
+mit einer anderen Signatur vermischt wird. Sprache und Braille zeigen damit
+immer dieselbe, gerade gewählte Achse. Da die Signaturansicht keinen Parameter
+zeigt, blendet der erste Druck auf `NVDA+h` oder `NVDA+l` zunächst den für
+diese Signatur ausgewählten Parameter ein; erst weitere Betätigungen wechseln
+vorwärts oder rückwärts. Passt der Inhalt nicht vollständig
+auf die Braillezeile, blättern sowohl
 die üblichen Vor-/Zurück-Tasten als auch die Befehle für die nächste oder
 vorherige Braillezeile ausschließlich innerhalb dieser Information. Am ersten
 und letzten Teil bleibt die Anzeige stehen; erst das Loslassen der NVDA-Taste
