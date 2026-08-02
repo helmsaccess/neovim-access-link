@@ -145,7 +145,8 @@ client exists.
 Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
-`menuSelectionChanged`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
+`menuSelectionChanged`, `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`,
+`signatureChanged`,
 `signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
@@ -157,6 +158,9 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
+`menuSelectionCleared` represents Neovim's no-selected-candidate state while
+the menu remains open. It clears cached completion documentation and is
+presented as its own accessible state.
 `menuItemUpdated` retains selection, index, and count while updating only
 metadata such as documentation resolved later. NVDA uses it to refresh the
 per-instance documentation cache without a second selection announcement.

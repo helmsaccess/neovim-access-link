@@ -114,6 +114,7 @@ class EditorSoundCache(SuggestionSoundCache):
 	_PREFIX = "editorSound"
 	_NVDA_FILES = {
 		"connectionEstablished": "connected.wav",
+		"connectionLost": "disconnected.wav",
 		"insertMode": "focusMode.wav",
 		"normalMode": "browseMode.wav",
 		"matchingError": "error.wav",

@@ -23,11 +23,13 @@ and multi-driver matrix remains open.
 Connection and mode earcons have separate contracts. The first authenticated
 `fullState` of one connection instance, and the first one after a real
 transport disconnection, uses NVDA's installed `connected.wav` at most once
-per connected transport lifetime. Repeated synchronization is silent. Insert,
+per connected transport lifetime. A real transition of the focused instance
+from connected to disconnected uses NVDA's `disconnected.wav` exactly once;
+initial and repeated disconnected states are silent. Insert,
 Normal, Terminal-Normal, and command-line cues continue to represent only
 mode transitions or a correlated focus context. Built-add-on regression tests
-cover resynchronization, disconnect/reconnect, and duplicate-focus
-deduplication.
+cover resynchronization, initial and repeated disconnect,
+disconnect/reconnect, and duplicate-focus deduplication.
 
 Speech exploration mode uses six fixed Windows Terminal AppModule chords to
 read characters, lines, or words through an ephemeral Lua position. Exact

@@ -77,6 +77,20 @@ class NvdaPresentation:
 		)
 		return enabled
 
+	def play_disconnection_sound(self):
+		"""Report one real transport loss independently of editor mode."""
+		enabled = bool(self.feedback_mode(None) & 2)
+		if enabled and not self.editor_sounds.play("connectionLost"):
+			# Keep failure audible and directionally distinct from connection.
+			tones.beep(780, 25)
+			tones.beep(520, 35)
+		self._diagnostic(
+			"connectionLostSound",
+			cue="disconnected.wav",
+			enabled=enabled,
+		)
+		return enabled
+
 	def play_mode_sound(self, mode, *, focus_context=False):
 		sound_kind = self.mode_sound_kind(mode)
 		if sound_kind == "insert":

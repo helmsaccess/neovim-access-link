@@ -2,18 +2,22 @@
 
 Sounds can supplement or replace speech for configured editor actions. Current
 cues cover a newly authenticated or re-established connection through NVDA's
-installed `waves/connected.wav`, Insert/direct terminal input, a short mid-pitch command-line tone,
+installed `waves/connected.wav`, a real focused transport loss through
+`waves/disconnected.wav`, Insert/direct terminal input, a short mid-pitch command-line tone,
 and the transition to Normal or canonical Terminal-Normal,
 matching errors, deletion, replace,
 line/file boundaries, and crossing a line. Completion open/close and spelling
 cues follow the relevant NVDA settings.
 
 The connection cue plays exactly for the first authenticated full state of an
-instance and again after a real transport disconnection. It follows the sound
-component of Global action feedback, is independent of editor mode, and does
-not repeat for another `fullState` resynchronization during the same connected
-transport lifetime. Like the other NVDA-native files, `connected.wav` is read
-from the installed NVDA directory and is not redistributed by the add-on.
+instance and again after a real transport disconnection. It does not repeat for
+another `fullState` resynchronization during the same connected transport
+lifetime. `disconnected.wav` plays only when a previously connected,
+currently focused instance really becomes disconnected; an initial or repeated
+disconnected state stays silent. Both cues follow the sound component of Global
+action feedback and are independent of editor mode. Like the other NVDA-native
+files, they are read from the installed NVDA directory and are not redistributed
+by the add-on.
 
 Mode sounds instead confirm an actual mode transition or a correlated focus
 context. The first full state of a new connection instance created after F12

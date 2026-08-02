@@ -8,6 +8,14 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Meldet bei Neovims eingebauter Completion den absichtlichen Zustand ohne
+  ausgewählten Kandidaten zwischen letztem und erstem Vorschlag ausdrücklich
+  in Sprache und Braille. Der ursprünglich eingegebene Text bleibt wie von
+  Neovim vorgesehen erhalten, der Dokumentationscache wird geleert, und der
+  Schritt wirkt nicht mehr wie ein verschlucktes `Ctrl+N`.
+- Ergänzt NVDAs `disconnected.wav` als Gegenstück zum Verbindungsklang. Er
+  erklingt genau beim echten Verlust einer zuvor verbundenen, fokussierten
+  Instanz; anfängliche und wiederholt gemeldete Trennzustände bleiben still.
 - Trennt Verbindungs- und Modusrückmeldung: Der erste authentifizierte
   `fullState` einer neuen oder nach Transporttrennung wiederhergestellten
   Instanz verwendet einmal NVDAs `connected.wav`; weitere Synchronisierungen

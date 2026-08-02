@@ -31,6 +31,12 @@ public API, so documentation present on the original item works while
 resolve-only documentation may remain unavailable. Ghost text without a
 visible completion menu is not reported as a selectable menu.
 
+Neovim's built-in completion deliberately moves once to “no completion
+selected” after the last candidate. That state preserves the originally typed
+text; the next `Ctrl+N` selects the first candidate again. Access Link reports
+this intermediate state explicitly in speech and Braille so it cannot look
+like a lost key press. The menu remains open.
+
 `:NvimNvdaLspStatus` reports the names of LSP clients attached to the current
 buffer and explicitly reports when none is attached. Ongoing LSP progress is
 not spoken continuously; errors and results remain available through

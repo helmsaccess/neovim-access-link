@@ -12,6 +12,7 @@ Das Add-on verwendet direkt aus dem installierten NVDA-Verzeichnis:
 | Ereignis | NVDA-Datei |
 | --- | --- |
 | neue authentifizierte oder nach einer Trennung wiederhergestellte Neovim-Verbindung | `waves/connected.wav` |
+| echte Trennung einer zuvor verbundenen, fokussierten Neovim-Instanz | `waves/disconnected.wav` |
 | Insert-Modus oder direkte Terminaleingabe | `waves/focusMode.wav` |
 | Normal- oder Terminal-Normalmodus nach Insert beziehungsweise direkter Terminaleingabe | `waves/browseMode.wav` |
 | Neovim-Kommandozeile | kurzer synthetischer Ton mit 600 Hz |
@@ -25,9 +26,12 @@ mit der jeweils installierten NVDA-Version konsistent.
 
 `connected.wav` wird genau beim ersten authentifizierten vollständigen Zustand
 einer Verbindungsinstanz und erneut nach einer echten Transporttrennung
-ausgegeben. Er folgt der Klangkomponente von „Globale Aktionsrückmeldung“ und
-ist vom Editormodus unabhängig. Eine wiederholte `fullState`-Synchronisierung
-innerhalb derselben verbundenen Transportlaufzeit erzeugt ihn nicht erneut.
+ausgegeben. `disconnected.wav` meldet genau den Übergang einer zuvor
+verbundenen, aktuell fokussierten Instanz in den getrennten Zustand; ein
+anfänglicher oder wiederholt gemeldeter getrennter Zustand bleibt still. Beide
+folgen der Klangkomponente von „Globale Aktionsrückmeldung“ und sind vom
+Editormodus unabhängig. Eine wiederholte `fullState`-Synchronisierung innerhalb
+derselben verbundenen Transportlaufzeit erzeugt keinen weiteren Klang.
 
 Die Modusklänge bestätigen dagegen einen tatsächlichen Moduswechsel oder einen
 korrelierten Fokuskontext. Der erste vollständige Zustand einer nach F12 neu

@@ -262,6 +262,10 @@ Vorschauaktualisierung erscheint nicht nachträglich in `complete_info()`.
 Fehlt die Dokumentation am ursprünglichen Kandidaten, löst der native Pfad
 deshalb nur die aktuelle Auswahl zusätzlich über den öffentlichen
 `completionItem/resolve`-Vertrag auf und verwirft veraltete Antworten.
+Der von Neovims eingebauter Completion bewusst verwendete Zustand ohne
+ausgewählten Kandidaten zwischen letztem und erstem Vorschlag wird als eigener
+semantischer Zustand in Sprache und Braille gemeldet und leert die zuvor
+ausgewählte Dokumentation.
 Echte Modulanbindung ist automatisiert gegen den aktuellen `nvim-cmp`-Stand,
 `blink.cmp` v1.10.2 und den vorläufigen v2-Zweig geprüft; eine vollständige
 TUI-/Windows-/NVDA-Konfigurationsmatrix bleibt offen. `blink.cmp` kann

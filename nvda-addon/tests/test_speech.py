@@ -1244,6 +1244,15 @@ class SpeechPlannerTests(unittest.TestCase):
         }})[0]
         self.assertNotIn("1 von 1", action.text)
 
+    def test_cleared_completion_selection_announces_original_text_state(self) -> None:
+        action = SpeechPlanner().plan({
+            "type": "menuSelectionCleared",
+            "payload": {"itemCount": 3},
+        })[0]
+        self.assertEqual("No completion selected", action.text)
+        self.assertEqual(action.text, action.braille_message)
+        self.assertTrue(action.interrupt)
+
     def test_structured_prompts_are_announced_without_echoing_input(self) -> None:
         planner = SpeechPlanner()
         opened = planner.plan({"type": "promptOpened", "payload": {

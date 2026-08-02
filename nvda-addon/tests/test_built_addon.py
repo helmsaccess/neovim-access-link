@@ -393,7 +393,7 @@ class BuiltAddonTests(unittest.TestCase):
         waves.mkdir()
         for file_name in (
             "suggestionsOpened.wav", "suggestionsClosed.wav", "textError.wav",
-            "connected.wav", "focusMode.wav", "browseMode.wav", "error.wav",
+            "connected.wav", "disconnected.wav", "focusMode.wav", "browseMode.wav", "error.wav",
         ):
             with wave.open(str(waves / file_name), "wb") as sound:
                 sound.setnchannels(1)
@@ -988,6 +988,13 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertEqual("menuItemUpdated", transition.event_type)
         self.assertEqual("resolved documentation", coordinator.menu_documentation)
+
+        transition = controller.apply_event({
+            "type": "menuSelectionCleared",
+            "payload": {"bufferId": 1, "mode": "insert", "buftype": "terminal", "itemCount": 3},
+        })
+        self.assertEqual("menuSelectionCleared", transition.event_type)
+        self.assertEqual("", coordinator.menu_documentation)
 
         connection = controller.apply_connection_state("disconnected", reset_runtime=True)
         self.assertEqual("connected", connection.previous)
@@ -3932,7 +3939,7 @@ class BuiltAddonTests(unittest.TestCase):
             sound.unlink()
 
         cues = (
-            "connectionEstablished", "insertMode", "normalMode", "matchingError", "delete", "replace",
+            "connectionEstablished", "connectionLost", "insertMode", "normalMode", "matchingError", "delete", "replace",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
         )
         for cue in cues:
@@ -6753,10 +6760,31 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._handleManagedState(instance.identifier, "disconnected")
         plugin._handleManagedEvent(instance.identifier, full_state)
         self.assertEqual(
-            ["connectionEstablished", "connectionEstablished"],
+            ["connectionEstablished", "connectionLost", "connectionEstablished"],
             played,
         )
         self.assertEqual(2, plugin._diagnostics.report().count('"category": "connectionEstablished"'))
+        self.assertEqual(1, plugin._diagnostics.report().count('"category": "connectionLost"'))
+        plugin.terminate()
+
+    def test_disconnection_cue_plays_once_only_for_real_focused_transport_loss(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._focusPlugin(plugin)
+        plugin._gate.manual_enabled = True
+        played: list[str] = []
+        plugin._presentation.editor_sounds.play = lambda cue: played.append(cue) or True
+
+        plugin._handleConnectionState("disconnected")
+        plugin._handleConnectionState("connected")
+        plugin._handleConnectionState("disconnected")
+        plugin._handleConnectionState("disconnected")
+
+        self.assertEqual(["connectionLost"], played)
+        report = plugin._diagnostics.report()
+        self.assertEqual(1, report.count('"category": "connectionLost"'))
+        self.assertEqual(1, report.count('"category": "connectionLostSound"'))
         plugin.terminate()
 
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:

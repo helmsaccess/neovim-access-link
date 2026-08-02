@@ -104,6 +104,24 @@ equal(1, #moved, "one selection event")
 equal("print", moved[1].payload.item.label, "second item")
 equal(2, moved[1].payload.itemIndex, "second position")
 
+local cleared = model:update({
+  mode = "omni", pum_visible = true, selected = -1,
+  items = {
+    { word = "printf", abbr = "printf(format, ...)", kind = "f" },
+    { word = "print", abbr = "print(value)", kind = "f" },
+  },
+})
+equal(1, #cleared, "clearing a real selection emits one event")
+equal("menuSelectionCleared", cleared[1].type, "cleared selection type")
+equal(2, cleared[1].payload.itemCount, "cleared selection retains item count")
+equal(0, #model:update({
+  mode = "omni", pum_visible = true, selected = -1,
+  items = {
+    { word = "printf", abbr = "printf(format, ...)", kind = "f" },
+    { word = "print", abbr = "print(value)", kind = "f" },
+  },
+}), "duplicate cleared selection suppressed")
+
 local closed = model:close("done")
 equal(1, #closed, "one close event")
 equal("menuClosed", closed[1].type, "close type")

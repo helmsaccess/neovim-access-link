@@ -55,7 +55,9 @@ focus restoration; it never trusts a newly started process automatically. Once
 the first valid `fullState` authenticates that new instance, NVDA's
 `connected.wav` confirms the connection when Global action feedback permits
 sounds. The Normal-mode cue has no connection-status role and may be absent for
-a new session in an already focused tab.
+a new session in an already focused tab. If that focused, previously connected
+instance is really disconnected, `disconnected.wav` confirms the transition;
+an initially disconnected state does not produce a loss cue.
 
 ## Local Windows path
 

@@ -799,7 +799,7 @@ class EditorSessionController:
 			item = payload.get("item", {})
 			documentation = item.get("documentation", "") if isinstance(item, dict) else ""
 			self._coordinator.menu_documentation = documentation if isinstance(documentation, str) else ""
-		elif event_type == "menuClosed":
+		elif event_type in {"menuSelectionCleared", "menuClosed"}:
 			self._coordinator.menu_documentation = ""
 		if event_type == "hoverChanged" and payload is not None:
 			documentation = payload.get("documentation", "")

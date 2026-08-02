@@ -244,6 +244,11 @@ v2 branch; a complete TUI and Windows/NVDA configuration matrix remains open.
 resolved copy, and ghost text without a menu is not an accessible selection
 menu.
 
+The deliberate no-selected-candidate state used by Neovim's built-in
+completion between the last and first suggestion is emitted as its own
+semantic speech and Braille state and clears the previously selected
+documentation.
+
 LSP hover automatically presents only its first meaningful line. Complete
 per-instance documentation is available through the same configurable command
 as completion documentation and is discarded silently when cursor, mode, or

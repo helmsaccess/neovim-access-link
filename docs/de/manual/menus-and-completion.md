@@ -42,6 +42,13 @@ Das Add-on ersetzt diese Tasten nicht. Es beobachtet nur den von Neovim
 gemeldeten Menüzustand. Eigene Mappings eines Completion-Plugins bleiben daher
 wirksam.
 
+Neovims eingebaute Vervollständigung schaltet nach dem letzten Kandidaten
+bewusst einmal auf „kein Vervollständigungsvorschlag ausgewählt“. In diesem
+Zustand bleibt der ursprünglich eingegebene Text erhalten; der nächste Druck
+auf `Ctrl+N` wählt wieder den ersten Kandidaten. Access Link meldet diesen
+Zwischenschritt ausdrücklich in Sprache und Braille, damit er nicht wie ein
+verschluckter Tastendruck wirkt. Das Menü bleibt dabei geöffnet.
+
 Beim Öffnen und Schließen können NVDAs übliche Vorschlagsklänge abgespielt
 werden. Dafür gilt NVDAs Einstellung zur akustischen Meldung automatischer
 Vorschläge. Das gilt gleichermaßen für Neovims eingebautes Menü, `nvim-cmp`

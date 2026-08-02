@@ -160,7 +160,9 @@ gestarteten Prozess automatisch. Sobald der erste gültige `fullState` die neue
 Instanz authentifiziert, bestätigt bei aktivierter globaler Klangrückmeldung
 NVDAs `connected.wav` genau diese Verbindung. Der Normalmodusklang ist dafür
 nicht zuständig und kann bei einer neuen Sitzung im bereits fokussierten Tab
-ausbleiben.
+ausbleiben. Wird diese fokussierte, zuvor verbundene Instanz wirklich getrennt,
+bestätigt `disconnected.wav` den Übergang; ein bloß anfänglich nicht verbundener
+Zustand erzeugt keinen Trennungsklang.
 
 ## Wechsel zwischen Fenstern, Tabs und Panes
 

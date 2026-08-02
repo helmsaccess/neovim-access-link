@@ -225,7 +225,8 @@ stdio-Sitzung keine Ereignisse für spätere Wiedergabe.
 Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
-`menuItemUpdated`, `menuClosed`, `signatureChanged`, `signatureClosed`,
+`menuSelectionCleared`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
+`signatureClosed`,
 `hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`,
 `diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
@@ -236,6 +237,9 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `callableContextResult`, `diagnosticContextResult` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
+`menuSelectionCleared` bezeichnet bei weiterhin geöffnetem Menü den von
+Neovim gemeldeten Zustand ohne ausgewählten Kandidaten. Er löscht den
+Dokumentationscache und wird als eigener zugänglicher Zustand ausgegeben.
 `commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
 Kommandozeilentyp, insbesondere `:`, `/` oder `?`; `commandLine` enthält den
 Inhalt ohne dieses Präfix. Dadurch werden Ex-Befehle nicht aus Textmustern

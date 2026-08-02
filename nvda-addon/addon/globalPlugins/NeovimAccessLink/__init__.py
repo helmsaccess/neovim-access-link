@@ -2751,6 +2751,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		self._diagnostics.record("connectionState", previous=transition.previous, state=state)
 		if transition.connection_lost and self._gate.focused is not None:
+			self._presentation.play_disconnection_sound()
+			self._diagnostics.record(
+				"connectionLost",
+				terminal=self._identityFields(self._gate.focused),
+			)
 			speech.clearTypedWordBuffer()
 			ui.message(_("Neovim connection lost; normal terminal output restored"))
 			self._refreshBraille(rebuild=True)

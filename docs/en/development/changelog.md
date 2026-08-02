@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Explicitly reports Neovim built-in completion's deliberate no-selected-
+  candidate state between the last and first suggestion in speech and Braille.
+  The originally typed text remains intact as Neovim intends, cached
+  documentation is cleared, and the step no longer resembles a lost `Ctrl+N`.
+- Adds NVDA's `disconnected.wav` as the counterpart to the connection cue. It
+  plays exactly for a real loss of a previously connected, focused instance;
+  initial and repeatedly reported disconnected states stay silent.
 - Separates connection and mode feedback. The first authenticated `fullState`
   of a new instance, or one restored after transport loss, uses NVDA's
   `connected.wav` once; further synchronization in the same transport

@@ -890,6 +890,14 @@ class NvimBridgeTests(unittest.TestCase):
 						moved["payload"]["item"]["parameters"],
 					),
 				)
+				prior = len(events)
+				process.send(b"\x0e")  # CTRL-N keeps the original text after the final item.
+				self._wait(
+					condition,
+					lambda: any(e["type"] == "menuSelectionCleared" for e in events[prior:]),
+				)
+				cleared = next(e for e in reversed(events[prior:]) if e["type"] == "menuSelectionCleared")
+				self.assertEqual(2, cleared["payload"]["itemCount"])
 				process.send(b"\x1b")
 				self._wait(condition, lambda: any(e["type"] == "menuClosed" for e in events))
 				opened_index = next(i for i, e in enumerate(events) if e["type"] == "menuOpened")

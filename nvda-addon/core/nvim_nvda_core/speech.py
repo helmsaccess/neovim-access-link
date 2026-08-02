@@ -462,6 +462,12 @@ class SpeechPlanner:
             action = self._menu_selection(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "menuSelectionCleared":
+            # Translators: Completion menu state in which the user's original text is retained.
+            text = self._translate("No completion selected")
+            actions.append(SpeechAction(
+                text, Priority.NAVIGATION, interrupt=True, braille_message=text,
+            ))
         elif kind == "promptOpened":
             prompt = state.get("prompt")
             if isinstance(prompt, str) and prompt:

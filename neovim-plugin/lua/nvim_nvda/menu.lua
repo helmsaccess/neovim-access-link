@@ -176,6 +176,15 @@ function M.new()
         }
       end
     else
+      if self.selection_key ~= nil then
+        events[#events + 1] = {
+          type = "menuSelectionCleared",
+          payload = {
+            menuKind = bounded_string(info.mode, 64),
+            itemCount = item_count,
+          },
+        }
+      end
       self.selection_key = nil
       self.detail_key = nil
     end
