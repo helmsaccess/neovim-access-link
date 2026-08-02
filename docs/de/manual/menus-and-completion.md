@@ -117,6 +117,17 @@ die Parameter, `NVDA+k/j` durch mehrere Signaturen. Die echte Cursorposition
 bleibt unverändert. Beim Loslassen der letzten NVDA-Taste wird die Anzeige
 geschlossen und die normale Editorzeile wiederhergestellt.
 
+Beim Öffnen spricht Access Link in der fachlichen Reihenfolge Signatur,
+ausgewählten Parameter und vorhandene Dokumentation. Ein Parameterwechsel
+spricht danach nur den neuen Parameter; ein Signaturwechsel spricht die neue
+Signatur und deren ausgewählten Parameter. Auf Braille steht der ausgewählte
+Parameter zuerst, danach folgen durch `|` getrennt Signatur und Dokumentation.
+Passt dieser Inhalt nicht vollständig auf die Braillezeile, blättern sowohl
+die üblichen Vor-/Zurück-Tasten als auch die Befehle für die nächste oder
+vorherige Braillezeile ausschließlich innerhalb dieser Information. Am ersten
+und letzten Teil bleibt die Anzeige stehen; erst das Loslassen der NVDA-Taste
+stellt den Quelltext wieder her.
+
 Access Link verwendet zuerst die öffentliche LSP-Signaturhilfe. Liefert sie
 nichts, dient LSP-Hover als unstrukturierter Rückfall. Die Antwort wird nur
 angenommen, wenn Instanz, Terminal, Buffer, Fenster, Tab, Textstand und

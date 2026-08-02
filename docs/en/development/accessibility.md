@@ -60,6 +60,11 @@ moves the editor cursor.
 Releasing the final NVDA key removes the owned temporary Braille message and
 restores the editor region. Exact control and instance binding, request ID,
 buffer, window, tab, changed tick, mode, and cursor must still match.
+Initial speech orders signature, selected parameter, and documentation;
+parameter movement speaks only the new parameter. The held Braille message
+places the parameter first, separates sections, and contains both horizontal
+panning and Braille-line commands at its boundaries, so source text returns
+only on release.
 Validator, protocol, Lua, real-LSP, controller, AppModule, and built-package
 tests cover the path, including repeated requests after release; practical
 Windows/NVDA acceptance remains open. Diagnostic error and

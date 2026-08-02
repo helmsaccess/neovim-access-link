@@ -497,6 +497,14 @@ path, including acceptance of the native index. Practical Windows/NVDA
 acceptance of the suggestion path succeeded with one physical Braille display;
 a broader hardware matrix remains pending.
 
+Held developer information has an additional built-add-on regression using an
+intentionally narrow Braille display. It checks the semantically separated
+speech/Braille order, multiple local pages, forward and backward paging,
+containment at both boundaries, stopping the message timer that NVDA restarts
+after scrolling, and restoration of the editor line only on targeted close.
+The guided LSP practical test requires the same paging path on physical
+Braille hardware.
+
 The post-acceptance Braille architecture audit adds two fail-open regressions.
 First, `StructuredLineRegion.routeTo` must call neither the local nor the SSH
 client directly; it must submit an immutable `routeCursor` payload to the

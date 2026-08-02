@@ -64,7 +64,7 @@ not promised as independent long-term stable extension interfaces.
 
 ## Exception 4: immediately ending one owned Braille message
 
-Neovim's spelling suggestion is presented through the public
+Neovim's spelling suggestion and held developer information are presented through the public
 `braille.handler.message` path. NVDA itself uses this path for suggestion and
 selection feedback. Releasing the NVDA key must immediately reveal the
 preserved editor buffer, but NVDA 2026.1.1 exposes neither a public inverse of
@@ -86,8 +86,19 @@ user is reading it. It does not overwrite the timer field. It invokes
 and exactly the same region remains its last region. A newer message from NVDA
 or another add-on is not dismissed.
 
+Longer held developer information replaces this proven owned standard region
+with a custom public `braille.Region`. It translates the complete text once
+and exposes at most one display width as a local page. Its public `nextLine()`
+and `previousLine()` methods page only within those pages, so neither
+horizontal Braille commands nor line commands can reach the editor region at
+a boundary. NVDA starts its general message timer again after the public
+scroll command returns. A `core.callLater` callback then repeats the
+identity-checked `Stop()` only for the same still-visible owned region. A
+newer foreign message remains untouched.
+
 - Private touchpoints: `BrailleHandler.messageBuffer`,
   `BrailleHandler.buffer`, `BrailleBuffer.regions`,
+  `BrailleBuffer.update`, `BrailleBuffer.windowStartPos`,
   `BrailleHandler._messageCallLater`, `CallLater.Stop()`, and
   `BrailleHandler._dismissMessage`.
 - Risk: buffer, region, method, and timer names, identities, or lifetimes can
@@ -97,8 +108,9 @@ or another add-on is not dismissed.
   presentation, a foreign current region, or any exception merely leaves
   NVDA's normal message behavior in control. Editor state, input, transport,
   and speech are not changed.
-- Rationale: while the NVDA key is held, the suggestion is an active control
-  value, not a notification that may expire while being read. On release, the
+- Rationale: while the NVDA key is held, the suggestion or developer
+  information is an active control value, not a notification that may expire
+  while being read. On release, the
   already-built editor region must return immediately. NVDA 2026.1.1 offers
   neither a public per-message lifetime nor a targeted operation to dismiss
   exactly the owned message. Rebuilding focus does not dismiss the active

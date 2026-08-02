@@ -224,6 +224,17 @@ class BuiltAddonTests(unittest.TestCase):
             windowStartPos=0,
         )
         message_buffer = types.SimpleNamespace(regions=[])
+
+        def update_message_buffer():
+            message_buffer.brailleCells = []
+            for region in message_buffer.regions:
+                region.update()
+                message_buffer.brailleCells.extend(region.brailleCells)
+            message_buffer.windowStartPos = 0
+
+        message_buffer.update = update_message_buffer
+        message_buffer.brailleCells = []
+        message_buffer.windowStartPos = 0
         braille.handler = types.SimpleNamespace(
             handleGainFocus=lambda *args, **kwargs: self.brailleGainFocusUpdates.append(
                 (args, kwargs),
@@ -3244,7 +3255,25 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(
             service.handle_held_context_result("connection-1", identity, event),
         )
-        present.assert_called_once_with(None, HeldContextKind.CALLABLE)
+        present.assert_called_once_with(None, HeldContextKind.CALLABLE, None)
+        present.reset_mock()
+        from globalPlugins.NeovimAccessLink import HeldContextDirection
+
+        presentation = types.SimpleNamespace(kind=HeldContextKind.CALLABLE)
+        editor_session.navigate_held_context.return_value = presentation
+        self.assertTrue(
+            service.navigate_held_context(
+                HeldContextDirection.NEXT_PARAMETER,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        present.assert_called_once_with(
+            presentation,
+            HeldContextKind.CALLABLE,
+            HeldContextDirection.NEXT_PARAMETER,
+        )
         editor_session.invalidate_held_context.assert_not_called()
         self.assertTrue(
             service.release_held_context(focus, app_module, adapter_token),
@@ -4540,7 +4569,12 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_held_developer_context_presents_callable_diagnostic_and_empty_states(self) -> None:
         import braille
-        from globalPlugins.NeovimAccessLink import GlobalPlugin, HeldContextKind
+        from globalPlugins.NeovimAccessLink import (
+            GlobalPlugin,
+            HeldContextDirection,
+            HeldContextKind,
+        )
+        from globalPlugins.NeovimAccessLink.nvda_braille import DeveloperContextMessageRegion
         from globalPlugins.NeovimAccessLink.core.held_context_state import (
             HeldContextPresentation,
         )
@@ -4565,11 +4599,37 @@ class BuiltAddonTests(unittest.TestCase):
                 HeldContextKind.CALLABLE,
             ),
         )
+        self.assertTrue(self.spoken[-1].startswith("Signature 1 of 2"))
         self.assertIn("Parameter 2 of 2: quantity", self.spoken[-1])
-        self.assertIn("Signature 1 of 2", self.spoken[-1])
         self.assertIn("Documentation: Calculate the total.", self.spoken[-1])
-        self.assertEqual(self.spoken[-1], self.brailleMessages[-1])
+        self.assertEqual(
+            "Parameter 2 of 2: quantity | "
+            "Signature 1 of 2: calculate_total(price, quantity) | "
+            "Documentation: Calculate the total.",
+            self.brailleMessages[-1],
+        )
         self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
+        self.assertIsInstance(
+            plugin._developerContextBrailleMessageToken,
+            DeveloperContextMessageRegion,
+        )
+
+        plugin._presentDeveloperContext(
+            callable_presentation,
+            HeldContextKind.CALLABLE,
+            HeldContextDirection.NEXT_PARAMETER,
+        )
+        self.assertEqual("Parameter 2 of 2: quantity", self.spoken[-1])
+        plugin._presentDeveloperContext(
+            callable_presentation,
+            HeldContextKind.CALLABLE,
+            HeldContextDirection.NEXT_ITEM,
+        )
+        self.assertEqual(
+            "Signature 1 of 2: calculate_total(price, quantity). "
+            "Parameter 2 of 2: quantity",
+            self.spoken[-1],
+        )
 
         diagnostic_presentation = HeldContextPresentation(
             HeldContextKind.DIAGNOSTIC,
@@ -4599,6 +4659,54 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._dismissDeveloperContext()
         self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
         plugin.terminate()
+
+    def test_held_developer_braille_pages_never_fall_through_to_the_editor(self) -> None:
+        import braille
+        import core
+        from globalPlugins.NeovimAccessLink.nvda_braille import (
+            DeveloperContextMessageRegion,
+            dismiss_numbered_choice_message,
+            present_developer_context_message,
+        )
+
+        braille.handler.displaySize = 12
+        original_call_later = core.callLater
+        scheduled = []
+        core.callLater = lambda _delay, callback: scheduled.append(callback)
+        try:
+            token = present_developer_context_message(
+                "Parameter 1 of 3: price | Signature 1 of 2: calculate_total(price, quantity)",
+                start_cell=1,
+            )
+            self.assertIsInstance(token, DeveloperContextMessageRegion)
+            self.assertGreater(token._pageCount, 2)
+            self.assertEqual(0, token._pageIndex)
+            first_page = tuple(token.brailleCells)
+
+            token.nextLine()
+            self.assertEqual(1, token._pageIndex)
+            self.assertNotEqual(first_page, tuple(token.brailleCells))
+            self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
+            self.assertIs(braille.handler.messageBuffer.regions[-1], token)
+            self.assertEqual(1, len(scheduled))
+            reset_timer = mock.Mock()
+            braille.handler._messageCallLater = reset_timer
+            scheduled.pop()()
+            reset_timer.Stop.assert_called_once_with()
+
+            for _ in range(token._pageCount + 2):
+                token.nextLine()
+            self.assertEqual(token._pageCount - 1, token._pageIndex)
+            self.assertIs(braille.handler.buffer, braille.handler.messageBuffer)
+            self.assertIs(braille.handler.messageBuffer.regions[-1], token)
+
+            token.previousLine(start=True)
+            self.assertEqual(token._pageCount - 2, token._pageIndex)
+            self.assertTrue(dismiss_numbered_choice_message(token))
+            self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
+        finally:
+            core.callLater = original_call_later
+            braille.handler.displaySize = 40
 
     def test_numbered_spell_choice_overrides_j_k_and_enter_only_in_the_exact_prompt(self) -> None:
         import globalPlugins.NeovimAccessLink as addon_module

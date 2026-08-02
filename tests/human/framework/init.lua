@@ -384,14 +384,19 @@ end
 local function assert_callable_choices_ready()
   move_to_fixture_cursor("lsp_features.py")
   local result = nil
+  local request = request_payload(1)
   local accepted = require("nvim_nvda.developer_context").request_callable(
-    request_payload(1),
+    request,
     function(_, _, payload) result = payload end
   )
   assert(accepted, "Access Link did not accept the callable fixture request")
   assert(vim.wait(15000, function() return result ~= nil end, 50),
     "Pyright did not answer the callable fixture request")
   assert(result.ok, "the callable fixture did not produce signature help")
+  for key, value in pairs(request) do
+    assert(result[key] == value,
+      "the callable fixture result omitted its correlated editor snapshot")
+  end
   local rich_signatures = 0
   for _, item in ipairs(result.items) do
     if #item.parameters >= 3 then rich_signatures = rich_signatures + 1 end

@@ -108,7 +108,7 @@ local function signature_items(results)
               local label = parameter_label(signature, parameter)
               local parameter_documentation = markup(parameter.documentation, 2048)
               if parameter_documentation ~= "" then
-                label = label .. ": " .. parameter_documentation
+                label = label .. ". " .. parameter_documentation
               end
               label = text.bounded(label, 3072)
               if item_size + #label > remaining_text then break end
@@ -218,15 +218,25 @@ local function request_all(buf, method, params, handler)
   return pcall(vim.lsp.buf_request_all, buf, method, params, handler)
 end
 
-local function failure(payload, result_code)
+local function result(payload, ok, result_code, items, active_item, active_parameter)
   return {
     requestId = payload.requestId,
-    ok = false,
+    bufferId = payload.bufferId,
+    windowId = payload.windowId,
+    tabpageId = payload.tabpageId,
+    changedtick = payload.changedtick,
+    line = payload.line,
+    byteColumn = payload.byteColumn,
+    ok = ok,
     resultCode = result_code,
-    items = {},
-    activeItem = 0,
-    activeParameter = 0,
+    items = items,
+    activeItem = active_item,
+    activeParameter = active_parameter,
   }
+end
+
+local function failure(payload, result_code)
+  return result(payload, false, result_code, {}, 0, 0)
 end
 
 function M.request_callable(payload, emit)
@@ -253,14 +263,9 @@ function M.request_callable(payload, emit)
     end
     local items, active_item, active_parameter = signature_items(results)
     if #items > 0 then
-      emit("callableContextResult", "callableContextRequest", {
-        requestId = payload.requestId,
-        ok = true,
-        resultCode = "ok",
-        items = items,
-        activeItem = active_item,
-        activeParameter = active_parameter,
-      })
+      emit("callableContextResult", "callableContextRequest", result(
+        payload, true, "ok", items, active_item, active_parameter
+      ))
       return
     end
     local hover_requested = request_all(
@@ -272,14 +277,12 @@ function M.request_callable(payload, emit)
           return
         end
         local hover = hover_items(hover_results)
-        emit("callableContextResult", "callableContextRequest", #hover > 0 and {
-          requestId = payload.requestId,
-          ok = true,
-          resultCode = "ok",
-          items = hover,
-          activeItem = 0,
-          activeParameter = 0,
-        } or failure(payload, "noResult"))
+        emit(
+          "callableContextResult",
+          "callableContextRequest",
+          #hover > 0 and result(payload, true, "ok", hover, 0, 0)
+            or failure(payload, "noResult")
+        )
       end
     )
     if not hover_requested then
@@ -308,14 +311,12 @@ function M.request_diagnostics(payload, emit)
     payload.line,
     payload.byteColumn
   )
-  emit("diagnosticContextResult", "diagnosticContextRequest", #items > 0 and {
-    requestId = payload.requestId,
-    ok = true,
-    resultCode = "ok",
-    items = items,
-    activeItem = 0,
-    activeParameter = 0,
-  } or failure(payload, "noResult"))
+  emit(
+    "diagnosticContextResult",
+    "diagnosticContextRequest",
+    #items > 0 and result(payload, true, "ok", items, 0, 0)
+      or failure(payload, "noResult")
+  )
   return #items > 0
 end
 

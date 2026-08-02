@@ -141,6 +141,7 @@ from .service_registry import (  # noqa: E402
 from .nvda_braille import (  # noqa: E402
 	capture_structured_viewport,
 	dismiss_numbered_choice_message,
+	present_developer_context_message,
 	present_numbered_choice_message,
 	restore_structured_viewport,
 	StructuredLineRegion as StructuredLineRegion,
@@ -2913,43 +2914,63 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		dismissed = dismiss_numbered_choice_message(message_token)
 		self._diagnostics.record("numberedChoiceBrailleMessageDismissed", dismissed=dismissed)
 
-	def _presentDeveloperContext(self, presentation, kind):
+	def _presentDeveloperContext(self, presentation, kind, direction=None):
 		if presentation is None:
-			text = (
+			speech_text = (
 				# Translators: Spoken when no callable information is available at the cursor.
 				_("No function parameters or hover information available")
 				if kind is HeldContextKind.CALLABLE
 				# Translators: Spoken when no diagnostic is available on the current line.
 				else _("No diagnostics on this line")
 			)
+			braille_text = speech_text
 		elif kind is HeldContextKind.CALLABLE:
 			signature = presentation.item.get("signature", "")
 			documentation = presentation.item.get("documentation", "")
+			# Translators: One selected signature in a held callable context.
+			signature_text = _("Signature {index} of {count}: {signature}").format(
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				signature=signature,
+			)
+			parameter_text = ""
 			if presentation.parameter_count:
-				# Translators: Held callable context. All numbers are one-based positions.
-				text = _(
-					"Parameter {parameterIndex} of {parameterCount}: {parameter}. "
-					"Signature {signatureIndex} of {signatureCount}: {signature}"
-				).format(
-					parameterIndex=presentation.parameter_index + 1,
-					parameterCount=presentation.parameter_count,
+				# Translators: One selected parameter in a held callable context.
+				parameter_text = _("Parameter {index} of {count}: {parameter}").format(
+					index=presentation.parameter_index + 1,
+					count=presentation.parameter_count,
 					parameter=presentation.parameter,
-					signatureIndex=presentation.item_index + 1,
-					signatureCount=presentation.item_count,
-					signature=signature,
 				)
-			else:
-				# Translators: Held callable context when the server only supplies a signature.
-				text = _("Signature {index} of {count}: {signature}").format(
-					index=presentation.item_index + 1,
-					count=presentation.item_count,
-					signature=signature,
-				)
+			documentation_text = ""
 			if documentation:
-				text = _("{context}. Documentation: {documentation}").format(
-					context=text,
+				# Translators: Documentation belonging to a held callable signature.
+				documentation_text = _("Documentation: {documentation}").format(
 					documentation=documentation,
 				)
+			if (
+				direction
+				in {
+					HeldContextDirection.PREVIOUS_PARAMETER,
+					HeldContextDirection.NEXT_PARAMETER,
+				}
+				and parameter_text
+			):
+				speech_text = parameter_text
+			elif direction in {
+				HeldContextDirection.PREVIOUS_ITEM,
+				HeldContextDirection.NEXT_ITEM,
+			}:
+				speech_text = ". ".join(part for part in (signature_text, parameter_text) if part)
+			else:
+				speech_text = ". ".join(
+					part for part in (signature_text, parameter_text, documentation_text) if part
+				)
+			# Put the locally selected parameter first on Braille so h/l changes
+			# remain immediately visible. Explicit separators preserve the hierarchy
+			# while the complete signature and documentation remain pageable.
+			braille_text = " | ".join(
+				part for part in (parameter_text, signature_text, documentation_text) if part
+			)
 		else:
 			item = presentation.item
 			severity = {
@@ -2962,19 +2983,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			code = item.get("code")
 			provider = " ".join(part for part in (source, str(code) if code is not None else "") if part)
 			# Translators: Held diagnostic context. The provider may contain a linter name and code.
-			text = _("{severity}, diagnostic {index} of {count}: {message}").format(
+			speech_text = _("{severity}, diagnostic {index} of {count}: {message}").format(
 				severity=severity,
 				index=presentation.item_index + 1,
 				count=presentation.item_count,
 				message=item.get("message", ""),
 			)
+			braille_text = speech_text
 			if provider:
-				text = _("{context}. Source: {source}").format(context=text, source=provider)
+				# Translators: Provider and optional code for a held diagnostic.
+				source_text = _("Source: {source}").format(source=provider)
+				speech_text = ". ".join((speech_text, source_text))
+				braille_text = " | ".join((braille_text, source_text))
 		speech.cancelSpeech()
-		speech.speakText(text)
+		speech.speakText(speech_text)
 		self._dismissDeveloperContext()
-		self._developerContextBrailleMessageToken = present_numbered_choice_message(
-			text,
+		self._developerContextBrailleMessageToken = present_developer_context_message(
+			braille_text,
 			start_cell=self._settingsService.braille_developer_start(),
 		)
 		self._diagnostics.record(

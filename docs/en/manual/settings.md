@@ -203,7 +203,9 @@ configuration profiles.
 “Start temporary developer information at Braille cell” positions the held
 function-parameter and diagnostic views. It follows the same short-display
 and right-alignment rules as spelling suggestions but has an independent,
-profile-aware value. The default is cell 1.
+profile-aware value. The default is cell 1. Longer developer information
+starts at the first cell and can be paged forward and back within the held
+view.
 
 ## Connections
 

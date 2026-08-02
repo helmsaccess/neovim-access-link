@@ -271,6 +271,9 @@ automatisch angesagt.
 `NVDA+Umschalt+P` startet eine korrelierte, rein lesende Abfrage von
 LSP-Signaturhilfe mit Hover-Rückfall. Solange die NVDA-Taste gehalten wird,
 schalten `NVDA+h/l` lokal durch Parameter und `NVDA+k/j` durch Signaturen.
+Sprache unterscheidet Erstansicht, Parameter- und Signaturwechsel; die
+Brailleansicht trennt ausgewählten Parameter, Signatur und Dokumentation und
+blättert ohne Rückfall in die Quelltextnavigation durch längere Inhalte.
 Ein eigener instanzgetrennter Controller bindet die Anzeige an die exakte
 Fokus-, Buffer-, Fenster-, Tab-, `changedtick`- und Cursoridentität; jede
 Abweichung verwirft Antwort und Braillemeldung.

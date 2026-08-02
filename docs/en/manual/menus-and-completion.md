@@ -45,6 +45,16 @@ LSP signature help and uses LSP hover as an unstructured fallback. A reply is
 accepted only while instance, terminal, buffer, window, tab, changed tick,
 and cursor position still match the request.
 
+On opening, speech follows the semantic order signature, selected parameter,
+and available documentation. A parameter change then speaks only the new
+parameter; a signature change speaks the new signature and its selected
+parameter. On Braille, the selected parameter comes first, followed by the
+signature and documentation separated with `|`. If that content does not fit
+on the display, both the normal pan controls and the next/previous Braille-line
+commands page only within this information. The view remains at its first or
+last page instead of returning to source text; releasing NVDA restores the
+editor line.
+
 Access Link consumes diagnostics through Neovim's public `vim.diagnostic`
 API, whether an LSP server, `nvim-lint`, ALE, `none-ls.nvim`, or another
 provider produced them. It does not install or start linters. Real automated

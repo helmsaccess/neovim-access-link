@@ -397,7 +397,8 @@ Diese profilfähige Einstellung positioniert die gehaltene Anzeige von
 Funktionsparametern und Diagnosen. Sie folgt denselben Regeln für kurze
 Braillezeilen und rechtsbündiges Einpassen wie die Rechtschreibvorschläge,
 besitzt aber einen eigenen Wert. Der Standard 1 verwendet das erste
-Braillemodul.
+Braillemodul. Längere Entwicklerinformationen beginnen am ersten Modul und
+lassen sich innerhalb der gehaltenen Anzeige vor- und zurückblättern.
 
 ## Registerkarte Verbindungen
 

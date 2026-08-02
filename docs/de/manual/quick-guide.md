@@ -229,7 +229,9 @@ Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
 schaltet durch die Parameter, `NVDA+k/j` durch mehrere Signaturen. Mit
 `NVDA+Umschalt+E` funktioniert derselbe gehaltene Ablauf für Diagnosen am
 Cursor und auf der aktuellen Zeile; hier schaltet `NVDA+k/j` durch die
-Einträge. Beim Loslassen der letzten NVDA-Taste verschwindet die
+Einträge. Lange Informationen lassen sich mit den üblichen Vor-/Zurück-Tasten
+vollständig durchblättern, ohne dabei in den Quelltext zu wechseln. Beim
+Loslassen der letzten NVDA-Taste verschwindet die
 vorübergehende Brailleanzeige. Fehler und Warnungen können beim gezielten
 Betreten ihrer Zeile oder ihres Bereichs einen kurzen Klang auslösen;
 Hintergrundaktualisierungen und Tippen bleiben stumm.

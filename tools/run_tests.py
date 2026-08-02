@@ -35,7 +35,7 @@ TEMPORARY_NAME_SAMPLE = "tmp12345678"
 REAL_BRIDGE_TESTS = (
     "test_real_tui_f12_claim_preserves_normal_and_insert_input",
     "test_real_tui_spell_choices_are_structured_and_accept_the_native_index",
-    "test_local_windows_loopback_client_receives_state_and_exploration_result",
+    "test_local_windows_loopback_client_receives_semantic_results",
     "test_real_tui_omnifunc_emits_popup_selection_and_close",
     "test_real_tui_terminal_control_and_process_exit_are_structured",
     "test_real_tui_running_terminal_bd_reports_guard_before_hit_enter",

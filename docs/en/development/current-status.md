@@ -245,7 +245,10 @@ Progress is not announced automatically to avoid an unbounded speech stream.
 
 `NVDA+Shift+P` starts a correlated read-only LSP signature-help query with a
 hover fallback. While NVDA remains held, `NVDA+h/l` cycles parameters locally
-and `NVDA+k/j` cycles signatures. A separate per-instance controller binds the
+and `NVDA+k/j` cycles signatures. Speech distinguishes the initial view from
+parameter and signature changes; Braille separates the selected parameter,
+signature, and documentation and pages through longer content without falling
+through to source navigation. A separate per-instance controller binds the
 view to exact focus, buffer, window, tab, changed-tick, and cursor identity;
 any mismatch discards both reply and Braille message.
 

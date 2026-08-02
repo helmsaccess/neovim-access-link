@@ -123,8 +123,10 @@ Callable parameters can be inspected without moving the editor cursor: press
 `NVDA+Shift+P` and keep NVDA held. `NVDA+h/l` cycles parameters and
 `NVDA+k/j` cycles multiple signatures. `NVDA+Shift+E` uses the same held
 interaction for diagnostics under the cursor and on the current line; here
-`NVDA+k/j` cycles entries. Releasing the final NVDA key removes the temporary
-Braille view. Errors and warnings can produce a short cue when deliberate
+`NVDA+k/j` cycles entries. The normal forward/back controls page through long
+information without crossing into source text. Releasing the final NVDA key
+removes the temporary Braille view. Errors and warnings can produce a short
+cue when deliberate
 navigation enters their line or range; background updates and typing stay
 silent.
 

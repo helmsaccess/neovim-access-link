@@ -66,7 +66,7 @@ equal(
   "real signature reaches Access Link"
 )
 equal(
-  "quantity: int: Number of items.",
+  "quantity: int. Number of items.",
   emitted.payload.items[1].parameters[2],
   "real parameter documentation reaches Access Link"
 )

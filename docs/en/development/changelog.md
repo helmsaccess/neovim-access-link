@@ -3,6 +3,18 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Fixes discarded held parameter and diagnostic replies: the Neovim plugin now
+  returns the complete correlated editor snapshot alongside the request ID, as
+  the protocol boundary already required. Repeated queries and `NVDA+h/j/k/l`
+  therefore reach the locally held signatures, parameters, and diagnostics
+  instead of falling back to other NVDA commands. The technical preflight now
+  checks the editor snapshot as well.
+- Makes the held parameter view coherent: initial speech reports signature,
+  selected parameter, and documentation, while local parameter changes speak
+  only the new parameter. Braille puts the selected parameter first, visibly
+  separates sections, and pages longer content in both directions without
+  crossing a boundary into the source line. Separate parameter documentation
+  now has a sentence boundary instead of an ambiguous extra colon.
 - Fixes unreliable recovery after the optional F12 question that remembers a
   terminal binding. If Windows Terminal emits no `gainFocus` after the question
   closes, a short bounded main-thread sequence checks NVDA's current focus and

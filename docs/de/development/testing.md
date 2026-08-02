@@ -540,6 +540,13 @@ echte TUI-/RPC-Matrix prüft außerdem den blockierenden Neovim-0.10-Prompt und
 den eingeplanten Neovim-0.12-Pfad einschließlich Annahme des nativen Indexes.
 Der Vorschlagspfad wurde unter Windows/NVDA mit einer physischen Braillezeile
 erfolgreich praktisch geprüft; eine breitere Hardwarematrix steht aus.
+Die gehaltene Entwicklerinformation besitzt zusätzlich einen gebauten
+Add-on-Test mit absichtlich schmaler Braillezeile. Er prüft die fachlich
+getrennte Sprach-/Braillereihenfolge, mehrere lokale Seiten, Vor- und
+Zurückblättern, das Stehenbleiben an beiden Grenzen, das erneute Stoppen des
+von NVDA beim Scrollen gestarteten Meldungstimers und die Wiederherstellung der
+Editorzeile erst beim gezielten Schließen. Der geführte LSP-Praxistest verlangt
+denselben Blätterweg mit der physischen Braillezeile.
 Davon getrennt blieben physische Cursor-Routingtasten in zwei praktischen
 `dev.10`-Versuchen in Normal- und Insert-Modus ohne Reaktion; die Berichte
 enthielten keinen Routingeintritt. Da beide geänderten Pakete fälschlich

@@ -103,7 +103,7 @@ class TerminalIntegrationService:
 		present_numbered_choice: Callable[[str], bool],
 		dismiss_numbered_choice: Callable[[], None],
 		present_developer_context: Callable[
-			[HeldContextPresentation | None, HeldContextKind],
+			[HeldContextPresentation | None, HeldContextKind, HeldContextDirection | None],
 			bool,
 		],
 		dismiss_developer_context: Callable[[], None],
@@ -465,7 +465,11 @@ class TerminalIntegrationService:
 		):
 			return False
 		presentation = self._editorSession.navigate_held_context(direction)
-		return presentation is not None and self._presentDeveloperContext(presentation, presentation.kind)
+		return presentation is not None and self._presentDeveloperContext(
+			presentation,
+			presentation.kind,
+			direction,
+		)
 
 	def release_held_context(
 		self,
@@ -531,7 +535,7 @@ class TerminalIntegrationService:
 			self.cancel_held_context(location.adapter_token)
 			return False
 		presentation = self._editorSession.consume_held_context(kind, event)
-		handled = self._presentDeveloperContext(presentation, kind)
+		handled = self._presentDeveloperContext(presentation, kind, None)
 		return handled
 
 	def _active_identity(

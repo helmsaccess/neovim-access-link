@@ -574,7 +574,7 @@ class NvimBridgeTests(unittest.TestCase):
 			finally:
 				process.terminate(force=True)
 
-	def test_local_windows_loopback_client_receives_state_and_exploration_result(self) -> None:
+	def test_local_windows_loopback_client_receives_semantic_results(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
 			environment = {
@@ -596,7 +596,10 @@ class NvimBridgeTests(unittest.TestCase):
 					f"set runtimepath^={root / 'neovim-plugin'}",
 					"-c",
 					"lua vim.api.nvim_buf_set_lines(0,0,-1,true,{'alpha, beta','xy','gamma'}); "
-					"vim.api.nvim_win_set_cursor(0,{3,0})",
+					"vim.api.nvim_win_set_cursor(0,{3,0}); "
+					"local ns=vim.api.nvim_create_namespace('access-link-context-test'); "
+					"vim.diagnostic.set(ns,0,{{lnum=2,col=0,end_lnum=2,end_col=5,"
+					"message='test warning',severity=vim.diagnostic.severity.WARN,source='test-linter'}})",
 					"-c",
 					"runtime plugin/nvim_nvda.lua",
 				],
@@ -753,6 +756,45 @@ class NvimBridgeTests(unittest.TestCase):
 						result["payload"]["byteColumn"],
 					),
 				)
+				context = {
+					"bufferId": state["bufferId"],
+					"windowId": state["windowId"],
+					"tabpageId": state["tabpageId"],
+					"changedtick": state["changedtick"],
+					"line": state["cursor"]["line"],
+					"byteColumn": state["cursor"]["byteColumn"],
+				}
+				for request_id in (4, 5):
+					self.assertTrue(
+						client.send_control(
+							"diagnosticContextRequest",
+							{**context, "requestId": request_id},
+						)
+					)
+					self._wait(
+						condition,
+						lambda: any(
+							event["type"] == "diagnosticContextResult"
+							and event["payload"]["requestId"] == request_id
+							for event in events
+						),
+					)
+					result = next(
+						event["payload"]
+						for event in events
+						if event["type"] == "diagnosticContextResult"
+						and event["payload"]["requestId"] == request_id
+					)
+					self.assertEqual(context, {key: result[key] for key in context})
+					self.assertEqual(
+						("test warning", "warning", "test-linter", True),
+						(
+							result["items"][0]["message"],
+							result["items"][0]["severity"],
+							result["items"][0]["source"],
+							result["items"][0]["atCursor"],
+						),
+					)
 			finally:
 				if client is not None:
 					client.stop()

@@ -8,6 +8,20 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Behebt verworfene Antworten der gehaltenen Parameter- und Diagnoseansicht:
+  Das Neovim-Plugin liefert nun neben der Anfrage-ID auch den vollständigen
+  korrelierten Editorstand, den die Protokollgrenze bereits vorgeschrieben
+  hat. Wiederholte Abfragen sowie `NVDA+h/j/k/l` erreichen dadurch die lokal
+  gehaltenen Signaturen, Parameter und Diagnosen, statt auf andere
+  NVDA-Funktionen zurückzufallen. Die technische Vorprüfung kontrolliert den
+  Editorstand jetzt ebenfalls.
+- Ordnet die gehaltene Parameteransicht verständlich: Die Erstansage nennt
+  Signatur, ausgewählten Parameter und Dokumentation, während lokale
+  Parameterwechsel nur den neuen Parameter sprechen. Braille stellt den
+  ausgewählten Parameter voran, trennt die Abschnitte sichtbar und blättert
+  längere Inhalte vor und zurück, ohne an einer Grenze in die Quelltextzeile
+  zu wechseln. Getrennte Parameterdokumentation erhält eine Satzgrenze statt
+  eines mehrdeutigen zusätzlichen Doppelpunkts.
 - Behebt den unzuverlässigen Wiederanlauf nach der optionalen F12-Rückfrage zum
   Merken einer Terminalbindung. Falls Windows Terminal nach dem Schließen kein
   `gainFocus` liefert, prüft ein kurzer begrenzter Hauptthread-Ablauf den

@@ -12,6 +12,32 @@ local function equal(expected, actual, label)
   ))
 end
 
+local function exact_result_snapshot(expected_request, payload, label)
+  local fields = {
+    requestId = true,
+    bufferId = true,
+    windowId = true,
+    tabpageId = true,
+    changedtick = true,
+    line = true,
+    byteColumn = true,
+    ok = true,
+    resultCode = true,
+    items = true,
+    activeItem = true,
+    activeParameter = true,
+  }
+  local count = 0
+  for key in pairs(payload) do
+    count = count + 1
+    equal(true, fields[key] == true, label .. " has only protocol fields")
+  end
+  equal(12, count, label .. " has every protocol field")
+  for key, value in pairs(expected_request) do
+    equal(value, payload[key], label .. " retains " .. key)
+  end
+end
+
 vim.api.nvim_buf_set_lines(0, 0, -1, true, { "calculate_total(price, quantity)" })
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 local function request()
@@ -61,13 +87,15 @@ vim.lsp.buf_request_all = function(_, method, params, handler)
     },
   })
 end
-equal(true, developer_context.request_callable(request(), emit), "callable request accepted")
+local callable_request = request()
+equal(true, developer_context.request_callable(callable_request, emit), "callable request accepted")
 equal("callableContextResult", emitted.event_type, "callable result emitted")
 equal(true, emitted.payload.ok, "callable result succeeds")
+exact_result_snapshot(callable_request, emitted.payload, "callable result")
 equal(1, #emitted.payload.items, "one signature returned")
 equal(1, emitted.payload.activeParameter, "zero-based active parameter retained")
 equal(
-  "quantity: number: Item count.",
+  "quantity: number. Item count.",
   emitted.payload.items[1].parameters[2],
   "parameter documentation retained"
 )
@@ -129,7 +157,7 @@ emitted = nil
 developer_context.request_callable(request(), emit)
 equal(1, #emitted.payload.items, "malformed UTF-8 signature is discarded")
 equal(
-  "😀value: Unicode parameter.",
+  "😀value. Unicode parameter.",
   emitted.payload.items[1].parameters[1],
   "UTF-16 parameter range and documentation are decoded"
 )
@@ -173,8 +201,10 @@ equal("hover signature", emitted.payload.items[1].signature, "hover fallback ret
 
 vim.lsp.buf_request_all = function(_, _, _, handler) handler({}) end
 emitted = nil
-developer_context.request_callable(request(), emit)
+local empty_request = request()
+developer_context.request_callable(empty_request, emit)
 equal("noResult", emitted.payload.resultCode, "empty signature and hover results are explicit")
+exact_result_snapshot(empty_request, emitted.payload, "callable failure")
 
 local pending_handler
 vim.lsp.buf_request_all = function(_, method, _, handler)
@@ -226,12 +256,14 @@ vim.diagnostic.set(namespace, 0, {
   },
 })
 emitted = nil
+local diagnostic_request = request()
 equal(
   true,
-  developer_context.request_diagnostics(request(), emit),
+  developer_context.request_diagnostics(diagnostic_request, emit),
   "diagnostic context accepted"
 )
 equal("diagnosticContextResult", emitted.event_type, "diagnostic result emitted")
+exact_result_snapshot(diagnostic_request, emitted.payload, "diagnostic result")
 equal("test problem", emitted.payload.items[1].message, "diagnostic message retained")
 equal(true, emitted.payload.items[1].atCursor, "diagnostic cursor containment retained")
 equal(vim.NIL, emitted.payload.items[1].code, "missing diagnostic code remains explicit")
