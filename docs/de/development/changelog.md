@@ -8,6 +8,17 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Behebt die SSH-Sitzungserkennung, wenn interaktives Neovim und der spätere
+  nichtinteraktive Bridge-Aufruf unterschiedliche Laufzeitumgebungen sehen.
+  Die Bridge durchsucht nun das konfigurierte Laufzeitverzeichnis, das sichere
+  benutzereigene `/run/user/UID` und den privaten `/tmp`-Fallback gemeinsam,
+  begrenzt und ohne doppelte Sitzungen. Zuvor konnte ein vorhandenes, aber
+  leeres `/run/user/UID` eine gültige Fallback-Sitzung vollständig verdecken.
+- Behebt den Linux-Start ohne `XDG_RUNTIME_DIR`: Der private
+  `/tmp/nvim-nvda-<UID>`-Fallback ermittelt die Benutzer-ID jetzt über
+  Neovims öffentliche libuv-Schnittstelle. Der vorherige Aufruf der in Neovim
+  nicht vorhandenen Vimscript-Funktion `getuid()` brach das Plugin bereits beim
+  Laden mit `E117` ab.
 - Entkoppelt die F6-Bereitschaftsprüfung des geführten Diagnosetests von der
   momentanen Cursorposition. Eine vollständig veröffentlichte Ruff-Liste wird
   dadurch sofort als bereit gemeldet, statt nach 15 Sekunden fälschlich in den

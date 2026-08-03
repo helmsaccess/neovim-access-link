@@ -57,7 +57,7 @@ local function normalize_name(value)
   return value
 end
 
-local function runtime_root()
+function M.runtime_root()
   if is_windows() then
     local root = vim.env.LOCALAPPDATA
     if not root or root == "" then
@@ -67,7 +67,9 @@ local function runtime_root()
   end
   local root = vim.env.XDG_RUNTIME_DIR
   if not root or root == "" then
-    root = "/tmp/nvim-nvda-" .. tostring(vim.fn.getuid())
+    local uid = vim.uv.getuid()
+    assert(type(uid) == "number" and uid >= 0, "Unix user identity unavailable")
+    root = "/tmp/nvim-nvda-" .. tostring(uid)
   end
   return root .. "/nvim-nvda"
 end
@@ -88,7 +90,7 @@ function M.start()
   if registry_file then
     return socket_path
   end
-  local root = runtime_root()
+  local root = M.runtime_root()
   local sessions = root .. "/sessions"
   vim.fn.mkdir(sessions, "p", 448) -- 0700
   if not is_windows() then

@@ -6,6 +6,7 @@ import json
 import math
 import os
 import pathlib
+import stat
 from dataclasses import dataclass
 from typing import Any
 
@@ -39,23 +40,48 @@ def _json_integer(value: Any, *, positive: bool) -> int | None:
     return normalized
 
 
-def registry_directory() -> pathlib.Path:
+def registry_directories() -> tuple[pathlib.Path, ...]:
+    """Return every private runtime location an interactive Neovim may use."""
+    runtimes: list[pathlib.Path] = []
+
+    def add(runtime: pathlib.Path) -> None:
+        if runtime not in runtimes:
+            runtimes.append(runtime)
+
     configured = os.environ.get("XDG_RUNTIME_DIR")
     if configured:
-        runtime = pathlib.Path(configured)
-    else:
-        # sshd does not consistently preserve XDG_RUNTIME_DIR for a remote
-        # command (`ssh host command`), although the interactive Neovim that
-        # created the registry received it from PAM.  Recover the standard
-        # systemd/logind path, but only when it belongs to this user.
-        system_runtime = pathlib.Path(f"/run/user/{os.getuid()}")
-        try:
-            if not system_runtime.is_dir() or system_runtime.stat().st_uid != os.getuid():
-                raise OSError("unsafe runtime directory")
-            runtime = system_runtime
-        except OSError:
-            runtime = pathlib.Path(f"/tmp/nvim-nvda-{os.getuid()}")
-    return runtime / "nvim-nvda" / "sessions"
+        add(pathlib.Path(configured))
+    # sshd does not consistently preserve XDG_RUNTIME_DIR for a remote
+    # command (`ssh host command`), although the interactive Neovim that
+    # created the registry may have received it from PAM. Conversely, a
+    # long-running Neovim may have started without it while the later bridge
+    # command sees /run/user/UID. Search both valid outcomes.
+    system_runtime = pathlib.Path(f"/run/user/{os.getuid()}")
+    try:
+        if system_runtime.is_dir() and system_runtime.stat().st_uid == os.getuid():
+            add(system_runtime)
+    except OSError:
+        pass
+    add(pathlib.Path(f"/tmp/nvim-nvda-{os.getuid()}"))
+    return tuple(runtime / "nvim-nvda" / "sessions" for runtime in runtimes)
+
+
+def registry_directory() -> pathlib.Path:
+    """Return the preferred registry directory for compatibility callers."""
+    return registry_directories()[0]
+
+
+def _is_private_registry_directory(directory: pathlib.Path) -> bool:
+    """Only scan an existing per-user directory with no group/world access."""
+    try:
+        value = directory.stat()
+        return (
+            stat.S_ISDIR(value.st_mode)
+            and value.st_uid == os.getuid()
+            and stat.S_IMODE(value.st_mode) & 0o077 == 0
+        )
+    except OSError:
+        return False
 
 
 def _process_start_ticks(pid: int) -> int:
@@ -102,16 +128,23 @@ def list_sessions(
     directory: pathlib.Path | None = None, *,
     process_start_reader=_process_start_ticks,
 ) -> list[RegisteredSession]:
-    directory = registry_directory() if directory is None else directory
+    explicit_directory = directory is not None
+    directories = (directory,) if directory is not None else registry_directories()
     candidates: list[RegisteredSession] = []
-    try:
-        entries = []
-        for entry in directory.glob("*.json"):
-            entries.append(entry)
-            if len(entries) >= REGISTRY_MAX_ENTRIES:
-                break
-    except OSError as error:
-        raise RuntimeError(f"cannot read Neovim session registry: {error}") from error
+    entries: list[pathlib.Path] = []
+    for candidate_directory in directories:
+        if not explicit_directory and not _is_private_registry_directory(candidate_directory):
+            continue
+        try:
+            for entry in candidate_directory.glob("*.json"):
+                entries.append(entry)
+                if len(entries) >= REGISTRY_MAX_ENTRIES:
+                    break
+        except OSError as error:
+            if explicit_directory:
+                raise RuntimeError(f"cannot read Neovim session registry: {error}") from error
+        if len(entries) >= REGISTRY_MAX_ENTRIES:
+            break
     for entry in entries:
         try:
             data: Any = _read_registry_entry(entry)
@@ -182,7 +215,13 @@ def list_sessions(
             ))
         except (OSError, ValueError, AttributeError):
             continue
-    return sorted(candidates, key=lambda item: (item.started_monotonic, item.pid), reverse=True)
+    unique = {
+        (session.pid, session.session_nonce): session
+        for session in candidates
+    }
+    return sorted(
+        unique.values(), key=lambda item: (item.started_monotonic, item.pid), reverse=True,
+    )
 
 
 def discover_session(

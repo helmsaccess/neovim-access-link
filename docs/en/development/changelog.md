@@ -3,6 +3,16 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Fixes SSH session discovery when interactive Neovim and the bridge's later
+  non-interactive command observe different runtime environments. The bridge
+  now scans the configured runtime directory, the safe user-owned
+  `/run/user/UID`, and the private `/tmp` fallback together, with one shared
+  bound and without duplicate sessions. Previously, an existing but empty
+  `/run/user/UID` could completely hide a valid fallback session.
+- Fixes Linux startup without `XDG_RUNTIME_DIR`: the private
+  `/tmp/nvim-nvda-<UID>` fallback now obtains the user ID through Neovim's
+  public libuv interface. The previous call to the Vimscript `getuid()`
+  function, which Neovim does not provide, aborted plugin loading with `E117`.
 - Decouples the guided diagnostic test's F6 readiness check from the current
   cursor position. A fully published Ruff inventory is therefore reported as
   ready immediately instead of falsely timing out after 15 seconds.

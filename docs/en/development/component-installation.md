@@ -25,6 +25,17 @@ The packaged JSON configuration keeps the Neovim claim-key identifier
 consistent with NVDA's observed gesture identifier. Changing only one installed copy is unsupported; rebuild and
 update both sides together.
 
+## File-based Neovim session registry
+
+The installed plugin registers each live Neovim instance below the user's
+private runtime directory. Interactive Neovim and the bridge's later
+non-interactive SSH command can observe different `XDG_RUNTIME_DIR` values.
+The bridge therefore checks every location valid for that user: the configured
+runtime directory, the user-owned `/run/user/UID`, and the private `/tmp`
+fallback. It reads only private directories owned by the current user and
+deduplicates identical session records. Every record still has to pass the
+process, nonce, endpoint, ownership, and protocol validation before use.
+
 ## Removal from NVDA
 
 `NVDA menu → Tools → Neovim Access Link: Remove components...` uses the same

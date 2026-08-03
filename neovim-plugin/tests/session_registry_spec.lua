@@ -17,6 +17,19 @@ package.loaded["nvim_nvda.session"] = dofile(root .. "/neovim-plugin/lua/nvim_nv
 package.loaded["nvim_nvda"] = dofile(root .. "/neovim-plugin/lua/nvim_nvda/init.lua")
 local session = package.loaded["nvim_nvda.session"]
 local plugin = package.loaded["nvim_nvda"]
+local configured_runtime = vim.env.XDG_RUNTIME_DIR
+local original_getuid = vim.uv.getuid
+local getuid_calls = 0
+vim.env.XDG_RUNTIME_DIR = ""
+vim.uv.getuid = function()
+  getuid_calls = getuid_calls + 1
+  return 4242
+end
+truth(session.runtime_root() == "/tmp/nvim-nvda-4242/nvim-nvda",
+  "missing XDG runtime uses libuv user identity")
+truth(getuid_calls == 1, "Unix runtime fallback queries libuv exactly once")
+vim.uv.getuid = original_getuid
+vim.env.XDG_RUNTIME_DIR = configured_runtime
 local component_config = dofile(root .. "/neovim-plugin/lua/nvim_nvda/component_config.lua")
 local configured = component_config.load(root .. "/neovim-plugin/config/linux-components.json")
 truth(configured.sessionClaim.neovimKey == "<F12>", "packaged claim key is loaded")
@@ -49,7 +62,7 @@ end
 truth(type(claim_on_key) == "function", "typed-key observer is registered")
 
 local runtime = vim.env.XDG_RUNTIME_DIR
-if not runtime or runtime == "" then runtime = "/tmp/nvim-nvda-" .. tostring(vim.fn.getuid()) end
+if not runtime or runtime == "" then runtime = "/tmp/nvim-nvda-" .. tostring(vim.uv.getuid()) end
 local registry_matches = vim.fn.glob(
   runtime .. "/nvim-nvda/sessions/" .. tostring(vim.fn.getpid()) .. "-*.json", false, true)
 truth(#registry_matches == 1, "one nonce-qualified registry file created")

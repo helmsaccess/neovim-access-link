@@ -9,7 +9,8 @@ from types import SimpleNamespace
 from unittest import mock
 
 from nvim_nvda_bridge.session_registry import (
-    REGISTRY_MAX_ENTRIES, discover_session, list_sessions, registry_directory,
+    REGISTRY_MAX_ENTRIES, discover_session, list_sessions, registry_directories,
+    registry_directory,
 )
 
 
@@ -22,6 +23,42 @@ class SessionRegistryTests(unittest.TestCase):
                 pathlib.Path(f"/run/user/{os.getuid()}/nvim-nvda/sessions"),
                 registry_directory(),
             )
+            self.assertEqual(
+                (
+                    pathlib.Path(f"/run/user/{os.getuid()}/nvim-nvda/sessions"),
+                    pathlib.Path(f"/tmp/nvim-nvda-{os.getuid()}/nvim-nvda/sessions"),
+                ),
+                registry_directories(),
+            )
+
+    def test_default_discovery_scans_system_and_fallback_registries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name, mock.patch("os.kill"):
+            root = pathlib.Path(directory_name)
+            directories = (root / "system", root / "fallback")
+            for directory in directories:
+                directory.mkdir(mode=0o700)
+            for directory, pid, nonce in (
+                (directories[0], 111, "a" * 32),
+                (directories[1], 222, "b" * 32),
+            ):
+                socket_path = directory / f"{pid}.sock"
+                socket_path.touch()
+                (directory / f"{pid}-{nonce}.json").write_text(json.dumps({
+                    "version": 3, "transportKind": "remoteSsh", "pid": pid,
+                    "socket": str(socket_path), "processStartTicks": pid + 1,
+                    "sessionNonce": nonce, "startedMonotonic": pid,
+                }), encoding="utf-8")
+            duplicate = directories[0] / f"111-{'a' * 32}.json"
+            (directories[1] / duplicate.name).write_bytes(duplicate.read_bytes())
+            with mock.patch(
+                "nvim_nvda_bridge.session_registry.registry_directories",
+                return_value=directories,
+            ), mock.patch(
+                "nvim_nvda_bridge.session_registry._is_private_registry_directory",
+                return_value=True,
+            ):
+                sessions = list_sessions(process_start_reader=lambda pid: pid + 1)
+            self.assertEqual(["222", "111"], [session.identifier for session in sessions])
 
     def test_previous_schema_is_hidden_even_when_pid_and_path_look_live(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
