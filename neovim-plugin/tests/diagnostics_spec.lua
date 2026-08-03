@@ -63,6 +63,21 @@ local zero_width = {
 equal("point", diagnostics.snapshot_values(zero_width, 1, 4).message, "zero-width start selected")
 equal(nil, diagnostics.snapshot_values(zero_width, 1, 5), "zero-width range is one byte only")
 
+local sarif_open_ended = {
+  {
+    lnum = 0, col = 2, end_lnum = 0, end_col = 4294967295,
+    message = "checkstyle finding", source = "Checkstyle", code = "NeedBraces",
+  },
+}
+local sarif_snapshot = diagnostics.snapshot_values(sarif_open_ended, 1, 100)
+equal("checkstyle finding", sarif_snapshot.message,
+  "SARIF open-ended range remains addressable")
+equal(2147483647, sarif_snapshot.endByteColumn,
+  "SARIF open-ended range is bounded for the protocol")
+equal(0, #diagnostics.normalized({
+  { lnum = 0, col = 2, end_lnum = 0, end_col = 2147483648, message = "invalid" },
+}), "an unrelated oversized end column remains invalid")
+
 local multiline = {
   {
     lnum = 1, col = 3, end_lnum = 3, end_col = 2,

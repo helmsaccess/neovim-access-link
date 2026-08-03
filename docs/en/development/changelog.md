@@ -3,6 +3,10 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Accepts the open-ended column sentinel used by SARIF parsers within Access
+  Link's existing bound. This keeps Checkstyle diagnostics from `nvim-lint`
+  addressable while other oversized or invalid diagnostic ranges remain
+  rejected.
 - Groups guided practical-test tasks into four understandable categories and
   permits machine-checkable individual selection through the menu or a stable
   task ID. The optional compatibility suite adds one small reality check each

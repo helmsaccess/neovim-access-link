@@ -8,6 +8,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Akzeptiert den von SARIF-Parsern verwendeten offenen Endspalten-Sentinel
+  innerhalb der bestehenden Access-Link-Grenze. Damit bleiben insbesondere
+  Checkstyle-Diagnosen aus `nvim-lint` erreichbar; andere übergroße oder
+  ungültige Diagnosebereiche werden weiterhin verworfen.
 - Ordnet die geführten Praxistestaufgaben in vier verständliche Kategorien
   ein und erlaubt eine maschinenprüfbare Einzelauswahl über Menü oder stabile
   Aufgaben-ID. Die optionale Kompatibilitätssuite ergänzt je einen kleinen

@@ -2,6 +2,7 @@ local text = require("nvim_nvda.text")
 local M = {}
 
 local MAX_POSITION = 2147483647
+local SARIF_OPEN_END_COLUMN = 4294967295
 local MAX_MESSAGE_BYTES = 2048
 local MAX_SOURCE_BYTES = 256
 local MAX_CODE_BYTES = 256
@@ -61,6 +62,7 @@ local function normalize(value, ordinal, resolve_namespace)
   local col = value.col == nil and 0 or value.col
   local end_lnum = value.end_lnum == nil and value.lnum or value.end_lnum
   local end_col = value.end_col == nil and col or value.end_col
+  if end_col == SARIF_OPEN_END_COLUMN then end_col = MAX_POSITION end
   if not bounded_integer(col, 0)
     or not bounded_integer(end_lnum, value.lnum)
     or not bounded_integer(end_col, 0)

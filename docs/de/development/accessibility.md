@@ -157,7 +157,9 @@ user_data = { nvim_nvda_kind = "spelling" } -- oder "grammar"
 Der gemeinsame Vertrag endet an Neovims öffentlicher `vim.diagnostic`-API.
 Access Link liest keine privaten Tabellen von `nvim-lint` oder ALE und startet
 keine Prozesse. Diagnosen werden UTF-8-sicher begrenzt, Bereiche und Typen
-validiert und über alle Namespaces deterministisch geordnet. Bei
+validiert und über alle Namespaces deterministisch geordnet. Der von
+SARIF-Parsern verwendete offene Endspalten-Sentinel wird auf die vorhandene
+Protokollgrenze abgebildet; andere übergroße Bereiche bleiben ungültig. Bei
 überlappenden Bereichen entscheidet zuerst die höchste Schwere, dann der
 kleinste einschließende Bereich und anschließend ein stabiler
 anbieterneutraler Schlüssel. Eine fehlende Quelle fällt auf den begrenzten

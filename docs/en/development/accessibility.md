@@ -165,9 +165,11 @@ availability message.
 General diagnostics use Neovim's public `vim.diagnostic` API as the sole
 provider boundary. Access Link neither reads private nvim-lint/ALE tables nor
 starts their processes. It validates types and ranges, applies UTF-8-safe
-bounds, orders all namespaces deterministically, and selects overlapping
-ranges by severity, smallest containing range, then a stable provider-neutral
-key. A missing source falls back to the bounded Neovim namespace name. The
+bounds, and orders all namespaces deterministically. The open-ended column
+sentinel used by SARIF parsers is mapped to the existing protocol bound; other
+oversized ranges remain invalid. Access Link selects overlapping ranges by
+severity, smallest containing range, then a stable provider-neutral key. A
+missing source falls back to the bounded Neovim namespace name. The
 ordered list is retained per buffer and discarded on `DiagnosticChanged` or
 `BufWipeout`, so ordinary cursor movement does not repeatedly sort large
 diagnostic sets.
