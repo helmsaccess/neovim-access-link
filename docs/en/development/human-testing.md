@@ -15,10 +15,11 @@ The fixtures nevertheless provide deliberate real choices: at least three
 completion candidates, two function signatures with three parameters each,
 and two diagnostics on the first diagnostic line. Thus, an instruction to
 cycle always causes a visible content change. The smoke suite's audio portions
-cover all four distinct sounds in this area: completion menu opened,
-completion menu closed, diagnostic warning, and diagnostic error. Information
-and hint diagnostics intentionally have no dedicated diagnostic sound and are
-therefore not presented as additional sound types.
+cover all five distinct sounds in this area: completion menu opened,
+completion menu closed, diagnostic warning, diagnostic error, and confirmation
+of an explicit diagnostic query with no match. Information and hint
+diagnostics intentionally have no dedicated diagnostic sound and are therefore
+not presented as additional sound types.
 
 The runner is intended even for testers with little Neovim experience. Before
 every task, it provides this orientation:
@@ -158,6 +159,7 @@ Each task names only the keys it needs. This table is a reference:
 | `Escape`, then `F2` | repeat the current task at any time |
 | `F1` | report the active LSP status through Access Link |
 | `F3`, then `F5` | prepare a completion location with at least three candidates and open its menu; `F3` enters Insert mode automatically |
+| `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
 | `F6` | run Ruff again for the diagnostic fixture |
 | `F7` | report the diagnostic at the current position |
 | `F8` / `F9` | jump to the previous or next diagnostic |

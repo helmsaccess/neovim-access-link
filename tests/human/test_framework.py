@@ -186,6 +186,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('reportUnusedImport = "none"', configuration)
 		self.assertNotIn("warning_starts_at_cursor", configuration)
 		self.assertIn('prepare_insert_probe("completion_probe = calculate_")', configuration)
+		self.assertIn('vim.api.nvim_win_set_cursor(0, { 2, 0 })', configuration)
+		self.assertIn('Access Link human test: query a clean diagnostic position', configuration)
 		self.assertIn('assert_callable_choices_ready()', configuration)
 		self.assertIn('assert_completion_choices_ready()', configuration)
 		self.assertIn("rich_signatures >= 2", configuration)
@@ -223,11 +225,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 					self.assertIn(value, parameter_expectation)
 				for value in ("path", "sep", "j/k"):
 					self.assertIn(value, diagnostic_expectation)
-				for value in ("four", "vier"):
+				for value in ("five", "fünf"):
 					if value in earcon_expectation.lower():
 						break
 				else:
-					self.fail(f"{language} earcon expectation does not name all four sounds")
+					self.fail(f"{language} earcon expectation does not name all five sounds")
 
 	def test_windows_ci_exercises_powershell_runner_and_dry_run(self) -> None:
 		workflow = (validator.REPOSITORY_ROOT / ".github" / "workflows" / "repository-tests.yml").read_text(

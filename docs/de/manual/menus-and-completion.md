@@ -183,6 +183,11 @@ Editorcursor zu bewegen. Fehler und Warnungen können außerdem beim Betreten
 einer betroffenen Zeile und an jeder durch ausdrückliche Cursornavigation
 erreichten Position innerhalb eines exakten Diagnosebereichs einen kurzen
 Klang auslösen. Tippen und reine Hintergrundaktualisierungen bleiben stumm.
+Findet eine ausdrückliche Abfrage an der aktuellen Position beziehungsweise
+Zeile keinen Eintrag, meldet NVDA „keine Diagnose“ und bestätigt das leere
+Ergebnis mit einem eigenen kurzen Klang. Dieser wird nie allein durch
+Cursorbewegung auf einer fehlerfreien Zeile ausgelöst. Informationen und
+Hinweise besitzen weiterhin keinen Diagnoseklang.
 
 Für eigene Neovim-Mappings stehen folgende Befehle bereit:
 

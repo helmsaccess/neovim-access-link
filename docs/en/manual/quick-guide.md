@@ -135,7 +135,9 @@ information without crossing into source text. Releasing the final NVDA key
 removes the temporary Braille view. Errors and warnings can produce a short
 cue when deliberate
 navigation enters their line or range; background updates and typing stay
-silent.
+silent. If an explicit diagnostic query finds no match, a third short cue
+confirms the empty result together with “no diagnostic”. Mere movement across
+clean lines, information diagnostics, and hints remain soundless.
 
 Independently, the Braille display's navigation controls have Braille cursor
 mode and Braille exploration mode. In Braille cursor mode, Up and Down move

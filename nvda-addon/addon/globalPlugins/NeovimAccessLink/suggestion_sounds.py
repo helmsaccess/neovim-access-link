@@ -112,7 +112,7 @@ class EditorSoundCache(SuggestionSoundCache):
 	"""Preload NVDA-native and bundled redistributable editor earcons."""
 
 	_PREFIX = "editorSound"
-	_RESTART_CUES = {"diagnosticError", "diagnosticWarning"}
+	_RESTART_CUES = {"diagnosticError", "diagnosticNone", "diagnosticWarning"}
 	_NVDA_FILES = {
 		"connectionEstablished": "connected.wav",
 		"connectionLost": "disconnected.wav",
@@ -129,6 +129,7 @@ class EditorSoundCache(SuggestionSoundCache):
 		"fileEnd": "fileEnd.wav",
 		"lineCrossed": "lineCrossed.wav",
 		"diagnosticError": "diagnosticError.wav",
+		"diagnosticNone": "diagnosticNone.wav",
 		"diagnosticWarning": "diagnosticWarning.wav",
 	}
 

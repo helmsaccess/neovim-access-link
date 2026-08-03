@@ -40,11 +40,12 @@ only the error markers on the display. Normal word navigation and word
 speech exploration mode interpret the same combination; the reached word remains spoken
 independently.
 
-Diagnostic errors and warnings use two short accessibility signals from the
-MIT-licensed Code - OSS source of Visual Studio Code. The bundled sound
+Diagnostic errors, warnings, and an explicitly empty diagnostic query use
+three short accessibility signals from the MIT-licensed Code - OSS source of
+Visual Studio Code. The bundled sound
 license records the pinned source commit, source and WAV hashes, WAV decoding,
 and the complete MIT license. As in VS Code, the line and position signals
-reuse the same file for each severity. The roughly 0.9 seconds of trailing
+reuse the same file for each severity. Up to roughly 0.9 seconds of trailing
 digital silence contained in the decoded files is losslessly reduced to 5 ms;
 no non-zero PCM frame is changed or discarded. Before every deliberately
 triggered diagnostic signal, the already memory-resident player is also
@@ -57,6 +58,17 @@ asynchronous `DiagnosticChanged` refreshes stay silent: unlike VS Code, the
 terminal integration does not receive equivalent internal editor state for
 its marker timer and typing debounce. The Diagnostic line and Diagnostic
 position feedback settings can disable the two signal classes separately.
+
+VS Code diagnostic navigation returns silently when its marker list is empty.
+Its existing but unrelated “no inlay hints” signal even uses the same audio
+file as a diagnostic error. Access Link therefore confirms an explicitly
+empty result with the unmistakable Code - OSS `clear.mp3` cue instead, trimmed
+to about 262 ms with a 5 ms tail. For `NvimNvdaDiagnosticCurrent` and the other
+diagnostic commands it follows Diagnostic position feedback; for an empty
+held `NVDA+Shift+E` query it follows Diagnostic line feedback. Mere cursor
+movement across clean lines remains silent. Information and hint diagnostics
+also remain soundless: the new cue denotes no problem and only confirms an
+active query with no match.
 
 Select Off, Speech, Tones, or Both Speech and Tones under `NVDA menu → Preferences
 → Settings... → Neovim Access Link`. Sounds are bundled resources and are

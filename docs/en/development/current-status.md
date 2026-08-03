@@ -286,9 +286,13 @@ diagnostic-jump hook.
 the current line; `NVDA+k/j` cycles without moving the real cursor. A
 text-free diagnostic summary enables separately configurable error and
 warning cues when entering a diagnostic line and at every position reached by
-explicit navigation within an exact range. The two signals
-come from the MIT-licensed Visual Studio Code Code - OSS source; the add-on
-records the commit, hashes, conversion, and license.
+explicit navigation within an exact range. An explicit position or line query
+with no match reports the empty result and,
+under the same applicable setting, uses a third short confirmation cue;
+passive movement across clean lines, information diagnostics, and hints stay
+soundless. The three signals come from the MIT-licensed Visual Studio Code
+Code - OSS source; the add-on records the commit, hashes, conversion, and
+license.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`

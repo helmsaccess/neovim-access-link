@@ -3846,7 +3846,7 @@ class BuiltAddonTests(unittest.TestCase):
         with zipfile.ZipFile(self.archive_path) as archive:
             waves = sorted(name.rsplit("/", 1)[-1] for name in archive.namelist() if name.endswith(".wav"))
             self.assertEqual([
-                "delete.wav", "diagnosticError.wav", "diagnosticWarning.wav",
+                "delete.wav", "diagnosticError.wav", "diagnosticNone.wav", "diagnosticWarning.wav",
                 "fileEnd.wav", "fileStart.wav", "lineCrossed.wav", "lineEnd.wav",
                 "lineStart.wav", "replace.wav",
             ], waves)
@@ -3859,7 +3859,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertIn("globalPlugins/NeovimAccessLink/resources/ssh-askpass.cmd", archive.namelist())
 
             resource = "globalPlugins/NeovimAccessLink/resources/sounds/"
-            for name in ("diagnosticError.wav", "diagnosticWarning.wav"):
+            for name in ("diagnosticError.wav", "diagnosticNone.wav", "diagnosticWarning.wav"):
                 with self.subTest(diagnosticSound=name):
                     with wave.open(io.BytesIO(archive.read(resource + name)), "rb") as sound:
                         self.assertEqual(2, sound.getnchannels())
@@ -3960,7 +3960,7 @@ class BuiltAddonTests(unittest.TestCase):
         cues = (
             "connectionEstablished", "connectionLost", "insertMode", "normalMode", "matchingError", "delete", "replace",
             "lineStart", "lineEnd", "fileStart", "fileEnd", "lineCrossed",
-            "diagnosticError", "diagnosticWarning",
+            "diagnosticError", "diagnosticNone", "diagnosticWarning",
         )
         for cue in cues:
             self.assertTrue(plugin._presentation.editor_sounds.play(cue), cue)
@@ -3983,7 +3983,12 @@ class BuiltAddonTests(unittest.TestCase):
                 self.assertTrue(plugin._presentation.play_diagnostic_sound(severity, at_position=True))
                 self.assertTrue(plugin._presentation.play_diagnostic_sound(severity, at_position=True))
                 self.assertEqual(stops_before + 2, player.stopCalls)
-        self.assertEqual(feeds_before + 4, len(self.soundFeeds))
+            player = players["diagnosticNone"]
+            stops_before = player.stopCalls
+            self.assertTrue(plugin._presentation.play_no_diagnostic_sound(at_position=True))
+            self.assertTrue(plugin._presentation.play_no_diagnostic_sound(at_position=True))
+            self.assertEqual(stops_before + 2, player.stopCalls)
+        self.assertEqual(feeds_before + 6, len(self.soundFeeds))
         plugin.terminate()
 
     def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
@@ -4705,8 +4710,10 @@ class BuiltAddonTests(unittest.TestCase):
             "No function parameters or hover information available",
             self.spoken[-1],
         )
+        feeds_before = len(self.soundFeeds)
         plugin._presentDeveloperContext(None, HeldContextKind.DIAGNOSTIC)
         self.assertEqual("No diagnostics on this line", self.spoken[-1])
+        self.assertEqual(feeds_before + 1, len(self.soundFeeds))
         plugin._dismissDeveloperContext()
         self.assertIs(braille.handler.buffer, braille.handler.mainBuffer)
         plugin.terminate()
@@ -11590,6 +11597,27 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.assertEqual(2, played.count("diagnosticError"))
 
+        no_diagnostic_before = played.count("diagnosticNone")
+        plugin._handleEvent({
+            "type": "diagnosticMoved",
+            "payload": {
+                **base,
+                "lineText": "clean",
+                "cursor": {"line": 5, "byteColumn": 0},
+            },
+        })
+        self.assertEqual(no_diagnostic_before + 1, played.count("diagnosticNone"))
+        self.assertEqual("no diagnostic", self.spoken[-1])
+        plugin._handleEvent({
+            "type": "lineChanged",
+            "payload": {
+                **base,
+                "lineText": "still clean",
+                "cursor": {"line": 6, "byteColumn": 0},
+            },
+        })
+        self.assertEqual(no_diagnostic_before + 1, played.count("diagnosticNone"))
+
         self._updateSettings(plugin, {
             "feedback": {
                 "diagnosticLine": 0,
@@ -11611,6 +11639,15 @@ class BuiltAddonTests(unittest.TestCase):
             },
         })
         self.assertEqual(2, played.count("diagnosticError"))
+        plugin._handleEvent({
+            "type": "diagnosticMoved",
+            "payload": {
+                **base,
+                "lineText": "disabled clean",
+                "cursor": {"line": 7, "byteColumn": 0},
+            },
+        })
+        self.assertEqual(no_diagnostic_before + 1, played.count("diagnosticNone"))
 
         self._updateSettings(plugin, {
             "feedback": {
@@ -11619,6 +11656,9 @@ class BuiltAddonTests(unittest.TestCase):
             },
         })
         plugin._presentation.editor_sounds.play = lambda cue: False
+        self.beeps.clear()
+        self.assertTrue(plugin._presentation.play_no_diagnostic_sound(at_position=True))
+        self.assertEqual([(620, 20), (420, 30)], self.beeps)
         self.beeps.clear()
         self.assertTrue(
             plugin._presentation.play_diagnostic_sound("warning", at_position=True),

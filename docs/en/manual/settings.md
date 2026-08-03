@@ -61,7 +61,10 @@ Both Speech and Tones. Individual settings cover mode changes, deletion, replace
 line/file boundaries, crossing a line, and unmatched pairs.
 The two sound-only diagnostic line and diagnostic position settings
 deliberately offer only Off and Tones. Complete diagnostic text remains
-available through explicit inspection and diagnostic navigation.
+available through explicit inspection and diagnostic navigation. The cue for
+an explicit query with no match follows the Diagnostic line or Diagnostic
+position setting used by that query; passive movement over clean lines stays
+silent.
 
 The mode setting also governs the focus cue for direct embedded-terminal input,
 the Normal cue for canonical Terminal-Normal, and the short command-line tone.

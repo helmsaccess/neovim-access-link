@@ -269,6 +269,19 @@ class NvdaPresentation:
 			self.suggestion_sounds.play("open")
 		elif sound == "suggestionsClose":
 			self.suggestion_sounds.play("close")
+		elif sound == "diagnosticNone":
+			self._play_no_diagnostic_sound(enabled)
+
+	def _play_no_diagnostic_sound(self, enabled):
+		if enabled and not self.editor_sounds.play("diagnosticNone"):
+			tones.beep(620, 20)
+			tones.beep(420, 30)
+		return enabled
+
+	def play_no_diagnostic_sound(self, *, at_position):
+		"""Confirm an explicit diagnostic query that found no matching item."""
+		feedback_key = "diagnosticPosition" if at_position else "diagnosticLine"
+		return self._play_no_diagnostic_sound(bool(self.feedback_mode(feedback_key) & 2))
 
 	def play_diagnostic_sound(self, severity, *, at_position):
 		"""Play one passive diagnostic cue according to the active profile."""

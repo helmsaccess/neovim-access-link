@@ -17,6 +17,13 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   den bereits im RAM gehaltenen Audioplayer vor jedem gezielten Signal neu.
   Gleichartige Fehler oder Warnungen an derselben Zeile erzeugen damit jeweils
   sofort einen eigenen Klang.
+- Bestätigt eine ausdrückliche Diagnoseabfrage ohne Treffer zusätzlich zur
+  Ansage mit dem unterscheidbaren Code-OSS-`clear`-Signal. Es wurde wie die
+  Fehler- und Warnsignale bis auf 5 ms Ausklang gekürzt und liegt beim
+  Add-on-Start im RAM. Der Klang folgt der betroffenen Diagnosezeilen- oder
+  Diagnosepositionseinstellung; passive Bewegung über fehlerfreie Zeilen sowie
+  Informationen und Hinweise bleiben klanglos. Der geführte Diagnosetest prüft
+  den neuen fünften Klang über eine vorbereitete fehlerfreie Position.
 - Verkürzt in der gehaltenen Brailleansicht ausschließlich die wiederkehrenden
   Strukturpräfixe für Signatur, Parameter und Dokumentation zu `S`, `P` und
   `D`. Die Sprachausgabe sowie Funktionsnamen, Parameternamen und Inhalte

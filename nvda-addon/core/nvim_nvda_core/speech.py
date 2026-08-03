@@ -1500,6 +1500,7 @@ class SpeechPlanner:
             if not isinstance(diagnostic, dict):
                 return SpeechAction(
                     self._translate("no diagnostic"), Priority.STATUS, interrupt=True,
+                    sound="diagnosticNone",
                 )
             parts = []
             source = diagnostic.get("source")

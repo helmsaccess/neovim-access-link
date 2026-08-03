@@ -148,6 +148,12 @@ vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
 vim.keymap.set("n", "<F3>", function()
   prepare_insert_probe("completion_probe = calculate_")
 end, { desc = "Access Link human test: prepare completion" })
+if profile == "diagnostics" then
+  vim.keymap.set("n", "<F5>", function()
+    vim.api.nvim_win_set_cursor(0, { 2, 0 })
+    access_link_command("NvimNvdaDiagnosticCurrent")
+  end, { desc = "Access Link human test: query a clean diagnostic position" })
+end
 vim.keymap.set("n", "<F6>", function()
   if run_linter_with_feedback then
     run_linter_with_feedback()

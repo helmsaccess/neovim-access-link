@@ -242,7 +242,10 @@ vollständig durchblättern, ohne dabei in den Quelltext zu wechseln. Beim
 Loslassen der letzten NVDA-Taste verschwindet die
 vorübergehende Brailleanzeige. Fehler und Warnungen können beim gezielten
 Betreten ihrer Zeile oder ihres Bereichs einen kurzen Klang auslösen;
-Hintergrundaktualisierungen und Tippen bleiben stumm.
+Hintergrundaktualisierungen und Tippen bleiben stumm. Ergibt eine
+ausdrückliche Diagnoseabfrage keinen Treffer, bestätigt ein dritter kurzer
+Klang zusammen mit „keine Diagnose“ das leere Ergebnis. Reine Bewegung über
+fehlerfreie Zeilen sowie Informationen und Hinweise bleiben klanglos.
 
 Die Navigationstasten der Braillezeile besitzen davon unabhängig einen
 Braille-Cursormodus und einen Braille-Explorationsmodus. Im

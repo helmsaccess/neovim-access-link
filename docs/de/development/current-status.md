@@ -313,9 +313,12 @@ der aktuellen Zeile; `NVDA+k/j` schaltet ohne echte Cursorbewegung. Eine
 textfreie Diagnosezusammenfassung ermöglicht getrennt konfigurierbare Fehler-
 und Warnklänge beim Betreten einer Diagnosezeile und an jeder durch
 ausdrückliche Navigation erreichten Position in einem exakten Bereich.
-Die zwei Signale stammen aus dem MIT-lizenzierten Code-OSS-Quellstand von
-Visual Studio Code; Commit, Prüfsummen, Konvertierung und Lizenz sind im
-Add-on dokumentiert.
+Eine ausdrückliche Positions- oder Zeilenabfrage ohne Treffer meldet das leere
+Ergebnis und verwendet abhängig von derselben Einstellung einen dritten
+kurzen Bestätigungsklang; passive Bewegung über fehlerfreie Zeilen sowie
+Informationen und Hinweise bleiben klanglos. Die drei Signale stammen aus dem
+MIT-lizenzierten Code-OSS-Quellstand von Visual Studio Code; Commit,
+Prüfsummen, Konvertierung und Lizenz sind im Add-on dokumentiert.
 
 Die dauerhafte Brailleausgabe folgt derselben semantischen Editorquelle wie
 Sprache und Klang, besitzt aber eine getrennte Planung. Eine öffentliche

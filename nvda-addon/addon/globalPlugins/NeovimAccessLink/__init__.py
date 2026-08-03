@@ -325,6 +325,7 @@ _FEEDBACK_FOR_SOUND = {
 	"fileEnd": "fileBoundary",
 	"lineCrossed": "lineCrossed",
 	"matchingError": "matchingError",
+	"diagnosticNone": "diagnosticPosition",
 }
 _FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
 _FOCUS_ANNOUNCEMENT_DEFAULT = 2
@@ -3031,6 +3032,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _presentDeveloperContext(self, presentation, kind, direction=None):
 		if presentation is None:
+			if kind is HeldContextKind.DIAGNOSTIC:
+				self._presentation.play_no_diagnostic_sound(at_position=False)
 			speech_text = (
 				# Translators: Spoken when no callable information is available at the cursor.
 				_("No function parameters or hover information available")

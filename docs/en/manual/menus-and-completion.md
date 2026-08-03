@@ -86,6 +86,10 @@ remaining diagnostics on the current line. While NVDA remains held,
 Errors and warnings can also produce a short cue when explicit navigation
 enters an affected line and at every reached cursor position within an exact
 diagnostic range. Typing and background diagnostic refreshes remain silent.
+When an explicit query at the current position or line finds no entry, NVDA
+reports “no diagnostic” and confirms the empty result with its own short cue.
+Mere cursor movement on a clean line never triggers that cue. Information and
+hint diagnostics continue to have no diagnostic sound.
 
 The commands `:NvimNvdaDiagnosticPrevious`, `:NvimNvdaDiagnosticNext`,
 `:NvimNvdaDiagnosticFirst`, `:NvimNvdaDiagnosticLast`, and

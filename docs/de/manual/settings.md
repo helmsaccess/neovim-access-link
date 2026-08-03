@@ -131,7 +131,10 @@ Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Aus`,
 zusätzlich durch `Globale Aktionsrückmeldung` begrenzt.
 Die beiden reinen Klangoptionen für Diagnosezeile und Diagnoseposition bieten
 bewusst nur `Aus` und `Töne`; vollständiger Diagnosetext bleibt über die
-ausdrückliche Abfrage und Diagnosenavigation verfügbar.
+ausdrückliche Abfrage und Diagnosenavigation verfügbar. Der Klang für eine
+ausdrückliche Abfrage ohne Treffer folgt je nach Abfrage ebenfalls der
+Diagnosezeilen- beziehungsweise Diagnosepositionseinstellung; passive Bewegung
+über fehlerfreie Zeilen bleibt still.
 
 ### Wechsel zwischen Einfüge- und Normalmodus
 

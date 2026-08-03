@@ -39,6 +39,13 @@ source tree:
   ad39919b8808357c033767640ef0d5e7bf3b6f0ffe9bb2e5ed64389eee1cf944
   distributed trimmed WAV SHA-256:
   5a5d05d784b38a43edb10d7e302167a12d265a83bf2bc588e53b4afd8f8a9894
+- diagnosticNone.wav: clear.mp3
+  source SHA-256:
+  134b49619eb26f6ef902c02253a32b6030d13588eadf9a73b2e61d98872e62b2
+  decoded WAV SHA-256:
+  851ae95f922b0cb7792ae5412d4052a0030d51163d912006cdf53a947c235000
+  distributed trimmed WAV SHA-256:
+  f2a4659198542fde9bee7eb5509a510bc8d59a0ced456d30e422a3a661fc8075
 - diagnosticWarning.wav: warning.mp3
   source SHA-256:
   2687e2e7a28d78630f2ce47ae673223118545adb1d759cacc84f3fb8beab1f1a
@@ -48,8 +55,8 @@ source tree:
   9188aa163a2b77ab6fed9e193e454a77e0b8dc637d32c87d33af218ea8629f2d
 
 The MP3 files were decoded without creative modification to 48 kHz,
-16-bit, stereo PCM WAV using miniaudio 1.61. The decoded files contained about
-0.9 seconds of exact digital silence at the end. The distributed WAVs retain
+16-bit, stereo PCM WAV using miniaudio 1.61. The decoded files contained
+substantial exact digital silence at the end. The distributed WAVs retain
 every frame through the final non-zero PCM frame plus 5 ms of zero padding;
 no non-zero PCM frame was removed or changed. The source repository's
-ThirdPartyNotices.txt contains no separate entry for either media file.
+ThirdPartyNotices.txt contains no separate entry for these media files.

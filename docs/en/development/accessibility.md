@@ -83,7 +83,10 @@ tests cover the path, including repeated requests after release; practical
 Windows/NVDA acceptance remains open. Diagnostic error and
 warning cues use attributed MIT-licensed VS Code sounds on deliberate line
 entry and at every position reached by explicit navigation within a diagnostic
-range; typing and background refresh remain silent.
+range. An explicit query with no match reports the empty result and uses a
+third short attributed VS Code cue under the applicable line or position
+setting. Typing, passive movement across clean lines, information diagnostics,
+hints, and background refresh remain silent.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real

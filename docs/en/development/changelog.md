@@ -10,6 +10,13 @@
   at the end of both VS Code diagnostic cues and restarts the already
   memory-resident audio player before every deliberate signal. Errors or
   warnings of the same severity on one line therefore each sound immediately.
+- Confirms an explicit diagnostic query with no match, in addition to speech,
+  with the distinct Code - OSS `clear` signal. Like the error and warning
+  signals, it is trimmed to a 5 ms tail and resides in memory from add-on
+  startup. The cue follows the applicable diagnostic-line or
+  diagnostic-position setting; passive movement across clean lines,
+  information diagnostics, and hints remain soundless. The guided diagnostic
+  test checks this new fifth sound at a prepared clean position.
 - Shortens only the repeated structural prefixes for signature, parameter,
   and documentation to `S`, `P`, and `D` in the held Braille view. Speech,
   function names, parameter names, and content remain complete.

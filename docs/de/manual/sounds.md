@@ -65,13 +65,14 @@ Der Lösch- und Backspace-Klang verwendet den bewusst dezenten `click3`: rund
 86 ms lang und mit etwa −27,6 dB RMS deutlich leiser als der zuvor verwendete
 `click2`.
 
-Für Diagnosefehler und -warnungen werden zwei kurze Accessibility Signals aus
-dem MIT-lizenzierten Code-OSS-Quellstand von Visual Studio Code verwendet.
+Für Diagnosefehler, -warnungen und die ausdrückliche leere Diagnoseabfrage
+werden drei kurze Accessibility Signals aus dem MIT-lizenzierten
+Code-OSS-Quellstand von Visual Studio Code verwendet.
 Der genaue Commit, Quell- und Zielprüfsummen, die WAV-Dekodierung
 sowie der vollständige MIT-Lizenztext liegen im Add-on unter
 `resources/sounds/`. Wie in VS Code verwenden Zeilen- und Positionssignal je
-Schweregrad dieselbe Datei. Die in den dekodierten Dateien enthaltene rund
-0,9 Sekunden lange digitale Stille am Ende ist verlustfrei bis auf einen
+Schweregrad dieselbe Datei. Die in den dekodierten Dateien enthaltene bis zu
+rund 0,9 Sekunden lange digitale Stille am Ende ist verlustfrei bis auf einen
 5-ms-Ausklang entfernt; kein von null verschiedenes PCM-Frame wurde verändert
 oder verworfen. Vor jedem gezielt ausgelösten Diagnosesignal wird außerdem
 der bereits im RAM gehaltene Player neu gestartet. Dadurch erhält auch
@@ -84,6 +85,18 @@ VS Code erhält das Add-on über das Terminal keine gleichwertige
 editorinterne Information für dessen Marker-Timer und Tipp-Debounce. Die
 Einstellungen „Diagnosezeile“ und „Diagnoseposition“ können beide Signalarten
 getrennt abschalten.
+
+Visual Studio Codes Diagnosenavigation beendet eine leere Suche still. Das
+dort vorhandene, aber sachlich andere Signal „keine Inlay-Hinweise“ verwendet
+sogar dieselbe Audiodatei wie ein Diagnosefehler. Access Link verwendet daher
+für ein ausdrücklich abgefragtes leeres Ergebnis stattdessen den
+unverwechselbaren Code-OSS-Klang `clear.mp3`, auf rund 262 ms mit 5 ms
+Ausklang gekürzt. Er folgt bei `NvimNvdaDiagnosticCurrent` und den übrigen
+Diagnosebefehlen der Einstellung „Diagnoseposition“, bei einer leeren
+gehaltenen Abfrage mit `NVDA+Umschalt+E` der Einstellung „Diagnosezeile“.
+Bloße Cursorbewegung über fehlerfreie Zeilen bleibt still. Informationen und
+Hinweise bleiben ebenfalls klanglos; der neue Klang bezeichnet kein Problem,
+sondern bestätigt nur eine aktive Abfrage ohne Treffer.
 
 ## Einrückung
 

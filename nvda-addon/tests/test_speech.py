@@ -317,6 +317,12 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual(action.text, action.braille_message)
         self.assertIsNone(action.sound)
 
+        empty = planner.plan(event(
+            "diagnosticMoved", line="clean", row=5,
+        ))[0]
+        self.assertEqual("no diagnostic", empty.text)
+        self.assertEqual("diagnosticNone", empty.sound)
+
     def test_context_changes_announce_tabs_windows_buffers_and_special_lists(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event(
