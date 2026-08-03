@@ -21,6 +21,8 @@
   "tools": {
     "pyright": "1.1.411",
     "pyrightSha512": "d374bfbe64b9945d52fed55b29cd9635708cabc2560b0b5afea2188e3d63bea6d0868cbe3773600731d34a65256d80fa0c9c2a4395c77f5d3c42e8e8a9e511bf",
-    "ruff": "0.15.4"
+    "ruff": "0.15.4",
+    "clangTidy": "22.1.8",
+    "markdownlintCli2": "0.23.2"
   }
 }

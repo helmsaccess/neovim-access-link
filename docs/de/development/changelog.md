@@ -8,6 +8,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Ordnet die geführten Praxistestaufgaben in vier verständliche Kategorien
+  ein und erlaubt eine maschinenprüfbare Einzelauswahl über Menü oder stabile
+  Aufgaben-ID. Die optionale Kompatibilitätssuite ergänzt je einen kleinen
+  Realitätscheck für C mit Clang-Tidy und Markdown mit markdownlint. Die exakt
+  festgelegten Werkzeuge werden nur bei Auswahl eines passenden Tests
+  installiert und vorhandene Versionen wiederverwendet.
 - Behebt die SSH-Sitzungserkennung, wenn interaktives Neovim und der spätere
   nichtinteraktive Bridge-Aufruf unterschiedliche Laufzeitumgebungen sehen.
   Die Bridge durchsucht nun das konfigurierte Laufzeitverzeichnis, das sichere

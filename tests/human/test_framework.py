@@ -26,16 +26,27 @@ def timestamp() -> str:
 def complete_result(
 	suite: str = "smoke",
 	*,
+	selected_tests: set[str] | None = None,
 	audio: bool = True,
 	braille: bool = True,
 	status: str = "pass",
 ) -> dict[str, object]:
 	plans = validator.load_plans()
-	selected = {plan_id: plan for plan_id, plan in plans.items() if suite == "all" or suite in plan["suites"]}
+	if suite == "custom":
+		selected_tests = selected_tests or {"c-diagnostics.clang-tidy-presentation"}
+	else:
+		selected_tests = {
+			f"{plan_id}.{step['id']}"
+			for plan_id, plan in plans.items()
+			if suite == "all" or suite in plan["suites"]
+			for step in plan["steps"]
+		}
 	result_plans = []
-	for plan_id, plan in selected.items():
+	for plan_id, plan in plans.items():
 		steps = []
 		for step in plan["steps"]:
+			if f"{plan_id}.{step['id']}" not in selected_tests:
+				continue
 			missing = any(
 				not {"audio": audio, "braille": braille}[requirement] for requirement in step["requires"]
 			)
@@ -47,10 +58,11 @@ def complete_result(
 					"note": "test note" if step_status in {"fail", "blocked", "skipped"} else "",
 				}
 			)
-		result_plans.append({"id": plan_id, "profile": plan["profile"], "steps": steps})
+		if steps:
+			result_plans.append({"id": plan_id, "profile": plan["profile"], "steps": steps})
 	incomplete = status in {"pending", "blocked", "skipped"}
 	return {
-		"schemaVersion": 2,
+		"schemaVersion": 3,
 		"runId": "3bc529a4-d12c-44de-b581-6dc09696ab4f",
 		"createdAt": timestamp(),
 		"completedAt": "" if incomplete else timestamp(),
@@ -58,6 +70,7 @@ def complete_result(
 		"environment": {
 			"language": "de",
 			"suite": suite,
+			"selectedTests": sorted(selected_tests),
 			"neovimVersion": "NVIM v0.12.3",
 			"audio": audio,
 			"braille": braille,
@@ -81,12 +94,22 @@ class HumanTestFrameworkTests(unittest.TestCase):
 	def test_repository_plans_locales_dependencies_and_evidence_are_valid(self) -> None:
 		plans = validator.load_plans()
 		self.assertEqual(
-			{"blink-cmp", "diagnostics", "focus-isolation", "lsp-native", "nvim-cmp"},
+			{
+				"blink-cmp",
+				"c-diagnostics",
+				"diagnostics",
+				"focus-isolation",
+				"lsp-native",
+				"markdown-diagnostics",
+				"nvim-cmp",
+			},
 			set(plans),
 		)
 		self.assertEqual(set(validator.load_locales()["de"]), set(validator.load_locales()["en"]))
 		dependencies = validator.validate_dependencies()
 		self.assertRegex(dependencies["tools"]["pyrightSha512"], r"^[0-9a-f]{128}$")
+		self.assertEqual("22.1.8", dependencies["tools"]["clangTidy"])
+		self.assertEqual("0.23.2", dependencies["tools"]["markdownlintCli2"])
 		for plugin in dependencies["plugins"].values():
 			self.assertRegex(plugin["revision"], r"^[0-9a-f]{40}$")
 		smoke = sorted(
@@ -106,12 +129,21 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			[step["id"] for step in plans["lsp-native"]["steps"]],
 		)
 		self.assertEqual(1, len(plans["focus-isolation"]["steps"]))
+		self.assertEqual(
+			validator.ALLOWED_CATEGORIES,
+			{step["category"] for plan in plans.values() for step in plan["steps"]},
+		)
+		self.assertEqual(
+			validator.ALLOWED_PROFILES,
+			{plan["profile"] for plan in plans.values()},
+		)
 
 	def test_every_human_step_has_reason_and_automated_evidence(self) -> None:
 		for plan in validator.load_plans().values():
 			for step in plan["steps"]:
 				with self.subTest(plan=plan["id"], step=step["id"]):
 					self.assertTrue(step["manualReasons"])
+					self.assertIn(step["category"], validator.ALLOWED_CATEGORIES)
 					self.assertTrue(step["automatedEvidence"])
 					self.assertTrue(step["titleKey"])
 					self.assertTrue(step["contextKey"])
@@ -132,7 +164,15 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertLess(runner.index("Get-FileHash -LiteralPath $archive"), runner.index('"-xzf"'))
 		self.assertIn('"data\\nvim-data\\site\\pack\\core\\opt"', runner)
 		self.assertIn('"config\\nvim\\nvim-pack-lock.json"', runner)
+		self.assertIn('schemaVersion = 4', runner)
 		self.assertIn('schemaVersion = 3', runner)
+		self.assertIn('[string[]]$TestId = @()', runner)
+		self.assertIn('selectedTests = @(', runner)
+		self.assertIn('function Select-CustomTests', runner)
+		self.assertIn('$needsClangTidy = $profiles -contains "c-diagnostics"', runner)
+		self.assertIn('$needsMarkdownlint = $profiles -contains "markdown-diagnostics"', runner)
+		self.assertIn('"clang-tidy==$($dependencies.tools.clangTidy)"', runner)
+		self.assertIn('"markdownlint-cli2@$($dependencies.tools.markdownlintCli2)"', runner)
 		self.assertIn('environmentSha256 = Get-EnvironmentFingerprint', runner)
 		setup_cache = runner[
 			runner.index("function Test-SetupCurrent") : runner.index(
@@ -157,6 +197,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('$head = Invoke-OptionalExternalText', runner)
 		self.assertIn('$status = Invoke-OptionalExternalText', runner)
 		self.assertNotIn('& $git.Source -C $RepositoryRoot', runner)
+		run_plans = runner[runner.index("function Run-Plans") :]
+		self.assertLess(
+			run_plans.index('$script:SelectedTestIds = @($result.environment.selectedTests)'),
+			run_plans.index("Confirm-TestEnvironment"),
+		)
 		for plan in validator.load_plans().values():
 			self.assertEqual(validator.PLAN_FIELDS, set(plan))
 			for step in plan["steps"]:
@@ -164,25 +209,31 @@ class HumanTestFrameworkTests(unittest.TestCase):
 
 	def test_test_neovim_repeats_one_task_and_starts_diagnostics_on_error(self) -> None:
 		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
+		readiness = (HUMAN_ROOT / "framework" / "linter_readiness.lua").read_text(
+			encoding="utf-8"
+		)
 		self.assertIn('"<F2>"', configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
 		self.assertIn("{ 1, 15 }", configuration)
-		self.assertIn('lint.try_lint("ruff", { cwd = process_directory })', configuration)
+		self.assertIn('lint.try_lint(linter_name, { cwd = process_directory })', configuration)
 		self.assertIn('diagnostics_ready = "Diagnosen bereit:', configuration)
 		self.assertIn("local readiness_pending = false", configuration)
 		self.assertIn("local ready = vim.wait(15000", configuration)
-		self.assertIn("return ruff_categories_ready()", configuration)
+		self.assertIn("return linter_diagnostics_ready()", configuration)
 		self.assertIn('vim.env.TEMP or vim.env.TMP', configuration)
 		self.assertIn('table.insert(lint.linters.ruff.args, 2, "--isolated")', configuration)
-		self.assertIn('tostring(diagnostic.code) == "F401"', configuration)
-		self.assertIn('diagnostic.severity == vim.diagnostic.severity.WARN', configuration)
-		self.assertIn("diagnostic.lnum == 0", configuration)
-		self.assertIn("warning_count >= 2", configuration)
-		self.assertIn("first_line_warnings >= 2", configuration)
-		self.assertIn('tostring(diagnostic.code) == "F821"', configuration)
-		self.assertIn('diagnostic.severity == vim.diagnostic.severity.ERROR', configuration)
+		self.assertIn('dofile(vim.fs.joinpath(framework_root, "linter_readiness.lua"))', configuration)
+		self.assertIn("linter_readiness.evaluate(", configuration)
+		self.assertIn('text(diagnostic.code) == "F401"', readiness)
+		self.assertIn("warning_count >= 2", readiness)
+		self.assertIn("first_line_warnings >= 2", readiness)
+		self.assertIn('text(diagnostic.code) == "F821"', readiness)
+		self.assertIn('linter_name = "clangtidy"', configuration)
+		self.assertIn('text(diagnostic.code) == "clang-diagnostic-error"', readiness)
+		self.assertIn('linter_name = "markdownlint-cli2"', configuration)
+		self.assertIn('text(diagnostic.message):find("MD025"', readiness)
 		self.assertIn('reportUnusedImport = "none"', configuration)
 		self.assertNotIn("warning_starts_at_cursor", configuration)
 		self.assertIn('prepare_insert_probe("completion_probe = calculate_")', configuration)
@@ -214,6 +265,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		for candidate in ("calculate_total", "calculate_tax", "calculate_tip"):
 			self.assertIn(f"def {candidate}(", lsp_fixture)
 		self.assertEqual("from os import path, sep", diagnostic_fixture.splitlines()[0])
+		self.assertIn("return missing;", (HUMAN_ROOT / "fixtures" / "diagnostics.c").read_text())
+		self.assertEqual(
+			2,
+			(HUMAN_ROOT / "fixtures" / "diagnostics.md").read_text().count("# "),
+		)
 
 		locales = validator.load_locales()
 		for language in ("de", "en"):
@@ -238,11 +294,19 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("human-test-runner-windows:", workflow)
 		self.assertIn("runs-on: windows-2025", workflow)
 		self.assertIn("-DryRun", workflow)
+		self.assertIn('.\\tests\\human\\framework\\run.ps1 list -Language en', workflow)
+		self.assertIn('-TestId "c-diagnostics.clang-tidy-presentation"', workflow)
 		self.assertIn("63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad", workflow)
 
 	def test_definition_fingerprint_changes_with_human_test_inputs(self) -> None:
 		fingerprint = validator.definition_fingerprint()
 		self.assertRegex(fingerprint, r"^[0-9a-f]{64}$")
+		with mock.patch.object(validator, "_sha256_tree", return_value="fingerprint") as digest:
+			self.assertEqual("fingerprint", validator.definition_fingerprint())
+			self.assertIn(
+				validator.HUMAN_ROOT / "framework" / "linter_readiness.lua",
+				digest.call_args.args[1],
+			)
 		result = complete_result()
 		result["environment"]["definitionSha256"] = "0" * 64
 		with tempfile.TemporaryDirectory() as directory:
@@ -260,6 +324,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				{
 					validator.DEPENDENCIES_PATH,
 					validator.HUMAN_ROOT / "framework" / "init.lua",
+					validator.HUMAN_ROOT / "framework" / "linter_readiness.lua",
 				},
 				set(digest.call_args.args[1]),
 			)
@@ -309,6 +374,83 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			assessment = validator.validate_result(self.write_result(directory, complete_result()))
 		self.assertEqual("pass", assessment.state)
 		self.assertEqual(0, assessment.exit_code)
+
+	def test_custom_result_can_contain_one_individually_selected_task(self) -> None:
+		selected = {"markdown-diagnostics.markdownlint-presentation"}
+		with tempfile.TemporaryDirectory() as directory:
+			assessment = validator.validate_result(
+				self.write_result(
+					directory,
+					complete_result(suite="custom", selected_tests=selected),
+				)
+			)
+		self.assertEqual("pass", assessment.state)
+
+	def test_custom_result_supports_exact_subsets_within_and_across_plans(self) -> None:
+		selections = (
+			{
+				"diagnostics.navigation-presentation",
+				"diagnostics.held-diagnostics",
+			},
+			{
+				"c-diagnostics.clang-tidy-presentation",
+				"markdown-diagnostics.markdownlint-presentation",
+			},
+		)
+		for selected in selections:
+			with self.subTest(selected=sorted(selected)), tempfile.TemporaryDirectory() as directory:
+				assessment = validator.validate_result(
+					self.write_result(
+						directory,
+						complete_result(suite="custom", selected_tests=selected),
+					)
+				)
+				self.assertEqual("pass", assessment.state)
+
+	def test_custom_result_rejects_invalid_selection_lists(self) -> None:
+		selected = {"c-diagnostics.clang-tidy-presentation"}
+		cases = {}
+		empty = complete_result(suite="custom", selected_tests=selected)
+		empty["environment"]["selectedTests"] = []
+		cases["must not be empty"] = empty
+		duplicate = complete_result(suite="custom", selected_tests=selected)
+		duplicate["environment"]["selectedTests"].append(next(iter(selected)))
+		cases["contains duplicates"] = duplicate
+		unknown = complete_result(suite="custom", selected_tests=selected)
+		unknown["environment"]["selectedTests"] = ["unknown-profile.unknown-task"]
+		cases["contains unknown tests"] = unknown
+		for message, result in cases.items():
+			with self.subTest(message=message), tempfile.TemporaryDirectory() as directory:
+				path = self.write_result(directory, result)
+				with self.assertRaisesRegex(validator.ValidationError, message):
+					validator.validate_result(path)
+
+	def test_custom_result_must_exactly_match_selected_steps_and_profiles(self) -> None:
+		selected = {
+			"diagnostics.navigation-presentation",
+			"diagnostics.held-diagnostics",
+		}
+		missing = complete_result(suite="custom", selected_tests=selected)
+		missing["plans"][0]["steps"].pop()
+		wrong_profile = complete_result(suite="custom", selected_tests=selected)
+		wrong_profile["plans"][0]["profile"] = "native"
+		cases = {
+			"steps differ": missing,
+			"profile differs": wrong_profile,
+		}
+		for message, result in cases.items():
+			with self.subTest(message=message), tempfile.TemporaryDirectory() as directory:
+				path = self.write_result(directory, result)
+				with self.assertRaisesRegex(validator.ValidationError, message):
+					validator.validate_result(path)
+
+	def test_standard_suite_cannot_omit_a_selected_task(self) -> None:
+		result = complete_result()
+		result["environment"]["selectedTests"].pop()
+		with tempfile.TemporaryDirectory() as directory:
+			path = self.write_result(directory, result)
+			with self.assertRaisesRegex(validator.ValidationError, "selectedTests differ"):
+				validator.validate_result(path)
 
 	def test_failed_result_has_distinct_machine_exit(self) -> None:
 		with tempfile.TemporaryDirectory() as directory:

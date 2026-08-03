@@ -59,13 +59,16 @@ die Python oder Lua eindeutig vergleichen können, dürfen nicht zusätzlich von
 Menschen abgefragt werden.
 
 Der kurze `smoke`-Lauf umfasst nativen LSP/Completion,
-Diagnosepräsentation sowie Fokusisolation und Fail-open. nvim-cmp und blink.cmp
-liegen in einer optionalen `compatibility`-Suite. Versionierte DE/EN-Testkarten
+Diagnosepräsentation sowie Fokusisolation und Fail-open. nvim-cmp, blink.cmp
+und je ein kleiner C-/Clang-Tidy- und Markdown-/markdownlint-Test liegen in
+einer optionalen `compatibility`-Suite. Aufgaben besitzen feste Kategorien
+und können einzeln ausgewählt werden. Versionierte DE/EN-Testkarten
 werden durch einen isolierten PowerShell-Runner angezeigt; dieser verändert
 keine private `init.lua`. Jede offene Aufgabe erhält eine frische
 Test-Neovim-Sitzung und kann dort mit `F2` erneut angezeigt werden. Ergebnisse
 werden nach jeder Aufgabe als validierbares JSON unter dem ignorierten `tmp/`
-gesichert. Eine technische Vorprüfung realer Provider und ein Windows-CI-Lauf
+gesichert; die exakten ausgewählten Aufgaben-IDs sind Teil des Ergebnisses.
+Eine technische Vorprüfung realer Provider und ein Windows-CI-Lauf
 des PowerShell-Runners fangen maschinell erkennbare Fehler ab. Einrichtung,
 Bedienung, Fortsetzen und maschinelle Exitcodes beschreibt die
 [Testerdokumentation](human-testing.md).

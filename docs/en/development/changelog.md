@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Groups guided practical-test tasks into four understandable categories and
+  permits machine-checkable individual selection through the menu or a stable
+  task ID. The optional compatibility suite adds one small reality check each
+  for C with Clang-Tidy and Markdown with markdownlint. Exactly pinned tools
+  are installed only when a matching test is selected, and existing versions
+  are reused.
 - Fixes SSH session discovery when interactive Neovim and the bridge's later
   non-interactive command observe different runtime environments. The bridge
   now scans the configured runtime directory, the safe user-owned

@@ -43,8 +43,16 @@ verändert.
 | Suite | Inhalt | Wann ausführen? |
 | --- | --- | --- |
 | `smoke` | nativer LSP und Completion, Ruff-Diagnosen, Fokusisolation und Fail-open | üblicher Praxistest; empfohlen, etwa 10 bis 15 Minuten |
-| `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp | nach Änderungen an diesen Plugins, ihren Adaptern oder Abhängigkeiten |
+| `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp sowie je eine C-/Clang-Tidy- und Markdown-/markdownlint-Diagnose | nach Änderungen an Adaptern, Linterintegration oder Abhängigkeiten |
 | `all` | beide Suiten in einem Ergebnis | nur wenn beide Bereiche betroffen sind |
+| individuelle Auswahl | einzelne Aufgaben, im Menü nach Kategorien gruppiert | gezielte Nachprüfung eines betroffenen Bereichs; spart Zeit und unnötige Downloads |
+
+| Kategorie der Einzelauswahl | Beispiele |
+| --- | --- |
+| LSP und Sprachintelligenz | LSP-Status und Funktionssignaturen |
+| Vervollständigung | native Completion, nvim-cmp und blink.cmp |
+| Diagnosen und Linter | Ruff, Clang-Tidy und markdownlint |
+| Sitzung und Terminalintegration | Fokusisolation und Fail-open |
 
 Die Standardaufgaben laufen immer in dieser Reihenfolge: nativer LSP,
 Diagnosen, danach Fokusisolation. Fehlende Audioausgabe oder eine fehlende
@@ -115,6 +123,9 @@ Im Startmenü **Neuen kurzen Standardtest starten** wählen. Dieser Menüpunkt
 beginnt bewusst eine neue JSON-Datei; nach einem Abbruch stattdessen
 **Unvollständigen Lauf fortsetzen** wählen. Bei einer falschen
 Eingabe bleibt das Menü geöffnet und bittet erneut um eine gültige Nummer.
+Für eine gezielte Nachprüfung stattdessen **Einzelne Testaufgaben nach
+Kategorie auswählen** wählen. Eine Nummer schaltet die jeweilige Aufgabe ein
+oder aus; `S` startet nur die markierten Aufgaben.
 
 ### 3. Ausstattung angeben
 
@@ -169,7 +180,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 | `F1` | aktiven LSP-Status durch Access Link ausgeben |
 | `F3`, danach `F5` | vorbereitete Completion-Stelle mit mindestens drei Kandidaten öffnen; `F3` wechselt automatisch in den Einfügemodus |
 | `F5` im Diagnoseprofil | auf eine vorbereitete fehlerfreie Position wechseln und dort ausdrücklich die aktuelle Diagnose abfragen |
-| `F6` | Ruff für die Diagnose-Fixture erneut ausführen |
+| `F6` | den für die Aufgabe ausgewählten Linter ausführen und auf dessen Bereitschaft warten |
 | `F7` | Diagnose an der aktuellen Position ausgeben |
 | `F8` / `F9` | zur vorherigen beziehungsweise nächsten Diagnose springen |
 | `Escape`, dann `F10` | Test-Neovim ohne Speichern schließen und zu PowerShell zurückkehren |
@@ -187,7 +198,7 @@ referenzierten Dateien. Beim ersten Lauf richtet er unter
 
 | Bestandteil | Verwendung |
 | --- | --- |
-| festgelegte Versionen von Pyright und Ruff | reproduzierbare LSP- und Diagnoseantworten |
+| festgelegte Versionen von Pyright, Ruff, Clang-Tidy und markdownlint-cli2 | reproduzierbare LSP- und Diagnoseantworten; installiert werden nur die für die Auswahl benötigten Werkzeuge |
 | festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und blink.cmp | reproduzierbare Provider- und Completion-Kompatibilität |
 | eigene Neovim-Konfigurations-, Daten-, Zustands- und Cacheverzeichnisse | vollständige Trennung von der persönlichen Neovim-Umgebung |
 
@@ -195,19 +206,22 @@ Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
 Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
 Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
 
-Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die
-installierten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
+Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die für die
+Auswahl benötigten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
 an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen deshalb keine neue
-Einrichtung aus. Stimmen Ruff, Pyright und Plugins bereits, werden sie ohne
-Paketinstallation wiederverwendet; nur die nötige technische Vorprüfung wird
-nach relevanten Laufzeitänderungen wiederholt.
+Einrichtung aus. Stimmen die benötigten Werkzeuge und Plugins bereits, werden
+sie ohne Paketinstallation wiederverwendet. Clang-Tidy und markdownlint werden
+bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
+technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
+relevanten Laufzeitänderungen wiederholt.
 
-Danach startet eine technische Vorprüfung jedes Testprofils. Sie wartet
-tatsächlich auf einen angehängten Pyright-Client. In den Completion-Profilen
+Danach startet eine technische Vorprüfung jedes ausgewählten Testprofils. Bei
+LSP-Aufgaben wartet sie tatsächlich auf einen angehängten Pyright-Client. In den Completion-Profilen
 fordert sie die drei benannten Kandidaten ab; im nativen LSP-Profil zusätzlich
 mindestens zwei Signaturen mit jeweils drei Parametern. Im Diagnoseprofil
 erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
-einen Ruff-F821-Fehler. Ein menschlicher Tester wird erst zu einer
+einen Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
+Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Ein menschlicher Tester wird erst zu einer
 Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren Grundlagen
 funktionieren.
 
@@ -271,7 +285,7 @@ Aufgezeichnet werden:
 | Bereich | Aufgezeichnete Angaben |
 | --- | --- |
 | Lauf | Lauf-ID, Erstellungs- und Abschlusszeit |
-| Auswahl | Suite, Sprache und angegebene Audio-/Brailleausstattung |
+| Auswahl | Suite, exakte stabile Aufgaben-IDs, Sprache und angegebene Audio-/Brailleausstattung |
 | Quellstand | Git-Commit und Dirty-Zustand des Repositorys |
 | Laufzeitversionen | Neovim-, installierte Add-on- und laufende NVDA-Version, soweit auffindbar |
 | Konsistenz | Fingerabdrücke der Testdefinition und des installierten Neovim-Plugins |
@@ -302,15 +316,19 @@ python3 tests/human/framework/validate.py result tmp/human-test-results/BEISPIEL
 | `2` | vollständig, aber mindestens eine Aufgabe fehlgeschlagen |
 | `3` | offen, blockiert oder übersprungen und daher unvollständig |
 
-## Optionale Completion-Kompatibilität
+## Optionale Kompatibilitäts- und Einzeltests
 
-Nach Änderungen an nvim-cmp, blink.cmp oder den Access-Link-Adaptern im
-Startmenü **Optionale Completion-Kompatibilität testen** wählen. Jede Aufgabe
-startet auch dort einzeln. Die wichtigsten direkten Aufrufe sind:
+Nach Änderungen an nvim-cmp, blink.cmp, der Linterintegration oder den
+Access-Link-Adaptern im Startmenü **Optionale Kompatibilitätstests starten
+(Completion, C und Markdown)** wählen. Sie enthält zusätzlich je einen kleinen C- und
+Markdown-Realitätscheck. Jede Aufgabe startet einzeln. Die wichtigsten
+direkten Aufrufe sind:
 
 | Ziel | PowerShell-Aufruf |
 | --- | --- |
 | Standard- und Kompatibilitätsaufgaben gemeinsam | `.\tests\human\framework\run.ps1 run -Suite all` |
+| genau den C-Diagnosetest ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId c-diagnostics.clang-tidy-presentation` |
+| zwei bestimmte Aufgaben ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId lsp-native.status-presentation,markdown-diagnostics.markdownlint-presentation` |
 | Benutzeroberfläche ausdrücklich auf Deutsch setzen | `.\tests\human\framework\run.ps1 -Language de` |
 | Benutzeroberfläche ausdrücklich auf Englisch setzen | `.\tests\human\framework\run.ps1 -Language en` |
 
@@ -327,7 +345,7 @@ Wenn Access Link nicht verbindet:
 4. dort `F12` genau einmal drücken und kurz warten;
 5. mit `Escape`, `F2` prüfen, ob die aktuelle Aufgabe ausgegeben wird.
 
-Wenn Pyright, Ruff oder ein Completion-Plugin fehlt, den Menüpunkt
+Wenn Pyright, ein Linter oder ein Completion-Plugin fehlt, den Menüpunkt
 **Testabhängigkeiten einrichten oder reparieren** verwenden. Schlägt dessen
 technische Vorprüfung fehl, ist das ein Einrichtungsproblem und noch kein
 menschlich zu bewertender Testfehler.
@@ -344,7 +362,8 @@ Die kompakte Implementierung liegt unter `tests/human/`:
 | `dependencies.json` | festgelegte Fremdversionen und Revisionen |
 | `framework/` | Runner, Validator und isolierte Neovim-Konfiguration |
 
-Eine neue menschliche Aufgabe benötigt einen Grund, der nicht zuverlässig
+Eine neue menschliche Aufgabe erhält eine der vier festen Kategorien und
+benötigt einen Grund, der nicht zuverlässig
 automatisierbar ist, und verweist auf verwandte automatisierte Evidenz. Kann
 Code das Ergebnis eindeutig entscheiden, gehört der Fall in einen
 automatisierten Test. Definitionen werden geprüft mit:

@@ -4,19 +4,25 @@
 local profile = (vim.env.ACCESS_LINK_HUMAN_PROFILE or "native"):lower()
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
+local configuration_source = assert(debug.getinfo(1, "S").source)
+assert(configuration_source:sub(1, 1) == "@", "human-test init path is unavailable")
+local framework_root = vim.fs.dirname(configuration_source:sub(2))
+local linter_readiness = dofile(vim.fs.joinpath(framework_root, "linter_readiness.lua"))
 local human_messages = language == "de" and {
-  diagnostics_waiting = "Ruff-Diagnosen werden ermittelt. Bitte warten.",
-  diagnostics_ready = "Diagnosen bereit: %d Ruff-Diagnosen, davon %d in der ersten Zeile. Jetzt F7 drücken.",
-  diagnostics_not_ready = "Ruff-Diagnosen wurden nicht rechtzeitig bereit.",
+  diagnostics_waiting = "%s-Diagnosen werden ermittelt. Bitte warten.",
+  diagnostics_ready = "Diagnosen bereit: %d von %s, davon %d an der Testposition. Jetzt F7 drücken.",
+  diagnostics_not_ready = "%s-Diagnosen wurden nicht rechtzeitig bereit.",
 } or {
-  diagnostics_waiting = "Waiting for Ruff diagnostics.",
-  diagnostics_ready = "Diagnostics ready: %d Ruff diagnostics, including %d on the first line. Press F7 now.",
-  diagnostics_not_ready = "Ruff diagnostics did not become ready in time.",
+  diagnostics_waiting = "Waiting for %s diagnostics.",
+  diagnostics_ready = "Diagnostics ready: %d from %s, including %d at the test position. Press F7 now.",
+  diagnostics_not_ready = "%s diagnostics did not become ready in time.",
 }
 local valid_profiles = {
   setup = true,
   native = true,
   diagnostics = true,
+  ["c-diagnostics"] = true,
+  ["markdown-diagnostics"] = true,
   cmp = true,
   blink = true,
   focus = true,
@@ -74,7 +80,8 @@ if not dry_run then
   local function add(key, name)
     specifications[#specifications + 1] = dependency_spec(dependencies, key, name)
   end
-  if profile == "setup" or profile == "diagnostics" then
+  if profile == "setup" or profile == "diagnostics"
+      or profile == "c-diagnostics" or profile == "markdown-diagnostics" then
     add("nvimLint", "nvim-lint")
   end
   if profile == "setup" or profile == "cmp" then
@@ -138,7 +145,8 @@ end
 
 local run_linter = nil
 local run_linter_with_feedback = nil
-local ruff_categories_ready = nil
+local linter_diagnostics_ready = nil
+local linter_display_name = nil
 
 vim.keymap.set("n", "<F1>", function()
   access_link_command("NvimNvdaLspStatus")
@@ -240,94 +248,107 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
-local pyright = assert(vim.env.ACCESS_LINK_HUMAN_PYRIGHT,
-  "ACCESS_LINK_HUMAN_PYRIGHT is required")
-vim.lsp.config("pyright", {
-  cmd = { pyright, "--stdio" },
-  capabilities = capabilities,
-  root_markers = { "pyrightconfig.json" },
-  settings = {
-    python = {
-      analysis = {
-        autoSearchPaths = true,
-        diagnosticMode = "openFilesOnly",
-        diagnosticSeverityOverrides = {
-          reportUnusedImport = "none",
+local uses_pyright = profile == "native" or profile == "diagnostics"
+  or profile == "cmp" or profile == "blink" or profile == "focus"
+if uses_pyright then
+  local pyright = assert(vim.env.ACCESS_LINK_HUMAN_PYRIGHT,
+    "ACCESS_LINK_HUMAN_PYRIGHT is required")
+  vim.lsp.config("pyright", {
+    cmd = { pyright, "--stdio" },
+    capabilities = capabilities,
+    root_markers = { "pyrightconfig.json" },
+    settings = {
+      python = {
+        analysis = {
+          autoSearchPaths = true,
+          diagnosticMode = "openFilesOnly",
+          diagnosticSeverityOverrides = {
+            reportUnusedImport = "none",
+          },
+          typeCheckingMode = "strict",
+          useLibraryCodeForTypes = true,
         },
-        typeCheckingMode = "strict",
-        useLibraryCodeForTypes = true,
       },
     },
-  },
-})
-vim.lsp.enable("pyright")
+  })
+  vim.lsp.enable("pyright")
+end
 
-if profile == "diagnostics" then
+local uses_linter = profile == "diagnostics" or profile == "c-diagnostics"
+  or profile == "markdown-diagnostics"
+if uses_linter then
   local lint = require("lint")
-  local ruff = assert(vim.env.ACCESS_LINK_HUMAN_RUFF,
-    "ACCESS_LINK_HUMAN_RUFF is required")
-  lint.linters_by_ft = { python = { "ruff" } }
-  lint.linters.ruff.cmd = ruff
-  table.insert(lint.linters.ruff.args, 2, "--isolated")
-  table.insert(lint.linters.ruff.args, 3, "--no-cache")
-  run_linter = function()
-    -- cmd.exe cannot reliably use a UNC directory as its working directory.
-    -- nvim-lint passes the absolute buffer name to Ruff, so a local process
-    -- directory does not change which file or contents are checked.
-    local process_directory = vim.env.TEMP or vim.env.TMP or vim.uv.cwd()
-    lint.try_lint("ruff", { cwd = process_directory })
+  local linter_name
+  local process_directory = vim.env.TEMP or vim.env.TMP or vim.uv.cwd()
+
+  if profile == "diagnostics" then
+    linter_name = "ruff"
+    linter_display_name = "Ruff"
+    lint.linters_by_ft = { python = { linter_name } }
+    lint.linters.ruff.cmd = assert(vim.env.ACCESS_LINK_HUMAN_RUFF,
+      "ACCESS_LINK_HUMAN_RUFF is required")
+    table.insert(lint.linters.ruff.args, 2, "--isolated")
+    table.insert(lint.linters.ruff.args, 3, "--no-cache")
+  elseif profile == "c-diagnostics" then
+    linter_name = "clangtidy"
+    linter_display_name = "Clang-Tidy"
+    lint.linters_by_ft = { c = { linter_name } }
+    lint.linters.clangtidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
+      "ACCESS_LINK_HUMAN_CLANG_TIDY is required")
+  else
+    linter_name = "markdownlint-cli2"
+    linter_display_name = "markdownlint"
+    lint.linters_by_ft = { markdown = { linter_name } }
+    local markdownlint = lint.linters["markdownlint-cli2"]
+    markdownlint.cmd = assert(vim.env.ACCESS_LINK_HUMAN_MARKDOWNLINT,
+      "ACCESS_LINK_HUMAN_MARKDOWNLINT is required")
+    markdownlint.args = {
+      "--config", vim.fs.joinpath(vim.fn.getcwd(), ".markdownlint.json"), "-",
+    }
   end
 
-  ruff_categories_ready = function()
-    local warning_count = 0
-    local first_line_warnings = 0
-    local error_found = false
-    local count = 0
-    for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
-      if tostring(diagnostic.source):lower():find("ruff", 1, true) then
-        count = count + 1
-        if tostring(diagnostic.code) == "F401"
-            and diagnostic.severity == vim.diagnostic.severity.WARN then
-          warning_count = warning_count + 1
-          if diagnostic.lnum == 0 then
-            first_line_warnings = first_line_warnings + 1
-          end
-        elseif tostring(diagnostic.code) == "F821"
-            and diagnostic.severity == vim.diagnostic.severity.ERROR then
-          error_found = true
-        end
-      end
-    end
-    return warning_count >= 2 and error_found and first_line_warnings >= 2,
-      count, first_line_warnings
+  linter_diagnostics_ready = function()
+    return linter_readiness.evaluate(
+      profile,
+      vim.diagnostic.get(0),
+      vim.diagnostic.severity
+    )
+  end
+
+  run_linter = function()
+    -- cmd.exe cannot reliably use a UNC directory as its working directory.
+    -- Every configured provider receives either an absolute filename or stdin.
+    lint.try_lint(linter_name, { cwd = process_directory })
   end
 
   local readiness_pending = false
   run_linter_with_feedback = function()
     if readiness_pending then
-      vim.notify(human_messages.diagnostics_waiting)
+      vim.notify(string.format(human_messages.diagnostics_waiting, linter_display_name))
       return
     end
     readiness_pending = true
-    vim.notify(human_messages.diagnostics_waiting)
+    vim.notify(string.format(human_messages.diagnostics_waiting, linter_display_name))
     run_linter()
     vim.schedule(function()
       local ready = vim.wait(15000, function()
-        return ruff_categories_ready()
+        return linter_diagnostics_ready()
       end, 50)
       readiness_pending = false
       if ready then
-        local _, count, first_line_count = ruff_categories_ready()
+        local _, count, position_count = linter_diagnostics_ready()
         vim.notify(string.format(
-          human_messages.diagnostics_ready, count, first_line_count
+          human_messages.diagnostics_ready, count, linter_display_name, position_count
         ))
       else
-        vim.notify(human_messages.diagnostics_not_ready, vim.log.levels.ERROR)
+        vim.notify(string.format(
+          human_messages.diagnostics_not_ready, linter_display_name
+        ), vim.log.levels.ERROR)
       end
     end)
   end
   vim.api.nvim_create_user_command("AccessLinkHumanLint", run_linter, {
-    desc = "Run the isolated Ruff diagnostic provider",
+    desc = "Run the isolated diagnostic provider",
   })
   vim.api.nvim_create_autocmd("BufReadPost", {
     group = vim.api.nvim_create_augroup("AccessLinkHumanLint", { clear = true }),
@@ -366,6 +387,13 @@ local function fixture_cursor(name)
     end
   elseif name == "diagnostics.py" then
     return { 1, 15 }
+  elseif name == "diagnostics.c" then
+    for line_number, line in ipairs(lines) do
+      local byte = line:find("missing", 1, true)
+      if byte then return { line_number, byte - 1 } end
+    end
+  elseif name == "diagnostics.md" then
+    return { 3, 2 }
   end
   return nil
 end
@@ -473,28 +501,29 @@ local function assert_completion_profile_ready()
 end
 
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
-  local attached = vim.wait(15000, function()
-    return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
-  end, 50)
-  assert(attached, "Pyright did not attach to the human-test fixture")
-  local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
-  assert(client:supports_method("textDocument/completion"),
-    "Pyright does not advertise completion support")
-  assert_completion_profile_ready()
-  if profile == "native" then
-    assert_callable_choices_ready()
+  if uses_pyright then
+    local attached = vim.wait(15000, function()
+      return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
+    end, 50)
+    assert(attached, "Pyright did not attach to the human-test fixture")
+    local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
+    assert(client:supports_method("textDocument/completion"),
+      "Pyright does not advertise completion support")
+    assert_completion_profile_ready()
+    if profile == "native" then
+      assert_callable_choices_ready()
+    end
+    if profile == "native" or profile == "cmp" or profile == "blink" then
+      assert_completion_choices_ready()
+    end
   end
-  if profile == "native" or profile == "cmp" or profile == "blink" then
-    assert_completion_choices_ready()
-  end
-  if profile == "diagnostics" then
-    assert(run_linter, "the diagnostic profile did not configure Ruff")
+  if uses_linter then
+    assert(run_linter, "the diagnostic profile did not configure its linter")
     run_linter()
     local categorized = vim.wait(15000, function()
-      return ruff_categories_ready()
+      return linter_diagnostics_ready()
     end, 50)
-    assert(categorized,
-      "Ruff did not publish two first-line F401 warnings and an F821 error")
+    assert(categorized, linter_display_name .. " did not publish the expected diagnostic")
   end
   vim.g.access_link_human_preflight_ready = 1
 end, { desc = "Verify real providers for the guided human-test profile" })
@@ -508,7 +537,8 @@ vim.api.nvim_create_autocmd("BufWinEnter", {
         return
       end
       local name = vim.fs.basename(vim.api.nvim_buf_get_name(event.buf))
-      if name == "lsp_features.py" or name == "diagnostics.py" then
+      if name == "lsp_features.py" or name == "diagnostics.py"
+          or name == "diagnostics.c" or name == "diagnostics.md" then
         move_to_fixture_cursor(name)
       end
     end)

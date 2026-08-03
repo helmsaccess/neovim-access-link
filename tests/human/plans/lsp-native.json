@@ -10,6 +10,7 @@
   "steps": [
     {
       "id": "status-presentation",
+      "category": "language-intelligence",
       "titleKey": "plan.lspNative.status.title",
       "contextKey": "plan.lspNative.context",
       "actionKey": "plan.lspNative.status.action",
@@ -20,6 +21,7 @@
     },
     {
       "id": "held-parameters",
+      "category": "language-intelligence",
       "titleKey": "plan.lspNative.parameters.title",
       "contextKey": "plan.lspNative.parameters.context",
       "actionKey": "plan.lspNative.parameters.action",
@@ -33,6 +35,7 @@
     },
     {
       "id": "completion-presentation",
+      "category": "completion",
       "titleKey": "plan.lspNative.completion.title",
       "contextKey": "plan.lspNative.completion.context",
       "actionKey": "plan.lspNative.completion.action",

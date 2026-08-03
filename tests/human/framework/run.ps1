@@ -4,8 +4,10 @@ param(
     [ValidateSet("menu", "run", "setup", "list", "verify", "clean")]
     [string]$Action = "menu",
 
-    [ValidateSet("smoke", "compatibility", "all")]
+    [ValidateSet("smoke", "compatibility", "all", "custom")]
     [string]$Suite = "smoke",
+
+    [string[]]$TestId = @(),
 
     [ValidateSet("auto", "de", "en")]
     [string]$Language = "auto",
@@ -34,15 +36,23 @@ $PythonRoot = Join-Path $StateRoot "python"
 $PythonScripts = Join-Path $PythonRoot "Scripts"
 $VenvPython = Join-Path $PythonScripts "python.exe"
 $RuffPath = Join-Path $PythonScripts "ruff.exe"
+$ClangTidyPath = Join-Path $PythonScripts "clang-tidy.exe"
 $NodeRoot = Join-Path $StateRoot "node"
 $NodeBin = Join-Path $NodeRoot "node_modules\.bin"
 $PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
 $PyrightPath = Join-Path $NodeBin "pyright-langserver.cmd"
+$MarkdownlintRoot = Join-Path $StateRoot "markdownlint"
+$MarkdownlintBin = Join-Path $MarkdownlintRoot "node_modules\.bin"
+$MarkdownlintPath = Join-Path $MarkdownlintBin "markdownlint-cli2.cmd"
 $PackageRoot = Join-Path $StateRoot "packages"
 $ManagedPluginsRoot = Join-Path $StateRoot "data\nvim-data\site\pack\core\opt"
 $PackLockPath = Join-Path $StateRoot "config\nvim\nvim-pack-lock.json"
 $TestGitConfig = Join-Path $StateRoot "gitconfig"
 $SetupMarker = Join-Path $StateRoot "setup.json"
+$SelectedTestIds = @($TestId | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($SelectedTestIds.Count -gt 0) {
+    $Suite = "custom"
+}
 
 if ([string]::IsNullOrWhiteSpace($AccessLinkPlugin)) {
     $AccessLinkPlugin = Join-Path $env:LOCALAPPDATA `
@@ -367,8 +377,8 @@ function Assert-Definitions {
     $null = Invoke-Python @($ValidatorPath, "plans")
 }
 
-function Get-Plans {
-    $plans = @(
+function Get-AllPlans {
+    return @(
         Get-ChildItem -LiteralPath $PlansRoot -Filter "*.json" -File |
             ForEach-Object {
                 Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 |
@@ -376,10 +386,58 @@ function Get-Plans {
             } |
             Sort-Object { [int]$_.order }
     )
+}
+
+function Get-Plans {
+    $plans = @(Get-AllPlans)
     if ($Suite -eq "all") {
         return $plans
     }
+    if ($Suite -eq "custom") {
+        if ($SelectedTestIds.Count -eq 0) {
+            throw (Get-Message "runner.selector.none")
+        }
+        $available = @{}
+        foreach ($plan in $plans) {
+            foreach ($step in @($plan.steps)) {
+                $available["$($plan.id).$($step.id)"] = $true
+            }
+        }
+        $unknown = @($SelectedTestIds | Where-Object { -not $available.ContainsKey($_) })
+        if ($unknown.Count -gt 0) {
+            throw "Unknown human test ID: $($unknown -join ', ')"
+        }
+        $selectedPlans = @()
+        foreach ($plan in $plans) {
+            $selectedSteps = @(
+                $plan.steps | Where-Object {
+                    $SelectedTestIds -contains "$($plan.id).$($_.id)"
+                }
+            )
+            if ($selectedSteps.Count -gt 0) {
+                $selectedPlans += [PSCustomObject]@{
+                    schemaVersion = $plan.schemaVersion
+                    id = $plan.id
+                    order = $plan.order
+                    titleKey = $plan.titleKey
+                    descriptionKey = $plan.descriptionKey
+                    suites = $plan.suites
+                    profile = $plan.profile
+                    fixture = $plan.fixture
+                    steps = $selectedSteps
+                }
+            }
+        }
+        return $selectedPlans
+    }
     return @($plans | Where-Object { @($_.suites) -contains $Suite })
+}
+
+function Get-SelectedProfiles {
+    return @(
+        Get-Plans | ForEach-Object { [string]$_.profile } |
+            Sort-Object -Unique
+    )
 }
 
 function Get-ResumableResultPaths {
@@ -393,7 +451,7 @@ function Get-ResumableResultPaths {
                 try {
                     $candidate = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 |
                         ConvertFrom-Json
-                    if ([int]$candidate.schemaVersion -ne 2) {
+                    if ([int]$candidate.schemaVersion -ne 3) {
                         return $false
                     }
                     $statuses = @(
@@ -464,17 +522,88 @@ function Ask-Boolean {
     }
 }
 
+function Select-CustomTests {
+    $categories = @(
+        "language-intelligence",
+        "completion",
+        "diagnostics",
+        "session-integration"
+    )
+    $tasks = @(
+        foreach ($plan in Get-AllPlans) {
+            foreach ($step in @($plan.steps)) {
+                [PSCustomObject]@{
+                    Id = "$($plan.id).$($step.id)"
+                    Category = [string]$step.category
+                    Title = Get-Message ([string]$step.titleKey)
+                }
+            }
+        }
+    )
+    $selected = @{}
+    while ($true) {
+        Write-Step (Get-Message "runner.selector.title")
+        Write-Host (Get-Message "runner.selector.help")
+        $number = 0
+        foreach ($category in $categories) {
+            Write-Host ""
+            Write-Host (Get-Message "category.$category") -ForegroundColor Yellow
+            foreach ($task in @($tasks | Where-Object { $_.Category -eq $category })) {
+                $number += 1
+                $mark = if ($selected.ContainsKey($task.Id)) { "x" } else { " " }
+                Write-Host "$number  [$mark] $($task.Title) ($($task.Id))"
+            }
+        }
+        Write-Host ""
+        Write-Host "$(Get-Message 'runner.selector.selected'): $($selected.Count)"
+        $choice = (Read-Host (Get-Message "runner.menu.prompt")).Trim()
+        $normalized = $choice.ToUpperInvariant()
+        if ($choice -eq "0") {
+            return @()
+        }
+        if ($normalized -eq "A") {
+            foreach ($task in $tasks) { $selected[$task.Id] = $true }
+            continue
+        }
+        if ($normalized -eq "N") {
+            $selected = @{}
+            continue
+        }
+        if ($normalized -eq "S") {
+            if ($selected.Count -eq 0) {
+                Write-Host (Get-Message "runner.selector.none") -ForegroundColor Yellow
+                continue
+            }
+            return @($tasks | Where-Object { $selected.ContainsKey($_.Id) } |
+                ForEach-Object { $_.Id })
+        }
+        $taskNumber = 0
+        if ([int]::TryParse($choice, [ref]$taskNumber) -and
+            $taskNumber -ge 1 -and $taskNumber -le $tasks.Count) {
+            $task = $tasks[$taskNumber - 1]
+            if ($selected.ContainsKey($task.Id)) {
+                $null = $selected.Remove($task.Id)
+            } else {
+                $selected[$task.Id] = $true
+            }
+            continue
+        }
+        Write-Host (Get-Message "runner.invalidChoice") -ForegroundColor Yellow
+    }
+}
+
 function Show-Menu {
     while ($true) {
         Write-Step (Get-Message "runner.title")
         Write-Host "1  $(Get-Message 'runner.menu.smoke')"
         Write-Host "2  $(Get-Message 'runner.menu.compatibility')"
         Write-Host "3  $(Get-Message 'runner.menu.all')"
-        Write-Host "4  $(Get-Message 'runner.menu.resume')"
-        Write-Host "5  $(Get-Message 'runner.menu.setup')"
-        Write-Host "6  $(Get-Message 'runner.menu.list')"
-        Write-Host "7  $(Get-Message 'runner.menu.verify')"
-        Write-Host "8  $(Get-Message 'runner.menu.clean')"
+        Write-Host "4  $(Get-Message 'runner.menu.custom')"
+        Write-Host "5  $(Get-Message 'runner.menu.resume')"
+        Write-Host "6  $(Get-Message 'runner.menu.setup')"
+        Write-Host "7  $(Get-Message 'runner.menu.list')"
+        Write-Host "8  $(Get-Message 'runner.menu.verify')"
+        Write-Host "9  $(Get-Message 'runner.menu.clean')"
         Write-Host "0  $(Get-Message 'runner.menu.exit')"
         $choice = Read-Host (Get-Message "runner.menu.prompt")
         switch ($choice) {
@@ -482,6 +611,15 @@ function Show-Menu {
             "2" { $script:Action = "run"; $script:Suite = "compatibility"; return $true }
             "3" { $script:Action = "run"; $script:Suite = "all"; return $true }
             "4" {
+                $selected = @(Select-CustomTests)
+                if ($selected.Count -gt 0) {
+                    $script:SelectedTestIds = $selected
+                    $script:Action = "run"
+                    $script:Suite = "custom"
+                    return $true
+                }
+            }
+            "5" {
                 $selected = Select-ResumableResult
                 if (-not [string]::IsNullOrWhiteSpace($selected)) {
                     $script:Action = "run"
@@ -489,10 +627,10 @@ function Show-Menu {
                     return $true
                 }
             }
-            "5" { $script:Action = "setup"; return $true }
-            "6" { $script:Action = "list"; return $true }
-            "7" { $script:Action = "verify"; return $true }
-            "8" { $script:Action = "clean"; return $true }
+            "6" { $script:Action = "setup"; return $true }
+            "7" { $script:Action = "list"; return $true }
+            "8" { $script:Action = "verify"; return $true }
+            "9" { $script:Action = "clean"; return $true }
             "0" { return $false }
             default {
                 Write-Host (Get-Message "runner.invalidChoice") -ForegroundColor Yellow
@@ -563,6 +701,8 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_DEPENDENCIES",
         "ACCESS_LINK_HUMAN_PYRIGHT",
         "ACCESS_LINK_HUMAN_RUFF",
+        "ACCESS_LINK_HUMAN_CLANG_TIDY",
+        "ACCESS_LINK_HUMAN_MARKDOWNLINT",
         "ACCESS_LINK_HUMAN_DRY_RUN",
         "ACCESS_LINK_HUMAN_CONTEXT",
         "ACCESS_LINK_HUMAN_TASK",
@@ -585,6 +725,8 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_DEPENDENCIES = $DependenciesPath
         $env:ACCESS_LINK_HUMAN_PYRIGHT = $PyrightPath
         $env:ACCESS_LINK_HUMAN_RUFF = $RuffPath
+        $env:ACCESS_LINK_HUMAN_CLANG_TIDY = $ClangTidyPath
+        $env:ACCESS_LINK_HUMAN_MARKDOWNLINT = $MarkdownlintPath
         $env:ACCESS_LINK_HUMAN_DRY_RUN = if ($ConfigurationDryRun) { "1" } else { $null }
         $env:ACCESS_LINK_HUMAN_CONTEXT = $Context
         $env:ACCESS_LINK_HUMAN_TASK = $Task
@@ -596,7 +738,7 @@ function Invoke-TestNvim {
         $env:XDG_DATA_HOME = Join-Path $StateRoot "data"
         $env:XDG_STATE_HOME = Join-Path $StateRoot "nvim-state"
         $env:XDG_CACHE_HOME = Join-Path $StateRoot "cache"
-        $env:Path = "$PythonScripts;$NodeBin;$($saved['Path'])"
+        $env:Path = "$PythonScripts;$NodeBin;$MarkdownlintBin;$($saved['Path'])"
         foreach ($directory in @(
             $env:XDG_CONFIG_HOME,
             $env:XDG_DATA_HOME,
@@ -644,30 +786,61 @@ function Invoke-TestNvim {
 }
 
 function Test-SetupCurrent {
+    $profiles = @(Get-SelectedProfiles)
+    $needsPyright = @($profiles | Where-Object {
+        @("native", "diagnostics", "cmp", "blink", "focus") -contains $_
+    }).Count -gt 0
+    $needsRuff = $profiles -contains "diagnostics"
+    $needsClangTidy = $profiles -contains "c-diagnostics"
+    $needsMarkdownlint = $profiles -contains "markdown-diagnostics"
     if (-not (Test-Path -LiteralPath $SetupMarker -PathType Leaf) -or
         -not (Test-Path -LiteralPath $VenvPython -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $RuffPath -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $PyrightPath -PathType Leaf)) {
+        ($needsRuff -and -not (Test-Path -LiteralPath $RuffPath -PathType Leaf)) -or
+        ($needsClangTidy -and -not (Test-Path -LiteralPath $ClangTidyPath -PathType Leaf)) -or
+        ($needsMarkdownlint -and -not (Test-Path -LiteralPath $MarkdownlintPath -PathType Leaf)) -or
+        ($needsPyright -and -not (Test-Path -LiteralPath $PyrightPath -PathType Leaf))) {
         return $false
     }
     try {
         $marker = Get-Content -LiteralPath $SetupMarker -Raw -Encoding UTF8 |
             ConvertFrom-Json
-        if ([int]$marker.schemaVersion -ne 3) {
+        if ([int]$marker.schemaVersion -ne 4) {
             return $false
         }
         $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
             ConvertFrom-Json
-        $metadata = Get-Content -LiteralPath `
-            (Join-Path $PyrightRoot "package.json") -Raw -Encoding UTF8 |
-            ConvertFrom-Json
-        if ([string]$metadata.version -ne [string]$dependencies.tools.pyright) {
-            return $false
+        if ($needsPyright) {
+            $metadata = Get-Content -LiteralPath `
+                (Join-Path $PyrightRoot "package.json") -Raw -Encoding UTF8 |
+                ConvertFrom-Json
+            if ([string]$metadata.version -ne [string]$dependencies.tools.pyright) {
+                return $false
+            }
         }
-        $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
-        if ($ruffVersion.ExitCode -ne 0 -or
-            $ruffVersion.Text.Trim() -ne "ruff $($dependencies.tools.ruff)") {
-            return $false
+        if ($needsRuff) {
+            $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
+            if ($ruffVersion.ExitCode -ne 0 -or
+                $ruffVersion.Text.Trim() -ne "ruff $($dependencies.tools.ruff)") {
+                return $false
+            }
+        }
+        if ($needsClangTidy) {
+            $clangTidyVersion = Invoke-ExternalText -Command $ClangTidyPath `
+                -Arguments @("--version")
+            if ($clangTidyVersion.ExitCode -ne 0 -or
+                $clangTidyVersion.Text -notmatch
+                    "LLVM version $([regex]::Escape([string]$dependencies.tools.clangTidy))") {
+                return $false
+            }
+        }
+        if ($needsMarkdownlint) {
+            $markdownlintVersion = Invoke-ExternalText -Command $MarkdownlintPath `
+                -Arguments @("--version")
+            if ($markdownlintVersion.ExitCode -ne 0 -or
+                $markdownlintVersion.Text -notmatch
+                    "^markdownlint-cli2 v$([regex]::Escape([string]$dependencies.tools.markdownlintCli2))") {
+                return $false
+            }
         }
         if (-not (Test-Path -LiteralPath $PackLockPath -PathType Leaf)) {
             return $false
@@ -704,9 +877,23 @@ function Install-TestEnvironment {
     $null = Assert-AccessLinkPluginCurrent
     $null = Get-Nvim
     $null = Get-RequiredCommand "git" (Get-Message "runner.installGit")
-    $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
-    $node = Get-RequiredCommand "node" (Get-Message "runner.installNode")
-    $tar = Get-RequiredCommand "tar" (Get-Message "runner.installTar")
+    $profiles = @(Get-SelectedProfiles)
+    $needsPyright = @($profiles | Where-Object {
+        @("native", "diagnostics", "cmp", "blink", "focus") -contains $_
+    }).Count -gt 0
+    $needsRuff = $profiles -contains "diagnostics"
+    $needsClangTidy = $profiles -contains "c-diagnostics"
+    $needsMarkdownlint = $profiles -contains "markdown-diagnostics"
+    $npm = $null
+    $node = $null
+    $tar = $null
+    if ($needsPyright -or $needsMarkdownlint) {
+        $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
+    }
+    if ($needsPyright) {
+        $node = Get-RequiredCommand "node" (Get-Message "runner.installNode")
+        $tar = Get-RequiredCommand "tar" (Get-Message "runner.installTar")
+    }
     $python = Get-PythonInvocation
     $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
@@ -719,37 +906,92 @@ function Install-TestEnvironment {
         $arguments = @($python.Prefix) + @("-m", "venv", $PythonRoot)
         $null = Invoke-External -Command $python.Command -Arguments $arguments
     }
-    Write-Step (Get-Message "runner.setup.ruff")
-    $ruffCurrent = $false
-    if (Test-Path -LiteralPath $RuffPath -PathType Leaf) {
-        $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
-        $ruffCurrent = $ruffVersion.ExitCode -eq 0 -and
-            $ruffVersion.Text.Trim() -eq "ruff $($dependencies.tools.ruff)"
+    if ($needsRuff) {
+        Write-Step (Get-Message "runner.setup.ruff")
+        $ruffCurrent = $false
+        if (Test-Path -LiteralPath $RuffPath -PathType Leaf) {
+            $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
+            $ruffCurrent = $ruffVersion.ExitCode -eq 0 -and
+                $ruffVersion.Text.Trim() -eq "ruff $($dependencies.tools.ruff)"
+        }
+        if ($ruffCurrent) {
+            Write-Host (Get-Message "runner.setup.ruffCurrent" @($dependencies.tools.ruff))
+        } else {
+            $null = Invoke-External -Command $VenvPython -Arguments @(
+                "-m", "pip", "install", "--disable-pip-version-check",
+                "ruff==$($dependencies.tools.ruff)"
+            )
+        }
     }
-    if ($ruffCurrent) {
-        Write-Host (Get-Message "runner.setup.ruffCurrent" @($dependencies.tools.ruff))
-    } else {
-        $null = Invoke-External -Command $VenvPython -Arguments @(
-            "-m", "pip", "install", "--disable-pip-version-check",
-            "ruff==$($dependencies.tools.ruff)"
-        )
+    if ($needsClangTidy) {
+        Write-Step (Get-Message "runner.setup.clangTidy")
+        $clangTidyCurrent = $false
+        if (Test-Path -LiteralPath $ClangTidyPath -PathType Leaf) {
+            $clangTidyVersion = Invoke-ExternalText -Command $ClangTidyPath `
+                -Arguments @("--version")
+            $clangTidyCurrent = $clangTidyVersion.ExitCode -eq 0 -and
+                $clangTidyVersion.Text -match
+                    "LLVM version $([regex]::Escape([string]$dependencies.tools.clangTidy))"
+        }
+        if ($clangTidyCurrent) {
+            Write-Host (Get-Message "runner.setup.clangTidyCurrent" @(
+                $dependencies.tools.clangTidy
+            ))
+        } else {
+            $null = Invoke-External -Command $VenvPython -Arguments @(
+                "-m", "pip", "install", "--disable-pip-version-check",
+                "clang-tidy==$($dependencies.tools.clangTidy)"
+            )
+        }
     }
-    Write-Step (Get-Message "runner.setup.pyright")
-    Install-PyrightPackage -Npm $npm -Node $node -Tar $tar `
-        -Dependencies $dependencies
+    if ($needsPyright) {
+        Write-Step (Get-Message "runner.setup.pyright")
+        Install-PyrightPackage -Npm $npm -Node $node -Tar $tar `
+            -Dependencies $dependencies
+    }
+    if ($needsMarkdownlint) {
+        Write-Step (Get-Message "runner.setup.markdownlint")
+        $markdownlintCurrent = $false
+        if (Test-Path -LiteralPath $MarkdownlintPath -PathType Leaf) {
+            $markdownlintVersion = Invoke-ExternalText -Command $MarkdownlintPath `
+                -Arguments @("--version")
+            $markdownlintCurrent = $markdownlintVersion.ExitCode -eq 0 -and
+                $markdownlintVersion.Text -match
+                    "^markdownlint-cli2 v$([regex]::Escape([string]$dependencies.tools.markdownlintCli2))"
+        }
+        if ($markdownlintCurrent) {
+            Write-Host (Get-Message "runner.setup.markdownlintCurrent" @(
+                $dependencies.tools.markdownlintCli2
+            ))
+        } else {
+            $null = Invoke-External -Command $npm -Arguments @(
+                "install", "--prefix", $MarkdownlintRoot, "--ignore-scripts",
+                "--no-audit", "--no-fund", "--loglevel=info",
+                "markdownlint-cli2@$($dependencies.tools.markdownlintCli2)"
+            )
+        }
+    }
     Invoke-TestNvim -Profile "setup" -Headless
-    foreach ($probe in @(
-        [PSCustomObject]@{ Profile = "native"; Fixture = "lsp_features.py" },
-        [PSCustomObject]@{ Profile = "diagnostics"; Fixture = "diagnostics.py" },
-        [PSCustomObject]@{ Profile = "cmp"; Fixture = "lsp_features.py" },
-        [PSCustomObject]@{ Profile = "blink"; Fixture = "lsp_features.py" }
-    )) {
+    $preflightFixtures = @{
+        "native" = "lsp_features.py"
+        "diagnostics" = "diagnostics.py"
+        "c-diagnostics" = "diagnostics.c"
+        "markdown-diagnostics" = "diagnostics.md"
+        "cmp" = "lsp_features.py"
+        "blink" = "lsp_features.py"
+        "focus" = "lsp_features.py"
+    }
+    foreach ($profileName in $profiles) {
+        $probe = [PSCustomObject]@{
+            Profile = $profileName
+            Fixture = $preflightFixtures[$profileName]
+        }
         Write-Step (Get-Message "runner.setup.preflight" @($probe.Profile))
         Invoke-TestNvim -Profile $probe.Profile `
             -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
     }
     $marker = [PSCustomObject]@{
-        schemaVersion = 3
+        schemaVersion = 4
         environmentSha256 = Get-EnvironmentFingerprint
         accessLinkPluginSha256 = Get-PluginFingerprint $AccessLinkPlugin
     }
@@ -884,7 +1126,7 @@ function New-Result {
         }
     }
     return [PSCustomObject]@{
-        schemaVersion = 2
+        schemaVersion = 3
         runId = [guid]::NewGuid().ToString()
         createdAt = [DateTimeOffset]::UtcNow.ToString("o")
         completedAt = ""
@@ -892,6 +1134,13 @@ function New-Result {
         environment = [PSCustomObject]@{
             language = $Language
             suite = $Suite
+            selectedTests = @(
+                foreach ($plan in $Plans) {
+                    foreach ($step in @($plan.steps)) {
+                        "$($plan.id).$($step.id)"
+                    }
+                }
+            )
             neovimVersion = $nvim.Version
             audio = [bool]$Capabilities.audio
             braille = [bool]$Capabilities.braille
@@ -986,12 +1235,15 @@ function Invoke-ResultValidation {
     return [int]$code
 }
 
-function Run-Plans {
-    $currentPluginFingerprint = Assert-AccessLinkPluginCurrent
+function Confirm-TestEnvironment {
     if (-not (Test-SetupCurrent)) {
         Write-Step (Get-Message "runner.setup.missing")
         Install-TestEnvironment
     }
+}
+
+function Run-Plans {
+    $currentPluginFingerprint = Assert-AccessLinkPluginCurrent
     $plans = @(Get-Plans)
     $result = $null
     if (-not [string]::IsNullOrWhiteSpace($ResultPath) -and
@@ -1000,11 +1252,13 @@ function Run-Plans {
         $result = Get-Content -LiteralPath $ResultPath -Raw -Encoding UTF8 |
             ConvertFrom-Json
         $script:Suite = [string]$result.environment.suite
+        $script:SelectedTestIds = @($result.environment.selectedTests)
         $script:Language = [string]$result.environment.language
         $script:Messages = Get-Content -LiteralPath `
             (Join-Path $LocalesRoot "$Language.json") -Raw -Encoding UTF8 |
             ConvertFrom-Json
         $plans = @(Get-Plans)
+        Confirm-TestEnvironment
         Write-Step (Get-Message "runner.resume" @($ResultPath))
         if ([string]$result.environment.accessLinkPluginSha256 -ne
             $currentPluginFingerprint) {
@@ -1033,6 +1287,7 @@ function Run-Plans {
             Write-Host (Get-Message "runner.resume.reopened" @($reopenable.Count))
         }
     } else {
+        Confirm-TestEnvironment
         $capabilities = [PSCustomObject]@{
             audio = Ask-Boolean (Get-Message "runner.capability.audio") $true
             braille = Ask-Boolean (Get-Message "runner.capability.braille") $false
@@ -1165,7 +1420,10 @@ switch ($Action) {
         if ($DryRun) {
             Show-Plans @(Get-Plans)
             $null = Assert-AccessLinkPluginCurrent
-            foreach ($profile in @("native", "diagnostics", "cmp", "blink", "focus")) {
+            foreach ($profile in @(
+                "native", "diagnostics", "c-diagnostics", "markdown-diagnostics",
+                "cmp", "blink", "focus"
+            )) {
                 Invoke-TestNvim -Profile $profile -Headless -ConfigurationDryRun
             }
             Write-Step (Get-Message "runner.dryRun")

@@ -10,6 +10,7 @@
   "steps": [
     {
       "id": "focus-and-disconnect",
+      "category": "session-integration",
       "titleKey": "plan.focus.workflow.title",
       "contextKey": "plan.focus.context",
       "actionKey": "plan.focus.workflow.action",

@@ -40,8 +40,16 @@ configuration, and Neovim data directories are not changed.
 | Suite | Contents | When to run it |
 | --- | --- | --- |
 | `smoke` | native LSP and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 10 to 15 minutes |
-| `compatibility` | nvim-cmp and blink.cmp completion menus | after changes to these plugins, their adapters, or dependencies |
+| `compatibility` | nvim-cmp and blink.cmp completion menus plus one C/Clang-Tidy and one Markdown/markdownlint diagnostic | after changes to adapters, linter integration, or dependencies |
 | `all` | both suites in one result | only when both areas are affected |
+| individual selection | individual tasks grouped by category in the menu | targeted recheck of an affected area; saves time and unnecessary downloads |
+
+| Individual-selection category | Examples |
+| --- | --- |
+| LSP and language intelligence | LSP status and function signatures |
+| Completion | native completion, nvim-cmp, and blink.cmp |
+| Diagnostics and linters | Ruff, Clang-Tidy, and markdownlint |
+| Session and terminal integration | focus isolation and fail-open behavior |
 
 Standard tasks always run in this order: native LSP, diagnostics, then focus
 isolation. Missing audio or a missing Braille display does not prevent the
@@ -110,6 +118,8 @@ Select **Start a new short standard test**. This menu item deliberately starts
 a new JSON file; after an interruption, select **Resume an incomplete run**
 instead. An invalid entry leaves the menu open and requests a valid number
 again.
+For a targeted recheck, select **Select individual test tasks by category**
+instead. A number toggles its task; `S` starts only the marked tasks.
 
 ### 3. Declare available equipment
 
@@ -160,7 +170,7 @@ Each task names only the keys it needs. This table is a reference:
 | `F1` | report the active LSP status through Access Link |
 | `F3`, then `F5` | prepare a completion location with at least three candidates and open its menu; `F3` enters Insert mode automatically |
 | `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
-| `F6` | run Ruff again for the diagnostic fixture |
+| `F6` | run the linter selected for the task and wait for its readiness |
 | `F7` | report the diagnostic at the current position |
 | `F8` / `F9` | jump to the previous or next diagnostic |
 | `Escape`, then `F10` | close test Neovim without saving and return to PowerShell |
@@ -177,7 +187,7 @@ file. On the first run, it creates an isolated environment below
 
 | Component | Use |
 | --- | --- |
-| pinned versions of Pyright and Ruff | reproducible LSP and diagnostic responses |
+| pinned versions of Pyright, Ruff, Clang-Tidy, and markdownlint-cli2 | reproducible LSP and diagnostic responses; only tools required by the selection are installed |
 | pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, and blink.cmp | reproducible provider and completion compatibility |
 | separate Neovim configuration, data, state, and cache directories | complete isolation from the personal Neovim environment |
 
@@ -185,18 +195,21 @@ Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
 mounted directories on Windows.
 
-Later runs compare a separate environment fingerprint, installed tool
+Later runs compare a separate environment fingerprint, tool versions required by the selection,
 versions, and all four plugin revisions. Changes only to task wording,
-translations, or result logic therefore do not trigger setup again. If Ruff,
-Pyright, and the plugins already match, they are reused without package
-installation; only the necessary technical preflight is repeated after a
-relevant runtime change.
+translations, or result logic therefore do not trigger setup again. If the
+required tools and plugins already match, they are reused without package
+installation. Clang-Tidy and markdownlint are not installed preemptively for
+a normal smoke run. Only the technical preflight for actually selected
+profiles is repeated after a relevant runtime change.
 
-A technical preflight then starts every test profile and waits for an attached
-Pyright client. In the completion profiles it requests the three named
+A technical preflight then starts every selected test profile. For LSP tasks,
+it waits for an attached Pyright client. In the completion profiles it requests the three named
 candidates; in the native LSP profile it additionally requires at least two
-signatures with three parameters each. In the diagnostic profile, it requires
+signatures with three parameters each. In the Python diagnostic profile, it requires
 two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
+The C and Markdown profiles require a real Clang-Tidy error and markdownlint
+MD025 warning, respectively.
 A human tester only sees a perception task after these machine-decidable
 foundations work.
 
@@ -256,7 +269,7 @@ The JSON records:
 | Area | Recorded data |
 | --- | --- |
 | Run | run ID, creation time, and completion time |
-| Selection | suite, language, and declared audio/Braille equipment |
+| Selection | suite, exact stable task IDs, language, and declared audio/Braille equipment |
 | Source state | repository Git commit and dirty state |
 | Runtime versions | Neovim, installed add-on, and running NVDA versions when discoverable |
 | Consistency | fingerprints of the test definition and installed Neovim plugin |
@@ -285,15 +298,19 @@ python3 tests/human/framework/validate.py result tmp/human-test-results/EXAMPLE.
 | `2` | complete, but at least one task failed |
 | `3` | pending, blocked, or skipped and therefore incomplete |
 
-## Optional completion compatibility
+## Optional compatibility and individual tests
 
-After changes to nvim-cmp, blink.cmp, or Access Link adapters, select **Test
-optional completion compatibility**. Each task also starts separately there.
+After changes to nvim-cmp, blink.cmp, linter integration, or Access Link
+adapters, select **Run optional compatibility tests (completion, C, and
+Markdown)**. It also contains
+one small C and one Markdown reality check. Each task starts separately.
 The most useful direct invocations are:
 
 | Goal | PowerShell invocation |
 | --- | --- |
 | run standard and compatibility tasks together | `.\tests\human\framework\run.ps1 run -Suite all` |
+| run exactly the C diagnostic test | `.\tests\human\framework\run.ps1 run -Suite custom -TestId c-diagnostics.clang-tidy-presentation` |
+| run two specific tasks | `.\tests\human\framework\run.ps1 run -Suite custom -TestId lsp-native.status-presentation,markdown-diagnostics.markdownlint-presentation` |
 | explicitly use the German interface | `.\tests\human\framework\run.ps1 -Language de` |
 | explicitly use the English interface | `.\tests\human\framework\run.ps1 -Language en` |
 
@@ -310,7 +327,7 @@ If Access Link does not connect:
 4. press `F12` exactly once there and wait briefly;
 5. press `Escape`, `F2` to check whether the task is reported.
 
-If Pyright, Ruff, or a completion plugin is unavailable, select **Set up or
+If Pyright, a linter, or a completion plugin is unavailable, select **Set up or
 repair test dependencies**. A failed technical preflight is a setup problem,
 not a human test failure.
 
@@ -326,7 +343,8 @@ The compact implementation lives below `tests/human/`:
 | `dependencies.json` | pinned third-party versions and revisions |
 | `framework/` | runner, validator, and isolated Neovim configuration |
 
-A new human task needs a reason that cannot be automated reliably and a link
+A new human task receives one of the four fixed categories and needs a reason
+that cannot be automated reliably and a link
 to related automated evidence. If code can decide the result unambiguously,
 the case belongs in an automated test. Validate definitions with:
 

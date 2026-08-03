@@ -35,6 +35,7 @@ PLAN_FIELDS = {
 }
 STEP_FIELDS = {
 	"id",
+	"category",
 	"titleKey",
 	"contextKey",
 	"actionKey",
@@ -55,7 +56,21 @@ RESULT_FIELDS = {
 RESULT_PLAN_FIELDS = {"id", "profile", "steps"}
 RESULT_STEP_FIELDS = {"id", "status", "note"}
 ALLOWED_SUITES = {"smoke", "compatibility"}
-ALLOWED_PROFILES = {"native", "diagnostics", "cmp", "blink", "focus"}
+ALLOWED_PROFILES = {
+	"native",
+	"diagnostics",
+	"c-diagnostics",
+	"markdown-diagnostics",
+	"cmp",
+	"blink",
+	"focus",
+}
+ALLOWED_CATEGORIES = {
+	"language-intelligence",
+	"completion",
+	"diagnostics",
+	"session-integration",
+}
 ALLOWED_REASONS = {
 	"physicalNvdaKey",
 	"speechPerception",
@@ -190,8 +205,12 @@ def validate_dependencies() -> dict[str, Any]:
 		if not re.fullmatch(r"[0-9a-f]{40}", revision):
 			raise ValidationError(f"dependency plugin {name} revision must be a full commit ID")
 	tools = _object(dependencies["tools"], "dependencies tools")
-	_exact_fields(tools, {"pyright", "pyrightSha512", "ruff"}, "dependencies tools")
-	for name in ("pyright", "ruff"):
+	_exact_fields(
+		tools,
+		{"pyright", "pyrightSha512", "ruff", "clangTidy", "markdownlintCli2"},
+		"dependencies tools",
+	)
+	for name in ("pyright", "ruff", "clangTidy", "markdownlintCli2"):
 		version = tools[name]
 		value = _string(version, f"dependency tool {name} version")
 		if not VERSION_PATTERN.fullmatch(value):
@@ -224,6 +243,12 @@ def load_plans() -> dict[str, dict[str, Any]]:
 	validate_dependencies()
 	locales = load_locales()
 	message_keys = set(locales["de"])
+	for category in ALLOWED_CATEGORIES:
+		_validate_message_key(
+			f"category.{category}",
+			f"category {category} locale key",
+			message_keys,
+		)
 	plans: dict[str, dict[str, Any]] = {}
 	files = sorted(PLANS_ROOT.glob("*.json"))
 	if not files:
@@ -264,6 +289,11 @@ def load_plans() -> dict[str, dict[str, Any]]:
 			if step_id in step_ids:
 				raise ValidationError(f"plan {plan_id} has duplicate step id {step_id!r}")
 			step_ids.add(step_id)
+			category = _string(step["category"], f"plan {plan_id} step {step_id} category")
+			if category not in ALLOWED_CATEGORIES:
+				raise ValidationError(
+					f"plan {plan_id} step {step_id} has unsupported category {category!r}"
+				)
 			_validate_message_key(step["titleKey"], f"plan {plan_id} step {step_id} titleKey", message_keys)
 			_validate_message_key(
 				step["contextKey"], f"plan {plan_id} step {step_id} contextKey", message_keys
@@ -337,6 +367,7 @@ def definition_fingerprint() -> str:
 	files = [
 		DEPENDENCIES_PATH,
 		HUMAN_ROOT / "framework" / "init.lua",
+		HUMAN_ROOT / "framework" / "linter_readiness.lua",
 		HUMAN_ROOT / "framework" / "run.ps1",
 		HUMAN_ROOT / "framework" / "validate.py",
 	]
@@ -352,6 +383,7 @@ def environment_fingerprint() -> str:
 		[
 			DEPENDENCIES_PATH,
 			HUMAN_ROOT / "framework" / "init.lua",
+			HUMAN_ROOT / "framework" / "linter_readiness.lua",
 		],
 	)
 
@@ -373,7 +405,7 @@ def validate_result(path: Path) -> ResultAssessment:
 	definitions = load_plans()
 	result = _object(_read_json(path), "result")
 	_exact_fields(result, RESULT_FIELDS, "result")
-	if result["schemaVersion"] != 2:
+	if result["schemaVersion"] != 3:
 		raise ValidationError("result has unsupported schemaVersion")
 	_string(result["runId"], "result runId")
 	_parse_timestamp(result["createdAt"], "result createdAt")
@@ -390,6 +422,7 @@ def validate_result(path: Path) -> ResultAssessment:
 		{
 			"language",
 			"suite",
+			"selectedTests",
 			"neovimVersion",
 			"audio",
 			"braille",
@@ -404,8 +437,35 @@ def validate_result(path: Path) -> ResultAssessment:
 	if language not in {"de", "en"}:
 		raise ValidationError("result environment language must be de or en")
 	suite = _string(environment["suite"], "result environment suite")
-	if suite not in {*ALLOWED_SUITES, "all"}:
+	if suite not in {*ALLOWED_SUITES, "all", "custom"}:
 		raise ValidationError("result environment suite is unsupported")
+	available_tests = {
+		f"{plan_id}.{step['id']}": (plan_id, step["id"])
+		for plan_id, plan in definitions.items()
+		for step in plan["steps"]
+	}
+	selected_tests = [
+		_id(value, "result environment selectedTests entry")
+		for value in _array(environment["selectedTests"], "result environment selectedTests")
+	]
+	if not selected_tests:
+		raise ValidationError("result environment selectedTests must not be empty")
+	if len(selected_tests) != len(set(selected_tests)):
+		raise ValidationError("result environment selectedTests contains duplicates")
+	unknown_tests = sorted(set(selected_tests) - set(available_tests))
+	if unknown_tests:
+		raise ValidationError(
+			f"result environment selectedTests contains unknown tests: {unknown_tests!r}"
+		)
+	if suite != "custom":
+		expected_suite_tests = {
+			f"{plan_id}.{step['id']}"
+			for plan_id, plan in definitions.items()
+			if suite == "all" or suite in plan["suites"]
+			for step in plan["steps"]
+		}
+		if set(selected_tests) != expected_suite_tests:
+			raise ValidationError("result selectedTests differ from selected suite")
 	_string(environment["neovimVersion"], "result environment neovimVersion")
 	definition_sha256 = _string(environment["definitionSha256"], "result environment definitionSha256")
 	if not SHA256_PATTERN.fullmatch(definition_sha256):
@@ -427,9 +487,11 @@ def validate_result(path: Path) -> ResultAssessment:
 		"audio": _bool(environment["audio"], "result environment audio"),
 		"braille": _bool(environment["braille"], "result environment braille"),
 	}
-	expected_plan_ids = {
-		plan_id for plan_id, plan in definitions.items() if suite == "all" or suite in plan["suites"]
-	}
+	selected_by_plan: dict[str, set[str]] = {}
+	for test_id in selected_tests:
+		plan_id, step_id = available_tests[test_id]
+		selected_by_plan.setdefault(plan_id, set()).add(step_id)
+	expected_plan_ids = set(selected_by_plan)
 	result_plans = _array(result["plans"], "result plans")
 	actual_plan_ids: set[str] = set()
 	statuses: list[str] = []
@@ -445,7 +507,11 @@ def validate_result(path: Path) -> ResultAssessment:
 		definition = definitions[plan_id]
 		if result_plan["profile"] != definition["profile"]:
 			raise ValidationError(f"result plan {plan_id} profile differs from definition")
-		expected_steps = {step["id"]: step for step in definition["steps"]}
+		expected_steps = {
+			step["id"]: step
+			for step in definition["steps"]
+			if step["id"] in selected_by_plan[plan_id]
+		}
 		result_steps = _array(result_plan["steps"], f"result plan {plan_id} steps")
 		actual_steps: set[str] = set()
 		for step_index, raw_step in enumerate(result_steps):
@@ -487,7 +553,7 @@ def validate_result(path: Path) -> ResultAssessment:
 			)
 	if actual_plan_ids != expected_plan_ids:
 		raise ValidationError(
-			"result plans differ from selected suite; "
+			"result plans differ from selected tests; "
 			f"missing={sorted(expected_plan_ids - actual_plan_ids)!r}, "
 			f"unexpected={sorted(actual_plan_ids - expected_plan_ids)!r}"
 		)

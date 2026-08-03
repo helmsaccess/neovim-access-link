@@ -54,12 +54,15 @@ evidence. Technical values that Python or Lua can compare unambiguously must
 not be requested from a person as well.
 
 The short `smoke` run covers native LSP/completion, diagnostic presentation,
-focus isolation, and fail-open behavior. nvim-cmp and blink.cmp live in an
-optional `compatibility` suite. Versioned German and English cards are shown
+focus isolation, and fail-open behavior. nvim-cmp, blink.cmp, and one small
+C/Clang-Tidy and Markdown/markdownlint test live in an optional
+`compatibility` suite. Tasks have fixed categories and can be selected
+individually. Versioned German and English cards are shown
 by an isolated PowerShell runner that never changes a private `init.lua`.
 Each pending task gets a fresh test Neovim session and can be repeated there
 with `F2`. After every task, the runner stores a validatable JSON result below
-ignored `tmp/`. A technical preflight of real providers and a Windows CI run
+ignored `tmp/`; the exact selected task IDs are part of the result. A
+technical preflight of real providers and a Windows CI run
 of the PowerShell runner catch machine-decidable errors. See the
 [tester documentation](human-testing.md) for setup, operation, resume, and
 machine-readable exit codes.

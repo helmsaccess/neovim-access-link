@@ -26,10 +26,12 @@ ignored repository `tmp/` directory.
 - `framework/validate.py`: definition/runtime fingerprints and result validation;
 - `framework/init.lua`: isolated Neovim profile used only by the runner.
 
-The required `smoke` suite contains native LSP/completion, diagnostic
+The required `smoke` suite contains native LSP/completion, Python diagnostic
 presentation, and focus/fail-open checks. The `compatibility` suite contains
-only short nvim-cmp and blink.cmp checks and is normally needed only after an
-adapter or dependency change.
+short nvim-cmp, blink.cmp, C/Clang-Tidy, and Markdown/markdownlint checks.
+The interactive category selector and the `-TestId plan.step` argument can run
+any task individually. Result schema 3 records the exact selected IDs, so a
+custom run remains resumable and machine-checkable.
 
 ## Adding a test
 
@@ -38,7 +40,8 @@ hardware. Every step must name a `manualReason` and related automated evidence.
 If a protocol value, range, event order, provider result, or adapter state can
 be asserted in code, add an automated regression test instead.
 
-Plans may select only one of the fixed profiles implemented by `init.lua`.
+Every step belongs to one of the fixed user-facing categories. Plans may
+select only one of the fixed profiles implemented by `init.lua`.
 They cannot contain PowerShell, shell, Lua, or Neovim commands. This keeps
 versioned test data non-executable.
 

@@ -270,6 +270,7 @@ def jobs() -> tuple[Job, ...]:
         "file_manager_spec.lua",
         "file_manager_workflows_spec.lua",
         "human_test_config_spec.lua",
+        "human_test_linter_readiness_spec.lua",
         "lsp_hover_spec.lua",
         "lsp_status_spec.lua",
         "menu_spec.lua",

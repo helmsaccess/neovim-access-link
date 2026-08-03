@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "markdown-diagnostics",
+  "order": 70,
+  "titleKey": "plan.markdownDiagnostics.title",
+  "descriptionKey": "plan.markdownDiagnostics.description",
+  "suites": ["compatibility"],
+  "profile": "markdown-diagnostics",
+  "fixture": "diagnostics.md",
+  "steps": [
+    {
+      "id": "markdownlint-presentation",
+      "category": "diagnostics",
+      "titleKey": "plan.markdownDiagnostics.presentation.title",
+      "contextKey": "plan.markdownDiagnostics.context",
+      "actionKey": "plan.markdownDiagnostics.presentation.action",
+      "expectedKey": "plan.markdownDiagnostics.presentation.expected",
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
+      "requires": [],
+      "automatedEvidence": [
+        "neovim-plugin/tests/linter_plugins_integration.lua",
+        "neovim-plugin/tests/diagnostic_navigation_spec.lua"
+      ]
+    }
+  ]
+}

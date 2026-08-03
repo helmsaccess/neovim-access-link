@@ -10,6 +10,7 @@
   "steps": [
     {
       "id": "navigation-presentation",
+      "category": "diagnostics",
       "titleKey": "plan.diagnostics.navigation.title",
       "contextKey": "plan.diagnostics.context",
       "actionKey": "plan.diagnostics.navigation.action",
@@ -20,6 +21,7 @@
     },
     {
       "id": "held-diagnostics",
+      "category": "diagnostics",
       "titleKey": "plan.diagnostics.held.title",
       "contextKey": "plan.diagnostics.context",
       "actionKey": "plan.diagnostics.held.action",
