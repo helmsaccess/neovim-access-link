@@ -4,6 +4,9 @@ Neovim Access Link gibt Vervollständigungslisten als zugängliche Menüs aus.
 NVDA meldet den ausgewählten Eintrag, seine Position und – soweit vorhanden –
 Typ, Signatur, Quelle und Kurzbeschreibung. Die standardisierten LSP-Typen
 werden lokalisiert. Sprache und Braille verwenden denselben Menüzustand.
+Eine vollständige einsteigerfreundliche Einrichtung mit `init.lua`,
+Sprachserver und Linter steht im vorherigen Kapitel
+[LSP, Autovervollständigung und Linter einrichten](language-tools.md).
 
 ## Unterstützte Menüs
 

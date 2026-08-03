@@ -8,6 +8,15 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Ergänzt das Anwenderhandbuch um einen einsteigerorientierten Einrichtungsweg
+  für Sprachserver, native LSP-Vervollständigung und `nvim-lint`. Eine kleine
+  vollständige `init.lua`, Installationsbeispiele für WinGet, apt und dnf,
+  optionale Access-Link-Tasten sowie eine nach Prüftiefe abgestufte Sprach- und
+  Werkzeugmatrix trennen dabei klar Add-on-Komponenten von externen
+  Entwicklungswerkzeugen. Eine zusätzliche direkt nutzbare Konfiguration mit
+  `lazy.nvim`, Oil, Pyright und Ruff lädt das vom Add-on installierte
+  Access-Link-Plugin trotz Lazys zurückgesetzter Plugin-Suchpfade ausdrücklich
+  als lokales Plugin.
 - Akzeptiert den von SARIF-Parsern verwendeten offenen Endspalten-Sentinel
   innerhalb der bestehenden Access-Link-Grenze. Damit bleiben insbesondere
   Checkstyle-Diagnosen aus `nvim-lint` erreichbar; andere übergroße oder

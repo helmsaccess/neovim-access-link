@@ -30,6 +30,8 @@ handbook_sources=(
   docs/de/manual/speech-exploration.md
   docs/de/manual/communication.md
   docs/de/manual/ssh-and-tmux.md
+  docs/de/manual/language-tools.md
+  docs/de/manual/example-configuration.md
   docs/de/manual/menus-and-completion.md
   docs/de/manual/terminals-and-file-managers.md
   docs/de/manual/sounds.md
@@ -82,6 +84,8 @@ handbook_en_sources=(
   docs/en/manual/speech-exploration.md
   docs/en/manual/communication.md
   docs/en/manual/ssh-and-tmux.md
+  docs/en/manual/language-tools.md
+  docs/en/manual/example-configuration.md
   docs/en/manual/menus-and-completion.md
   docs/en/manual/terminals-and-file-managers.md
   docs/en/manual/sounds.md
@@ -310,10 +314,22 @@ build_html \
 
 validate_required_section \
   "$handbook_output" \
+  "docs__de__manual__language-toolsmd__lsp-autovervollständigung-und-linter-einrichten"
+validate_required_section \
+  "$handbook_output" \
+  "docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil"
+validate_required_section \
+  "$handbook_output" \
   "docs__de__manual__braillemd__braille-unterstützung"
 validate_required_section \
   "$handbook_output" \
   "docs__de__manual__speech-explorationmd__sprachexplorationsmodus"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__language-toolsmd__setting-up-lsp-auto-completion-and-linters"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil"
 validate_required_section \
   "$handbook_en_output" \
   "docs__en__manual__braillemd__braille-support"

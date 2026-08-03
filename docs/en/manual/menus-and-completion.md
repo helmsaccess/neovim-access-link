@@ -6,6 +6,9 @@ automatic suggestions with sound” setting under Object Presentation controls
 the standard opening and closing cues for Neovim's built-in menu, `nvim-cmp`,
 and `blink.cmp`. Both plugin adapters tie the cue directly to the public open
 or close event, even when candidates become available shortly afterwards.
+A complete beginner-oriented setup with `init.lua`, a language server, and a
+linter is provided in the previous chapter,
+[Setting up LSP, auto-completion, and linters](language-tools.md).
 
 Neovim's built-in popup menu is supported, including completion sources that
 use `complete()`, `completefunc`, or `omnifunc`. Explicit adapters are included

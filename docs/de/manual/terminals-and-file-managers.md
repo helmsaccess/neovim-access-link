@@ -70,6 +70,9 @@ freigegeben.
 
 ## Unterstützte Dateimanager
 
+Eine direkt nutzbare Oil-Einrichtung enthält das Kapitel
+[Kleine Python-Konfiguration mit Lazy und Oil](example-configuration.md).
+
 - netrw: Dateisystemmetadaten und netrw-Markierungsstatus
 - Oil: `get_cursor_entry()` und `get_current_dir()`
 - nvim-tree: `api.tree.get_node_under_cursor()`

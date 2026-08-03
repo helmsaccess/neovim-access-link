@@ -266,6 +266,7 @@ def jobs() -> tuple[Job, ...]:
         "developer_context_spec.lua",
         "developer_context_lsp_integration_spec.lua",
         "exploration_spec.lua",
+        "example_lazy_python_config_spec.lua",
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",
         "file_manager_workflows_spec.lua",

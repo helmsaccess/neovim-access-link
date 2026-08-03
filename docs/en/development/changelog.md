@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Adds a beginner-oriented user-manual setup path for language servers, native
+  LSP completion, and `nvim-lint`. A small complete `init.lua`, WinGet, apt,
+  and dnf installation examples, optional Access Link mappings, and a
+  language/tool matrix graded by test depth clearly separate add-on components
+  from external development tools. An additional ready-to-use configuration
+  with `lazy.nvim`, Oil, Pyright, and Ruff explicitly loads the add-on-installed
+  Access Link plugin despite Lazy resetting Neovim's plugin search paths.
 - Accepts the open-ended column sentinel used by SARIF parsers within Access
   Link's existing bound. This keeps Checkstyle diagnostics from `nvim-lint`
   addressable while other oversized or invalid diagnostic ranges remain

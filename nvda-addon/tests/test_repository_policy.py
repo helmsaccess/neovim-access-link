@@ -51,6 +51,27 @@ def discover_agents_paths() -> set[pathlib.Path]:
 
 
 class RepositoryPolicyTests(unittest.TestCase):
+    def test_lazy_python_example_is_identical_in_both_manuals(self) -> None:
+        example = (
+            REPOSITORY_ROOT / "examples/neovim-lazy-python/init.lua"
+        ).read_text(encoding="utf-8").rstrip("\n")
+        start_marker = "<!-- BEGIN lazy-python-example -->"
+        end_marker = "<!-- END lazy-python-example -->"
+
+        for relative_path in (
+            "docs/de/manual/example-configuration.md",
+            "docs/en/manual/example-configuration.md",
+        ):
+            with self.subTest(path=relative_path):
+                content = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertEqual(1, content.count(start_marker))
+                self.assertEqual(1, content.count(end_marker))
+                marked = content.split(start_marker, 1)[1].split(end_marker, 1)[0].strip()
+                self.assertTrue(marked.startswith("```lua\n"))
+                self.assertTrue(marked.endswith("\n```"))
+                embedded = marked[len("```lua\n") : -len("\n```")]
+                self.assertEqual(example, embedded)
+
     def test_agents_instruction_layout_is_scoped_and_unambiguous(self) -> None:
         discovered = discover_agents_paths()
         self.assertTrue(REQUIRED_AGENTS_PATHS <= discovered)

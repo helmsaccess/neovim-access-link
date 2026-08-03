@@ -64,11 +64,13 @@ terminal output.
 2. [Speech exploration mode](speech-exploration.md)
 3. [Communication, connections, and session binding](communication.md)
 4. [SSH, tmux, and Neovim](ssh-and-tmux.md)
-5. [Menus and completion](menus-and-completion.md)
-6. [Embedded terminal and file managers](terminals-and-file-managers.md)
-7. [Sounds and earcons](sounds.md)
-8. [Braille support](braille.md)
-9. [Troubleshooting and diagnostic report](troubleshooting.md)
+5. [Setting up LSP, auto-completion, and linters](language-tools.md)
+6. [Small Python configuration with Lazy and Oil](example-configuration.md)
+7. [Menus and completion](menus-and-completion.md)
+8. [Embedded terminal and file managers](terminals-and-file-managers.md)
+9. [Sounds and earcons](sounds.md)
+10. [Braille support](braille.md)
+11. [Troubleshooting and diagnostic report](troubleshooting.md)
 
 Begin with the separate [Quick Guide](neovim-access-link-quick-guide-en.html)
 and use a disposable buffer before important work. Include character, word,
