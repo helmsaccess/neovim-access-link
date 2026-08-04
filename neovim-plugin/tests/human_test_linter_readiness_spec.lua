@@ -63,6 +63,22 @@ local ready, count, position_count = evaluate("diagnostics", {
 equal(ready, true, "complete Ruff fixture is ready")
 equal(count, 3, "only Ruff diagnostics are counted")
 equal(position_count, 2, "both warnings at the test position are counted")
+local primary = readiness.primary("diagnostics", {
+  {
+    source = "ruff", code = "F401", severity = severity.WARN,
+    lnum = 0, col = 21, message = "sep",
+  },
+  {
+    source = "ruff", code = "F821", severity = severity.ERROR,
+    lnum = 4, col = 6, message = "missing_name",
+  },
+  {
+    source = "Ruff", code = "F401", severity = severity.WARN,
+    lnum = 0, col = 15, message = "path",
+  },
+}, severity)
+equal(primary.message, "path", "F6 targets the first Ruff import warning")
+equal(primary.col, 15, "F6 uses the real Ruff diagnostic column")
 
 ready = evaluate("diagnostics", {
   { source = "ruff", code = "F401", severity = severity.WARN, lnum = 0 },
@@ -88,6 +104,13 @@ ready, count, position_count = evaluate("c-diagnostics", {
 equal(ready, true, "Clang-Tidy fixture diagnostic is ready")
 equal(count, 1, "only the expected Clang-Tidy diagnostic is counted")
 equal(position_count, 1, "Clang-Tidy diagnostic is at the test position")
+primary = readiness.primary("c-diagnostics", {
+  {
+    source = "clang-tidy", code = "clang-diagnostic-error",
+    severity = severity.ERROR, lnum = 1, col = 9,
+  },
+}, severity)
+equal(primary.col, 9, "F6 uses the real Clang-Tidy diagnostic column")
 ready, count, position_count = evaluate("c-diagnostics", {
   {
     source = "clang-tidy",
@@ -112,6 +135,13 @@ ready, count, position_count = evaluate("markdown-diagnostics", {
 equal(ready, true, "markdownlint MD025 fixture diagnostic is ready")
 equal(count, 1, "only markdownlint MD025 is counted")
 equal(position_count, 1, "markdownlint diagnostic is at the test position")
+primary = readiness.primary("markdown-diagnostics", {
+  {
+    source = "markdownlint", message = "MD025/single-title Multiple headings",
+    severity = severity.WARN, lnum = 2, col = 0,
+  },
+}, severity)
+equal(primary.lnum, 2, "F6 uses the real markdownlint diagnostic line")
 ready = evaluate("markdown-diagnostics", {
   {
     source = "markdownlint",
@@ -135,6 +165,11 @@ local supported, message = pcall(evaluate, "unknown-profile", {})
 equal(supported, false, "unknown linter profiles are rejected")
 assert(tostring(message):find("unsupported linter profile", 1, true),
   "unknown profile error is actionable")
+assertions = assertions + 1
+supported, message = pcall(readiness.primary, "unknown-profile", {}, severity)
+equal(supported, false, "primary selection rejects unknown linter profiles")
+assert(tostring(message):find("unsupported linter profile", 1, true),
+  "unknown primary profile error is actionable")
 assertions = assertions + 1
 
 print(string.format("human-test linter readiness specs passed: %d assertions", assertions))

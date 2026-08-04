@@ -187,7 +187,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 | `F1` | aktiven LSP-Status durch Access Link ausgeben |
 | `F3` | die für die aktuelle Aufgabe vorbereitete Eingabestelle öffnen und automatisch in den Einfügemodus wechseln; bei der Completion-Aufgabe danach `F5` drücken |
 | `F5` im Diagnoseprofil | auf eine vorbereitete fehlerfreie Position wechseln und dort ausdrücklich die aktuelle Diagnose abfragen |
-| `F6` | den für die Aufgabe ausgewählten Linter ausführen und auf dessen Bereitschaft warten |
+| `F6` | den ausgewählten Linter ausführen, auf dessen Bereitschaft warten und den Cursor auf die erste erwartete Testdiagnose setzen |
 | `F7` | Diagnose an der aktuellen Position ausgeben |
 | `F8` / `F9` | zur vorherigen beziehungsweise nächsten Diagnose springen |
 | `Escape`, dann `F10` | Test-Neovim ohne Speichern schließen und zu PowerShell zurückkehren |

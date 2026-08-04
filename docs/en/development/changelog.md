@@ -51,7 +51,11 @@
   function, which Neovim does not provide, aborted plugin loading with `E117`.
 - Decouples the guided diagnostic test's F6 readiness check from the current
   cursor position. A fully published Ruff inventory is therefore reported as
-  ready immediately instead of falsely timing out after 15 seconds.
+  ready immediately instead of falsely timing out after 15 seconds. Once the
+  check succeeds, F6 places the cursor on the first expected test diagnostic
+  using its actual published range, so an immediate F7 reliably reports it
+  without a preceding F8/F9 jump. The C and Markdown profiles use the same
+  guarantee.
 - Losslessly removes all but 5 ms of the roughly 0.9 seconds of digital silence
   at the end of both VS Code diagnostic cues and restarts the already
   memory-resident audio player before every deliberate signal. Errors or

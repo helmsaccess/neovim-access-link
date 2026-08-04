@@ -176,7 +176,7 @@ Each task names only the keys it needs. This table is a reference:
 | `F1` | report the active LSP status through Access Link |
 | `F3` | open the insertion location prepared for the current task and enter Insert mode automatically; in a completion task, press `F5` next |
 | `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
-| `F6` | run the linter selected for the task and wait for its readiness |
+| `F6` | run the selected linter, wait for readiness, and place the cursor on the first expected test diagnostic |
 | `F7` | report the diagnostic at the current position |
 | `F8` / `F9` | jump to the previous or next diagnostic |
 | `Escape`, then `F10` | close test Neovim without saving and return to PowerShell |

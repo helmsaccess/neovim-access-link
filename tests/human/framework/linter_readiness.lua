@@ -34,6 +34,50 @@ local function text(value)
   return tostring(value or "")
 end
 
+local function primary_match(profile, diagnostic, severity)
+  if profile == "diagnostics" then
+    return text(diagnostic.source):lower():find("ruff", 1, true)
+      and text(diagnostic.code) == "F401"
+      and diagnostic.severity == severity.WARN
+  end
+  if profile == "c-diagnostics" then
+    return diagnostic.source == "clang-tidy"
+      and text(diagnostic.code) == "clang-diagnostic-error"
+      and diagnostic.severity == severity.ERROR
+  end
+  if profile == "markdown-diagnostics" then
+    return diagnostic.source == "markdownlint"
+      and diagnostic.severity == severity.WARN
+      and text(diagnostic.message):find("MD025", 1, true)
+  end
+  error("unsupported linter profile: " .. text(profile))
+end
+
+function M.primary(profile, diagnostics, severity)
+  assert(type(diagnostics) == "table", "diagnostics must be a table")
+  assert(type(severity) == "table", "severity must be a table")
+  if profile ~= "diagnostics" and profile ~= "c-diagnostics"
+      and profile ~= "markdown-diagnostics" then
+    error("unsupported linter profile: " .. text(profile))
+  end
+  local candidates = {}
+  for _, diagnostic in ipairs(diagnostics) do
+    if type(diagnostic) == "table"
+        and type(diagnostic.lnum) == "number" and diagnostic.lnum >= 0
+        and primary_match(profile, diagnostic, severity) then
+      candidates[#candidates + 1] = diagnostic
+    end
+  end
+  table.sort(candidates, function(left, right)
+    if left.lnum ~= right.lnum then return left.lnum < right.lnum end
+    local left_column = type(left.col) == "number" and left.col or 0
+    local right_column = type(right.col) == "number" and right.col or 0
+    if left_column ~= right_column then return left_column < right_column end
+    return text(left.message) < text(right.message)
+  end)
+  return candidates[1]
+end
+
 function M.evaluate(profile, diagnostics, severity)
   assert(type(diagnostics) == "table", "diagnostics must be a table")
   assert(type(severity) == "table", "severity must be a table")

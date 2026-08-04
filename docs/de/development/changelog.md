@@ -61,7 +61,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Entkoppelt die F6-Bereitschaftsprüfung des geführten Diagnosetests von der
   momentanen Cursorposition. Eine vollständig veröffentlichte Ruff-Liste wird
   dadurch sofort als bereit gemeldet, statt nach 15 Sekunden fälschlich in den
-  Timeout zu laufen.
+  Timeout zu laufen. Nach der Prüfung setzt F6 den Cursor anhand des real
+  veröffentlichten Diagnosebereichs auf die erste erwartete Testdiagnose;
+  unmittelbar anschließendes F7 liefert daher ohne vorherigen F8-/F9-Sprung
+  zuverlässig den Treffer. Dasselbe gilt für die C- und Markdown-Profile.
 - Entfernt die rund 0,9 Sekunden digitale Stille am Ende der beiden
   VS-Code-Diagnose-Earcons verlustfrei bis auf einen 5-ms-Ausklang und startet
   den bereits im RAM gehaltenen Audioplayer vor jedem gezielten Signal neu.

@@ -13,7 +13,7 @@ local completion_parentheses = dofile(vim.fs.joinpath(
   framework_root, "completion_parentheses.lua"))
 local human_messages = language == "de" and {
   diagnostics_waiting = "%s-Diagnosen werden ermittelt. Bitte warten.",
-  diagnostics_ready = "Diagnosen bereit: %d von %s, davon %d an der Testposition. Jetzt F7 drücken.",
+  diagnostics_ready = "Diagnosen bereit: %d von %s. Der Cursor steht jetzt auf der ersten Testdiagnose. Jetzt F7 drücken.",
   diagnostics_not_ready = "%s-Diagnosen wurden nicht rechtzeitig bereit.",
   callable_name = "Cursor auf Funktionsname.",
   callable_open = "Cursor auf öffnender Klammer.",
@@ -22,7 +22,7 @@ local human_messages = language == "de" and {
   insertion_unavailable = "Diese Aufgabe benötigt keine vorbereitete Eingabestelle.",
 } or {
   diagnostics_waiting = "Waiting for %s diagnostics.",
-  diagnostics_ready = "Diagnostics ready: %d from %s, including %d at the test position. Press F7 now.",
+  diagnostics_ready = "Diagnostics ready: %d from %s. The cursor is now on the first test diagnostic. Press F7 now.",
   diagnostics_not_ready = "%s diagnostics did not become ready in time.",
   callable_name = "Cursor on function name.",
   callable_open = "Cursor on opening parenthesis.",
@@ -425,6 +425,17 @@ if uses_linter then
   end
 
   local readiness_pending = false
+  local function move_to_primary_linter_diagnostic()
+    local values = vim.diagnostic.get(0)
+    local diagnostic = linter_readiness.primary(
+      profile, values, vim.diagnostic.severity)
+    if not diagnostic then return false end
+    local column = type(diagnostic.col) == "number" and diagnostic.col or 0
+    vim.api.nvim_win_set_cursor(0, { diagnostic.lnum + 1, column })
+    local current = require("nvim_nvda.diagnostics").snapshot_values(
+      values, diagnostic.lnum + 1, column)
+    return current ~= nil
+  end
   run_linter_with_feedback = function()
     if readiness_pending then
       vim.notify(string.format(human_messages.diagnostics_waiting, linter_display_name))
@@ -439,10 +450,16 @@ if uses_linter then
       end, 50)
       readiness_pending = false
       if ready then
-        local _, count, position_count = linter_diagnostics_ready()
-        vim.notify(string.format(
-          human_messages.diagnostics_ready, count, linter_display_name, position_count
-        ))
+        local _, count = linter_diagnostics_ready()
+        if move_to_primary_linter_diagnostic() then
+          vim.notify(string.format(
+            human_messages.diagnostics_ready, count, linter_display_name
+          ))
+        else
+          vim.notify(string.format(
+            human_messages.diagnostics_not_ready, linter_display_name
+          ), vim.log.levels.ERROR)
+        end
       else
         vim.notify(string.format(
           human_messages.diagnostics_not_ready, linter_display_name
