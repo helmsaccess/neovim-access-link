@@ -303,6 +303,10 @@ parenthesis, press the gesture, and keep the NVDA key held:
 | `NVDA+k` / `NVDA+j` | show the previous / next signature |
 | release the NVDA key | close the temporary view |
 
+Parameter selection starts over after every signature change. The first
+`NVDA+h` or `NVDA+l` press therefore always reports parameter 1 of the selected
+signature; only subsequent presses move backward or forward.
+
 This feature needs signature help from the language server. If the server
 provides only hover text and no structured signature help, Access Link can
 show only that unstructured fallback.

@@ -237,10 +237,10 @@ Den Cursor auf Funktionsname, öffnende oder schließende Aufrufklammer setzen,
 `NVDA+Umschalt+P` drücken und die NVDA-Taste weiter halten. `NVDA+h/l`
 schaltet ausschließlich durch die Parameter der gewählten Signatur,
 `NVDA+k/j` ausschließlich durch mehrere Signaturen. Die erste Ansicht nennt
-nur Signatur und Dokumentation; jede Signatur beginnt unabhängig bei ihrem
-ersten Parameter. Nach dieser Ansicht oder einem Signaturwechsel zeigt der
-erste Druck auf `NVDA+h` oder `NVDA+l` zunächst den ausgewählten Parameter;
-erst der nächste Druck schaltet weiter. Die Sprache verwendet dabei die
+nur Signatur und Dokumentation. Nach dieser Ansicht und nach jedem
+Signaturwechsel beginnt die Parameterauswahl neu: Der erste Druck auf
+`NVDA+h` oder `NVDA+l` zeigt immer Parameter 1; erst der nächste Druck
+schaltet in die gewählte Richtung weiter. Die Sprache verwendet dabei die
 vollständigen Bezeichnungen. Auf Braille stehen platzsparend `S 1 von 2` für
 eine Signatur, `P 1 von 3` für einen Parameter und `D:` vor der Dokumentation;
 Funktions- und Parameternamen bleiben vollständig. Mit

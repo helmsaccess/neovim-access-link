@@ -131,10 +131,10 @@ Callable parameters can be inspected without moving the editor cursor. Place
 the cursor on the function name or its opening or closing call parenthesis,
 press `NVDA+Shift+P`, and keep NVDA held. `NVDA+h/l` cycles only the parameters
 of the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
-initial view contains only the signature and documentation; each signature
-starts independently at its first parameter. After that view or a signature
-change, the first `NVDA+h` or `NVDA+l` press reveals the selected parameter;
-only the next press moves. Speech keeps the full labels. Braille saves space
+initial view contains only the signature and documentation. After this view
+and after every signature change, parameter selection starts over: the first
+`NVDA+h` or `NVDA+l` press always reveals parameter 1; only the next press
+moves in the chosen direction. Speech keeps the full labels. Braille saves space
 with `S 1 of 2` for a signature, `P 1 of 3` for a parameter, and `D:` before
 documentation; function and parameter names remain complete.
 `NVDA+Shift+E` uses the same held

@@ -132,7 +132,7 @@ class HeldContextController:
         self._request_id: int | None = None
         self._items: tuple[Mapping[str, Any], ...] = ()
         self._item_index = 0
-        self._parameter_indices: list[int] = []
+        self._parameter_index = 0
         self._parameter_visible = False
 
     @property
@@ -150,7 +150,7 @@ class HeldContextController:
         self._request_id = request_id
         self._items = ()
         self._item_index = 0
-        self._parameter_indices = []
+        self._parameter_index = 0
         self._parameter_visible = False
         return HeldContextRequest(kind, request_id, location.request_payload(request_id))
 
@@ -180,9 +180,8 @@ class HeldContextController:
         )
         # The LSP active parameter describes the editor's call-site state. This
         # held view is a separate, explicit inspection surface and therefore
-        # starts each signature at its first parameter. Keeping one index per
-        # signature prevents parameter navigation from leaking across items.
-        self._parameter_indices = [0] * len(self._items)
+        # starts at the first parameter.
+        self._parameter_index = 0
         self._parameter_visible = False
         return self.current()
 
@@ -206,9 +205,11 @@ class HeldContextController:
             return None
         if direction is HeldContextDirection.PREVIOUS_ITEM:
             self._item_index = (self._item_index - 1) % len(self._items)
+            self._parameter_index = 0
             self._parameter_visible = False
         elif direction is HeldContextDirection.NEXT_ITEM:
             self._item_index = (self._item_index + 1) % len(self._items)
+            self._parameter_index = 0
             self._parameter_visible = False
         else:
             parameters = self._parameters()
@@ -216,9 +217,7 @@ class HeldContextController:
                 return self.current()
             if self._parameter_visible:
                 delta = -1 if direction is HeldContextDirection.PREVIOUS_PARAMETER else 1
-                self._parameter_indices[self._item_index] = (
-                    self._parameter_indices[self._item_index] + delta
-                ) % len(parameters)
+                self._parameter_index = (self._parameter_index + delta) % len(parameters)
             else:
                 # The signature-only view exposes no current parameter. The
                 # first h/l press therefore reveals this signature's current
@@ -232,10 +231,10 @@ class HeldContextController:
         item = self._items[self._item_index]
         parameters = self._parameters()
         parameter_index = min(
-            self._parameter_indices[self._item_index],
+            self._parameter_index,
             max(0, len(parameters) - 1),
         )
-        self._parameter_indices[self._item_index] = parameter_index
+        self._parameter_index = parameter_index
         return HeldContextPresentation(
             self._kind,
             item,
@@ -256,7 +255,7 @@ class HeldContextController:
         self._request_id = None
         self._items = ()
         self._item_index = 0
-        self._parameter_indices = []
+        self._parameter_index = 0
         self._parameter_visible = False
         return True
 

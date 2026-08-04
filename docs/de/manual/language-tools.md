@@ -320,6 +320,10 @@ NVDA-Taste weiter halten:
 | `NVDA+k` / `NVDA+j` | vorherige / nächste Signatur anzeigen |
 | NVDA-Taste loslassen | vorübergehende Ansicht schließen |
 
+Nach jedem Signaturwechsel beginnt die Parameterauswahl neu. Der erste Druck
+auf `NVDA+h` oder `NVDA+l` nennt daher immer Parameter 1 der gewählten
+Signatur; erst danach wird rückwärts beziehungsweise vorwärts geschaltet.
+
 Diese Funktion benötigt Signaturhilfe vom Sprachserver. Wenn der Server nur
 Hovertext, aber keine strukturierte Signaturhilfe liefert, kann Access Link
 lediglich diesen unstrukturierten Text als Rückfall anzeigen.

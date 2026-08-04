@@ -120,13 +120,13 @@ class HeldContextControllerTests(unittest.TestCase):
 			"first(a, b)",
 			self.controller.navigate(HeldContextDirection.NEXT_ITEM).item["signature"],
 		)
-		self.assertEqual("b", self.controller.current().parameter)
+		self.assertEqual("a", self.controller.current().parameter)
 		self.assertEqual(
-			"b",
+			"a",
 			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
 		)
 
-	def test_each_signature_keeps_an_independent_parameter_selection(self):
+	def test_each_signature_change_resets_parameter_navigation_to_first(self):
 		request = self.controller.begin(HeldContextKind.CALLABLE, self.location)
 		event = {
 			"type": "callableContextResult",
@@ -162,10 +162,15 @@ class HeldContextControllerTests(unittest.TestCase):
 			"z",
 			self.controller.navigate(HeldContextDirection.PREVIOUS_PARAMETER).parameter,
 		)
-		self.assertEqual("b", self.controller.navigate(HeldContextDirection.PREVIOUS_ITEM).parameter)
+		self.assertEqual("a", self.controller.navigate(HeldContextDirection.PREVIOUS_ITEM).parameter)
 		self.assertEqual(
-			"b",
+			"a",
 			self.controller.navigate(HeldContextDirection.NEXT_PARAMETER).parameter,
+		)
+		self.assertEqual("x", self.controller.navigate(HeldContextDirection.NEXT_ITEM).parameter)
+		self.assertEqual(
+			"x",
+			self.controller.navigate(HeldContextDirection.PREVIOUS_PARAMETER).parameter,
 		)
 
 	def test_diagnostic_items_wrap(self):

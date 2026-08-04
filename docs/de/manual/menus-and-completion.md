@@ -158,13 +158,12 @@ Beim Öffnen spricht Access Link nur die ausgewählte Signatur und ihre
 vorhandene Dokumentation. `NVDA+h/l` spricht und zeigt ausschließlich den
 vorherigen beziehungsweise nächsten Parameter dieser Signatur;
 `NVDA+k/j` spricht und zeigt ausschließlich die vorherige beziehungsweise
-nächste Signatur samt ihrer Dokumentation. Jede Signatur besitzt eine eigene
-Parameterauswahl, die bei Parameter 1 beginnt und beim Signaturwechsel nicht
-mit einer anderen Signatur vermischt wird. Sprache und Braille zeigen damit
-immer dieselbe, gerade gewählte Achse. Da die Signaturansicht keinen Parameter
-zeigt, blendet der erste Druck auf `NVDA+h` oder `NVDA+l` zunächst den für
-diese Signatur ausgewählten Parameter ein; erst weitere Betätigungen wechseln
-vorwärts oder rückwärts. Die Sprache verwendet die vollständigen
+nächste Signatur samt ihrer Dokumentation. Jeder Signaturwechsel verwirft den
+bisherigen Parameterstand. Da die Signaturansicht keinen Parameter zeigt,
+blendet der erste Druck auf `NVDA+h` oder `NVDA+l` immer Parameter 1 der nun
+gewählten Signatur ein; erst weitere Betätigungen wechseln vorwärts oder
+rückwärts. Sprache und Braille zeigen damit immer dieselbe, gerade gewählte
+Achse. Die Sprache verwendet die vollständigen
 Bezeichnungen. Auf Braille verkürzen `S 1 von 2`, `P 1 von 3` und `D:` nur die
 Strukturpräfixe für Signatur, Parameter und Dokumentation; Funktionsnamen,
 Parameternamen und die eigentlichen Inhalte bleiben vollständig. Passt der

@@ -81,12 +81,11 @@ buffer, window, tab, changed tick, and cursor position still match the request.
 On opening, Access Link speaks and shows only the selected signature and its
 available documentation. `NVDA+h/l` speaks and shows only the previous or next
 parameter of that signature; `NVDA+k/j` speaks and shows only the previous or
-next signature with its documentation. Each signature has an independent
-parameter selection that starts at parameter 1 and is never mixed with another
-signature when switching. Speech and Braille therefore expose the same current
-navigation axis. Because the signature view exposes no parameter, the first
-`NVDA+h` or `NVDA+l` press reveals the parameter selected for that signature;
-only subsequent presses move backward or forward. Speech keeps the full
+next signature with its documentation. Every signature change discards the
+previous parameter position. Because the signature view exposes no parameter,
+the first `NVDA+h` or `NVDA+l` press always reveals parameter 1 of the newly
+selected signature; only subsequent presses move backward or forward. Speech
+and Braille therefore expose the same current navigation axis. Speech keeps the full
 labels. On Braille, `S 1 of 2`, `P 1 of 3`, and `D:` shorten only the structural
 prefixes for signature, parameter, and documentation; function names,
 parameter names, and content remain complete. If the content does not fit
