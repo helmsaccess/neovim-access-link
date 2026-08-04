@@ -19,6 +19,8 @@ equal("stdio", lsp.menu, "LSP detail")
 equal("nvim_lsp", lsp.source, "source name")
 equal("Print formatted output", lsp.info, "markup documentation")
 equal("entry:1", lsp.stableId, "stable ID")
+equal(true, adapters.is_selection_key("<C-N>"), "Ctrl+N is a completion selection key")
+equal(false, adapters.is_selection_key("<Tab>"), "unrelated Insert key is not suppressed")
 
 local all_kinds = {
   "text", "method", "function", "constructor", "field", "variable", "class",
@@ -77,6 +79,7 @@ adapters.setup(owner, group)
 callbacks.menu_opened()
 equal("begin", lifecycle_calls[#lifecycle_calls].type, "cmp lifecycle opens immediately")
 equal("nvim-cmp", lifecycle_calls[#lifecycle_calls].kind, "cmp lifecycle kind")
+equal(true, adapters.is_active(), "cmp adapter reports active menu")
 callbacks.menu_opened()
 equal(1, #lifecycle_calls, "duplicate cmp open does not restart lifecycle")
 vim.wait(80)
@@ -102,6 +105,7 @@ vim.wait(200, function() return calls[#calls].selected == 2 end)
 equal("buffer", calls[#calls].item.source, "cmp moved selection source")
 callbacks.menu_closed()
 equal("close", calls[#calls].type, "cmp closes adapter menu")
+equal(false, adapters.is_active(), "cmp adapter reports closed menu")
 
 local blink_items = {
   { label = "alpha", kind = 6, source_id = "lsp", source_name = "LSP" },
@@ -122,6 +126,7 @@ package.loaded["blink.cmp"] = {
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuOpen" })
 equal("begin", lifecycle_calls[#lifecycle_calls].type, "blink lifecycle opens immediately")
 equal("blink.cmp", lifecycle_calls[#lifecycle_calls].kind, "blink lifecycle kind")
+equal(true, adapters.is_active(), "blink adapter reports active menu")
 local calls_before_blink_items = #calls
 vim.wait(80)
 equal(calls_before_blink_items, #calls, "invisible initial blink data does not close lifecycle")
@@ -144,6 +149,7 @@ vim.wait(200, function() return adapters.diagnostics().errorCount > 0 end)
 equal(calls_before_blink_error, #calls, "poll error does not invent close lifecycle")
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuClose" })
 equal("close", calls[#calls].type, "blink closes adapter menu")
+equal(false, adapters.is_active(), "blink adapter reports closed menu")
 
 local diagnostics = adapters.diagnostics()
 equal(nil, diagnostics.activeKind, "diagnostics report inactive adapter")

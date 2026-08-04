@@ -257,7 +257,9 @@ buffer context changes.
 Progress is not announced automatically to avoid an unbounded speech stream.
 
 `NVDA+Shift+P` starts a correlated read-only LSP signature-help query with a
-hover fallback. While NVDA remains held, `NVDA+h/l` cycles only parameters of
+hover fallback. It works on the function name and the immediately associated
+opening and closing call parentheses without moving the real cursor. While
+NVDA remains held, `NVDA+h/l` cycles only parameters of
 the selected signature and `NVDA+k/j` cycles only signatures. Every signature
 has an independent parameter position beginning at 1. The initial view and
 signature changes show the signature with documentation; parameter changes

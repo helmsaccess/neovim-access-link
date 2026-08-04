@@ -192,9 +192,11 @@ local function identifier_byte(value)
 end
 
 -- Language servers commonly return signature help only inside an argument
--- list. When the real cursor is on a callable name immediately followed by
--- `(`, query just after that delimiter without moving or editing the buffer.
--- Hover still uses the real cursor position as its unstructured fallback.
+-- list. When the real cursor is on a callable name or its opening parenthesis,
+-- query just after that delimiter without moving or editing the buffer. A
+-- position on the closing parenthesis already denotes the inside of that
+-- argument list in LSP coordinates, so it can be used unchanged. Hover still
+-- uses the real cursor position as its unstructured fallback.
 local function callable_position_params(payload, params)
   if type(params) ~= "table" or type(params.position) ~= "table" then return params end
   local lines = vim.api.nvim_buf_get_lines(
@@ -203,6 +205,14 @@ local function callable_position_params(payload, params)
   local line = type(lines) == "table" and lines[1] or nil
   if type(line) ~= "string" or payload.byteColumn >= #line then return params end
   local offset = payload.byteColumn + 1
+  if line:sub(offset, offset) == "(" then
+    local character = utf16_index(line, offset)
+    if type(character) ~= "number" then return params end
+    local adjusted = vim.deepcopy(params)
+    adjusted.position.character = character
+    return adjusted
+  end
+  if line:sub(offset, offset) == ")" then return params end
   if not identifier_byte(line:byte(offset)) then return params end
   while identifier_byte(line:byte(offset)) do offset = offset + 1 end
   while line:sub(offset, offset):match("%s") do offset = offset + 1 end

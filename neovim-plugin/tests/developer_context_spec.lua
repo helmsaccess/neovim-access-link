@@ -41,14 +41,15 @@ end
 vim.api.nvim_buf_set_lines(0, 0, -1, true, { "calculate_total(price, quantity)" })
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 local function request()
+  local cursor = vim.api.nvim_win_get_cursor(0)
   return {
     requestId = 7,
     bufferId = vim.api.nvim_get_current_buf(),
     windowId = vim.api.nvim_get_current_win(),
     tabpageId = vim.api.nvim_get_current_tabpage(),
     changedtick = vim.api.nvim_buf_get_changedtick(0),
-    line = 1,
-    byteColumn = 0,
+    line = cursor[1],
+    byteColumn = cursor[2],
   }
 end
 
@@ -63,11 +64,14 @@ local position_ok, actual_position = pcall(original_params, 0, "utf-16")
 equal(true, position_ok, "public position parameters work on this Neovim version")
 equal("table", type(actual_position), "public position parameters are a table")
 vim.lsp.util.make_position_params = function()
-  return { position = { line = 0, character = 0 } }
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  return { position = { line = cursor[1] - 1, character = cursor[2] } }
 end
+local expected_signature_character = 16
 vim.lsp.buf_request_all = function(_, method, params, handler)
   equal("textDocument/signatureHelp", method, "signature requested first")
-  equal(16, params.position.character, "callable name queries inside opening parenthesis")
+  equal(expected_signature_character, params.position.character,
+    "callable cursor queries inside its argument list")
   handler({
     [3] = {
       result = {
@@ -99,6 +103,23 @@ equal(
   emitted.payload.items[1].parameters[2],
   "parameter documentation retained"
 )
+
+for _, position in ipairs({
+  { column = 15, character = 16, label = "opening parenthesis" },
+  { column = 31, character = 31, label = "closing parenthesis" },
+}) do
+  vim.api.nvim_win_set_cursor(0, { 1, position.column })
+  expected_signature_character = position.character
+  emitted = nil
+  local bracket_request = request()
+  equal(true, developer_context.request_callable(bracket_request, emit),
+    "callable request accepted on " .. position.label)
+  equal(true, emitted.payload.ok, "callable result succeeds on " .. position.label)
+  equal(position.column, emitted.payload.byteColumn,
+    "callable result retains " .. position.label .. " column")
+end
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+expected_signature_character = 16
 
 vim.lsp.buf_request_all = function(_, _, _, handler)
   handler({

@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Aligns the isolated native completion, `nvim-cmp`, and `blink.cmp` practical
+  test profiles: an accepted function gains exactly one pair of parentheses
+  with the cursor inside. Existing parentheses and LSP snippets are not
+  duplicated. The held signature query now also returns structured signatures
+  on the opening and closing call parentheses; real-LSP and practical-test
+  preflights cover the name and both parenthesis positions without moving the
+  editor cursor.
 - Adds a beginner-oriented user-manual setup path for language servers, native
   LSP completion, and `nvim-lint`. A small complete `init.lua`, WinGet, apt,
   and dnf installation examples, optional Access Link mappings, and a
@@ -54,6 +61,11 @@
   candidate state between the last and first suggestion in speech and Braille.
   The originally typed text remains intact as Neovim intends, cached
   documentation is cleared, and the step no longer resembles a lost `Ctrl+N`.
+- Suppresses additional cursor or line-boundary feedback for `Ctrl+N`,
+  `Ctrl+P`, and the Up and Down arrows while a structurally integrated
+  completion menu is active. In particular, the `nvim-cmp` preview now sounds
+  like `blink.cmp`: NVDA's suggestion cues mark opening and closing once each,
+  not every change of the selected candidate.
 - Adds NVDA's `disconnected.wav` as the counterpart to the connection cue. It
   plays exactly for a real loss of a previously connected, focused instance;
   initial and repeatedly reported disconnected states stay silent.

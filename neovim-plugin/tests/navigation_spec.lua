@@ -79,6 +79,34 @@ for _, event in ipairs(events) do
 end
 equal("cursorMoved", cursor_event, "Ex text does not become semantic motion")
 
+-- Custom completion menus publish selection changes through their semantic
+-- adapter.  nvim-cmp may additionally move the Insert-mode cursor while it
+-- previews a candidate; Ctrl+N must not leak that as line navigation or a
+-- boundary cue.  blink.cmp already avoids the incidental cursor movement.
+package.loaded["blink.cmp"] = {
+  is_menu_visible = function() return true end,
+  get_items = function() return {{ label = "candidate", source_name = "LSP" }} end,
+  get_selected_item_idx = function() return 1 end,
+}
+vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuOpen" })
+vim.wait(100)
+events = {}
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "candidate" })
+vim.api.nvim_win_set_cursor(0, { 1, 1 })
+vim.cmd("startinsert")
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-N>", true, false, true), "xt", false)
+vim.wait(100)
+vim.api.nvim_exec_autocmds("CursorMovedI", { modeline = false })
+vim.wait(100)
+for _, event in ipairs(events) do
+  assert(not forbidden[event.type],
+    "completion selection emitted navigation event " .. event.type)
+end
+vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuClose" })
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
+vim.wait(50)
+package.loaded["blink.cmp"] = nil
+
 vim.rpcnotify = original_rpcnotify
-print("navigation tests: 5 assertions passed")
+print("navigation tests: 6 assertions passed")
 vim.cmd("qa!")

@@ -63,8 +63,10 @@ where the complete result fits.
 Held developer context uses two fixed Windows Terminal AppModule gestures.
 `NVDA+Shift+P` requests bounded LSP signature help, with hover as an
 unstructured fallback. If the real cursor is on a callable name immediately
-followed by `(`, only the LSP query position is placed just after that
-delimiter so servers can return structured parameters. `NVDA+Shift+E`
+followed by `(` or on that opening parenthesis, only the LSP query position is
+placed just after the delimiter. On the associated closing parenthesis, the
+unchanged LSP position already denotes the argument list, so servers can
+return structured parameters from all three cursor positions. `NVDA+Shift+E`
 requests diagnostics under the cursor and then on its line. While NVDA remains
 held, parameter, signature, or diagnostic selection changes locally and never
 moves the editor cursor.

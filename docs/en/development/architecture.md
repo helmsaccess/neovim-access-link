@@ -634,9 +634,11 @@ per-instance `HeldContextController` correlates each read-only query with
 focus, terminal control, instance, buffer, window, tab, changed tick, line,
 and UTF-8 byte column. The Lua plugin reads signature help, hover, or
 `vim.diagnostic` without moving the cursor or changing the buffer. When the
-real cursor is on a callable name immediately followed by `(`, the plugin
-places only the LSP query position after that delimiter so servers such as
-Pyright return structured parameters rather than only hover text. Any mismatch
+real cursor is on a callable name immediately followed by `(` or on that
+opening parenthesis, the plugin places only the LSP query position after the
+delimiter. On the associated closing parenthesis, the unchanged LSP position
+already denotes the inside of the argument list. Servers such as Pyright can
+therefore return structured parameters rather than only hover text. Any mismatch
 before the reply or during presentation discards the state and restores the
 ordinary Braille line. Transport I/O remains in the bounded
 `ControlDispatcher`.

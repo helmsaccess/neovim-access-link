@@ -292,8 +292,9 @@ verursacht.
 
 `NVDA+Umschalt+P` ist bereits fest im Windows-Terminal-Modul von Access Link
 belegt und muss weder in NVDA noch in Lua zugewiesen werden. Den Cursor auf
-einen Funktionsnamen oder Funktionsaufruf setzen, die Kombination drücken und
-die NVDA-Taste weiter halten:
+den Funktionsnamen oder auf die unmittelbar zugehörige öffnende oder
+schließende Klammer des Aufrufs setzen, die Kombination drücken und die
+NVDA-Taste weiter halten:
 
 | gehaltene Taste | Wirkung |
 |---|---|

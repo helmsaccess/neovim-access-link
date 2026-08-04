@@ -8,6 +8,13 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Vereinheitlicht die isolierten Praxistestprofile für native Completion,
+  `nvim-cmp` und `blink.cmp`: Eine übernommene Funktion erhält genau ein
+  Klammerpaar und der Cursor steht darin. Vorhandene Klammern und
+  LSP-Snippets werden nicht verdoppelt. Die gehaltene Signaturabfrage liefert
+  strukturierte Signaturen nun außerdem auf der öffnenden und schließenden
+  Aufrufklammer; echte LSP- und Praxistest-Vorprüfungen sichern Name und beide
+  Klammerpositionen ab, ohne den Editorcursor zu bewegen.
 - Ergänzt das Anwenderhandbuch um einen einsteigerorientierten Einrichtungsweg
   für Sprachserver, native LSP-Vervollständigung und `nvim-lint`. Eine kleine
   vollständige `init.lua`, Installationsbeispiele für WinGet, apt und dnf,
@@ -67,6 +74,11 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   in Sprache und Braille. Der ursprünglich eingegebene Text bleibt wie von
   Neovim vorgesehen erhalten, der Dokumentationscache wird geleert, und der
   Schritt wirkt nicht mehr wie ein verschlucktes `Ctrl+N`.
+- Unterdrückt bei den strukturiert angebundenen Completion-Menüs die
+  zusätzliche Cursor- oder Zeilengrenzenrückmeldung für `Ctrl+N`, `Ctrl+P`
+  sowie Auf- und Abwärtspfeil. Insbesondere die Vorschau von `nvim-cmp` klingt
+  dadurch wie `blink.cmp`: NVDAs Vorschlagsklänge markieren das Öffnen und
+  Schließen je einmal, nicht jeden Wechsel des ausgewählten Kandidaten.
 - Ergänzt NVDAs `disconnected.wav` als Gegenstück zum Verbindungsklang. Er
   erklingt genau beim echten Verlust einer zuvor verbundenen, fokussierten
   Instanz; anfängliche und wiederholt gemeldete Trennzustände bleiben still.

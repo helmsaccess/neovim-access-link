@@ -225,6 +225,7 @@ wieder das Zeichen, Wort oder die Zeile erreicht, an dem der
 Sprachexplorationsmodus begann.
 
 Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
+Den Cursor auf Funktionsname, öffnende oder schließende Aufrufklammer setzen,
 `NVDA+Umschalt+P` drücken und die NVDA-Taste weiter halten. `NVDA+h/l`
 schaltet ausschließlich durch die Parameter der gewählten Signatur,
 `NVDA+k/j` ausschließlich durch mehrere Signaturen. Die erste Ansicht nennt

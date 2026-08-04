@@ -25,6 +25,11 @@ local kind_names = {
   [25] = "type parameter",
 }
 
+local selection_keys = {
+  ["<C-N>"] = true, ["<C-P>"] = true,
+  ["<Down>"] = true, ["<Up>"] = true,
+}
+
 local function text(value)
   if type(value) == "string" then return value end
   if type(value) == "table" then return value.value or value.kind or "" end
@@ -227,6 +232,14 @@ end
 
 function M.diagnostics()
   return vim.deepcopy(diagnostics)
+end
+
+function M.is_active()
+  return active_kind ~= nil
+end
+
+function M.is_selection_key(key)
+  return selection_keys[key] == true
 end
 
 function M.stop() close() end

@@ -281,7 +281,9 @@ Anforderung aus. Fortschritt wird zur Vermeidung einer Sprachflut nicht
 automatisch angesagt.
 
 `NVDA+Umschalt+P` startet eine korrelierte, rein lesende Abfrage von
-LSP-Signaturhilfe mit Hover-Rückfall. Solange die NVDA-Taste gehalten wird,
+LSP-Signaturhilfe mit Hover-Rückfall. Sie funktioniert auf dem Funktionsnamen
+sowie der unmittelbar zugehörigen öffnenden und schließenden Aufrufklammer,
+ohne den echten Cursor zu verschieben. Solange die NVDA-Taste gehalten wird,
 schalten `NVDA+h/l` lokal ausschließlich durch die Parameter der gewählten
 Signatur und `NVDA+k/j` ausschließlich durch Signaturen. Jede Signatur besitzt
 einen unabhängigen, bei 1 beginnenden Parameterstand. Erstansicht und

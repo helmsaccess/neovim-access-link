@@ -119,9 +119,10 @@ only in the exact connected Neovim pane; NVDA remains unchanged in shells and
 other tabs or panes. A short two-note cue marks when the virtual position
 returns to the character, word, or line where speech exploration mode started.
 
-Callable parameters can be inspected without moving the editor cursor: press
-`NVDA+Shift+P` and keep NVDA held. `NVDA+h/l` cycles only the parameters of
-the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
+Callable parameters can be inspected without moving the editor cursor. Place
+the cursor on the function name or its opening or closing call parenthesis,
+press `NVDA+Shift+P`, and keep NVDA held. `NVDA+h/l` cycles only the parameters
+of the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
 initial view contains only the signature and documentation; each signature
 starts independently at its first parameter. After that view or a signature
 change, the first `NVDA+h` or `NVDA+l` press reveals the selected parameter;

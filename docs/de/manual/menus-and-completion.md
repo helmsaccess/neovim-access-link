@@ -121,11 +121,13 @@ Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
 ## Funktionsparameter auf Abruf
 
 Mit `NVDA+Umschalt+P` fragt Access Link die Signaturhilfe an der aktuellen
-Cursorposition ab. Solange mindestens eine NVDA-Taste gedrückt bleibt, stehen
-die Informationen dauerhaft auf der Braillezeile. `NVDA+h/l` schaltet durch
-die Parameter, `NVDA+k/j` durch mehrere Signaturen. Die echte Cursorposition
-bleibt unverändert. Beim Loslassen der letzten NVDA-Taste wird die Anzeige
-geschlossen und die normale Editorzeile wiederhergestellt.
+Cursorposition ab. Der Cursor kann dabei auf dem Funktionsnamen oder auf der
+unmittelbar zugehörigen öffnenden oder schließenden Klammer stehen. Solange
+mindestens eine NVDA-Taste gedrückt bleibt, stehen die Informationen dauerhaft
+auf der Braillezeile. `NVDA+h/l` schaltet durch die Parameter, `NVDA+k/j`
+durch mehrere Signaturen. Die echte Cursorposition bleibt unverändert. Beim
+Loslassen der letzten NVDA-Taste wird die Anzeige geschlossen und die normale
+Editorzeile wiederhergestellt.
 
 Beim Öffnen spricht Access Link nur die ausgewählte Signatur und ihre
 vorhandene Dokumentation. `NVDA+h/l` spricht und zeigt ausschließlich den

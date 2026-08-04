@@ -8,14 +8,24 @@ local configuration_source = assert(debug.getinfo(1, "S").source)
 assert(configuration_source:sub(1, 1) == "@", "human-test init path is unavailable")
 local framework_root = vim.fs.dirname(configuration_source:sub(2))
 local linter_readiness = dofile(vim.fs.joinpath(framework_root, "linter_readiness.lua"))
+local completion_parentheses = dofile(vim.fs.joinpath(
+  framework_root, "completion_parentheses.lua"))
 local human_messages = language == "de" and {
   diagnostics_waiting = "%s-Diagnosen werden ermittelt. Bitte warten.",
   diagnostics_ready = "Diagnosen bereit: %d von %s, davon %d an der Testposition. Jetzt F7 drücken.",
   diagnostics_not_ready = "%s-Diagnosen wurden nicht rechtzeitig bereit.",
+  callable_name = "Cursor auf Funktionsname.",
+  callable_open = "Cursor auf öffnender Klammer.",
+  callable_close = "Cursor auf schließender Klammer.",
+  callable_unavailable = "Diese Testhilfe ist nur in der Python-Funktionsdatei verfügbar.",
 } or {
   diagnostics_waiting = "Waiting for %s diagnostics.",
   diagnostics_ready = "Diagnostics ready: %d from %s, including %d at the test position. Press F7 now.",
   diagnostics_not_ready = "%s diagnostics did not become ready in time.",
+  callable_name = "Cursor on function name.",
+  callable_open = "Cursor on opening parenthesis.",
+  callable_close = "Cursor on closing parenthesis.",
+  callable_unavailable = "This test helper is available only in the Python callable fixture.",
 }
 local valid_profiles = {
   setup = true,
@@ -129,6 +139,38 @@ local function prepare_insert_probe(text)
   vim.cmd("startinsert!")
 end
 
+local function callable_fixture_positions()
+  if vim.bo.filetype ~= "python" then return nil end
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
+  for line_number, line in ipairs(lines) do
+    local call = line:find("total = calculate_total", 1, true)
+    if call then
+      local name = call - 1 + #"total = "
+      local opening = assert(line:find("(", name + 1, true)) - 1
+      local closing = assert(line:find(")", opening + 2, true)) - 1
+      return {
+        { cursor = { line_number, name }, message = human_messages.callable_name },
+        { cursor = { line_number, opening }, message = human_messages.callable_open },
+        { cursor = { line_number, closing }, message = human_messages.callable_close },
+      }
+    end
+  end
+  return nil
+end
+
+local callable_position_index = 1
+local function cycle_callable_fixture_position()
+  local positions = callable_fixture_positions()
+  if not positions then
+    vim.notify(human_messages.callable_unavailable)
+    return
+  end
+  callable_position_index = callable_position_index % #positions + 1
+  local selected = positions[callable_position_index]
+  vim.api.nvim_win_set_cursor(0, selected.cursor)
+  vim.notify(selected.message)
+end
+
 local function show_current_task()
   local context = vim.env.ACCESS_LINK_HUMAN_CONTEXT or ""
   local task = vim.env.ACCESS_LINK_HUMAN_TASK or ""
@@ -156,6 +198,8 @@ vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
 vim.keymap.set("n", "<F3>", function()
   prepare_insert_probe("completion_probe = calculate_")
 end, { desc = "Access Link human test: prepare completion" })
+vim.keymap.set("n", "<F4>", cycle_callable_fixture_position,
+  { desc = "Access Link human test: cycle callable cursor position" })
 if profile == "diagnostics" then
   vim.keymap.set("n", "<F5>", function()
     vim.api.nvim_win_set_cursor(0, { 2, 0 })
@@ -212,6 +256,10 @@ if profile == "cmp" then
     sources = { { name = "nvim_lsp" } },
     experimental = { ghost_text = false },
   })
+  cmp.event:on("confirm_done", function(event)
+    completion_parentheses.apply(event.entry.completion_item)
+  end)
+  vim.g.access_link_human_cmp_auto_parentheses = 1
   capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
 elseif profile == "blink" then
   require("blink.cmp").setup({
@@ -220,6 +268,7 @@ elseif profile == "blink" then
       ["<F5>"] = { "show", "show_documentation", "hide_documentation" },
     },
     completion = {
+      accept = { auto_brackets = { enabled = true } },
       documentation = { auto_show = false },
       ghost_text = { enabled = false },
       list = { selection = { preselect = false, auto_insert = false } },
@@ -240,7 +289,22 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.keymap.set("n", "gd", vim.lsp.buf.definition, options)
     if profile == "native" or profile == "diagnostics" or profile == "focus" then
       local client = assert(vim.lsp.get_client_by_id(event.data.client_id))
-      vim.lsp.completion.enable(true, client.id, event.buf, { autotrigger = false })
+      vim.lsp.completion.enable(true, client.id, event.buf, {
+        autotrigger = false,
+        convert = completion_parentheses.native_convert,
+      })
+      local bracket_group = vim.api.nvim_create_augroup(
+        "AccessLinkHumanNativeCompletion" .. event.buf, { clear = true })
+      vim.api.nvim_create_autocmd("CompleteDone", {
+        group = bracket_group,
+        buffer = event.buf,
+        callback = function()
+          local item = vim.tbl_get(
+            vim.v.completed_item, "user_data", "nvim", "lsp", "completion_item")
+          completion_parentheses.apply(item)
+        end,
+        desc = "Place the cursor inside accepted function parentheses",
+      })
       vim.keymap.set("i", "<C-Space>", vim.lsp.completion.get, options)
       vim.keymap.set("i", "<F5>", vim.lsp.completion.get, options)
       vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, options)
@@ -381,12 +445,8 @@ end
 local function fixture_cursor(name)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
   if name == "lsp_features.py" then
-    for line_number, line in ipairs(lines) do
-      local byte = line:find("total = calculate_total", 1, true)
-      if byte then
-        return { line_number, byte - 1 + #"total = " }
-      end
-    end
+    local positions = callable_fixture_positions()
+    return positions and positions[1].cursor or nil
   elseif name == "diagnostics.py" then
     return { 1, 15 }
   elseif name == "diagnostics.c" then
@@ -407,27 +467,34 @@ local function move_to_fixture_cursor(name)
 end
 
 local function assert_callable_choices_ready()
-  move_to_fixture_cursor("lsp_features.py")
-  local result = nil
-  local request = request_payload(1)
-  local accepted = require("nvim_nvda.developer_context").request_callable(
-    request,
-    function(_, _, payload) result = payload end
-  )
-  assert(accepted, "Access Link did not accept the callable fixture request")
-  assert(vim.wait(15000, function() return result ~= nil end, 50),
-    "Pyright did not answer the callable fixture request")
-  assert(result.ok, "the callable fixture did not produce signature help")
-  for key, value in pairs(request) do
-    assert(result[key] == value,
-      "the callable fixture result omitted its correlated editor snapshot")
+  local positions = assert(callable_fixture_positions(),
+    "the human-test fixture does not contain its callable positions")
+  for index, position in ipairs(positions) do
+    vim.api.nvim_win_set_cursor(0, position.cursor)
+    local result = nil
+    local request = request_payload(index)
+    local accepted = require("nvim_nvda.developer_context").request_callable(
+      request,
+      function(_, _, payload) result = payload end
+    )
+    assert(accepted, "Access Link did not accept callable fixture position " .. index)
+    assert(vim.wait(15000, function() return result ~= nil end, 50),
+      "Pyright did not answer callable fixture position " .. index)
+    assert(result.ok, "callable fixture position " .. index
+      .. " did not produce signature help")
+    for key, value in pairs(request) do
+      assert(result[key] == value,
+        "the callable fixture result omitted its correlated editor snapshot")
+    end
+    local rich_signatures = 0
+    for _, item in ipairs(result.items) do
+      if #item.parameters >= 3 then rich_signatures = rich_signatures + 1 end
+    end
+    assert(rich_signatures >= 2,
+      "callable fixture position " .. index
+        .. " did not produce two signatures with three parameters")
   end
-  local rich_signatures = 0
-  for _, item in ipairs(result.items) do
-    if #item.parameters >= 3 then rich_signatures = rich_signatures + 1 end
-  end
-  assert(rich_signatures >= 2,
-    "the callable fixture did not produce two signatures with three parameters")
+  vim.api.nvim_win_set_cursor(0, positions[1].cursor)
 end
 
 local function completion_labels(results)
@@ -478,6 +545,8 @@ local function assert_completion_profile_ready()
       "nvim-cmp did not configure its F5 completion mapping")
     assert(cmp_config.get_source_config("nvim_lsp") ~= nil,
       "nvim-cmp did not configure its LSP completion source")
+    assert(vim.g.access_link_human_cmp_auto_parentheses == 1,
+      "nvim-cmp did not enable the expected automatic function parentheses")
     return
   end
 
@@ -494,12 +563,26 @@ local function assert_completion_profile_ready()
     assert(type(blink_config.sources.default) == "table"
         and vim.tbl_contains(blink_config.sources.default, "lsp"),
       "blink.cmp did not configure its LSP completion source")
+    assert(blink_config.completion.accept.auto_brackets.enabled == true,
+      "blink.cmp did not enable the expected automatic function brackets")
     return
   end
 
   local insert_f5 = vim.fn.maparg("<F5>", "i", false, true)
   assert(type(insert_f5) == "table" and next(insert_f5) ~= nil,
     "the native completion profile did not install its F5 mapping")
+  local bracket_autocmds = vim.api.nvim_get_autocmds({
+    event = "CompleteDone", buffer = 0,
+  })
+  local bracket_autocmd_found = false
+  for _, autocmd in ipairs(bracket_autocmds) do
+    if autocmd.desc == "Place the cursor inside accepted function parentheses" then
+      bracket_autocmd_found = true
+      break
+    end
+  end
+  assert(bracket_autocmd_found,
+    "native completion did not enable automatic function parentheses")
 end
 
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()

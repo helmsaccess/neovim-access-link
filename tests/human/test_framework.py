@@ -251,12 +251,17 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('cmp_config.get_source_config("nvim_lsp")', configuration)
 		self.assertIn('require("blink.cmp.keymap").get_mappings(', configuration)
 		self.assertIn('vim.tbl_contains(blink_config.sources.default, "lsp")', configuration)
+		self.assertIn('accept = { auto_brackets = { enabled = true } }', configuration)
+		self.assertIn('blink_config.completion.accept.auto_brackets.enabled == true', configuration)
+		self.assertIn('convert = completion_parentheses.native_convert', configuration)
+		self.assertIn('cmp.event:on("confirm_done"', configuration)
+		self.assertIn('completion_parentheses.apply(event.entry.completion_item)', configuration)
+		self.assertIn('"<F4>", cycle_callable_fixture_position', configuration)
+		self.assertIn('for index, position in ipairs(positions)', configuration)
 		self.assertLess(
 			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
 			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
 		)
-		self.assertNotIn('"<F4>"', configuration)
-
 	def test_human_fixtures_offer_real_choices_for_every_cycle_instruction(self) -> None:
 		lsp_fixture = (HUMAN_ROOT / "fixtures" / "lsp_features.py").read_text(encoding="utf-8")
 		diagnostic_fixture = (HUMAN_ROOT / "fixtures" / "diagnostics.py").read_text(

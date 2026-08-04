@@ -1293,7 +1293,16 @@ function M.setup()
     -- retaining `wordMoved` here would therefore announce the following word
     -- when that first character is typed.
     if raw_mode:sub(1, 1) == "i" then
-      pending_motion = insert_motion_events[translated]
+      local physical_key = typed_translated ~= "" and typed_translated or translated
+      local completion_active = completion_adapters.is_active() or vim.fn.pumvisible() == 1
+      if completion_active and completion_adapters.is_selection_key(physical_key) then
+        -- Completion adapters publish the selected item authoritatively.
+        -- nvim-cmp may also move the Insert-mode cursor while previewing it;
+        -- do not turn that implementation detail into a line-boundary cue.
+        pending_motion = "suppress"
+      else
+        pending_motion = insert_motion_events[translated]
+      end
     elseif pending_edit and operator_context then
       pending_motion = "suppress"
     elseif operator_context or visual_context then

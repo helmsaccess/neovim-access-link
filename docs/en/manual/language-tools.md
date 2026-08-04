@@ -277,8 +277,9 @@ while the source of a problem is still unknown.
 ## Inspecting function signatures and parameters
 
 `NVDA+Shift+P` is already fixed in Access Link's Windows Terminal module. It
-does not need to be assigned in NVDA or mapped in Lua. Place the cursor on a
-function name or call, press the gesture, and keep the NVDA key held:
+does not need to be assigned in NVDA or mapped in Lua. Place the cursor on the
+function name or on the call's immediately associated opening or closing
+parenthesis, press the gesture, and keep the NVDA key held:
 
 | Held key | Action |
 |---|---|

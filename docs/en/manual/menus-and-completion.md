@@ -46,13 +46,14 @@ not spoken continuously; errors and results remain available through
 diagnostics and Neovim messages.
 
 Press `NVDA+Shift+P` to request callable information at the current cursor.
-While at least one NVDA key remains held, the result stays on the Braille
-display. `NVDA+h/l` cycles through parameters and `NVDA+k/j` through multiple
-signatures without moving the real editor cursor. Releasing the final NVDA
-key closes the view and restores the editor line. Access Link prefers public
-LSP signature help and uses LSP hover as an unstructured fallback. A reply is
-accepted only while instance, terminal, buffer, window, tab, changed tick,
-and cursor position still match the request.
+The cursor may be on the function name or on the call's immediately associated
+opening or closing parenthesis. While at least one NVDA key remains held, the
+result stays on the Braille display. `NVDA+h/l` cycles through parameters and
+`NVDA+k/j` through multiple signatures without moving the real editor cursor.
+Releasing the final NVDA key closes the view and restores the editor line.
+Access Link prefers public LSP signature help and uses LSP hover as an
+unstructured fallback. A reply is accepted only while instance, terminal,
+buffer, window, tab, changed tick, and cursor position still match the request.
 
 On opening, Access Link speaks and shows only the selected signature and its
 available documentation. `NVDA+h/l` speaks and shows only the previous or next

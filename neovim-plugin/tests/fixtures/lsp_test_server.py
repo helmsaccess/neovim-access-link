@@ -48,9 +48,10 @@ def result_for(message: dict[str, Any]) -> Any:
 		}
 	if method == "textDocument/signatureHelp":
 		position = message.get("params", {}).get("position", {})
-		# The test cursor remains on the callable name. Access Link must ask
-		# just after the opening parenthesis without moving that real cursor.
-		if position.get("character") != 16:
+		# A cursor on the name or opening parenthesis is normalized just inside
+		# the call. A cursor on the closing parenthesis is already inside in LSP
+		# coordinates. Neither case moves the real editor cursor.
+		if position.get("character") not in {16, 31}:
 			return None
 		return {
 			"activeSignature": 0,

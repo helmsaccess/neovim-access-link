@@ -1240,6 +1240,7 @@ class SpeechPlannerTests(unittest.TestCase):
             selected.text,
         )
         self.assertEqual(selected.text, selected.braille_message)
+        self.assertIsNone(selected.sound)
         self.assertEqual("suggestionsClose", closed.sound)
 
     def test_single_completion_omits_redundant_position(self) -> None:

@@ -708,9 +708,12 @@ Diagnosenavigation ab. Der instanzbezogene `HeldContextController` korreliert
 die lesende Anfrage mit Fokus, Terminal-Control, Instanz, Buffer, Fenster,
 Tab, `changedtick`, Zeile und UTF-8-Bytespalte. Das Lua-Plugin liest
 Signaturhilfe, Hover oder `vim.diagnostic`, verändert aber weder Cursor noch
-Buffer. Steht der echte Cursor auf einem Funktionsnamen unmittelbar vor `(`,
-setzt das Plugin ausschließlich die LSP-Abfrageposition hinter diese Klammer;
-damit liefern Server wie Pyright strukturierte Parameter statt nur Hovertext.
+Buffer. Steht der echte Cursor auf einem Funktionsnamen unmittelbar vor `(`
+oder auf dieser öffnenden Klammer, setzt das Plugin ausschließlich die
+LSP-Abfrageposition hinter die Klammer. Auf der zugehörigen schließenden
+Klammer bezeichnet die unveränderte LSP-Position bereits das Innere der
+Argumentliste. Damit liefern Server wie Pyright strukturierte Parameter statt
+nur Hovertext.
 Jede Abweichung vor der Antwort oder während der Anzeige verwirft den Zustand
 und stellt die normale Braillezeile wieder her. Transport-I/O bleibt im
 begrenzten `ControlDispatcher`.
