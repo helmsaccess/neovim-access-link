@@ -50,8 +50,8 @@ take precedence.
   required behavior is preserved.
 - Preserve unrelated user changes and keep changes focused.
 - Store project-specific temporary sources, downloaded tools, test workspaces, reproductions,
-  and reports under the repository's ignored `tmp/` directory. Do not use the system `/tmp`
-  for this project; tooling, packaging, and repository-wide source scans must exclude `tmp/`.
+  and reports under `/nfs/src/nal-tmp/`, outside the repository and its worktrees. Do not use a
+  repository-local `tmp/` directory or the system `/tmp` for this project.
 - Follow the established conventions of each component and upstream API; do not impose one
   component's style on another.
 - Logging is diagnostic only; correctness must never depend on it.
@@ -103,9 +103,8 @@ take precedence.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
   exhaustive coverage or response-time guarantees.
 - In manuals, use localized UI names from the translation catalogs.
-- Prefer locally available target-application or add-on source under the repository's ignored
-  `tmp/` directory over web retrieval. Never commit private paths, hostnames, usernames, domains,
-  credentials, or secrets.
+- Prefer locally available target-application or add-on source under `/nfs/src/nal-tmp/` over web
+  retrieval. Never commit private paths, hostnames, usernames, domains, credentials, or secrets.
 - Before asking technical questions externally, check code and official documentation; ask only
   unresolved questions, with at most three per focused message.
 - Write commits, issues, pull requests, release text, and other project collaboration text in

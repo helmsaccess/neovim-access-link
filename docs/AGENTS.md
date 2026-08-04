@@ -10,7 +10,7 @@
 - Do not copy prompts, user-to-agent instructions, conversation history, or temporary working
   directions into documentation. Include a decision or process rule only when it has independent
   value for the document's audience; otherwise keep it in `AGENTS.md`, an issue, a commit, or
-  ignored `tmp/`.
+  `/nfs/src/nal-tmp/`.
 - Keep the architecture understandable from a concise overview before presenting details. Update
   it whenever component ownership, data flow, trust boundaries, or lifecycle responsibilities
   change.
