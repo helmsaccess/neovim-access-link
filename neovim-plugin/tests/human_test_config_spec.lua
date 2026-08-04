@@ -55,6 +55,25 @@ truthy(type(insert_f2) == "table" and insert_f2.desc ~= nil,
 truthy(vim.o.shiftwidth == 2 and vim.o.tabstop == 2 and vim.o.expandtab,
   "isolated editing defaults are deterministic")
 
+for _, case in ipairs({
+  { profile = "native", step = "completion-presentation", id = "C1" },
+  { profile = "cmp", step = "menu-presentation", id = "C2" },
+  { profile = "blink", step = "menu-presentation", id = "C3" },
+}) do
+  vim.cmd.stopinsert()
+  vim.api.nvim_buf_set_lines(0, 0, -1, true, { "completion fixture" })
+  vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", case.profile)
+  vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", case.step)
+  vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", case.id)
+  vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
+  dofile(root .. "/tests/human/framework/init.lua")
+  local completion_preparation = vim.fn.maparg("<F3>", "n", false, true)
+  completion_preparation.callback()
+  local completion_lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
+  truthy(completion_lines[#completion_lines] == "completion_probe = calculate_",
+    case.id .. " prepares the insertion point described by its task")
+end
+
 local parentheses = dofile(root .. "/tests/human/framework/completion_parentheses.lua")
 local function_item = {
   label = "calculate_total",

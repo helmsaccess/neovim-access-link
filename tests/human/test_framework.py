@@ -302,6 +302,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn('"<F11>"', configuration)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
+		self.assertIn('step_id == "menu-presentation"', configuration)
+		self.assertIn('profile == "cmp" or profile == "blink"', configuration)
 		self.assertIn('local marker = "automatic_total = calculate_total()"', configuration)
 		self.assertIn('for index, position in ipairs(positions)', configuration)
 		self.assertLess(

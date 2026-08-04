@@ -174,7 +174,9 @@ local function prepare_current_probe()
     prepare_parameter_probe()
     return
   end
-  if step_id == "completion-presentation" then
+  local completion_task = step_id == "completion-presentation"
+    or (step_id == "menu-presentation" and (profile == "cmp" or profile == "blink"))
+  if completion_task then
     prepare_insert_probe("completion_probe = calculate_")
     return
   end
