@@ -290,12 +290,19 @@ if profile == "cmp" then
     snippet = {
       expand = function(arguments) vim.snippet.expand(arguments.body) end,
     },
-    completion = { completeopt = "menu,menuone,noselect" },
+    completion = {
+      autocomplete = false,
+      completeopt = "menu,menuone,noselect",
+    },
     mapping = cmp.mapping.preset.insert({
       ["<C-Space>"] = cmp.mapping.complete(),
       ["<F5>"] = cmp.mapping.complete(),
-      ["<C-n>"] = cmp.mapping.select_next_item(),
-      ["<C-p>"] = cmp.mapping.select_prev_item(),
+      ["<C-n>"] = cmp.mapping(function()
+        if cmp.visible() then cmp.select_next_item() end
+      end, { "i", "s" }),
+      ["<C-p>"] = cmp.mapping(function()
+        if cmp.visible() then cmp.select_prev_item() end
+      end, { "i", "s" }),
       ["<C-y>"] = cmp.mapping.confirm({ select = false }),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-k>"] = cmp.mapping(function()
@@ -313,14 +320,21 @@ if profile == "cmp" then
 elseif profile == "blink" then
   require("blink.cmp").setup({
     keymap = {
-      preset = "default",
+      preset = "none",
+      ["<C-Space>"] = { "show", "show_documentation", "hide_documentation" },
       ["<F5>"] = { "show", "show_documentation", "hide_documentation" },
+      ["<C-n>"] = { "select_next" },
+      ["<C-p>"] = { "select_prev" },
+      ["<C-y>"] = { "select_and_accept" },
+      ["<C-e>"] = { "cancel" },
+      ["<C-k>"] = { "show_signature", "hide_signature" },
     },
     completion = {
       accept = { auto_brackets = { enabled = true } },
       documentation = { auto_show = false },
       ghost_text = { enabled = false },
       list = { selection = { preselect = false, auto_insert = false } },
+      menu = { auto_show = false },
     },
     sources = { default = { "lsp" } },
     signature = { enabled = true },
@@ -356,6 +370,12 @@ vim.api.nvim_create_autocmd("LspAttach", {
       })
       vim.keymap.set("i", "<C-Space>", vim.lsp.completion.get, options)
       vim.keymap.set("i", "<F5>", vim.lsp.completion.get, options)
+      vim.keymap.set("i", "<C-n>", function()
+        return vim.fn.pumvisible() == 1 and "<C-n>" or "<Ignore>"
+      end, vim.tbl_extend("force", options, { expr = true, replace_keycodes = true }))
+      vim.keymap.set("i", "<C-p>", function()
+        return vim.fn.pumvisible() == 1 and "<C-p>" or "<Ignore>"
+      end, vim.tbl_extend("force", options, { expr = true, replace_keycodes = true }))
       vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, options)
     end
   end,
@@ -521,7 +541,10 @@ local function fixture_cursor(name)
       if byte then return { line_number, byte - 1 } end
     end
   elseif name == "diagnostics.md" then
-    return { 3, 2 }
+    -- markdownlint reports MD025 on the heading marker. Starting at that
+    -- exact column prevents F6's idempotent positioning from being announced
+    -- as an unrelated character movement (for example, "number sign").
+    return { 3, 0 }
   end
   return nil
 end
@@ -611,6 +634,8 @@ local function assert_completion_profile_ready()
       "nvim-cmp did not configure its F5 completion mapping")
     assert(cmp_config.get_source_config("nvim_lsp") ~= nil,
       "nvim-cmp did not configure its LSP completion source")
+    assert(cmp_config.get().completion.autocomplete == false,
+      "nvim-cmp automatic completion would bypass the F5 test trigger")
     assert(vim.g.access_link_human_cmp_auto_parentheses == 1,
       "nvim-cmp did not enable the expected automatic function parentheses")
     return
@@ -629,6 +654,20 @@ local function assert_completion_profile_ready()
     assert(type(blink_config.sources.default) == "table"
         and vim.tbl_contains(blink_config.sources.default, "lsp"),
       "blink.cmp did not configure its LSP completion source")
+    assert(blink_config.keymap.preset == "none",
+      "blink.cmp inherited completion mappings outside the test profile")
+    local auto_show = blink_config.completion.menu.auto_show
+    local auto_show_enabled = type(auto_show) == "function"
+      and auto_show({}, {}) or auto_show
+    assert(auto_show_enabled == false,
+      "blink.cmp automatic completion would bypass the F5 test trigger")
+    for _, key in ipairs({ "<C-n>", "<C-p>" }) do
+      local commands = mappings[key]
+      assert(type(commands) == "table"
+          and not vim.tbl_contains(commands, "fallback")
+          and not vim.tbl_contains(commands, "fallback_to_mappings"),
+        "blink.cmp completion navigation can fall back outside the test profile")
+    end
     assert(blink_config.completion.accept.auto_brackets.enabled == true,
       "blink.cmp did not enable the expected automatic function brackets")
     return
@@ -649,9 +688,26 @@ local function assert_completion_profile_ready()
   end
   assert(bracket_autocmd_found,
     "native completion did not enable automatic function parentheses")
+  for _, key in ipairs({ "<C-n>", "<C-p>" }) do
+    local mapping = vim.fn.maparg(key, "i", false, true)
+    assert(type(mapping) == "table" and mapping.expr == 1,
+      "native completion navigation is not guarded until F5 opens its menu")
+  end
+end
+
+local function assert_completion_runtime_isolated()
+  if profile ~= "cmp" then
+    assert(package.loaded.cmp == nil,
+      "the selected profile also loaded nvim-cmp")
+  end
+  if profile ~= "blink" then
+    assert(package.loaded["blink.cmp"] == nil,
+      "the selected profile also loaded blink.cmp")
+  end
 end
 
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
+  assert_completion_runtime_isolated()
   if uses_pyright then
     local attached = vim.wait(15000, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0

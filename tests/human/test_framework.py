@@ -277,6 +277,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('text(diagnostic.code) == "clang-diagnostic-error"', readiness)
 		self.assertIn('linter_name = "markdownlint-cli2"', configuration)
 		self.assertIn('text(diagnostic.message):find("MD025"', readiness)
+		self.assertIn('return { 3, 0 }', configuration)
+		self.assertNotIn('return { 3, 2 }', configuration)
 		self.assertIn('reportUnusedImport = "none"', configuration)
 		self.assertNotIn("warning_starts_at_cursor", configuration)
 		self.assertIn('prepare_insert_probe("completion_probe = calculate_")', configuration)
@@ -310,6 +312,36 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
 			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
 		)
+
+	def test_completion_profiles_require_f5_and_do_not_fall_back_to_other_completion(self) -> None:
+		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
+		self.assertIn("autocomplete = false", configuration)
+		self.assertNotIn('cmp.mapping.select_next_item()', configuration)
+		self.assertNotIn('cmp.mapping.select_prev_item()', configuration)
+		self.assertIn('if cmp.visible() then cmp.select_next_item() end', configuration)
+		self.assertIn('if cmp.visible() then cmp.select_prev_item() end', configuration)
+		self.assertIn('preset = "none"', configuration)
+		self.assertIn('menu = { auto_show = false }', configuration)
+		self.assertIn('["<C-n>"] = { "select_next" }', configuration)
+		self.assertIn('["<C-p>"] = { "select_prev" }', configuration)
+		self.assertIn('vim.fn.pumvisible() == 1 and "<C-n>" or "<Ignore>"', configuration)
+		self.assertIn('vim.fn.pumvisible() == 1 and "<C-p>" or "<Ignore>"', configuration)
+		self.assertIn("local function assert_completion_runtime_isolated()", configuration)
+		self.assertIn('if profile ~= "cmp" then', configuration)
+		self.assertIn('if profile ~= "blink" then', configuration)
+		self.assertIn("assert_completion_runtime_isolated()", configuration)
+		for locale_name, before_f5 in (("de", "Vor F5"), ("en", "Before F5")):
+			locale = json.loads(
+				(HUMAN_ROOT / "locales" / f"{locale_name}.json").read_text(encoding="utf-8")
+			)
+			for key in (
+				"plan.lspNative.completion.expected",
+				"plan.nvimCmp.menu.expected",
+				"plan.blinkCmp.menu.expected",
+			):
+				with self.subTest(locale=locale_name, key=key):
+					self.assertIn(before_f5, locale[key])
+
 	def test_human_fixtures_offer_real_choices_for_every_cycle_instruction(self) -> None:
 		lsp_fixture = (HUMAN_ROOT / "fixtures" / "lsp_features.py").read_text(encoding="utf-8")
 		diagnostic_fixture = (HUMAN_ROOT / "fixtures" / "diagnostics.py").read_text(
