@@ -168,6 +168,13 @@ unterstützt.
 getrennten flüchtigen Braille-Zeilenkanal bestätigt.
 `brailleRoutingActions` wird nur ergänzt, wenn das Plugin die festen
 Mehrfachbetätigungsaktionen und ihre vollständige Zustandsprüfung bestätigt.
+`callableContextQuery` und `diagnosticContextQuery` werden nur ergänzt, wenn
+das Plugin die korrelierten, lesenden Kontextabfragen bestätigt.
+`activeParameterHints` wird nur ergänzt, wenn das Plugin automatische,
+strukturierte Übergänge des aktiven LSP-Parameters erzeugt. Bridge und lokaler
+Client verwerfen diesen Ereignistyp ohne die Fähigkeit.
+`diagnosticCursorSummary` kennzeichnet zusätzlich die kleine, textfreie
+Diagnosezusammenfassung im normalen Snapshot.
 
 ## Dateibasierte Sitzungsregistrierung und ausdrückliche Zuordnung
 
@@ -221,18 +228,70 @@ stdio-Sitzung keine Ereignisse für spätere Wiedergabe.
 Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
-`menuClosed`, `signatureChanged`, `diagnosticChanged`, `foldChanged`,
+`menuSelectionCleared`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
+`activeParameterChanged`,
+`signatureClosed`,
+`hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`,
+`diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult` und
-`numberedChoiceOpened`, `numberedChoiceClosed` und
+`numberedChoiceOpened`, `numberedChoiceClosed`,
+`callableContextResult`, `diagnosticContextResult` und
 `connectionStateChanged`. Der kanonische Modus `terminalNormal` bildet Neovims
 rohen Modus `nt` ab und bleibt vom normalen Dateibuffer-Modus getrennt.
+`menuSelectionCleared` bezeichnet bei weiterhin geöffnetem Menü den von
+Neovim gemeldeten Zustand ohne ausgewählten Kandidaten. Er löscht den
+Dokumentationscache und wird als eigener zugänglicher Zustand ausgegeben.
 `commandLineChanged.payload.commandLineType` enthält Neovims strukturierten
 Kommandozeilentyp, insbesondere `:`, `/` oder `?`; `commandLine` enthält den
 Inhalt ohne dieses Präfix. Dadurch werden Ex-Befehle nicht aus Textmustern
 erraten und gleich geschriebene Suchmuster bleiben unabhängig.
+`menuItemUpdated` behält Auswahl, Index und Anzahl bei und aktualisiert nur
+Metadaten wie eine nachträglich aufgelöste Dokumentation. NVDA aktualisiert
+damit den instanzbezogenen Dokumentationscache ohne eine zweite Auswahlansage.
+`signatureClosed` beendet den flüchtigen Signaturzustand beim Verlassen seines
+Editor-Kontexts und erzeugt keine eigene Sprachmeldung.
+`activeParameterChanged` ist ein flüchtiger, nicht kanonisch gespeicherter
+Sprachhinweis aus dem Einfügemodus. Die Payload bindet den Aufruf mit
+`callName`, einsbasierter `callStartLine` und nullbasierter
+`callStartByteColumn`; sie enthält die begrenzte `signature`,
+`signatureIndex`/`signatureCount`, `activeParameter`/`parameterCount`, das
+begrenzte `parameter`-Label und genau einen Grund `callEntered`,
+`signatureChanged` oder `parameterChanged`. Alle Indizes sind einsbasiert,
+Anzahlen auf 100 begrenzt und müssen zueinander passen. Zusätzlich müssen
+Insert-Modus, Buffer, Fenster, `changedtick` und Cursor vollständig vorhanden
+und gültig sein. Protokoll, Bridge und lokaler Client lehnen fehlende,
+ungültige, übergroße oder widersprüchliche Pflichtfelder ab; die üblichen
+validierten Snapshot-Felder dürfen daneben erhalten bleiben. Das Ereignis erzeugt keine
+Braillemeldung und wird nicht für spätere Wiedergabe zwischengespeichert.
+`hoverChanged` enthält eine kurze Zusammenfassung und die begrenzte
+vollständige Dokumentation; Sprache und Braille verwenden automatisch nur die
+Zusammenfassung. `hoverClosed` verwirft die instanzbezogene
+Hover-Dokumentation ohne eigene Meldung.
+`lspStatus` enthält ausschließlich die begrenzten Namen der am aktuellen
+Buffer hängenden LSP-Clients und wird nur durch `:NvimNvdaLspStatus` erzeugt.
+`diagnosticChanged` aktualisiert den kanonischen Zustand nach
+`DiagnosticChanged`, bleibt aber ohne automatische Präsentation.
+`diagnosticMoved` wird nach einer ausdrücklich beobachteten oder über einen
+Access-Link-Befehl ausgelösten Diagnosenavigation erzeugt. Sein Snapshot trägt
+höchstens eine aktuell einschließende Diagnose sowie `diagnosticCount`.
+Bei Access-Link-Befehlen ist dies der ausdrücklich ausgewählte Eintrag der
+geordneten Diagnosemenge; dadurch können mehrere Diagnosen an derselben
+Position unterschiedliche Indizes und Klänge behalten.
+Die Diagnose enthält eine auf 2048 gültige UTF-8-Bytes begrenzte Meldung,
+Schwere, eine auf 256 Bytes begrenzte Quelle, optional einen auf 256 Bytes
+begrenzten String- oder ganzzahligen Code, einsbasierte Zeilen,
+nullbasierte UTF-8-Bytespalten sowie Index und Anzahl. Fehlende Quellen dürfen
+auf den begrenzten Neovim-Namespace-Namen zurückfallen. Ungültige
+Produzentendatensätze werden verworfen; sie werden weder ausgeführt noch als
+Neovim- oder Linterbefehl interpretiert.
+`diagnosticSummary` enthält für passive Klänge nur Anzahl und höchste Schwere
+auf der Zeile beziehungsweise an der Cursorposition sowie eine opake,
+textfreie Bereichsidentität. Diagnosemeldung, Quellcode und Quick-Fix-Daten
+gehören nicht in diese Zusammenfassung.
+
 `messageReceived.payload.commandLineReturn=true` kennzeichnet ausschließlich
 die unmittelbare strukturierte Ausgabe eines gerade beendeten, nichtleeren
 Ex-Befehls. Das Feld wird nach genau dieser Ausgabe verworfen; spätere
@@ -292,6 +351,17 @@ Vom Add-on zur Bridge sind nur diese Typen vorgesehen:
 - `acceptNumberedChoiceRequest` mit korrelierter Anfrage-ID, Auswahlart,
   Auswahl-ID, nullbasiertem Eintragsindex sowie exakter
   Buffer-/Fenster-/Tab-/`changedtick`-Identität.
+- `callableContextRequest` und `diagnosticContextRequest` mit korrelierter
+  Anfrage-ID sowie exakter Buffer-, Fenster-, Tab-, `changedtick`-, Zeilen-
+  und UTF-8-Bytespaltenidentität.
+
+Beide Kontextantworten wiederholen diese vollständige Identität. Die
+Diagnoseantwort enthält höchstens 100 Einträge der aktuellen Zeile; die
+Signaturantwort höchstens 100 Signaturen mit jeweils höchstens 100 Parametern.
+Einzeltexte sind auf 16 KiB, die Summe aller Texte einer Antwort auf 256 KiB
+begrenzt. Add-on und Plugin verwerfen verspätete Antworten nach Fokus-,
+Instanz-, Buffer-, Text- oder Cursorwechsel. Die Abfragen verändern weder den
+Editorcursor noch Neovims Diagnoseauswahl.
 
 `requestFocusContext` wird nur für eine bereits authentifizierte, exakt an das
 aktuell fokussierte Terminal-Control gebundene Instanz gesendet. Die Antwort

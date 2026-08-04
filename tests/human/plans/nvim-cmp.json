@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "id": "nvim-cmp",
+  "order": 40,
+  "titleKey": "plan.nvimCmp.title",
+  "descriptionKey": "plan.nvimCmp.description",
+  "suites": ["compatibility"],
+  "profile": "cmp",
+  "fixture": "lsp_features.py",
+  "steps": [
+    {
+      "testId": "C2",
+      "id": "menu-presentation",
+      "category": "completion",
+      "titleKey": "plan.nvimCmp.menu.title",
+      "contextKey": "plan.completionPlugin.context",
+      "actionKey": "plan.nvimCmp.menu.action",
+      "expectedKey": "plan.nvimCmp.menu.expected",
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/completion_adapters_spec.lua"]
+    }
+  ]
+}

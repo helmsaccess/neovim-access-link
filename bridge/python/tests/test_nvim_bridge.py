@@ -35,6 +35,40 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["activeParameterHints"]}
+		bridge._active_numbered_choice = None
+		bridge.transport = transport
+		payload = {
+			"mode": "insert",
+			"modeRaw": "i",
+			"pluginCapabilities": ["activeParameterHints"],
+			"bufferId": 1,
+			"windowId": 2,
+			"changedtick": 3,
+			"cursor": {"line": 4, "byteColumn": 5},
+			"callName": "sum",
+			"callStartLine": 4,
+			"callStartByteColumn": 3,
+			"signature": "sum(first, second)",
+			"signatureIndex": 1,
+			"signatureCount": 1,
+			"activeParameter": 1,
+			"parameterCount": 2,
+			"parameter": "first",
+			"hintReason": "callEntered",
+		}
+		bridge._on_nvim_event("activeParameterChanged", payload)
+		self.assertEqual("activeParameterChanged", transport.events[-1]["type"])
+		bridge._on_nvim_event("activeParameterChanged", {**payload, "parameterCount": 0})
+		self.assertEqual(1, len(transport.events))
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_nvim_event("activeParameterChanged", payload)
+		self.assertEqual(1, len(transport.events))
+
 	def test_cursor_routing_uses_only_fixed_validated_plugin_entry_point(self) -> None:
 		notifications = []
 		bridge = Bridge.__new__(Bridge)
@@ -282,6 +316,116 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertIn("request_explore_text", notifications[0][1][0])
 		self.assertIn("request_end_exploration", notifications[1][1][0])
 
+	def test_developer_context_uses_only_fixed_capability_gated_entry_points(self) -> None:
+		notifications = []
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {
+			"pluginCapabilities": [
+				"callableContextQuery",
+				"diagnosticContextQuery",
+			],
+		}
+		bridge.nvim = type(
+			"Nvim",
+			(),
+			{
+				"notify": lambda _self, method, *parameters: notifications.append(
+					(method, parameters)
+				),
+			},
+		)()
+		payload = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		bridge._on_client_control("callableContextRequest", payload)
+		bridge._on_client_control("diagnosticContextRequest", payload)
+		bridge._on_client_control("callableContextRequest", {**payload, "line": 0})
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_client_control("diagnosticContextRequest", payload)
+		self.assertEqual(2, len(notifications))
+		self.assertIn("request_callable_context", notifications[0][1][0])
+		self.assertIn("request_diagnostic_context", notifications[1][1][0])
+		self.assertEqual([payload], notifications[0][1][1])
+		self.assertEqual([payload], notifications[1][1][1])
+
+	def test_bridge_publishes_developer_context_once_but_never_caches_it(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {}
+		bridge.transport = transport
+		request = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		result = {
+			**request,
+			"ok": True,
+			"resultCode": "ok",
+			"items": [
+				{
+					"signature": "calculate_total(price, quantity)",
+					"parameters": ["price", "quantity"],
+					"documentation": "",
+				},
+			],
+			"activeItem": 0,
+			"activeParameter": 0,
+		}
+		bridge._on_nvim_event("callableContextResult", result)
+		self.assertEqual(result["items"], transport.events[-1]["payload"]["items"])
+		self.assertNotIn("items", bridge.full_state())
+		self.assertNotIn("requestId", bridge.full_state())
+		diagnostic = {
+			"message": "Undefined name",
+			"severity": "error",
+			"source": "ruff",
+			"code": "F821",
+			"line": 6,
+			"byteColumn": 7,
+			"endLine": 6,
+			"endByteColumn": 12,
+			"atCursor": True,
+		}
+		bridge._on_nvim_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic],
+				"activeItem": 0,
+				"activeParameter": 0,
+			},
+		)
+		self.assertEqual([diagnostic], transport.events[-1]["payload"]["items"])
+		self.assertNotIn("items", bridge.full_state())
+		bridge._on_nvim_event("callableContextResult", {**result, "bufferId": 0})
+		bridge._on_nvim_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic],
+				"activeItem": 0,
+				"activeParameter": 1,
+			},
+		)
+		self.assertEqual(2, len(transport.events))
+
 	def test_bridge_publishes_clipboard_text_once_but_never_caches_it(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -464,7 +608,7 @@ class NvimBridgeTests(unittest.TestCase):
 			finally:
 				process.terminate(force=True)
 
-	def test_local_windows_loopback_client_receives_state_and_exploration_result(self) -> None:
+	def test_local_windows_loopback_client_receives_semantic_results(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
 			environment = {
@@ -486,7 +630,10 @@ class NvimBridgeTests(unittest.TestCase):
 					f"set runtimepath^={root / 'neovim-plugin'}",
 					"-c",
 					"lua vim.api.nvim_buf_set_lines(0,0,-1,true,{'alpha, beta','xy','gamma'}); "
-					"vim.api.nvim_win_set_cursor(0,{3,0})",
+					"vim.api.nvim_win_set_cursor(0,{3,0}); "
+					"local ns=vim.api.nvim_create_namespace('access-link-context-test'); "
+					"vim.diagnostic.set(ns,0,{{lnum=2,col=0,end_lnum=2,end_col=5,"
+					"message='test warning',severity=vim.diagnostic.severity.WARN,source='test-linter'}})",
 					"-c",
 					"runtime plugin/nvim_nvda.lua",
 				],
@@ -643,6 +790,45 @@ class NvimBridgeTests(unittest.TestCase):
 						result["payload"]["byteColumn"],
 					),
 				)
+				context = {
+					"bufferId": state["bufferId"],
+					"windowId": state["windowId"],
+					"tabpageId": state["tabpageId"],
+					"changedtick": state["changedtick"],
+					"line": state["cursor"]["line"],
+					"byteColumn": state["cursor"]["byteColumn"],
+				}
+				for request_id in (4, 5):
+					self.assertTrue(
+						client.send_control(
+							"diagnosticContextRequest",
+							{**context, "requestId": request_id},
+						)
+					)
+					self._wait(
+						condition,
+						lambda: any(
+							event["type"] == "diagnosticContextResult"
+							and event["payload"]["requestId"] == request_id
+							for event in events
+						),
+					)
+					result = next(
+						event["payload"]
+						for event in events
+						if event["type"] == "diagnosticContextResult"
+						and event["payload"]["requestId"] == request_id
+					)
+					self.assertEqual(context, {key: result[key] for key in context})
+					self.assertEqual(
+						("test warning", "warning", "test-linter", True),
+						(
+							result["items"][0]["message"],
+							result["items"][0]["severity"],
+							result["items"][0]["source"],
+							result["items"][0]["atCursor"],
+						),
+					)
 			finally:
 				if client is not None:
 					client.stop()
@@ -738,6 +924,14 @@ class NvimBridgeTests(unittest.TestCase):
 						moved["payload"]["item"]["parameters"],
 					),
 				)
+				prior = len(events)
+				process.send(b"\x0e")  # CTRL-N keeps the original text after the final item.
+				self._wait(
+					condition,
+					lambda: any(e["type"] == "menuSelectionCleared" for e in events[prior:]),
+				)
+				cleared = next(e for e in reversed(events[prior:]) if e["type"] == "menuSelectionCleared")
+				self.assertEqual(2, cleared["payload"]["itemCount"])
 				process.send(b"\x1b")
 				self._wait(condition, lambda: any(e["type"] == "menuClosed" for e in events))
 				opened_index = next(i for i, e in enumerate(events) if e["type"] == "menuOpened")

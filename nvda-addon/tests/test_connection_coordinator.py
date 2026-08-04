@@ -234,6 +234,13 @@ class ConnectionCoordinatorTests(unittest.TestCase):
         self.assertTrue(coordinator.gate.authenticated)
         self.assertTrue(coordinator.gate.nvim_active)
         self.assertTrue(coordinator.gate.terminal_passthrough)
+        self.assertTrue(coordinator.is_foreground_instance_confirmed(
+            instance.identifier, terminal,
+        ))
+        coordinator.gate.focused = TerminalIdentity(11, 101)
+        self.assertFalse(coordinator.is_foreground_instance_confirmed(
+            instance.identifier, terminal,
+        ))
 
         with self.assertRaisesRegex(ValueError, "terminal identity is required"):
             coordinator.select_instance(instance.identifier, None, create_runtime)

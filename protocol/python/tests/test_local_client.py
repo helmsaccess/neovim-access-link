@@ -67,6 +67,40 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertEqual("windows-loopback-tcp", events[0]["payload"]["_transport"]["kind"])
 		self.assertNotIn("heartbeat", events[0]["payload"]["_transport"]["capabilities"])
 
+	def test_automatic_parameter_transition_is_validated_and_capability_gated(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		source.on_event("fullState", {
+			"mode": "insert",
+			"pluginCapabilities": ["activeParameterHints"],
+		})
+		self.assertIn("activeParameterHints", events[-1]["payload"]["_transport"]["capabilities"])
+		payload = {
+			"mode": "insert",
+			"modeRaw": "i",
+			"pluginCapabilities": ["activeParameterHints"],
+			"bufferId": 1,
+			"windowId": 2,
+			"changedtick": 3,
+			"cursor": {"line": 4, "byteColumn": 5},
+			"callName": "sum",
+			"callStartLine": 4,
+			"callStartByteColumn": 3,
+			"signature": "sum(first, second)",
+			"signatureIndex": 1,
+			"signatureCount": 1,
+			"activeParameter": 1,
+			"parameterCount": 2,
+			"parameter": "first",
+			"hintReason": "callEntered",
+		}
+		source.on_event("activeParameterChanged", payload)
+		self.assertEqual("activeParameterChanged", events[-1]["type"])
+		source.on_event("activeParameterChanged", {**payload, "activeParameter": 3})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		client._state = {"pluginCapabilities": []}
+		source.on_event("activeParameterChanged", payload)
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+
 	def test_invalid_full_state_neither_authenticates_nor_enters_cache(self) -> None:
 		client, source, events, states, diagnostics = self.make_client()
 		source.on_event("fullState", {"mode": object()})
@@ -555,6 +589,105 @@ class LocalTcpClientTests(unittest.TestCase):
 		client.stop()
 		self.assertEqual(1, source.stopped)
 		self.assertEqual(["connected", "disconnected"], states)
+
+	def test_developer_context_controls_are_capability_gated_and_sanitized(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		request = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		source.on_event("fullState", {"pluginCapabilities": []})
+		self.assertFalse(client.send_control("callableContextRequest", request))
+		source.on_event(
+			"fullState",
+			{
+				"pluginCapabilities": [
+					"callableContextQuery",
+					"diagnosticContextQuery",
+					"diagnosticCursorSummary",
+				],
+			},
+		)
+		self.assertTrue(client.send_control("callableContextRequest", request))
+		self.assertTrue(client.send_control("diagnosticContextRequest", request))
+		self.assertFalse(
+			client.send_control("diagnosticContextRequest", {**request, "extra": True}),
+		)
+		self.assertIn("request_callable_context", source.notifications[0][1][0])
+		self.assertIn("request_diagnostic_context", source.notifications[1][1][0])
+		self.assertIn(
+			"diagnosticCursorSummary",
+			events[-1]["payload"]["_transport"]["capabilities"],
+		)
+		source.on_event(
+			"callableContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [
+					{
+						"signature": "call(value)",
+						"parameters": ["value"],
+						"documentation": "",
+					},
+				],
+				"activeItem": 0,
+				"activeParameter": 0,
+			},
+		)
+		diagnostic_item = {
+			"message": "Undefined name",
+			"severity": "error",
+			"source": "ruff",
+			"code": "F821",
+			"line": 6,
+			"byteColumn": 7,
+			"endLine": 6,
+			"endByteColumn": 12,
+			"atCursor": True,
+		}
+		source.on_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic_item],
+				"activeItem": 0,
+				"activeParameter": 0,
+			},
+		)
+		self.assertEqual([diagnostic_item], events[-1]["payload"]["items"])
+		event_count = len(events)
+		source.on_event(
+			"diagnosticContextResult",
+			{
+				**request,
+				"ok": True,
+				"resultCode": "ok",
+				"items": [diagnostic_item],
+				"activeItem": 0,
+				"activeParameter": 1,
+			},
+		)
+		self.assertEqual(event_count, len(events))
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		self.assertTrue(client.send_control("requestFullState", {}))
+		self.assertNotIn("requestId", events[-1]["payload"])
+		self.assertNotIn("items", events[-1]["payload"])
+		self.assertEqual("capabilityMissing", diagnostics[0][1]["reason"])
+		self.assertTrue(
+			any(
+				category == "controlRejected" and fields["reason"] == "invalidControl"
+				for category, fields in diagnostics
+			),
+		)
 
 
 if __name__ == "__main__":

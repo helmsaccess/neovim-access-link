@@ -63,6 +63,34 @@ class NvdaPresentation:
 	def mode_sound_kind(mode):
 		return editor_mode_sound_kind(mode)
 
+	def play_connection_sound(self):
+		"""Confirm one newly authenticated connection independently of editor mode."""
+		enabled = bool(self.feedback_mode(None) & 2)
+		if enabled and not self.editor_sounds.play("connectionEstablished"):
+			# Keep failure audible without relying on a second mode cue.
+			tones.beep(520, 25)
+			tones.beep(780, 35)
+		self._diagnostic(
+			"connectionEstablishedSound",
+			cue="connected.wav",
+			enabled=enabled,
+		)
+		return enabled
+
+	def play_disconnection_sound(self):
+		"""Report one real transport loss independently of editor mode."""
+		enabled = bool(self.feedback_mode(None) & 2)
+		if enabled and not self.editor_sounds.play("connectionLost"):
+			# Keep failure audible and directionally distinct from connection.
+			tones.beep(780, 25)
+			tones.beep(520, 35)
+		self._diagnostic(
+			"connectionLostSound",
+			cue="disconnected.wav",
+			enabled=enabled,
+		)
+		return enabled
+
 	def play_mode_sound(self, mode, *, focus_context=False):
 		sound_kind = self.mode_sound_kind(mode)
 		if sound_kind == "insert":
@@ -96,6 +124,8 @@ class NvdaPresentation:
 			)
 
 	def action_speech_allowed(self, event_type, feedback_key):
+		if event_type == "activeParameterChanged":
+			return bool(self._settings_provider().get("automaticParameterHints", True))
 		if feedback_key in {"delete", "replace"} and event_type in {
 			"textChanged",
 			"textDeleted",
@@ -241,6 +271,32 @@ class NvdaPresentation:
 			self.suggestion_sounds.play("open")
 		elif sound == "suggestionsClose":
 			self.suggestion_sounds.play("close")
+		elif sound == "diagnosticNone":
+			self._play_no_diagnostic_sound(enabled)
+
+	def _play_no_diagnostic_sound(self, enabled):
+		if enabled and not self.editor_sounds.play("diagnosticNone"):
+			tones.beep(620, 20)
+			tones.beep(420, 30)
+		return enabled
+
+	def play_no_diagnostic_sound(self, *, at_position):
+		"""Confirm an explicit diagnostic query that found no matching item."""
+		feedback_key = "diagnosticPosition" if at_position else "diagnosticLine"
+		return self._play_no_diagnostic_sound(bool(self.feedback_mode(feedback_key) & 2))
+
+	def play_diagnostic_sound(self, severity, *, at_position):
+		"""Play one passive diagnostic cue according to the active profile."""
+		if severity not in {"error", "warning"}:
+			return False
+		feedback_key = "diagnosticPosition" if at_position else "diagnosticLine"
+		if not (self.feedback_mode(feedback_key) & 2):
+			return False
+		cue = "diagnosticError" if severity == "error" else "diagnosticWarning"
+		if self.editor_sounds.play(cue):
+			return True
+		tones.beep(180 if severity == "error" else 420, 45 if severity == "error" else 35)
+		return True
 
 	def _present_format_error(self, action, format_error, priority):
 		formatting = config.conf.get("documentFormatting", {})

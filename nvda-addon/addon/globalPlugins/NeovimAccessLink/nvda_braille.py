@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import braille as nvdaBraille
 import config
+import core
 
 from .core.braille import BraillePlan, plan_braille, source_offset_for_expanded
 from .service_registry import getTerminalIntegrationService
@@ -137,6 +138,141 @@ def present_numbered_choice_message(text: str, *, start_cell: int) -> object | N
 		except Exception:
 			pass
 	return message_token
+
+
+class DeveloperContextMessageRegion(nvdaBraille.Region):
+	"""Keep one held developer message pageable inside its owned NVDA buffer."""
+
+	def __init__(self, text: str, handler: object):
+		super().__init__()
+		self.rawText = text
+		self._handler = handler
+		self._pageIndex = 0
+		translated = nvdaBraille.Region()
+		translated.rawText = text
+		translated.update()
+		self._allBrailleCells = tuple(translated.brailleCells)
+		self._allBrailleToRawPos = tuple(translated.brailleToRawPos)
+		page_size = getattr(handler, "displaySize", 0)
+		self._pageSize = (
+			page_size
+			if isinstance(page_size, int) and not isinstance(page_size, bool) and page_size > 0
+			else max(1, len(self._allBrailleCells))
+		)
+		self._pageCount = max(1, (len(self._allBrailleCells) + self._pageSize - 1) // self._pageSize)
+		self.update()
+
+	def update(self):
+		start = self._pageIndex * self._pageSize
+		end = min(start + self._pageSize, len(self._allBrailleCells))
+		self.brailleCells = list(self._allBrailleCells[start:end])
+		self.brailleToRawPos = list(self._allBrailleToRawPos[start:end])
+		self.rawToBraillePos = []
+		self.brailleCursorPos = None
+		self.brailleSelectionStart = None
+		self.brailleSelectionEnd = None
+
+	def nextLine(self):
+		self._movePage(1)
+
+	def previousLine(self, start=False):
+		self._movePage(-1)
+
+	def _movePage(self, delta: int) -> None:
+		message_buffer = getattr(self._handler, "messageBuffer", None)
+		regions = getattr(message_buffer, "regions", ())
+		if (
+			message_buffer is None
+			or getattr(self._handler, "buffer", None) is not message_buffer
+			or not regions
+			or regions[-1] is not self
+		):
+			return
+		previous_page = self._pageIndex
+		self._pageIndex = min(max(0, self._pageIndex + delta), self._pageCount - 1)
+		try:
+			# Real NVDA's BrailleBuffer.update() aggregates already translated
+			# region cells; unlike the old test double, it does not call each
+			# Region.update(). Materialize this page before rebuilding the buffer.
+			self.update()
+			update_buffer = getattr(message_buffer, "update", None)
+			if callable(update_buffer):
+				update_buffer()
+			message_buffer.windowStartPos = 0
+			self._handler.update()
+		except Exception:
+			self._pageIndex = previous_page
+			self.update()
+			return
+		# NVDA starts its normal transient-message timer again after a Braille
+		# scroll command returns. Stop only the timer belonging to this still
+		# visible owned region, after that command has finished.
+		try:
+			core.callLater(0, self._stopOwnedMessageTimer)
+		except Exception:
+			pass
+
+	def _stopOwnedMessageTimer(self) -> None:
+		message_buffer = getattr(self._handler, "messageBuffer", None)
+		regions = getattr(message_buffer, "regions", ())
+		if (
+			message_buffer is None
+			or getattr(self._handler, "buffer", None) is not message_buffer
+			or not regions
+			or regions[-1] is not self
+		):
+			return
+		message_timer = getattr(self._handler, "_messageCallLater", None)
+		if message_timer is not None:
+			try:
+				message_timer.Stop()
+			except Exception:
+				pass
+
+
+def present_developer_context_message(text: str, *, start_cell: int) -> object | None:
+	"""Show a held developer value with bounded in-message Braille paging."""
+	message_token = present_numbered_choice_message(text, start_cell=start_cell)
+	if message_token is None:
+		return None
+	handler = nvdaBraille.handler
+	message_buffer = getattr(handler, "messageBuffer", None)
+	regions = getattr(message_buffer, "regions", ())
+	if (
+		message_buffer is None
+		or getattr(handler, "buffer", None) is not message_buffer
+		or not regions
+		or regions[-1] is not message_token
+	):
+		return message_token
+	region = None
+	try:
+		message_text = numbered_choice_message_text(
+			text,
+			start_cell=start_cell,
+			display_size=handler.displaySize,
+		)
+		region = DeveloperContextMessageRegion(message_text, handler)
+		regions[-1] = region
+		update_buffer = getattr(message_buffer, "update", None)
+		if callable(update_buffer):
+			update_buffer()
+		message_buffer.windowStartPos = 0
+		handler.update()
+	except Exception:
+		if region is not None and regions and regions[-1] is region:
+			try:
+				regions[-1] = message_token
+				update_buffer = getattr(message_buffer, "update", None)
+				if callable(update_buffer):
+					update_buffer()
+				message_buffer.windowStartPos = 0
+				handler.update()
+			except Exception:
+				pass
+		return message_token
+	region._stopOwnedMessageTimer()
+	return region
 
 
 def dismiss_numbered_choice_message(message_token: object) -> bool:

@@ -18,6 +18,8 @@ class SpeechPlannerTests(unittest.TestCase):
         translations = {
             "insert mode": "Einfügemodus",
             "deleted {text}": "{text} gelöscht",
+            "function": "Funktion",
+            "source {source}": "Quelle {source}",
         }
         planner = SpeechPlanner(translate=lambda message: translations.get(message, message))
         mode = planner.plan(event("modeChanged", mode="insert", modeRaw="i"))[0]
@@ -26,6 +28,15 @@ class SpeechPlannerTests(unittest.TestCase):
             "textDeleted", beforeText="abc", lineText="", linewise=False,
         ))[0]
         self.assertEqual("abc gelöscht", deleted.text)
+        completion = planner.plan({
+            "type": "menuSelectionChanged",
+            "payload": {
+                "item": {"label": "print", "kind": "function", "source": "LSP"},
+                "itemIndex": 1,
+                "itemCount": 2,
+            },
+        })[0]
+        self.assertEqual("print, 1 of 2, Funktion, Quelle LSP", completion.text)
 
     def test_full_state_and_line_movement_speak_line(self) -> None:
         planner = SpeechPlanner()
@@ -304,7 +315,13 @@ class SpeechPlannerTests(unittest.TestCase):
             action.text,
         )
         self.assertEqual(action.text, action.braille_message)
-        self.assertEqual("lineCrossed", action.sound)
+        self.assertIsNone(action.sound)
+
+        empty = planner.plan(event(
+            "diagnosticMoved", line="clean", row=5,
+        ))[0]
+        self.assertEqual("no diagnostic", empty.text)
+        self.assertEqual("diagnosticNone", empty.sound)
 
     def test_context_changes_announce_tabs_windows_buffers_and_special_lists(self) -> None:
         planner = SpeechPlanner()
@@ -1209,13 +1226,37 @@ class SpeechPlannerTests(unittest.TestCase):
         selected = planner.plan({"type": "menuSelectionChanged", "payload": {
             "itemIndex": 1,
             "itemCount": 5,
-            "item": {"label": "printf", "kind": "function", "parameters": "format, ..."},
+            "item": {
+                "label": "printf",
+                "kind": "function",
+                "parameters": "format, ...",
+                "source": "nvim_lsp",
+            },
         }})[0]
         closed = planner.plan({"type": "menuClosed", "payload": {}})[0]
         self.assertEqual("suggestionsOpen", opened.sound)
-        self.assertEqual("printf, 1 of 5, function, parameter format, ...", selected.text)
+        self.assertEqual(
+            "printf, 1 of 5, function, parameter format, ..., source nvim_lsp",
+            selected.text,
+        )
         self.assertEqual(selected.text, selected.braille_message)
+        self.assertIsNone(selected.sound)
         self.assertEqual("suggestionsClose", closed.sound)
+
+    def test_each_completion_selection_remains_soundless(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan({"type": "menuOpened", "payload": {"itemCount": 3}})
+        for index, label in enumerate(("calculate_tax", "calculate_tip", "calculate_total"), 1):
+            action = planner.plan({"type": "menuSelectionChanged", "payload": {
+                "itemIndex": index,
+                "itemCount": 3,
+                "item": {"label": label, "kind": "function"},
+            }})[0]
+            self.assertIsNone(action.sound)
+        self.assertEqual(
+            "suggestionsClose",
+            planner.plan({"type": "menuClosed", "payload": {}})[0].sound,
+        )
 
     def test_single_completion_omits_redundant_position(self) -> None:
         planner = SpeechPlanner()
@@ -1224,6 +1265,15 @@ class SpeechPlannerTests(unittest.TestCase):
             "item": {"label": "print", "kind": "function", "parameters": "value"},
         }})[0]
         self.assertNotIn("1 von 1", action.text)
+
+    def test_cleared_completion_selection_announces_original_text_state(self) -> None:
+        action = SpeechPlanner().plan({
+            "type": "menuSelectionCleared",
+            "payload": {"itemCount": 3},
+        })[0]
+        self.assertEqual("No completion selected", action.text)
+        self.assertEqual(action.text, action.braille_message)
+        self.assertTrue(action.interrupt)
 
     def test_structured_prompts_are_announced_without_echoing_input(self) -> None:
         planner = SpeechPlanner()
@@ -1288,6 +1338,77 @@ class SpeechPlannerTests(unittest.TestCase):
         }})[0]
         self.assertEqual("printf(format, ...), parameter format, 1 of 2", action.text)
         self.assertEqual(action.text, action.braille_message)
+
+    def test_automatic_parameter_is_brief_spoken_only_and_reports_overload_changes(self) -> None:
+        planner = SpeechPlanner()
+        first = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "price: float",
+            "activeParameter": 1,
+            "parameterCount": 3,
+            "signatureIndex": 1,
+            "signatureCount": 2,
+            "hintReason": "callEntered",
+        }})[0]
+        changed_overload = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "quantity: int",
+            "activeParameter": 2,
+            "parameterCount": 3,
+            "signatureIndex": 2,
+            "signatureCount": 2,
+            "hintReason": "signatureChanged",
+        }})[0]
+        only = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "value",
+            "activeParameter": 1,
+            "parameterCount": 1,
+            "signatureIndex": 1,
+            "signatureCount": 1,
+            "hintReason": "callEntered",
+        }})[0]
+        self.assertEqual("parameter 1 of 3: price: float", first.text)
+        self.assertIsNone(first.braille_message)
+        self.assertTrue(first.interrupt)
+        self.assertEqual(
+            "signature 2 of 2, parameter 2 of 3: quantity: int",
+            changed_overload.text,
+        )
+        self.assertEqual("parameter: value", only.text)
+
+    def test_invalid_automatic_parameter_transition_is_silent(self) -> None:
+        planner = SpeechPlanner()
+        for payload in (
+            {},
+            {"parameter": "x", "activeParameter": 0, "parameterCount": 2},
+            {"parameter": "x", "activeParameter": 3, "parameterCount": 2},
+            {"parameter": None, "activeParameter": 1, "parameterCount": 2},
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual([], planner.plan({"type": "activeParameterChanged", "payload": payload}))
+
+    def test_lsp_hover_announces_only_summary(self) -> None:
+        planner = SpeechPlanner()
+        action = planner.plan({"type": "hoverChanged", "payload": {
+            "summary": "print(value)",
+            "documentation": "print(value)\n\nPrint one value in full detail.",
+            "sourceCount": 1,
+        }})[0]
+        self.assertEqual("print(value)", action.text)
+        self.assertEqual(action.text, action.braille_message)
+        self.assertNotIn("full detail", action.text)
+
+    def test_lsp_status_lists_clients_or_reports_none(self) -> None:
+        planner = SpeechPlanner()
+        attached = planner.plan({"type": "lspStatus", "payload": {
+            "clients": ["lua_ls", "null-ls"],
+            "clientCount": 2,
+        }})[0]
+        empty = planner.plan({"type": "lspStatus", "payload": {
+            "clients": [],
+            "clientCount": 0,
+        }})[0]
+        self.assertEqual("LSP clients: lua_ls, null-ls", attached.text)
+        self.assertEqual(attached.text, attached.braille_message)
+        self.assertEqual("No LSP client attached", empty.text)
 
     def test_new_unindented_line_ticks_without_boundary_speech(self) -> None:
         planner = SpeechPlanner()

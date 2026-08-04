@@ -88,6 +88,7 @@ class RememberedStateRequestKind(Enum):
 
 	STALE = "stale"
 	SKIP = "skip"
+	PENDING = "pending"
 	FOCUS_CONTEXT = "focusContext"
 	FULL_STATE = "fullState"
 
@@ -938,6 +939,8 @@ class SessionClaimService:
 			return RememberedStateRequest(RememberedStateRequestKind.STALE)
 		if instance_id not in self._coordinator.authenticated_instances:
 			return RememberedStateRequest(RememberedStateRequestKind.FULL_STATE, client)
+		if self._coordinator.has_pending_focus_context(instance_id, identity):
+			return RememberedStateRequest(RememberedStateRequestKind.PENDING, client)
 		request_id = self._coordinator.next_request_id("focusContext")
 		self._coordinator.remember_focus_context(instance_id, request_id, identity)
 		return RememberedStateRequest(
@@ -993,6 +996,14 @@ class SessionClaimService:
 		pending = self._pendingBindingReactivation
 		self._pendingBindingReactivation = None
 		return pending is not None and pending == (identity, instance_id)
+
+	def has_temporary_binding_reactivation(
+		self,
+		identity: TerminalIdentity,
+		instance_id: str,
+	) -> bool:
+		"""Return whether the exact modal focus allowance is still pending."""
+		return self._pendingBindingReactivation == (identity, instance_id)
 
 	def _validate_temporary_binding_offer(
 		self,

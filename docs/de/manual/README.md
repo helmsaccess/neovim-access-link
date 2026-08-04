@@ -128,11 +128,13 @@ oder unbekanntem Control fällt NVDA auf die normale Terminalausgabe zurück.
 2. [Sprachexplorationsmodus](speech-exploration.md)
 3. [Kommunikation, Verbindungen und Sitzungszuordnung](communication.md)
 4. [Betrieb mit SSH und tmux](ssh-and-tmux.md)
-5. [Menüs und Vervollständigung](menus-and-completion.md)
-6. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
-7. [Sounds und Earcons](sounds.md)
-8. [Braille-Unterstützung](braille.md)
-9. [Fehlerdiagnose und Diagnosebericht](troubleshooting.md)
+5. [LSP, Autovervollständigung und Linter einrichten](language-tools.md)
+6. [Kleine Python-Konfiguration mit Lazy und Oil](example-configuration.md)
+7. [Menüs und Vervollständigung](menus-and-completion.md)
+8. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
+9. [Sounds und Earcons](sounds.md)
+10. [Braille-Unterstützung](braille.md)
+11. [Fehlerdiagnose und Diagnosebericht](troubleshooting.md)
 
 ## Erste Schritte nach der Einrichtung
 

@@ -1,0 +1,416 @@
+# Geführte Praxistests mit NVDA
+
+## Zweck und Umfang
+
+Diese Praxistests prüfen einen fertigen Neovim-Access-Link-Build nur dort, wo
+ein automatisierter Test nicht zuverlässig entscheiden kann: reale
+NVDA-Sprache, hörbare Klänge, eine physische Braillezeile, gehaltene
+NVDA-Gesten und den tatsächlichen Fokus in Windows Terminal. Eine Aufgabe
+bündelt zusammengehörige Wahrnehmungen derselben Bedienhandlung, damit Neovim
+nicht allein für Sprache und Klänge zweimal mit derselben Fixture gestartet
+werden muss. LSP-Antworten, Diagnosebereiche,
+Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
+überlassen.
+
+Die automatische Parameteraufgabe beurteilt deshalb nur, ob reale
+Pyright-Übergänge verständlich und ohne störende Verzögerung gesprochen werden
+und die Braillezeile beim Quelltext bleibt. Resolver, Verschachtelung,
+Überladungen, Rückkehr in einen bereits ausgefüllten Parameter,
+Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
+automatisierte Regressionen.
+
+Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
+drei Completion-Kandidaten, zwei Funktionssignaturen mit jeweils drei
+Parametern sowie zwei Diagnosen auf der ersten Diagnosezeile. Dadurch bedeutet
+„durchschalten“ in einer Aufgabe immer einen sichtbaren Inhaltswechsel. Die
+Audioanteile der Smoke-Suite prüfen alle fünf unterschiedlichen Klänge dieses
+Bereichs: Completion-Menü geöffnet, Completion-Menü geschlossen,
+Diagnosewarnung, Diagnosefehler und die Bestätigung einer ausdrücklichen
+Diagnoseabfrage ohne Treffer. Informationen und Hinweise besitzen absichtlich
+keinen eigenen Diagnoseklang und werden deshalb nicht als weitere Klangart
+ausgegeben.
+
+Der Runner ist auch für Tester gedacht, die Neovim kaum kennen. Vor jeder
+Aufgabe zeigt er diese Orientierung:
+
+| Anzeige | Aussage |
+| --- | --- |
+| **Wo du bist** | aktueller Windows-Terminal-Tab und aktuelles Programm |
+| **Was du jetzt tun sollst** | als Nächstes zu drückende Tasten und auszuführende Handlung |
+| **Woran du das richtige Ergebnis erkennst** | erwartete wahrnehmbare Ausgabe |
+| `Escape`, dann `F2` | Test-ID und aktuelle Aufgabe in Neovim erneut anzeigen und ausgeben |
+| `Escape`, dann `F10` | Test-Neovim sicher schließen und zur Runner-PowerShell zurückkehren |
+
+Es werden keine Neovim-Befehle mit Doppelpunkt benötigt. Die persönliche
+`init.lua`, Lazy-Konfiguration und Neovim-Datenverzeichnisse werden nicht
+verändert.
+
+## Welche Suite ist sinnvoll?
+
+| Suite | Inhalt | Wann ausführen? |
+| --- | --- | --- |
+| `smoke` | nativer LSP und Completion, Ruff-Diagnosen, Fokusisolation und Fail-open | üblicher Praxistest; empfohlen, etwa 10 bis 15 Minuten |
+| `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp sowie je eine C-/Clang-Tidy- und Markdown-/markdownlint-Diagnose | nach Änderungen an Adaptern, Linterintegration oder Abhängigkeiten |
+| `all` | beide Suiten in einem Ergebnis | nur wenn beide Bereiche betroffen sind |
+| individuelle Auswahl | einzelne Aufgaben, im Menü nach Kategorien gruppiert | gezielte Nachprüfung eines betroffenen Bereichs; spart Zeit und unnötige Downloads |
+
+| Kategorie der Einzelauswahl | Beispiele |
+| --- | --- |
+| LSP und Sprachintelligenz | LSP-Status, automatische aktive Parameter und gehaltene Funktionssignaturen |
+| Vervollständigung | native Completion, nvim-cmp und blink.cmp |
+| Diagnosen und Linter | Ruff, Clang-Tidy und markdownlint |
+| Sitzung und Terminalintegration | Fokusisolation und Fail-open |
+
+### Stabile Test-IDs
+
+Jede Aufgabe besitzt eine eindeutige zweistellige ID. Der erste Buchstabe
+bezeichnet die Kategorie (`L` LSP/Sprachintelligenz, `C` Completion, `D`
+Diagnosen, `S` Sitzung); das zweite Zeichen unterscheidet die Aufgaben. Diese
+IDs werden nie umnummeriert oder erneut vergeben. Sie erscheinen im
+Auswahlmenü, vor jeder Aufgabe, in der JSON-Ergebnisdatei und bei `F2` in
+Test-Neovim. Damit genügt beispielsweise „Fehler in D3“ als eindeutige
+Referenz.
+
+| ID | Aufgabe |
+| --- | --- |
+| `L1` | LSP-Status |
+| `L2` | automatische aktive Parameter |
+| `L3` | gehaltene Funktionssignaturen und Parameter |
+| `C1` | native Completion |
+| `C2` | nvim-cmp |
+| `C3` | blink.cmp |
+| `D1` | Python-/Ruff-Diagnosen |
+| `D2` | gehaltene Diagnosen |
+| `D3` | C-/Clang-Tidy-Diagnosen |
+| `D4` | Markdown-/markdownlint-Diagnosen |
+| `S1` | Fokusisolation und Verbindungsabbruch |
+
+Die Standardaufgaben laufen immer in dieser Reihenfolge: nativer LSP,
+Diagnosen, danach Fokusisolation. Fehlende Audioausgabe oder eine fehlende
+Braillezeile verhindert die übrigen Aufgaben nicht. Ohne Audio werden die
+ausdrücklich bedingten Klanganteile nicht bewertet; die JSON-Umgebung hält
+dies fest. Ausschließlich von Braillehardware abhängige Aufgaben markiert der
+Runner automatisch als `notApplicable`.
+
+## Zwei Ansichten im selben Terminal-Tab
+
+Für den Ablauf ist dieser Unterschied wichtig:
+
+| Ansicht | Was dort geschieht | Wie man sie verlässt |
+| --- | --- | --- |
+| **Runner-PowerShell** | `run.ps1` starten, Anweisung lesen und nach der Aufgabe das Ergebnis auswählen | Eingabetaste startet die angekündigte Aufgabe in Test-Neovim |
+| **Test-Neovim** | genau die eine angekündigte Aufgabe durchführen | `Escape`, dann `F10` beendet nur Test-Neovim; dieselbe Runner-PowerShell erscheint wieder |
+
+Nur die Fokusaufgabe verlangt zusätzlich einen zweiten Windows-Terminal-Tab.
+Der Runner sagt genau an dieser Stelle, wann er geöffnet und wieder verlassen
+werden soll. Ansonsten bleibt der Tester immer im ursprünglichen Tab.
+
+## Voraussetzungen
+
+| Voraussetzung | Wofür sie benötigt wird |
+| --- | --- |
+| Windows 11, Windows Terminal und NVDA mit dem zu prüfenden Add-on | eigentlicher Praxistest |
+| über das NVDA-Menü aktuell installierte lokale Neovim-Komponenten | Verbindung zwischen Neovim und Access Link |
+| Neovim 0.12.x, Git für Windows, Node.js LTS und Python 3.12 | isolierte Testumgebung, LSP, Linter und Completion-Plugins |
+| Internetzugang bei der ersten Einrichtung | Download der festgelegten Testabhängigkeiten |
+| Audioausgabe | Klanganteile der Completion- und Diagnoseabläufe; ohne Audio werden nur Sprache und Bedienbarkeit bewertet |
+| physische Braillezeile | nur Brailleaufgaben; ohne Braillezeile werden diese als `notApplicable` markiert |
+
+Der Runner vergleicht den Laufzeitcode des installierten Neovim-Plugins mit
+dem aktuellen Repository. Bei einer Abweichung muss im NVDA-Menü zuerst die
+Installation der lokalen Komponenten erneut ausgeführt werden. Dadurch wird
+nicht versehentlich ein alter Plugin-Stand bewertet.
+
+## Start für Einsteiger
+
+### 1. PowerShell im richtigen Ordner öffnen
+
+Eine normale PowerShell in Windows Terminal öffnen. In den Wurzelordner des
+Repositories wechseln, also in den Ordner, der unter anderem `tests`, `docs`,
+`neovim-plugin` und `nvda-addon` enthält. Beispiel:
+
+```powershell
+Set-Location "C:\Pfad\zum\Repository"
+Get-ChildItem tests\human\framework\run.ps1
+```
+
+Der zweite Befehl muss die Datei `run.ps1` anzeigen. Tut er das nicht, ist die
+PowerShell noch im falschen Ordner.
+
+### 2. Runner starten
+
+```powershell
+.\tests\human\framework\run.ps1
+```
+
+Falls die lokale Ausführungsrichtlinie den direkten Start verhindert:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\tests\human\framework\run.ps1
+```
+
+Im Startmenü **Neuen kurzen Standardtest starten** wählen. Dieser Menüpunkt
+beginnt bewusst eine neue JSON-Datei; nach einem Abbruch stattdessen
+**Unvollständigen Lauf fortsetzen** wählen. Bei einer falschen
+Eingabe bleibt das Menü geöffnet und bittet erneut um eine gültige Nummer.
+Für eine gezielte Nachprüfung stattdessen **Einzelne Testaufgaben nach
+Kategorie auswählen** wählen. Eine Nummer schaltet die jeweilige Aufgabe ein
+oder aus; `S` startet nur die markierten Aufgaben.
+
+### 3. Ausstattung angeben
+
+Die Fragen zu Audio und physischer Braillezeile wahrheitsgemäß beantworten.
+Die Eingabetaste übernimmt jeweils die angezeigte Vorgabe. Eine nicht
+vorhandene Braillezeile ist kein Fehler; die entsprechenden Aufgaben werden
+ausgelassen.
+
+### 4. Eine Aufgabe ausführen
+
+Jede Aufgabe ist ein kleiner, abgeschlossener Zyklus:
+
+```text
+Anweisung in PowerShell lesen
+-> Eingabetaste
+-> genau diese Aufgabe in Test-Neovim durchführen
+-> Escape, dann F10
+-> wieder in PowerShell genau dieses Ergebnis auswählen
+```
+
+Vor dem Start nennt der Runner **Wo du bist**, **Was du jetzt tun sollst** und
+**Woran du das richtige Ergebnis erkennst**. Erst danach die Eingabetaste
+drücken.
+
+Wenn Test-Neovim erscheint:
+
+1. Einmal `Escape` drücken. Damit ist sicher der Neovim-Normalmodus aktiv;
+   versehentliche Texteingabe ist ausgeschlossen.
+2. Access Link bei Bedarf im NVDA-Menü einschalten.
+3. Den ursprünglichen Windows-Terminal-Tab fokussieren und `F12` genau einmal
+   drücken. Kurz auf die Verbindung warten.
+4. Nur die gerade angezeigte Aufgabe durchführen.
+5. Bei Unsicherheit zuerst `Escape`, dann `F2` drücken. Test-ID, aktuelle
+   Ortsangabe, Handlung und Erwartung werden erneut als Neovim-Mitteilung
+   angezeigt und durch Access Link ausgegeben.
+6. Nach der Beobachtung `Escape`, danach `F10` drücken. Nun ist wieder die
+   Runner-PowerShell im ursprünglichen Tab sichtbar.
+7. Nur die eben ausgeführte Aufgabe als bestanden, fehlgeschlagen, blockiert
+   oder übersprungen bewerten.
+
+Für die nächste Aufgabe startet ein frisches Test-Neovim. Deshalb muss sich
+niemand mehrere Prüfschritte merken oder eine Fixture von Hand zurücksetzen.
+
+## Vom Runner verwendete Tasten
+
+Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
+Übersicht dient zum Nachschlagen:
+
+| Taste | Bedeutung im Test-Neovim |
+| --- | --- |
+| `Escape`, dann `F2` | ID und aktuelle Aufgabe jederzeit erneut anzeigen und ausgeben |
+| `F1` | aktiven LSP-Status durch Access Link ausgeben |
+| `F3` | die für die aktuelle Aufgabe vorbereitete Eingabestelle öffnen und automatisch in den Einfügemodus wechseln; bei der Completion-Aufgabe danach `F5` drücken |
+| `F5` im Diagnoseprofil | auf eine vorbereitete fehlerfreie Position wechseln und dort ausdrücklich die aktuelle Diagnose abfragen |
+| `F6` | den ausgewählten Linter ausführen, auf dessen Bereitschaft warten und den Cursor auf die erste erwartete Testdiagnose setzen |
+| `F7` | Diagnose an der aktuellen Position ausgeben |
+| `F8` / `F9` | zur vorherigen beziehungsweise nächsten Diagnose springen |
+| `Escape`, dann `F10` | Test-Neovim ohne Speichern schließen und zu PowerShell zurückkehren |
+
+Completion wird mit `Strg+N` und `Strg+P` durchlaufen, mit `Strg+Y`
+übernommen und mit `Strg+E` geschlossen. Die Brailleaufgaben nennen die
+erforderliche gehaltene NVDA-Geste vollständig. Ein Wechsel in Neovims
+Befehlszeilenmodus ist nie erforderlich. `F11` wird bewusst nicht verwendet,
+weil Windows Terminal diese Taste standardmäßig für den Vollbildmodus abfängt,
+bevor Neovim sie erhalten kann.
+
+## Was vor dem ersten Test automatisch geschieht
+
+Der Runner prüft zunächst Pläne, deutsche und englische Texte sowie alle
+referenzierten Dateien. Beim ersten Lauf richtet er unter
+`tmp/human-test-state/` eine isolierte Umgebung ein:
+
+| Bestandteil | Verwendung |
+| --- | --- |
+| festgelegte Versionen von Pyright, Ruff, Clang-Tidy und markdownlint-cli2 | reproduzierbare LSP- und Diagnoseantworten; installiert werden nur die für die Auswahl benötigten Werkzeuge |
+| festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und blink.cmp | reproduzierbare Provider- und Completion-Kompatibilität |
+| eigene Neovim-Konfigurations-, Daten-, Zustands- und Cacheverzeichnisse | vollständige Trennung von der persönlichen Neovim-Umgebung |
+
+Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
+Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
+Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
+
+Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die für die
+Auswahl benötigten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
+an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen deshalb keine neue
+Einrichtung aus. Stimmen die benötigten Werkzeuge und Plugins bereits, werden
+sie ohne Paketinstallation wiederverwendet. Clang-Tidy und markdownlint werden
+bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
+technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
+relevanten Laufzeitänderungen wiederholt.
+
+Danach startet eine technische Vorprüfung jedes ausgewählten Testprofils. Bei
+LSP-Aufgaben wartet sie tatsächlich auf einen angehängten Pyright-Client. In den Completion-Profilen
+fordert sie die drei benannten Kandidaten ab; im nativen LSP-Profil zusätzlich
+mindestens zwei Signaturen mit jeweils drei Parametern. Im Diagnoseprofil
+erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
+einen Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
+Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Ein menschlicher Tester wird erst zu einer
+Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren Grundlagen
+funktionieren.
+
+**Testabhängigkeiten einrichten oder reparieren** ist die ausdrückliche
+Reparaturfunktion: Sie installiert die verwalteten Plugin-Revisionen neu und
+wiederholt diese Vorprüfung. Der normale Standardtest führt diese erzwungene
+Neuinstallation nicht aus. Die persönliche
+Neovim-Umgebung bleibt auch dabei unberührt. Für Git verwendet allein die
+Test-Neovim-Sitzung eine temporäre globale Konfigurationsdatei, die nur die
+verwalteten Pluginverzeichnisse unter `tmp/human-test-state/` als sicher
+zulässt. Die persönliche globale Git-Konfiguration wird nicht verändert.
+
+## Ergebnisauswahl
+
+| Auswahl | Bedeutung |
+| --- | --- |
+| **bestanden** | Die beobachtete Ausgabe entsprach der Erwartung. |
+| **fehlgeschlagen** | Die Aufgabe war ausführbar, verhielt sich aber falsch. Das vollständige Ergebnis erhält Zustand `fail`. |
+| **blockiert** | Eine äußere Voraussetzung oder ein technisches Problem verhinderte die Beobachtung. Der Lauf bleibt unvollständig. |
+| **übersprungen** | Eine anwendbare Aufgabe wurde bewusst nicht geprüft. Der Lauf bleibt unvollständig. |
+| `notApplicable` | Wird automatisch gesetzt, wenn eine Aufgabe zwingend nicht vorhandene Hardware benötigt, derzeit die Brailleaufgaben. |
+| `pending` | Die Aufgabe wurde noch nicht bewertet. |
+
+Nur **bestanden** ist positive menschliche Evidenz. Für alle anderen manuell
+gewählten Zustände verlangt der Runner eine kurze Begründung. Dort keine
+privaten Pfade, Kontonamen, Schlüssel oder anderen Geheimnisse eintragen.
+
+## Unterbrechen und bequem fortsetzen
+
+Nach jeder Aufgabe wird der Zwischenstand gespeichert. Nach einem Abbruch den
+Runner erneut ohne Parameter starten und **Unvollständigen Lauf fortsetzen**
+wählen. Sind mehrere unvollständige Dateien vorhanden, zeigt er
+die neuesten mit Dateinamen zur Auswahl an.
+
+Bereits bestandene oder fehlgeschlagene Aufgaben bleiben erhalten. Der Runner
+fragt, ob blockierte oder übersprungene Aufgaben erneut geöffnet werden
+sollen. Diese Entscheidung ist ausdrücklich; ein Ergebnis wird nicht still
+umgeschrieben.
+
+Alternativ kann eine Datei direkt angegeben werden:
+
+```powershell
+.\tests\human\framework\run.ps1 run `
+  -ResultPath .\tmp\human-test-results\BEISPIEL.json
+```
+
+Ein Lauf kann nur mit exakt derselben Testdefinition fortgesetzt werden. Der
+Validator vergleicht dafür einen SHA-256-Fingerabdruck von Plänen,
+Übersetzungen, Fixtures, Abhängigkeiten, Runner, Validator und
+Test-Neovim-Konfiguration.
+
+## JSON-Ergebnisse und maschinelle Prüfung
+
+Neue Dateien liegen unter `tmp/human-test-results/`. Der Dateiname enthält
+Zeitstempel, Suite und eine kurze Zufallskomponente, sodass auch zwei schnell
+hintereinander gestartete Läufe nicht kollidieren. Nach jeder Auswahl wird
+die Datei atomar ersetzt.
+
+Aufgezeichnet werden:
+
+| Bereich | Aufgezeichnete Angaben |
+| --- | --- |
+| Lauf | Lauf-ID, Erstellungs- und Abschlusszeit |
+| Auswahl | Suite, exakte zweistellige Test-IDs, Sprache und angegebene Audio-/Brailleausstattung |
+| Quellstand | Git-Commit und Dirty-Zustand des Repositorys |
+| Laufzeitversionen | Neovim-, installierte Add-on- und laufende NVDA-Version, soweit auffindbar |
+| Konsistenz | Fingerabdrücke der Testdefinition und des installierten Neovim-Plugins |
+| Ergebnisse | zweistellige Test-ID, technischer Aufgabenschlüssel, Status und Begründung |
+
+Editorinhalte, Hostnamen und Zugangsdaten werden nicht automatisch erfasst.
+Die Dateien im ignorierten `tmp/` werden weder committet noch hochgeladen oder
+von CI eingesammelt.
+
+Eine Datei wird im Startmenü über **Vorhandene JSON-Ergebnisdatei prüfen**
+oder direkt geprüft:
+
+```powershell
+.\tests\human\framework\run.ps1 verify `
+  -ResultPath .\tmp\human-test-results\BEISPIEL.json
+```
+
+Plattformunabhängig:
+
+```bash
+python3 tests/human/framework/validate.py result tmp/human-test-results/BEISPIEL.json
+```
+
+| Exitcode | Gesamtzustand |
+| --- | --- |
+| `0` | vollständig; alle anwendbaren Aufgaben bestanden |
+| `1` | strukturell ungültig oder nicht mit den aktuellen Definitionen vereinbar |
+| `2` | vollständig, aber mindestens eine Aufgabe fehlgeschlagen |
+| `3` | offen, blockiert oder übersprungen und daher unvollständig |
+
+## Optionale Kompatibilitäts- und Einzeltests
+
+Nach Änderungen an nvim-cmp, blink.cmp, der Linterintegration oder den
+Access-Link-Adaptern im Startmenü **Optionale Kompatibilitätstests starten
+(Completion, C und Markdown)** wählen. Sie enthält zusätzlich je einen kleinen C- und
+Markdown-Realitätscheck. Jede Aufgabe startet einzeln. Die wichtigsten
+direkten Aufrufe sind:
+
+| Ziel | PowerShell-Aufruf |
+| --- | --- |
+| Standard- und Kompatibilitätsaufgaben gemeinsam | `.\tests\human\framework\run.ps1 run -Suite all` |
+| genau den C-Diagnosetest ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId D3` |
+| zwei bestimmte Aufgaben ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId L1,D4` |
+| Benutzeroberfläche ausdrücklich auf Deutsch setzen | `.\tests\human\framework\run.ps1 -Language de` |
+| Benutzeroberfläche ausdrücklich auf Englisch setzen | `.\tests\human\framework\run.ps1 -Language en` |
+
+Die älteren technischen Langformen wie
+`c-diagnostics.clang-tidy-presentation` bleiben als Kompatibilitätsalias
+gültig. Für neue Berichte und Aufrufe ausschließlich die kurze Test-ID
+verwenden.
+
+## Aufräumen und typische Probleme
+
+**Heruntergeladene Testabhängigkeiten entfernen** löscht ausschließlich
+`tmp/human-test-state/`. JSON-Ergebnisse bleiben erhalten.
+
+Wenn Access Link nicht verbindet:
+
+1. prüfen, ob der aktuelle Add-on-Build in NVDA installiert und aktiviert ist;
+2. im NVDA-Menü die lokalen Neovim-Komponenten installieren oder aktualisieren;
+3. sicherstellen, dass der ursprüngliche Tab mit Test-Neovim fokussiert ist;
+4. dort `F12` genau einmal drücken und kurz warten;
+5. mit `Escape`, `F2` prüfen, ob Test-ID und aktuelle Aufgabe ausgegeben werden.
+
+Wenn Pyright, ein Linter oder ein Completion-Plugin fehlt, den Menüpunkt
+**Testabhängigkeiten einrichten oder reparieren** verwenden. Schlägt dessen
+technische Vorprüfung fehl, ist das ein Einrichtungsproblem und noch kein
+menschlich zu bewertender Testfehler.
+
+## Pflege des Frameworks
+
+Die kompakte Implementierung liegt unter `tests/human/`:
+
+| Pfad | Inhalt |
+| --- | --- |
+| `plans/` | ausschließlich deklarative Aufgabenkarten |
+| `locales/` | synchrone deutsche und englische Texte |
+| `fixtures/` | kleine, kontrollierte Testdateien |
+| `dependencies.json` | festgelegte Fremdversionen und Revisionen |
+| `framework/` | Runner, Validator und isolierte Neovim-Konfiguration |
+
+Eine neue menschliche Aufgabe erhält eine der vier festen Kategorien und
+benötigt einen Grund, der nicht zuverlässig
+automatisierbar ist, und verweist auf verwandte automatisierte Evidenz. Kann
+Code das Ergebnis eindeutig entscheiden, gehört der Fall in einen
+automatisierten Test. Definitionen werden geprüft mit:
+
+```bash
+python3 tests/human/framework/validate.py plans
+python3 tools/run_tests.py quick
+```
+
+GitHub Actions führt den PowerShell-Runner zusätzlich unter Windows aus. Das
+findet PowerShell-spezifische Parser- und Laufzeitfehler, erklärt aber niemals
+Sprache, Klänge, Braille oder Fokus als menschlich bestanden.

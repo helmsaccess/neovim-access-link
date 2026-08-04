@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 3,
+  "id": "diagnostics",
+  "order": 20,
+  "titleKey": "plan.diagnostics.title",
+  "descriptionKey": "plan.diagnostics.description",
+  "suites": ["smoke"],
+  "profile": "diagnostics",
+  "fixture": "diagnostics.py",
+  "steps": [
+    {
+      "testId": "D1",
+      "id": "navigation-presentation",
+      "category": "diagnostics",
+      "titleKey": "plan.diagnostics.navigation.title",
+      "contextKey": "plan.diagnostics.context",
+      "actionKey": "plan.diagnostics.navigation.action",
+      "expectedKey": "plan.diagnostics.navigation.expected",
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/diagnostic_navigation_spec.lua"]
+    },
+    {
+      "testId": "D2",
+      "id": "held-diagnostics",
+      "category": "diagnostics",
+      "titleKey": "plan.diagnostics.held.title",
+      "contextKey": "plan.diagnostics.context",
+      "actionKey": "plan.diagnostics.held.action",
+      "expectedKey": "plan.diagnostics.held.expected",
+      "manualReasons": ["physicalNvdaKey", "physicalBraille"],
+      "requires": ["braille"],
+      "automatedEvidence": [
+        "neovim-plugin/tests/diagnostics_spec.lua",
+        "nvda-addon/tests/test_held_context.py"
+      ]
+    }
+  ]
+}

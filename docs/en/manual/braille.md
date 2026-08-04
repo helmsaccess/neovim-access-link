@@ -51,6 +51,7 @@ contains only behavior added by this add-on:
 | Triple routing press on a line | Route only | Can optionally run `c$` or `d$`. |
 | Start triple-press line action at | Routed position | Starts at the routing key, indentation, or absolute line beginning. |
 | Start spelling suggestions at Braille cell | 1 | Moves only the transient spelling suggestion. |
+| Start temporary developer information at Braille cell | 1 | Positions held function parameters and diagnostics. |
 
 Translation table, driver, cursor shape, selection indication, and speaking
 the character reached by routing remain normal NVDA settings. See

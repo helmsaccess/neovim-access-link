@@ -3,9 +3,221 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Clarifies the developer documentation after a structural re-audit: the
+  Windows Terminal AppModule boundary is implemented, while the concrete
+  Global Plugin class still coordinates process-wide NVDA-edge workflows and
+  is not yet a purely minimal composition root. The new Appendix C records
+  findings, limits, and the recommended staged evolution; runtime behavior is
+  unchanged.
+- Automatically speaks the LSP-server-selected active parameter of the
+  innermost function call in Insert mode. A bounded Tree-sitter/lexer
+  resolver, 120 ms debounce, LSP trigger/retrigger context, and exact
+  generation/editor identity protect nesting, incomplete code, and late
+  replies. Movement within one argument stays silent; returning to an already
+  filled earlier argument speaks again. This profile-aware, optional output is
+  speech-only and leaves Braille on source text. Resolver, LSP, protocol,
+  transport, NVDA presentation, and the guided real-Pyright task have separate
+  regressions.
+- Aligns the isolated native completion, `nvim-cmp`, and `blink.cmp` practical
+  test profiles: an accepted function gains exactly one pair of parentheses
+  with the cursor inside. Existing parentheses and LSP snippets are not
+  duplicated. The held signature query now also returns structured signatures
+  on the opening and closing call parentheses; real-LSP and practical-test
+  preflights cover the name and both parenthesis positions without moving the
+  editor cursor.
+- Adds a beginner-oriented user-manual setup path for language servers, native
+  LSP completion, and `nvim-lint`. A small complete `init.lua`, WinGet, apt,
+  and dnf installation examples, optional Access Link mappings, and a
+  language/tool matrix graded by test depth clearly separate add-on components
+  from external development tools. An additional ready-to-use configuration
+  with `lazy.nvim`, Oil, Pyright, and Ruff explicitly loads the add-on-installed
+  Access Link plugin despite Lazy resetting Neovim's plugin search paths.
+- Accepts the open-ended column sentinel used by SARIF parsers within Access
+  Link's existing bound. This keeps Checkstyle diagnostics from `nvim-lint`
+  addressable while other oversized or invalid diagnostic ranges remain
+  rejected.
+- Groups guided practical-test tasks into four understandable categories and
+  permits machine-checkable individual selection through the menu or a stable
+  task ID. The optional compatibility suite adds one small reality check each
+  for C with Clang-Tidy and Markdown with markdownlint. Exactly pinned tools
+  are installed only when a matching test is selected, and existing versions
+  are reused. A dedicated Clang-Tidy parser preserves Windows drive and UNC
+  paths, so the C compatibility test no longer loses real diagnostics at a
+  drive-letter colon or through older `nvim-lint` versions' UNC-path
+  detection.
+- Fixes SSH session discovery when interactive Neovim and the bridge's later
+  non-interactive command observe different runtime environments. The bridge
+  now scans the configured runtime directory, the safe user-owned
+  `/run/user/UID`, and the private `/tmp` fallback together, with one shared
+  bound and without duplicate sessions. Previously, an existing but empty
+  `/run/user/UID` could completely hide a valid fallback session.
+- Fixes Linux startup without `XDG_RUNTIME_DIR`: the private
+  `/tmp/nvim-nvda-<UID>` fallback now obtains the user ID through Neovim's
+  public libuv interface. The previous call to the Vimscript `getuid()`
+  function, which Neovim does not provide, aborted plugin loading with `E117`.
+- Decouples the guided diagnostic test's F6 readiness check from the current
+  cursor position. A fully published Ruff inventory is therefore reported as
+  ready immediately instead of falsely timing out after 15 seconds. Once the
+  check succeeds, F6 places the cursor on the first expected test diagnostic
+  using its actual published range, so an immediate F7 reliably reports it
+  without a preceding F8/F9 jump. The C and Markdown profiles use the same
+  guarantee.
+- Losslessly removes all but 5 ms of the roughly 0.9 seconds of digital silence
+  at the end of both VS Code diagnostic cues and restarts the already
+  memory-resident audio player before every deliberate signal. Errors or
+  warnings of the same severity on one line therefore each sound immediately.
+- Confirms an explicit diagnostic query with no match, in addition to speech,
+  with the distinct Code - OSS `clear` signal. Like the error and warning
+  signals, it is trimmed to a 5 ms tail and resides in memory from add-on
+  startup. The cue follows the applicable diagnostic-line or
+  diagnostic-position setting; passive movement across clean lines,
+  information diagnostics, and hints remain soundless. The guided diagnostic
+  test checks this new fifth sound at a prepared clean position.
+- Shortens only the repeated structural prefixes for signature, parameter,
+  and documentation to `S`, `P`, and `D` in the held Braille view. Speech,
+  function names, parameter names, and content remain complete.
+- Explicitly reports Neovim built-in completion's deliberate no-selected-
+  candidate state between the last and first suggestion in speech and Braille.
+  The originally typed text remains intact as Neovim intends, cached
+  documentation is cleared, and the step no longer resembles a lost `Ctrl+N`.
+- Suppresses additional cursor or line-boundary feedback for `Ctrl+N`,
+  `Ctrl+P`, and the Up and Down arrows while a structurally integrated
+  completion menu is active. The temporary text replacement performed by
+  nvim-cmp's default preview is no longer presented as typing or with a
+  replacement cue either. nvim-cmp therefore sounds like native completion
+  and `blink.cmp`: NVDA's suggestion cues mark opening and closing once each,
+  not every change of the selected candidate.
+- Adds NVDA's `disconnected.wav` as the counterpart to the connection cue. It
+  plays exactly for a real loss of a previously connected, focused instance;
+  initial and repeatedly reported disconnected states stay silent.
+- Separates connection and mode feedback. The first authenticated `fullState`
+  of a new instance, or one restored after transport loss, uses NVDA's
+  `connected.wav` once; further synchronization in the same transport
+  lifetime stays silent. A delayed second focus callback after the modal F12
+  question now recognizes an already confirmed exact binding and produces
+  neither another focus request nor a duplicate Normal-mode cue.
+- Fixes discarded held parameter and diagnostic replies: the Neovim plugin now
+  returns the complete correlated editor snapshot alongside the request ID, as
+  the protocol boundary already required. Repeated queries and `NVDA+h/j/k/l`
+  therefore reach the locally held signatures, parameters, and diagnostics
+  instead of falling back to other NVDA commands. The technical preflight now
+  checks the editor snapshot as well.
+- Separates both axes of the held parameter view. The initial view and
+  `NVDA+k/j` show only signature and documentation; `NVDA+h/l` shows only
+  parameters of the selected signature. Every signature has an independent
+  selection beginning at parameter 1, so the LSP active call-site parameter
+  neither shifts inspection nor leaks into another signature. Long speech and
+  Braille content remains pageable within the transient view. After a
+  signature-only view, the first parameter command now reveals the selected
+  parameter instead of invisibly skipping it.
+- Explicitly materializes the selected Braille page before NVDA's message
+  buffer collects a long held signature or diagnostic. The real
+  `BrailleBuffer` only aggregates already translated region cells and, unlike
+  the previous test double, does not call `Region.update()` again. The first
+  page therefore previously remained visible despite an advanced page number,
+  leaving content such as a return type clipped at “floa”.
+- Stabilizes binding after the optional F12 question that remembers a Windows
+  Terminal tab. The question uses NVDA's managed modal-dialog lifecycle. If
+  NVDA's focus cache still points at the dialog after it closes, the bounded
+  recovery additionally queries the actually focused NVDA object and accepts
+  it only for the complete same terminal identity, AppModule, adapter token,
+  and instance selection. A foreign terminal or uncertain query remains
+  fail-open. As promised, the remembered choice lasts for the tab until NVDA
+  or Windows Terminal exits: after restarting Neovim, F12 still authorizes the
+  new session but does not open the same question again in that tab.
+  A refocused terminal object now counts as an active Neovim binding only after
+  a confirmed focus context. Recovery starts an outstanding handshake
+  immediately and idempotently, and retries a control that the transport could
+  not initially send within a fixed bound.
+- Publishes the guided practical-test guide separately from the developer
+  documentation as the fourth independent HTML file per language; the
+  versioned documentation ZIP therefore contains eight rather than six files.
+- Hardens native and plugin completion by normalizing only the selected
+  candidate, including selections beyond item 200, and carrying all 25 LSP
+  kinds, source, and UTF-8-safe bounds. Documentation resolved later by
+  `nvim-cmp` updates the per-instance command without a second selection
+  announcement.
+- Resolves exactly the selected original native LSP completion item through
+  the public `completionItem/resolve` method when documentation is absent.
+  This is necessary because Neovim's internal preview update does not flow
+  back into `complete_info().items`. Selection changes and menu closing cancel
+  or invalidate stale requests; the current response updates the command
+  silently.
+- Moves `nvim-cmp` to the public `entry.completion_item` API and uses
+  `blink.cmp`'s public selected index. Ownership tokens, tick diagnostics, and
+  real-module tests cover current `nvim-cmp`, `blink.cmp` v1.10.2, and the
+  provisional v2 branch on Neovim 0.10.1/0.12.3.
+- Ties the standard NVDA opening and closing cues for `nvim-cmp` and
+  `blink.cmp` directly to their public menu events. Briefly delayed candidates
+  can no longer suppress the opening cue or produce a false close/open pair.
+- Observes signature help through both Neovim 0.10's handler path and the
+  combined 0.11/0.12 response path, including UTF-16 ranges, multiple clients,
+  deduplication, and silent closing.
+- Presents LSP hover semantically through the same version split: only the
+  first meaningful line is automatic in speech/Braille, while the existing
+  documentation command reads complete per-instance content.
+- Adds `:NvimNvdaLspStatus` for bounded, content-free current-buffer client
+  status in speech/Braille; continuous LSP progress remains silent to avoid
+  speech flooding.
+- Adds `NVDA+Space`, taken over only in the exact active Neovim context, for a
+  held read-only parameter view: `NVDA+h/l` cycles
+  parameters locally and `NVDA+k/j` cycles signatures. Signature help and
+  the hover fallback are fully correlated with focus, instance, editor
+  identity, changed tick, and cursor position; releasing NVDA restores the
+  editor Braille line.
+- Hardens the shared provider-neutral `vim.diagnostic` contract: invalid or
+  oversized fields are discarded or bounded safely on UTF-8 boundaries,
+  multiple namespaces are ordered deterministically, and overlapping
+  diagnostics are selected by severity and smallest range. A per-buffer index
+  invalidated only by diagnostic changes avoids repeated sorting during cursor
+  movement.
+- Adds freely mappable commands for previous, next, first, last, and current
+  diagnostics. Neovim 0.12's public `jump.on_jump` hook and the compatible
+  0.10 path produce exactly one complete speech/Braille presentation without
+  replacing default or user mappings. Directly typed `[d`/`]d` jumps retain a
+  semantic fallback when a per-call callback replaces the global hook.
+- Certifies the semantic linter path in automation with real pinned nvim-lint
+  and ALE runs: Clang-Tidy for C, Ruff for Python, ShellCheck for Bash,
+  Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
+  `markdownlint-cli2` for Markdown on Neovim 0.10.1/0.12.3. Plugins, language
+  runtimes, and tools remain test or user dependencies; further languages use
+  the same `vim.diagnostic` contract.
+- Additionally exercises the real pinned `none-ls.nvim` LSP bridge with
+  `plenary.nvim` and a built-in diagnostic source. This likewise needs no
+  adapter or bundled plugin.
+- Adds `NVDA+Shift+Space` for a held, locally navigable list of diagnostics
+  under
+  the cursor and on its line. Errors and warnings gain independently
+  configurable line and position cues. As in Visual Studio Code, the position
+  signal plays at every explicit movement within a diagnostic range and on a
+  diagnostic jump; typing and asynchronous background refreshes stay silent.
+  The two adopted Code - OSS signals are MIT-licensed; source commit, hashes,
+  conversion, and license text are bundled.
+- Resolves both held Space gestures dynamically in the Windows Terminal
+  AppModule. Without an exactly focused, authenticated, suitably capable
+  Neovim instance, the gesture falls back to NVDA's normal command; Access
+  Link does not send a Space character to the terminal on this path.
+- Adds a separate profile-aware Braille start cell for temporary developer
+  information and discards held views after any focus, buffer, text, or
+  cursor change.
+- Recovers an NVDA key-down missed by the raw observer when a held parameter
+  or diagnostic view starts, using the executing gesture and the physical
+  Windows key state. A latched rather than physically held NVDA key therefore
+  cannot create an unbounded view. The guided diagnostic test now waits for
+  an explicit Ruff readiness announcement instead of an estimated fixed
+  pause.
+- Extends LSP and diagnostic coverage across every layer: a deterministic
+  stdio test server exercises signature help, parameter documentation, and
+  the hover fallback through Neovim's real LSP client. Additional bounds,
+  correlation, protocol, bridge, gesture, Braille, and cue tests cover stale
+  replies and fail-open paths. Synchronous Neovim LSP failures now return a
+  bounded failure result, and exclusive end positions of multiline
+  diagnostics are no longer attributed to the following line.
 - Separates listener-free, mocked SSH/Askpass, and real socket/TUI tests in
-  the runner, documentation, and GitHub Actions. Three independent CI jobs run
-  these phases without private infrastructure or real SSH targets.
+  the runner, documentation, and GitHub Actions. Adds an independent CI matrix
+  for pinned real `nvim-cmp`/`blink.cmp` API contracts on Neovim
+  0.10.1/0.12.3; every phase runs without private infrastructure or real SSH
+  targets.
 
 ## 0.96.0
 

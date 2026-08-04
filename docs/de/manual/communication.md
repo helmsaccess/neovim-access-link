@@ -151,6 +151,19 @@ Frischefenster akzeptiert. Interne Sitzungs-IDs, Fenstertitel und Terminaltext
 werden nicht benötigt. Für jedes weitere ungebundene Control genügt bei bereits
 eingeschaltetem Dienst ein neuer physischer F12-Druck.
 
+Wird Neovim beendet und im selben gemerkten Tab neu gestartet, ist dies eine
+neue Neovim-Sitzung mit neuem Endpunkt und neuer Verbindungsinstanz. Ein frischer
+F12-Druck bleibt deshalb als Freigabe erforderlich; die alte Instanz wird danach
+ersetzt. Das Merken des Tabs überspringt lediglich die erneute Merkfrage und
+ermöglicht spätere korrelierte Fokuswiederherstellung. Es vertraut keinem neu
+gestarteten Prozess automatisch. Sobald der erste gültige `fullState` die neue
+Instanz authentifiziert, bestätigt bei aktivierter globaler Klangrückmeldung
+NVDAs `connected.wav` genau diese Verbindung. Der Normalmodusklang ist dafür
+nicht zuständig und kann bei einer neuen Sitzung im bereits fokussierten Tab
+ausbleiben. Wird diese fokussierte, zuvor verbundene Instanz wirklich getrennt,
+bestätigt `disconnected.wav` den Übergang; ein bloß anfänglich nicht verbundener
+Zustand erzeugt keinen Trennungsklang.
+
 ## Wechsel zwischen Fenstern, Tabs und Panes
 
 Die Zuordnung verwendet Prozess, Fensterhandle und die vollständige UIA-

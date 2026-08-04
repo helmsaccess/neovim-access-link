@@ -24,6 +24,8 @@ from speech.priorities import SpeechPriority as NvdaSpeechPriority
 
 
 _TERMINAL_LIFECYCLE_INTERVAL_MS = 5 * 60 * 1_000
+_TEMPORARY_BINDING_RECOVERY_DELAYS_MS = (50, 150, 350, 750)
+_REMEMBERED_STATE_RETRY_DELAYS_MS = (150, 350, 750)
 
 
 def _windowIdentityExists(identity):
@@ -91,6 +93,10 @@ from .core.exploration_state import ExplorationAction as ExplorationAction  # no
 from .core.numbered_choice_state import (  # noqa: E402
 	NumberedChoiceDirection as NumberedChoiceDirection,
 )
+from .core.held_context_state import (  # noqa: E402
+	HeldContextDirection as HeldContextDirection,
+	HeldContextKind as HeldContextKind,
+)
 from .core.speech import SpeechPlanner  # noqa: E402
 from .core.ssh_sessions import SshSessionLister  # noqa: E402
 from .core.local_sessions import LocalSessionLister  # noqa: E402
@@ -101,6 +107,9 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import (  # noqa: E402
+	AUTOMATIC_PARAMETER_HINTS_DEFAULT,
+	BRAILLE_DEVELOPER_START_DEFAULT,
+	BRAILLE_DEVELOPER_START_MAXIMUM,
 	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
@@ -134,6 +143,7 @@ from .service_registry import (  # noqa: E402
 from .nvda_braille import (  # noqa: E402
 	capture_structured_viewport,
 	dismiss_numbered_choice_message,
+	present_developer_context_message,
 	present_numbered_choice_message,
 	restore_structured_viewport,
 	StructuredLineRegion as StructuredLineRegion,
@@ -302,6 +312,8 @@ _FEEDBACK_DEFAULTS = {
 	"fileBoundary": 3,
 	"lineCrossed": 2,
 	"matchingError": 3,
+	"diagnosticLine": 2,
+	"diagnosticPosition": 2,
 	"clipboard": 3,
 }
 _FEEDBACK_FOR_SOUND = {
@@ -314,6 +326,7 @@ _FEEDBACK_FOR_SOUND = {
 	"fileEnd": "fileBoundary",
 	"lineCrossed": "lineCrossed",
 	"matchingError": "matchingError",
+	"diagnosticNone": "diagnosticPosition",
 }
 _FOCUS_ANNOUNCEMENT_VALUES = ("none", "line", "context")
 _FOCUS_ANNOUNCEMENT_DEFAULT = 2
@@ -331,9 +344,14 @@ _NVDA_CONFIG_SPEC = {
 		f"integer(default={BRAILLE_SUGGESTION_START_DEFAULT}, "
 		f"min={BRAILLE_SUGGESTION_START_DEFAULT}, max={BRAILLE_SUGGESTION_START_MAXIMUM})"
 	),
+	"brailleDeveloperStart": (
+		f"integer(default={BRAILLE_DEVELOPER_START_DEFAULT}, "
+		f"min={BRAILLE_DEVELOPER_START_DEFAULT}, max={BRAILLE_DEVELOPER_START_MAXIMUM})"
+	),
 	"brailleFollowSpeechExploration": (
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
 	),
+	"automaticParameterHints": (f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"),
 	"brailleRouting": {
 		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",
 		"lineAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineAction']}, min=0, max=2)",
@@ -394,6 +412,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._sessionPasswords = {}
 		self._pendingMainThreadCalls = set()
 		self._numberedChoiceBrailleMessageToken = None
+		self._developerContextBrailleMessageToken = None
 		managed_client_factory = ManagedClientFactory(
 			local_client_constructor=lambda *args, **kwargs: LocalTcpClient(*args, **kwargs),
 			ssh_client_constructor=lambda *args, **kwargs: SshStdioClient(*args, **kwargs),
@@ -480,6 +499,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			exploration_details=lambda: self._settingsService.navigation_details(exploration=True),
 			present_numbered_choice=self._presentNumberedChoice,
 			dismiss_numbered_choice=self._dismissNumberedChoice,
+			present_developer_context=self._presentDeveloperContext,
+			dismiss_developer_context=self._dismissDeveloperContext,
 			# Rebuild because NVDA's incremental update only finds an already visible
 			# region for the identical focus object. Contextual input can otherwise
 			# leave the transient choice outside that update set.
@@ -1137,7 +1158,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if documentation:
 			speech.speakText(documentation, priority=NvdaSpeechPriority.NOW)
 		else:
-			ui.message(_("No completion documentation available"))
+			# Translators: Shown when neither completion nor LSP hover provides details.
+			ui.message(_("No completion or hover documentation available"))
 
 	def action_startConnectionInstance(self, gesture):
 		identity = self._gate.focused
@@ -1957,47 +1979,234 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if offer.kind != TemporaryBindingOfferKind.OFFER or offer.instance is None:
 			return
+		recovery_app_module = self._terminalFocusService.focused_app_module
+		recovery_adapter_token = self._terminalFocusService.focused_adapter_token
 		import gui
 		import wx
 
-		answer = wx.MessageBox(
+		answer = gui.messageBox(
 			_(
 				"Remember this connection for this Windows Terminal tab until NVDA or "
 				"Windows Terminal closes?\n\n{connection}"
 			).format(connection=offer.instance.label),
 			_("Remember temporary terminal connection"),
 			wx.YES_NO | wx.ICON_QUESTION,
-			gui.mainFrame,
 		)
-		focused = self._gate.focused
-		if focused is not None:
-			selected = self._instanceManager.selected_for(focused)
-			self._sessionClaimService.consume_temporary_binding_reactivation(
-				focused,
-				selected.identifier if selected is not None else None,
-			)
 		if answer != wx.YES:
 			self._diagnostics.record(
 				"temporaryTerminalBindingDeclined",
 				instanceId=instance_id,
 				terminal=self._identityFields(identity),
 			)
-			return
-		remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
-		if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+		else:
+			remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
+			if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+				self._diagnostics.record(
+					"temporaryTerminalBindingOfferIgnored",
+					instanceId=instance_id,
+					reason=remembered.kind.value,
+				)
+			else:
+				self._diagnostics.record(
+					"temporaryTerminalBindingRemembered",
+					instanceId=instance_id,
+					transportKind=remembered.instance.transport_kind,
+					terminal=self._identityFields(identity),
+				)
+				ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
+		self._scheduleTemporaryBindingRecovery(
+			identity,
+			instance_id,
+			recovery_app_module,
+			recovery_adapter_token,
+		)
+
+	def _scheduleTemporaryBindingRecovery(
+		self,
+		identity,
+		instance_id,
+		app_module,
+		adapter_token,
+	):
+		if app_module is None or adapter_token is None:
+			self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
 			self._diagnostics.record(
-				"temporaryTerminalBindingOfferIgnored",
+				"temporaryTerminalBindingFocusRecoveryStopped",
 				instanceId=instance_id,
-				reason=remembered.kind.value,
+				reason="adapterUnavailable",
 			)
 			return
 		self._diagnostics.record(
-			"temporaryTerminalBindingRemembered",
+			"temporaryTerminalBindingFocusRecoveryScheduled",
+			attempts=len(_TEMPORARY_BINDING_RECOVERY_DELAYS_MS),
 			instanceId=instance_id,
-			transportKind=remembered.instance.transport_kind,
-			terminal=self._identityFields(identity),
 		)
-		ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
+		self._scheduleMainThreadCall(
+			_TEMPORARY_BINDING_RECOVERY_DELAYS_MS[0],
+			self._recoverTemporaryBindingFocus,
+			identity,
+			instance_id,
+			app_module,
+			adapter_token,
+			0,
+		)
+
+	def _recoverTemporaryBindingFocus(
+		self,
+		identity,
+		instance_id,
+		app_module,
+		adapter_token,
+		attempt,
+	):
+		try:
+			focus_obj = api.getFocusObject()
+		except Exception as error:
+			focus_obj = None
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryFocusError",
+				errorType=type(error).__name__,
+				instanceId=instance_id,
+			)
+		focus_identity = self._terminalFocusService.identity(focus_obj) if focus_obj is not None else None
+		focus_source = "cached"
+		try:
+			system_focus_obj = api.getDesktopObject().objectWithFocus()
+		except Exception as error:
+			system_focus_obj = None
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoverySystemFocusError",
+				errorType=type(error).__name__,
+				instanceId=instance_id,
+			)
+		if system_focus_obj is not None:
+			focus_obj = system_focus_obj
+			focus_identity = self._terminalFocusService.identity(system_focus_obj)
+			focus_source = "system"
+		if focus_identity is not None and focus_identity != identity:
+			selected = self._instanceManager.selected_for(focus_identity)
+			self._sessionClaimService.consume_temporary_binding_reactivation(
+				focus_identity,
+				selected.identifier if selected is not None else None,
+			)
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryStopped",
+				instanceId=instance_id,
+				reason="focusChanged",
+			)
+			return
+		if focus_identity == identity and getattr(focus_obj, "appModule", None) is app_module:
+			selected = self._instanceManager.selected_for(identity)
+			if selected is None or selected.identifier != instance_id:
+				self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecoveryStopped",
+					instanceId=instance_id,
+					reason="selectionChanged",
+				)
+				return
+			focus_already_current = (
+				self._gate.focused == identity
+				and self._terminalFocusService.focused_app_module is app_module
+				and self._terminalFocusService.focused_adapter_token is adapter_token
+			)
+			foreground_confirmed = (
+				self._gate.bound_terminal == identity
+				and self._gate.authenticated
+				and self._gate.nvim_active
+				and self._connectionCoordinator.active_instance_id == instance_id
+			)
+			if focus_already_current and foreground_confirmed:
+				self._sessionClaimService.consume_temporary_binding_reactivation(
+					identity,
+					instance_id,
+				)
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecoveryStopped",
+					instanceId=instance_id,
+					reason="alreadyCurrent",
+				)
+				return
+			# A cached object may lag behind operating-system focus after a modal
+			# dialog. Only an exact live object may trigger a new handshake.
+			if focus_source == "system":
+				allowed = self._sessionClaimService.is_temporary_binding_remembered(
+					identity
+				) or self._sessionClaimService.has_temporary_binding_reactivation(
+					identity,
+					instance_id,
+				)
+				if focus_already_current and allowed:
+					# gainFocus can restore the adapter fields before its delayed
+					# foreground handshake has run. Retry that exact, idempotent
+					# request now instead of mistaking adapter focus for a confirmed
+					# Neovim binding. A later scheduled copy observes PENDING.
+					self._requestRememberedBindingState(identity, instance_id)
+					self._sessionClaimService.consume_temporary_binding_reactivation(
+						identity,
+						instance_id,
+					)
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusHandshakeRetried",
+						instanceId=instance_id,
+						terminal=self._identityFields(identity),
+					)
+					return
+				try:
+					recovered = allowed and self._terminalFocusService.recover_after_modal(
+						focus_obj,
+						identity,
+						instance_id,
+						app_module,
+						adapter_token,
+					)
+				except Exception as error:
+					self._gate.disconnect()
+					self._sessionClaimService.consume_temporary_binding_reactivation(None, None)
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusRecoveryStopped",
+						errorType=type(error).__name__,
+						instanceId=instance_id,
+						reason="error",
+					)
+					return
+				if not recovered:
+					self._diagnostics.record(
+						"temporaryTerminalBindingFocusRecoveryStopped",
+						instanceId=instance_id,
+						reason="authorizationChanged",
+					)
+					return
+				self._diagnostics.record(
+					"temporaryTerminalBindingFocusRecovered",
+					attempt=attempt + 1,
+					focusSource=focus_source,
+					instanceId=instance_id,
+					terminal=self._identityFields(identity),
+				)
+				return
+		if attempt + 1 < len(_TEMPORARY_BINDING_RECOVERY_DELAYS_MS):
+			next_attempt = attempt + 1
+			self._scheduleMainThreadCall(
+				_TEMPORARY_BINDING_RECOVERY_DELAYS_MS[next_attempt],
+				self._recoverTemporaryBindingFocus,
+				identity,
+				instance_id,
+				app_module,
+				adapter_token,
+				next_attempt,
+			)
+			return
+		self._sessionClaimService.consume_temporary_binding_reactivation(
+			identity if focus_identity == identity else None,
+			instance_id if focus_identity == identity else None,
+		)
+		if focus_identity != identity:
+			self._diagnostics.record(
+				"temporaryTerminalBindingFocusRecoveryStopped",
+				instanceId=instance_id,
+				reason="timeout",
+			)
 
 	def _switchInstanceRuntime(self, instance_id):
 		self._editorSessionController.switch_instance(instance_id)
@@ -2028,13 +2237,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			suppressionImmediate=False,
 		)
 
-	def _requestRememberedBindingState(self, identity, instance_id):
+	def _requestRememberedBindingState(self, identity, instance_id, attempt=0):
+		# A recovery callback and the normal delayed focus callback can overlap
+		# around a modal dialog. The first correlated reply may confirm the exact
+		# binding before the second callback runs. Do not turn that stale callback
+		# into another focusContext request and a duplicate mode cue.
+		if self._connectionCoordinator.is_foreground_instance_confirmed(instance_id, identity):
+			self._diagnostics.record(
+				"temporaryTerminalBindingStateSkipped",
+				instanceId=instance_id,
+				reason="alreadyConfirmed",
+			)
+			return
 		request = self._sessionClaimService.plan_remembered_state_request(identity, instance_id)
 		if request.kind == RememberedStateRequestKind.SKIP:
 			self._diagnostics.record(
 				"temporaryTerminalBindingStateSkipped",
 				instanceId=instance_id,
 				reason="focusChanged",
+			)
+			return
+		if request.kind == RememberedStateRequestKind.PENDING:
+			self._diagnostics.record(
+				"temporaryTerminalBindingStatePending",
+				instanceId=instance_id,
 			)
 			return
 		if request.kind == RememberedStateRequestKind.STALE or request.client is None:
@@ -2052,11 +2278,32 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				requestId=request.request_id,
 				sent=sent,
 			)
+			if not sent:
+				self._retryRememberedBindingState(identity, instance_id, attempt)
 			return
-		request.client.send_control("requestFullState", {})
+		sent = request.client.send_control("requestFullState", {})
 		self._diagnostics.record(
 			"temporaryTerminalBindingStateRequested",
 			instanceId=instance_id,
+			sent=sent,
+		)
+		if not sent:
+			self._retryRememberedBindingState(identity, instance_id, attempt)
+
+	def _retryRememberedBindingState(self, identity, instance_id, attempt):
+		if attempt >= len(_REMEMBERED_STATE_RETRY_DELAYS_MS):
+			self._diagnostics.record(
+				"temporaryTerminalBindingStateRetryStopped",
+				attempts=attempt,
+				instanceId=instance_id,
+			)
+			return
+		self._scheduleMainThreadCall(
+			_REMEMBERED_STATE_RETRY_DELAYS_MS[attempt],
+			self._requestRememberedBindingState,
+			identity,
+			instance_id,
+			attempt + 1,
 		)
 
 	def _onManagedEvent(self, instance_id, event):
@@ -2147,6 +2394,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					reason="staleOrUnbound",
 				)
 			return
+		if event.get("type") in {"callableContextResult", "diagnosticContextResult"}:
+			if not self._terminalIntegrationService.handle_held_context_result(
+				instance_id,
+				identity,
+				event,
+			):
+				self._diagnostics.record(
+					"developerContextResultIgnored",
+					instanceId=instance_id,
+					reason="staleOrUnbound",
+				)
+			return
 		if event.get("type") == "brailleExploreLineResult":
 			if not self._terminalIntegrationService.handle_braille_exploration_result(
 				instance_id,
@@ -2182,15 +2441,36 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			event = self._handleTerminalControlResult(instance_id, identity, event)
 			if event is None:
 				return
+		first_authenticated_state = (
+			event.get("type") == "fullState"
+			and instance_id not in self._connectionCoordinator.authenticated_instances
+		)
 		if event.get("type") == "fullState":
 			self._connectionCoordinator.authenticated_instances.add(instance_id)
 		self._handleEvent(event, connection_label=selected.context_label)
+		if first_authenticated_state and self._connectionCoordinator.is_foreground_instance_confirmed(
+			instance_id,
+			identity,
+		):
+			self._presentation.play_connection_sound()
+			self._diagnostics.record(
+				"connectionEstablished",
+				instanceId=instance_id,
+				terminal=self._identityFields(identity),
+			)
 		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
 			instance_id
 		):
 			# Activate the authenticated state immediately. Only the optional
 			# remember question is deferred out of NVDA's event queue; its answer
 			# must never control whether native terminal output is suppressed.
+			if self._sessionClaimService.is_temporary_binding_remembered(identity):
+				self._diagnostics.record(
+					"temporaryTerminalBindingRetained",
+					instanceId=instance_id,
+					terminal=self._identityFields(identity),
+				)
+				return
 			import wx
 
 			wx.CallAfter(
@@ -2474,6 +2754,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		self._diagnostics.record("connectionState", previous=transition.previous, state=state)
 		if transition.connection_lost and self._gate.focused is not None:
+			self._presentation.play_disconnection_sound()
+			self._diagnostics.record(
+				"connectionLost",
+				terminal=self._identityFields(self._gate.focused),
+			)
 			speech.clearTypedWordBuffer()
 			ui.message(_("Neovim connection lost; normal terminal output restored"))
 			self._refreshBraille(rebuild=True)
@@ -2481,6 +2766,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _handleEvent(self, event, *, connection_label=None):
 		activated = False
 		payload = event.get("payload")
+		previous_payload = self._editorSessionController.exploration_state()
 		word_character, line_word, line_character = self._settingsService.navigation_details(
 			exploration=False
 		)
@@ -2495,11 +2781,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			line_character=line_character,
 		)
 		transition = plan.transition
+		self._terminalIntegrationService.cancel_stale_held_context()
 		keyObserverDiagnostics = (
 			payload.get("keyObserverDiagnostics", {}) if isinstance(payload, dict) else {}
 		)
 		if not isinstance(keyObserverDiagnostics, dict):
 			keyObserverDiagnostics = {}
+		completionAdapterDiagnostics = (
+			payload.get("completionAdapterDiagnostics", {}) if isinstance(payload, dict) else {}
+		)
+		if not isinstance(completionAdapterDiagnostics, dict):
+			completionAdapterDiagnostics = {}
 		self._diagnostics.record(
 			"eventDispatch",
 			type=event.get("type"),
@@ -2532,6 +2824,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			keyPromptKind=keyObserverDiagnostics.get("promptKind"),
 			keyPromptClass=keyObserverDiagnostics.get("promptClass"),
 			keyPromptLength=keyObserverDiagnostics.get("promptLength"),
+			completionAdapterActive=completionAdapterDiagnostics.get("activeKind"),
+			completionAdapterApi=completionAdapterDiagnostics.get("apiVariant"),
+			completionAdapterErrors=completionAdapterDiagnostics.get("errorCount"),
+			completionAdapterSlowTicks=completionAdapterDiagnostics.get("slowTickCount"),
+			completionAdapterMaximumTickNs=completionAdapterDiagnostics.get("maximumTickNanoseconds"),
 		)
 		mode = transition.mode
 		previous_mode = transition.previous_mode
@@ -2561,6 +2858,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				activated = True
 		if not self._gate.manual_enabled:
 			return
+		self._playDiagnosticNavigationCue(
+			event_type,
+			previous_payload,
+			payload if isinstance(payload, dict) else {},
+		)
 		self._presentation.deliver_actions(
 			plan.speech_actions,
 			event_type=event.get("type"),
@@ -2586,6 +2888,52 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					and not self._editorSessionController.braille_exploration_enabled()
 				),
 			)
+
+	def _playDiagnosticNavigationCue(self, event_type, previous_payload, payload):
+		navigation_events = {
+			"characterMoved",
+			"diagnosticMoved",
+			"wordMoved",
+			"lineChanged",
+			"lineStart",
+			"lineEnd",
+			"searchMatchChanged",
+			"matchingPairMoved",
+		}
+		if event_type not in navigation_events:
+			return
+		previous_cursor = previous_payload.get("cursor")
+		cursor = payload.get("cursor")
+		previous_summary = previous_payload.get("diagnosticSummary")
+		summary = payload.get("diagnosticSummary")
+		if not all(isinstance(value, dict) for value in (previous_cursor, cursor, previous_summary, summary)):
+			return
+		position_identity = summary.get("positionIdentity", "")
+		# Match VS Code's positional accessibility signal: deliberate cursor
+		# navigation emits the cue at every position covered by a diagnostic,
+		# not only on the first cell of a range. Text changes and asynchronous
+		# DiagnosticChanged refreshes never enter this navigation-only path.
+		at_position = bool(position_identity)
+		line_changed = cursor.get("line") != previous_cursor.get("line")
+		severity = (
+			summary.get("positionSeverity")
+			if at_position
+			else summary.get("lineSeverity")
+			if line_changed
+			else None
+		)
+		if severity not in {"error", "warning"}:
+			return
+		played = self._presentation.play_diagnostic_sound(
+			severity,
+			at_position=at_position,
+		)
+		self._diagnostics.record(
+			"diagnosticNavigationSound",
+			severity=severity,
+			scope="position" if at_position else "line",
+			played=played,
+		)
 
 	def _reportIndentation(self, quarterTones, level):
 		self._presentation.report_indentation(quarterTones, level)
@@ -2683,6 +3031,120 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._numberedChoiceBrailleMessageToken = None
 		dismissed = dismiss_numbered_choice_message(message_token)
 		self._diagnostics.record("numberedChoiceBrailleMessageDismissed", dismissed=dismissed)
+
+	def _presentDeveloperContext(self, presentation, kind, direction=None):
+		if presentation is None:
+			if kind is HeldContextKind.DIAGNOSTIC:
+				self._presentation.play_no_diagnostic_sound(at_position=False)
+			speech_text = (
+				# Translators: Spoken when no callable information is available at the cursor.
+				_("No function parameters or hover information available")
+				if kind is HeldContextKind.CALLABLE
+				# Translators: Spoken when no diagnostic is available on the current line.
+				else _("No diagnostics on this line")
+			)
+			braille_text = speech_text
+		elif kind is HeldContextKind.CALLABLE:
+			signature = presentation.item.get("signature", "")
+			documentation = presentation.item.get("documentation", "")
+			# Translators: One selected signature in a held callable context.
+			signature_text = _("Signature {index} of {count}: {signature}").format(
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				signature=signature,
+			)
+			# Translators: Compact Braille label for one selected callable signature. Keep the S short.
+			braille_signature_text = _("S {index} of {count}: {signature}").format(
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				signature=signature,
+			)
+			parameter_text = ""
+			braille_parameter_text = ""
+			if presentation.parameter_count:
+				# Translators: One selected parameter in a held callable context.
+				parameter_text = _("Parameter {index} of {count}: {parameter}").format(
+					index=presentation.parameter_index + 1,
+					count=presentation.parameter_count,
+					parameter=presentation.parameter,
+				)
+				# Translators: Compact Braille label for one selected callable parameter. Keep the P short.
+				braille_parameter_text = _("P {index} of {count}: {parameter}").format(
+					index=presentation.parameter_index + 1,
+					count=presentation.parameter_count,
+					parameter=presentation.parameter,
+				)
+			documentation_text = ""
+			braille_documentation_text = ""
+			if documentation:
+				# Translators: Documentation belonging to a held callable signature.
+				documentation_text = _("Documentation: {documentation}").format(
+					documentation=documentation,
+				)
+				# Translators: Compact Braille label for callable documentation. Keep the D short.
+				braille_documentation_text = _("D: {documentation}").format(
+					documentation=documentation,
+				)
+			parameter_direction = direction in {
+				HeldContextDirection.PREVIOUS_PARAMETER,
+				HeldContextDirection.NEXT_PARAMETER,
+			}
+			if parameter_direction:
+				# Translators: Spoken when the selected callable signature has no parameters.
+				speech_text = parameter_text or _("No parameters in this signature")
+				braille_text = braille_parameter_text or speech_text
+			else:
+				# Initial presentation and j/k navigation describe only the
+				# selected signature. Parameters form their own h/l axis.
+				speech_text = ". ".join(part for part in (signature_text, documentation_text) if part)
+				braille_text = ". ".join(
+					part for part in (braille_signature_text, braille_documentation_text) if part
+				)
+		else:
+			item = presentation.item
+			severity = {
+				"error": _("error"),
+				"warning": _("warning"),
+				"information": _("information"),
+				"hint": _("hint"),
+			}.get(item.get("severity"), _("diagnostic"))
+			source = item.get("source", "")
+			code = item.get("code")
+			provider = " ".join(part for part in (source, str(code) if code is not None else "") if part)
+			# Translators: Held diagnostic context. The provider may contain a linter name and code.
+			speech_text = _("{severity}, diagnostic {index} of {count}: {message}").format(
+				severity=severity,
+				index=presentation.item_index + 1,
+				count=presentation.item_count,
+				message=item.get("message", ""),
+			)
+			braille_text = speech_text
+			if provider:
+				# Translators: Provider and optional code for a held diagnostic.
+				source_text = _("Source: {source}").format(source=provider)
+				speech_text = ". ".join((speech_text, source_text))
+				braille_text = " | ".join((braille_text, source_text))
+		speech.cancelSpeech()
+		speech.speakText(speech_text)
+		self._dismissDeveloperContext()
+		self._developerContextBrailleMessageToken = present_developer_context_message(
+			braille_text,
+			start_cell=self._settingsService.braille_developer_start(),
+		)
+		self._diagnostics.record(
+			"developerContextPresented",
+			kind=kind.value,
+			braille=self._developerContextBrailleMessageToken is not None,
+		)
+		return True
+
+	def _dismissDeveloperContext(self):
+		message_token = self._developerContextBrailleMessageToken
+		if message_token is None:
+			return
+		self._developerContextBrailleMessageToken = None
+		dismissed = dismiss_numbered_choice_message(message_token)
+		self._diagnostics.record("developerContextBrailleMessageDismissed", dismissed=dismissed)
 
 	def _queueBrailleRefresh(self, rebuild, follow_cursor=False):
 		self._queueRuntimeCallback(self._refreshBraille, rebuild, follow_cursor)

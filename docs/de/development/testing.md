@@ -42,11 +42,47 @@ realen Plugins, Terminalfrontends oder Brailletreibers.
 | Lua-Spezifikationen | echte Neovim-APIs, Zustandsereignisse und Adapter | `neovim-plugin/tests/*_spec.lua` |
 | TUI-/RPC-Integration | echte wegwerfbare Neovim-Instanz, Pseudoterminal und dauerhafter RPC-Kanal | `bridge/python/tests/` und Plugin-Tests |
 | Build | tatsächlich gebautes Add-on, eingebettetes Linux-Paket, gettext und HTML | Build- und Pakettests |
-| Praxis | NVDA, Windows Terminal, lokales Neovim, SSH, tmux und später Braillehardware | dokumentierte manuelle Matrix |
+| Praxis | reale Sprache, Klänge, Braillehardware, gehaltene NVDA-Gesten und Windows-Fokus | `tests/human/` und [geführte Praxistests](human-testing.md) |
 
 TUI-, Socket- und SSH-Tests dürfen niemals an eine bestehende Neovim- oder
 tmux-Sitzung des Anwenders angehängt werden. Sie verwenden eigene temporäre
 Verzeichnisse, Sockets, Prozesse und Testkonten.
+
+## Schlanke geführte Praxistests
+
+Das Framework unter `tests/human/` ergänzt die automatisierten Suiten nur an
+Grenzen, die reale Hilfstechnologie benötigen. Jede menschliche Assertion
+nennt deshalb einen Grund wie wahrgenommene Sprache oder Klänge, physische
+Braillehardware, eine gehaltene NVDA-Geste oder echten Windows-Fokus. Sie
+verweist außerdem auf die verwandte automatisierte Evidenz. Technische Werte,
+die Python oder Lua eindeutig vergleichen können, dürfen nicht zusätzlich von
+Menschen abgefragt werden.
+
+Der kurze `smoke`-Lauf umfasst nativen LSP/Completion,
+Diagnosepräsentation sowie Fokusisolation und Fail-open. nvim-cmp, blink.cmp
+und je ein kleiner C-/Clang-Tidy- und Markdown-/markdownlint-Test liegen in
+einer optionalen `compatibility`-Suite. Aufgaben besitzen feste Kategorien
+und können einzeln ausgewählt werden. Versionierte DE/EN-Testkarten
+werden durch einen isolierten PowerShell-Runner angezeigt; dieser verändert
+keine private `init.lua`. Jede offene Aufgabe erhält eine frische
+Test-Neovim-Sitzung; Test-ID und Aufgabe können dort mit `F2` erneut angezeigt
+werden. Ergebnisse werden nach jeder Aufgabe als validierbares JSON unter dem ignorierten `tmp/`
+gesichert; die exakten ausgewählten Aufgaben-IDs sind Teil des Ergebnisses.
+Eine technische Vorprüfung realer Provider und ein Windows-CI-Lauf
+des PowerShell-Runners fangen maschinell erkennbare Fehler ab. Einrichtung,
+Bedienung, Fortsetzen und maschinelle Exitcodes beschreibt die
+[Testerdokumentation](human-testing.md).
+
+Definitionen und Ergebnisvertrag gehören weiterhin zur schnellen
+automatisierten Prüfung:
+
+```bash
+python3 tests/human/framework/validate.py plans
+python3 tools/run_tests.py quick
+```
+
+Ein CI-Erfolg darf niemals als bestandene reale NVDA-, Audio- oder
+Brailleprüfung ausgegeben werden.
 
 ## Standardprüfung eines Checkouts
 
@@ -75,7 +111,7 @@ ohne Ausführung.
 |---|---|
 | `unit` | reine und mit Attrappen isolierte Python-Tests |
 | `package` | gebautes Add-on, Paketinhalt und NVDA-Integrationsattrappen in zwei isolierten Prozess-Shards; innerhalb jedes Shards seriell |
-| `lua` | Headless-Neovim-Spezifikationen ohne Listener |
+| `lua` | Headless-Neovim-Spezifikationen ohne Listener, einschließlich eines deterministischen stdio-LSP-Servers über Neovims echten LSP-Client |
 | `ssh` | separat ausführbare SSH-Kommando-, Askpass- und Fehlerpfade; alle externen Prozesse sind in diesen automatisierten Tests ersetzt |
 | `socket` | echte wegwerfbare Neovim-TUI-, RPC-, TCP- und Unix-Socket-Fälle |
 | `quick` | schnelle Rückmeldung; entspricht `unit` |
@@ -114,23 +150,51 @@ ein wegwerfbares Testkonto nach den Regeln dieses Kapitels.
 ## GitHub Actions
 
 `.github/workflows/repository-tests.yml` führt bei Pushes und Pull Requests
-drei unabhängige Jobs aus:
+sechs unabhängige Jobtypen aus:
 
 1. Unit-, Paket- und listenerfreie Lua-Tests mit `all-safe`;
-2. simulierte SSH- und Askpass-Pfade mit `ssh`;
-3. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
+2. Runner-, Sprach- und Ergebnisvertragstests des geführten Human-Test-
+   Frameworks unter Windows PowerShell und Neovim 0.12.3;
+3. echte Completion-Plugin-API-Verträge in drei getrennten
+   Neovim-/Plugin-Konfigurationen;
+4. echte Diagnose-Provider-Verträge mit `nvim-lint`, ALE und `none-ls.nvim`
+   sowie sieben realen Lintern in zwei Neovim-Versionen;
+5. simulierte SSH- und Askpass-Pfade mit `ssh`;
+6. wegwerfbare TUI-, TCP- und Unix-Socket-Fälle seriell mit `socket -j 1`.
 
-Jeder Job richtet dieselbe festgelegte Python-Version ein und installiert
-anschließend die in `tools/requirements-ci.txt` versionsfest aufgeführten
+Der sichere, der SSH- und der Socket-Python-Testjob richten dieselbe
+festgelegte Python-Version ein und installieren anschließend die in
+`tools/requirements-ci.txt` versionsfest aufgeführten
 Python-Testabhängigkeiten. Dadurch hängt das Ergebnis nicht von zufällig auf
-dem Runner vorinstallierten Python-Versionen oder Paketen ab.
+dem Runner vorinstallierten Python-Versionen oder Paketen ab. Der
+Diagnose-Provider-Job verwendet getrennt
+`tools/requirements-linter-ci.txt`; diese Pakete liefern die Python-basierten
+Werkzeuge Clang-Tidy, Ruff und ShellCheck. Der reine Completion-Vertragsjob
+benötigt keine Python-Abhängigkeiten. Der Windows-Job verwendet die
+festgelegte Python-Version ohne zusätzliche Pakete, lädt das festgelegte
+Neovim-0.12.3-Archiv und prüft vor dem Entpacken dessen SHA-256-Prüfsumme.
 
 Der sichere und der Socket-Job laden das offizielle Neovim-0.10.1-Linuxarchiv
 von GitHub. URL und SHA-256-Prüfsumme sind fest im Workflow hinterlegt; vor dem
-Entpacken wird die Prüfsumme verifiziert. Der SSH-Job besitzt keine
-Zugangsdaten und kontaktiert keinen SSH-Host. Jeder Job hat eine begrenzte
-Laufzeit; ein neuer Lauf für denselben Branch beendet außerdem einen noch
-laufenden älteren Lauf.
+Entpacken wird die Prüfsumme verifiziert. Der Completion-Vertragsjob wird in
+drei Matrixkonfigurationen erweitert: `nvim-cmp` und `blink.cmp` v1 mit
+Neovim 0.10.1 und 0.12.3 sowie `nvim-cmp` und der vorläufige
+`blink.cmp`-v2-Stand mit `blink.lib` unter Neovim 0.12.3. Neovim-Archive werden
+durch SHA-256-Prüfsummen und alle drei externen Lua-Repositories durch exakte
+Commit-IDs festgelegt. Der Job benötigt weder einen Compiler noch
+Python-Pakete, Netzwerkzugang zur Laufzeit der Tests oder private
+Zugangsdaten. Die Diagnosematrix lädt ebenfalls geprüfte Neovim-Archive,
+gepinntes `nvim-lint`, ALE, `none-ls.nvim` und dessen einzige Testabhängigkeit
+`plenary.nvim` sowie exakt versionierte Python-Wheels für Clang-Tidy, Ruff und
+ShellCheck. Zusätzlich richtet sie Go 1.26.5 mit Staticcheck 2026.1, Rust
+1.97.1 mit Clippy, Ruby 3.4.10 mit RuboCop 1.88.2 sowie Node.js 24.18.0 mit
+`markdownlint-cli2` 0.23.2 ein. Setup-Actions und Lua-Plugins sind auf exakte
+Commit-IDs festgelegt; Sprachlaufzeiten und direkte Linter verwenden exakte
+Versionen. Nach der Installation läuft die Matrix ohne Testzeit-Netzwerkzugriff
+und ohne Listener.
+Der SSH-Job besitzt ebenfalls keine Zugangsdaten und kontaktiert keinen
+SSH-Host. Jeder Job hat eine begrenzte Laufzeit; ein neuer Lauf für denselben
+Branch beendet außerdem einen noch laufenden älteren Lauf.
 
 GitHub Actions ersetzt die praktische Prüfung unter NVDA und Windows Terminal
 nicht. Die Jobs liefern reproduzierbares Linux-Feedback und verhindern, dass
@@ -151,6 +215,35 @@ verfügbaren unterstützten Neovim-Version. Für Änderungen an Versionsgrenzen
 sollten die Lua- und TUI-Suiten zusätzlich mit Neovim 0.10.1 und 0.12.3
 laufen. Eine installierte Pluginversion darf den Checkout nicht überdecken;
 die Testskripte isolieren deshalb `packpath`.
+
+`bash tools/test_completion_plugins.sh NVIM_CMP_CHECKOUT BLINK_CMP_CHECKOUT
+[BLINK_LIB_CHECKOUT]` lädt echte, lokal vorhandene Upstream-Module in einen
+isolierten Neovim-Prozess. Der Test belegt öffentliche API,
+Ereignisregistrierung und Adapter-Normalisierung; die Auswahlwerte werden
+gezielt injiziert. Er ist deshalb ein reproduzierbarer API-Vertragstest, keine
+vollständige TUI- oder Windows-/NVDA-Abnahme. `blink.cmp` v2 wird mit Neovim
+0.12 und dem dritten `blink.lib`-Checkout geprüft.
+
+`bash tools/test_linter_plugins.sh NVIM_LINT_CHECKOUT ALE_CHECKOUT` lädt beide
+echten Provider nacheinander in vollständig isolierte
+Headless-Neovim-Prozesse. Clang-Tidy 22.1.8, Ruff 0.15.4, ShellCheck 0.11.0,
+Staticcheck 2026.1, Clippy aus Rust 1.97.1, RuboCop 1.88.2 und
+`markdownlint-cli2` 0.23.2 müssen im `PATH` liegen; fehlende oder abweichende
+Versionen führen zu einem klaren Fehler. Der Test erzeugt nur wegwerfbare C-,
+Python-, Bash-, Go-, Rust-, Ruby- und Markdown-Fixtures, wartet auf den
+wirklichen Linterprozess und `DiagnosticChanged` und prüft danach
+ausschließlich `vim.diagnostic` sowie den Access-Link-Snapshot. ALE verwendet
+für `markdownlint-cli2` seinen dokumentierten Executable-Schalter; dessen
+Ausgabeformat ist mit dem vorhandenen Markdownlint-Handler kompatibel. Der
+Test liest keine privaten Providerdaten und öffnet keine Listener.
+
+`bash tools/test_none_ls.sh NONE_LS_CHECKOUT PLENARY_CHECKOUT` lädt die echte
+LSP-Brücke und ihre deklarierte Lua-Abhängigkeit in einen weiteren isolierten
+Headless-Prozess. Die eingebaute Quelle `trail-space` veröffentlicht eine
+echte Diagnose über den none-ls-LSP-Client und `DiagnosticChanged`; anschließend
+werden Clientbindung, Bereich, Quelle und der anbieterneutrale
+Access-Link-Snapshot geprüft. Der Test benötigt kein externes Linterprogramm
+und keine ausgelagerte none-ls-Zusatzquelle.
 
 ## Was die automatisierten Suiten belegen
 
@@ -238,6 +331,26 @@ Besonders wichtig sind:
   ausgelagerten Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry-
   und Terminaldienstmodulen.
 
+Diese Strukturtests belegen den Anwendungsschnitt und die Richtung der
+Abhängigkeiten. Sie belegen weder eine physisch minimale Global-Plugin-Klasse
+noch eine kleine Methodenoberfläche des Terminaldienstes. Diese Eigenschaften
+bewertet der datierte [Strukturaudit in Anhang C](global-plugin-appmodule-audit-2026-08-04.md)
+getrennt; sie werden nur bei fachlichem Nutzen weiterentwickelt.
+
+Das automatische Parameterfeature besitzt bewusst mehrere unabhängige
+Schichten. `call_context_spec.lua` prüft Normal-/Insert-Regeln,
+mehrstufige und mehrzeilige Verschachtelung, Strings, Kommentare, leere und
+unvollständige Aufrufe, UTF-8, Kontrollschlüsselwörter und Größenlimits.
+`signature_help_automatic_spec.lua` prüft 120-ms-Bündelung, LSP-Auslöse- und
+Neuauslösekontext, vorherige Signaturhilfe, deduplizierte Bewegung,
+Parameter- und Signaturwechsel, Rückkehr in einen bereits ausgefüllten ersten
+Parameter, deterministische Mehrclientauswahl, Abbruch, Generationen und
+`InsertLeave`. Getrennte Protokoll-, Local-TCP-, stdio-/Bridge-, Speech-,
+Einstellungs-, UI- und Pakettests prüfen Fähigkeit, Feldgrenzen,
+widersprüchliche Datensätze, reine Sprachausgabe und Abschaltung. Der geführte
+Pyright-/NVDA-Test bewertet nur reale Wahrnehmung, Latenz und unveränderte
+Brailleausgabe; er wiederholt keine algorithmischen Assertions.
+
 ### Terminal und Kommandozeile
 
 Automatisierte TUI- und Add-on-Tests müssen unterscheiden:
@@ -290,7 +403,8 @@ Geprüft werden mindestens:
 - deutsches Manifest und `locale/de/LC_MESSAGES/nvda.mo`, aber keine PO/POT-
   Quellen im Archiv;
 - bytegleiche wiederholte MO-Kompilierung und gleiche benannte Platzhalter;
-- Quick Guide, Handbuch und Entwicklerdokumentation auf Deutsch und Englisch;
+- Quick Guide, Handbuch, Entwicklerdokumentation und geführter
+  Praxistest-Leitfaden auf Deutsch und Englisch;
 - genau eine H1 pro HTML, gültige interne Sprungziele und keine verbliebenen
   `.md`-Links;
 - ausdrückliche Zuordnung jeder veröffentlichten Markdown-Quelle zu einem
@@ -449,6 +563,17 @@ echte TUI-/RPC-Matrix prüft außerdem den blockierenden Neovim-0.10-Prompt und
 den eingeplanten Neovim-0.12-Pfad einschließlich Annahme des nativen Indexes.
 Der Vorschlagspfad wurde unter Windows/NVDA mit einer physischen Braillezeile
 erfolgreich praktisch geprüft; eine breitere Hardwarematrix steht aus.
+Die gehaltene Entwicklerinformation besitzt zusätzlich einen gebauten
+Add-on-Test mit absichtlich schmaler Braillezeile. Er prüft die fachlich
+getrennte Sprach-/Braillereihenfolge, mehrere lokale Seiten, Vor- und
+Zurückblättern, das Stehenbleiben an beiden Grenzen, das erneute Stoppen des
+von NVDA beim Scrollen gestarteten Meldungstimers und die Wiederherstellung der
+Editorzeile erst beim gezielten Schließen. Die Pufferattrappe bildet dabei
+NVDAs tatsächliches Verhalten nach: `BrailleBuffer.update()` sammelt die
+bereits übersetzten Regionszellen, ruft aber nicht selbst erneut
+`Region.update()` auf. Dadurch erkennt die Regression insbesondere eine nur
+intern erhöhte Seitennummer ohne neu materialisierte Zellen. Der geführte
+LSP-Praxistest verlangt denselben Blätterweg mit der physischen Braillezeile.
 Davon getrennt blieben physische Cursor-Routingtasten in zwei praktischen
 `dev.10`-Versuchen in Normal- und Insert-Modus ohne Reaktion; die Berichte
 enthielten keinen Routingeintritt. Da beide geänderten Pakete fälschlich

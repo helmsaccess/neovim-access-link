@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 3,
+  "id": "c-diagnostics",
+  "order": 60,
+  "titleKey": "plan.cDiagnostics.title",
+  "descriptionKey": "plan.cDiagnostics.description",
+  "suites": ["compatibility"],
+  "profile": "c-diagnostics",
+  "fixture": "diagnostics.c",
+  "steps": [
+    {
+      "testId": "D3",
+      "id": "clang-tidy-presentation",
+      "category": "diagnostics",
+      "titleKey": "plan.cDiagnostics.presentation.title",
+      "contextKey": "plan.cDiagnostics.context",
+      "actionKey": "plan.cDiagnostics.presentation.action",
+      "expectedKey": "plan.cDiagnostics.presentation.expected",
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
+      "requires": [],
+      "automatedEvidence": [
+        "neovim-plugin/tests/linter_plugins_integration.lua",
+        "neovim-plugin/tests/diagnostic_navigation_spec.lua"
+      ]
+    }
+  ]
+}

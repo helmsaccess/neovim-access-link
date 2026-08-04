@@ -30,10 +30,12 @@ PYTHON_TEST_PATH = os.pathsep.join(
     )
 )
 DEFAULT_JOBS = min(8, os.cpu_count() or 1)
+UNIX_SOCKET_PATH_MAX = 107
+TEMPORARY_NAME_SAMPLE = "tmp12345678"
 REAL_BRIDGE_TESTS = (
     "test_real_tui_f12_claim_preserves_normal_and_insert_input",
     "test_real_tui_spell_choices_are_structured_and_accept_the_native_index",
-    "test_local_windows_loopback_client_receives_state_and_exploration_result",
+    "test_local_windows_loopback_client_receives_semantic_results",
     "test_real_tui_omnifunc_emits_popup_selection_and_close",
     "test_real_tui_terminal_control_and_process_exit_are_structured",
     "test_real_tui_running_terminal_bd_reports_guard_before_hit_enter",
@@ -44,6 +46,7 @@ REAL_BRIDGE_TESTS = (
     "test_neovim_restart_reconnects_and_pushes_full_state",
 )
 MOCK_BRIDGE_TESTS = (
+    "test_active_parameter_transition_is_validated_before_publication",
     "test_bridge_accepts_only_the_exact_active_numbered_choice",
     "test_braille_exploration_uses_separate_fixed_capability_gated_entry_points",
     "test_cursor_routing_uses_only_fixed_validated_plugin_entry_point",
@@ -52,6 +55,8 @@ MOCK_BRIDGE_TESTS = (
     "test_clipboard_control_uses_only_fixed_plugin_entry_points",
     "test_terminal_control_uses_only_its_fixed_plugin_entry_point",
     "test_exploration_uses_only_fixed_bounded_plugin_entry_points",
+    "test_developer_context_uses_only_fixed_capability_gated_entry_points",
+    "test_bridge_publishes_developer_context_once_but_never_caches_it",
     "test_bridge_publishes_clipboard_text_once_but_never_caches_it",
     "test_bridge_publishes_braille_exploration_once_but_never_caches_it",
     "test_bridge_publishes_valid_exploration_once_but_never_caches_it",
@@ -182,9 +187,11 @@ def validate_inventory(configured: tuple[Job, ...]) -> None:
         *ROOT.glob("nvda-addon/tests/test_*.py"),
     }
     expected_lua = set(ROOT.glob("neovim-plugin/tests/*_spec.lua"))
+    expected_human = set(ROOT.glob("tests/human/test_*.py"))
     configured_sources = {job.source for job in configured}
-    missing = sorted((expected_python | expected_lua) - configured_sources)
-    unexpected = sorted(configured_sources - (expected_python | expected_lua))
+    expected = expected_python | expected_lua | expected_human
+    missing = sorted(expected - configured_sources)
+    unexpected = sorted(configured_sources - expected)
     if missing or unexpected:
         raise RuntimeError(
             f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}"
@@ -207,17 +214,20 @@ def jobs() -> tuple[Job, ...]:
         "test_braille_navigation.py",
         "test_braille_routing_actions.py",
         "test_clipboard.py",
+        "test_developer_context.py",
         "test_exploration.py",
         "test_local_client.py",
         "test_numbered_choice.py",
         "test_nvim_rpc.py",
         "test_protocol.py",
+        "test_signature_help.py",
         "test_terminal_control.py",
     ):
         result.append(python_file("unit", "protocol", f"protocol/python/tests/{file_name}"))
     for file_name in ("test_cli.py", "test_session_registry.py", "test_stdio.py"):
         result.append(python_file("unit", "bridge", f"bridge/python/tests/{file_name}"))
     result.append(bridge_methods("unit", "mocked-nvim", MOCK_BRIDGE_TESTS))
+    result.append(python_file("unit", "human", "tests/human/test_framework.py"))
     for file_name in (
         "test_braille_exploration.py",
         "test_braille_routing_repeats.py",
@@ -229,6 +239,7 @@ def jobs() -> tuple[Job, ...]:
         "test_exploration.py",
         "test_frontend_policy.py",
         "test_gettext_catalog.py",
+        "test_held_context.py",
         "test_local_install.py",
         "test_local_sessions.py",
         "test_numbered_choice.py",
@@ -250,15 +261,28 @@ def jobs() -> tuple[Job, ...]:
         "braille_exploration_spec.lua",
         "braille_navigation_spec.lua",
         "braille_routing_actions_spec.lua",
+        "call_context_spec.lua",
         "clipboard_spec.lua",
         "completion_adapters_spec.lua",
+        "diagnostic_navigation_spec.lua",
+        "diagnostics_spec.lua",
+        "developer_context_spec.lua",
+        "developer_context_lsp_integration_spec.lua",
         "exploration_spec.lua",
+        "example_lazy_python_config_spec.lua",
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",
         "file_manager_workflows_spec.lua",
+        "human_test_config_spec.lua",
+        "human_test_linter_readiness_spec.lua",
+        "lsp_hover_spec.lua",
+        "lsp_status_spec.lua",
         "menu_spec.lua",
+        "native_completion_spec.lua",
         "navigation_spec.lua",
         "selection_spec.lua",
+        "signature_help_spec.lua",
+        "signature_help_automatic_spec.lua",
         "spelling_spec.lua",
     ):
         result.append(lua_spec("lua", f"neovim-plugin/tests/{file_name}"))
@@ -294,9 +318,32 @@ def selected_groups(arguments: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(selected)
 
 
+def nested_socket_path_probe(repository_root: Path, job_index: int = 99) -> Path:
+    """Model the longest nested socket path created by the real TUI tests."""
+    return (
+        repository_root
+        / "tmp"
+        / "r-12345678"
+        / f"j{job_index}"
+        / "t"
+        / TEMPORARY_NAME_SAMPLE
+        / "nvim.sock"
+    )
+
+
+def validate_socket_path_budget(repository_root: Path) -> None:
+    probe = nested_socket_path_probe(repository_root)
+    byte_length = len(os.fsencode(probe))
+    if byte_length > UNIX_SOCKET_PATH_MAX:
+        raise ValueError(
+            f"checkout path is too long for disposable Unix sockets "
+            f"({byte_length} > {UNIX_SOCKET_PATH_MAX} bytes): {probe}"
+        )
+
+
 def run_job(job: Job, job_directory: Path) -> Result:
-    runtime = job_directory / "runtime"
-    temporary = job_directory / "tmp"
+    runtime = job_directory / "r"
+    temporary = job_directory / "t"
     runtime.mkdir(parents=True)
     runtime.chmod(0o700)
     temporary.mkdir()
@@ -382,7 +429,14 @@ def main() -> int:
     separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
     if len(separated_batches) > 1:
         batches = separated_batches
-    with tempfile.TemporaryDirectory(prefix="nvim-nvda-tests-") as temporary_name:
+    if socket_jobs:
+        validate_socket_path_budget(ROOT)
+    temporary_parent = ROOT / "tmp"
+    temporary_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="r-",
+        dir=temporary_parent,
+    ) as temporary_name:
         temporary_root = Path(temporary_name)
         submitted_index = 0
         for batch_index, batch in enumerate(batches, start=1):
@@ -400,7 +454,7 @@ def main() -> int:
                         executor.submit(
                             run_job,
                             job,
-                            temporary_root / f"job-{submitted_index:02d}",
+                            temporary_root / f"j{submitted_index}",
                         )
                     ] = job
                 for future in concurrent.futures.as_completed(futures):

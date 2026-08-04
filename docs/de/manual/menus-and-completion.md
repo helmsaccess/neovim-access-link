@@ -2,8 +2,11 @@
 
 Neovim Access Link gibt Vervollständigungslisten als zugängliche Menüs aus.
 NVDA meldet den ausgewählten Eintrag, seine Position und – soweit vorhanden –
-Typ, Signatur und Kurzbeschreibung. Sprache und Braille verwenden denselben
-Menüzustand.
+Typ, Signatur, Quelle und Kurzbeschreibung. Die standardisierten LSP-Typen
+werden lokalisiert. Sprache und Braille verwenden denselben Menüzustand.
+Eine vollständige einsteigerfreundliche Einrichtung mit `init.lua`,
+Sprachserver und Linter steht im vorherigen Kapitel
+[LSP, Autovervollständigung und Linter einrichten](language-tools.md).
 
 ## Unterstützte Menüs
 
@@ -16,9 +19,12 @@ anderem:
 - Neovims LSP-Vervollständigung,
 - Plugins, die ihre Kandidaten über Neovims Funktion `complete()` anzeigen.
 
-Zusätzliche Adapter sind für `nvim-cmp` und `blink.cmp` enthalten. Da diese
-Plugins eigene Oberflächen und unterschiedliche Versionen besitzen, sollte ihr
-Verhalten mit der konkret installierten Konfiguration geprüft werden.
+Zusätzliche Adapter sind für `nvim-cmp` und `blink.cmp` enthalten.
+Automatisierte API-Vertragstests decken den aktuellen `nvim-cmp`-Hauptzweig,
+`blink.cmp` v1.10.2 und den vorläufigen v2-Zweig ab. `blink.cmp` v2 benötigt
+Neovim 0.12 und `blink.lib`; v1 bleibt die stabile Empfehlung. Diese Tests
+ersetzen keine praktische Abnahme jeder individuellen Quellen-, Darstellungs-
+und Tastenkonfiguration.
 
 Beliebige frei gezeichnete Floating Windows sind nicht automatisch ein
 zugängliches Menü. Das erzeugende Plugin muss dafür Neovims Standardmenü oder
@@ -39,9 +45,19 @@ Das Add-on ersetzt diese Tasten nicht. Es beobachtet nur den von Neovim
 gemeldeten Menüzustand. Eigene Mappings eines Completion-Plugins bleiben daher
 wirksam.
 
+Neovims eingebaute Vervollständigung schaltet nach dem letzten Kandidaten
+bewusst einmal auf „kein Vervollständigungsvorschlag ausgewählt“. In diesem
+Zustand bleibt der ursprünglich eingegebene Text erhalten; der nächste Druck
+auf `Ctrl+N` wählt wieder den ersten Kandidaten. Access Link meldet diesen
+Zwischenschritt ausdrücklich in Sprache und Braille, damit er nicht wie ein
+verschluckter Tastendruck wirkt. Das Menü bleibt dabei geöffnet.
+
 Beim Öffnen und Schließen können NVDAs übliche Vorschlagsklänge abgespielt
 werden. Dafür gilt NVDAs Einstellung zur akustischen Meldung automatischer
-Vorschläge.
+Vorschläge. Das gilt gleichermaßen für Neovims eingebautes Menü, `nvim-cmp`
+und `blink.cmp`. Bei den beiden Pluginadaptern folgt der jeweilige Klang direkt
+dem öffentlichen Öffnen- beziehungsweise Schließen-Ereignis, auch wenn die
+Kandidaten erst kurz danach verfügbar sind.
 
 ## Gesprochene Informationen
 
@@ -58,15 +74,172 @@ Identische Auswahlereignisse werden nicht wiederholt. Dadurch wird derselbe
 Eintrag nicht mehrfach gesprochen, wenn ein Completion-Plugin seine Oberfläche
 ohne tatsächlichen Auswahlwechsel neu zeichnet.
 
+Nur der ausgewählte Kandidat wird verarbeitet. Auch eine Auswahl jenseits der
+ersten 200 Listeneinträge bleibt dadurch zugänglich. Später eintreffende
+Dokumentation aktualisiert den Dokumentationsbefehl still und wiederholt die
+Auswahlansage nicht. Bei Neovims eingebauter LSP-Completion kann diese
+Dokumentation nach dem letzten `CompleteChanged`-Ereignis eintreffen und nur
+im internen Vorschaufenster landen. Wenn der ursprüngliche LSP-Kandidat noch
+keine Dokumentation enthält, löst Access Link deshalb genau den ausgewählten
+Kandidaten zusätzlich über die öffentliche LSP-Schnittstelle
+`completionItem/resolve` auf. Ein Auswahlwechsel oder das Schließen des Menüs
+verwirft die alte Anfrage. Öffnen, Auswahl, Schließen und Klänge bleiben
+vollständig an Neovims Menüereignisse gebunden.
+
 ## Ausführliche Dokumentation lesen
 
 Längere Dokumentation wird nicht bei jedem Auswahlwechsel vollständig
 gesprochen. Unter „NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link“
 kann dem Befehl zum Lesen der Dokumentation des ausgewählten
-Vervollständigungseintrags eine eigene Tastenkombination zugewiesen werden.
+Vervollständigungseintrags oder des aktuellen LSP-Hovers eine eigene
+Tastenkombination zugewiesen werden. Beim LSP-Hover wird nur die erste
+aussagekräftige Zeile automatisch gesprochen und auf Braille angezeigt; der
+Befehl liest den vollständigen Inhalt.
 
 Der Befehl funktioniert nur, solange ein Eintrag ausgewählt ist und das
-Completion-System Dokumentation bereitstellt.
+Completion-System Dokumentation bereitstellt oder der aktuelle LSP-Hover
+Inhalt enthält.
+
+Bei Neovims eingebauter LSP-Completion löst Access Link fehlende Dokumentation
+selbst über `completionItem/resolve` auf. Der `nvim-cmp`-Adapter liest dagegen
+den vom Plugin bereits aufgelösten öffentlichen `entry.completion_item`.
+`blink.cmp` stellt seine intern aufgelöste Kopie derzeit nicht über eine
+öffentliche API bereit. Dort ist ursprünglich am Kandidaten vorhandene
+Dokumentation zugänglich; ausschließlich nachgeladene Dokumentation kann bis
+zu einer Upstream-Erweiterung fehlen.
+
+Ghost Text ohne sichtbares Completion-Menü ist kein zugängliches Auswahlmenü
+und wird von den beiden Adaptern nicht angesagt.
+
+## LSP-Serverstatus
+
+`:NvimNvdaLspStatus` gibt die Namen der LSP-Clients aus, die am aktuellen
+Buffer hängen. Ohne Client meldet der Befehl diesen Zustand ausdrücklich.
+Automatischer LSP-Fortschritt wird nicht fortlaufend gesprochen; Fehler und
+Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
+
+## Automatische Parameteransage im Einfügemodus
+
+Innerhalb einer Funktionsargumentliste fragt Access Link nach einer kurzen
+Ruhezeit die öffentliche LSP-Signaturhilfe ab. Gesprochen wird nur der aktive
+Parameter der vom Server gewählten Signatur. Kommas, Cursorbewegungen und
+Textänderungen lösen eine neue Abfrage aus; eine Antwort wird nur verwendet,
+wenn Buffer, Fenster, Textstand, Modus, Cursor und zugehöriger Aufruf noch exakt
+passen. Veraltete Antworten bleiben still.
+
+Beim Eintritt in einen Aufruf wird der erste aktive Parameter gesprochen. Ein
+Wechsel in ein anderes Argument spricht dessen Parameter. Auch die Rückkehr in
+ein bereits ausgefülltes früheres Argument wird angesagt, während Bewegung
+innerhalb desselben Arguments dedupliziert und still bleibt. In
+verschachtelten Ausdrücken gehört der Cursor zum innersten umschließenden
+Aufruf. Die Ausgabe ist ausschließlich Sprache und verdeckt nie den Quelltext
+auf Braille. Fehlt eine eindeutige strukturierte Serverantwort, wird weder aus
+Kommas geraten noch unstrukturierter Hovertext automatisch vorgelesen.
+
+## Funktionsparameter auf Abruf
+
+Mit `NVDA+Leertaste` fragt Access Link die Signaturhilfe an der aktuellen
+Cursorposition ab. Nur die Leertaste wird danach losgelassen; die NVDA-Taste
+bleibt für die folgende Navigation gedrückt. Der Cursor kann dabei auf dem
+Funktionsnamen oder auf der
+unmittelbar zugehörigen öffnenden oder schließenden Klammer stehen. Solange
+mindestens eine NVDA-Taste gedrückt bleibt, stehen die Informationen dauerhaft
+auf der Braillezeile. `NVDA+h/l` schaltet durch die Parameter, `NVDA+k/j`
+durch mehrere Signaturen. Die echte Cursorposition bleibt unverändert. Beim
+Loslassen der letzten NVDA-Taste wird die Anzeige geschlossen und die normale
+Editorzeile wiederhergestellt.
+
+Im Normalmodus ist diese manuelle Abfrage auf Funktionsname, öffnender oder
+schließender Aufrufklammer zulässig; das Innere einer nichtleeren
+Argumentliste bleibt absichtlich ausgeschlossen. Im Einfügemodus sind Name
+und die Klammern eines leeren Aufrufs eindeutig manuell abfragbar. In einer
+nichtleeren Argumentliste dient die automatische Parameteransage oben der
+Orientierung.
+
+Beim Öffnen spricht Access Link nur die ausgewählte Signatur und ihre
+vorhandene Dokumentation. `NVDA+h/l` spricht und zeigt ausschließlich den
+vorherigen beziehungsweise nächsten Parameter dieser Signatur;
+`NVDA+k/j` spricht und zeigt ausschließlich die vorherige beziehungsweise
+nächste Signatur samt ihrer Dokumentation. Jeder Signaturwechsel verwirft den
+bisherigen Parameterstand. Da die Signaturansicht keinen Parameter zeigt,
+blendet der erste Druck auf `NVDA+h` oder `NVDA+l` immer Parameter 1 der nun
+gewählten Signatur ein; erst weitere Betätigungen wechseln vorwärts oder
+rückwärts. Sprache und Braille zeigen damit immer dieselbe, gerade gewählte
+Achse. Die Sprache verwendet die vollständigen
+Bezeichnungen. Auf Braille verkürzen `S 1 von 2`, `P 1 von 3` und `D:` nur die
+Strukturpräfixe für Signatur, Parameter und Dokumentation; Funktionsnamen,
+Parameternamen und die eigentlichen Inhalte bleiben vollständig. Passt der
+Inhalt nicht vollständig
+auf die Braillezeile, blättern sowohl
+die üblichen Vor-/Zurück-Tasten als auch die Befehle für die nächste oder
+vorherige Braillezeile ausschließlich innerhalb dieser Information. Am ersten
+und letzten Teil bleibt die Anzeige stehen; erst das Loslassen der NVDA-Taste
+stellt den Quelltext wieder her.
+
+Access Link verwendet zuerst die öffentliche LSP-Signaturhilfe. Liefert sie
+nichts, dient LSP-Hover als unstrukturierter Rückfall. Die Antwort wird nur
+angenommen, wenn Instanz, Terminal, Buffer, Fenster, Tab, Textstand und
+Cursorposition noch exakt der Anfrage entsprechen.
+
+## Linter und Diagnostics
+
+Access Link verarbeitet Diagnosen aus Neovims öffentlicher
+`vim.diagnostic`-API. Dabei ist unerheblich, ob sie von einem LSP-Server,
+`nvim-lint`, ALE, `none-ls.nvim` oder einem anderen Diagnoseproduzenten
+stammen. Das Add-on installiert und startet selbst keine Linter. Der Linter,
+seine ausführbare Datei und die Zuordnung zu Dateitypen werden in Neovim
+eingerichtet.
+
+Automatisierte reale Läufe decken derzeit diese Mindestmatrix ab:
+
+- C mit Clang-Tidy;
+- Python mit Ruff;
+- Bash mit ShellCheck;
+- Go mit Staticcheck;
+- Rust mit Clippy;
+- Ruby mit RuboCop;
+- Markdown mit `markdownlint-cli2`;
+- jeweils über `nvim-lint` und ALE unter Neovim 0.10.1 und 0.12.3;
+- außerdem den LSP-Brückenpfad von `none-ls.nvim` mit einer eingebauten
+  Diagnosequelle auf beiden Neovim-Versionen.
+
+Quelle, Schwere, vorhandener Code, Meldung und Position werden beim
+Diagnosesprung gemeinsam in Sprache und Braille ausgegeben. Änderungen eines
+Linters im Hintergrund lösen keine fortlaufende Sprachmeldung aus.
+
+Mit `NVDA+Umschalt+Leertaste` werden zuerst Diagnosen direkt am Cursor und
+danach
+weitere Diagnosen auf derselben Zeile abgefragt. Solange die NVDA-Taste
+gehalten wird, schaltet `NVDA+k/j` zyklisch durch die Einträge, ohne den
+Editorcursor zu bewegen. Fehler und Warnungen können außerdem beim Betreten
+einer betroffenen Zeile und an jeder durch ausdrückliche Cursornavigation
+erreichten Position innerhalb eines exakten Diagnosebereichs einen kurzen
+Klang auslösen. Tippen und reine Hintergrundaktualisierungen bleiben stumm.
+Findet eine ausdrückliche Abfrage an der aktuellen Position beziehungsweise
+Zeile keinen Eintrag, meldet NVDA „keine Diagnose“ und bestätigt das leere
+Ergebnis mit einem eigenen kurzen Klang. Dieser wird nie allein durch
+Cursorbewegung auf einer fehlerfreien Zeile ausgelöst. Informationen und
+Hinweise besitzen weiterhin keinen Diagnoseklang.
+
+Für eigene Neovim-Mappings stehen folgende Befehle bereit:
+
+- `:NvimNvdaDiagnosticPrevious`;
+- `:NvimNvdaDiagnosticNext`;
+- `:NvimNvdaDiagnosticFirst`;
+- `:NvimNvdaDiagnosticLast`;
+- `:NvimNvdaDiagnosticCurrent`.
+
+Sie ändern keine vorhandenen Mappings. Unter neueren Neovim-Versionen werden
+auch Sprünge über die öffentliche native Diagnostic-API erkannt. Direkt
+getippte `[d`-/`]d`-Sprünge bleiben erkennbar, wenn das Mapping einen
+aufrufspezifischen Callback verwendet. Die Access-Link-Befehle durchlaufen
+jede einzelne Diagnose in der angekündigten Reihenfolge. Liefern mehrere
+Provider Diagnosen an derselben Position, bleiben diese deshalb einzeln mit
+Quelle, Index und Gesamtzahl erreichbar. Nach dem letzten Eintrag wird zum
+ersten umgebrochen und umgekehrt. Produzenten,
+die Ergebnisse ausschließlich in einer privaten Liste oder nur als
+Bildschirmdekoration halten, sind erst zugänglich, wenn sie diese nach
+`vim.diagnostic` spiegeln.
 
 ## Wenn keine Auswahl angesagt wird
 

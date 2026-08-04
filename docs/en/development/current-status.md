@@ -1,7 +1,7 @@
 # Current status
 
-Status date: July 28, 2026. Product version in the source tree:
-0.97.0 development build 1.
+Status date: July 31, 2026. Product version in the source tree:
+0.97.0 development build 9.
 
 The source tree has started the 0.97.0 development line. The current published
 beta pre-release remains 0.96.0; its GitHub release link and version-specific
@@ -21,9 +21,20 @@ development builds are not descriptions of the current product and are
 therefore not repeated chronologically here.
 
 GitHub Actions repository checks separate the listener-free standard suite,
-mocked SSH/Askpass paths, and real disposable TCP/Unix-socket cases into
-three independent jobs. They use neither production SSH targets nor private
-infrastructure and do not replace practical Windows/NVDA verification.
+real pinned completion-plugin contracts, real diagnostic providers and linter
+processes, the guided human-test runner on Windows PowerShell, mocked
+SSH/Askpass paths, and real disposable TCP/Unix-socket cases into independent
+jobs. The Windows job checks the runner, both locales, test definitions, and
+the result contract, but never declares a perception task as having passed a
+human check. The completion matrix covers Neovim 0.10.1/0.12.3,
+`nvim-cmp`, `blink.cmp` v1, and the provisional v2 revision. The diagnostic
+matrix covers `nvim-lint` and ALE with seven real linters for C, Python, Bash,
+Go, Rust, Ruby, and Markdown, plus the `none-ls.nvim` LSP bridge, on both
+Neovim versions. The listener-free standard suite also starts a small
+deterministic LSP server over stdio and exercises signature help, parameter
+documentation, and the hover fallback through Neovim's real LSP client. The
+jobs use neither production SSH targets nor private infrastructure and do not
+replace practical Windows/NVDA verification.
 
 ## Reference environment
 
@@ -96,10 +107,20 @@ See `compatibility.md` for complete platform boundaries.
   a correlated focus-context or full-state request according to authentication
   state. Delay and transport calls remain at the NVDA boundary. The service
   also owns pending offers to remember temporary terminal bindings and
-  revalidates focus, control, instance, and selection after the modal question.
-  Dialogs, messages, and diagnostics remain NVDA-side. A one-shot correlated
-  reactivation bridges only this question's focus loss; declining does not
-  create a persistent binding. An injected
+  revalidates focus, control, instance, and selection after NVDA's managed
+  modal question. Dialogs, messages, and diagnostics remain NVDA-side. A
+  one-shot correlated reactivation bridges only this question's focus loss. If
+  the expected Windows Terminal focus event is absent or NVDA's cache still
+  points at the closed dialog, a short bounded recovery additionally queries
+  the actually focused NVDA object. Only the complete same terminal identity
+  uses the correlated focus-context request; uncertainty remains fail-open. A
+  refocused terminal object counts as active only after its focus context is
+  confirmed. An outstanding handshake is advanced idempotently; when the
+  transport temporarily rejects sending it, at most three bounded retries
+  follow. An
+  already remembered tab identity retains that choice for a new Neovim
+  instance authorized again with F12 and does not create a redundant dialog.
+  Declining does not create a persistent binding. An injected
   `ManagedClientFactory` constructs local TCP and remote SSH clients with
   instance-correlated callbacks. The claim service connects this construction
   to its transactional start transition; profiles, passwords, and translated
@@ -194,6 +215,17 @@ See `compatibility.md` for complete platform boundaries.
   Automated V2-6 work and practical milestone 2 are complete without a newly
   reported error. The later practical `z=` suggestion-path check with one
   physical Braille display succeeded; a broader Braille matrix remains open.
+- A structural re-audit dated August 4, 2026 confirms the achieved
+  application boundary: event entry points, overlay selection, `nextHandler`,
+  configurable script metadata, and input observers remain in the Windows
+  Terminal AppModule, and extracted services do not depend on the
+  `GlobalPlugin` class. It also clarifies that the concrete class is still a
+  sizeable process-wide NVDA-edge controller rather than a purely minimal
+  composition root. The public terminal service is bounded in trust and
+  ownership but has a broad method surface. Further decomposition therefore
+  remains a staged option with specific ownership or testing benefit, not a
+  move of shared workflows into the AppModule or a LOC goal. See
+  [Appendix C](global-plugin-appmodule-audit-2026-08-04.md).
 
 ### Editor output
 
@@ -202,11 +234,94 @@ The semantic path covers, among other features:
 - Normal, Insert, Replace, Visual, command-line, and terminal modes;
 - character, word, and line navigation plus file and line boundaries;
 - typing, deletion, replacement, selection, and search matches;
-- built-in completion, signature help, diagnostics, folds, and messages;
+- built-in completion, `nvim-cmp`, `blink.cmp`, cross-version signature help,
+  semantic LSP hover, diagnostics, folds, and messages;
 - typed command-line state and the correlated return message of an Ex command;
 - configurable focus output: no announcement, current line, or context with
   mode and saved connection name;
 - separate speech, sound, and persistent Braille planning.
+
+Completion processes only the selected candidate and reports its position,
+localized LSP kind, parameters, and source. Documentation resolved later by
+built-in LSP completion or `nvim-cmp` updates the per-instance documentation
+command silently. Neovim's internal preview update does not subsequently
+appear in `complete_info()`. When the original candidate has no documentation,
+the native path therefore resolves only the current selection through the
+public `completionItem/resolve` contract and discards stale responses.
+Real-module attachment is
+automated against current `nvim-cmp`, `blink.cmp` v1.10.2, and the provisional
+v2 branch; a complete TUI and Windows/NVDA configuration matrix remains open.
+`blink.cmp` cannot yet expose documentation available only in its internally
+resolved copy, and ghost text without a menu is not an accessible selection
+menu.
+
+The deliberate no-selected-candidate state used by Neovim's built-in
+completion between the last and first suggestion is emitted as its own
+semantic speech and Braille state and clears the previously selected
+documentation.
+
+LSP hover automatically presents only its first meaningful line. Complete
+per-instance documentation is available through the same configurable command
+as completion documentation and is discarded silently when cursor, mode, or
+buffer context changes.
+`:NvimNvdaLspStatus` reports bounded current-buffer client status on demand.
+Progress is not announced automatically to avoid an unbounded speech stream.
+
+In Insert mode, Access Link automatically follows the active parameter of a
+function call. A bounded, Tree-sitter-assisted resolver selects the innermost
+nested call and ignores parentheses in strings and comments. After 120 ms of
+quiet, public LSP signature help is requested with trigger/retrigger context.
+Only server-provided `activeSignature` and `activeParameter` select speech;
+commas are not counted locally. Exact generation, buffer, window, changed
+text, mode, cursor, and call checks reject stale replies. Movement within one
+argument remains silent, while returning to an already filled earlier
+argument speaks again. The validated event is speech-only and never replaces
+source Braille. A profile-aware setting can disable the presentation.
+
+`NVDA+Space` starts a correlated read-only LSP signature-help query with a
+hover fallback. It works on the function name and the immediately associated
+opening and closing call parentheses without moving the real cursor. While
+NVDA remains held, `NVDA+h/l` cycles only parameters of
+the selected signature and `NVDA+k/j` cycles only signatures. Every signature
+has an independent parameter position beginning at 1. The initial view and
+signature changes show the signature with documentation; parameter changes
+show only the parameter. The first parameter command after such a signature
+view reveals the selected parameter without already skipping it, so speech and
+Braille never mix both axes. Longer
+content pages without falling through to source navigation. A separate
+per-instance controller binds the
+view to exact focus, buffer, window, tab, changed-tick, and cursor identity;
+any mismatch discards both reply and Braille message.
+The Windows Terminal AppModule takes over `NVDA+Space` and
+`NVDA+Shift+Space` only for the exact focused authenticated instance
+advertising the required capability. Without that authorization, NVDA's
+normal script resolution remains in force; Access Link does not send a Space
+character to the terminal on this fallback path.
+
+General diagnostics are validated, bounded, and selected deterministically
+through `vim.diagnostic`, independent of their origin. Five freely mappable
+Neovim commands report or reach the previous, next, first, last, and current
+diagnostic without changing existing mappings. Pinned real Linux tests confirm
+`nvim-lint` and ALE with Clang-Tidy for C, Ruff for Python, ShellCheck for
+Bash, Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
+`markdownlint-cli2` for Markdown, plus the `none-ls.nvim` LSP-bridge path, on
+Neovim 0.10.1/0.12.3. This automated provider coverage is not practical
+Windows/NVDA acceptance. Native LSP paths such as `gopls` and
+`rust-analyzer` use the same contract but remain part of the later combined
+practical round. Directly typed native `[d`/`]d` jumps remain semantically
+observable even when a per-call callback replaces Neovim's global
+diagnostic-jump hook.
+`NVDA+Shift+Space` holds a bounded list of diagnostics under the cursor and on
+the current line; `NVDA+k/j` cycles without moving the real cursor. A
+text-free diagnostic summary enables separately configurable error and
+warning cues when entering a diagnostic line and at every position reached by
+explicit navigation within an exact range. An explicit position or line query
+with no match reports the empty result and,
+under the same applicable setting, uses a third short confirmation cue;
+passive movement across clean lines, information diagnostics, and hints stay
+soundless. The three signals come from the MIT-licensed Visual Studio Code
+Code - OSS source; the add-on records the commit, hashes, conversion, and
+license.
 
 Persistent Braille output follows the same semantic editor source as speech
 and sound, but has separate planning. A public `braille.TextInfoRegion`
@@ -324,8 +439,8 @@ saved mapping elsewhere for that run without making its execution global.
   NVDA gettext catalog is built with it.
 - The manifest, settings, tool dialogs, messages, and Speech Planner strings
   pass translation checks.
-- The quick guide, user manual, and developer documentation are each built as
-  German and English HTML.
+- The quick guide, user manual, developer documentation, and guided
+  practical-test guide are each built as German and English HTML.
 - The revised Braille, speech-exploration, and status text is aligned between
   both languages. Some older English user-manual and developer chapters are
   condensed versions and are not yet fully equivalent; their alignment is in

@@ -135,14 +135,18 @@ Für das Grundverständnis genügen drei Rollen:
 - Die gemeinsame Add-on-Laufzeit besteht einmal pro NVDA-Prozess. Sie setzt
   Einstellungen, Verbindungen und die übrigen Hilfsbereiche zusammen und baut
   sie beim Beenden geordnet ab.
-- Kleine, getrennte Dienste erledigen jeweils eine Aufgabe, beispielsweise
-  Verbindungen verwalten, Fokus bestätigen, Editorzustand aktualisieren oder
-  Ausgabe an NVDA übergeben.
+- Getrennte Dienste besitzen klar benannte Zustände und Aufgaben,
+  beispielsweise Verbindungen verwalten, Fokus bestätigen, Editorzustand
+  aktualisieren oder Ausgabe an NVDA übergeben.
 
-Das Global Plugin ist damit nur der prozessweite Einstieg für die gemeinsame
-Laufzeit, nicht der allgemeine Bearbeiter aller Terminalereignisse. Diese
-Aufteilung hält Windows-Terminal-Ereignisse, Netzwerk, Editorzustand und
-NVDA-Ausgabe voneinander getrennt und macht die Teile unabhängig testbar.
+Das Global Plugin ist damit nicht der allgemeine Bearbeiter von
+Terminalereignissen. Es startet die gemeinsame Laufzeit und koordiniert im
+heutigen Stand außerdem mehrere prozessweite Abläufe am NVDA-Rand. Die
+fachlichen Zustände bleiben in den benannten Diensten; die langfristig
+angestrebte rein minimale Kompositionswurzel ist noch nicht vollständig
+erreicht. Diese Aufteilung hält Windows-Terminal-Ereignisse, Netzwerk,
+Editorzustand und NVDA-Ausgabe voneinander getrennt und macht die Teile
+gezielt testbar.
 
 ## Was „fail open“ bedeutet
 

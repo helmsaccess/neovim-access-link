@@ -51,6 +51,27 @@ def discover_agents_paths() -> set[pathlib.Path]:
 
 
 class RepositoryPolicyTests(unittest.TestCase):
+    def test_lazy_python_example_is_identical_in_both_manuals(self) -> None:
+        example = (
+            REPOSITORY_ROOT / "examples/neovim-lazy-python/init.lua"
+        ).read_text(encoding="utf-8").rstrip("\n")
+        start_marker = "<!-- BEGIN lazy-python-example -->"
+        end_marker = "<!-- END lazy-python-example -->"
+
+        for relative_path in (
+            "docs/de/manual/example-configuration.md",
+            "docs/en/manual/example-configuration.md",
+        ):
+            with self.subTest(path=relative_path):
+                content = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertEqual(1, content.count(start_marker))
+                self.assertEqual(1, content.count(end_marker))
+                marked = content.split(start_marker, 1)[1].split(end_marker, 1)[0].strip()
+                self.assertTrue(marked.startswith("```lua\n"))
+                self.assertTrue(marked.endswith("\n```"))
+                embedded = marked[len("```lua\n") : -len("\n```")]
+                self.assertEqual(example, embedded)
+
     def test_agents_instruction_layout_is_scoped_and_unambiguous(self) -> None:
         discovered = discover_agents_paths()
         self.assertTrue(REQUIRED_AGENTS_PATHS <= discovered)
@@ -91,6 +112,24 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertNotIn("socket", presets["all-safe"])
         self.assertEqual(("unit", "package", "lua", "ssh", "socket"), presets["all"])
 
+    def test_runner_keeps_nested_ci_socket_paths_below_the_unix_limit(self) -> None:
+        runner = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/run_tests.py"),
+            run_name="repository_test_runner",
+        )
+        representative_ci_root = pathlib.Path("/") / ("r" * 54)
+        probe = runner["nested_socket_path_probe"](representative_ci_root)
+        self.assertEqual(55, len(os.fsencode(representative_ci_root)))
+        self.assertLessEqual(
+            len(os.fsencode(probe)),
+            runner["UNIX_SOCKET_PATH_MAX"],
+        )
+        runner["validate_socket_path_budget"](representative_ci_root)
+        with self.assertRaisesRegex(ValueError, "checkout path is too long"):
+            runner["validate_socket_path_budget"](
+                pathlib.Path("/") / ("r" * 90),
+            )
+
     def test_ci_runs_safe_ssh_and_socket_groups_as_separate_jobs(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
             encoding="utf-8"
@@ -107,6 +146,28 @@ class RepositoryPolicyTests(unittest.TestCase):
             workflow.count(
                 "python3 -m pip install --requirement tools/requirements-ci.txt"
             ),
+        )
+
+    def test_ci_pins_real_completion_plugin_matrix(self) -> None:
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
+            encoding="utf-8"
+        )
+        for expected in (
+            "Neovim 0.10.1 / blink.cmp v1",
+            "Neovim 0.12.3 / blink.cmp v1",
+            "Neovim 0.12.3 / blink.cmp v2",
+            "2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3",
+            "78336bc89ee5365633bcf754d93df01678b5c08f",
+            "d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3",
+            "5876dd95deeb70aadbe9f1c0b7117a135061cdac",
+            "4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793",
+            "c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, workflow)
+        self.assertEqual(
+            1,
+            workflow.count("bash tools/test_completion_plugins.sh"),
         )
 
 

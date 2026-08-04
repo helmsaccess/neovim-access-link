@@ -124,11 +124,32 @@ anschließenden Eintritt in direkte Terminaleingabe mit `i` wird unabhängig von
 dieser Einstiegswahl die vollständige Zeile am Terminalcursor gesprochen; der
 Insert-/Fokusklang folgt weiterhin den Feedbackeinstellungen.
 
+#### Aktiven Funktionsparameter beim Tippen automatisch ansagen
+
+Diese standardmäßig aktive profilfähige Option steuert die kurze
+Parameteransage im Einfügemodus. Access Link spricht beim Eintritt in eine
+Funktionsargumentliste und beim Wechsel des aktiven Arguments den vom
+Sprachserver gewählten Parameter. Die Rückkehr in ein bereits ausgefülltes
+Argument wird erneut angesagt; Bewegung innerhalb desselben Arguments bleibt
+still. Die Ausgabe ist reine Sprache und verändert die Braillezeile nicht.
+
+Die Option arbeitet unabhängig von den Aktionsklängen der Registerkarte
+`Rückmeldung`: Sie ist eine Orientierungshilfe aus LSP-Signaturdaten, keine
+Bestätigung einer Editoraktion. Ist sie ausgeschaltet oder liefert der
+Sprachserver keinen eindeutigen Parameter, erfolgt keine automatische Ansage.
+Die ausdrückliche gehaltene Abfrage mit `NVDA+Leertaste` bleibt verfügbar.
+
 ## Registerkarte Rückmeldung
 
 Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Aus`,
 `Sprache`, `Töne` und `Sprache und Töne`. Ihre tatsächliche Ausgabe wird
 zusätzlich durch `Globale Aktionsrückmeldung` begrenzt.
+Die beiden reinen Klangoptionen für Diagnosezeile und Diagnoseposition bieten
+bewusst nur `Aus` und `Töne`; vollständiger Diagnosetext bleibt über die
+ausdrückliche Abfrage und Diagnosenavigation verfügbar. Der Klang für eine
+ausdrückliche Abfrage ohne Treffer folgt je nach Abfrage ebenfalls der
+Diagnosezeilen- beziehungsweise Diagnosepositionseinstellung; passive Bewegung
+über fehlerfreie Zeilen bleibt still.
 
 ### Wechsel zwischen Einfüge- und Normalmodus
 
@@ -385,6 +406,17 @@ unverändert. Passt der vollständig in Braille übersetzte Vorschlag ab dem
 gewünschten Modul nicht mehr auf die Zeile, verschiebt ihn das Add-on nur so
 weit nach links, dass er rechtsbündig vollständig dargestellt werden kann.
 Ist der Vorschlag selbst länger als die Zeile, beginnt er am ersten Modul.
+
+### Gruppe Entwicklerinformationen
+
+#### Temporäre Entwicklerinformationen ab Braillemodul anzeigen
+
+Diese profilfähige Einstellung positioniert die gehaltene Anzeige von
+Funktionsparametern und Diagnosen. Sie folgt denselben Regeln für kurze
+Braillezeilen und rechtsbündiges Einpassen wie die Rechtschreibvorschläge,
+besitzt aber einen eigenen Wert. Der Standard 1 verwendet das erste
+Braillemodul. Längere Entwicklerinformationen beginnen am ersten Modul und
+lassen sich innerhalb der gehaltenen Anzeige vor- und zurückblättern.
 
 ## Registerkarte Verbindungen
 

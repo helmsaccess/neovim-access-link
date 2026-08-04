@@ -23,6 +23,7 @@ from nvim_nvda_protocol import (
 	valid_braille_route_action_request,
 	valid_end_braille_exploration_request,
 	valid_move_braille_line_request,
+	valid_context_request,
 )
 
 
@@ -173,6 +174,18 @@ class StdioTransport:
 					):
 						self.on_control(kind, dict(control["payload"]))
 					elif (
+						kind == "callableContextRequest"
+						and valid_context_request(control.get("payload"))
+						and self._supports_plugin_capability("callableContextQuery")
+					):
+						self.on_control(kind, dict(control["payload"]))
+					elif (
+						kind == "diagnosticContextRequest"
+						and valid_context_request(control.get("payload"))
+						and self._supports_plugin_capability("diagnosticContextQuery")
+					):
+						self.on_control(kind, dict(control["payload"]))
+					elif (
 						kind == "brailleExploreLineRequest"
 						and valid_braille_explore_line_request(control.get("payload"))
 						and self._supports_plugin_capability("brailleExploration")
@@ -214,6 +227,14 @@ class StdioTransport:
 			capabilities.append("brailleExploration")
 		if self._payload_supports(result, "brailleRoutingActions"):
 			capabilities.append("brailleRoutingActions")
+		if self._payload_supports(result, "callableContextQuery"):
+			capabilities.append("callableContextQuery")
+		if self._payload_supports(result, "diagnosticContextQuery"):
+			capabilities.append("diagnosticContextQuery")
+		if self._payload_supports(result, "diagnosticCursorSummary"):
+			capabilities.append("diagnosticCursorSummary")
+		if self._payload_supports(result, "activeParameterHints"):
+			capabilities.append("activeParameterHints")
 		result["_transport"] = {"capabilities": capabilities, "kind": "ssh-stdio"}
 		return result
 

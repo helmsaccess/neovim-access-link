@@ -22,6 +22,13 @@ Datei-/Spezialkontext mit Modus und Verbindungsname. Der bisherige Kontext ist
 Standard. Die Auswahl steuert weder Fokuskorrelation noch strukturierte
 Braillezeile oder die vorhandenen Modusklang-Einstellungen.
 
+Der profilfähige boolesche Wert `automaticParameterHints` ist standardmäßig
+`true`. Er erlaubt ausschließlich die Sprachpräsentation validierter
+`activeParameterChanged`-Ereignisse. Bei `false` bleiben automatische
+Parameterübergänge still; gehaltene Entwicklerkontexte und die dauerhafte
+Brailleplanung ändern sich nicht. Der Wert löst keine Netzwerk- oder
+LSP-Arbeit auf NVDAs Hauptthread aus.
+
 Der profilfähige Ganzzahlwert `brailleSuggestionStart` ist einsbasiert und
 standardmäßig 1. Er positioniert ausschließlich den vorübergehenden Text einer
 aktiven Rechtschreibauswahl. Der NVDA-Brailleadapter vergleicht ihn mit
@@ -32,6 +39,11 @@ Vorschlag mit NVDAs aktiver Brailletabelle. Der späteste vollständig passende
 Start begrenzt anschließend den eingestellten Wert nach links; ein längerer
 Vorschlag beginnt auf Modul 1. Sprache und dauerhafte Editor-Brailleplanung
 bleiben unverändert.
+
+Der profilfähige Ganzzahlwert `brailleDeveloperStart` folgt denselben
+Validierungs- und Einpassregeln. Er positioniert ausschließlich die gehaltene
+Anzeige von Funktionsparametern und Diagnosen und ist von
+`brailleSuggestionStart` unabhängig. Beide Werte verwenden standardmäßig 1.
 
 Der profilfähige boolesche Wert `brailleFollowSpeechExploration` ist
 standardmäßig `true`. Er erlaubt dem Brailleplan, die validierte virtuelle
@@ -70,7 +82,13 @@ Option besitzt:
 - Dateianfang und Dateiende
 - Hinweis beim Überschreiten einer Zeilengrenze
 - fehlendes passendes Klammerzeichen
+- Diagnosefehler oder -warnung beim Eintritt in eine betroffene Zeile
+- Diagnosefehler oder -warnung an jeder durch ausdrückliche Navigation
+  erreichten Position in einem exakten Bereich
 - Erfolg beim expliziten Kopieren und Einfügen
+
+Für die beiden reinen Diagnoseklänge bietet die Oberfläche nur `Aus` und
+`Töne`; sie erzeugen keine beiläufige Sprachausgabe.
 
 Folgende Funktionen werden bewusst nicht dupliziert:
 

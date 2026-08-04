@@ -19,6 +19,12 @@ current structured line, or the existing file/special context with mode and
 connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
 
+The top-level profile-aware Boolean `automaticParameterHints` defaults to
+`true`. It permits only speech presentation of validated
+`activeParameterChanged` events. With `false`, automatic parameter transitions
+remain silent; held developer contexts and persistent Braille planning are
+unchanged. The value causes no network or LSP work on NVDA's main thread.
+
 The top-level profile-aware integer `brailleSuggestionStart` is one-based and
 defaults to 1. It positions only the transient text of an active spelling
 choice. The NVDA Braille adapter compares it with
@@ -28,6 +34,11 @@ translates the unshifted suggestion with NVDA's active Braille table. The last
 start at which the translated result completely fits then limits the requested
 cell to the left; a longer suggestion starts at cell 1. The setting never
 changes speech or the persistent editor Braille plan.
+
+The top-level profile-aware integer `brailleDeveloperStart` follows the same
+validation and fit rules. It positions only held function-parameter and
+diagnostic views and remains independent of `brailleSuggestionStart`. Both
+values default to 1.
 
 The top-level profile-aware Boolean `brailleFollowSpeechExploration` defaults
 to `true`. It allows the Braille plan to present the contextual speech
@@ -64,6 +75,11 @@ steps nor character exploration.
 
 Feedback also contains a profile-aware copy/paste success setting using the
 same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
+`diagnosticLine` and `diagnosticPosition` independently gate passive error or
+warning cues on entering an affected line or at every position reached by
+explicit navigation within an exact range. The settings UI
+offers only Off and Tones for these keys; complete text remains available
+through explicit diagnostic inspection and navigation.
 The four clipboard commands have no default gestures and are assigned through
 NVDA's Input Gestures dialog after Windows Terminal was focused before opening
 it. Like the other configurable terminal commands, they belong to that

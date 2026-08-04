@@ -48,6 +48,9 @@ Windows Terminal is currently the only approved front end. The add-on's event
 handlers and gestures live in its NVDA AppModule, so Notepad, PuTTY, and other
 applications are not queried or modified.
 
+A ready-to-use Oil setup is provided in
+[Small Python configuration with Lazy and Oil](example-configuration.md).
+
 The plugin contains adapters for netrw and the public APIs of Oil, nvim-tree,
 Neo-tree, and mini.files. It can announce item type, name, state, and supported
 actions. Supported public plugin events also report same-entry changes without

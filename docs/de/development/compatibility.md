@@ -17,6 +17,35 @@
 Neovim 0.10.1 ist vorläufig die Mindestversion. Jede neuere optionale API muss
 per Featuretest abgesichert werden.
 
+Completion-API-Vertragstests verwenden `nvim-cmp`
+`2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3` und `blink.cmp` v1.10.2 auf
+Neovim 0.10.1 sowie 0.12.3. Der vorläufige `blink.cmp`-v2-Stand
+`d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3` wird zusammen mit `blink.lib`
+`5876dd95deeb70aadbe9f1c0b7117a135061cdac` ausschließlich auf Neovim 0.12.3
+geprüft. Die Checkouts werden nicht mit dem Add-on ausgeliefert. Der Test
+bestätigt Modul- und API-Anbindung mit injizierten Auswahlwerten, nicht jede
+praktische Darstellung oder NVDA-Konfiguration.
+
+Diagnose-Provider-Vertragstests verwenden `nvim-lint`
+`a219b2c9e5b4765e5c845aba119dad55806fcaf1` und ALE
+`9e2efaa4d348b1f93200b24e5540c670eb6fdd3f` sowie `none-ls.nvim`
+`01f8e62ea11603e59ad9ff7afcfa94fd183f76d6` mit `plenary.nvim`
+`74b06c6c75e4eeb3108ec01852001636d85a932b` auf Neovim 0.10.1 und 0.12.3.
+Dabei laufen Clang-Tidy 22.1.8 für C, Ruff 0.15.4 für Python, ShellCheck 0.11.0
+für Bash, Staticcheck 2026.1 für Go, Clippy aus Rust 1.97.1, RuboCop 1.88.2
+für Ruby und `markdownlint-cli2` 0.23.2 für Markdown wirklich und publizieren
+über `vim.diagnostic`. Checkouts, Laufzeiten und Werkzeuge sind ausschließlich
+Testabhängigkeiten und werden nicht ausgeliefert. Eine eingebaute
+none-ls-Quelle bestätigt zusätzlich den LSP-Brückenpfad ohne externes
+Werkzeug. Das bestätigt den semantischen Linux-Vertrag, nicht Installation,
+Projektkonfiguration oder praktische Windows-/NVDA-Ausgabe.
+
+Sprachen sind nicht fest im Add-on verdrahtet. Die eigenständigen
+Go-/Rust-Linter sind damit automatisiert belegt; die später gebündelt praktisch
+zu prüfenden LSP-Server `gopls` und `rust-analyzer` verwenden denselben
+Vertrag. Weitere Kombinationen gelten erst nach einem realen gepinnten
+Vertragstest als praktisch automatisiert abgedeckt.
+
 ## NVDA und Windows
 
 Ziel ist NVDA 2026.1.x; die offizielle Downloadablage führt 2026.1.1 als

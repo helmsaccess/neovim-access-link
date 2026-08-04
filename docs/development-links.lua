@@ -1,5 +1,5 @@
 -- Rewrite links between the ordered German developer sources to their scoped
--- H1 targets. Links into the separately built handbook stay external.
+-- H1 targets. Links into separately built user and tester documents stay external.
 local targets = {
   ["overview.md"] = "#docs__de__development__overviewmd__überblick-für-neue-entwickler",
   ["getting-started.md"] = "#docs__de__development__getting-startedmd__einstieg-für-entwicklung-und-tests",
@@ -19,11 +19,14 @@ local targets = {
   ["settings-reference.md"] = "#docs__de__development__settings-referencemd__add-on-einstellungen",
   ["component-installation.md"] = "#docs__de__development__component-installationmd__rootlose-installation-und-ssh-stdio-transport",
   ["testing.md"] = "#docs__de__development__testingmd__teststrategie",
+  ["human-testing.md"] = "neovim-access-link-human-testing-de.html",
   ["accessibility.md"] = "#docs__de__development__accessibilitymd__funktionsmatrix",
   ["release-and-build.md"] = "#docs__de__development__release-and-buildmd__release--versions--und-buildprozess",
   ["nvda-2026.1-api-notes.md"] = "#docs__de__development__nvda-20261-api-notesmd__nvda-202611-api-untersuchung",
   ["quality-review-global-plugin-slimming-2026-07-19.md"] = "#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung",
   ["code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md"] = "#docs__de__development__code-analysis-global-plugin-slimming-v0942-2026-07-21md__anhang-b-codeanalyse-von-featureglobal-plugin-slimming-gegenüber-v0942",
+  ["global-plugin-appmodule-audit-2026-08-04.md"] = "#docs__de__development__global-plugin-appmodule-audit-2026-08-04md__anhang-c-reaudit-von-globalplugin-windows-terminal-appmodule-und-gemeinsamen-diensten",
+  ["../global-plugin-appmodule-audit-2026-08-04.md"] = "#docs__de__development__global-plugin-appmodule-audit-2026-08-04md__anhang-c-reaudit-von-globalplugin-windows-terminal-appmodule-und-gemeinsamen-diensten",
   ["licensing-and-contributions.md"] = "#docs__de__development__licensing-and-contributionsmd__lizenzierung-und-beiträge",
   ["../../../nvda-addon/DEPENDENCIES.md"] = "#nvda-addon__dependenciesmd__gebündelte-abhängigkeiten",
   ["plan.md"] = "#docs__de__development__planmd__aktiver-plan",

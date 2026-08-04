@@ -20,6 +20,17 @@ Insert-mode RPC tests cover the path. The reference workflow has been
 confirmed on the BRAILLEX EL 80c; the complete command, line-start, timeout,
 and multi-driver matrix remains open.
 
+Connection and mode earcons have separate contracts. The first authenticated
+`fullState` of one connection instance, and the first one after a real
+transport disconnection, uses NVDA's installed `connected.wav` at most once
+per connected transport lifetime. A real transition of the focused instance
+from connected to disconnected uses NVDA's `disconnected.wav` exactly once;
+initial and repeated disconnected states are silent. Insert,
+Normal, Terminal-Normal, and command-line cues continue to represent only
+mode transitions or a correlated focus context. Built-add-on regression tests
+cover resynchronization, initial and repeated disconnect,
+disconnect/reconnect, and duplicate-focus deduplication.
+
 Speech exploration mode uses six fixed Windows Terminal AppModule chords to
 read characters, lines, or words through an ephemeral Lua position. Exact
 control binding, authenticated instance, capability, editor origin, and reply
@@ -48,6 +59,54 @@ suggestion to an existing later Braille cell; a position beyond
 `braille.handler.displaySize` is ignored and cell 1 is used. If the translated
 suggestion does not fit to the right, its start moves left to the last cell
 where the complete result fits.
+
+Automatic active-parameter speech has a separate bounded LSP path.
+`InsertEnter`, `CursorMovedI`, `TextChangedI`, and `CompleteDone` feed a 120 ms
+debounce. A Tree-sitter-assisted, bounded lexical call resolver selects the
+innermost enclosing call while excluding strings and comments. Only the
+server-selected signature and active parameter are used; exact buffer, window,
+changed-text, mode, cursor, and call identity reject stale replies. Identity
+deduplication keeps motion inside one argument silent but speaks again when
+the cursor returns to an earlier, already filled argument. Output is
+speech-only. Resolver, nesting, UTF-8, trigger/retrigger, multi-client, race,
+protocol, transport, setting, and speech tests cover the path; the guided real
+Pyright/NVDA task checks perception and latency.
+
+Held developer context uses two dynamically authorized Windows Terminal
+AppModule gestures. `NVDA+Space` requests bounded LSP signature help, with
+hover as an unstructured fallback. If the real cursor is on a callable name immediately
+followed by `(` or on that opening parenthesis, only the LSP query position is
+placed just after the delimiter. On the associated closing parenthesis, the
+unchanged LSP position already denotes the argument list, so servers can
+return structured parameters from all three cursor positions. `NVDA+Shift+Space`
+requests diagnostics under the cursor and then on its line. While NVDA remains
+held, parameter, signature, or diagnostic selection changes locally and never
+moves the editor cursor.
+The AppModule takes over either gesture only for the exact focused,
+authenticated instance advertising the required capability. Otherwise NVDA's
+native gesture resolution remains in force; Access Link never replays Space as
+terminal input on an authorization failure.
+Built-add-on tests cover the active and foreign contexts, both native
+fallbacks, Input Help resolution, and the held NVDA-key release lifecycle.
+Releasing the final NVDA key removes the owned temporary Braille message and
+restores the editor region. Exact control and instance binding, request ID,
+buffer, window, tab, changed tick, mode, and cursor must still match.
+Initial presentation and `NVDA+k/j` show only the signature with its
+documentation. `NVDA+h/l` shows only a parameter of the selected signature;
+each signature keeps an independent parameter position beginning at 1. The
+first parameter command after a signature-only view reveals that selection
+without skipping it; later commands move backward or forward. The
+held Braille message contains both horizontal panning and Braille-line commands
+at its boundaries, so source text returns only on release.
+Validator, protocol, Lua, real-LSP, controller, AppModule, and built-package
+tests cover the path, including repeated requests after release; practical
+Windows/NVDA acceptance remains open. Diagnostic error and
+warning cues use attributed MIT-licensed VS Code sounds on deliberate line
+entry and at every position reached by explicit navigation within a diagnostic
+range. An explicit query with no match reports the empty result and uses a
+third short attributed VS Code cue under the applicable line or position
+setting. Typing, passive movement across clean lines, information diagnostics,
+hints, and background refresh remain silent.
 
 File-manager adapter names, paths, roots, and types are byte-bounded only at
 validated UTF-8 code-point boundaries. Public plugin events now report real
@@ -123,13 +182,108 @@ diagnostic text. Label and word form one interruption-safe presentation.
 Opening a proven non-empty native spelling list produces one brief spoken
 availability message.
 
+General diagnostics use Neovim's public `vim.diagnostic` API as the sole
+provider boundary. Access Link neither reads private nvim-lint/ALE tables nor
+starts their processes. It validates types and ranges, applies UTF-8-safe
+bounds, and orders all namespaces deterministically. The open-ended column
+sentinel used by SARIF parsers is mapped to the existing protocol bound; other
+oversized ranges remain invalid. Access Link selects overlapping ranges by
+severity, smallest containing range, then a stable provider-neutral key. A
+missing source falls back to the bounded Neovim namespace name. The
+ordered list is retained per buffer and discarded on `DiagnosticChanged` or
+`BufWipeout`, so ordinary cursor movement does not repeatedly sort large
+diagnostic sets.
+
+Pinned real-provider contracts run Clang-Tidy, Ruff, ShellCheck, Staticcheck,
+Clippy, RuboCop, and `markdownlint-cli2` through both `nvim-lint` and ALE on
+Neovim 0.10.1 and 0.12.3, and additionally exercise the real `none-ls.nvim`
+LSP bridge with a built-in source. All three plugins publish to
+`vim.diagnostic`, so no plugin-specific diagnostic adapter is needed. ALE
+selects `markdownlint-cli2` through its public executable configuration
+because the existing Markdownlint handler understands its output. The same
+contract can later consume `gopls`, `rust-analyzer`, `ruby-lsp`, or other
+linters through an appropriate diagnostic provider. A language alone does not
+require an Access Link change; only a relevant provider without semantic
+mirroring would justify evaluating an adapter.
+
+`DiagnosticChanged` refreshes state without automatic speech flooding. Five
+commands provide previous, next, first, last, and current diagnostic output
+without changing user mappings. They traverse the ordered diagnostic set one
+entry at a time, so overlapping reports from different providers at the same
+cursor position remain individually reachable. Neovim 0.12 native jumps are observed through
+the public `jump.on_jump` hook; the 0.10 path uses compatible
+`goto_prev()`/`goto_next()` calls and observes its native previous/next
+navigation.
+
 The `nvim-cmp` and `blink.cmp` adapters are one documented polling exception.
 Public plugin events start and stop the accessible-menu lifetime, but neither
 plugin currently provides a reliable event for every selection change. A
 35 ms timer therefore queries the public selection API only while that plugin
-menu is open and stops on close or invisibility. Built-in Neovim completion
-remains fully event-driven. This fallback should be removed when a reliable
-public selection event becomes available.
+menu is open and stops on the public close event. The accessible lifetime and
+standard opening/closing cues do not depend on the first successful tick, so a
+briefly empty or invisible item view while the plugin populates its menu does
+not produce a false close/open pair. Each tick normalizes only the selected
+candidate. `nvim-cmp` still needs two public calls wrapped in
+`cmp.sync()`, so content-free diagnostics expose errors, slow ticks, maximum
+duration, and the active API variant in the diagnostic report and
+`:checkhealth`. This fallback should be removed when a reliable public
+selection event becomes available.
+
+Built-in LSP completion writes resolved documentation into its preview window
+through the experimental internal `nvim__complete_set()` function. A real TUI
+reproduction confirms that the assigned `info` text does not subsequently
+appear in `complete_info().items`, so repeatedly reading the public menu view
+cannot recover it.
+
+The native Access Link path instead uses the original LSP candidate and client
+reference carried by Neovim's selected menu item. When that item has no
+documentation and the client supports resolve, it sends exactly one additional
+Access-Link-owned public asynchronous `completionItem/resolve` request. A
+selection change, `CompleteDonePre`, or `InsertLeave` invalidates and cancels
+a pending request.
+Only a response for the still-current visible selection augments the model
+copy and emits a silent `menuItemUpdated`. This additional resolve path owns
+neither menu lifetime nor sounds and blocks neither Neovim nor NVDA.
+Listener-free tests cover resolve and cancellation on Neovim 0.10.1 and
+0.12.3, and a separate real Pyright request confirms the expected
+`calculate_total` documentation. Renewed Windows/NVDA acceptance remains open.
+
+All 25 LSP completion kinds, sources, UTF-8-safe limits, selections beyond item
+200, and silent resolved-documentation updates have automated coverage.
+`nvim-cmp` exposes its mutable `entry.completion_item`, allowing resolve results
+to update the documentation command without another announcement. `blink.cmp`
+does not expose its internally resolved copy through the public item API;
+original documentation works, while resolve-only documentation remains an
+upstream dependency. Ghost-text-only configurations without an open menu are
+outside the adapter contract.
+
+Real-module contract tests cover current `nvim-cmp` and `blink.cmp` v1.10.2 on
+Neovim 0.10.1 and 0.12.3, plus the provisional `blink.cmp` v2 branch with
+`blink.lib` on 0.12.3. They exercise the actual modules and event registration
+with injected selection data; complete TUI and Windows/NVDA acceptance remains
+open.
+
+Signature help observes Neovim 0.10's handler path and only the
+`textDocument/signatureHelp` callback through `buf_request_all` on 0.11/0.12.
+It supports UTF-16 parameter ranges, multiple-client alternatives,
+deduplication, and a silent close state. Listener-free tests pass on Neovim
+0.10.1 and 0.12.3; a real language server and Windows/NVDA remain practical
+acceptance work.
+
+LSP hover follows the same version split while observing only
+`textDocument/hover`. It normalizes MarkupContent and MarkedString forms,
+deduplicates multiple clients, speaks and Brailles the first meaningful line,
+and stores bounded complete documentation per instance for the existing
+documentation command. Cursor, Insert, or buffer context changes close it
+silently. Listener-free parser and compatibility tests pass on Neovim 0.10.1
+and 0.12.3; a real language server and Windows/NVDA remain practical
+acceptance work.
+
+`:NvimNvdaLspStatus` reports up to 32 unique bounded names from public
+`vim.lsp.get_clients()` for the current buffer. It explicitly reports an empty
+state in speech and Braille. Continuous `LspProgress` events are deliberately
+not announced because routine indexing would create an unbounded speech stream;
+errors and results remain covered by diagnostics and Neovim messages.
 When no entry exists, focus context outputs at most the final name from
 `currentDirectory` or `root`; complete local, remote, or virtual paths are not
 spoken.

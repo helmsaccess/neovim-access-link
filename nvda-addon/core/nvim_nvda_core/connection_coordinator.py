@@ -55,6 +55,7 @@ class ConnectionCoordinator:
         "terminalControl",
         "numberedChoice",
         "brailleExploration",
+        "developerContext",
     })
     _PENDING_CHANNELS = frozenset({"clipboard", "terminalControl"})
 
@@ -150,6 +151,15 @@ class ConnectionCoordinator:
             return False
         return self.pending_focus_contexts.get(instance_id) == expected
 
+    def has_pending_focus_context(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+    ) -> bool:
+        """Return whether the exact instance already awaits this terminal's reply."""
+        pending = self.pending_focus_contexts.get(instance_id)
+        return pending is not None and pending.terminal == terminal
+
     def discard_focus_context(self, instance_id: str | None = None) -> None:
         if instance_id is None:
             self.pending_focus_contexts.clear()
@@ -202,6 +212,21 @@ class ConnectionCoordinator:
             instance_id, False,
         )
         return client
+
+    def is_foreground_instance_confirmed(
+        self,
+        instance_id: str,
+        terminal: TerminalIdentity,
+    ) -> bool:
+        """Return whether the exact instance is already active for this foreground terminal."""
+        return (
+            isinstance(terminal, TerminalIdentity)
+            and self.active_instance_id == instance_id
+            and self.gate.focused == terminal
+            and self.gate.bound_terminal == terminal
+            and self.gate.authenticated
+            and self.gate.nvim_active
+        )
 
     def take_pending_request(
         self,

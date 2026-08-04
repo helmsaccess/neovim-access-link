@@ -75,9 +75,12 @@ ermittelte lebende Sitzung öffnen. Dadurch blockiert eine ältere, etwa in eine
 anderen tmux-Fenster laufende Neovim-Instanz die Verbindung nicht. Das Add-on
 listet Sitzungen und hält ihre numerischen IDs von der Bedienoberfläche fern.
 
-Bei nichtinteraktiven SSH-Befehlen fehlt `XDG_RUNTIME_DIR` auf manchen Servern.
-Die Bridge prüft dann das dem Benutzer gehörende Standardverzeichnis
-`/run/user/UID`, bevor sie auf ein privates Verzeichnis unter `/tmp` ausweicht.
+Interaktives Neovim und der spätere nichtinteraktive SSH-Befehl der Bridge
+können unterschiedliche Werte für `XDG_RUNTIME_DIR` sehen. Die Bridge prüft
+deshalb alle für diesen Benutzer zulässigen Orte: das konfigurierte
+Laufzeitverzeichnis, das dem Benutzer gehörende `/run/user/UID` und den
+privaten Fallback unter `/tmp`. Nur private Verzeichnisse des aktuellen
+Benutzers werden gelesen; identische Sitzungsdatensätze werden zusammengeführt.
 
 ## SSH-Startausgaben
 

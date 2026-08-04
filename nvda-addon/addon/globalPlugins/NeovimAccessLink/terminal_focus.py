@@ -220,6 +220,30 @@ class TerminalFocusService:
 		)
 		return identity
 
+	def recover_after_modal(
+		self,
+		obj: object,
+		identity: TerminalIdentity,
+		instance_id: str,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		"""Re-run the focus transition when a closed modal emitted no gainFocus."""
+		if (
+			adapter_token is None
+			or getattr(obj, "appModule", None) is not app_module
+			or self.identity(obj) != identity
+		):
+			return False
+		selected = self._coordinator.instances.selected_for(identity)
+		if selected is None or selected.identifier != instance_id:
+			return False
+		decision = self.prepare_focus(obj, adapter_token, app_module)
+		if decision.identity != identity or decision.instance_id != instance_id:
+			return False
+		self.finish_focus(decision)
+		return True
+
 	def lose_focus(self, adapter_token: object) -> None:
 		if (
 			adapter_token is not None

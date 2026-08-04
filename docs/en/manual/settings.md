@@ -54,11 +54,32 @@ and then only its first character. Entering direct terminal input with `i`
 subsequently presents the complete line at the terminal cursor independently
 of that entry choice; the Insert/focus cue still follows feedback settings.
 
+## Automatic active-parameter speech
+
+The profile-aware “Automatically speak the active function parameter while
+typing” checkbox is enabled by default. In Insert mode it reports the
+language-server-selected parameter when the cursor enters a function argument
+list or changes arguments. Returning to an already filled argument speaks it
+again; motion within the same argument stays silent. This is speech-only and
+does not change the Braille display.
+
+The checkbox is independent of action cues on the Feedback tab because it is
+orientation from LSP signature data, not confirmation of an editor action.
+When disabled, or when the server supplies no unambiguous active parameter,
+there is no automatic announcement. The explicit held `NVDA+Space` query
+remains available.
+
 ## Feedback
 
 Global action feedback and individual actions use Off, Speech, Tones, or
 Both Speech and Tones. Individual settings cover mode changes, deletion, replace,
 line/file boundaries, crossing a line, and unmatched pairs.
+The two sound-only diagnostic line and diagnostic position settings
+deliberately offer only Off and Tones. Complete diagnostic text remains
+available through explicit inspection and diagnostic navigation. The cue for
+an explicit query with no match follows the Diagnostic line or Diagnostic
+position setting used by that query; passive movement over clean lines stays
+silent.
 
 The mode setting also governs the focus cue for direct embedded-terminal input,
 the Normal cue for canonical Terminal-Normal, and the short command-line tone.
@@ -194,6 +215,15 @@ fully translated suggestion would not fit from the requested cell, the add-on
 moves it left only as far as needed to fit it right-aligned. A suggestion
 longer than the display starts at cell 1. The value uses NVDA's normal
 configuration profiles.
+
+### Developer information
+
+“Start temporary developer information at Braille cell” positions the held
+function-parameter and diagnostic views. It follows the same short-display
+and right-alignment rules as spelling suggestions but has an independent,
+profile-aware value. The default is cell 1. Longer developer information
+starts at the first cell and can be paged forward and back within the held
+view.
 
 ## Connections
 

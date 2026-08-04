@@ -1,12 +1,17 @@
 local state = require("nvim_nvda.state")
 local menu = require("nvim_nvda.menu")
 local completion_adapters = require("nvim_nvda.completion_adapters")
+local text = require("nvim_nvda.text")
+local signature_help = require("nvim_nvda.signature_help")
+local lsp_hover = require("nvim_nvda.lsp_hover")
+local lsp_status = require("nvim_nvda.lsp_status")
 local file_manager = require("nvim_nvda.file_manager")
 local file_manager_events = require("nvim_nvda.file_manager_events")
 local file_manager_prompt = require("nvim_nvda.file_manager_prompt")
 local clipboard = require("nvim_nvda.clipboard")
 local exploration = require("nvim_nvda.exploration")
 local numbered_choice = require("nvim_nvda.numbered_choice")
+local developer_context = require("nvim_nvda.developer_context")
 local M = {}
 
 local channel
@@ -35,7 +40,6 @@ local command_line_menu = menu.new()
 local command_line_menu_items = {}
 local ui_select_menu = menu.new()
 local adapter_info
-local signature_handler_wrapped = false
 local notify_wrapped = false
 local ui_wrapped = false
 local ui_namespace = vim.api.nvim_create_namespace("nvim_nvda_ui")
@@ -63,20 +67,7 @@ local function bounded_increment(value)
   return value >= 2147483647 and 1 or value + 1
 end
 
--- Keep protocol fields byte-bounded without producing an invalid UTF-8 tail.
--- Values handled here originate in Neovim's Lua/UI APIs; walking backwards
--- over continuation bytes is therefore sufficient and version-independent.
-local function bounded_utf8(value, maximum)
-  if type(value) ~= "string" then return "" end
-  if #value <= maximum then return value end
-  local boundary = maximum
-  while boundary > 0 do
-    local following = value:byte(boundary + 1)
-    if not following or following < 0x80 or following >= 0xc0 then break end
-    boundary = boundary - 1
-  end
-  return value:sub(1, boundary)
-end
+local bounded_utf8 = text.bounded
 
 local function fixed_error_kind(value)
   local text = tostring(value or "")
@@ -241,6 +232,7 @@ emit = function(event_type, reason, extra)
     pcall(vim.fn.chanclose, channel)
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
     return
   end
@@ -261,6 +253,7 @@ emit = function(event_type, reason, extra)
   payload.currentErrorCode = current_error:match("E%d+") or ""
   payload.currentErrorKind = fixed_error_kind(current_error)
   payload.keyObserverDiagnostics = vim.deepcopy(key_observer_diagnostics)
+  payload.completionAdapterDiagnostics = completion_adapters.diagnostics()
   local ok = pcall(vim.rpcnotify, channel, "nvim_nvda_event", {
     sequence = sequence,
     timestampMonotonic = vim.uv.hrtime(),
@@ -270,6 +263,7 @@ emit = function(event_type, reason, extra)
   if not ok then
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
   end
 end
@@ -288,6 +282,7 @@ local function emit_prebuilt(event_type, payload, extra)
   })
   if not ok then
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
     vim.schedule(function() pcall(vim.ui_detach, ui_namespace) end)
   end
@@ -403,43 +398,12 @@ local function emit_menu_events(events, reason)
   end
 end
 
-local function setup_signature_help()
-  if signature_handler_wrapped or not vim.lsp or not vim.lsp.handlers then return end
-  local method = "textDocument/signatureHelp"
-  local original = vim.lsp.handlers[method]
-  if type(original) ~= "function" then return end
-  vim.lsp.handlers[method] = function(error, result, context, config)
-    if not error and type(result) == "table" and type(result.signatures) == "table" then
-      local signature_index = (tonumber(result.activeSignature) or 0) + 1
-      local signature = result.signatures[signature_index] or result.signatures[1]
-      if type(signature) == "table" then
-        local active_parameter = tonumber(result.activeParameter)
-        if active_parameter == nil then active_parameter = tonumber(signature.activeParameter) end
-        local parameter
-        if active_parameter and type(signature.parameters) == "table" then
-          local value = signature.parameters[active_parameter + 1]
-          if type(value) == "table" then parameter = value.label end
-        end
-        emit("signatureChanged", "lspSignatureHelp", {
-          signature = type(signature.label) == "string" and signature.label:sub(1, 2048) or "",
-          activeParameter = active_parameter and active_parameter + 1 or nil,
-          parameter = type(parameter) == "string" and parameter:sub(1, 512) or "",
-          signatureIndex = signature_index,
-          signatureCount = #result.signatures,
-        })
-      end
-    end
-    return original(error, result, context, config)
-  end
-  signature_handler_wrapped = true
-end
-
 local function setup_notifications()
   if notify_wrapped then return end
   local original = vim.notify
   vim.notify = function(message, level, options)
     emit("messageReceived", "vim.notify", {
-      message = tostring(message):sub(1, 2048), messageLevel = tonumber(level),
+      message = bounded_utf8(tostring(message), 2048), messageLevel = tonumber(level),
       messageTitle = type(options) == "table" and options.title or nil,
     })
     return original(message, level, options)
@@ -705,6 +669,7 @@ function M.register_channel(rpc_channel)
   exploration.reset()
   pending_spell_choice = nil
   active_numbered_choice = nil
+  signature_help.set_connected(true)
   -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
   -- Attach only while an authenticated consumer exists, otherwise startup
   -- prompts (notably swap-file recovery) become invisible and violate the
@@ -732,6 +697,7 @@ function M.unregister_channel(rpc_channel)
     active_numbered_choice = nil
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
   end
 end
 
@@ -1082,10 +1048,23 @@ function M.request_end_braille_exploration(payload)
   return exploration.finish(payload, "braille")
 end
 
+function M.request_callable_context(payload)
+  return developer_context.request_callable(payload, emit)
+end
+
+function M.request_diagnostic_context(payload)
+  return developer_context.request_diagnostics(payload, emit)
+end
+
 function M.setup()
+  local native_completion = require("nvim_nvda.native_completion")
   local component_config = require("nvim_nvda.component_config").load()
+  native_completion.stop()
   group = vim.api.nvim_create_augroup("NvimNvda", { clear = true })
-  setup_signature_help()
+  signature_help.setup(emit, group)
+  lsp_hover.setup(emit, group)
+  lsp_status.setup(emit)
+  require("nvim_nvda.diagnostics").setup(emit, group)
   setup_notifications()
   setup_ui_functions()
   completion_adapters.stop()
@@ -1183,7 +1162,7 @@ function M.setup()
         local contents = vim.fn.getreg(translated)
         emit("registerSelected", "registerCommand", {
           registerName = translated, registerType = vim.fn.getregtype(translated),
-          registerText = type(contents) == "string" and contents:sub(1, 2048) or "",
+          registerText = bounded_utf8(contents, 2048),
         })
       end
       return
@@ -1302,7 +1281,10 @@ function M.setup()
       pending_bracket = translated
       return
     elseif operator_context and pending_bracket then
-      if translated == "d" then
+      if translated == "d" or translated == "D" then
+        -- A per-call on_jump callback (including Neovim 0.12's deprecated
+        -- float option) overrides the global diagnostic jump hook. Keep the
+        -- directly typed native mappings observable in that case as well.
         pending_motion = "diagnosticMoved"
       elseif translated == "s" then
         pending_motion = "wordMoved"
@@ -1316,7 +1298,17 @@ function M.setup()
     -- retaining `wordMoved` here would therefore announce the following word
     -- when that first character is typed.
     if raw_mode:sub(1, 1) == "i" then
-      pending_motion = insert_motion_events[translated]
+      local physical_key = typed_translated ~= "" and typed_translated or translated
+      local completion_active = completion_adapters.is_active() or vim.fn.pumvisible() == 1
+      if completion_active and completion_adapters.is_selection_key(physical_key) then
+        -- Completion adapters publish the selected item authoritatively.
+        -- nvim-cmp may also move the Insert-mode cursor while previewing it;
+        -- do not turn that implementation detail into editor feedback.
+        pending_motion = "suppress"
+        completion_adapters.expect_selection_edit()
+      else
+        pending_motion = insert_motion_events[translated]
+      end
     elseif pending_edit and operator_context then
       pending_motion = "suppress"
     elseif operator_context or visual_context then
@@ -1344,6 +1336,7 @@ function M.setup()
       local before = state.snapshot("beforeSpellingTerminator")
       vim.defer_fn(function() emit_typed_spelling_error(before) end, 50)
     end
+    if raw_mode:sub(1, 1) == "i" then signature_help.note_insert_key(key, typed) end
     pending_g = false
     end)
     if not observer_ok then
@@ -1356,6 +1349,13 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,
     callback = function(event)
+      local diagnostic_navigation = require("nvim_nvda.diagnostics").consume_navigation()
+      if diagnostic_navigation then
+        pending_motion = "diagnosticMoved"
+        if type(diagnostic_navigation) == "table" then
+          pending_motion_details = diagnostic_navigation
+        end
+      end
       schedule_navigation(event.event)
     end,
   })
@@ -1370,8 +1370,12 @@ function M.setup()
       -- Completion selection temporarily edits the buffer as the highlighted
       -- candidate changes. Its structured menu event is the authoritative
       -- output; speaking this as normal typing produces fragments such as the
-      -- candidate index or suffix over the menu announcement.
+      -- candidate suffix and a replacement cue over the menu announcement.
       if event.event == "TextChangedP" and vim.fn.pumvisible() == 1 then
+        completion_adapters.consume_selection_edit()
+        return
+      end
+      if event.event ~= "TextChanged" and completion_adapters.consume_selection_edit() then
         return
       end
       if pending_edit then
@@ -1432,7 +1436,7 @@ function M.setup()
         local message = vim.v.errmsg
         if not guarded and not command_line_active and type(message) == "string" and message ~= "" then
           vim.v.errmsg = ""
-          emit("errorReceived", "commandError", { message = message:sub(1, 2048) })
+          emit("errorReceived", "commandError", { message = bounded_utf8(message, 2048) })
         elseif not command_line_active and (command_type == "/" or command_type == "?") then
           local ok, details = pcall(search_details, command, command_type)
           if ok then emit("searchMatchChanged", "searchCommand", details) end
@@ -1441,7 +1445,7 @@ function M.setup()
           and vim.api.nvim_buf_get_changedtick(0) ~= before_tick then
           local status = vim.v.statusmsg
           emit("replacementPerformed", "substituteCommand", {
-            replacementMessage = type(status) == "string" and status:sub(1, 2048) or "",
+            replacementMessage = bounded_utf8(status, 2048),
           })
         elseif not command_line_active and type(vim.v.statusmsg) == "string"
           and vim.v.statusmsg ~= "" then
@@ -1450,7 +1454,7 @@ function M.setup()
           local command_line_return = command_output_pending
           command_output_pending = false
           emit("messageReceived", "commandStatus", {
-            message = status:sub(1, 2048), commandLineReturn = command_line_return,
+            message = bounded_utf8(status, 2048), commandLineReturn = command_line_return,
           })
         end
         command_output_pending = false
@@ -1462,17 +1466,29 @@ function M.setup()
     callback = function(event)
       local info = vim.fn.complete_info({ "mode", "pum_visible", "items", "selected" })
       emit_menu_events(completion_menu:update(info), event.event)
+      if (tonumber(info.selected) or -1) >= 0 then
+        native_completion.resolve(info, function(refreshed_info)
+          emit_menu_events(
+            completion_menu:update(refreshed_info),
+            "completionDetailRefresh"
+          )
+        end, event.buf)
+      else
+        native_completion.stop()
+      end
     end,
   })
   vim.api.nvim_create_autocmd("CompleteDonePre", {
     group = group,
     callback = function(event)
+      native_completion.stop()
       emit_menu_events(completion_menu:close("completionDone"), event.event)
     end,
   })
   vim.api.nvim_create_autocmd("InsertLeave", {
     group = group,
     callback = function(event)
+      native_completion.stop()
       emit_menu_events(completion_menu:close("insertLeave"), event.event)
     end,
   })
@@ -1535,7 +1551,7 @@ function M.setup()
       local contents = vim.fn.getreg(name)
       emit("registerChanged", event.event, {
         registerName = name, registerType = details.regtype,
-        registerText = type(contents) == "string" and contents:sub(1, 2048) or "",
+        registerText = bounded_utf8(contents, 2048),
       })
     end,
   })
@@ -1552,7 +1568,7 @@ function M.setup()
       if name == "" then name = vim.fn.reg_recorded() end
       emit("macroRecordingStopped", event.event, {
         registerName = name,
-        registerText = type(name) == "string" and vim.fn.getreg(name):sub(1, 2048) or "",
+        registerText = type(name) == "string" and bounded_utf8(vim.fn.getreg(name), 2048) or "",
       })
     end,
   })
@@ -1595,6 +1611,20 @@ end
 
 -- Public adapter for plugins which draw a custom menu instead of using
 -- Neovim's built-in completion popup. Items use complete-item fields.
+function M.accessible_menu_begin(options)
+  options = options or {}
+  adapter_info = {
+    mode = options.kind or "plugin",
+    pum_visible = true,
+    selected = -1,
+    item_count = 0,
+  }
+  emit_menu_events(adapter_menu:begin({
+    mode = adapter_info.mode,
+    item_count = options.item_count or 0,
+  }), "pluginMenu")
+end
+
 function M.accessible_menu_open(items, options)
   options = options or {}
   adapter_info = {
@@ -1602,6 +1632,20 @@ function M.accessible_menu_open(items, options)
     pum_visible = true,
     selected = (options.selected or 1) - 1,
     items = items or {},
+  }
+  emit_menu_events(adapter_menu:update(adapter_info), "pluginMenu")
+end
+
+-- Efficient adapter boundary for custom completion menus. Only the selected
+-- raw item crosses this boundary; item_count remains the complete menu size.
+function M.accessible_menu_update(item, options)
+  options = options or {}
+  adapter_info = {
+    mode = options.kind or "plugin",
+    pum_visible = true,
+    selected = (options.selected or 0) - 1,
+    selected_item = item,
+    item_count = options.item_count or 0,
   }
   emit_menu_events(adapter_menu:update(adapter_info), "pluginMenu")
 end

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "plugins": {
+    "nvimCmp": {
+      "source": "https://github.com/hrsh7th/nvim-cmp.git",
+      "revision": "2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3"
+    },
+    "cmpNvimLsp": {
+      "source": "https://github.com/hrsh7th/cmp-nvim-lsp.git",
+      "revision": "cbc7b02bb99fae35cb42f514762b89b5126651ef"
+    },
+    "blinkCmp": {
+      "source": "https://github.com/Saghen/blink.cmp.git",
+      "revision": "78336bc89ee5365633bcf754d93df01678b5c08f"
+    },
+    "nvimLint": {
+      "source": "https://github.com/mfussenegger/nvim-lint.git",
+      "revision": "a219b2c9e5b4765e5c845aba119dad55806fcaf1"
+    }
+  },
+  "tools": {
+    "pyright": "1.1.411",
+    "pyrightSha512": "d374bfbe64b9945d52fed55b29cd9635708cabc2560b0b5afea2188e3d63bea6d0868cbe3773600731d34a65256d80fa0c9c2a4395c77f5d3c42e8e8a9e511bf",
+    "ruff": "0.15.4",
+    "clangTidy": "22.1.8",
+    "markdownlintCli2": "0.23.2"
+  }
+}

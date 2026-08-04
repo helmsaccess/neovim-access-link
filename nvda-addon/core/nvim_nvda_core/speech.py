@@ -22,6 +22,36 @@ def _identity(message: str) -> str:
     return message
 
 
+# Translators: Spoken labels for standardized LSP completion item kinds.
+COMPLETION_KIND_LABELS = {
+    "text": translatable("text"),
+    "method": translatable("method"),
+    "function": translatable("function"),
+    "constructor": translatable("constructor"),
+    "field": translatable("field"),
+    "variable": translatable("variable"),
+    "class": translatable("class"),
+    "interface": translatable("interface"),
+    "module": translatable("module"),
+    "property": translatable("property"),
+    "unit": translatable("unit"),
+    "value": translatable("value"),
+    "enum": translatable("enum"),
+    "keyword": translatable("keyword"),
+    "snippet": translatable("snippet"),
+    "color": translatable("color"),
+    "file": translatable("file"),
+    "reference": translatable("reference"),
+    "folder": translatable("folder"),
+    "enum member": translatable("enum member"),
+    "constant": translatable("constant"),
+    "struct": translatable("struct"),
+    "event": translatable("event"),
+    "operator": translatable("operator"),
+    "type parameter": translatable("type parameter"),
+}
+
+
 class Priority(IntEnum):
     NAVIGATION = 10
     STATUS = 20
@@ -432,6 +462,12 @@ class SpeechPlanner:
             action = self._menu_selection(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "menuSelectionCleared":
+            # Translators: Completion menu state in which the user's original text is retained.
+            text = self._translate("No completion selected")
+            actions.append(SpeechAction(
+                text, Priority.NAVIGATION, interrupt=True, braille_message=text,
+            ))
         elif kind == "promptOpened":
             prompt = state.get("prompt")
             if isinstance(prompt, str) and prompt:
@@ -518,6 +554,38 @@ class SpeechPlanner:
             action = self._signature(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "activeParameterChanged":
+            action = self._active_parameter(state)
+            if action is not None:
+                actions.append(action)
+        elif kind == "hoverChanged":
+            summary = state.get("summary")
+            if isinstance(summary, str) and summary:
+                actions.append(SpeechAction(
+                    summary,
+                    Priority.NAVIGATION,
+                    interrupt=True,
+                    braille_message=summary,
+                ))
+        elif kind == "lspStatus":
+            clients = state.get("clients")
+            names = (
+                [name for name in clients if isinstance(name, str) and name]
+                if isinstance(clients, list)
+                else []
+            )
+            if names:
+                # Translators: Followed by a comma-separated list of attached LSP server names.
+                text = self._translate("LSP clients: {clients}").format(clients=", ".join(names))
+            else:
+                # Translators: Reported by the explicit LSP status command for the current buffer.
+                text = self._translate("No LSP client attached")
+            actions.append(SpeechAction(
+                text,
+                Priority.STATUS,
+                interrupt=True,
+                braille_message=text,
+            ))
         elif kind == "searchMatchChanged":
             action = self._search_match(state)
             if action is not None:
@@ -680,10 +748,14 @@ class SpeechPlanner:
             parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         kind = item.get("kind")
         if isinstance(kind, str) and kind:
-            parts.append(kind)
+            parts.append(self._translate(COMPLETION_KIND_LABELS.get(kind, kind)))
         parameters = item.get("parameters")
         if isinstance(parameters, str) and parameters:
             parts.append(self._translate("parameter {parameter}").format(parameter=parameters))
+        source = item.get("source")
+        if isinstance(source, str) and source:
+            # Translators: A completion provider name, for example "source pyright".
+            parts.append(self._translate("source {source}").format(source=source))
         text = ", ".join(parts)
         return SpeechAction(
             text, Priority.NAVIGATION, interrupt=True,
@@ -707,6 +779,49 @@ class SpeechPlanner:
             parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         text = ", ".join(parts)
         return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
+
+    def _active_parameter(self, state: dict[str, Any]) -> SpeechAction | None:
+        active = state.get("activeParameter")
+        count = state.get("parameterCount")
+        if not (
+            isinstance(active, int)
+            and not isinstance(active, bool)
+            and isinstance(count, int)
+            and not isinstance(count, bool)
+            and 1 <= active <= count
+        ):
+            return None
+        parameter = state.get("parameter")
+        if not isinstance(parameter, str):
+            return None
+        if count > 1:
+            # Translators: Brief automatic announcement while typing one function argument.
+            text = self._translate("parameter {index} of {count}: {parameter}").format(
+                index=active,
+                count=count,
+                parameter=parameter,
+            )
+        else:
+            # Translators: Brief automatic announcement while typing the only function argument.
+            text = self._translate("parameter: {parameter}").format(parameter=parameter)
+        signature_index = state.get("signatureIndex")
+        signature_count = state.get("signatureCount")
+        if (
+            state.get("hintReason") == "signatureChanged"
+            and isinstance(signature_index, int)
+            and not isinstance(signature_index, bool)
+            and isinstance(signature_count, int)
+            and not isinstance(signature_count, bool)
+            and signature_count > 1
+            and 1 <= signature_index <= signature_count
+        ):
+            # Translators: Prefix when the language server changed the active function overload.
+            signature = self._translate("signature {index} of {count}").format(
+                index=signature_index,
+                count=signature_count,
+            )
+            text = f"{signature}, {text}"
+        return SpeechAction(text, Priority.NAVIGATION, interrupt=True)
 
     def _search_match(self, state: dict[str, Any]) -> SpeechAction | None:
         line = state.get("lineText")
@@ -1432,6 +1547,7 @@ class SpeechPlanner:
             if not isinstance(diagnostic, dict):
                 return SpeechAction(
                     self._translate("no diagnostic"), Priority.STATUS, interrupt=True,
+                    sound="diagnosticNone",
                 )
             parts = []
             source = diagnostic.get("source")
@@ -1457,7 +1573,6 @@ class SpeechPlanner:
             text = ", ".join(parts) if parts else self._translate("diagnostic")
             return SpeechAction(
                 text, Priority.NAVIGATION, interrupt=True,
-                sound="lineCrossed" if self._line_changed(state) else None,
                 braille_message=text,
             )
         return fallback

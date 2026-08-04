@@ -207,7 +207,7 @@ must not close output again before state is confirmed.
 | `ConnectionCoordinator` | Instance manager, active client, gate, authentication, bindings, correlated requests, and mapping and lifetime of isolated runtime states | Domain mutation of editor state, NVDA events, `nextHandler`, dialogs, or concrete NVDA output |
 | `service_registry.py` / `ServiceRegistrar` | Identity-checked process-wide publication of the fully initialized `TerminalIntegrationService` | A Global Plugin object, lifecycle decisions, or terminal events |
 | `AddonRuntime` | Late service publication and the fixed, idempotent teardown order for composed process-wide services | Application events, editor planning, focus decisions, dialogs, or arbitrary service lookup |
-| `TerminalIntegrationService` | Narrow public contract for focus, fixed terminal commands, F12 claims, speech exploration mode, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
+| `TerminalIntegrationService` | Shared, explicitly bounded integration contract for focus, fixed terminal commands, F12 claims, speech exploration mode, developer contexts, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
 | `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard, terminal, and exploration plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
@@ -217,12 +217,21 @@ must not close output again before state is confirmed.
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
 | `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
-| Global Plugin | NVDA-process lifetime, shared-service composition, process-wide registration, and invoking `AddonRuntime.close()` | Application events, configurable terminal commands, `nextHandler`, overlay selection, or implementation of Settings, Tools, presentation delivery, and teardown ordering |
+| Global Plugin | NVDA-process lifetime, composition and publication of shared services, and the current coordination of process-wide NVDA-edge workflows for connections, claims, clipboard, network events, dialogs, and presentation transitions | Application events, configurable terminal commands, `nextHandler`, overlay selection, configurable script metadata, or a second copy of domain runtime state |
 | `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable speech-exploration-mode gestures and their physical-key lifecycle, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection, separate gesture resolution, or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
+
+The application boundary is therefore cleanly implemented: terminal events,
+overlay selection, `nextHandler`, configurable NVDA scripts, and input
+observers live in the Windows Terminal AppModule. The concrete Global Plugin
+class is currently not only a minimal composition root, however; it also acts
+as a process-wide NVDA-edge controller. Further decomposition would move
+shared workflows into ordinary process-wide controllers or services, not into
+the AppModule. [Appendix C](global-plugin-appmodule-audit-2026-08-04.md)
+records the current inventory and the recommended staged evolution.
 
 `AddonRuntime.start()` first registers the profile callback, then Settings and
 Tools, and publishes the terminal service last. If any step fails, the runtime
@@ -277,6 +286,12 @@ values. If the service is absent, has been replaced during add-on reload, or
 violates the contract, the AppModule passes the original gesture or native
 NVDA event through fail-open.
 
+“Bounded” describes the trust and ownership boundary here, not an especially
+small method surface: the concrete service currently combines operations used
+by the AppModule, the Braille module, and inbound developer contexts.
+Consumer-specific subcontracts remain a possible later simplification when
+they materially sharpen dependencies and tests.
+
 The process-wide service instance lives in neutral `service_registry.py`. The
 Global Plugin publishes and removes the service through the same
 identity-checked `ServiceRegistrar` that the AppModule and Braille module only
@@ -305,7 +320,11 @@ remembered bindings. The Global Plugin only joins its immutable results to
 NVDA's main-thread, dialog, message, and transport boundaries; it keeps no
 writable copy of claim state. Focus loss caused by the optional modal remember
 question is bridged by exactly one terminal- and instance-correlated
-reactivation; a different terminal focus discards it.
+reactivation. If Windows Terminal emits no new focus event after the question
+closes, a short bounded main-thread sequence checks NVDA's current focus and
+starts the normal focus-context handshake only for the same control, AppModule,
+adapter token, and instance selection. A different terminal focus discards the
+reactivation; missing or uncertain focus keeps native output open.
 
 The V2-5 `EditorSessionController` uses the active runtime managed by
 `ConnectionCoordinator` but is solely responsible for its domain mutation. It
@@ -334,9 +353,11 @@ instance's completion documentation use the same controller boundary. NVDA's
 own typed-word buffer and speech delivery remain at the NVDA boundary.
 
 Each managed Neovim instance runtime also owns its own Braille exploration
-controller and its own controller for numbered native choices. A tab or pane
-therefore cannot display or mutate another local or remote session's selected
-Braille mode or suggestion state. A runtime switch activates only the state
+controller, its own controller for numbered native choices, and a
+`HeldContextController` for read-only callable and diagnostic queries. A tab
+or pane therefore cannot display or mutate another local or remote session's
+selected Braille mode, suggestion state, or held developer context. A runtime
+switch activates only the state
 owned by the assigned session. Its virtual line, reading column, and NVDA's
 public `windowStartPos` remain in that runtime. Repeated-routing sequences and
 focus messages are discarded when the control changes. Disconnect resets
@@ -619,6 +640,52 @@ control, instance, capability, and editor identity. Only the internal
 zero-based index is confirmed; displayed text is never sent back as input.
 Releasing NVDA discards the local selection, not Neovim's prompt. Each future
 prompt type requires its own strict adapter.
+
+### Automatic active parameter
+
+`call_context.lua` resolves call boundaries independently of rendering or the
+completion plugin. When available, Tree-sitter marks strings, comments, and
+language-specific text nodes; a bounded lexer supplements incomplete code and
+provides a conservative fallback. Scanning is limited to 512 lines, 128 KiB,
+and 20,000 tree nodes. Ambiguous or oversized contexts produce no result.
+Paired parentheses resolve nesting, so Insert mode selects the innermost
+enclosing call. The manual query reuses this resolver with stricter position
+rules.
+
+In Insert mode, `signature_help.lua` observes `InsertEnter`, `CursorMovedI`,
+`TextChangedI`, and `CompleteDone`, debounces for 120 ms, and requests Neovim's
+public `textDocument/signatureHelp` interface. Trigger and retrigger characters
+and bounded prior `activeSignatureHelp` follow the LSP contract. Every request
+carries a generation and an exact buffer, window, changed-text, mode, cursor,
+and call-identity snapshot; a later change cancels the request or rejects its
+reply. With multiple clients, the first valid bounded result is selected
+deterministically.
+
+Server-provided `activeSignature` and `activeParameter` are authoritative; the
+implementation deliberately does not count commas. Identity is deduplicated
+by call, signature, and parameter. Movement within one argument is therefore
+silent, while returning to an already filled earlier parameter speaks it
+again. A signature change uses only that signature's parameter list. The
+validated `activeParameterChanged` event is speech-only, leaving canonical
+Braille on source text. Neither transport nor NVDA's main thread performs LSP
+requests.
+
+### Held developer contexts
+
+The Windows Terminal AppModule owns the physical NVDA-key lifetime and
+captures only the fixed parameter or diagnostic navigation gestures. The
+per-instance `HeldContextController` correlates each read-only query with
+focus, terminal control, instance, buffer, window, tab, changed tick, line,
+and UTF-8 byte column. The Lua plugin reads signature help, hover, or
+`vim.diagnostic` without moving the cursor or changing the buffer. When the
+real cursor is on a callable name immediately followed by `(` or on that
+opening parenthesis, the plugin places only the LSP query position after the
+delimiter. On the associated closing parenthesis, the unchanged LSP position
+already denotes the inside of the argument list. Servers such as Pyright can
+therefore return structured parameters rather than only hover text. Any mismatch
+before the reply or during presentation discards the state and restores the
+ordinary Braille line. Transport I/O remains in the bounded
+`ControlDispatcher`.
 
 For Braille, the NVDA adapter uses NVDA's transient message buffer. NVDA's own
 source uses the same public path for suggestion and selection feedback, and it

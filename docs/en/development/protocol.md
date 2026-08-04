@@ -94,6 +94,13 @@ It independently adds `brailleExploration` only when the plugin reports the
 separate ephemeral Braille line channel.
 It adds `brailleRoutingActions` only when the plugin reports the fixed
 repeated-routing actions and their complete state validation.
+It adds `callableContextQuery` and `diagnosticContextQuery` only when the
+plugin reports the correlated read-only queries.
+It adds `activeParameterHints` only when the plugin produces structured
+automatic transitions of the active LSP parameter. The bridge and local
+client discard this event type without that capability.
+`diagnosticCursorSummary` additionally marks the compact text-free diagnostic
+summary in normal snapshots.
 Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
 are not supported.
 
@@ -141,15 +148,60 @@ client exists.
 Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
-`menuSelectionChanged`, `menuClosed`, `signatureChanged`,
-`diagnosticChanged`, `foldChanged`, `commandLineChanged`, `messageReceived`,
+`menuSelectionChanged`, `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`,
+`signatureChanged`, `activeParameterChanged`,
+`signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
+`diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
+`messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
-`numberedChoiceClosed`, and `connectionStateChanged`.
+`numberedChoiceClosed`, `callableContextResult`,
+`diagnosticContextResult`, and `connectionStateChanged`.
 
 Canonical `terminalNormal` represents raw Neovim mode `nt` and remains
 distinct from Normal mode in a file buffer.
+`menuSelectionCleared` represents Neovim's no-selected-candidate state while
+the menu remains open. It clears cached completion documentation and is
+presented as its own accessible state.
+`menuItemUpdated` retains selection, index, and count while updating only
+metadata such as documentation resolved later. NVDA uses it to refresh the
+per-instance documentation cache without a second selection announcement.
+`signatureClosed` ends transient signature state when its editor context is
+left and has no speech presentation of its own.
+`activeParameterChanged` is a transient, non-canonical speech hint from Insert
+mode. Its payload binds the call through `callName`, one-based
+`callStartLine`, and zero-based `callStartByteColumn`; it carries a bounded
+`signature`, `signatureIndex`/`signatureCount`,
+`activeParameter`/`parameterCount`, a bounded `parameter` label, and exactly
+one reason: `callEntered`, `signatureChanged`, or `parameterChanged`. All
+indices are one-based, counts are bounded to 100, and their relationships must
+be valid. Insert mode, buffer, window, changed tick, and cursor identity are
+also required and validated. Protocol, bridge, and local client reject
+missing, invalid, oversized, or contradictory required fields; ordinary
+validated snapshot fields may remain alongside them. The event creates no Braille message and
+is not queued for later replay.
+`hoverChanged` carries a short summary and bounded complete documentation;
+speech and Braille automatically use only the summary. `hoverClosed` discards
+the per-instance hover documentation without its own presentation.
+`lspStatus` contains only bounded names of LSP clients attached to the current
+buffer and is emitted only by `:NvimNvdaLspStatus`.
+`diagnosticChanged` refreshes canonical state after `DiagnosticChanged` but
+has no automatic presentation. `diagnosticMoved` follows an explicitly
+observed diagnostic jump or an Access Link diagnostic command. Its snapshot
+carries at most one diagnostic containing the cursor plus `diagnosticCount`.
+For an Access Link command this is the explicitly selected entry in the
+ordered diagnostic set, allowing multiple diagnostics at the same position
+to retain distinct indices and sounds.
+The record contains a message bounded to 2,048 valid UTF-8 bytes, severity, a
+source bounded to 256 bytes, an optional 256-byte string or integer code,
+one-based lines, zero-based UTF-8 byte columns, index, and count. A missing
+source may fall back to the bounded Neovim namespace name. Invalid provider
+records are discarded and are never executed or interpreted as Neovim or
+linter commands.
+`diagnosticSummary` carries only the count and highest severity on the line
+and at the cursor plus an opaque text-free range identity for passive cues.
+Messages, source code, and quick-fix data are not part of this summary.
 `commandLineChanged.payload.commandLineType` carries structured `:`, `/`, or
 `?`, while `commandLine` excludes that prefix. Ex commands are therefore not
 guessed from text. `messageReceived.payload.commandLineReturn=true` marks only
@@ -235,6 +287,17 @@ Only these add-on-to-Neovim controls are permitted:
 - `acceptNumberedChoiceRequest` with a correlated request ID, choice kind,
   choice ID, zero-based item index, and exact buffer, window, tab, and changed
   tick identity.
+- `callableContextRequest` and `diagnosticContextRequest` with a correlated
+  request ID and exact buffer, window, tab, changed-tick, line, and UTF-8 byte
+  column identity.
+
+Both context results repeat the complete identity. A diagnostic result
+contains at most 100 entries from the current line; a callable result contains
+at most 100 signatures with at most 100 parameters each. Individual text
+fields are bounded to 16 KiB and all text in one result to 256 KiB. Add-on and
+plugin discard replies after any focus, instance, buffer, text, or cursor
+change. Neither query moves the editor cursor or Neovim's diagnostic
+selection.
 
 `requestFocusContext` is sent only to an authenticated instance bound exactly
 to the focused terminal control. A mismatched request ID, instance, binding, or

@@ -44,11 +44,16 @@ Für die vollständige lokale Prüfung werden benötigt:
 - Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
 - Ruff 0.14.5 entsprechend NVDA 2026.1;
 - Neovim für die echten Lua-Suiten;
+- für die erweiterte reale Lintermatrix zusätzlich Go, Rust mit Clippy, Ruby
+  und Node.js in den unter `testing.md` festgelegten Versionen;
 - Pandoc für den HTML-Build; bestätigt ist 3.1.11.1;
 - Git für Diff- und Whitespace-Prüfungen.
 
-Die Python-Abhängigkeiten des GitHub-Testworkflows stehen versionsfest in
-`tools/requirements-ci.txt`.
+Die allgemeinen Python-Abhängigkeiten des GitHub-Testworkflows stehen
+versionsfest in `tools/requirements-ci.txt`; die Python-Werkzeuge der realen
+Lintermatrix stehen getrennt in `tools/requirements-linter-ci.txt`. Deren
+Go-, Rust-, Ruby- und Node-Abhängigkeiten werden im GitHub-Workflow ebenfalls
+explizit versioniert.
 
 NVDA selbst wird für die reinen Python- und Lua-Tests nicht importiert. Die
 NVDA-nahen Tests verwenden kontrollierte Testdoubles und prüfen zusätzlich den

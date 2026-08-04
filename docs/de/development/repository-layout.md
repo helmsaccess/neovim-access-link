@@ -18,6 +18,7 @@ ein Bridge-Prozess und unter Windows der NVDA-Prozess. `protocol/python/` und
 | `nvda-addon/addon/` | NVDA-Global-Plugin, Windows-Terminal-AppModule, UI- und Präsentationsdienste, Ressourcen und Übersetzungskataloge | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | rootlose Installation der Linux-Benutzerkomponenten | `install_user.py` |
 | `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog- und Testwerkzeuge | `run_tests.py`, `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `tests/human/` | kleine geführte Praxistests für reale NVDA-, Audio-, Braille- und Fokusgrenzen | `framework/run.ps1`, `framework/validate.py`, `plans/` |
 | `docs/de/manual/` | deutsche Anwenderdokumentation | `README.md`, `quick-guide.md` |
 | `docs/de/development/` | deutsche Entwicklererklärung, Referenz und Nachweise | diese Datei und die Übersicht `README.md` |
 | `docs/en/` | englische Anwender- und Entwicklerdokumentation | `README.md` |
@@ -44,7 +45,9 @@ Erzeugte oder private Dateien haben feste Orte:
 
 - `dist/`: installierbare, eindeutig versionierte Pakete;
 - `build/`: erzeugte HTML-Dokumentation und andere reproduzierbare Ergebnisse;
-- `tmp/`: lokale, private und kurzlebige Untersuchungen.
+- `tmp/`: lokale, private und kurzlebige Untersuchungen, Testarbeitsbereiche
+  und heruntergeladene Projektwerkzeuge; projektspezifische temporäre Dateien
+  gehören nicht in das systemweite `/tmp`.
 
 Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 
@@ -55,6 +58,8 @@ Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 - `bridge/python/tests/` prüft Discovery, RPC-Bridge und stdio-Transport.
 - `nvda-addon/tests/` prüft Core, Speech/Braille, Paketinhalt und NVDA-nahe
   Adapter mit Testdoubles.
+- `tests/human/` enthält nur praktisch wahrnehmbare Assertions; Pläne,
+  Übersetzungen und JSON-Ergebnisvertrag werden automatisiert validiert.
 
 Die Auswahl und Ausführung der Suiten steht in [testing.md](testing.md).
 

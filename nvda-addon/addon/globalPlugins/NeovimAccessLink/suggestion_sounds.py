@@ -109,10 +109,13 @@ class SpellingSoundCache(SuggestionSoundCache):
 
 
 class EditorSoundCache(SuggestionSoundCache):
-	"""Preload NVDA-native and bundled CC0 editor earcons."""
+	"""Preload NVDA-native and bundled redistributable editor earcons."""
 
 	_PREFIX = "editorSound"
+	_RESTART_CUES = {"diagnosticError", "diagnosticNone", "diagnosticWarning"}
 	_NVDA_FILES = {
+		"connectionEstablished": "connected.wav",
+		"connectionLost": "disconnected.wav",
 		"insertMode": "focusMode.wav",
 		"normalMode": "browseMode.wav",
 		"matchingError": "error.wav",
@@ -125,6 +128,9 @@ class EditorSoundCache(SuggestionSoundCache):
 		"fileStart": "fileStart.wav",
 		"fileEnd": "fileEnd.wav",
 		"lineCrossed": "lineCrossed.wav",
+		"diagnosticError": "diagnosticError.wav",
+		"diagnosticNone": "diagnosticNone.wav",
+		"diagnosticWarning": "diagnosticWarning.wav",
 	}
 
 	def __init__(self, nvda_wave_directory, bundled_directory, on_diagnostic=None, player_factory=None):
@@ -144,6 +150,10 @@ class EditorSoundCache(SuggestionSoundCache):
 			self._diagnostic("editorSoundUnavailable", cue=cue)
 			return False
 		try:
+			if cue in self._RESTART_CUES:
+				# Repeated diagnostics of the same severity share one cached player.
+				# Restart it so every deliberate selection starts promptly.
+				player.stop()
 			player.feed(frames)
 			self._diagnostic("editorSoundPlayed", cue=cue, bytes=len(frames))
 			return True

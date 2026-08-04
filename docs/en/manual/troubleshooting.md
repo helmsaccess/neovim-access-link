@@ -68,6 +68,14 @@ disposable buffer.
 
 ## NVDA appears stuck after a dialog
 
+The optional question that remembers an F12 binding restores the connection
+itself after closing; switching windows should not be necessary. If Access Link
+is accepted, the choice lasts for that Windows Terminal tab until NVDA or
+Windows Terminal exits. If a test run stops and restarts Neovim in the same
+tab, F12 connects the new session without asking the remember question again.
+If Access Link then remains silent, copy its diagnostic report in the affected
+Windows Terminal tab before changing focus.
+
 Component work and SSH password handling run outside NVDA's main thread, but a
 result or password dialog may still be open. Use Alt+Tab to locate it and close
 or cancel it. Restart NVDA if necessary, then preserve a diagnostic report and

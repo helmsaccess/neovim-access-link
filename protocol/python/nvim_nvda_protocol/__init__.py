@@ -32,6 +32,15 @@ from .cursor_routing import (
     MAX_MODE_RAW_BYTES,
     valid_route_cursor_request,
 )
+from .developer_context import (
+    MAX_CONTEXT_ITEMS,
+    MAX_CONTEXT_TEXT_BYTES,
+    MAX_CONTEXT_TOTAL_TEXT_BYTES,
+    developer_context_result_state,
+    valid_callable_context_result,
+    valid_context_request,
+    valid_diagnostic_context_result,
+)
 from .exploration import (
     EXPLORATION_ACTIONS,
     EXPLORATION_UNITS,
@@ -55,6 +64,7 @@ from .local_client import LocalTcpClient
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .reconnect import ExponentialBackoff
 from .session import SessionTracker
+from .signature_help import valid_active_parameter_changed
 from .stdio_client import SshStdioClient
 from .terminal_control import (
     terminal_control_result_state, valid_leave_terminal_input_request,
@@ -73,6 +83,9 @@ __all__ = [
     "MessageFactory",
     "MAX_CLIPBOARD_TEXT_BYTES",
     "MAX_COMMAND_LINE_BYTES",
+    "MAX_CONTEXT_ITEMS",
+    "MAX_CONTEXT_TEXT_BYTES",
+    "MAX_CONTEXT_TOTAL_TEXT_BYTES",
     "MAX_EXPLORATION_TEXT_BYTES",
     "MAX_NUMBERED_CHOICE_ITEM_BYTES",
     "MAX_NUMBERED_CHOICE_ITEMS",
@@ -89,6 +102,7 @@ __all__ = [
     "SshStdioClient",
     "WORD_ACTIONS",
     "cursor_text",
+    "developer_context_result_state",
     "clipboard_result_state",
     "encode_frame",
     "exploration_result_state",
@@ -97,8 +111,12 @@ __all__ = [
     "terminal_control_result_state",
     "valid_clipboard_text",
     "valid_copy_text_request",
+    "valid_callable_context_result",
+    "valid_context_request",
+    "valid_diagnostic_context_result",
     "valid_route_cursor_request",
     "valid_accept_numbered_choice_request",
+    "valid_active_parameter_changed",
     "valid_braille_explore_line_request",
     "valid_braille_explore_line_result",
     "valid_braille_route_action_request",

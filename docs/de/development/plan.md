@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 27. Juli 2026.
+Stand: 4. August 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -33,18 +33,28 @@ Laufend:
 
 ## 2. Architekturgrenzen nur bei belegtem Nutzen weiter verändern
 
-Die in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
-Verschlankung ist umgesetzt und praktisch über mehrere Fenster, Tabs und Panes
-mit lokalen und entfernten Sitzungen geprüft. Der aktuelle Aufbau steht in
-`current-status.md`; die Entwicklung und ihre Messwerte stehen im Changelog
-sowie in den Anhängen A und B.
+Der in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
+Anwendungsschnitt ist umgesetzt und praktisch über mehrere Fenster, Tabs und
+Panes mit lokalen und entfernten Sitzungen geprüft. Der erneute Audit in
+[Anhang C](global-plugin-appmodule-audit-2026-08-04.md) bestätigt diesen
+Scope, zeigt aber auch die weiterhin umfangreiche prozessweite
+NVDA-Randkoordination in der konkreten Global-Plugin-Klasse und den breiten
+öffentlichen Terminaldienst. Der aktuelle Aufbau steht in
+`current-status.md`; Entwicklung und Messwerte stehen im Changelog sowie in
+den Anhängen A bis C.
 
 Eine weitere Aufteilung ist nicht allein wegen Dateigröße oder LOC geplant.
-Sie wird nur wieder aufgenommen, wenn sie einen eindeutigen Zustandsbesitzer,
-einen kleineren öffentlichen Vertrag, einen ohne NVDA prüfbaren Fehlerpfad
-oder einen belegbaren Robustheitsgewinn schafft. AppModule-Ereignisbesitz,
+Sie wird in kleinen fachlichen Schnitten nur aufgenommen, wenn sie einen
+eindeutigen Zustandsbesitzer, einen kleineren öffentlichen Vertrag, einen ohne
+NVDA prüfbaren Fehlerpfad oder einen belegbaren Robustheitsgewinn schafft.
+AppModule-Ereignisbesitz,
 Fail-open, F12-Isolation, asynchroner Transport sowie Fenster-, Tab- und
 Pane-Trennung bleiben dabei verbindliche Invarianten.
+
+Als Kandidaten werden zuerst Verbindungs-/Claimabläufe, NVDA-Ereignisausgabe,
+Kontextpräsentation und verbraucherspezifische Dienstverträge bewertet. Eine
+Auslagerung erfolgt nur mit klaren Invarianten und Regressionstests; gemeinsam
+genutzte prozessweite Abläufe werden nicht in das AppModule kopiert.
 
 ## 3. Praktische Abschottung verbreitern
 
@@ -120,11 +130,45 @@ Polling oder allgemeines Popup-Scraping ersetzt.
 - Große Ereignislast, große Dateien und viele parallele Sitzungen messen.
 - Weitere repräsentative Windows-, NVDA-, Neovim-, Sprach- und
   SSH-Konfigurationen risikobasiert in die praktische Matrix aufnehmen.
+- Die implementierten gehaltenen Parameter- und Diagnoseansichten mit
+  Pyright sowie weiteren repräsentativen LSP-Servern praktisch auf
+  20-/40-/80-Modul-Braillezeilen prüfen. Dabei Mehrfachsignaturen,
+  Hover-Rückfall, überlappende Diagnosen, jede NVDA-Tasten-Release-Reihenfolge
+  und Klangunterdrückung beim Tippen bestätigen.
 - Die ungeklärte ältere Rocky-Linux-/Neovim-Kombination nur untersuchen, wenn
   dafür ein konkretes Unterstützungsziel festgelegt wird.
 - Portable Layouts, `NVIM_APPNAME`, andere Terminalfrontends und Neovim-GUIs
   erst mit eigener Identitäts-, Fokus-, Sicherheits- und Fail-open-Architektur
   planen.
+
+## 8. Diagnose-Provider und Sprachen risikobasiert verbreitern
+
+Die gemeinsame `vim.diagnostic`-Schicht, reale nvim-lint-/ALE-Verträge für C,
+Python, Bash, Go, Rust, Ruby und Markdown sowie der echte
+`none-ls.nvim`-LSP-Brückenvertrag sind implementiert. Weitere Kombinationen
+werden nach Verbreitung und nach reproduzierbaren Problemen ergänzt, ohne
+Sprachen im Add-on fest zu verdrahten:
+
+- Go zusätzlich zu dem belegten Staticcheck-Pfad mit `gopls` in der
+  gebündelten LSP-Praxisrunde prüfen; golangci-lint nur bei zusätzlichem
+  realem Bedarf pinnen;
+- Rust zusätzlich zu dem belegten Cargo-/Clippy-Pfad mit `rust-analyzer` und
+  dessen Clippy-Diagnostics praktisch prüfen;
+- `ruby-lsp`, alternative Ruby-Analysatoren oder weitere Markdown-Prüfer nur
+  bei belegter Nutzung ergänzen; RuboCop und `markdownlint-cli2` bilden die
+  automatisierte Ausgangsbasis;
+- ausgelagerte none-ls-Zusatzquellen erst zusammen mit einem konkreten
+  verbreiteten Werkzeug und allen tatsächlich benötigten Commits pinnen;
+- Navigation aus Trouble, Telescope, ALE-eigenen Listen oder anderen
+  Diagnoseansichten nur über öffentliche semantische APIs anbinden;
+- einen eigenen Adapter ausschließlich dann erwägen, wenn ein verbreiteter
+  Provider seine Diagnosen nachweislich nicht nach `vim.diagnostic` spiegeln
+  kann.
+
+Für jede neue Kombination bleiben echte Werkzeugausführung, gepinnter
+Provider, korrekte UTF-8-Bytebereiche, Quelle/Code/Meldung, beide unterstützten
+Neovim-Versionen und die klare Trennung von automatisierter und praktischer
+Abnahme erforderlich.
 
 ## Reihenfolge für neue Funktionen
 

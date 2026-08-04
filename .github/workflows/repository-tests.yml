@@ -13,6 +13,13 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
+  GO_VERSION: "1.26.5"
+  STATICCHECK_VERSION: "2026.1"
+  RUST_VERSION: "1.97.1"
+  RUBY_VERSION: "3.4.10"
+  RUBOCOP_VERSION: "1.88.2"
+  NODE_VERSION: "24.18.0"
+  MARKDOWNLINT_VERSION: "0.23.2"
   NEOVIM_ARCHIVE: nvim-linux64.tar.gz
   NEOVIM_SHA256: 4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793
   NEOVIM_URL: https://github.com/neovim/neovim/releases/download/v0.10.1/nvim-linux64.tar.gz
@@ -42,6 +49,215 @@ jobs:
           echo "$PWD/nvim-linux64/bin" >> "$GITHUB_PATH"
       - name: Run sandbox-safe tests
         run: python3 tools/run_tests.py all-safe
+
+  human-test-runner-windows:
+    name: Guided human-test runner on Windows PowerShell
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install verified Neovim 0.12.3 for Windows
+        shell: powershell
+        env:
+          WINDOWS_NEOVIM_SHA256: 63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad
+          WINDOWS_NEOVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-win64.zip
+        run: |
+          Invoke-WebRequest -Uri $env:WINDOWS_NEOVIM_URL -OutFile nvim-win64.zip
+          $actual = (Get-FileHash -LiteralPath nvim-win64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:WINDOWS_NEOVIM_SHA256) {
+            throw "Neovim archive SHA-256 mismatch: $actual"
+          }
+          Expand-Archive -LiteralPath nvim-win64.zip -DestinationPath .
+          "$PWD\nvim-win64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Exercise the PowerShell runner and both locales
+        shell: powershell
+        run: |
+          .\tests\human\framework\run.ps1 list -Suite all -Language de
+          .\tests\human\framework\run.ps1 list -Suite all -Language en
+          .\tests\human\framework\run.ps1 list -Language en `
+            -TestId "D3"
+          .\tests\human\framework\run.ps1 run -Suite all -Language en -DryRun `
+            -AccessLinkPlugin "$PWD\neovim-plugin"
+      - name: Validate plans, fingerprints, and result assessment
+        shell: powershell
+        run: python -m unittest tests.human.test_framework
+
+  completion-plugins:
+    name: Completion APIs (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Neovim 0.10.1 / blink.cmp v1
+            neovim_archive: nvim-linux64.tar.gz
+            neovim_directory: nvim-linux64
+            neovim_sha256: 4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.10.1/nvim-linux64.tar.gz
+            blink_revision: 78336bc89ee5365633bcf754d93df01678b5c08f
+            blink_lib_revision: ""
+          - name: Neovim 0.12.3 / blink.cmp v1
+            neovim_archive: nvim-linux-x86_64.tar.gz
+            neovim_directory: nvim-linux-x86_64
+            neovim_sha256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+            blink_revision: 78336bc89ee5365633bcf754d93df01678b5c08f
+            blink_lib_revision: ""
+          - name: Neovim 0.12.3 / blink.cmp v2
+            neovim_archive: nvim-linux-x86_64.tar.gz
+            neovim_directory: nvim-linux-x86_64
+            neovim_sha256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+            blink_revision: d33327a0ed7bfe3cd5dfa2fdd2738ad74f9e0ea3
+            blink_lib_revision: 5876dd95deeb70aadbe9f1c0b7117a135061cdac
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check out pinned nvim-cmp
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: hrsh7th/nvim-cmp
+          ref: 2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3
+          path: .ci-deps/nvim-cmp
+          persist-credentials: false
+      - name: Check out pinned blink.cmp
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: Saghen/blink.cmp
+          ref: ${{ matrix.blink_revision }}
+          path: .ci-deps/blink-cmp
+          persist-credentials: false
+      - name: Check out pinned blink.lib
+        if: matrix.blink_lib_revision != ''
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: Saghen/blink.lib
+          ref: ${{ matrix.blink_lib_revision }}
+          path: .ci-deps/blink-lib
+          persist-credentials: false
+      - name: Install pinned Neovim
+        env:
+          MATRIX_NEOVIM_ARCHIVE: ${{ matrix.neovim_archive }}
+          MATRIX_NEOVIM_DIRECTORY: ${{ matrix.neovim_directory }}
+          MATRIX_NEOVIM_SHA256: ${{ matrix.neovim_sha256 }}
+          MATRIX_NEOVIM_URL: ${{ matrix.neovim_url }}
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$MATRIX_NEOVIM_URL" --output "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$MATRIX_NEOVIM_SHA256  $MATRIX_NEOVIM_ARCHIVE" | sha256sum --check -
+          tar --extract --gzip --file "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$PWD/$MATRIX_NEOVIM_DIRECTORY/bin" >> "$GITHUB_PATH"
+      - name: Test real completion plugin APIs
+        env:
+          BLINK_LIB_REVISION: ${{ matrix.blink_lib_revision }}
+        run: |
+          arguments=(.ci-deps/nvim-cmp .ci-deps/blink-cmp)
+          if [[ -n "$BLINK_LIB_REVISION" ]]; then
+            arguments+=(.ci-deps/blink-lib)
+          fi
+          bash tools/test_completion_plugins.sh "${arguments[@]}"
+
+  linter-plugins:
+    name: Diagnostic providers (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Neovim 0.10.1
+            neovim_archive: nvim-linux64.tar.gz
+            neovim_directory: nvim-linux64
+            neovim_sha256: 4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.10.1/nvim-linux64.tar.gz
+          - name: Neovim 0.12.3
+            neovim_archive: nvim-linux-x86_64.tar.gz
+            neovim_directory: nvim-linux-x86_64
+            neovim_sha256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+            neovim_url: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: tools/requirements-linter-ci.txt
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+      - name: Set up Node.js
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install pinned real linter tools
+        run: |
+          python3 -m pip install --requirement tools/requirements-linter-ci.txt
+          mkdir -p "$RUNNER_TEMP/linter-bin"
+          GOBIN="$RUNNER_TEMP/linter-bin" \
+            go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
+          echo "$RUNNER_TEMP/linter-bin" >> "$GITHUB_PATH"
+          rustup toolchain install "$RUST_VERSION" --profile minimal --component clippy
+          rustup default "$RUST_VERSION"
+          gem install rubocop --version "$RUBOCOP_VERSION" --no-document
+          npm install --global "markdownlint-cli2@${MARKDOWNLINT_VERSION}"
+      - name: Check out pinned nvim-lint
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: mfussenegger/nvim-lint
+          ref: a219b2c9e5b4765e5c845aba119dad55806fcaf1
+          path: .ci-deps/nvim-lint
+          persist-credentials: false
+      - name: Check out pinned ALE
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: dense-analysis/ale
+          ref: 9e2efaa4d348b1f93200b24e5540c670eb6fdd3f
+          path: .ci-deps/ale
+          persist-credentials: false
+      - name: Check out pinned none-ls.nvim
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: nvimtools/none-ls.nvim
+          ref: 01f8e62ea11603e59ad9ff7afcfa94fd183f76d6
+          path: .ci-deps/none-ls
+          persist-credentials: false
+      - name: Check out pinned plenary.nvim
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: nvim-lua/plenary.nvim
+          ref: 74b06c6c75e4eeb3108ec01852001636d85a932b
+          path: .ci-deps/plenary
+          persist-credentials: false
+      - name: Install pinned Neovim
+        env:
+          MATRIX_NEOVIM_ARCHIVE: ${{ matrix.neovim_archive }}
+          MATRIX_NEOVIM_DIRECTORY: ${{ matrix.neovim_directory }}
+          MATRIX_NEOVIM_SHA256: ${{ matrix.neovim_sha256 }}
+          MATRIX_NEOVIM_URL: ${{ matrix.neovim_url }}
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$MATRIX_NEOVIM_URL" --output "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$MATRIX_NEOVIM_SHA256  $MATRIX_NEOVIM_ARCHIVE" | sha256sum --check -
+          tar --extract --gzip --file "$MATRIX_NEOVIM_ARCHIVE"
+          echo "$PWD/$MATRIX_NEOVIM_DIRECTORY/bin" >> "$GITHUB_PATH"
+      - name: Test real diagnostic provider APIs and tools
+        run: |
+          bash tools/test_linter_plugins.sh .ci-deps/nvim-lint .ci-deps/ale
+          bash tools/test_none_ls.sh .ci-deps/none-ls .ci-deps/plenary
 
   ssh:
     name: Mocked SSH and Askpass tests

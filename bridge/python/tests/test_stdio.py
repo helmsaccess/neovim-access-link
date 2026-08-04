@@ -319,6 +319,93 @@ class StdioTransportTests(unittest.TestCase):
 		)
 		transport.stop()
 
+	def test_developer_context_controls_are_validated_and_capability_gated(self) -> None:
+		payload = {
+			"requestId": 1,
+			"bufferId": 2,
+			"windowId": 3,
+			"tabpageId": 4,
+			"changedtick": 5,
+			"line": 6,
+			"byteColumn": 7,
+		}
+		controls = b"".join(
+			(
+				encode_frame(MessageFactory().create("callableContextRequest", payload)),
+				encode_frame(MessageFactory().create("diagnosticContextRequest", payload)),
+				encode_frame(
+					MessageFactory().create(
+						"callableContextRequest",
+						{**payload, "extra": True},
+					)
+				),
+			)
+		)
+		dispatched = []
+		transport = StdioTransport(
+			lambda: {
+				"pluginCapabilities": [
+					"callableContextQuery",
+					"diagnosticContextQuery",
+					"diagnosticCursorSummary",
+				],
+			},
+			io.BytesIO(controls),
+			io.BytesIO(),
+			on_control=lambda kind, value: dispatched.append((kind, value)),
+			heartbeat_seconds=10.0,
+		)
+		capabilities = transport._state_with_capabilities()["_transport"]["capabilities"]
+		self.assertIn("callableContextQuery", capabilities)
+		self.assertIn("diagnosticContextQuery", capabilities)
+		self.assertIn("diagnosticCursorSummary", capabilities)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual(
+			["callableContextRequest", "diagnosticContextRequest"],
+			[kind for kind, _payload in dispatched],
+		)
+		transport.stop()
+
+		dispatched.clear()
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["callableContextQuery"]},
+			io.BytesIO(
+				encode_frame(
+					MessageFactory().create("diagnosticContextRequest", payload),
+				)
+			),
+			io.BytesIO(),
+			on_control=lambda kind, value: dispatched.append((kind, value)),
+			heartbeat_seconds=10.0,
+		)
+		self.assertNotIn(
+			"diagnosticContextQuery",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		transport.start()
+		self.assertTrue(transport.closed.wait(1.0))
+		self.assertEqual([], dispatched)
+		transport.stop()
+
+	def test_active_parameter_capability_is_forwarded_only_when_advertised(self) -> None:
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["activeParameterHints"]},
+			io.BytesIO(),
+			io.BytesIO(),
+			heartbeat_seconds=10.0,
+		)
+		self.assertIn(
+			"activeParameterHints",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		self.assertNotIn(
+			"activeParameterHints",
+			transport._state_with_capabilities({"pluginCapabilities": []})["_transport"][
+				"capabilities"
+			],
+		)
+
 	def test_exploration_requires_plugin_capability(self) -> None:
 		step = {
 			"requestId": 1,

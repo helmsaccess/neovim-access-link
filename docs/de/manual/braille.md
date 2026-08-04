@@ -53,6 +53,7 @@ ergänzt:
 | Dreifache Routingbetätigung auf einer Zeile | Nur Cursor setzen | Kann wahlweise `c$` oder `d$` ausführen. |
 | Start der dreifachen Zeilenaktion | Routingposition | Beginnt an der Routingtaste, an der Einrückung oder am absoluten Zeilenanfang. |
 | Rechtschreibvorschläge ab Braillemodul anzeigen | 1 | Verschiebt nur den vorübergehenden Rechtschreibvorschlag. |
+| Temporäre Entwicklerinformationen ab Braillemodul anzeigen | 1 | Positioniert gehaltene Funktionsparameter und Diagnosen. |
 
 Brailleübersetzung, Treiber, Cursorform, Auswahlmarkierung und das Ansagen des
 Zeichens beim Routing bleiben normale NVDA-Einstellungen. Eine ausführliche

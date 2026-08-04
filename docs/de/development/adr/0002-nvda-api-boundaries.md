@@ -68,7 +68,7 @@ Erweiterungsschnittstellen zugesagt.
 
 ## Ausnahme 4: Sofortiges Beenden einer eigenen Braillemeldung
 
-Neovims Rechtschreibvorschlag wird über
+Neovims Rechtschreibvorschlag und die gehaltene Entwicklerinformation werden über
 `braille.handler.message` ausgegeben. Dies ist derselbe öffentliche
 Nachrichtenpfad, den NVDA selbst unter anderem für Vorschlagslisten und
 ausgewählte Elemente verwendet. Beim Loslassen der NVDA-Taste muss diese
@@ -94,9 +94,21 @@ Nachrichtenpuffer noch sichtbar und exakt dieselbe Region weiterhin dessen
 letzte Region ist. Eine inzwischen von NVDA oder einem anderen Add-on
 ausgegebene Meldung wird nicht geschlossen.
 
+Längere gehaltene Entwicklerinformation ersetzt die so nachgewiesene eigene
+Standardregion durch eine eigene öffentliche `braille.Region`. Diese übersetzt
+den vollständigen Text einmal und bietet jeweils höchstens eine Anzeigebreite
+als lokale Seite an. Ihre öffentlichen `nextLine()`- und `previousLine()`-
+Methoden blättern ausschließlich zwischen diesen Seiten; dadurch benutzen
+sowohl horizontale Braillebefehle als auch Zeilenbefehle am Rand nie die
+Editorregion. Nach dem öffentlichen Scrollbefehl startet NVDA seinen allgemeinen
+Meldungstimer erneut. Ein über `core.callLater` nachgestellter, erneut
+identitätsgeprüfter `Stop()` beendet nur diesen Timer derselben weiterhin
+sichtbaren eigenen Region. Eine inzwischen fremde Meldung bleibt unberührt.
+
 - Private Berührungspunkte:
   `BrailleHandler.messageBuffer`, `BrailleHandler.buffer`,
-  `BrailleBuffer.regions`, `BrailleHandler._messageCallLater`,
+  `BrailleBuffer.regions`, `BrailleBuffer.update`,
+  `BrailleBuffer.windowStartPos`, `BrailleHandler._messageCallLater`,
   `CallLater.Stop()` und `BrailleHandler._dismissMessage`.
 - Risiko: Namen, Identitäten oder Lebensdauer von Puffer, Region, Methode und
   Meldungstimer können sich mit NVDA ändern.
@@ -106,8 +118,9 @@ ausgegebene Meldung wird nicht geschlossen.
   nur dazu, dass NVDAs normales Meldungsverhalten zuständig bleibt.
   Editorzustand, Eingabe, Transport und Sprachausgabe werden dadurch nicht
   verändert.
-- Begründung: Der Vorschlag ist während der gehaltenen NVDA-Taste der aktive
-  Wert eines Bedienelements, keine Meldung, die beim Lesen veralten darf. Beim
+- Begründung: Vorschlag beziehungsweise Entwicklerinformation sind während der
+  gehaltenen NVDA-Taste der aktive Wert eines Bedienelements, keine Meldung,
+  die beim Lesen veralten darf. Beim
   Loslassen muss dagegen sofort wieder die bereits aufgebaute Editorregion
   sichtbar sein. NVDA 2026.1.1 bietet weder eine öffentliche Laufzeit pro
   Meldung noch eine öffentliche Operation zum gezielten Schließen genau der

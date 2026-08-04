@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 3,
+  "id": "lsp-native",
+  "order": 10,
+  "titleKey": "plan.lspNative.title",
+  "descriptionKey": "plan.lspNative.description",
+  "suites": ["smoke"],
+  "profile": "native",
+  "fixture": "lsp_features.py",
+  "steps": [
+    {
+      "testId": "L1",
+      "id": "status-presentation",
+      "category": "language-intelligence",
+      "titleKey": "plan.lspNative.status.title",
+      "contextKey": "plan.lspNative.context",
+      "actionKey": "plan.lspNative.status.action",
+      "expectedKey": "plan.lspNative.status.expected",
+      "manualReasons": ["speechPerception"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/lsp_status_spec.lua"]
+    },
+    {
+      "testId": "L2",
+      "id": "automatic-parameters",
+      "category": "language-intelligence",
+      "titleKey": "plan.lspNative.automaticParameters.title",
+      "contextKey": "plan.lspNative.automaticParameters.context",
+      "actionKey": "plan.lspNative.automaticParameters.action",
+      "expectedKey": "plan.lspNative.automaticParameters.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": [
+        "neovim-plugin/tests/signature_help_automatic_spec.lua",
+        "protocol/python/tests/test_signature_help.py",
+        "nvda-addon/tests/test_speech.py"
+      ]
+    },
+    {
+      "testId": "L3",
+      "id": "held-parameters",
+      "category": "language-intelligence",
+      "titleKey": "plan.lspNative.parameters.title",
+      "contextKey": "plan.lspNative.parameters.context",
+      "actionKey": "plan.lspNative.parameters.action",
+      "expectedKey": "plan.lspNative.parameters.expected",
+      "manualReasons": ["physicalNvdaKey", "physicalBraille"],
+      "requires": ["braille"],
+      "automatedEvidence": [
+        "neovim-plugin/tests/developer_context_lsp_integration_spec.lua",
+        "nvda-addon/tests/test_held_context.py"
+      ]
+    },
+    {
+      "testId": "C1",
+      "id": "completion-presentation",
+      "category": "completion",
+      "titleKey": "plan.lspNative.completion.title",
+      "contextKey": "plan.lspNative.completion.context",
+      "actionKey": "plan.lspNative.completion.action",
+      "expectedKey": "plan.lspNative.completion.expected",
+      "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/native_completion_spec.lua"]
+    }
+  ]
+}

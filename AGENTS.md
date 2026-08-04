@@ -49,6 +49,9 @@ take precedence.
 - Prefer simplification and deletion over new layers, state, or parallel paths when tests show
   required behavior is preserved.
 - Preserve unrelated user changes and keep changes focused.
+- Store project-specific temporary sources, downloaded tools, test workspaces, reproductions,
+  and reports under the repository's ignored `tmp/` directory. Do not use the system `/tmp`
+  for this project; tooling, packaging, and repository-wide source scans must exclude `tmp/`.
 - Follow the established conventions of each component and upstream API; do not impose one
   component's style on another.
 - Logging is diagnostic only; correctness must never depend on it.
@@ -70,6 +73,10 @@ take precedence.
   independent with no shared mutable paths, processes, or sessions.
 - Treat restricted-sandbox listener failures as environment limitations; validate affected
   socket, TUI, or session code in a permitted environment before push or release.
+- Before handing changes back to the user, rebuild every affected distributable artifact from
+  the final worktree state. Documentation-only changes require a fresh documentation build;
+  changes only to installable add-on or component code require a fresh `.nvda-addon` build; when
+  both areas changed, rebuild both. Do not rebuild an unaffected artifact merely to refresh it.
 - Full prerequisites and build checks are documented in `docs/de/development/testing.md`.
 
 ## Git, versioning, and releases
@@ -87,8 +94,8 @@ take precedence.
   changed installable states on that branch; an unchanged reproducible rebuild may reuse it.
 - Keep version metadata in `buildVars.py`. A release-version change also updates README release
   and German/English changelog links in the same change.
-- GitHub releases contain the `.nvda-addon` plus one ZIP with all six German and English
-  quick-guide, handbook, and developer-documentation HTML files.
+- GitHub releases contain the `.nvda-addon` plus one ZIP with all eight German and English
+  quick-guide, handbook, developer-documentation, and guided-human-testing HTML files.
 
 ## Documentation and publication
 
@@ -96,8 +103,9 @@ take precedence.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
   exhaustive coverage or response-time guarantees.
 - In manuals, use localized UI names from the translation catalogs.
-- Prefer locally available target-application or add-on source, often under `/tmp`, over web
-  retrieval. Never commit private paths, hostnames, usernames, domains, credentials, or secrets.
+- Prefer locally available target-application or add-on source under the repository's ignored
+  `tmp/` directory over web retrieval. Never commit private paths, hostnames, usernames, domains,
+  credentials, or secrets.
 - Before asking technical questions externally, check code and official documentation; ask only
   unresolved questions, with at most three per focused message.
 - Write commits, issues, pull requests, release text, and other project collaboration text in

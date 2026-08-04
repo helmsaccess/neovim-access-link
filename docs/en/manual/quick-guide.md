@@ -119,6 +119,39 @@ only in the exact connected Neovim pane; NVDA remains unchanged in shells and
 other tabs or panes. A short two-note cue marks when the virtual position
 returns to the character, word, or line where speech exploration mode started.
 
+While typing inside a function argument list, Access Link automatically speaks
+the active parameter selected by the language server. A comma moves to the
+next parameter; returning to an already filled earlier argument speaks it
+again, while motion within the same argument stays silent. Nested expressions
+use the innermost call. This brief output is speech-only, leaving Braille on
+source text. It can be disabled per NVDA profile under `Settings... → Neovim
+Access Link → General`.
+
+Callable parameters can be inspected without moving the editor cursor. Place
+the cursor on the function name or its opening or closing call parenthesis,
+press `NVDA+Space`, release only Space, and keep NVDA held. `NVDA+h/l` cycles
+only the parameters of the selected signature, while `NVDA+k/j` cycles only multiple signatures. The
+initial view contains only the signature and documentation. After this view
+and after every signature change, parameter selection starts over: the first
+`NVDA+h` or `NVDA+l` press always reveals parameter 1; only the next press
+moves in the chosen direction. Speech keeps the full labels. Braille saves space
+with `S 1 of 2` for a signature, `P 1 of 3` for a parameter, and `D:` before
+documentation; function and parameter names remain complete.
+`NVDA+Shift+Space` uses the same held
+interaction for diagnostics under the cursor and on the current line; here
+`NVDA+k/j` cycles entries. The normal forward/back controls page through long
+information without crossing into source text. Releasing the final NVDA key
+removes the temporary Braille view. Errors and warnings can produce a short
+cue when deliberate
+navigation enters their line or range; background updates and typing stay
+silent. If an explicit diagnostic query finds no match, a third short cue
+confirms the empty result together with “no diagnostic”. Mere movement across
+clean lines, information diagnostics, and hints remain soundless.
+
+Access Link takes over these two Space gestures only in the exact active
+connected Neovim pane. NVDA's standard functions remain unchanged in other
+terminal panes and applications.
+
 Independently, the Braille display's navigation controls have Braille cursor
 mode and Braille exploration mode. In Braille cursor mode, Up and Down move
 the real Neovim cursor. In Braille exploration mode, you can read several

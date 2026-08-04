@@ -219,7 +219,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `service_registry.py` / `ServiceRegistrar` | identitätsgeprüfte prozessweite Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Global-Plugin-Objekt, Lebenszyklusentscheidung oder Terminalereignisse |
 | `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
-| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `TerminalIntegrationService` | gemeinsamer, ausdrücklich begrenzter Integrationsvertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus, Entwicklerkontexte und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
 | `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-, Terminal- und Explorationspläne mit Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
@@ -229,12 +229,21 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
 | `nvda_braille.py` | NVDA-Brailleregion, Terminaloverlay, Übersetzung von Braillepositionen und Abruf des veröffentlichten Terminaldienstes | Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung |
-| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, prozessweite Registrierung und Aufruf von `AddonRuntime.close()` | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder Abbaureihenfolge |
+| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Veröffentlichung gemeinsamer Dienste sowie die heutige Koordination prozessweiter NVDA-Randabläufe für Verbindungen, Claims, Zwischenablage, Netzwerkereignisse, Dialoge und Präsentationsübergänge | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, konfigurierbare Skriptmetadaten oder eine zweite Kopie fachlicher Laufzeitzustände |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, kontextbezogene Gesten des Sprachexplorationsmodus und deren physischer Tastenlebenszyklus, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl, eigene Gestenauflösung oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
+
+Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
+Overlayauswahl, `nextHandler`, konfigurierbare NVDA-Skripte und Eingabebeobachter
+liegen im Windows-Terminal-AppModule. Die konkrete Global-Plugin-Klasse ist
+gegenwärtig jedoch nicht nur eine minimale Kompositionswurzel, sondern zugleich
+ein prozessweiter NVDA-Randcontroller. Gemeinsam genutzte Abläufe würden bei
+einer weiteren Zerlegung in gewöhnliche prozessweite Controller oder Dienste
+wandern, nicht in das AppModule. Eine aktuelle Bestandsaufnahme und die
+empfohlene schrittweise Weiterentwicklung stehen in [Anhang C](global-plugin-appmodule-audit-2026-08-04.md).
 
 `AddonRuntime.start()` registriert zuerst den Profilcallback, danach
 Einstellungen und Werkzeuge und veröffentlicht erst zuletzt den
@@ -297,6 +306,12 @@ unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
 
+„Begrenzt“ bezeichnet hier die Vertrauens- und Besitzgrenze, nicht eine
+besonders kleine Methodenoberfläche: Der konkrete Dienst bündelt heute die
+vom AppModule, vom Braillemodul und von eingehenden Entwicklerkontexten
+benötigten Operationen. Verbraucherbezogene Teilverträge sind eine mögliche
+spätere Vereinfachung, wenn sie Abhängigkeiten und Tests tatsächlich schärfen.
+
 Die prozessweite Dienstinstanz liegt in der neutralen `service_registry.py`.
 Das Global Plugin veröffentlicht und entfernt den Dienst über denselben
 identitätsgeprüften `ServiceRegistrar`, den AppModule und Braillemodul nur
@@ -326,7 +341,13 @@ Plugin verbindet seine unveränderlichen Ergebnisse nur mit NVDAs
 Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Es hält keine
 schreibbare Kopie des Claimzustands. Der Fokusverlust der optionalen modalen
 Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
-Reaktivierung überbrückt; ein abweichender Terminalfokus verwirft sie.
+Reaktivierung überbrückt. Falls Windows Terminal nach dem Schließen kein
+neues Fokusereignis liefert, prüft ein kurzer, begrenzter Hauptthread-Ablauf
+den aktuellen NVDA-Fokus und stößt nur für dasselbe Control, dasselbe
+AppModule, denselben Adapter-Token und dieselbe Instanzauswahl den normalen
+Fokuskontext-Handshake an. Ein abweichender Terminalfokus verwirft die
+Reaktivierung; ein ausbleibender oder unklarer Fokus lässt die native Ausgabe
+offen.
 
 Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
 `ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren
@@ -357,10 +378,11 @@ verwenden diese Controllergrenze. NVDAs eigener Wortpuffer und die
 Sprachausgabe bleiben am NVDA-Rand.
 
 Die Runtime jeder verwalteten Neovim-Instanz enthält außerdem ihren eigenen
-Braille-Explorationscontroller und ihren eigenen Controller für nummerierte
-native Auswahllisten. Damit kann ein Tab oder Pane den gewählten Braillemodus
-oder den Vorschlagszustand einer anderen lokalen oder entfernten Sitzung weder
-anzeigen noch verändern. Ein Runtimewechsel aktiviert nur den Zustand der
+Braille-Explorationscontroller, ihren eigenen Controller für nummerierte
+native Auswahllisten und einen `HeldContextController` für lesende Funktions-
+und Diagnoseabfragen. Damit kann ein Tab oder Pane den gewählten Braillemodus,
+Vorschlagszustand oder gehaltenen Entwicklerkontext einer anderen lokalen oder
+entfernten Sitzung weder anzeigen noch verändern. Ein Runtimewechsel aktiviert nur den Zustand der
 zugeordneten Sitzung. Virtuelle Zeile, Lesespalte und NVDAs öffentlicher
 `windowStartPos` bleiben in dieser Runtime erhalten. Mehrfach-Routingfolgen und
 Fokusmeldungen werden beim Controlwechsel verworfen. Ein Disconnect setzt
@@ -692,6 +714,55 @@ nullbasierte Index wird bestätigt; angezeigter Text wird niemals als Eingabe
 zurückgesendet. Loslassen der NVDA-Taste verwirft die lokale Auswahl, nicht
 Neovims Prompt. Weitere Abfragetypen benötigen jeweils einen eigenen strikten
 Adapter.
+
+### Automatischer aktiver Parameter
+
+`call_context.lua` löst Aufrufgrenzen unabhängig von Darstellung oder
+Completion-Plugin auf. Tree-sitter markiert, soweit verfügbar, Zeichenketten,
+Kommentare und sprachspezifische Textknoten; ein begrenzter Lexer ergänzt
+unvollständigen Code und dient als konservativer Rückfall. Der Scan ist auf
+512 Zeilen, 128 KiB und 20.000 Baumknoten begrenzt. Nicht eindeutige oder zu
+große Kontexte liefern kein Ergebnis. Verschachtelung wird über paarweise
+Klammern aufgelöst, sodass im Einfügemodus der innerste umschließende Aufruf
+gilt. Die manuelle Abfrage verwendet denselben Resolver mit strengeren
+Positionsregeln.
+
+`signature_help.lua` reagiert im Einfügemodus auf `InsertEnter`,
+`CursorMovedI`, `TextChangedI` und `CompleteDone`, bündelt Ereignisse für 120
+ms und fragt Neovims öffentliche `textDocument/signatureHelp`-Schnittstelle
+ab. Auslöse- und Neuauslösezeichen sowie die begrenzte vorherige
+`activeSignatureHelp` folgen dem LSP-Vertrag. Jede Anfrage trägt eine
+Generation und eine exakte Momentaufnahme aus Buffer, Fenster, Textstand,
+Modus, Cursor und Aufrufidentität; spätere Änderungen brechen die Anfrage ab
+oder verwerfen ihre Antwort. Bei mehreren Clients wird deterministisch das
+erste gültige begrenzte Ergebnis verwendet.
+
+Die Serverwerte `activeSignature` und `activeParameter` sind maßgeblich; der
+Code zählt bewusst keine Kommas. Dedupliziert wird nach Aufruf, Signatur und
+Parameter. Deshalb bleibt Bewegung im selben Argument still, während die
+Rückkehr in einen bereits ausgefüllten früheren Parameter erneut spricht. Ein
+Signaturwechsel betrifft ausschließlich deren Parameterliste. Das validierte
+`activeParameterChanged`-Ereignis ist reine Sprache; die kanonische
+Brailleplanung bleibt beim Quelltext. Transport und NVDA-Hauptthread führen
+keine LSP-Abfrage aus.
+
+### Gehaltene Entwicklerkontexte
+
+Das Windows-Terminal-AppModule besitzt den physischen Lebenszyklus der
+NVDA-Taste und fängt nur die festen Gesten für Parameter- oder
+Diagnosenavigation ab. Der instanzbezogene `HeldContextController` korreliert
+die lesende Anfrage mit Fokus, Terminal-Control, Instanz, Buffer, Fenster,
+Tab, `changedtick`, Zeile und UTF-8-Bytespalte. Das Lua-Plugin liest
+Signaturhilfe, Hover oder `vim.diagnostic`, verändert aber weder Cursor noch
+Buffer. Steht der echte Cursor auf einem Funktionsnamen unmittelbar vor `(`
+oder auf dieser öffnenden Klammer, setzt das Plugin ausschließlich die
+LSP-Abfrageposition hinter die Klammer. Auf der zugehörigen schließenden
+Klammer bezeichnet die unveränderte LSP-Position bereits das Innere der
+Argumentliste. Damit liefern Server wie Pyright strukturierte Parameter statt
+nur Hovertext.
+Jede Abweichung vor der Antwort oder während der Anzeige verwirft den Zustand
+und stellt die normale Braillezeile wieder her. Transport-I/O bleibt im
+begrenzten `ControlDispatcher`.
 
 Für Braille verwendet der NVDA-Adapter den von NVDA vorgesehenen
 vorübergehenden Nachrichtenpuffer. Derselbe öffentliche Pfad wird im

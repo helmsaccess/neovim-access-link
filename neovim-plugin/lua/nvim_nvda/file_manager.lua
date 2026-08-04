@@ -1,4 +1,5 @@
 local M = {}
+local text = require("nvim_nvda.text")
 local adapters = {}
 local adapter_runtime = {}
 
@@ -20,61 +21,8 @@ local action_names = {
 }
 local action_results = { success = true, cancelled = true, failed = true }
 
-local function utf8_sequence_length(value, offset)
-  local first = value:byte(offset)
-  if not first then return nil end
-  if first <= 0x7f then return 1 end
-
-  local second = value:byte(offset + 1)
-  if first >= 0xc2 and first <= 0xdf then
-    return second and second >= 0x80 and second <= 0xbf and 2 or nil
-  end
-
-  local third = value:byte(offset + 2)
-  if first == 0xe0 then
-    return second and second >= 0xa0 and second <= 0xbf
-      and third and third >= 0x80 and third <= 0xbf and 3 or nil
-  end
-  if (first >= 0xe1 and first <= 0xec) or (first >= 0xee and first <= 0xef) then
-    return second and second >= 0x80 and second <= 0xbf
-      and third and third >= 0x80 and third <= 0xbf and 3 or nil
-  end
-  if first == 0xed then
-    return second and second >= 0x80 and second <= 0x9f
-      and third and third >= 0x80 and third <= 0xbf and 3 or nil
-  end
-
-  local fourth = value:byte(offset + 3)
-  if first == 0xf0 then
-    return second and second >= 0x90 and second <= 0xbf
-      and third and third >= 0x80 and third <= 0xbf
-      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
-  end
-  if first >= 0xf1 and first <= 0xf3 then
-    return second and second >= 0x80 and second <= 0xbf
-      and third and third >= 0x80 and third <= 0xbf
-      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
-  end
-  if first == 0xf4 then
-    return second and second >= 0x80 and second <= 0x8f
-      and third and third >= 0x80 and third <= 0xbf
-      and fourth and fourth >= 0x80 and fourth <= 0xbf and 4 or nil
-  end
-  return nil
-end
-
 local function bounded(value, maximum)
-  if type(value) ~= "string" then return "" end
-  local offset, boundary = 1, 0
-  while offset <= #value do
-    local sequence_length = utf8_sequence_length(value, offset)
-    if not sequence_length then return "" end
-    local sequence_end = offset + sequence_length - 1
-    if sequence_end > maximum then break end
-    boundary = sequence_end
-    offset = sequence_end + 1
-  end
-  return boundary == #value and value or value:sub(1, boundary)
+  return text.bounded(value, maximum)
 end
 
 local function normalize_entry(entry)
@@ -216,7 +164,7 @@ local function netrw_displayed_name(line)
   if style == 0 then
     displayed = line:gsub("\t%s*%-%->.*$", "")
   elseif style == 1 then
-    displayed = line:match("^(.*%S)%s%s+%-?%d+%s")
+    displayed = line:match("^(.-%S)%s%s+%-?%d+%s")
   elseif style == 2 then
     displayed = netrw_wide_column(line)
   elseif style == 3 then
