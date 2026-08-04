@@ -19,6 +19,12 @@ current structured line, or the existing file/special context with mode and
 connection name. Existing context is the default. The choice does not alter
 focus correlation, structured Braille, or the existing mode-sound settings.
 
+The top-level profile-aware Boolean `automaticParameterHints` defaults to
+`true`. It permits only speech presentation of validated
+`activeParameterChanged` events. With `false`, automatic parameter transitions
+remain silent; held developer contexts and persistent Braille planning are
+unchanged. The value causes no network or LSP work on NVDA's main thread.
+
 The top-level profile-aware integer `brailleSuggestionStart` is one-based and
 defaults to 1. It positions only the transient text of an active spelling
 choice. The NVDA Braille adapter compares it with

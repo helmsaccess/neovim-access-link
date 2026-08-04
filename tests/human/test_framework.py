@@ -125,7 +125,12 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			[step["id"] for step in plans["diagnostics"]["steps"]],
 		)
 		self.assertEqual(
-			["status-presentation", "held-parameters", "completion-presentation"],
+			[
+				"status-presentation",
+				"automatic-parameters",
+				"held-parameters",
+				"completion-presentation",
+			],
 			[step["id"] for step in plans["lsp-native"]["steps"]],
 		)
 		self.assertEqual(1, len(plans["focus-isolation"]["steps"]))
@@ -158,6 +163,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn("Invoke-Expression", runner)
 		self.assertIn("Sort-Object { [int]$_.order }", runner)
 		self.assertIn("Invoke-TestNvim -Profile ([string]$plan.profile)", runner)
+		self.assertIn('-StepId ([string]$step.id)', runner)
+		self.assertIn('"ACCESS_LINK_HUMAN_STEP_ID"', runner)
+		self.assertIn('$env:ACCESS_LINK_HUMAN_STEP_ID = $StepId', runner)
 		self.assertNotIn('"install", "--prefix", $NodeRoot', runner)
 		self.assertIn('"pack", "--pack-destination", $PackageRoot, "--ignore-scripts"', runner)
 		self.assertIn("Get-FileHash -LiteralPath $archive -Algorithm SHA512", runner)
@@ -216,6 +224,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_STEP_ID", configuration)
 		self.assertIn("{ 1, 15 }", configuration)
 		self.assertIn('lint.try_lint(linter_name, { cwd = process_directory })', configuration)
 		self.assertIn('diagnostics_ready = "Diagnosen bereit:', configuration)
@@ -257,6 +266,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('cmp.event:on("confirm_done"', configuration)
 		self.assertIn('completion_parentheses.apply(event.entry.completion_item)', configuration)
 		self.assertIn('"<F4>", cycle_callable_fixture_position', configuration)
+		self.assertIn('"<F3>", prepare_current_probe', configuration)
+		self.assertNotIn('"<F11>"', configuration)
+		self.assertIn('step_id == "automatic-parameters"', configuration)
+		self.assertIn('step_id == "completion-presentation"', configuration)
+		self.assertIn('local marker = "automatic_total = calculate_total()"', configuration)
 		self.assertIn('for index, position in ipairs(positions)', configuration)
 		self.assertLess(
 			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
@@ -282,12 +296,17 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		for language in ("de", "en"):
 			with self.subTest(language=language):
 				parameter_expectation = locales[language]["plan.lspNative.parameters.expected"]
+				automatic_expectation = locales[language][
+					"plan.lspNative.automaticParameters.expected"
+				]
 				diagnostic_expectation = locales[language]["plan.diagnostics.held.expected"]
 				earcon_expectation = locales[language]["plan.diagnostics.navigation.expected"]
 				for value in ("price", "quantity", "discount", "j/k", "h/l"):
 					self.assertIn(value, parameter_expectation)
 				for value in ("path", "sep", "j/k"):
 					self.assertIn(value, diagnostic_expectation)
+				for value in ("price", "quantity", "discount", "Braille"):
+					self.assertIn(value, automatic_expectation)
 				for value in ("five", "fünf"):
 					if value in earcon_expectation.lower():
 						break

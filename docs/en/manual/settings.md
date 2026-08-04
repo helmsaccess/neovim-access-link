@@ -54,6 +54,21 @@ and then only its first character. Entering direct terminal input with `i`
 subsequently presents the complete line at the terminal cursor independently
 of that entry choice; the Insert/focus cue still follows feedback settings.
 
+## Automatic active-parameter speech
+
+The profile-aware “Automatically speak the active function parameter while
+typing” checkbox is enabled by default. In Insert mode it reports the
+language-server-selected parameter when the cursor enters a function argument
+list or changes arguments. Returning to an already filled argument speaks it
+again; motion within the same argument stays silent. This is speech-only and
+does not change the Braille display.
+
+The checkbox is independent of action cues on the Feedback tab because it is
+orientation from LSP signature data, not confirmation of an editor action.
+When disabled, or when the server supplies no unambiguous active parameter,
+there is no automatic announcement. The explicit held `NVDA+Shift+P` query
+remains available.
+
 ## Feedback
 
 Global action feedback and individual actions use Off, Speech, Tones, or

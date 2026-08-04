@@ -35,6 +35,40 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"pluginCapabilities": ["activeParameterHints"]}
+		bridge._active_numbered_choice = None
+		bridge.transport = transport
+		payload = {
+			"mode": "insert",
+			"modeRaw": "i",
+			"pluginCapabilities": ["activeParameterHints"],
+			"bufferId": 1,
+			"windowId": 2,
+			"changedtick": 3,
+			"cursor": {"line": 4, "byteColumn": 5},
+			"callName": "sum",
+			"callStartLine": 4,
+			"callStartByteColumn": 3,
+			"signature": "sum(first, second)",
+			"signatureIndex": 1,
+			"signatureCount": 1,
+			"activeParameter": 1,
+			"parameterCount": 2,
+			"parameter": "first",
+			"hintReason": "callEntered",
+		}
+		bridge._on_nvim_event("activeParameterChanged", payload)
+		self.assertEqual("activeParameterChanged", transport.events[-1]["type"])
+		bridge._on_nvim_event("activeParameterChanged", {**payload, "parameterCount": 0})
+		self.assertEqual(1, len(transport.events))
+		bridge._state = {"pluginCapabilities": []}
+		bridge._on_nvim_event("activeParameterChanged", payload)
+		self.assertEqual(1, len(transport.events))
+
 	def test_cursor_routing_uses_only_fixed_validated_plugin_entry_point(self) -> None:
 		notifications = []
 		bridge = Bridge.__new__(Bridge)

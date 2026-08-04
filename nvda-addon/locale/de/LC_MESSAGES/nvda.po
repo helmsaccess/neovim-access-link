@@ -4,85 +4,85 @@
 msgid ""
 msgstr "Project-Id-Version: Neovim Access Link\nReport-Msgid-Bugs-To: https://github.com/helmsaccess/neovim-access-link/issues\nPO-Revision-Date: 2026-07-18 00:00+0200\nLast-Translator: Neovim Access Link contributors\nLanguage-Team: German\nLanguage: de\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:643
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:658
 msgid "&Add connection..."
 msgstr "Verbindung &hinzufügen..."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:239
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:240
 msgid "&Deleting text:"
 msgstr "Text &löschen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:647
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:662
 msgid "&Edit connection..."
 msgstr "Verbindung &bearbeiten..."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:242
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:243
 msgid "&File boundaries:"
 msgstr "&Dateigrenzen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:237
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:238
 msgid "&Global action feedback:"
 msgstr "&Globale Aktionsrückmeldung:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:564
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:579
 msgid "&Line navigation:"
 msgstr "&Zeilennavigation:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:651
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:666
 msgid "&Remove connection"
 msgstr "Verbindung &entfernen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:240
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:241
 msgid "&Replacing text:"
 msgstr "Text &ersetzen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:413
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:428
 msgid "&Start triple-press line action at:"
 msgstr "Zeilenaktion bei Dreifachbetätigung &beginnen an:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:549
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:564
 msgid "&Word navigation:"
 msgstr "&Wortnavigation:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1032 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1170
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1048 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1186
 #, python-brace-format
 msgid "- {name} ({target})"
 msgstr "- {name} ({target})"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1040 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1178
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1056 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1194
 #, python-brace-format
 msgid "- {name} ({target}): {reason}"
 msgstr "- {name} ({target}): {reason}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:784
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:800
 msgid ": Install or update components..."
 msgstr ": Komponenten installieren oder aktualisieren..."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:791
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:807
 msgid ": Remove components..."
 msgstr ": Komponenten entfernen..."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1170
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1174
 msgid "Activate Neovim accessibility before connecting a terminal"
 msgstr "Neovim-Barrierefreiheit vor dem Verbinden eines Terminals aktivieren"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1318
+#: nvda-addon/core/nvim_nvda_core/speech.py:1365
 msgid "add"
 msgstr "Hinzufügen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:135
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:136
 msgid "Add Linux connection"
 msgstr "Linux-Verbindung hinzufügen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1312
+#: nvda-addon/core/nvim_nvda_core/speech.py:1359
 msgid "added"
 msgstr "hinzugefügt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:606
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:621
 msgid "After &line exploration in speech exploration mode:"
 msgstr "Nach &Zeilenexploration im Sprachexplorationsmodus:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:591
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:606
 msgid "After &word exploration in speech exploration mode:"
 msgstr "Nach &Wortexploration im Sprachexplorationsmodus:"
 
@@ -94,47 +94,51 @@ msgstr "alle Faltungen geschlossen"
 msgid "all folds opened"
 msgstr "alle Faltungen geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:114
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:115
 msgid "Ask for the SSH password when connecting (password is not saved)"
 msgstr "Beim Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht gespeichert)"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1450
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:350
+msgid "Automatically speak the active function &parameter while typing"
+msgstr "Aktiven Funktions&parameter beim Tippen automatisch ansagen"
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1497
 msgid "beginning of file"
 msgstr "Dateianfang"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:418
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:433
 msgid "Beginning of line"
 msgstr "Zeilenanfang"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1149 nvda-addon/core/nvim_nvda_core/speech.py:1382 nvda-addon/core/nvim_nvda_core/speech.py:1458 nvda-addon/core/nvim_nvda_core/speech.py:435 nvda-addon/core/nvim_nvda_core/speech.py:786 nvda-addon/core/nvim_nvda_core/speech.py:833 nvda-addon/core/nvim_nvda_core/speech.py:886
+#: nvda-addon/core/nvim_nvda_core/speech.py:1196 nvda-addon/core/nvim_nvda_core/speech.py:1429 nvda-addon/core/nvim_nvda_core/speech.py:1505 nvda-addon/core/nvim_nvda_core/speech.py:435 nvda-addon/core/nvim_nvda_core/speech.py:833 nvda-addon/core/nvim_nvda_core/speech.py:880 nvda-addon/core/nvim_nvda_core/speech.py:933
 msgid "blank"
 msgstr "leer"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1180
+#: nvda-addon/core/nvim_nvda_core/speech.py:1227
 msgid "block device"
 msgstr "Blockgerät"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:312
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:313
 msgid "Both Speech and Tones"
 msgstr "Sprache und Töne"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:280 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:287
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:281 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:288
 msgid "Braille"
 msgstr "Braille"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:660
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:664
 msgid "Braille cursor mode"
 msgstr "Braille-Cursormodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:361
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:376
 msgid "Braille display follows the &speech exploration mode position"
 msgstr "Braillezeile folgt der &Position des Sprachexplorationsmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:657
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:661
 msgid "Braille exploration mode"
 msgstr "Braille-Explorationsmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:653 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:670
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:657 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:674
 msgid "Braille exploration mode unavailable"
 msgstr "Braille-Explorationsmodus nicht verfügbar"
 
@@ -142,35 +146,35 @@ msgstr "Braille-Explorationsmodus nicht verfügbar"
 msgid "canceled"
 msgstr "abgebrochen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1361
+#: nvda-addon/core/nvim_nvda_core/speech.py:1408
 msgid "cancelled"
 msgstr "abgebrochen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:799
+#: nvda-addon/core/nvim_nvda_core/speech.py:846
 msgid "carriage return"
 msgstr "Wagenrücklauf"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1318
+#: nvda-addon/core/nvim_nvda_core/speech.py:1365
 msgid "change"
 msgstr "Änderung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:404
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:419
 msgid "Change to end of line (c$)"
 msgstr "Bis Zeilenende ändern (c$)"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:391
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:406
 msgid "Change word (cw)"
 msgstr "Wort ändern (cw)"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1312
+#: nvda-addon/core/nvim_nvda_core/speech.py:1359
 msgid "changed"
 msgstr "geändert"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1179
+#: nvda-addon/core/nvim_nvda_core/speech.py:1226
 msgid "character device"
 msgstr "Zeichengerät"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:702
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:706
 msgid "Checking local and saved Neovim connections"
 msgstr "Lokale und gespeicherte Neovim-Verbindungen werden geprüft"
 
@@ -182,15 +186,15 @@ msgstr "Einen Server auswählen und dieses Terminal mit einer neuen Neovim-Sitzu
 msgid "class"
 msgstr "Klasse"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1258
+#: nvda-addon/core/nvim_nvda_core/speech.py:1305
 msgid "clipboard cleared"
 msgstr "Zwischenablage geleert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:859
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:875
 msgid "Close Neovim on the selected targets, then choose where to remove the components. Other Neovim plugins and configuration are preserved."
 msgstr "Schließen Sie Neovim auf den ausgewählten Zielen und wählen Sie dann aus, wo die Komponenten entfernt werden sollen. Andere Neovim-Plugins und Konfigurationen bleiben erhalten."
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1201 nvda-addon/core/nvim_nvda_core/speech.py:1262
+#: nvda-addon/core/nvim_nvda_core/speech.py:1248 nvda-addon/core/nvim_nvda_core/speech.py:1309
 msgid "collapsed"
 msgstr "eingeklappt"
 
@@ -202,12 +206,12 @@ msgstr "Farbe"
 msgid "command-line mode"
 msgstr "Befehlszeilenmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1311
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1315
 #, python-brace-format
 msgid "Configure a Neovim connection before using {key} pairing"
 msgstr "Konfigurieren Sie eine Neovim-Verbindung, bevor Sie die Zuordnung mit {key} verwenden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1178
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1182
 msgid "Connect terminal to Neovim"
 msgstr "Terminal mit Neovim verbinden"
 
@@ -215,43 +219,43 @@ msgstr "Terminal mit Neovim verbinden"
 msgid "connected"
 msgstr "verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1284
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1288
 msgid "Connecting the focused local Neovim session"
 msgstr "Fokussierte lokale Neovim-Sitzung wird verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1297 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1316
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1301 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1320
 msgid "Connecting the focused Neovim session"
 msgstr "Fokussierte Neovim-Sitzung wird verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:158
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:159
 msgid "Connection name:"
 msgstr "Verbindungsname:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2014
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2018
 msgid "Connection remembered for this terminal tab until NVDA exits"
 msgstr "Verbindung für diesen Terminal-Tab bis zum Beenden von NVDA gemerkt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1947
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1951
 msgid "Connection selection requires a focused terminal"
 msgstr "Zum Auswählen einer Verbindung muss ein Terminal fokussiert sein"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:282 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:288
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:283 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:289
 msgid "Connections"
 msgstr "Verbindungen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:880
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:896
 msgid "Connections to remove components from"
 msgstr "Verbindungen, von denen Komponenten entfernt werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:872
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:888
 msgid "Connections to remove components from:"
 msgstr "Verbindungen, von denen Komponenten entfernt werden:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:880
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:896
 msgid "Connections to update"
 msgstr "Zu aktualisierende Verbindungen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:872
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:888
 msgid "Connections to update:"
 msgstr "Zu aktualisierende Verbindungen:"
 
@@ -263,19 +267,19 @@ msgstr "Konstante"
 msgid "constructor"
 msgstr "Konstruktor"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1195 nvda-addon/core/nvim_nvda_core/speech.py:1254 nvda-addon/core/nvim_nvda_core/speech.py:1313
+#: nvda-addon/core/nvim_nvda_core/speech.py:1242 nvda-addon/core/nvim_nvda_core/speech.py:1301 nvda-addon/core/nvim_nvda_core/speech.py:1360
 msgid "copied"
 msgstr "kopiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2514
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2518
 msgid "Copied from Neovim"
 msgstr "Aus Neovim kopiert"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1319
+#: nvda-addon/core/nvim_nvda_core/speech.py:1366
 msgid "copy"
 msgstr "Kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:247
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:248
 msgid "Copy and &paste:"
 msgstr "Kopieren und &Einfügen:"
 
@@ -291,114 +295,114 @@ msgstr "Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertrag
 msgid "Copy the active Neovim Visual selection to the Windows clipboard"
 msgstr "Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1019
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1023
 msgid "Could not ask Neovim to leave direct terminal input"
 msgstr "Neovim konnte nicht zum Verlassen der direkten Terminaleingabe aufgefordert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:926
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:930
 msgid "Could not copy Neovim diagnostic report"
 msgstr "Neovim-Diagnosebericht konnte nicht kopiert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1378
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1382
 msgid "Could not list local Neovim sessions"
 msgstr "Lokale Neovim-Sitzungen konnten nicht aufgelistet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1709
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1713
 #, python-brace-format
 msgid "Could not list Neovim sessions on {name}"
 msgstr "Neovim-Sitzungen auf {name} konnten nicht aufgelistet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1035
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1039
 msgid "Could not read text from the Windows clipboard"
 msgstr "Text aus der Windows-Zwischenablage konnte nicht gelesen werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1067
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1071
 msgid "Could not request text from the active Neovim session"
 msgstr "Text konnte nicht von der aktiven Neovim-Sitzung angefordert werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:959 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:992
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:963 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:996
 msgid "Could not send text to the active Neovim session"
 msgstr "Text konnte nicht an die aktive Neovim-Sitzung gesendet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1531
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1535
 msgid "Could not start the local Neovim connection"
 msgstr "Lokale Neovim-Verbindung konnte nicht gestartet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1941
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1945
 msgid "Could not start the Neovim connection"
 msgstr "Neovim-Verbindung konnte nicht gestartet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2531
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2535
 msgid "Could not write text to the Windows clipboard"
 msgstr "Text konnte nicht in die Windows-Zwischenablage geschrieben werden"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1319
+#: nvda-addon/core/nvim_nvda_core/speech.py:1366
 msgid "create"
 msgstr "Erstellen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1313
+#: nvda-addon/core/nvim_nvda_core/speech.py:1360
 msgid "created"
 msgstr "erstellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:243
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:244
 msgid "Crossing into another &line:"
 msgstr "Wechsel in eine andere &Zeile:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:335
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:336
 msgid "Current context, mode and connection name"
 msgstr "Aktueller Kontext, Modus und Verbindungsname"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:334
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:335
 msgid "Current line"
 msgstr "Aktuelle Zeile"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1197 nvda-addon/core/nvim_nvda_core/speech.py:1256
+#: nvda-addon/core/nvim_nvda_core/speech.py:1244 nvda-addon/core/nvim_nvda_core/speech.py:1303
 msgid "cut"
 msgstr "ausgeschnitten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3083
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3087
 #, python-brace-format
 msgid "D: {documentation}"
 msgstr "D: {documentation}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1320
+#: nvda-addon/core/nvim_nvda_core/speech.py:1367
 msgid "delete"
 msgstr "Löschen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:405
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:420
 msgid "Delete to end of line (d$)"
 msgstr "Bis Zeilenende löschen (d$)"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:392
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:407
 msgid "Delete word (dw)"
 msgstr "Wort löschen (dw)"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1314
+#: nvda-addon/core/nvim_nvda_core/speech.py:1361
 msgid "deleted"
 msgstr "gelöscht"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1587 nvda-addon/core/nvim_nvda_core/speech.py:1633 nvda-addon/core/nvim_nvda_core/speech.py:423
+#: nvda-addon/core/nvim_nvda_core/speech.py:1634 nvda-addon/core/nvim_nvda_core/speech.py:1680 nvda-addon/core/nvim_nvda_core/speech.py:423
 #, python-brace-format
 msgid "deleted {text}"
 msgstr "{text} gelöscht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:464
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:479
 msgid "Developer information"
 msgstr "Entwicklerinformationen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3108 nvda-addon/core/nvim_nvda_core/speech.py:1526
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3112 nvda-addon/core/nvim_nvda_core/speech.py:1573
 msgid "diagnostic"
 msgstr "Diagnose"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:246
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:247
 msgid "Diagnostics at the cursor &position:"
 msgstr "Diagnosen an der Cursor&position:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:245
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:246
 msgid "Diagnostics when entering a &line:"
 msgstr "Diagnosen beim Betreten einer &Zeile:"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1176
+#: nvda-addon/core/nvim_nvda_core/speech.py:1223
 msgid "directory"
 msgstr "Verzeichnis"
 
@@ -410,28 +414,28 @@ msgstr "Ausgewählte Neovim-Verbindungsinstanz trennen"
 msgid "disconnected"
 msgstr "getrennt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3079
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3083
 #, python-brace-format
 msgid "Documentation: {documentation}"
 msgstr "Dokumentation: {documentation}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:387
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:402
 msgid "Double routing press on a &word:"
 msgstr "Routingtaste auf einem &Wort zweimal drücken:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:135
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:136
 msgid "Edit Linux connection"
 msgstr "Linux-Verbindung bearbeiten"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1018
+#: nvda-addon/core/nvim_nvda_core/speech.py:1065
 msgid "empty"
 msgstr "leer"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1452
+#: nvda-addon/core/nvim_nvda_core/speech.py:1499
 msgid "end of file"
 msgstr "Dateiende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3199
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3203
 #, python-brace-format
 msgid "Enter the SSH password for {profile}. It will not be saved."
 msgstr "Geben Sie das SSH-Passwort für {profile} ein. Es wird nicht gespeichert."
@@ -444,7 +448,7 @@ msgstr "Aufzählung"
 msgid "enum member"
 msgstr "Aufzählungselement"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3104
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3108
 msgid "error"
 msgstr "Fehler"
 
@@ -452,20 +456,20 @@ msgstr "Fehler"
 msgid "event"
 msgstr "Ereignis"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1199 nvda-addon/core/nvim_nvda_core/speech.py:1262
+#: nvda-addon/core/nvim_nvda_core/speech.py:1246 nvda-addon/core/nvim_nvda_core/speech.py:1309
 msgid "expanded"
 msgstr "ausgeklappt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1361
+#: nvda-addon/core/nvim_nvda_core/speech.py:1408
 msgid "failed"
 msgstr "fehlgeschlagen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1038 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1176
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1054 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1192
 #, python-brace-format
 msgid "Failed: {count}"
 msgstr "Fehlgeschlagen: {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:276 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:285
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:277 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:286
 msgid "Feedback"
 msgstr "Rückmeldung"
 
@@ -473,24 +477,24 @@ msgstr "Rückmeldung"
 msgid "field"
 msgstr "Feld"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1176 nvda-addon/core/nvim_nvda_core/speech.py:43
+#: nvda-addon/core/nvim_nvda_core/speech.py:1223 nvda-addon/core/nvim_nvda_core/speech.py:43
 msgid "file"
 msgstr "Datei"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1001 nvda-addon/core/nvim_nvda_core/speech.py:1060
+#: nvda-addon/core/nvim_nvda_core/speech.py:1048 nvda-addon/core/nvim_nvda_core/speech.py:1107
 msgid "file manager"
 msgstr "Dateimanager"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1089
+#: nvda-addon/core/nvim_nvda_core/speech.py:1136
 #, python-brace-format
 msgid "file {filename}"
 msgstr "Datei {filename}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1352
+#: nvda-addon/core/nvim_nvda_core/speech.py:1399
 msgid "file-manager action"
 msgstr "Dateimanageraktion"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:417
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:432
 msgid "First non-blank character"
 msgstr "Erstes Zeichen nach der Einrückung"
 
@@ -530,35 +534,35 @@ msgstr "Temporäre Neovim-Verbindung für das fokussierte Terminal vergessen"
 msgid "function"
 msgstr "Funktion"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:274 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:284
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:275 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:285
 msgid "General"
 msgstr "Allgemein"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:308
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:309
 msgid "Global action feedback"
 msgstr "Globale Aktionsrückmeldung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:323
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:325
 msgid "grammar error"
 msgstr "Grammatikfehler"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1036 nvda-addon/core/nvim_nvda_core/speech.py:1083
+#: nvda-addon/core/nvim_nvda_core/speech.py:1083 nvda-addon/core/nvim_nvda_core/speech.py:1130
 msgid "help"
 msgstr "Hilfe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3107
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3111
 msgid "hint"
 msgstr "Hinweis"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:493
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:508
 msgid "Individual actions"
 msgstr "Einzelne Aktionen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3106
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3110
 msgid "information"
 msgstr "Information"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:238
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:239
 msgid "Insert and normal &mode changes:"
 msgstr "Wechsel zwischen Einfüge- und &Normalmodus:"
 
@@ -566,7 +570,7 @@ msgstr "Wechsel zwischen Einfüge- und &Normalmodus:"
 msgid "insert mode"
 msgstr "Einfügemodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:854
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:870
 msgid "Install or update Neovim components"
 msgstr "Neovim-Komponenten installieren oder aktualisieren"
 
@@ -574,11 +578,11 @@ msgstr "Neovim-Komponenten installieren oder aktualisieren"
 msgid "interface"
 msgstr "Schnittstelle"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:221 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:222
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:222 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:223
 msgid "Invalid connection"
 msgstr "Ungültige Verbindung"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1393
+#: nvda-addon/core/nvim_nvda_core/speech.py:1440
 msgid "invalid cursor position"
 msgstr "ungültige Cursorposition"
 
@@ -590,83 +594,83 @@ msgstr "Schlüsselwort"
 msgid "Leave direct input in the active Neovim terminal"
 msgstr "Direkte Eingabe im aktiven Neovim-Terminal verlassen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:241
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:242
 msgid "Line &boundaries:"
 msgstr "&Zeilengrenzen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:542
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:557
 msgid "Line and current word"
 msgstr "Zeile und aktuelles Wort"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:543
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:558
 msgid "Line and cursor character"
 msgstr "Zeile und Cursorzeichen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:799
+#: nvda-addon/core/nvim_nvda_core/speech.py:846
 msgid "line break"
 msgstr "Zeilenumbruch"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:199
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:201
 msgid "line end"
 msgstr "Zeilenende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:541
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:556
 msgid "Line only"
 msgstr "Nur Zeile"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:802
+#: nvda-addon/core/nvim_nvda_core/speech.py:849
 msgid "line separator"
 msgstr "Zeilentrenner"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:196
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:198
 msgid "line start"
 msgstr "Zeilenanfang"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1490 nvda-addon/core/nvim_nvda_core/speech.py:1525 nvda-addon/core/nvim_nvda_core/speech.py:792
+#: nvda-addon/core/nvim_nvda_core/speech.py:1537 nvda-addon/core/nvim_nvda_core/speech.py:1572 nvda-addon/core/nvim_nvda_core/speech.py:839
 #, python-brace-format
 msgid "line {line}"
 msgstr "Zeile {line}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:544
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:559
 msgid "Line, current word and cursor character"
 msgstr "Zeile, aktuelles Wort und Cursorzeichen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:165
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:166
 msgid "Linux username (optional when defined by SSH config):"
 msgstr "Linux-Benutzername (optional, wenn in der SSH-Konfiguration festgelegt):"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1524
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1528
 msgid "local"
 msgstr "lokal"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1206
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1210
 #, python-brace-format
 msgid "Local Neovim selected. Focus the desired Neovim session and press {key}"
 msgstr "Lokales Neovim ausgewählt. Fokussieren Sie die gewünschte Neovim-Sitzung und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1481
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1485
 msgid "Local Neovim session"
 msgstr "Lokale Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1516
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1520
 #, python-brace-format
 msgid "Local Neovim, {session}"
 msgstr "Lokales Neovim, {session}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1013 nvda-addon/core/nvim_nvda_core/speech.py:1075
+#: nvda-addon/core/nvim_nvda_core/speech.py:1060 nvda-addon/core/nvim_nvda_core/speech.py:1122
 msgid "location list"
 msgstr "Positionsliste"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1337
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1341
 msgid "Looking for local Neovim sessions"
 msgstr "Lokale Neovim-Sitzungen werden gesucht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1667
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1671
 #, python-brace-format
 msgid "Looking for Neovim sessions on {name}"
 msgstr "Neovim-Sitzungen auf {name} werden gesucht"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:575
+#: nvda-addon/core/nvim_nvda_core/speech.py:579
 #, python-brace-format
 msgid "LSP clients: {clients}"
 msgstr "LSP-Clients: {clients}"
@@ -691,20 +695,20 @@ msgstr "Marke {name} gesetzt, Zeile {line}"
 msgid "mark {name}, {text}"
 msgstr "Marke {name}, {text}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1193 nvda-addon/core/nvim_nvda_core/speech.py:1248
+#: nvda-addon/core/nvim_nvda_core/speech.py:1240 nvda-addon/core/nvim_nvda_core/speech.py:1295
 msgid "marked"
 msgstr "markiert"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:788
+#: nvda-addon/core/nvim_nvda_core/speech.py:835
 #, python-brace-format
 msgid "match {index} of {count}"
 msgstr "Treffer {index} von {count}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1487
+#: nvda-addon/core/nvim_nvda_core/speech.py:1534
 msgid "matching pair"
 msgstr "zusammengehöriges Paar"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1486
+#: nvda-addon/core/nvim_nvda_core/speech.py:1533
 #, python-brace-format
 msgid "matching {character}"
 msgstr "passendes {character}"
@@ -713,7 +717,7 @@ msgstr "passendes {character}"
 msgid "method"
 msgstr "Methode"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:244
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:245
 msgid "Missing matching &bracket:"
 msgstr "Fehlende zusammengehörige &Klammer:"
 
@@ -722,7 +726,7 @@ msgstr "Fehlende zusammengehörige &Klammer:"
 msgid "mode {mode}"
 msgstr "Modus {mode}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1045 nvda-addon/core/nvim_nvda_core/speech.py:1094
+#: nvda-addon/core/nvim_nvda_core/speech.py:1092 nvda-addon/core/nvim_nvda_core/speech.py:1141
 msgid "modified"
 msgstr "geändert"
 
@@ -730,163 +734,163 @@ msgstr "geändert"
 msgid "module"
 msgstr "Modul"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:896
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:900
 msgid "More than one Neovim session confirmed F12. Select the intended session."
 msgstr "Mehr als eine Neovim-Sitzung hat F12 bestätigt. Wählen Sie die gewünschte Sitzung aus."
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1320
+#: nvda-addon/core/nvim_nvda_core/speech.py:1367
 msgid "move"
 msgstr "Verschieben"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1314
+#: nvda-addon/core/nvim_nvda_core/speech.py:1361
 msgid "moved"
 msgstr "verschoben"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1484
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1488
 msgid "Multiple local Neovim sessions found; opening session selection"
 msgstr "Mehrere lokale Neovim-Sitzungen gefunden; Sitzungsauswahl wird geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:900
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:904
 msgid "Multiple Neovim sessions confirmed F12; opening session selection"
 msgstr "Mehrere Neovim-Sitzungen haben F12 bestätigt; Sitzungsauswahl wird geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1848
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1852
 #, python-brace-format
 msgid "Multiple Neovim sessions found on {name}; opening session selection"
 msgstr "Mehrere Neovim-Sitzungen auf {name} gefunden; Sitzungsauswahl wird geöffnet"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1178
+#: nvda-addon/core/nvim_nvda_core/speech.py:1225
 msgid "named pipe"
 msgstr "benannte Pipe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:278 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:286
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:279 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:287
 msgid "Navigation"
 msgstr "Navigation"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:645
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:649
 msgid "Neovim accessibility failed; normal terminal output restored"
 msgstr "Neovim-Barrierefreiheit fehlgeschlagen; normale Terminalausgabe wiederhergestellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:681
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:685
 msgid "Neovim accessibility off"
 msgstr "Neovim-Barrierefreiheit aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:699
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:703
 msgid "Neovim accessibility on"
 msgstr "Neovim-Barrierefreiheit an"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:712
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:716
 #, python-brace-format
 msgid "Neovim accessibility ready for {name}. Focus the desired Neovim session and press {key}"
 msgstr "Neovim-Barrierefreiheit für {name} bereit. Fokussieren Sie die gewünschte Neovim-Sitzung und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:687
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:691
 msgid "Neovim accessibility unavailable in this window"
 msgstr "Neovim-Barrierefreiheit ist in diesem Fenster nicht verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2580
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2584
 msgid "Neovim changed before terminal input could be left; try again"
 msgstr "Neovim hat sich geändert, bevor die Terminaleingabe verlassen werden konnte; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2521
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2525
 msgid "Neovim changed before the copy or paste completed; try again"
 msgstr "Neovim hat sich geändert, bevor das Kopieren oder Einfügen abgeschlossen war; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1167
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1183
 msgid "Neovim component removal completed."
 msgstr "Entfernen der Neovim-Komponenten abgeschlossen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1194
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1210
 #, python-brace-format
 msgid "Neovim component removal completed: {successful} successful, {failed} failed"
 msgstr "Entfernen der Neovim-Komponenten abgeschlossen: {successful} erfolgreich, {failed} fehlgeschlagen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1201
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1217
 msgid "Neovim component removal results"
 msgstr "Ergebnisse der Entfernung von Neovim-Komponenten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1029
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1045
 msgid "Neovim component update completed."
 msgstr "Aktualisierung der Neovim-Komponenten abgeschlossen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1059
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1075
 #, python-brace-format
 msgid "Neovim component update completed: {successful} successful, {failed} failed"
 msgstr "Aktualisierung der Neovim-Komponenten abgeschlossen: {successful} erfolgreich, {failed} fehlgeschlagen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1066
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1082
 msgid "Neovim component update results"
 msgstr "Ergebnisse der Aktualisierung von Neovim-Komponenten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1601
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1605
 #, python-brace-format
 msgid "Neovim connection disconnected: {name}"
 msgstr "Neovim-Verbindung getrennt: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2761
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2765
 msgid "Neovim connection lost; normal terminal output restored"
 msgstr "Neovim-Verbindung verloren; normale Terminalausgabe wiederhergestellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1431 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1794 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1961
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1435 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1798 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1965
 #, python-brace-format
 msgid "Neovim connection selected: {name}"
 msgstr "Neovim-Verbindung ausgewählt: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1560
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1564
 #, python-brace-format
 msgid "Neovim connection started: {name}"
 msgstr "Neovim-Verbindung gestartet: {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1266
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1270
 #, python-brace-format
 msgid "Neovim connections are still being checked. Press {key} again after the ready message"
 msgstr "Neovim-Verbindungen werden noch geprüft. Drücken Sie {key} nach der Bereitschaftsmeldung erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:830
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:834
 #, python-brace-format
 msgid "Neovim connections ready. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:823
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:827
 #, python-brace-format
 msgid "Neovim connections ready. Password connections require manual selection. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Passwortverbindungen müssen manuell ausgewählt werden. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:809
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:813
 #, python-brace-format
 msgid "Neovim connections ready. Some saved connections could not be checked, and password connections require manual selection. Focus Neovim and press {key}"
 msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nicht geprüft werden und Passwortverbindungen müssen manuell ausgewählt werden. Fokussieren Sie Neovim und drücken Sie {key}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:816
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:820
 #, python-brace-format
 msgid "Neovim connections ready. Some saved connections could not be checked. Focus Neovim and press {key}, or choose a connection manually"
 msgstr "Neovim-Verbindungen bereit. Einige gespeicherte Verbindungen konnten nicht geprüft werden. Fokussieren Sie Neovim und drücken Sie {key}, oder wählen Sie eine Verbindung manuell aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2535
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2539
 msgid "Neovim could not complete the copy or paste command"
 msgstr "Neovim konnte den Kopier- oder Einfügebefehl nicht abschließen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2582
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2586
 msgid "Neovim could not leave direct terminal input"
 msgstr "Neovim konnte die direkte Terminaleingabe nicht verlassen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2533
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2537
 msgid "Neovim could not replace its unnamed register"
 msgstr "Neovim konnte sein unbenanntes Register nicht ersetzen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:924
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:928
 msgid "Neovim diagnostic report copied"
 msgstr "Neovim-Diagnosebericht kopiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1124
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1128
 msgid "Neovim is not in direct terminal input"
 msgstr "Neovim befindet sich nicht in der direkten Terminaleingabe"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1517 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1617 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1838
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1521 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1621 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1842
 msgid "Neovim session"
 msgstr "Neovim-Sitzung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3200
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3204
 msgid "Neovim SSH password"
 msgstr "Neovim-SSH-Passwort"
 
@@ -895,7 +899,7 @@ msgstr "Neovim-SSH-Passwort"
 msgid "Neovim {connection}"
 msgstr "Neovim {connection}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:203
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:205
 msgid "new line"
 msgstr "neue Zeile"
 
@@ -903,20 +907,20 @@ msgstr "neue Zeile"
 msgid "next fold"
 msgstr "nächste Faltung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1004 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1079
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1008 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1083
 msgid "No active Neovim session is bound to this terminal"
 msgstr "Diesem Terminal ist keine aktive Neovim-Sitzung zugeordnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1712
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1716
 #, python-brace-format
 msgid "No active Neovim session was found on {name}"
 msgstr "Auf {name} wurde keine aktive Neovim-Sitzung gefunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:333
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:334
 msgid "No announcement"
 msgstr "Keine Ansage"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1160
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1164
 msgid "No completion or hover documentation available"
 msgstr "Keine Completion- oder Hover-Dokumentation verfügbar"
 
@@ -924,27 +928,27 @@ msgstr "Keine Completion- oder Hover-Dokumentation verfügbar"
 msgid "No completion selected"
 msgstr "Kein Vervollständigungsvorschlag ausgewählt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1502
+#: nvda-addon/core/nvim_nvda_core/speech.py:1549
 msgid "no diagnostic"
 msgstr "keine Diagnose"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3042
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3046
 msgid "No diagnostics on this line"
 msgstr "Keine Diagnosen in dieser Zeile"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3039
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3043
 msgid "No function parameters or hover information available"
 msgstr "Keine Funktionsparameter oder Hover-Informationen verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:512
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:516
 msgid "No item selected"
 msgstr "Kein Eintrag ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1391
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1395
 msgid "No local Neovim accessibility session was found. Install the local components and restart Neovim"
 msgstr "Keine lokale Sitzung für Neovim-Barrierefreiheit gefunden. Installieren Sie die lokalen Komponenten und starten Sie Neovim neu"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:578
+#: nvda-addon/core/nvim_nvda_core/speech.py:582
 msgid "No LSP client attached"
 msgstr "Kein LSP-Client verbunden"
 
@@ -952,23 +956,23 @@ msgstr "Kein LSP-Client verbunden"
 msgid "no matching pair"
 msgstr "kein zusammengehöriges Paar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1591
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1595
 msgid "No Neovim connection instance is selected for this terminal"
 msgstr "Für dieses Terminal ist keine Neovim-Verbindungsinstanz ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3092
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3096
 msgid "No parameters in this signature"
 msgstr "Keine Parameter in dieser Signatur"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:913
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:929
 msgid "No target selected"
 msgstr "Kein Ziel ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1608
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1612
 msgid "No temporary Neovim connection is remembered for this terminal"
 msgstr "Für dieses Terminal ist keine temporäre Neovim-Verbindung gemerkt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:800
+#: nvda-addon/core/nvim_nvda_core/speech.py:847
 msgid "nonbreaking space"
 msgstr "geschütztes Leerzeichen"
 
@@ -976,32 +980,32 @@ msgstr "geschütztes Leerzeichen"
 msgid "normal mode"
 msgstr "Normalmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:527
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:542
 msgid "Normal navigation"
 msgstr "Normale Navigation"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:120
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:121
 msgid "NVDA asks for the Linux account password when it connects. The password stays in memory only and the Linux SSH server must allow password login."
 msgstr "NVDA fragt beim Verbinden nach dem Passwort des Linux-Kontos. Das Passwort bleibt nur im Arbeitsspeicher und der Linux-SSH-Server muss die Passwortanmeldung erlauben."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:312 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:501
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:313 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:516
 msgid "Off"
 msgstr "Aus"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1101
+#: nvda-addon/core/nvim_nvda_core/speech.py:1148
 #, python-brace-format
 msgid "on {connection}"
 msgstr "auf {connection}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1187
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1191
 msgid "Opening the Neovim server selection"
 msgstr "Neovim-Serverauswahl wird geöffnet"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:817
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:833
 msgid "OpenSSH keys or configuration"
 msgstr "OpenSSH-Schlüssel oder -Konfiguration"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:124
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:125
 msgid "OpenSSH uses the normal Windows SSH configuration, a selected private key, or ssh-agent. Choose this when ssh from Windows already works without a password prompt."
 msgstr "OpenSSH verwendet die normale Windows-SSH-Konfiguration, einen ausgewählten privaten Schlüssel oder ssh-agent. Wählen Sie dies, wenn SSH unter Windows bereits ohne Passwortabfrage funktioniert."
 
@@ -1013,38 +1017,48 @@ msgstr "Operator"
 msgid "operator-pending mode"
 msgstr "Operator-ausstehend-Modus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:317
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:319
 msgid "out of grammar error"
 msgstr "Grammatikfehler-Ende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:320
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:322
 msgid "out of spelling error"
 msgstr "Rechtschreibfehler-Ende"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3070
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3074
 #, python-brace-format
 msgid "P {index} of {count}: {parameter}"
 msgstr "P {index} von {count}: {parameter}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:803
+#: nvda-addon/core/nvim_nvda_core/speech.py:850
 msgid "paragraph separator"
 msgstr "Absatztrenner"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3064
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3068
 #, python-brace-format
 msgid "Parameter {index} of {count}: {parameter}"
 msgstr "Parameter {index} von {count}: {parameter}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:750 nvda-addon/core/nvim_nvda_core/speech.py:769 nvda-addon/core/nvim_nvda_core/speech.py:771
+#: nvda-addon/core/nvim_nvda_core/speech.py:799
+#, python-brace-format
+msgid "parameter {index} of {count}: {parameter}"
+msgstr "Parameter {index} von {count}: {parameter}"
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:754 nvda-addon/core/nvim_nvda_core/speech.py:773 nvda-addon/core/nvim_nvda_core/speech.py:775
 #, python-brace-format
 msgid "parameter {parameter}"
 msgstr "Parameter {parameter}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:819
+#: nvda-addon/core/nvim_nvda_core/speech.py:806
+#, python-brace-format
+msgid "parameter: {parameter}"
+msgstr "Parameter: {parameter}"
+
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:835
 msgid "password prompt"
 msgstr "Passwortabfrage"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1108
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1112
 msgid "Paste is available only in Normal or Insert mode"
 msgstr "Einfügen ist nur im Normal- oder Einfügemodus verfügbar"
 
@@ -1052,7 +1066,7 @@ msgstr "Einfügen ist nur im Normal- oder Einfügemodus verfügbar"
 msgid "Paste Windows clipboard text into the active Neovim buffer"
 msgstr "Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2516
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2520
 msgid "Pasted into Neovim"
 msgstr "In Neovim eingefügt"
 
@@ -1060,7 +1074,7 @@ msgstr "In Neovim eingefügt"
 msgid "previous fold"
 msgstr "vorherige Faltung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:171
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:172
 msgid "Private key file (optional):"
 msgstr "Datei mit privatem Schlüssel (optional):"
 
@@ -1068,7 +1082,7 @@ msgstr "Datei mit privatem Schlüssel (optional):"
 msgid "property"
 msgstr "Eigenschaft"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1015 nvda-addon/core/nvim_nvda_core/speech.py:1077
+#: nvda-addon/core/nvim_nvda_core/speech.py:1062 nvda-addon/core/nvim_nvda_core/speech.py:1124
 msgid "quickfix"
 msgstr "Fehlerliste"
 
@@ -1076,7 +1090,7 @@ msgstr "Fehlerliste"
 msgid "Read documentation for the selected Neovim completion item or LSP hover"
 msgstr "Dokumentation für den ausgewählten Neovim-Completion-Eintrag oder LSP-Hover lesen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1047 nvda-addon/core/nvim_nvda_core/speech.py:1096
+#: nvda-addon/core/nvim_nvda_core/speech.py:1094 nvda-addon/core/nvim_nvda_core/speech.py:1143
 msgid "read only"
 msgstr "schreibgeschützt"
 
@@ -1094,29 +1108,29 @@ msgstr "Referenz"
 msgid "register {name}"
 msgstr "Register {name}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1990
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1994
 msgid "Remember temporary terminal connection"
 msgstr "Temporäre Terminalverbindung merken"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1986
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1990
 #, python-brace-format
 msgid "Remember this connection for this Windows Terminal tab until NVDA or Windows Terminal closes?\n\n{connection}"
 msgstr "Diese Verbindung für diesen Windows-Terminal-Tab merken, bis NVDA oder Windows Terminal beendet wird?\n\n{connection}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:854
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:870
 msgid "Remove Neovim components"
 msgstr "Neovim-Komponenten entfernen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1093
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1109
 #, python-brace-format
 msgid "Removing Neovim components from {count} targets"
 msgstr "Neovim-Komponenten werden von {count} Zielen entfernt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1321
+#: nvda-addon/core/nvim_nvda_core/speech.py:1368
 msgid "rename"
 msgstr "Umbenennen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1315
+#: nvda-addon/core/nvim_nvda_core/speech.py:1362
 msgid "renamed"
 msgstr "umbenannt"
 
@@ -1129,88 +1143,88 @@ msgstr "Ersetzungsmodus"
 msgid "replaced {text}"
 msgstr "{text} ersetzt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1048
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1064
 msgid "Restart Neovim once on successfully updated targets."
 msgstr "Starten Sie Neovim auf erfolgreich aktualisierten Zielen einmal neu."
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1321
+#: nvda-addon/core/nvim_nvda_core/speech.py:1368
 msgid "restore"
 msgstr "Wiederherstellen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1315
+#: nvda-addon/core/nvim_nvda_core/speech.py:1362
 msgid "restored"
 msgstr "wiederhergestellt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:390 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:403
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:405 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:418
 msgid "Route only"
 msgstr "Nur Cursor setzen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:416
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:431
 msgid "Routed position"
 msgstr "Routingposition"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:377
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:392
 msgid "Routing keys"
 msgstr "Routingtasten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3055
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3059
 #, python-brace-format
 msgid "S {index} of {count}: {signature}"
 msgstr "S {index} von {count}: {signature}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:142
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:143
 msgid "Save the Linux account used for Neovim. The same connection is used to install the Linux components and to exchange accessibility data."
 msgstr "Speichern Sie das für Neovim verwendete Linux-Konto. Dieselbe Verbindung wird zum Installieren der Linux-Komponenten und zum Austauschen der Barrierefreiheitsdaten verwendet."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:632
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:647
 msgid "Saved &connections:"
 msgstr "Gespeicherte &Verbindungen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1185
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1201
 msgid "Saved connection settings were preserved."
 msgstr "Gespeicherte Verbindungseinstellungen wurden beibehalten."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:746
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:762
 msgid "Saved connections changed; checking Neovim connections again"
 msgstr "Gespeicherte Verbindungen wurden geändert; Neovim-Verbindungen werden erneut geprüft"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:623
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:638
 msgid "Saved SSH connections"
 msgstr "Gespeicherte SSH-Verbindungen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:868
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:884
 msgid "Select all connections"
 msgstr "Alle Verbindungen auswählen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:910
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:926
 msgid "Select at least one target to remove components from."
 msgstr "Wählen Sie mindestens ein Ziel aus, von dem Komponenten entfernt werden sollen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:912
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:928
 msgid "Select at least one target to update."
 msgstr "Wählen Sie mindestens ein Ziel zum Aktualisieren aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:897
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:901
 msgid "Select Neovim session"
 msgstr "Neovim-Sitzung auswählen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:864
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:880
 msgid "Select one or more targets. Administrator rights are not required."
 msgstr "Wählen Sie ein oder mehrere Ziele aus. Administratorrechte sind nicht erforderlich."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1105
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1109
 msgid "Select text in Neovim Visual mode before copying"
 msgstr "Wählen Sie vor dem Kopieren Text im visuellen Neovim-Modus aus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1480
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1484
 msgid "Select the local Neovim session for the focused terminal."
 msgstr "Wählen Sie die lokale Neovim-Sitzung für das fokussierte Terminal aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1837
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1841
 msgid "Select the Neovim session for the focused terminal."
 msgstr "Wählen Sie die Neovim-Sitzung für das fokussierte Terminal aus."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1177
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1181
 msgid "Select where the Neovim session is running."
 msgstr "Wählen Sie aus, wo die Neovim-Sitzung ausgeführt wird."
 
@@ -1219,11 +1233,11 @@ msgstr "Wählen Sie aus, wo die Neovim-Sitzung ausgeführt wird."
 msgid "selected {item}"
 msgstr "{item} ausgewählt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:160
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:161
 msgid "Server name, address or SSH alias:"
 msgstr "Servername, Adresse oder SSH-Alias:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:325
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:326
 msgid "Session focus"
 msgstr "Sitzungsfokus"
 
@@ -1235,11 +1249,16 @@ msgstr "Diagnosen anzeigen, solange die NVDA-Taste gedrückt bleibt"
 msgid "Show function parameters while the NVDA key remains pressed"
 msgstr "Funktionsparameter anzeigen, solange die NVDA-Taste gedrückt bleibt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:175
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:176
 msgid "Sign-in method:"
 msgstr "Anmeldemethode:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3049
+#: nvda-addon/core/nvim_nvda_core/speech.py:819
+#, python-brace-format
+msgid "signature {index} of {count}"
+msgstr "Signatur {index} von {count}"
+
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3053
 #, python-brace-format
 msgid "Signature {index} of {count}: {signature}"
 msgstr "Signatur {index} von {count}: {signature}"
@@ -1248,33 +1267,33 @@ msgstr "Signatur {index} von {count}: {signature}"
 msgid "snippet"
 msgstr "Snippet"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1178
+#: nvda-addon/core/nvim_nvda_core/speech.py:1225
 msgid "socket"
 msgstr "Socket"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:754
+#: nvda-addon/core/nvim_nvda_core/speech.py:758
 #, python-brace-format
 msgid "source {source}"
 msgstr "Quelle {source}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3122
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3126
 #, python-brace-format
 msgid "Source: {source}"
 msgstr "Quelle: {source}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:798
+#: nvda-addon/core/nvim_nvda_core/speech.py:845
 msgid "space"
 msgstr "Leerzeichen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:312
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:313
 msgid "Speech"
 msgstr "Sprache"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:351
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:366
 msgid "Speech exploration mode"
 msgstr "Sprachexplorationsmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:582
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:597
 msgid "Speech exploration mode release"
 msgstr "Abschluss des Sprachexplorationsmodus"
 
@@ -1282,39 +1301,39 @@ msgstr "Abschluss des Sprachexplorationsmodus"
 msgid "Speech exploration mode: read Neovim text without moving the cursor"
 msgstr "Sprachexplorationsmodus: Neovim-Text lesen, ohne den Cursor zu bewegen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:326
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:328
 msgid "spelling error"
 msgstr "Rechtschreibfehler"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:438
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:453
 msgid "Spelling suggestions"
 msgstr "Rechtschreibvorschläge"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3023
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3027
 msgid "Spelling suggestions available"
 msgstr "Rechtschreibvorschläge verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1085 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:943
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1101 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:959
 msgid "SSH password entry cancelled"
 msgstr "SSH-Passworteingabe abgebrochen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:87
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:88
 msgid "SSH port must be a number between 1 and 65535"
 msgstr "Der SSH-Port muss eine Zahl zwischen 1 und 65535 sein"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:169
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:170
 msgid "SSH port:"
 msgstr "SSH-Port:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:447
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:462
 msgid "Start spelling &suggestions at Braille cell:"
 msgstr "Rechtschreibvorschläge ab Braille&modul anzeigen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:473
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:488
 msgid "Start temporary &developer information at Braille cell:"
 msgstr "Temporäre &Entwicklerinformationen ab Braillemodul anzeigen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1513 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1921
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1517 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1925
 msgid "Starting a connection instance requires a focused terminal"
 msgstr "Zum Starten einer Verbindungsinstanz muss ein Terminal fokussiert sein"
 
@@ -1322,7 +1341,7 @@ msgstr "Zum Starten einer Verbindungsinstanz muss ein Terminal fokussiert sein"
 msgid "Store Windows clipboard text in Neovim's unnamed register"
 msgstr "Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2518
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2522
 msgid "Stored the Windows clipboard in Neovim's unnamed register"
 msgstr "Windows-Zwischenablage im unbenannten Neovim-Register gespeichert"
 
@@ -1330,7 +1349,7 @@ msgstr "Windows-Zwischenablage im unbenannten Neovim-Register gespeichert"
 msgid "struct"
 msgstr "Struktur"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1030 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1168
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1046 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1184
 #, python-brace-format
 msgid "Successful: {count}"
 msgstr "Erfolgreich: {count}"
@@ -1339,24 +1358,24 @@ msgstr "Erfolgreich: {count}"
 msgid "Suggestions"
 msgstr "Vorschläge"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1177
+#: nvda-addon/core/nvim_nvda_core/speech.py:1224
 msgid "symbolic link"
 msgstr "symbolischer Link"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:798
+#: nvda-addon/core/nvim_nvda_core/speech.py:845
 msgid "tab"
 msgstr "Tabulator"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1024 nvda-addon/core/nvim_nvda_core/speech.py:1123
+#: nvda-addon/core/nvim_nvda_core/speech.py:1071 nvda-addon/core/nvim_nvda_core/speech.py:1170
 #, python-brace-format
 msgid "tab {index} of {count}"
 msgstr "Tab {index} von {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1611
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1615
 msgid "Temporary Neovim connection forgotten"
 msgstr "Temporäre Neovim-Verbindung vergessen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1038 nvda-addon/core/nvim_nvda_core/speech.py:1081
+#: nvda-addon/core/nvim_nvda_core/speech.py:1085 nvda-addon/core/nvim_nvda_core/speech.py:1128
 msgid "terminal"
 msgstr "Terminal"
 
@@ -1372,100 +1391,100 @@ msgstr "Terminal-Normalmodus"
 msgid "text"
 msgstr "Text"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:593
+#: nvda-addon/core/nvim_nvda_core/speech.py:597
 msgid "text replaced"
 msgstr "Text ersetzt"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1114 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1127
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1118 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1131
 msgid "The active Neovim state is incomplete; try again"
 msgstr "Der aktive Neovim-Zustand ist unvollständig; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1102
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1106
 msgid "The connected Neovim components do not support copy and paste"
 msgstr "Die verbundenen Neovim-Komponenten unterstützen Kopieren und Einfügen nicht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1121
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1125
 msgid "The connected Neovim components do not support terminal control"
 msgstr "Die verbundenen Neovim-Komponenten unterstützen die Terminalsteuerung nicht"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:108
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:109
 #, python-brace-format
 msgid "The connection settings are invalid: {error}"
 msgstr "Die Verbindungseinstellungen sind ungültig: {error}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1111
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1115
 msgid "The current Neovim buffer cannot be edited by this command"
 msgstr "Der aktuelle Neovim-Puffer kann mit diesem Befehl nicht bearbeitet werden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2525
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2529
 msgid "The current Neovim context does not accept this paste"
 msgstr "Der aktuelle Neovim-Kontext lässt dieses Einfügen nicht zu"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1398
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1402
 msgid "The focused local Neovim did not confirm F12 pairing; try again"
 msgstr "Das fokussierte lokale Neovim hat die Zuordnung mit F12 nicht bestätigt; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1720
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1724
 msgid "The focused Neovim did not confirm F12 pairing; try again"
 msgstr "Das fokussierte Neovim hat die Zuordnung mit F12 nicht bestätigt; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2523
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2527
 msgid "The Neovim Visual selection is no longer available"
 msgstr "Die visuelle Neovim-Auswahl ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:849
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:865
 msgid "The saved Linux connections are invalid; correct them in settings first"
 msgstr "Die gespeicherten Linux-Verbindungen sind ungültig; korrigieren Sie sie zuerst in den Einstellungen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1195 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1214 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1308 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1917
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1199 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1218 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1312 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1921
 msgid "The selected connection profile is unavailable"
 msgstr "Das ausgewählte Verbindungsprofil ist nicht verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1493
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1497
 msgid "The selected local Neovim session is no longer available"
 msgstr "Die ausgewählte lokale Neovim-Sitzung ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1956
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1960
 msgid "The selected Neovim connection no longer exists"
 msgstr "Die ausgewählte Neovim-Verbindung ist nicht mehr vorhanden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1874
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1878
 msgid "The selected Neovim session is no longer available"
 msgstr "Die ausgewählte Neovim-Sitzung ist nicht mehr verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2527
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2531
 msgid "The selected Neovim text is too large to copy"
 msgstr "Der ausgewählte Neovim-Text ist zu groß zum Kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1044
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1048
 msgid "The Windows clipboard does not contain supported text"
 msgstr "Die Windows-Zwischenablage enthält keinen unterstützten Text"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2529
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:2533
 msgid "There is no Neovim text to copy"
 msgstr "Es gibt keinen Neovim-Text zum Kopieren"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:887
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:891
 msgid "This computer"
 msgstr "Dieser Computer"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:837
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:853
 msgid "this computer"
 msgstr "diesem Computer"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1173 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1515 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:851
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1177 nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1519 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:867
 msgid "This computer - local Neovim"
 msgstr "Dieser Computer – lokales Neovim"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:831
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:847
 msgid "This computer: local Windows Neovim plugin"
 msgstr "Dieser Computer: lokales Neovim-Plugin für Windows"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:428
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:443
 msgid "Timing uses NVDA's multiple key press timeout from the Keyboard settings."
 msgstr "Für die Erkennung gilt NVDAs Zeitlimit für Mehrfachbetätigung aus den Tastatureinstellungen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:660
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:675
 msgid "To install or update components, use the add-on command in NVDA's Tools menu and select this computer or saved Linux connections."
 msgstr "Verwenden Sie zum Installieren oder Aktualisieren von Komponenten den Add-on-Befehl im NVDA-Menü Werkzeuge und wählen Sie diesen Computer oder gespeicherte Linux-Verbindungen aus."
 
@@ -1473,11 +1492,11 @@ msgstr "Verwenden Sie zum Installieren oder Aktualisieren von Komponenten den Ad
 msgid "Toggle Braille navigation between Braille cursor mode and Braille exploration mode"
 msgstr "Braillezeilen-Navigation zwischen Braille-Cursormodus und Braille-Explorationsmodus umschalten"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:312 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:501
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:313 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:516
 msgid "Tones"
 msgstr "Töne"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:400
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:415
 msgid "Triple routing press on a &line:"
 msgstr "Routingtaste auf einer &Zeile dreimal drücken:"
 
@@ -1489,15 +1508,15 @@ msgstr "Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindu
 msgid "type parameter"
 msgstr "Typparameter"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:513
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:528
 msgid "Typing echo, indentation, suggestions, spelling and grammar continue to use NVDA settings."
 msgstr "Tastaturecho, Einrückung, Vorschläge, Rechtschreibung und Grammatik verwenden weiterhin die NVDA-Einstellungen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:983
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:999
 msgid "Unexpected installation error"
 msgstr "Unerwarteter Installationsfehler"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1121
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1137
 msgid "Unexpected removal error"
 msgstr "Unerwarteter Fehler beim Entfernen"
 
@@ -1505,20 +1524,20 @@ msgstr "Unerwarteter Fehler beim Entfernen"
 msgid "unit"
 msgstr "Einheit"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1250
+#: nvda-addon/core/nvim_nvda_core/speech.py:1297
 msgid "unmarked"
 msgstr "Markierung aufgehoben"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1043 nvda-addon/core/nvim_nvda_core/speech.py:1092
+#: nvda-addon/core/nvim_nvda_core/speech.py:1090 nvda-addon/core/nvim_nvda_core/speech.py:1139
 msgid "unnamed buffer"
 msgstr "unbenannter Puffer"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:951
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:967
 #, python-brace-format
 msgid "Updating Neovim components on {count} targets"
 msgstr "Neovim-Komponenten werden auf {count} Zielen aktualisiert"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:113
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:114
 msgid "Use OpenSSH setup (recommended: keys, ssh-agent or SSH config)"
 msgstr "OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)"
 
@@ -1542,24 +1561,24 @@ msgstr "visueller Zeichenmodus"
 msgid "visual line mode"
 msgstr "visueller Zeilenmodus"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3105
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3109
 msgid "warning"
 msgstr "Warnung"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:330
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:331
 msgid "When focusing or changing buffers in a Neovim session:"
 msgstr "Beim Fokussieren oder Wechseln von Puffern in einer Neovim-Sitzung:"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1028 nvda-addon/core/nvim_nvda_core/speech.py:1128
+#: nvda-addon/core/nvim_nvda_core/speech.py:1075 nvda-addon/core/nvim_nvda_core/speech.py:1175
 #, python-brace-format
 msgid "window {index} of {count}"
 msgstr "Fenster {index} von {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:537
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:552
 msgid "Word and cursor character"
 msgstr "Wort und Cursorzeichen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:536
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:551
 msgid "Word only"
 msgstr "Nur Wort"
 
@@ -1568,11 +1587,11 @@ msgstr "Nur Wort"
 msgid "yanked to register {name}"
 msgstr "in Register {name} kopiert"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:801
+#: nvda-addon/core/nvim_nvda_core/speech.py:848
 msgid "zero width space"
 msgstr "Leerzeichen ohne Breite"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1357
+#: nvda-addon/core/nvim_nvda_core/speech.py:1404
 #, python-brace-format
 msgid "{action} of {name}"
 msgstr "{action} von {name}"
@@ -1587,102 +1606,102 @@ msgstr "{action}, Zeile {line}"
 msgid "{action}, lines {start} to {end}"
 msgstr "{action}, Zeilen {start} bis {end}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1456
+#: nvda-addon/core/nvim_nvda_core/speech.py:1503
 #, python-brace-format
 msgid "{boundary}, {line}"
 msgstr "{boundary}, {line}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1333
+#: nvda-addon/core/nvim_nvda_core/speech.py:1380
 #, python-brace-format
 msgid "{count} file-manager actions completed"
 msgstr "{count} Dateimanageraktionen abgeschlossen"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1337
+#: nvda-addon/core/nvim_nvda_core/speech.py:1384
 #, python-brace-format
 msgid "{count} items {action}"
 msgstr "{count} Elemente {action}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:824
+#: nvda-addon/core/nvim_nvda_core/speech.py:871
 #, python-brace-format
 msgid "{count} {name}s"
 msgstr "{count} × {name}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1520 nvda-addon/core/nvim_nvda_core/speech.py:744 nvda-addon/core/nvim_nvda_core/speech.py:775
+#: nvda-addon/core/nvim_nvda_core/speech.py:1567 nvda-addon/core/nvim_nvda_core/speech.py:748 nvda-addon/core/nvim_nvda_core/speech.py:779
 #, python-brace-format
 msgid "{index} of {count}"
 msgstr "{index} von {count}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1642
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1646
 #, python-brace-format
 msgid "{label}, already connected"
 msgstr "{label}, bereits verbunden"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1636
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1640
 #, python-brace-format
 msgid "{label}, session {position} of {total}"
 msgstr "{label}, Sitzung {position} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1635
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1639
 #, python-brace-format
 msgid "{label}, started {started}"
 msgstr "{label}, gestartet {started}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1018 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1156
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1034 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1172
 #, python-brace-format
 msgid "{name} failed, {completed} of {total}"
 msgstr "{name} fehlgeschlagen, {completed} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1148
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1164
 #, python-brace-format
 msgid "{name} removed, {completed} of {total}"
 msgstr "{name} entfernt, {completed} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1010
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1026
 #, python-brace-format
 msgid "{name} updated, {completed} of {total}"
 msgstr "{name} aktualisiert, {completed} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1616
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1620
 #, python-brace-format
 msgid "{name}, working directory {cwd}"
 msgstr "{name}, Arbeitsverzeichnis {cwd}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1343
+#: nvda-addon/core/nvim_nvda_core/speech.py:1390
 #, python-brace-format
 msgid "{name}, {action}"
 msgstr "{name}, {action}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:821
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:837
 #, python-brace-format
 msgid "{name}: {target}, port {port}, {method}"
 msgstr "{name}: {target}, Port {port}, {method}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3113
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3117
 #, python-brace-format
 msgid "{severity}, diagnostic {index} of {count}: {message}"
 msgstr "{severity}, Diagnose {index} von {count}: {message}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1363
+#: nvda-addon/core/nvim_nvda_core/speech.py:1410
 #, python-brace-format
 msgid "{subject} {outcome}"
 msgstr "{subject} {outcome}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:889
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:893
 #, python-brace-format
 msgid "{target}: {session}"
 msgstr "{target}: {session}"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:885
+#: nvda-addon/core/nvim_nvda_core/speech.py:932
 #, python-brace-format
 msgid "{text} block selected"
 msgstr "Block {text} ausgewählt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:910 nvda-addon/core/nvim_nvda_core/speech.py:946
+#: nvda-addon/core/nvim_nvda_core/speech.py:957 nvda-addon/core/nvim_nvda_core/speech.py:993
 #, python-brace-format
 msgid "{text} selected"
 msgstr "{text} ausgewählt"
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:916 nvda-addon/core/nvim_nvda_core/speech.py:947
+#: nvda-addon/core/nvim_nvda_core/speech.py:963 nvda-addon/core/nvim_nvda_core/speech.py:994
 #, python-brace-format
 msgid "{text} unselected"
 msgstr "Auswahl von {text} aufgehoben"

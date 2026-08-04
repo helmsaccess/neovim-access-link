@@ -233,6 +233,8 @@ class StdioTransport:
 			capabilities.append("diagnosticContextQuery")
 		if self._payload_supports(result, "diagnosticCursorSummary"):
 			capabilities.append("diagnosticCursorSummary")
+		if self._payload_supports(result, "activeParameterHints"):
+			capabilities.append("activeParameterHints")
 		result["_transport"] = {"capabilities": capabilities, "kind": "ssh-stdio"}
 		return result
 

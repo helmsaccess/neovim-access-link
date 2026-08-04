@@ -2050,6 +2050,16 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("SuggestionSoundCache(", global_source)
         self.assertIn("SuggestionSoundCache(", presentation_source)
 
+    def test_automatic_parameter_speech_respects_its_profile_setting(self) -> None:
+        from globalPlugins.NeovimAccessLink.nvda_presentation import NvdaPresentation
+
+        presentation = NvdaPresentation.__new__(NvdaPresentation)
+        presentation._settings_provider = lambda: {"automaticParameterHints": True}
+        self.assertTrue(presentation.action_speech_allowed("activeParameterChanged", None))
+        presentation._settings_provider = lambda: {"automaticParameterHints": False}
+        self.assertFalse(presentation.action_speech_allowed("activeParameterChanged", None))
+        self.assertTrue(presentation.action_speech_allowed("lineChanged", None))
+
     def test_global_plugin_composes_connection_coordinator_without_duplicate_state(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.connection_coordinator import ConnectionCoordinator
@@ -3781,6 +3791,14 @@ class BuiltAddonTests(unittest.TestCase):
         plugin = GlobalPlugin()
         self.assertIsNotNone(plugin)
         plugin.terminate()
+
+    def test_built_addon_contains_active_parameter_protocol_validator(self) -> None:
+        validator = (
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "core"
+            / "signature_help.py"
+        )
+        self.assertTrue(validator.is_file())
+        self.assertIn("valid_active_parameter_changed", validator.read_text(encoding="utf-8"))
 
     def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
         archive = self.archive_path
@@ -11780,6 +11798,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(2, service.snapshot()["navigationDetails"]["navigationLine"])
         self.assertEqual(1, service.braille_suggestion_start())
         self.assertTrue(service.braille_follows_speech_exploration())
+        self.assertTrue(service.automatic_parameter_hints())
         self.assertFalse(service.braille_routing_actions().enabled)
         self.assertEqual((True, False, True), service.navigation_details(exploration=False))
         self.assertEqual((True, False, True), service.navigation_details(exploration=True))
@@ -11800,6 +11819,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(follow_changed.braille_follow_speech_exploration_changed)
         self.assertFalse(service.braille_follows_speech_exploration())
         self.assertFalse(section["brailleFollowSpeechExploration"])
+        values = service.snapshot()
+        values["automaticParameterHints"] = False
+        parameter_changed = service.update(values)
+        self.assertTrue(parameter_changed.automatic_parameter_hints_changed)
+        self.assertFalse(service.automatic_parameter_hints())
+        self.assertFalse(section["automaticParameterHints"])
         values = service.snapshot()
         values["brailleRouting"] = {
             "wordAction": 1,
@@ -11850,6 +11875,7 @@ class BuiltAddonTests(unittest.TestCase):
             "brailleSuggestionStart": 1,
             "brailleDeveloperStart": 1,
             "brailleFollowSpeechExploration": True,
+            "automaticParameterHints": True,
             "brailleRouting": {
                 "wordAction": 0, "lineAction": 0, "lineStart": 0,
             },
@@ -11869,6 +11895,7 @@ class BuiltAddonTests(unittest.TestCase):
             "focusAnnouncement": "line",
             "brailleSuggestionStart": 1001,
             "brailleFollowSpeechExploration": "yes",
+            "automaticParameterHints": "yes",
             "brailleRouting": {
                 "wordAction": 3,
                 "lineAction": True,
@@ -11886,6 +11913,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, normalized["brailleSuggestionStart"])
         self.assertEqual(1, normalized["brailleDeveloperStart"])
         self.assertTrue(normalized["brailleFollowSpeechExploration"])
+        self.assertTrue(normalized["automaticParameterHints"])
         self.assertEqual({
             "wordAction": 0, "lineAction": 0, "lineStart": 0,
         }, normalized["brailleRouting"])

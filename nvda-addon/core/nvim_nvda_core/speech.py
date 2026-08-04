@@ -554,6 +554,10 @@ class SpeechPlanner:
             action = self._signature(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "activeParameterChanged":
+            action = self._active_parameter(state)
+            if action is not None:
+                actions.append(action)
         elif kind == "hoverChanged":
             summary = state.get("summary")
             if isinstance(summary, str) and summary:
@@ -775,6 +779,49 @@ class SpeechPlanner:
             parts.append(self._translate("{index} of {count}").format(index=index, count=count))
         text = ", ".join(parts)
         return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
+
+    def _active_parameter(self, state: dict[str, Any]) -> SpeechAction | None:
+        active = state.get("activeParameter")
+        count = state.get("parameterCount")
+        if not (
+            isinstance(active, int)
+            and not isinstance(active, bool)
+            and isinstance(count, int)
+            and not isinstance(count, bool)
+            and 1 <= active <= count
+        ):
+            return None
+        parameter = state.get("parameter")
+        if not isinstance(parameter, str):
+            return None
+        if count > 1:
+            # Translators: Brief automatic announcement while typing one function argument.
+            text = self._translate("parameter {index} of {count}: {parameter}").format(
+                index=active,
+                count=count,
+                parameter=parameter,
+            )
+        else:
+            # Translators: Brief automatic announcement while typing the only function argument.
+            text = self._translate("parameter: {parameter}").format(parameter=parameter)
+        signature_index = state.get("signatureIndex")
+        signature_count = state.get("signatureCount")
+        if (
+            state.get("hintReason") == "signatureChanged"
+            and isinstance(signature_index, int)
+            and not isinstance(signature_index, bool)
+            and isinstance(signature_count, int)
+            and not isinstance(signature_count, bool)
+            and signature_count > 1
+            and 1 <= signature_index <= signature_count
+        ):
+            # Translators: Prefix when the language server changed the active function overload.
+            signature = self._translate("signature {index} of {count}").format(
+                index=signature_index,
+                count=signature_count,
+            )
+            text = f"{signature}, {text}"
+        return SpeechAction(text, Priority.NAVIGATION, interrupt=True)
 
     def _search_match(self, state: dict[str, Any]) -> SpeechAction | None:
         line = state.get("lineText")

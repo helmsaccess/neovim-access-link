@@ -256,6 +256,17 @@ buffer context changes.
 `:NvimNvdaLspStatus` reports bounded current-buffer client status on demand.
 Progress is not announced automatically to avoid an unbounded speech stream.
 
+In Insert mode, Access Link automatically follows the active parameter of a
+function call. A bounded, Tree-sitter-assisted resolver selects the innermost
+nested call and ignores parentheses in strings and comments. After 120 ms of
+quiet, public LSP signature help is requested with trigger/retrigger context.
+Only server-provided `activeSignature` and `activeParameter` select speech;
+commas are not counted locally. Exact generation, buffer, window, changed
+text, mode, cursor, and call checks reject stale replies. Movement within one
+argument remains silent, while returning to an already filled earlier
+argument speaks again. The validated event is speech-only and never replaces
+source Braille. A profile-aware setting can disable the presentation.
+
 `NVDA+Shift+P` starts a correlated read-only LSP signature-help query with a
 hover fallback. It works on the function name and the immediately associated
 opening and closing call parentheses without moving the real cursor. While

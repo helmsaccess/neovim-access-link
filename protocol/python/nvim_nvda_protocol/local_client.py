@@ -45,6 +45,7 @@ from .terminal_control import (
 	terminal_control_result_state,
 	valid_leave_terminal_input_request,
 )
+from .signature_help import valid_active_parameter_changed
 
 
 _ROUTE_CURSOR_LUA = "return require('nvim_nvda').request_route_cursor(...)"
@@ -266,6 +267,19 @@ class LocalTcpClient:
 		return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
 	def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+		if event_type == "activeParameterChanged" and (
+			not self._supports_plugin_capability("activeParameterHints")
+			or not valid_active_parameter_changed(payload)
+		):
+			self.on_diagnostic(
+				"localEventRejected",
+				{
+					"type": event_type,
+					"errorType": "ProtocolError",
+					"error": "invalid active parameter transition",
+				},
+			)
+			return
 		if (event_type == "callableContextResult" and not valid_callable_context_result(payload)) or (
 			event_type == "diagnosticContextResult" and not valid_diagnostic_context_result(payload)
 		):
@@ -373,6 +387,8 @@ class LocalTcpClient:
 				capabilities.append("diagnosticContextQuery")
 			if self._payload_supports(value, "diagnosticCursorSummary"):
 				capabilities.append("diagnosticCursorSummary")
+			if self._payload_supports(value, "activeParameterHints"):
+				capabilities.append("activeParameterHints")
 			value["_transport"] = {
 				"capabilities": capabilities,
 				"kind": "windows-loopback-tcp",

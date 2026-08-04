@@ -18,6 +18,7 @@ from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_
 from .core.local_install import LocalPluginInstaller
 from .core.ssh_install import InstallResult, SshUserInstaller
 from .settings_service import (
+	AUTOMATIC_PARAMETER_HINTS_DEFAULT,
 	BRAILLE_DEVELOPER_START_DEFAULT,
 	BRAILLE_DEVELOPER_START_MAXIMUM,
 	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
@@ -343,6 +344,20 @@ class NvdaUiManager:
 							)
 						)
 					)
+					# Translators: Checkbox controlling brief parameter speech while typing calls.
+					self.automaticParameterHints = wx.CheckBox(
+						general_page,
+						label=_("Automatically speak the active function &parameter while typing"),
+					)
+					self.automaticParameterHints.SetValue(
+						bool(
+							settings.get(
+								"automaticParameterHints",
+								AUTOMATIC_PARAMETER_HINTS_DEFAULT,
+							)
+						)
+					)
+					focus_group.addItem(self.automaticParameterHints)
 
 					# Translators: Group for Braille behavior during speech exploration.
 					braille_exploration_sizer = wx.StaticBoxSizer(
@@ -721,6 +736,7 @@ class NvdaUiManager:
 					change = settings_service.update(
 						{
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
+							"automaticParameterHints": self.automaticParameterHints.GetValue(),
 							"brailleSuggestionStart": self.brailleSuggestionStart.GetValue(),
 							"brailleDeveloperStart": self.brailleDeveloperStart.GetValue(),
 							"brailleFollowSpeechExploration": (

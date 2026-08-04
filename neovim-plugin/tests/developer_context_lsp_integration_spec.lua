@@ -102,16 +102,11 @@ end
 
 vim.api.nvim_win_set_cursor(0, { 1, 20 })
 emitted = nil
-equal(true, developer_context.request_callable(request(), emit), "real hover fallback accepted")
-equal(true, vim.wait(5000, function() return emitted ~= nil end, 10), "hover result arrives")
-equal(true, emitted.payload.ok, "hover fallback succeeds")
-equal(
-  "Real hover fallback from the test LSP server.",
-  emitted.payload.items[1].signature,
-  "real hover fallback reaches Access Link"
-)
-equal(0, #emitted.payload.items[1].parameters, "hover fallback stays unstructured")
-equal({ 1, 20 }, vim.api.nvim_win_get_cursor(0), "hover query does not move cursor")
+equal(false, developer_context.request_callable(request(), emit),
+  "normal-mode argument interior is deliberately rejected")
+equal("noResult", emitted.payload.resultCode, "interior rejection is explicit")
+equal(0, #emitted.payload.items, "interior rejection starts no hover fallback")
+equal({ 1, 20 }, vim.api.nvim_win_get_cursor(0), "rejected query does not move cursor")
 
 vim.lsp.stop_client(client_id, true)
 vim.wait(3000, function() return vim.lsp.get_client_by_id(client_id) == nil end, 10)

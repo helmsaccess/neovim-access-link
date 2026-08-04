@@ -46,6 +46,7 @@ REAL_BRIDGE_TESTS = (
     "test_neovim_restart_reconnects_and_pushes_full_state",
 )
 MOCK_BRIDGE_TESTS = (
+    "test_active_parameter_transition_is_validated_before_publication",
     "test_bridge_accepts_only_the_exact_active_numbered_choice",
     "test_braille_exploration_uses_separate_fixed_capability_gated_entry_points",
     "test_cursor_routing_uses_only_fixed_validated_plugin_entry_point",
@@ -219,6 +220,7 @@ def jobs() -> tuple[Job, ...]:
         "test_numbered_choice.py",
         "test_nvim_rpc.py",
         "test_protocol.py",
+        "test_signature_help.py",
         "test_terminal_control.py",
     ):
         result.append(python_file("unit", "protocol", f"protocol/python/tests/{file_name}"))
@@ -259,6 +261,7 @@ def jobs() -> tuple[Job, ...]:
         "braille_exploration_spec.lua",
         "braille_navigation_spec.lua",
         "braille_routing_actions_spec.lua",
+        "call_context_spec.lua",
         "clipboard_spec.lua",
         "completion_adapters_spec.lua",
         "diagnostic_navigation_spec.lua",
@@ -279,6 +282,7 @@ def jobs() -> tuple[Job, ...]:
         "navigation_spec.lua",
         "selection_spec.lua",
         "signature_help_spec.lua",
+        "signature_help_automatic_spec.lua",
         "spelling_spec.lua",
     ):
         result.append(lua_spec("lua", f"neovim-plugin/tests/{file_name}"))

@@ -700,6 +700,37 @@ zurückgesendet. Loslassen der NVDA-Taste verwirft die lokale Auswahl, nicht
 Neovims Prompt. Weitere Abfragetypen benötigen jeweils einen eigenen strikten
 Adapter.
 
+### Automatischer aktiver Parameter
+
+`call_context.lua` löst Aufrufgrenzen unabhängig von Darstellung oder
+Completion-Plugin auf. Tree-sitter markiert, soweit verfügbar, Zeichenketten,
+Kommentare und sprachspezifische Textknoten; ein begrenzter Lexer ergänzt
+unvollständigen Code und dient als konservativer Rückfall. Der Scan ist auf
+512 Zeilen, 128 KiB und 20.000 Baumknoten begrenzt. Nicht eindeutige oder zu
+große Kontexte liefern kein Ergebnis. Verschachtelung wird über paarweise
+Klammern aufgelöst, sodass im Einfügemodus der innerste umschließende Aufruf
+gilt. Die manuelle Abfrage verwendet denselben Resolver mit strengeren
+Positionsregeln.
+
+`signature_help.lua` reagiert im Einfügemodus auf `InsertEnter`,
+`CursorMovedI`, `TextChangedI` und `CompleteDone`, bündelt Ereignisse für 120
+ms und fragt Neovims öffentliche `textDocument/signatureHelp`-Schnittstelle
+ab. Auslöse- und Neuauslösezeichen sowie die begrenzte vorherige
+`activeSignatureHelp` folgen dem LSP-Vertrag. Jede Anfrage trägt eine
+Generation und eine exakte Momentaufnahme aus Buffer, Fenster, Textstand,
+Modus, Cursor und Aufrufidentität; spätere Änderungen brechen die Anfrage ab
+oder verwerfen ihre Antwort. Bei mehreren Clients wird deterministisch das
+erste gültige begrenzte Ergebnis verwendet.
+
+Die Serverwerte `activeSignature` und `activeParameter` sind maßgeblich; der
+Code zählt bewusst keine Kommas. Dedupliziert wird nach Aufruf, Signatur und
+Parameter. Deshalb bleibt Bewegung im selben Argument still, während die
+Rückkehr in einen bereits ausgefüllten früheren Parameter erneut spricht. Ein
+Signaturwechsel betrifft ausschließlich deren Parameterliste. Das validierte
+`activeParameterChanged`-Ereignis ist reine Sprache; die kanonische
+Brailleplanung bleibt beim Quelltext. Transport und NVDA-Hauptthread führen
+keine LSP-Abfrage aus.
+
 ### Gehaltene Entwicklerkontexte
 
 Das Windows-Terminal-AppModule besitzt den physischen Lebenszyklus der

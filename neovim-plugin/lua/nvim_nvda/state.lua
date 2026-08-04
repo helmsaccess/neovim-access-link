@@ -93,6 +93,7 @@ function M.snapshot(reason)
       "callableContextQuery",
       "diagnosticContextQuery",
       "diagnosticCursorSummary",
+      "activeParameterHints",
     },
     reason = reason,
     mode = M.normalize_mode(mode_raw),

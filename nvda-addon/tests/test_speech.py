@@ -1324,6 +1324,52 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("printf(format, ...), parameter format, 1 of 2", action.text)
         self.assertEqual(action.text, action.braille_message)
 
+    def test_automatic_parameter_is_brief_spoken_only_and_reports_overload_changes(self) -> None:
+        planner = SpeechPlanner()
+        first = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "price: float",
+            "activeParameter": 1,
+            "parameterCount": 3,
+            "signatureIndex": 1,
+            "signatureCount": 2,
+            "hintReason": "callEntered",
+        }})[0]
+        changed_overload = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "quantity: int",
+            "activeParameter": 2,
+            "parameterCount": 3,
+            "signatureIndex": 2,
+            "signatureCount": 2,
+            "hintReason": "signatureChanged",
+        }})[0]
+        only = planner.plan({"type": "activeParameterChanged", "payload": {
+            "parameter": "value",
+            "activeParameter": 1,
+            "parameterCount": 1,
+            "signatureIndex": 1,
+            "signatureCount": 1,
+            "hintReason": "callEntered",
+        }})[0]
+        self.assertEqual("parameter 1 of 3: price: float", first.text)
+        self.assertIsNone(first.braille_message)
+        self.assertTrue(first.interrupt)
+        self.assertEqual(
+            "signature 2 of 2, parameter 2 of 3: quantity: int",
+            changed_overload.text,
+        )
+        self.assertEqual("parameter: value", only.text)
+
+    def test_invalid_automatic_parameter_transition_is_silent(self) -> None:
+        planner = SpeechPlanner()
+        for payload in (
+            {},
+            {"parameter": "x", "activeParameter": 0, "parameterCount": 2},
+            {"parameter": "x", "activeParameter": 3, "parameterCount": 2},
+            {"parameter": None, "activeParameter": 1, "parameterCount": 2},
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual([], planner.plan({"type": "activeParameterChanged", "payload": payload}))
+
     def test_lsp_hover_announces_only_summary(self) -> None:
         planner = SpeechPlanner()
         action = planner.plan({"type": "hoverChanged", "payload": {

@@ -259,6 +259,11 @@ emitted = nil
 equal(false, developer_context.request_callable(request(), emit), "signature API failure is contained")
 equal("requestFailed", emitted.payload.resultCode, "signature API failure result")
 
+vim.lsp.util.make_position_params = function()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  return { position = { line = cursor[1] - 1, character = cursor[2] } }
+end
+
 local api_calls = 0
 vim.lsp.buf_request_all = function(_, _, _, handler)
   api_calls = api_calls + 1

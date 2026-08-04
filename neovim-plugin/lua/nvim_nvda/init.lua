@@ -232,6 +232,7 @@ emit = function(event_type, reason, extra)
     pcall(vim.fn.chanclose, channel)
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
     return
   end
@@ -262,6 +263,7 @@ emit = function(event_type, reason, extra)
   if not ok then
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
   end
 end
@@ -280,6 +282,7 @@ local function emit_prebuilt(event_type, payload, extra)
   })
   if not ok then
     channel = nil
+    signature_help.set_connected(false)
     pending_navigation = false
     vim.schedule(function() pcall(vim.ui_detach, ui_namespace) end)
   end
@@ -666,6 +669,7 @@ function M.register_channel(rpc_channel)
   exploration.reset()
   pending_spell_choice = nil
   active_numbered_choice = nil
+  signature_help.set_connected(true)
   -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
   -- Attach only while an authenticated consumer exists, otherwise startup
   -- prompts (notably swap-file recovery) become invisible and violate the
@@ -693,6 +697,7 @@ function M.unregister_channel(rpc_channel)
     active_numbered_choice = nil
     pcall(vim.ui_detach, ui_namespace)
     channel = nil
+    signature_help.set_connected(false)
   end
 end
 
@@ -1330,6 +1335,7 @@ function M.setup()
       local before = state.snapshot("beforeSpellingTerminator")
       vim.defer_fn(function() emit_typed_spelling_error(before) end, 50)
     end
+    if raw_mode:sub(1, 1) == "i" then signature_help.note_insert_key(key, typed) end
     pending_g = false
     end)
     if not observer_ok then

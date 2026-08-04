@@ -685,6 +685,7 @@ function Assert-AccessLinkPluginCurrent {
 function Invoke-TestNvim {
     param(
         [Parameter(Mandatory = $true)][string]$Profile,
+        [string]$StepId = "",
         [string]$Fixture = "",
         [string]$Context = "",
         [string]$Task = "",
@@ -697,6 +698,7 @@ function Invoke-TestNvim {
     $environmentNames = @(
         "Path",
         "ACCESS_LINK_HUMAN_PROFILE",
+        "ACCESS_LINK_HUMAN_STEP_ID",
         "ACCESS_LINK_HUMAN_PLUGIN",
         "ACCESS_LINK_HUMAN_DEPENDENCIES",
         "ACCESS_LINK_HUMAN_PYRIGHT",
@@ -721,6 +723,7 @@ function Invoke-TestNvim {
     }
     try {
         $env:ACCESS_LINK_HUMAN_PROFILE = $Profile
+        $env:ACCESS_LINK_HUMAN_STEP_ID = $StepId
         $env:ACCESS_LINK_HUMAN_PLUGIN = $AccessLinkPlugin
         $env:ACCESS_LINK_HUMAN_DEPENDENCIES = $DependenciesPath
         $env:ACCESS_LINK_HUMAN_PYRIGHT = $PyrightPath
@@ -1361,7 +1364,8 @@ function Run-Plans {
                 Write-Host (Get-Message "runner.controls")
                 $null = Read-Host (Get-Message "runner.launchPrompt")
                 $fixture = Join-Path $FixturesRoot ([string]$plan.fixture)
-                Invoke-TestNvim -Profile ([string]$plan.profile) -Fixture $fixture `
+                Invoke-TestNvim -Profile ([string]$plan.profile) `
+                    -StepId ([string]$step.id) -Fixture $fixture `
                     -Context $context -Task $actionText -Expected $expectedText
                 Write-Step (Get-Message "runner.afterReturn")
                 Write-Host "$(Get-Message 'runner.expected'): $expectedText"

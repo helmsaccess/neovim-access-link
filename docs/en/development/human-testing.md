@@ -11,6 +11,12 @@ speech from sounds. LSP responses,
 diagnostic ranges, jump targets, adapter state, and file formats remain the
 responsibility of automated tests.
 
+The automatic-parameter task therefore assesses only whether real Pyright
+transitions are spoken clearly without disruptive delay and whether Braille
+stays on source text. Resolver behavior, nesting, overloads, returning to an
+already filled parameter, deduplication, bounds, and stale replies have
+separate automated regressions.
+
 The fixtures nevertheless provide deliberate real choices: at least three
 completion candidates, two function signatures with three parameters each,
 and two diagnostics on the first diagnostic line. Thus, an instruction to
@@ -46,7 +52,7 @@ configuration, and Neovim data directories are not changed.
 
 | Individual-selection category | Examples |
 | --- | --- |
-| LSP and language intelligence | LSP status and function signatures |
+| LSP and language intelligence | LSP status, automatic active parameters, and held function signatures |
 | Completion | native completion, nvim-cmp, and blink.cmp |
 | Diagnostics and linters | Ruff, Clang-Tidy, and markdownlint |
 | Session and terminal integration | focus isolation and fail-open behavior |
@@ -168,7 +174,7 @@ Each task names only the keys it needs. This table is a reference:
 | --- | --- |
 | `Escape`, then `F2` | repeat the current task at any time |
 | `F1` | report the active LSP status through Access Link |
-| `F3`, then `F5` | prepare a completion location with at least three candidates and open its menu; `F3` enters Insert mode automatically |
+| `F3` | open the insertion location prepared for the current task and enter Insert mode automatically; in a completion task, press `F5` next |
 | `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
 | `F6` | run the linter selected for the task and wait for its readiness |
 | `F7` | report the diagnostic at the current position |
@@ -177,7 +183,9 @@ Each task names only the keys it needs. This table is a reference:
 
 Completion is navigated with `Ctrl+N` and `Ctrl+P`, accepted with `Ctrl+Y`,
 and closed with `Ctrl+E`. Braille tasks spell out the required held NVDA
-gesture. Neovim command-line mode is never required.
+gesture. Neovim command-line mode is never required. `F11` is deliberately
+unused because Windows Terminal binds it to full-screen mode by default and
+therefore intercepts it before Neovim can receive it.
 
 ## What happens automatically before the first test
 

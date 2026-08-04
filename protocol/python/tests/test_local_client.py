@@ -67,6 +67,40 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertEqual("windows-loopback-tcp", events[0]["payload"]["_transport"]["kind"])
 		self.assertNotIn("heartbeat", events[0]["payload"]["_transport"]["capabilities"])
 
+	def test_automatic_parameter_transition_is_validated_and_capability_gated(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		source.on_event("fullState", {
+			"mode": "insert",
+			"pluginCapabilities": ["activeParameterHints"],
+		})
+		self.assertIn("activeParameterHints", events[-1]["payload"]["_transport"]["capabilities"])
+		payload = {
+			"mode": "insert",
+			"modeRaw": "i",
+			"pluginCapabilities": ["activeParameterHints"],
+			"bufferId": 1,
+			"windowId": 2,
+			"changedtick": 3,
+			"cursor": {"line": 4, "byteColumn": 5},
+			"callName": "sum",
+			"callStartLine": 4,
+			"callStartByteColumn": 3,
+			"signature": "sum(first, second)",
+			"signatureIndex": 1,
+			"signatureCount": 1,
+			"activeParameter": 1,
+			"parameterCount": 2,
+			"parameter": "first",
+			"hintReason": "callEntered",
+		}
+		source.on_event("activeParameterChanged", payload)
+		self.assertEqual("activeParameterChanged", events[-1]["type"])
+		source.on_event("activeParameterChanged", {**payload, "activeParameter": 3})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		client._state = {"pluginCapabilities": []}
+		source.on_event("activeParameterChanged", payload)
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+
 	def test_invalid_full_state_neither_authenticates_nor_enters_cache(self) -> None:
 		client, source, events, states, diagnostics = self.make_client()
 		source.on_event("fullState", {"mode": object()})

@@ -276,6 +276,22 @@ while the source of a problem is still unknown.
 
 ## Inspecting function signatures and parameters
 
+In Insert mode, Access Link automatically speaks the active parameter when the
+cursor enters a call's argument list. After a comma, it reports the next
+parameter selected by the language server. Returning to an already filled
+earlier argument speaks that parameter again; movement within the same
+argument remains silent. Nested calls select the innermost enclosing function.
+With overloads, speech follows only the signature currently selected by the
+language server. These brief hints are deliberately speech-only, so Braille
+continues to show source text. The profile-aware “Automatically speak the
+active function parameter while typing” checkbox under `NVDA menu →
+Preferences → Settings... → Neovim Access Link → General` can disable them.
+
+Automatic association uses structured LSP signature help rather than counting
+visible commas. Strings, nested calls, and language-specific syntax therefore
+do not confuse parameter position. If the language server does not return an
+unambiguous active parameter, Access Link safely remains silent.
+
 `NVDA+Shift+P` is already fixed in Access Link's Windows Terminal module. It
 does not need to be assigned in NVDA or mapped in Lua. Place the cursor on the
 function name or on the call's immediately associated opening or closing
@@ -290,6 +306,13 @@ parenthesis, press the gesture, and keep the NVDA key held:
 This feature needs signature help from the language server. If the server
 provides only hover text and no structured signature help, Access Link can
 show only that unstructured fallback.
+
+The manual query deliberately accepts only unambiguous cursor positions. In
+Normal mode it works on the function name and its directly associated opening
+or closing parenthesis, but not inside a non-empty argument list. In Insert
+mode it works on the function name and either parenthesis of an empty call.
+Inside a non-empty argument list, the automatic active-parameter speech above
+applies instead.
 
 ## Operating linter diagnostics
 

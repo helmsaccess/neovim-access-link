@@ -8,6 +8,15 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Spricht im Einfügemodus automatisch den vom LSP-Server aktiven Parameter
+  des innersten Funktionsaufrufs. Ein begrenzter Tree-sitter-/Lexer-Resolver,
+  120-ms-Bündelung, LSP-Trigger-/Retriggerkontext und exakte
+  Generation-/Editoridentität schützen Verschachtelung, unvollständigen Code
+  und verspätete Antworten. Bewegung im selben Argument bleibt still; die
+  Rückkehr in ein bereits ausgefülltes früheres Argument spricht erneut. Die
+  profilabhängig abschaltbare Ausgabe ist reine Sprache und lässt Braille beim
+  Quelltext. Resolver, LSP, Protokoll, Transport, NVDA-Präsentation und der
+  geführte Pyright-Praxistest besitzen getrennte Regressionen.
 - Vereinheitlicht die isolierten Praxistestprofile für native Completion,
   `nvim-cmp` und `blink.cmp`: Eine übernommene Funktion erhält genau ein
   Klammerpaar und der Cursor steht darin. Vorhandene Klammern und

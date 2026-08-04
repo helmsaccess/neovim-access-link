@@ -118,6 +118,24 @@ Buffer hängen. Ohne Client meldet der Befehl diesen Zustand ausdrücklich.
 Automatischer LSP-Fortschritt wird nicht fortlaufend gesprochen; Fehler und
 Ergebnisse bleiben über Diagnostics und Neovim-Meldungen zugänglich.
 
+## Automatische Parameteransage im Einfügemodus
+
+Innerhalb einer Funktionsargumentliste fragt Access Link nach einer kurzen
+Ruhezeit die öffentliche LSP-Signaturhilfe ab. Gesprochen wird nur der aktive
+Parameter der vom Server gewählten Signatur. Kommas, Cursorbewegungen und
+Textänderungen lösen eine neue Abfrage aus; eine Antwort wird nur verwendet,
+wenn Buffer, Fenster, Textstand, Modus, Cursor und zugehöriger Aufruf noch exakt
+passen. Veraltete Antworten bleiben still.
+
+Beim Eintritt in einen Aufruf wird der erste aktive Parameter gesprochen. Ein
+Wechsel in ein anderes Argument spricht dessen Parameter. Auch die Rückkehr in
+ein bereits ausgefülltes früheres Argument wird angesagt, während Bewegung
+innerhalb desselben Arguments dedupliziert und still bleibt. In
+verschachtelten Ausdrücken gehört der Cursor zum innersten umschließenden
+Aufruf. Die Ausgabe ist ausschließlich Sprache und verdeckt nie den Quelltext
+auf Braille. Fehlt eine eindeutige strukturierte Serverantwort, wird weder aus
+Kommas geraten noch unstrukturierter Hovertext automatisch vorgelesen.
+
 ## Funktionsparameter auf Abruf
 
 Mit `NVDA+Umschalt+P` fragt Access Link die Signaturhilfe an der aktuellen
@@ -128,6 +146,13 @@ auf der Braillezeile. `NVDA+h/l` schaltet durch die Parameter, `NVDA+k/j`
 durch mehrere Signaturen. Die echte Cursorposition bleibt unverändert. Beim
 Loslassen der letzten NVDA-Taste wird die Anzeige geschlossen und die normale
 Editorzeile wiederhergestellt.
+
+Im Normalmodus ist diese manuelle Abfrage auf Funktionsname, öffnender oder
+schließender Aufrufklammer zulässig; das Innere einer nichtleeren
+Argumentliste bleibt absichtlich ausgeschlossen. Im Einfügemodus sind Name
+und die Klammern eines leeren Aufrufs eindeutig manuell abfragbar. In einer
+nichtleeren Argumentliste dient die automatische Parameteransage oben der
+Orientierung.
 
 Beim Öffnen spricht Access Link nur die ausgewählte Signatur und ihre
 vorhandene Dokumentation. `NVDA+h/l` spricht und zeigt ausschließlich den

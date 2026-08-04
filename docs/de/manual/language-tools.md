@@ -290,6 +290,24 @@ verursacht.
 
 ## Funktionssignaturen und Parameter abfragen
 
+Im Einfügemodus spricht Access Link den jeweils aktiven Parameter automatisch,
+sobald der Cursor in die Argumentliste eines Aufrufs gelangt. Nach einem Komma
+folgt der vom Sprachserver ausgewählte nächste Parameter. Kehrt der Cursor in
+ein bereits ausgefülltes früheres Argument zurück, wird dessen Parameter erneut
+gesprochen; reine Bewegung innerhalb desselben Arguments bleibt still. Bei
+verschachtelten Aufrufen gilt immer die innerste umschließende Funktion. Bei
+mehreren Signaturen folgt die Ansage ausschließlich der vom Sprachserver
+aktuell gewählten Signatur. Diese kurzen Hinweise sind bewusst reine Sprache:
+Die Braillezeile bleibt beim Quelltext. Unter `NVDA-Menü → Optionen →
+Einstellungen… → Neovim Access Link → Allgemein` lässt sich „Aktiven
+Funktionsparameter beim Tippen automatisch ansagen“ profilabhängig abschalten.
+
+Die automatische Zuordnung verwendet die strukturierte LSP-Signaturhilfe und
+nicht die Anzahl sichtbarer Kommas. Dadurch bringen Zeichenketten,
+verschachtelte Aufrufe und sprachspezifische Syntax die Parameterposition nicht
+durcheinander. Gibt der Sprachserver keinen eindeutigen aktiven Parameter
+zurück, bleibt Access Link sicherheitshalber still.
+
 `NVDA+Umschalt+P` ist bereits fest im Windows-Terminal-Modul von Access Link
 belegt und muss weder in NVDA noch in Lua zugewiesen werden. Den Cursor auf
 den Funktionsnamen oder auf die unmittelbar zugehörige öffnende oder
@@ -305,6 +323,13 @@ NVDA-Taste weiter halten:
 Diese Funktion benötigt Signaturhilfe vom Sprachserver. Wenn der Server nur
 Hovertext, aber keine strukturierte Signaturhilfe liefert, kann Access Link
 lediglich diesen unstrukturierten Text als Rückfall anzeigen.
+
+Für die manuelle Abfrage gelten absichtlich eindeutige Cursorpositionen: Im
+Normalmodus funktionieren Funktionsname sowie die direkt zugehörige öffnende
+und schließende Klammer, nicht aber das Innere einer nichtleeren Argumentliste.
+Im Einfügemodus funktionieren der Funktionsname und beide Klammern eines leeren
+Aufrufs. Innerhalb einer nichtleeren Argumentliste übernimmt stattdessen die
+oben beschriebene automatische Ansage des aktiven Parameters.
 
 ## Lintermeldungen bedienen
 

@@ -331,6 +331,20 @@ Besonders wichtig sind:
   ausgelagerten Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry-
   und Terminaldienstmodulen.
 
+Das automatische Parameterfeature besitzt bewusst mehrere unabhängige
+Schichten. `call_context_spec.lua` prüft Normal-/Insert-Regeln,
+mehrstufige und mehrzeilige Verschachtelung, Strings, Kommentare, leere und
+unvollständige Aufrufe, UTF-8, Kontrollschlüsselwörter und Größenlimits.
+`signature_help_automatic_spec.lua` prüft 120-ms-Bündelung, LSP-Auslöse- und
+Neuauslösekontext, vorherige Signaturhilfe, deduplizierte Bewegung,
+Parameter- und Signaturwechsel, Rückkehr in einen bereits ausgefüllten ersten
+Parameter, deterministische Mehrclientauswahl, Abbruch, Generationen und
+`InsertLeave`. Getrennte Protokoll-, Local-TCP-, stdio-/Bridge-, Speech-,
+Einstellungs-, UI- und Pakettests prüfen Fähigkeit, Feldgrenzen,
+widersprüchliche Datensätze, reine Sprachausgabe und Abschaltung. Der geführte
+Pyright-/NVDA-Test bewertet nur reale Wahrnehmung, Latenz und unveränderte
+Brailleausgabe; er wiederholt keine algorithmischen Assertions.
+
 ### Terminal und Kommandozeile
 
 Automatisierte TUI- und Add-on-Tests müssen unterscheiden:

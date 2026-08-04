@@ -626,6 +626,35 @@ zero-based index is confirmed; displayed text is never sent back as input.
 Releasing NVDA discards the local selection, not Neovim's prompt. Each future
 prompt type requires its own strict adapter.
 
+### Automatic active parameter
+
+`call_context.lua` resolves call boundaries independently of rendering or the
+completion plugin. When available, Tree-sitter marks strings, comments, and
+language-specific text nodes; a bounded lexer supplements incomplete code and
+provides a conservative fallback. Scanning is limited to 512 lines, 128 KiB,
+and 20,000 tree nodes. Ambiguous or oversized contexts produce no result.
+Paired parentheses resolve nesting, so Insert mode selects the innermost
+enclosing call. The manual query reuses this resolver with stricter position
+rules.
+
+In Insert mode, `signature_help.lua` observes `InsertEnter`, `CursorMovedI`,
+`TextChangedI`, and `CompleteDone`, debounces for 120 ms, and requests Neovim's
+public `textDocument/signatureHelp` interface. Trigger and retrigger characters
+and bounded prior `activeSignatureHelp` follow the LSP contract. Every request
+carries a generation and an exact buffer, window, changed-text, mode, cursor,
+and call-identity snapshot; a later change cancels the request or rejects its
+reply. With multiple clients, the first valid bounded result is selected
+deterministically.
+
+Server-provided `activeSignature` and `activeParameter` are authoritative; the
+implementation deliberately does not count commas. Identity is deduplicated
+by call, signature, and parameter. Movement within one argument is therefore
+silent, while returning to an already filled earlier parameter speaks it
+again. A signature change uses only that signature's parameter list. The
+validated `activeParameterChanged` event is speech-only, leaving canonical
+Braille on source text. Neither transport nor NVDA's main thread performs LSP
+requests.
+
 ### Held developer contexts
 
 The Windows Terminal AppModule owns the physical NVDA-key lifetime and

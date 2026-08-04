@@ -45,12 +45,35 @@ buffer and explicitly reports when none is attached. Ongoing LSP progress is
 not spoken continuously; errors and results remain available through
 diagnostics and Neovim messages.
 
+## Automatic parameter speech in Insert mode
+
+Inside a function argument list, Access Link requests public LSP signature
+help after a short quiet period. It speaks only the active parameter of the
+signature selected by the server. Commas, cursor motion, and text changes
+retrigger the request; a reply is used only while buffer, window, changed
+text, mode, cursor, and associated call still match exactly. Stale replies
+remain silent.
+
+Entering a call speaks its first active parameter. Moving to another argument
+speaks that parameter. Returning to an already filled earlier argument speaks
+it again, while movement within the same argument is deduplicated and silent.
+In nested expressions, the innermost enclosing call owns the cursor. Output is
+speech-only and never covers source text in Braille. Without an unambiguous
+structured server response, Access Link neither guesses from commas nor reads
+unstructured hover text automatically.
+
 Press `NVDA+Shift+P` to request callable information at the current cursor.
 The cursor may be on the function name or on the call's immediately associated
 opening or closing parenthesis. While at least one NVDA key remains held, the
 result stays on the Braille display. `NVDA+h/l` cycles through parameters and
 `NVDA+k/j` through multiple signatures without moving the real editor cursor.
 Releasing the final NVDA key closes the view and restores the editor line.
+
+In Normal mode, this manual query accepts the function name or its opening or
+closing call parenthesis; the interior of a non-empty argument list is
+deliberately excluded. In Insert mode, the name and both parentheses of an
+empty call are unambiguous manual positions. Inside a non-empty argument list,
+the automatic active-parameter speech above provides orientation.
 Access Link prefers public LSP signature help and uses LSP hover as an
 unstructured fallback. A reply is accepted only while instance, terminal,
 buffer, window, tab, changed tick, and cursor position still match the request.

@@ -388,6 +388,24 @@ class StdioTransportTests(unittest.TestCase):
 		self.assertEqual([], dispatched)
 		transport.stop()
 
+	def test_active_parameter_capability_is_forwarded_only_when_advertised(self) -> None:
+		transport = StdioTransport(
+			lambda: {"pluginCapabilities": ["activeParameterHints"]},
+			io.BytesIO(),
+			io.BytesIO(),
+			heartbeat_seconds=10.0,
+		)
+		self.assertIn(
+			"activeParameterHints",
+			transport._state_with_capabilities()["_transport"]["capabilities"],
+		)
+		self.assertNotIn(
+			"activeParameterHints",
+			transport._state_with_capabilities({"pluginCapabilities": []})["_transport"][
+				"capabilities"
+			],
+		)
+
 	def test_exploration_requires_plugin_capability(self) -> None:
 		step = {
 			"requestId": 1,

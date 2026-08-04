@@ -107,6 +107,7 @@ from .terminal_integration import (  # noqa: E402
 	TerminalIntegrationService,
 )
 from .settings_service import (  # noqa: E402
+	AUTOMATIC_PARAMETER_HINTS_DEFAULT,
 	BRAILLE_DEVELOPER_START_DEFAULT,
 	BRAILLE_DEVELOPER_START_MAXIMUM,
 	BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
@@ -349,6 +350,9 @@ _NVDA_CONFIG_SPEC = {
 	),
 	"brailleFollowSpeechExploration": (
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
+	),
+	"automaticParameterHints": (
+		f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"
 	),
 	"brailleRouting": {
 		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",

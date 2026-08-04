@@ -20,6 +20,21 @@
       "automatedEvidence": ["neovim-plugin/tests/lsp_status_spec.lua"]
     },
     {
+      "id": "automatic-parameters",
+      "category": "language-intelligence",
+      "titleKey": "plan.lspNative.automaticParameters.title",
+      "contextKey": "plan.lspNative.automaticParameters.context",
+      "actionKey": "plan.lspNative.automaticParameters.action",
+      "expectedKey": "plan.lspNative.automaticParameters.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": [
+        "neovim-plugin/tests/signature_help_automatic_spec.lua",
+        "protocol/python/tests/test_signature_help.py",
+        "nvda-addon/tests/test_speech.py"
+      ]
+    },
+    {
       "id": "held-parameters",
       "category": "language-intelligence",
       "titleKey": "plan.lspNative.parameters.title",

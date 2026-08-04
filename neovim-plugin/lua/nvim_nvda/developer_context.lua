@@ -1,4 +1,5 @@
 local diagnostics = require("nvim_nvda.diagnostics")
+local call_context = require("nvim_nvda.call_context")
 local text = require("nvim_nvda.text")
 local M = {}
 
@@ -181,45 +182,15 @@ local function utf16_index(value, byte_column)
   return ok and index or nil
 end
 
-local function identifier_byte(value)
-  return value and (
-    value >= 128
-    or value >= string.byte("0") and value <= string.byte("9")
-    or value >= string.byte("A") and value <= string.byte("Z")
-    or value == string.byte("_")
-    or value >= string.byte("a") and value <= string.byte("z")
-  )
-end
-
--- Language servers commonly return signature help only inside an argument
--- list. When the real cursor is on a callable name or its opening parenthesis,
--- query just after that delimiter without moving or editing the buffer. A
--- position on the closing parenthesis already denotes the inside of that
--- argument list in LSP coordinates, so it can be used unchanged. Hover still
--- uses the real cursor position as its unstructured fallback.
-local function callable_position_params(payload, params)
-  if type(params) ~= "table" or type(params.position) ~= "table" then return params end
-  local lines = vim.api.nvim_buf_get_lines(
-    payload.bufferId, payload.line - 1, payload.line, true
-  )
+local function adjusted_position_params(bufnr, params, line_number, byte_column)
+  if type(params) ~= "table" or type(params.position) ~= "table" then return nil end
+  local lines = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, true)
   local line = type(lines) == "table" and lines[1] or nil
-  if type(line) ~= "string" or payload.byteColumn >= #line then return params end
-  local offset = payload.byteColumn + 1
-  if line:sub(offset, offset) == "(" then
-    local character = utf16_index(line, offset)
-    if type(character) ~= "number" then return params end
-    local adjusted = vim.deepcopy(params)
-    adjusted.position.character = character
-    return adjusted
-  end
-  if line:sub(offset, offset) == ")" then return params end
-  if not identifier_byte(line:byte(offset)) then return params end
-  while identifier_byte(line:byte(offset)) do offset = offset + 1 end
-  while line:sub(offset, offset):match("%s") do offset = offset + 1 end
-  if line:sub(offset, offset) ~= "(" then return params end
-  local character = utf16_index(line, offset)
-  if type(character) ~= "number" then return params end
+  if type(line) ~= "string" or byte_column > #line then return nil end
+  local character = utf16_index(line, byte_column)
+  if type(character) ~= "number" then return nil end
   local adjusted = vim.deepcopy(params)
+  adjusted.position.line = line_number - 1
   adjusted.position.character = character
   return adjusted
 end
@@ -263,9 +234,26 @@ function M.request_callable(payload, emit)
     emit("callableContextResult", "callableContextRequest", failure(payload, "requestFailed"))
     return false
   end
-  local signature_params = callable_position_params(payload, hover_params)
+  local request_mode = vim.api.nvim_get_mode().mode
+  local resolved = call_context.resolve_manual(
+    payload.bufferId, payload.line, payload.byteColumn, request_mode
+  )
+  if not resolved then
+    emit("callableContextResult", "callableContextRequest", failure(payload, "noResult"))
+    return false
+  end
+  local signature_params = adjusted_position_params(
+    payload.bufferId, hover_params, resolved.queryLine, resolved.queryByteColumn
+  )
+  hover_params = adjusted_position_params(
+    payload.bufferId, hover_params, resolved.nameLine, resolved.nameByteColumn
+  )
+  if not signature_params or not hover_params then
+    emit("callableContextResult", "callableContextRequest", failure(payload, "requestFailed"))
+    return false
+  end
   local requested = request_all(payload.bufferId, METHOD_SIGNATURE, signature_params, function(results)
-    if not exact_context(payload) then
+    if not exact_context(payload) or vim.api.nvim_get_mode().mode ~= request_mode then
       emit("callableContextResult", "callableContextRequest", failure(
         payload, "invalidOrStaleRequest"
       ))
@@ -280,7 +268,7 @@ function M.request_callable(payload, emit)
     end
     local hover_requested = request_all(
       payload.bufferId, METHOD_HOVER, hover_params, function(hover_results)
-        if not exact_context(payload) then
+        if not exact_context(payload) or vim.api.nvim_get_mode().mode ~= request_mode then
           emit("callableContextResult", "callableContextRequest", failure(
             payload, "invalidOrStaleRequest"
           ))

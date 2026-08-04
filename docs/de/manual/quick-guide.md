@@ -224,6 +224,14 @@ NVDA unverändert. Ein kurzer Doppelton meldet, wenn die virtuelle Position
 wieder das Zeichen, Wort oder die Zeile erreicht, an dem der
 Sprachexplorationsmodus begann.
 
+Beim Schreiben in einer Funktionsargumentliste spricht Access Link automatisch
+den vom Sprachserver aktiven Parameter. Nach einem Komma folgt der nächste;
+kehrt der Cursor in ein bereits ausgefülltes früheres Argument zurück, wird
+dieser Parameter erneut gesprochen. Bewegung innerhalb desselben Arguments
+bleibt still. Bei Verschachtelung gilt der innerste Aufruf. Die kurze Ausgabe
+ist nur Sprache, Braille bleibt beim Quelltext. Sie lässt sich unter
+`Einstellungen… → Neovim Access Link → Allgemein` profilabhängig abschalten.
+
 Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
 Den Cursor auf Funktionsname, öffnende oder schließende Aufrufklammer setzen,
 `NVDA+Umschalt+P` drücken und die NVDA-Taste weiter halten. `NVDA+h/l`

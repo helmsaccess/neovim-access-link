@@ -96,6 +96,9 @@ It adds `brailleRoutingActions` only when the plugin reports the fixed
 repeated-routing actions and their complete state validation.
 It adds `callableContextQuery` and `diagnosticContextQuery` only when the
 plugin reports the correlated read-only queries.
+It adds `activeParameterHints` only when the plugin produces structured
+automatic transitions of the active LSP parameter. The bridge and local
+client discard this event type without that capability.
 `diagnosticCursorSummary` additionally marks the compact text-free diagnostic
 summary in normal snapshots.
 Protocol v1, generic listeners, tokens, tunnel ports, and compatibility mode
@@ -146,7 +149,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`,
 `menuSelectionChanged`, `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`,
-`signatureChanged`,
+`signatureChanged`, `activeParameterChanged`,
 `signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
@@ -166,6 +169,18 @@ metadata such as documentation resolved later. NVDA uses it to refresh the
 per-instance documentation cache without a second selection announcement.
 `signatureClosed` ends transient signature state when its editor context is
 left and has no speech presentation of its own.
+`activeParameterChanged` is a transient, non-canonical speech hint from Insert
+mode. Its payload binds the call through `callName`, one-based
+`callStartLine`, and zero-based `callStartByteColumn`; it carries a bounded
+`signature`, `signatureIndex`/`signatureCount`,
+`activeParameter`/`parameterCount`, a bounded `parameter` label, and exactly
+one reason: `callEntered`, `signatureChanged`, or `parameterChanged`. All
+indices are one-based, counts are bounded to 100, and their relationships must
+be valid. Insert mode, buffer, window, changed tick, and cursor identity are
+also required and validated. Protocol, bridge, and local client reject
+missing, invalid, oversized, or contradictory required fields; ordinary
+validated snapshot fields may remain alongside them. The event creates no Braille message and
+is not queued for later replay.
 `hoverChanged` carries a short summary and bounded complete documentation;
 speech and Braille automatically use only the summary. `hoverClosed` discards
 the per-instance hover documentation without its own presentation.

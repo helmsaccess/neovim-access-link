@@ -124,6 +124,8 @@ class NvdaPresentation:
 			)
 
 	def action_speech_allowed(self, event_type, feedback_key):
+		if event_type == "activeParameterChanged":
+			return bool(self._settings_provider().get("automaticParameterHints", True))
 		if feedback_key in {"delete", "replace"} and event_type in {
 			"textChanged",
 			"textDeleted",

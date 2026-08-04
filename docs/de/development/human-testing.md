@@ -12,6 +12,13 @@ werden muss. LSP-Antworten, Diagnosebereiche,
 Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
 überlassen.
 
+Die automatische Parameteraufgabe beurteilt deshalb nur, ob reale
+Pyright-Übergänge verständlich und ohne störende Verzögerung gesprochen werden
+und die Braillezeile beim Quelltext bleibt. Resolver, Verschachtelung,
+Überladungen, Rückkehr in einen bereits ausgefüllten Parameter,
+Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
+automatisierte Regressionen.
+
 Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
 drei Completion-Kandidaten, zwei Funktionssignaturen mit jeweils drei
 Parametern sowie zwei Diagnosen auf der ersten Diagnosezeile. Dadurch bedeutet
@@ -49,7 +56,7 @@ verändert.
 
 | Kategorie der Einzelauswahl | Beispiele |
 | --- | --- |
-| LSP und Sprachintelligenz | LSP-Status und Funktionssignaturen |
+| LSP und Sprachintelligenz | LSP-Status, automatische aktive Parameter und gehaltene Funktionssignaturen |
 | Vervollständigung | native Completion, nvim-cmp und blink.cmp |
 | Diagnosen und Linter | Ruff, Clang-Tidy und markdownlint |
 | Sitzung und Terminalintegration | Fokusisolation und Fail-open |
@@ -178,7 +185,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 | --- | --- |
 | `Escape`, dann `F2` | aktuelle Aufgabe jederzeit erneut anzeigen und ausgeben |
 | `F1` | aktiven LSP-Status durch Access Link ausgeben |
-| `F3`, danach `F5` | vorbereitete Completion-Stelle mit mindestens drei Kandidaten öffnen; `F3` wechselt automatisch in den Einfügemodus |
+| `F3` | die für die aktuelle Aufgabe vorbereitete Eingabestelle öffnen und automatisch in den Einfügemodus wechseln; bei der Completion-Aufgabe danach `F5` drücken |
 | `F5` im Diagnoseprofil | auf eine vorbereitete fehlerfreie Position wechseln und dort ausdrücklich die aktuelle Diagnose abfragen |
 | `F6` | den für die Aufgabe ausgewählten Linter ausführen und auf dessen Bereitschaft warten |
 | `F7` | Diagnose an der aktuellen Position ausgeben |
@@ -188,7 +195,9 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 Completion wird mit `Strg+N` und `Strg+P` durchlaufen, mit `Strg+Y`
 übernommen und mit `Strg+E` geschlossen. Die Brailleaufgaben nennen die
 erforderliche gehaltene NVDA-Geste vollständig. Ein Wechsel in Neovims
-Befehlszeilenmodus ist nie erforderlich.
+Befehlszeilenmodus ist nie erforderlich. `F11` wird bewusst nicht verwendet,
+weil Windows Terminal diese Taste standardmäßig für den Vollbildmodus abfängt,
+bevor Neovim sie erhalten kann.
 
 ## Was vor dem ersten Test automatisch geschieht
 

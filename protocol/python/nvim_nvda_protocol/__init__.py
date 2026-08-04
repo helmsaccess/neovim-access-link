@@ -64,6 +64,7 @@ from .local_client import LocalTcpClient
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .reconnect import ExponentialBackoff
 from .session import SessionTracker
+from .signature_help import valid_active_parameter_changed
 from .stdio_client import SshStdioClient
 from .terminal_control import (
     terminal_control_result_state, valid_leave_terminal_input_request,
@@ -115,6 +116,7 @@ __all__ = [
     "valid_diagnostic_context_result",
     "valid_route_cursor_request",
     "valid_accept_numbered_choice_request",
+    "valid_active_parameter_changed",
     "valid_braille_explore_line_request",
     "valid_braille_explore_line_result",
     "valid_braille_route_action_request",

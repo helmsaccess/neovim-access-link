@@ -24,6 +24,7 @@ from nvim_nvda_protocol import (
     valid_callable_context_result,
     valid_context_request,
     valid_diagnostic_context_result,
+    valid_active_parameter_changed,
 )
 
 
@@ -84,6 +85,11 @@ class Bridge:
             return dict(self._state)
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        if event_type == "activeParameterChanged" and (
+            not self._supports_plugin_capability("activeParameterHints")
+            or not valid_active_parameter_changed(payload)
+        ):
+            return
         if (event_type == "callableContextResult" and not valid_callable_context_result(payload)) or (
             event_type == "diagnosticContextResult" and not valid_diagnostic_context_result(payload)
         ):

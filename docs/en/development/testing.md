@@ -311,6 +311,19 @@ Important cases are:
   runtime, UI, focus, claim, editor, Braille, registry, and terminal-service
   modules.
 
+Automatic parameter hints deliberately have independent test layers.
+`call_context_spec.lua` covers Normal/Insert rules, deep and multiline
+nesting, strings, comments, empty and incomplete calls, UTF-8, control
+keywords, and size limits. `signature_help_automatic_spec.lua` covers the 120
+ms debounce, LSP trigger/retrigger context, prior signature help, deduplicated
+movement, parameter and signature transitions, return to an already filled
+first parameter, deterministic multi-client selection, cancellation,
+generations, and `InsertLeave`. Separate protocol, local-TCP, stdio/bridge,
+speech, setting, UI, and built-package tests cover capability gating, field
+bounds, contradictory records, speech-only presentation, and disabling. The
+guided Pyright/NVDA task assesses only real perception, latency, and unchanged
+Braille; it does not duplicate algorithmic assertions.
+
 ### Terminal and command line
 
 Automated TUI and add-on tests distinguish:

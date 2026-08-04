@@ -24,6 +24,7 @@ BRAILLE_ROUTING_DEFAULTS = {
 	"lineStart": 0,
 }
 BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT = True
+AUTOMATIC_PARAMETER_HINTS_DEFAULT = True
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class SettingsChange:
 	braille_developer_start_changed: bool
 	braille_routing_changed: bool
 	braille_follow_speech_exploration_changed: bool
+	automatic_parameter_hints_changed: bool
 	focus_announcement_changed: bool
 	connections_changed: bool
 	claim_inventory_started: bool
@@ -83,6 +85,10 @@ class SettingsService:
 			"brailleFollowSpeechExploration",
 			BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 		)
+		automatic_parameter_hints = settings.get(
+			"automaticParameterHints",
+			AUTOMATIC_PARAMETER_HINTS_DEFAULT,
+		)
 		if not isinstance(raw_feedback, dict):
 			self._recordDiagnostic("configError", error="feedback must be an object")
 			raw_feedback = {}
@@ -99,6 +105,13 @@ class SettingsService:
 				option="brailleFollowSpeechExploration",
 			)
 			braille_follow_speech_exploration = BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT
+		if not isinstance(automatic_parameter_hints, bool):
+			self._recordDiagnostic(
+				"configError",
+				error="invalid automatic parameter hints setting",
+				option="automaticParameterHints",
+			)
+			automatic_parameter_hints = AUTOMATIC_PARAMETER_HINTS_DEFAULT
 		feedback = dict(self._feedbackDefaults)
 		for key in feedback:
 			value = raw_feedback.get(key, feedback[key])
@@ -191,6 +204,7 @@ class SettingsService:
 			"brailleDeveloperStart": braille_developer_start,
 			"brailleRouting": braille_routing,
 			"brailleFollowSpeechExploration": braille_follow_speech_exploration,
+			"automaticParameterHints": automatic_parameter_hints,
 			"focusAnnouncement": focus_announcement,
 			"connections": [profile.as_dict() for profile in connections],
 		}
@@ -216,6 +230,7 @@ class SettingsService:
 			brailleDeveloperStartChanged=change.braille_developer_start_changed,
 			brailleRoutingChanged=change.braille_routing_changed,
 			brailleFollowSpeechExplorationChanged=(change.braille_follow_speech_exploration_changed),
+			automaticParameterHintsChanged=change.automatic_parameter_hints_changed,
 			focusAnnouncementChanged=change.focus_announcement_changed,
 			connectionsChanged=change.connections_changed,
 		)
@@ -281,6 +296,11 @@ class SettingsService:
 		)
 		return value if isinstance(value, bool) else BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT
 
+	def automatic_parameter_hints(self) -> bool:
+		"""Return whether active Insert-mode parameters are spoken automatically."""
+		value = self._values.get("automaticParameterHints", AUTOMATIC_PARAMETER_HINTS_DEFAULT)
+		return value if isinstance(value, bool) else AUTOMATIC_PARAMETER_HINTS_DEFAULT
+
 	def connection_profile_by_id(self, identifier: str):
 		try:
 			return next(
@@ -324,6 +344,10 @@ class SettingsService:
 					"brailleFollowSpeechExploration",
 					BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 				),
+				"automaticParameterHints": section.get(
+					"automaticParameterHints",
+					AUTOMATIC_PARAMETER_HINTS_DEFAULT,
+				),
 				# NVDA exposes nested configuration through AggregatedSection.
 				# Its public items() method has normal mapping semantics.
 				"feedback": dict(feedback_section.items()),
@@ -354,6 +378,9 @@ class SettingsService:
 				"brailleFollowSpeechExploration",
 				BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT,
 			)
+		)
+		section["automaticParameterHints"] = bool(
+			settings.get("automaticParameterHints", AUTOMATIC_PARAMETER_HINTS_DEFAULT)
 		)
 		section["connections"] = json.dumps(
 			settings.get("connections", []),
@@ -387,6 +414,9 @@ class SettingsService:
 		braille_follow_speech_exploration_changed = previous.get(
 			"brailleFollowSpeechExploration"
 		) != values.get("brailleFollowSpeechExploration")
+		automatic_parameter_hints_changed = previous.get(
+			"automaticParameterHints"
+		) != values.get("automaticParameterHints")
 		focus_changed = previous.get("focusAnnouncement") != values.get("focusAnnouncement")
 		connections_changed = previous.get("connections") != values.get("connections")
 		self._values = values
@@ -407,6 +437,7 @@ class SettingsService:
 			braille_developer_start_changed=braille_developer_start_changed,
 			braille_routing_changed=braille_routing_changed,
 			braille_follow_speech_exploration_changed=(braille_follow_speech_exploration_changed),
+			automatic_parameter_hints_changed=automatic_parameter_hints_changed,
 			focus_announcement_changed=focus_changed,
 			connections_changed=connections_changed,
 			claim_inventory_started=inventory_started,

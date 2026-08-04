@@ -119,6 +119,14 @@ only in the exact connected Neovim pane; NVDA remains unchanged in shells and
 other tabs or panes. A short two-note cue marks when the virtual position
 returns to the character, word, or line where speech exploration mode started.
 
+While typing inside a function argument list, Access Link automatically speaks
+the active parameter selected by the language server. A comma moves to the
+next parameter; returning to an already filled earlier argument speaks it
+again, while motion within the same argument stays silent. Nested expressions
+use the innermost call. This brief output is speech-only, leaving Braille on
+source text. It can be disabled per NVDA profile under `Settings... → Neovim
+Access Link → General`.
+
 Callable parameters can be inspected without moving the editor cursor. Place
 the cursor on the function name or its opening or closing call parenthesis,
 press `NVDA+Shift+P`, and keep NVDA held. `NVDA+h/l` cycles only the parameters

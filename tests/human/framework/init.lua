@@ -2,6 +2,7 @@
 -- It is always loaded with `nvim -u`; it never replaces the user's init.lua.
 
 local profile = (vim.env.ACCESS_LINK_HUMAN_PROFILE or "native"):lower()
+local step_id = (vim.env.ACCESS_LINK_HUMAN_STEP_ID or ""):lower()
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
 local configuration_source = assert(debug.getinfo(1, "S").source)
@@ -18,6 +19,7 @@ local human_messages = language == "de" and {
   callable_open = "Cursor auf öffnender Klammer.",
   callable_close = "Cursor auf schließender Klammer.",
   callable_unavailable = "Diese Testhilfe ist nur in der Python-Funktionsdatei verfügbar.",
+  insertion_unavailable = "Diese Aufgabe benötigt keine vorbereitete Eingabestelle.",
 } or {
   diagnostics_waiting = "Waiting for %s diagnostics.",
   diagnostics_ready = "Diagnostics ready: %d from %s, including %d at the test position. Press F7 now.",
@@ -26,6 +28,7 @@ local human_messages = language == "de" and {
   callable_open = "Cursor on opening parenthesis.",
   callable_close = "Cursor on closing parenthesis.",
   callable_unavailable = "This test helper is available only in the Python callable fixture.",
+  insertion_unavailable = "This task does not require a prepared insertion position.",
 }
 local valid_profiles = {
   setup = true,
@@ -139,6 +142,42 @@ local function prepare_insert_probe(text)
   vim.cmd("startinsert!")
 end
 
+local function prepare_parameter_probe()
+  if vim.bo.filetype ~= "python" then
+    vim.notify(human_messages.callable_unavailable)
+    return
+  end
+  local marker = "automatic_total = calculate_total()"
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
+  local line_number = nil
+  for index, line in ipairs(lines) do
+    if line == marker then
+      line_number = index
+      break
+    end
+  end
+  if not line_number then
+    local last_line = vim.api.nvim_buf_line_count(0)
+    vim.api.nvim_buf_set_lines(0, last_line, last_line, false, { "", marker })
+    line_number = last_line + 2
+  end
+  local opening = assert(marker:find("(", 1, true)) - 1
+  vim.api.nvim_win_set_cursor(0, { line_number, opening + 1 })
+  vim.cmd("startinsert")
+end
+
+local function prepare_current_probe()
+  if step_id == "automatic-parameters" then
+    prepare_parameter_probe()
+    return
+  end
+  if step_id == "completion-presentation" then
+    prepare_insert_probe("completion_probe = calculate_")
+    return
+  end
+  vim.notify(human_messages.insertion_unavailable)
+end
+
 local function callable_fixture_positions()
   if vim.bo.filetype ~= "python" then return nil end
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
@@ -195,9 +234,8 @@ vim.keymap.set("n", "<F1>", function()
 end, { desc = "Access Link human test: LSP status" })
 vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
   { desc = "Access Link human test: repeat current task" })
-vim.keymap.set("n", "<F3>", function()
-  prepare_insert_probe("completion_probe = calculate_")
-end, { desc = "Access Link human test: prepare completion" })
+vim.keymap.set("n", "<F3>", prepare_current_probe,
+  { desc = "Access Link human test: prepare current insertion task" })
 vim.keymap.set("n", "<F4>", cycle_callable_fixture_position,
   { desc = "Access Link human test: cycle callable cursor position" })
 if profile == "diagnostics" then
@@ -224,7 +262,6 @@ vim.keymap.set("n", "<F9>", function()
 end, { desc = "Access Link human test: next diagnostic" })
 vim.keymap.set("n", "<F10>", "<Cmd>qa!<CR>",
   { desc = "Access Link human test: exit without saving" })
-
 vim.api.nvim_create_user_command("AccessLinkHumanTestInfo", function()
   show_current_task()
 end, { desc = "Show the active guided human-test profile" })

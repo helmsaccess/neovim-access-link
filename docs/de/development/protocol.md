@@ -170,6 +170,9 @@ getrennten flüchtigen Braille-Zeilenkanal bestätigt.
 Mehrfachbetätigungsaktionen und ihre vollständige Zustandsprüfung bestätigt.
 `callableContextQuery` und `diagnosticContextQuery` werden nur ergänzt, wenn
 das Plugin die korrelierten, lesenden Kontextabfragen bestätigt.
+`activeParameterHints` wird nur ergänzt, wenn das Plugin automatische,
+strukturierte Übergänge des aktiven LSP-Parameters erzeugt. Bridge und lokaler
+Client verwerfen diesen Ereignistyp ohne die Fähigkeit.
 `diagnosticCursorSummary` kennzeichnet zusätzlich die kleine, textfreie
 Diagnosezusammenfassung im normalen Snapshot.
 
@@ -226,6 +229,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
 `textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
+`activeParameterChanged`,
 `signatureClosed`,
 `hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`,
 `diagnosticMoved`, `foldChanged`,
@@ -249,6 +253,19 @@ Metadaten wie eine nachträglich aufgelöste Dokumentation. NVDA aktualisiert
 damit den instanzbezogenen Dokumentationscache ohne eine zweite Auswahlansage.
 `signatureClosed` beendet den flüchtigen Signaturzustand beim Verlassen seines
 Editor-Kontexts und erzeugt keine eigene Sprachmeldung.
+`activeParameterChanged` ist ein flüchtiger, nicht kanonisch gespeicherter
+Sprachhinweis aus dem Einfügemodus. Die Payload bindet den Aufruf mit
+`callName`, einsbasierter `callStartLine` und nullbasierter
+`callStartByteColumn`; sie enthält die begrenzte `signature`,
+`signatureIndex`/`signatureCount`, `activeParameter`/`parameterCount`, das
+begrenzte `parameter`-Label und genau einen Grund `callEntered`,
+`signatureChanged` oder `parameterChanged`. Alle Indizes sind einsbasiert,
+Anzahlen auf 100 begrenzt und müssen zueinander passen. Zusätzlich müssen
+Insert-Modus, Buffer, Fenster, `changedtick` und Cursor vollständig vorhanden
+und gültig sein. Protokoll, Bridge und lokaler Client lehnen fehlende,
+ungültige, übergroße oder widersprüchliche Pflichtfelder ab; die üblichen
+validierten Snapshot-Felder dürfen daneben erhalten bleiben. Das Ereignis erzeugt keine
+Braillemeldung und wird nicht für spätere Wiedergabe zwischengespeichert.
 `hoverChanged` enthält eine kurze Zusammenfassung und die begrenzte
 vollständige Dokumentation; Sprache und Braille verwenden automatisch nur die
 Zusammenfassung. `hoverClosed` verwirft die instanzbezogene

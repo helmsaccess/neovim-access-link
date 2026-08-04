@@ -124,6 +124,21 @@ anschließenden Eintritt in direkte Terminaleingabe mit `i` wird unabhängig von
 dieser Einstiegswahl die vollständige Zeile am Terminalcursor gesprochen; der
 Insert-/Fokusklang folgt weiterhin den Feedbackeinstellungen.
 
+#### Aktiven Funktionsparameter beim Tippen automatisch ansagen
+
+Diese standardmäßig aktive profilfähige Option steuert die kurze
+Parameteransage im Einfügemodus. Access Link spricht beim Eintritt in eine
+Funktionsargumentliste und beim Wechsel des aktiven Arguments den vom
+Sprachserver gewählten Parameter. Die Rückkehr in ein bereits ausgefülltes
+Argument wird erneut angesagt; Bewegung innerhalb desselben Arguments bleibt
+still. Die Ausgabe ist reine Sprache und verändert die Braillezeile nicht.
+
+Die Option arbeitet unabhängig von den Aktionsklängen der Registerkarte
+`Rückmeldung`: Sie ist eine Orientierungshilfe aus LSP-Signaturdaten, keine
+Bestätigung einer Editoraktion. Ist sie ausgeschaltet oder liefert der
+Sprachserver keinen eindeutigen Parameter, erfolgt keine automatische Ansage.
+Die ausdrückliche gehaltene Abfrage mit `NVDA+Umschalt+P` bleibt verfügbar.
+
 ## Registerkarte Rückmeldung
 
 Alle Einstellungen dieser Registerkarte besitzen dieselben vier Werte `Aus`,

@@ -3,6 +3,15 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Automatically speaks the LSP-server-selected active parameter of the
+  innermost function call in Insert mode. A bounded Tree-sitter/lexer
+  resolver, 120 ms debounce, LSP trigger/retrigger context, and exact
+  generation/editor identity protect nesting, incomplete code, and late
+  replies. Movement within one argument stays silent; returning to an already
+  filled earlier argument speaks again. This profile-aware, optional output is
+  speech-only and leaves Braille on source text. Resolver, LSP, protocol,
+  transport, NVDA presentation, and the guided real-Pyright task have separate
+  regressions.
 - Aligns the isolated native completion, `nvim-cmp`, and `blink.cmp` practical
   test profiles: an accepted function gains exactly one pair of parentheses
   with the cursor inside. Existing parentheses and LSP snippets are not

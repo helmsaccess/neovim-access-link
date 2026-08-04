@@ -112,6 +112,114 @@ equal("😀x", text.utf16_slice("a😀xyz", 1, 4, 512), "UTF-16 slice")
 equal("", text.utf16_slice("a😀xyz", 2, 4, 512), "split surrogate rejected")
 equal("", text.utf16_slice("\255bad", 0, 1, 512), "invalid UTF-8 rejected")
 
+local resolved = {
+  name = "calculate_total",
+  openLine = 7,
+  openByteColumn = 15,
+}
+local automatic = {
+  signatures = {
+    {
+      label = "calculate_total(price: float, quantity: int, tax: float)",
+      parameters = {
+        { label = "price: float" },
+        { label = "quantity: int" },
+        { label = "tax: float" },
+      },
+    },
+    {
+      label = "calculate_total(subtotal: float, tax: float)",
+      activeParameter = 1,
+      parameters = {
+        { label = "subtotal: float" },
+        { label = "tax: float" },
+      },
+    },
+  },
+  activeSignature = 0,
+  activeParameter = 0,
+}
+signature_help._test_clear_automatic()
+event_count = #events
+equal(true, signature_help._test_publish_automatic(automatic, resolved, 9),
+  "initial automatic parameter emitted")
+equal(event_count + 1, #events, "one initial automatic event")
+equal("activeParameterChanged", events[#events].type, "automatic event type")
+equal("callEntered", events[#events].payload.hintReason, "initial call reason")
+equal("price: float", events[#events].payload.parameter, "initial parameter label")
+equal(3, events[#events].payload.parameterCount, "selected signature parameter count")
+equal(false, signature_help._test_publish_automatic(automatic, resolved, 9),
+  "same argument movement is silent")
+equal(event_count + 1, #events, "duplicate automatic parameter suppressed")
+
+automatic.activeParameter = 1
+equal(true, signature_help._test_publish_automatic(automatic, resolved, 9),
+  "moving to second parameter emits")
+equal("parameterChanged", events[#events].payload.hintReason, "parameter change reason")
+equal(2, events[#events].payload.activeParameter, "second parameter identity")
+automatic.activeParameter = 0
+equal(true, signature_help._test_publish_automatic(automatic, resolved, 9),
+  "returning to already filled first parameter emits again")
+equal(1, events[#events].payload.activeParameter, "returned first parameter identity")
+
+automatic.activeSignature = 1
+automatic.activeParameter = 0
+equal(true, signature_help._test_publish_automatic(automatic, resolved, 9),
+  "overload change emits")
+equal("signatureChanged", events[#events].payload.hintReason, "overload change reason")
+equal(2, events[#events].payload.signatureIndex, "active overload index")
+equal(2, events[#events].payload.activeParameter,
+  "signature-level active parameter overrides global index")
+equal("tax: float", events[#events].payload.parameter,
+  "parameter belongs only to selected overload")
+
+local same_labels = {
+  signatures = {{
+    label = "same(value, value)",
+    parameters = {{ label = "value" }, { label = "value" }},
+  }},
+  activeParameter = 0,
+}
+signature_help._test_clear_automatic()
+equal(true, signature_help._test_publish_automatic(same_labels, resolved, 9),
+  "first duplicate label emitted")
+same_labels.activeParameter = 1
+equal(true, signature_help._test_publish_automatic(same_labels, resolved, 9),
+  "position identity emits even when parameter labels match")
+equal(2, events[#events].payload.activeParameter, "same-label position retained")
+
+local invalid = vim.deepcopy(same_labels)
+invalid.activeParameter = 2
+equal(false, signature_help._test_publish_automatic(invalid, resolved, 9),
+  "out-of-range active parameter rejected")
+equal(nil, signature_help._test_first_result({
+  [1] = { result = { signatures = {} } },
+  [2] = { result = { signatures = "invalid" } },
+}), "invalid provider results rejected")
+local selected_result = signature_help._test_first_result({
+  [10] = { result = { signatures = {{ label = "later()" }} } },
+  [2] = { result = { signatures = {{ label = "first()" }} } },
+})
+equal("first()", selected_result.signatures[1].label, "numeric client order is deterministic")
+
+local many = { signatures = {}, activeParameter = 0 }
+for signature_index = 1, 101 do
+  local parameters = {}
+  for parameter_index = 1, 101 do
+    parameters[#parameters + 1] = { label = "p" .. parameter_index }
+  end
+  many.signatures[#many.signatures + 1] = {
+    label = "overload" .. signature_index .. "(" .. string.rep("x", 3000) .. ")",
+    parameters = parameters,
+  }
+end
+signature_help._test_clear_automatic()
+equal(true, signature_help._test_publish_automatic(many, resolved, 9),
+  "bounded large response still publishes")
+equal(100, events[#events].payload.signatureCount, "signature count bounded")
+equal(100, events[#events].payload.parameterCount, "parameter count bounded")
+equal(true, #events[#events].payload.signature <= 2048, "signature text bounded")
+
 vim.lsp.handlers[method] = original_handler
 vim.lsp.buf_request_all = original_request_all
 

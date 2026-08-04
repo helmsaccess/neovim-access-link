@@ -280,6 +280,19 @@ Bufferkontextwechsel still verworfen.
 Anforderung aus. Fortschritt wird zur Vermeidung einer Sprachflut nicht
 automatisch angesagt.
 
+Im Einfügemodus verfolgt Access Link den aktiven Parameter eines
+Funktionsaufrufs automatisch. Ein begrenzter, Tree-sitter-unterstützter
+Resolver wählt bei Verschachtelung den innersten Aufruf und ignoriert
+Klammern in Zeichenketten und Kommentaren. Nach 120 ms Ruhe wird öffentliche
+LSP-Signaturhilfe mit Trigger-/Retriggerkontext angefragt. Ausschließlich
+`activeSignature` und `activeParameter` des Servers bestimmen die Ansage;
+Kommas werden nicht lokal gezählt. Exakte Generation, Buffer-, Fenster-,
+Textstand-, Modus-, Cursor- und Aufrufprüfung verwirft veraltete Antworten.
+Bewegung im selben Argument bleibt still, Rückkehr in ein bereits ausgefülltes
+früheres Argument spricht erneut. Das Ereignis ist validierte reine Sprache
+und ersetzt niemals die Quelltext-Braillezeile. Die Funktion ist
+profilabhängig abschaltbar.
+
 `NVDA+Umschalt+P` startet eine korrelierte, rein lesende Abfrage von
 LSP-Signaturhilfe mit Hover-Rückfall. Sie funktioniert auf dem Funktionsnamen
 sowie der unmittelbar zugehörigen öffnenden und schließenden Aufrufklammer,

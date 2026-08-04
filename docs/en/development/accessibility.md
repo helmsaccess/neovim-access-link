@@ -60,6 +60,18 @@ suggestion to an existing later Braille cell; a position beyond
 suggestion does not fit to the right, its start moves left to the last cell
 where the complete result fits.
 
+Automatic active-parameter speech has a separate bounded LSP path.
+`InsertEnter`, `CursorMovedI`, `TextChangedI`, and `CompleteDone` feed a 120 ms
+debounce. A Tree-sitter-assisted, bounded lexical call resolver selects the
+innermost enclosing call while excluding strings and comments. Only the
+server-selected signature and active parameter are used; exact buffer, window,
+changed-text, mode, cursor, and call identity reject stale replies. Identity
+deduplication keeps motion inside one argument silent but speaks again when
+the cursor returns to an earlier, already filled argument. Output is
+speech-only. Resolver, nesting, UTF-8, trigger/retrigger, multi-client, race,
+protocol, transport, setting, and speech tests cover the path; the guided real
+Pyright/NVDA task checks perception and latency.
+
 Held developer context uses two fixed Windows Terminal AppModule gestures.
 `NVDA+Shift+P` requests bounded LSP signature help, with hover as an
 unstructured fallback. If the real cursor is on a callable name immediately

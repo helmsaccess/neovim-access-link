@@ -1,6 +1,9 @@
 local root = vim.fn.getcwd()
 vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", "diagnostics")
+vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "automatic-parameters")
 vim.fn.setenv("ACCESS_LINK_HUMAN_DRY_RUN", "1")
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "def calculate_total():", "  pass" })
+vim.bo.filetype = "python"
 
 dofile(root .. "/tests/human/framework/init.lua")
 
@@ -20,6 +23,20 @@ for _, key in ipairs({ "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>", "
   truthy(type(mapping) == "table" and mapping.desc ~= nil,
     "normal-mode mapping missing for " .. key)
 end
+truthy(vim.fn.maparg("<F11>", "n") == "",
+  "F11 remains available to Windows Terminal instead of being a dead Neovim mapping")
+local preparation = vim.fn.maparg("<F3>", "n", false, true)
+truthy(type(preparation.callback) == "function",
+  "F3 preparation uses a callable task-specific mapping")
+preparation.callback()
+local prepared_lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
+local marker = "automatic_total = calculate_total()"
+truthy(prepared_lines[#prepared_lines] == marker,
+  "automatic-parameter task prepares its empty call through F3")
+local opening = assert(marker:find("(", 1, true)) - 1
+local cursor = vim.api.nvim_win_get_cursor(0)
+truthy(cursor[1] == #prepared_lines and cursor[2] == opening + 1,
+  "F3 leaves the insertion cursor between the prepared parentheses")
 local insert_f2 = vim.fn.maparg("<F2>", "i", false, true)
 truthy(type(insert_f2) == "table" and insert_f2.desc ~= nil,
   "insert-mode task reminder is available")
