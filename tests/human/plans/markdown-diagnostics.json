@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "markdown-diagnostics",
   "order": 70,
   "titleKey": "plan.markdownDiagnostics.title",
@@ -9,6 +9,7 @@
   "fixture": "diagnostics.md",
   "steps": [
     {
+      "testId": "D4",
       "id": "markdownlint-presentation",
       "category": "diagnostics",
       "titleKey": "plan.markdownDiagnostics.presentation.title",

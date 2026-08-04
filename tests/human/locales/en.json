@@ -62,7 +62,7 @@
   "runner.launchPrompt": "Ready? Press Enter to start only this task in Neovim.",
   "runner.orientation": "Neovim will replace the PowerShell view in the SAME original Windows Terminal tab. This is intentional. Your normal Neovim configuration is not used.",
   "runner.claimReminder": "In Neovim: first press Escape once. Enable Access Link from the NVDA menu if needed, focus this original terminal tab, and press F12 exactly once. Answer Yes if asked to remember the binding and wait briefly for the connection; switching windows must not be necessary.",
-  "runner.controls": "Unsure what to do? Press Escape, then F2: Neovim displays and Access Link speaks the current task again. Only after the described check, press Escape and F10 to return here to PowerShell.",
+  "runner.controls": "Unsure what to do? Press Escape, then F2: Neovim displays and Access Link speaks the test ID and current task again. Only after the described check, press Escape and F10 to return here to PowerShell.",
   "runner.afterReturn": "You are back in PowerShell in the original Windows Terminal tab. Assess only the task you just performed.",
   "runner.record": "What was the outcome of “{0}”?",
   "runner.record.pass": "pass",

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "nvim-cmp",
   "order": 40,
   "titleKey": "plan.nvimCmp.title",
@@ -9,6 +9,7 @@
   "fixture": "lsp_features.py",
   "steps": [
     {
+      "testId": "C2",
       "id": "menu-presentation",
       "category": "completion",
       "titleKey": "plan.nvimCmp.menu.title",

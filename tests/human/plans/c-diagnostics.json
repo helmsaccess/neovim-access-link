@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "c-diagnostics",
   "order": 60,
   "titleKey": "plan.cDiagnostics.title",
@@ -9,6 +9,7 @@
   "fixture": "diagnostics.c",
   "steps": [
     {
+      "testId": "D3",
       "id": "clang-tidy-presentation",
       "category": "diagnostics",
       "titleKey": "plan.cDiagnostics.presentation.title",

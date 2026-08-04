@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "diagnostics",
   "order": 20,
   "titleKey": "plan.diagnostics.title",
@@ -9,6 +9,7 @@
   "fixture": "diagnostics.py",
   "steps": [
     {
+      "testId": "D1",
       "id": "navigation-presentation",
       "category": "diagnostics",
       "titleKey": "plan.diagnostics.navigation.title",
@@ -20,6 +21,7 @@
       "automatedEvidence": ["neovim-plugin/tests/diagnostic_navigation_spec.lua"]
     },
     {
+      "testId": "D2",
       "id": "held-diagnostics",
       "category": "diagnostics",
       "titleKey": "plan.diagnostics.held.title",

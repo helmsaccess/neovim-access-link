@@ -35,7 +35,7 @@ every task, it provides this orientation:
 | **Where you are** | current Windows Terminal tab and current program |
 | **What to do now** | keys to press and action to perform next |
 | **How to recognize the correct outcome** | expected perceptible output |
-| `Escape`, then `F2` | display and report the current task again in Neovim |
+| `Escape`, then `F2` | display and report the test ID and current task again in Neovim |
 | `Escape`, then `F10` | safely close test Neovim and return to runner PowerShell |
 
 No colon commands are needed in Neovim. The personal `init.lua`, Lazy
@@ -56,6 +56,29 @@ configuration, and Neovim data directories are not changed.
 | Completion | native completion, nvim-cmp, and blink.cmp |
 | Diagnostics and linters | Ruff, Clang-Tidy, and markdownlint |
 | Session and terminal integration | focus isolation and fail-open behavior |
+
+### Stable test IDs
+
+Every task has a unique two-character ID. The first letter identifies its
+category (`L` for LSP/language intelligence, `C` for completion, `D` for
+diagnostics, and `S` for session integration); the second character
+distinguishes tasks. IDs are never renumbered or reused. They appear in the
+selection menu, before every task, in the JSON result, and when `F2` is pressed
+in test Neovim. Thus, “failure in D3” is an unambiguous reference.
+
+| ID | Task |
+| --- | --- |
+| `L1` | LSP status |
+| `L2` | automatic active parameters |
+| `L3` | held function signatures and parameters |
+| `C1` | native completion |
+| `C2` | nvim-cmp |
+| `C3` | blink.cmp |
+| `D1` | Python/Ruff diagnostics |
+| `D2` | held diagnostics |
+| `D3` | C/Clang-Tidy diagnostics |
+| `D4` | Markdown/markdownlint diagnostics |
+| `S1` | focus isolation and disconnect |
 
 Standard tasks always run in this order: native LSP, diagnostics, then focus
 isolation. Missing audio or a missing Braille display does not prevent the
@@ -156,9 +179,9 @@ When test Neovim appears:
 3. Focus the original Windows Terminal tab, press `F12` exactly once, and wait
    briefly for the connection.
 4. Perform only the displayed task.
-5. If uncertain, press `Escape`, then `F2`. The current location, action, and
-   expectation are displayed again as a Neovim notification and reported by
-   Access Link.
+5. If uncertain, press `Escape`, then `F2`. The test ID, current location,
+   action, and expectation are displayed again as a Neovim notification and
+   reported by Access Link.
 6. After observing the result, press `Escape`, then `F10`. The runner
    PowerShell is now visible again in the original tab.
 7. Assess only the task just performed as pass, fail, blocked, or skipped.
@@ -172,7 +195,7 @@ Each task names only the keys it needs. This table is a reference:
 
 | Key | Meaning in test Neovim |
 | --- | --- |
-| `Escape`, then `F2` | repeat the current task at any time |
+| `Escape`, then `F2` | repeat the ID and current task at any time |
 | `F1` | report the active LSP status through Access Link |
 | `F3` | open the insertion location prepared for the current task and enter Insert mode automatically; in a completion task, press `F5` next |
 | `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
@@ -277,11 +300,11 @@ The JSON records:
 | Area | Recorded data |
 | --- | --- |
 | Run | run ID, creation time, and completion time |
-| Selection | suite, exact stable task IDs, language, and declared audio/Braille equipment |
+| Selection | suite, exact two-character test IDs, language, and declared audio/Braille equipment |
 | Source state | repository Git commit and dirty state |
 | Runtime versions | Neovim, installed add-on, and running NVDA versions when discoverable |
 | Consistency | fingerprints of the test definition and installed Neovim plugin |
-| Results | stable plan/task IDs, statuses, and entered reasons |
+| Results | two-character test ID, technical task key, status, and entered reason |
 
 Editor content, host names, and credentials are not collected automatically.
 Files in ignored `tmp/` are not committed, uploaded, or collected by CI.
@@ -317,10 +340,14 @@ The most useful direct invocations are:
 | Goal | PowerShell invocation |
 | --- | --- |
 | run standard and compatibility tasks together | `.\tests\human\framework\run.ps1 run -Suite all` |
-| run exactly the C diagnostic test | `.\tests\human\framework\run.ps1 run -Suite custom -TestId c-diagnostics.clang-tidy-presentation` |
-| run two specific tasks | `.\tests\human\framework\run.ps1 run -Suite custom -TestId lsp-native.status-presentation,markdown-diagnostics.markdownlint-presentation` |
+| run exactly the C diagnostic test | `.\tests\human\framework\run.ps1 run -Suite custom -TestId D3` |
+| run two specific tasks | `.\tests\human\framework\run.ps1 run -Suite custom -TestId L1,D4` |
 | explicitly use the German interface | `.\tests\human\framework\run.ps1 -Language de` |
 | explicitly use the English interface | `.\tests\human\framework\run.ps1 -Language en` |
+
+Older technical long forms such as
+`c-diagnostics.clang-tidy-presentation` remain valid compatibility aliases.
+Use the short test ID for all new reports and invocations.
 
 ## Cleanup and common problems
 
@@ -333,7 +360,7 @@ If Access Link does not connect:
 2. install or update local Neovim components from the NVDA menu;
 3. ensure the original tab containing test Neovim is focused;
 4. press `F12` exactly once there and wait briefly;
-5. press `Escape`, `F2` to check whether the task is reported.
+5. press `Escape`, `F2` to check whether the test ID and task are reported.
 
 If Pyright, a linter, or a completion plugin is unavailable, select **Set up or
 repair test dependencies**. A failed technical preflight is a setup problem,

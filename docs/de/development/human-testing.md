@@ -38,7 +38,7 @@ Aufgabe zeigt er diese Orientierung:
 | **Wo du bist** | aktueller Windows-Terminal-Tab und aktuelles Programm |
 | **Was du jetzt tun sollst** | als Nächstes zu drückende Tasten und auszuführende Handlung |
 | **Woran du das richtige Ergebnis erkennst** | erwartete wahrnehmbare Ausgabe |
-| `Escape`, dann `F2` | aktuelle Aufgabe in Neovim erneut anzeigen und ausgeben |
+| `Escape`, dann `F2` | Test-ID und aktuelle Aufgabe in Neovim erneut anzeigen und ausgeben |
 | `Escape`, dann `F10` | Test-Neovim sicher schließen und zur Runner-PowerShell zurückkehren |
 
 Es werden keine Neovim-Befehle mit Doppelpunkt benötigt. Die persönliche
@@ -60,6 +60,30 @@ verändert.
 | Vervollständigung | native Completion, nvim-cmp und blink.cmp |
 | Diagnosen und Linter | Ruff, Clang-Tidy und markdownlint |
 | Sitzung und Terminalintegration | Fokusisolation und Fail-open |
+
+### Stabile Test-IDs
+
+Jede Aufgabe besitzt eine eindeutige zweistellige ID. Der erste Buchstabe
+bezeichnet die Kategorie (`L` LSP/Sprachintelligenz, `C` Completion, `D`
+Diagnosen, `S` Sitzung); das zweite Zeichen unterscheidet die Aufgaben. Diese
+IDs werden nie umnummeriert oder erneut vergeben. Sie erscheinen im
+Auswahlmenü, vor jeder Aufgabe, in der JSON-Ergebnisdatei und bei `F2` in
+Test-Neovim. Damit genügt beispielsweise „Fehler in D3“ als eindeutige
+Referenz.
+
+| ID | Aufgabe |
+| --- | --- |
+| `L1` | LSP-Status |
+| `L2` | automatische aktive Parameter |
+| `L3` | gehaltene Funktionssignaturen und Parameter |
+| `C1` | native Completion |
+| `C2` | nvim-cmp |
+| `C3` | blink.cmp |
+| `D1` | Python-/Ruff-Diagnosen |
+| `D2` | gehaltene Diagnosen |
+| `D3` | C-/Clang-Tidy-Diagnosen |
+| `D4` | Markdown-/markdownlint-Diagnosen |
+| `S1` | Fokusisolation und Verbindungsabbruch |
 
 Die Standardaufgaben laufen immer in dieser Reihenfolge: nativer LSP,
 Diagnosen, danach Fokusisolation. Fehlende Audioausgabe oder eine fehlende
@@ -165,7 +189,7 @@ Wenn Test-Neovim erscheint:
 3. Den ursprünglichen Windows-Terminal-Tab fokussieren und `F12` genau einmal
    drücken. Kurz auf die Verbindung warten.
 4. Nur die gerade angezeigte Aufgabe durchführen.
-5. Bei Unsicherheit zuerst `Escape`, dann `F2` drücken. Die aktuelle
+5. Bei Unsicherheit zuerst `Escape`, dann `F2` drücken. Test-ID, aktuelle
    Ortsangabe, Handlung und Erwartung werden erneut als Neovim-Mitteilung
    angezeigt und durch Access Link ausgegeben.
 6. Nach der Beobachtung `Escape`, danach `F10` drücken. Nun ist wieder die
@@ -183,7 +207,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 
 | Taste | Bedeutung im Test-Neovim |
 | --- | --- |
-| `Escape`, dann `F2` | aktuelle Aufgabe jederzeit erneut anzeigen und ausgeben |
+| `Escape`, dann `F2` | ID und aktuelle Aufgabe jederzeit erneut anzeigen und ausgeben |
 | `F1` | aktiven LSP-Status durch Access Link ausgeben |
 | `F3` | die für die aktuelle Aufgabe vorbereitete Eingabestelle öffnen und automatisch in den Einfügemodus wechseln; bei der Completion-Aufgabe danach `F5` drücken |
 | `F5` im Diagnoseprofil | auf eine vorbereitete fehlerfreie Position wechseln und dort ausdrücklich die aktuelle Diagnose abfragen |
@@ -294,11 +318,11 @@ Aufgezeichnet werden:
 | Bereich | Aufgezeichnete Angaben |
 | --- | --- |
 | Lauf | Lauf-ID, Erstellungs- und Abschlusszeit |
-| Auswahl | Suite, exakte stabile Aufgaben-IDs, Sprache und angegebene Audio-/Brailleausstattung |
+| Auswahl | Suite, exakte zweistellige Test-IDs, Sprache und angegebene Audio-/Brailleausstattung |
 | Quellstand | Git-Commit und Dirty-Zustand des Repositorys |
 | Laufzeitversionen | Neovim-, installierte Add-on- und laufende NVDA-Version, soweit auffindbar |
 | Konsistenz | Fingerabdrücke der Testdefinition und des installierten Neovim-Plugins |
-| Ergebnisse | stabile Plan-/Aufgaben-IDs, Status und Begründungen |
+| Ergebnisse | zweistellige Test-ID, technischer Aufgabenschlüssel, Status und Begründung |
 
 Editorinhalte, Hostnamen und Zugangsdaten werden nicht automatisch erfasst.
 Die Dateien im ignorierten `tmp/` werden weder committet noch hochgeladen oder
@@ -336,10 +360,15 @@ direkten Aufrufe sind:
 | Ziel | PowerShell-Aufruf |
 | --- | --- |
 | Standard- und Kompatibilitätsaufgaben gemeinsam | `.\tests\human\framework\run.ps1 run -Suite all` |
-| genau den C-Diagnosetest ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId c-diagnostics.clang-tidy-presentation` |
-| zwei bestimmte Aufgaben ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId lsp-native.status-presentation,markdown-diagnostics.markdownlint-presentation` |
+| genau den C-Diagnosetest ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId D3` |
+| zwei bestimmte Aufgaben ausführen | `.\tests\human\framework\run.ps1 run -Suite custom -TestId L1,D4` |
 | Benutzeroberfläche ausdrücklich auf Deutsch setzen | `.\tests\human\framework\run.ps1 -Language de` |
 | Benutzeroberfläche ausdrücklich auf Englisch setzen | `.\tests\human\framework\run.ps1 -Language en` |
+
+Die älteren technischen Langformen wie
+`c-diagnostics.clang-tidy-presentation` bleiben als Kompatibilitätsalias
+gültig. Für neue Berichte und Aufrufe ausschließlich die kurze Test-ID
+verwenden.
 
 ## Aufräumen und typische Probleme
 
@@ -352,7 +381,7 @@ Wenn Access Link nicht verbindet:
 2. im NVDA-Menü die lokalen Neovim-Komponenten installieren oder aktualisieren;
 3. sicherstellen, dass der ursprüngliche Tab mit Test-Neovim fokussiert ist;
 4. dort `F12` genau einmal drücken und kurz warten;
-5. mit `Escape`, `F2` prüfen, ob die aktuelle Aufgabe ausgegeben wird.
+5. mit `Escape`, `F2` prüfen, ob Test-ID und aktuelle Aufgabe ausgegeben werden.
 
 Wenn Pyright, ein Linter oder ein Completion-Plugin fehlt, den Menüpunkt
 **Testabhängigkeiten einrichten oder reparieren** verwenden. Schlägt dessen

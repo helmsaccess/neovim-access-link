@@ -2,6 +2,7 @@
 -- It is always loaded with `nvim -u`; it never replaces the user's init.lua.
 
 local profile = (vim.env.ACCESS_LINK_HUMAN_PROFILE or "native"):lower()
+local test_id = (vim.env.ACCESS_LINK_HUMAN_TEST_ID or ""):upper()
 local step_id = (vim.env.ACCESS_LINK_HUMAN_STEP_ID or ""):lower()
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
@@ -12,6 +13,7 @@ local linter_readiness = dofile(vim.fs.joinpath(framework_root, "linter_readines
 local completion_parentheses = dofile(vim.fs.joinpath(
   framework_root, "completion_parentheses.lua"))
 local human_messages = language == "de" and {
+  test_id = "Test-ID %s.",
   diagnostics_waiting = "%s-Diagnosen werden ermittelt. Bitte warten.",
   diagnostics_ready = "Diagnosen bereit: %d von %s. Der Cursor steht jetzt auf der ersten Testdiagnose. Jetzt F7 drücken.",
   diagnostics_not_ready = "%s-Diagnosen wurden nicht rechtzeitig bereit.",
@@ -21,6 +23,7 @@ local human_messages = language == "de" and {
   callable_unavailable = "Diese Testhilfe ist nur in der Python-Funktionsdatei verfügbar.",
   insertion_unavailable = "Diese Aufgabe benötigt keine vorbereitete Eingabestelle.",
 } or {
+  test_id = "Test ID %s.",
   diagnostics_waiting = "Waiting for %s diagnostics.",
   diagnostics_ready = "Diagnostics ready: %d from %s. The cursor is now on the first test diagnostic. Press F7 now.",
   diagnostics_not_ready = "%s diagnostics did not become ready in time.",
@@ -215,6 +218,7 @@ local function show_current_task()
   local task = vim.env.ACCESS_LINK_HUMAN_TASK or ""
   local expected = vim.env.ACCESS_LINK_HUMAN_EXPECTED or ""
   local parts = vim.tbl_filter(function(value) return value ~= "" end, {
+    test_id ~= "" and string.format(human_messages.test_id, test_id) or "",
     context,
     task,
     expected,

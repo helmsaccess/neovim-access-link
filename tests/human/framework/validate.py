@@ -34,6 +34,7 @@ PLAN_FIELDS = {
 	"steps",
 }
 STEP_FIELDS = {
+	"testId",
 	"id",
 	"category",
 	"titleKey",
@@ -54,7 +55,7 @@ RESULT_FIELDS = {
 	"plans",
 }
 RESULT_PLAN_FIELDS = {"id", "profile", "steps"}
-RESULT_STEP_FIELDS = {"id", "status", "note"}
+RESULT_STEP_FIELDS = {"testId", "id", "status", "note"}
 ALLOWED_SUITES = {"smoke", "compatibility"}
 ALLOWED_PROFILES = {
 	"native",
@@ -83,6 +84,7 @@ ALLOWED_CAPABILITIES = {"audio", "braille"}
 ALLOWED_STATUSES = {"pass", "fail", "blocked", "skipped", "notApplicable", "pending"}
 NOTE_REQUIRED_STATUSES = {"fail", "blocked", "skipped"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$")
+TEST_ID_PATTERN = re.compile(r"^[A-Z][0-9A-Z]$")
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -138,6 +140,15 @@ def _id(value: Any, label: str) -> str:
 	result = _string(value, label)
 	if not ID_PATTERN.fullmatch(result):
 		raise ValidationError(f"{label} is not a stable lowercase ID: {result!r}")
+	return result
+
+
+def _test_id(value: Any, label: str) -> str:
+	result = _string(value, label)
+	if not TEST_ID_PATTERN.fullmatch(result):
+		raise ValidationError(
+			f"{label} must be exactly two uppercase alphanumeric characters: {result!r}"
+		)
 	return result
 
 
@@ -250,13 +261,20 @@ def load_plans() -> dict[str, dict[str, Any]]:
 			message_keys,
 		)
 	plans: dict[str, dict[str, Any]] = {}
+	test_ids: set[str] = set()
+	category_prefixes = {
+		"language-intelligence": "L",
+		"completion": "C",
+		"diagnostics": "D",
+		"session-integration": "S",
+	}
 	files = sorted(PLANS_ROOT.glob("*.json"))
 	if not files:
 		raise ValidationError("no human-test plans found")
 	for path in files:
 		plan = _object(_read_json(path), f"plan {path.name}")
 		_exact_fields(plan, PLAN_FIELDS, f"plan {path.name}")
-		if plan["schemaVersion"] != 2:
+		if plan["schemaVersion"] != 3:
 			raise ValidationError(f"plan {path.name} has unsupported schemaVersion")
 		plan_id = _id(plan["id"], f"plan {path.name} id")
 		if plan_id in plans:
@@ -285,6 +303,10 @@ def load_plans() -> dict[str, dict[str, Any]]:
 		for index, raw_step in enumerate(steps):
 			step = _object(raw_step, f"plan {plan_id} step {index}")
 			_exact_fields(step, STEP_FIELDS, f"plan {plan_id} step {index}")
+			test_id = _test_id(step["testId"], f"plan {plan_id} step {index} testId")
+			if test_id in test_ids:
+				raise ValidationError(f"duplicate human test ID {test_id!r}")
+			test_ids.add(test_id)
 			step_id = _id(step["id"], f"plan {plan_id} step {index} id")
 			if step_id in step_ids:
 				raise ValidationError(f"plan {plan_id} has duplicate step id {step_id!r}")
@@ -293,6 +315,11 @@ def load_plans() -> dict[str, dict[str, Any]]:
 			if category not in ALLOWED_CATEGORIES:
 				raise ValidationError(
 					f"plan {plan_id} step {step_id} has unsupported category {category!r}"
+				)
+			if not test_id.startswith(category_prefixes[category]):
+				raise ValidationError(
+					f"plan {plan_id} step {step_id} testId must start with "
+					f"{category_prefixes[category]!r} for category {category!r}"
 				)
 			_validate_message_key(step["titleKey"], f"plan {plan_id} step {step_id} titleKey", message_keys)
 			_validate_message_key(
@@ -405,7 +432,7 @@ def validate_result(path: Path) -> ResultAssessment:
 	definitions = load_plans()
 	result = _object(_read_json(path), "result")
 	_exact_fields(result, RESULT_FIELDS, "result")
-	if result["schemaVersion"] != 3:
+	if result["schemaVersion"] != 4:
 		raise ValidationError("result has unsupported schemaVersion")
 	_string(result["runId"], "result runId")
 	_parse_timestamp(result["createdAt"], "result createdAt")
@@ -440,12 +467,12 @@ def validate_result(path: Path) -> ResultAssessment:
 	if suite not in {*ALLOWED_SUITES, "all", "custom"}:
 		raise ValidationError("result environment suite is unsupported")
 	available_tests = {
-		f"{plan_id}.{step['id']}": (plan_id, step["id"])
+		step["testId"]: (plan_id, step["id"])
 		for plan_id, plan in definitions.items()
 		for step in plan["steps"]
 	}
 	selected_tests = [
-		_id(value, "result environment selectedTests entry")
+		_test_id(value, "result environment selectedTests entry")
 		for value in _array(environment["selectedTests"], "result environment selectedTests")
 	]
 	if not selected_tests:
@@ -459,7 +486,7 @@ def validate_result(path: Path) -> ResultAssessment:
 		)
 	if suite != "custom":
 		expected_suite_tests = {
-			f"{plan_id}.{step['id']}"
+			step["testId"]
 			for plan_id, plan in definitions.items()
 			if suite == "all" or suite in plan["suites"]
 			for step in plan["steps"]
@@ -527,6 +554,14 @@ def validate_result(path: Path) -> ResultAssessment:
 			actual_steps.add(step_id)
 			if step_id not in expected_steps:
 				raise ValidationError(f"result plan {plan_id} has unknown step {step_id!r}")
+			test_id = _test_id(
+				result_step["testId"],
+				f"result plan {plan_id} step {step_index} testId",
+			)
+			if test_id != expected_steps[step_id]["testId"]:
+				raise ValidationError(
+					f"result {plan_id}.{step_id} testId differs from definition"
+				)
 			status = _string(result_step["status"], f"result {plan_id}.{step_id} status")
 			if status not in ALLOWED_STATUSES:
 				raise ValidationError(f"result {plan_id}.{step_id} status is unsupported")

@@ -33,10 +33,10 @@ def complete_result(
 ) -> dict[str, object]:
 	plans = validator.load_plans()
 	if suite == "custom":
-		selected_tests = selected_tests or {"c-diagnostics.clang-tidy-presentation"}
+		selected_tests = selected_tests or {"D3"}
 	else:
 		selected_tests = {
-			f"{plan_id}.{step['id']}"
+			step["testId"]
 			for plan_id, plan in plans.items()
 			if suite == "all" or suite in plan["suites"]
 			for step in plan["steps"]
@@ -45,7 +45,7 @@ def complete_result(
 	for plan_id, plan in plans.items():
 		steps = []
 		for step in plan["steps"]:
-			if f"{plan_id}.{step['id']}" not in selected_tests:
+			if step["testId"] not in selected_tests:
 				continue
 			missing = any(
 				not {"audio": audio, "braille": braille}[requirement] for requirement in step["requires"]
@@ -53,6 +53,7 @@ def complete_result(
 			step_status = "notApplicable" if missing else status
 			steps.append(
 				{
+					"testId": step["testId"],
 					"id": step["id"],
 					"status": step_status,
 					"note": "test note" if step_status in {"fail", "blocked", "skipped"} else "",
@@ -62,7 +63,7 @@ def complete_result(
 			result_plans.append({"id": plan_id, "profile": plan["profile"], "steps": steps})
 	incomplete = status in {"pending", "blocked", "skipped"}
 	return {
-		"schemaVersion": 3,
+		"schemaVersion": 4,
 		"runId": "3bc529a4-d12c-44de-b581-6dc09696ab4f",
 		"createdAt": timestamp(),
 		"completedAt": "" if incomplete else timestamp(),
@@ -142,6 +143,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			validator.ALLOWED_PROFILES,
 			{plan["profile"] for plan in plans.values()},
 		)
+		self.assertEqual(
+			{"L1", "L2", "L3", "C1", "C2", "C3", "D1", "D2", "D3", "D4", "S1"},
+			{step["testId"] for plan in plans.values() for step in plan["steps"]},
+		)
 
 	def test_every_human_step_has_reason_and_automated_evidence(self) -> None:
 		for plan in validator.load_plans().values():
@@ -155,6 +160,27 @@ class HumanTestFrameworkTests(unittest.TestCase):
 					for relative in step["automatedEvidence"]:
 						self.assertTrue((validator.REPOSITORY_ROOT / relative).is_file())
 
+	def test_short_test_ids_are_globally_unique_and_match_their_category(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			plans_root = Path(directory)
+			for source in validator.PLANS_ROOT.glob("*.json"):
+				(plans_root / source.name).write_text(
+					source.read_text(encoding="utf-8"), encoding="utf-8"
+				)
+			markdown_path = plans_root / "markdown-diagnostics.json"
+			markdown = json.loads(markdown_path.read_text(encoding="utf-8"))
+			markdown["steps"][0]["testId"] = "D3"
+			markdown_path.write_text(json.dumps(markdown), encoding="utf-8")
+			with mock.patch.object(validator, "PLANS_ROOT", plans_root):
+				with self.assertRaisesRegex(validator.ValidationError, "duplicate human test ID"):
+					validator.load_plans()
+
+			markdown["steps"][0]["testId"] = "C4"
+			markdown_path.write_text(json.dumps(markdown), encoding="utf-8")
+			with mock.patch.object(validator, "PLANS_ROOT", plans_root):
+				with self.assertRaisesRegex(validator.ValidationError, "must start with 'D'"):
+					validator.load_plans()
+
 	def test_runner_is_isolated_and_plans_are_not_executable(self) -> None:
 		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
 		self.assertIn('"-u", $TestInitPath', runner)
@@ -163,7 +189,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn("Invoke-Expression", runner)
 		self.assertIn("Sort-Object { [int]$_.order }", runner)
 		self.assertIn("Invoke-TestNvim -Profile ([string]$plan.profile)", runner)
+		self.assertIn('-HumanTestId ([string]$step.testId)', runner)
 		self.assertIn('-StepId ([string]$step.id)', runner)
+		self.assertIn('"ACCESS_LINK_HUMAN_TEST_ID"', runner)
+		self.assertIn('$env:ACCESS_LINK_HUMAN_TEST_ID = $HumanTestId', runner)
 		self.assertIn('"ACCESS_LINK_HUMAN_STEP_ID"', runner)
 		self.assertIn('$env:ACCESS_LINK_HUMAN_STEP_ID = $StepId', runner)
 		self.assertNotIn('"install", "--prefix", $NodeRoot', runner)
@@ -172,8 +201,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertLess(runner.index("Get-FileHash -LiteralPath $archive"), runner.index('"-xzf"'))
 		self.assertIn('"data\\nvim-data\\site\\pack\\core\\opt"', runner)
 		self.assertIn('"config\\nvim\\nvim-pack-lock.json"', runner)
-		self.assertIn('schemaVersion = 4', runner)
-		self.assertIn('schemaVersion = 3', runner)
+		self.assertGreaterEqual(runner.count('schemaVersion = 4'), 2)
 		self.assertIn('[string[]]$TestId = @()', runner)
 		self.assertIn('selectedTests = @(', runner)
 		self.assertIn('function Select-CustomTests', runner)
@@ -224,6 +252,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_TEST_ID", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_STEP_ID", configuration)
 		self.assertIn("{ 1, 15 }", configuration)
 		self.assertIn('lint.try_lint(linter_name, { cwd = process_directory })', configuration)
@@ -324,7 +353,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("runs-on: windows-2025", workflow)
 		self.assertIn("-DryRun", workflow)
 		self.assertIn('.\\tests\\human\\framework\\run.ps1 list -Language en', workflow)
-		self.assertIn('-TestId "c-diagnostics.clang-tidy-presentation"', workflow)
+		self.assertIn('-TestId "D3"', workflow)
 		self.assertIn("63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad", workflow)
 
 	def test_definition_fingerprint_changes_with_human_test_inputs(self) -> None:
@@ -405,7 +434,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertEqual(0, assessment.exit_code)
 
 	def test_custom_result_can_contain_one_individually_selected_task(self) -> None:
-		selected = {"markdown-diagnostics.markdownlint-presentation"}
+		selected = {"D4"}
 		with tempfile.TemporaryDirectory() as directory:
 			assessment = validator.validate_result(
 				self.write_result(
@@ -417,14 +446,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 
 	def test_custom_result_supports_exact_subsets_within_and_across_plans(self) -> None:
 		selections = (
-			{
-				"diagnostics.navigation-presentation",
-				"diagnostics.held-diagnostics",
-			},
-			{
-				"c-diagnostics.clang-tidy-presentation",
-				"markdown-diagnostics.markdownlint-presentation",
-			},
+			{"D1", "D2"},
+			{"D3", "D4"},
 		)
 		for selected in selections:
 			with self.subTest(selected=sorted(selected)), tempfile.TemporaryDirectory() as directory:
@@ -437,7 +460,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				self.assertEqual("pass", assessment.state)
 
 	def test_custom_result_rejects_invalid_selection_lists(self) -> None:
-		selected = {"c-diagnostics.clang-tidy-presentation"}
+		selected = {"D3"}
 		cases = {}
 		empty = complete_result(suite="custom", selected_tests=selected)
 		empty["environment"]["selectedTests"] = []
@@ -446,7 +469,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		duplicate["environment"]["selectedTests"].append(next(iter(selected)))
 		cases["contains duplicates"] = duplicate
 		unknown = complete_result(suite="custom", selected_tests=selected)
-		unknown["environment"]["selectedTests"] = ["unknown-profile.unknown-task"]
+		unknown["environment"]["selectedTests"] = ["Z9"]
 		cases["contains unknown tests"] = unknown
 		for message, result in cases.items():
 			with self.subTest(message=message), tempfile.TemporaryDirectory() as directory:
@@ -455,10 +478,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 					validator.validate_result(path)
 
 	def test_custom_result_must_exactly_match_selected_steps_and_profiles(self) -> None:
-		selected = {
-			"diagnostics.navigation-presentation",
-			"diagnostics.held-diagnostics",
-		}
+		selected = {"D1", "D2"}
 		missing = complete_result(suite="custom", selected_tests=selected)
 		missing["plans"][0]["steps"].pop()
 		wrong_profile = complete_result(suite="custom", selected_tests=selected)
@@ -479,6 +499,14 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		with tempfile.TemporaryDirectory() as directory:
 			path = self.write_result(directory, result)
 			with self.assertRaisesRegex(validator.ValidationError, "selectedTests differ"):
+				validator.validate_result(path)
+
+	def test_result_step_cannot_claim_a_different_short_test_id(self) -> None:
+		result = complete_result()
+		result["plans"][0]["steps"][0]["testId"] = "Z9"
+		with tempfile.TemporaryDirectory() as directory:
+			path = self.write_result(directory, result)
+			with self.assertRaisesRegex(validator.ValidationError, "testId differs"):
 				validator.validate_result(path)
 
 	def test_failed_result_has_distinct_machine_exit(self) -> None:

@@ -65,8 +65,8 @@ einer optionalen `compatibility`-Suite. Aufgaben besitzen feste Kategorien
 und können einzeln ausgewählt werden. Versionierte DE/EN-Testkarten
 werden durch einen isolierten PowerShell-Runner angezeigt; dieser verändert
 keine private `init.lua`. Jede offene Aufgabe erhält eine frische
-Test-Neovim-Sitzung und kann dort mit `F2` erneut angezeigt werden. Ergebnisse
-werden nach jeder Aufgabe als validierbares JSON unter dem ignorierten `tmp/`
+Test-Neovim-Sitzung; Test-ID und Aufgabe können dort mit `F2` erneut angezeigt
+werden. Ergebnisse werden nach jeder Aufgabe als validierbares JSON unter dem ignorierten `tmp/`
 gesichert; die exakten ausgewählten Aufgaben-IDs sind Teil des Ergebnisses.
 Eine technische Vorprüfung realer Provider und ein Windows-CI-Lauf
 des PowerShell-Runners fangen maschinell erkennbare Fehler ab. Einrichtung,

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "focus-isolation",
   "order": 30,
   "titleKey": "plan.focus.title",
@@ -9,6 +9,7 @@
   "fixture": "lsp_features.py",
   "steps": [
     {
+      "testId": "S1",
       "id": "focus-and-disconnect",
       "category": "session-integration",
       "titleKey": "plan.focus.workflow.title",

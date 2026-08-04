@@ -388,6 +388,38 @@ function Get-AllPlans {
     )
 }
 
+function Resolve-SelectedTestIds {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Plans,
+        [Parameter(Mandatory = $true)][string[]]$Requested
+    )
+    $aliases = @{}
+    foreach ($plan in $Plans) {
+        foreach ($step in @($plan.steps)) {
+            $shortId = [string]$step.testId
+            $aliases[$shortId] = $shortId
+            $aliases["$($plan.id).$($step.id)"] = $shortId
+        }
+    }
+    $resolved = @()
+    $unknown = @()
+    foreach ($requestedId in $Requested) {
+        $trimmed = $requestedId.Trim()
+        if (-not $aliases.ContainsKey($trimmed)) {
+            $unknown += $requestedId
+            continue
+        }
+        $shortId = [string]$aliases[$trimmed]
+        if ($resolved -notcontains $shortId) {
+            $resolved += $shortId
+        }
+    }
+    if ($unknown.Count -gt 0) {
+        throw "Unknown human test ID: $($unknown -join ', ')"
+    }
+    return @($resolved)
+}
+
 function Get-Plans {
     $plans = @(Get-AllPlans)
     if ($Suite -eq "all") {
@@ -397,21 +429,14 @@ function Get-Plans {
         if ($SelectedTestIds.Count -eq 0) {
             throw (Get-Message "runner.selector.none")
         }
-        $available = @{}
-        foreach ($plan in $plans) {
-            foreach ($step in @($plan.steps)) {
-                $available["$($plan.id).$($step.id)"] = $true
-            }
-        }
-        $unknown = @($SelectedTestIds | Where-Object { -not $available.ContainsKey($_) })
-        if ($unknown.Count -gt 0) {
-            throw "Unknown human test ID: $($unknown -join ', ')"
-        }
+        $script:SelectedTestIds = @(
+            Resolve-SelectedTestIds -Plans $plans -Requested $SelectedTestIds
+        )
         $selectedPlans = @()
         foreach ($plan in $plans) {
             $selectedSteps = @(
                 $plan.steps | Where-Object {
-                    $SelectedTestIds -contains "$($plan.id).$($_.id)"
+                    $SelectedTestIds -contains ([string]$_.testId)
                 }
             )
             if ($selectedSteps.Count -gt 0) {
@@ -451,7 +476,7 @@ function Get-ResumableResultPaths {
                 try {
                     $candidate = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 |
                         ConvertFrom-Json
-                    if ([int]$candidate.schemaVersion -ne 3) {
+                    if ([int]$candidate.schemaVersion -ne 4) {
                         return $false
                     }
                     $statuses = @(
@@ -529,15 +554,20 @@ function Select-CustomTests {
         "diagnostics",
         "session-integration"
     )
-    $tasks = @(
+    $allTasks = @(
         foreach ($plan in Get-AllPlans) {
             foreach ($step in @($plan.steps)) {
                 [PSCustomObject]@{
-                    Id = "$($plan.id).$($step.id)"
+                    Id = [string]$step.testId
                     Category = [string]$step.category
                     Title = Get-Message ([string]$step.titleKey)
                 }
             }
+        }
+    )
+    $tasks = @(
+        foreach ($category in $categories) {
+            $allTasks | Where-Object { $_.Category -eq $category }
         }
     )
     $selected = @{}
@@ -551,7 +581,7 @@ function Select-CustomTests {
             foreach ($task in @($tasks | Where-Object { $_.Category -eq $category })) {
                 $number += 1
                 $mark = if ($selected.ContainsKey($task.Id)) { "x" } else { " " }
-                Write-Host "$number  [$mark] $($task.Title) ($($task.Id))"
+                Write-Host "$number  [$mark] [$($task.Id)] $($task.Title)"
             }
         }
         Write-Host ""
@@ -685,6 +715,7 @@ function Assert-AccessLinkPluginCurrent {
 function Invoke-TestNvim {
     param(
         [Parameter(Mandatory = $true)][string]$Profile,
+        [string]$HumanTestId = "",
         [string]$StepId = "",
         [string]$Fixture = "",
         [string]$Context = "",
@@ -698,6 +729,7 @@ function Invoke-TestNvim {
     $environmentNames = @(
         "Path",
         "ACCESS_LINK_HUMAN_PROFILE",
+        "ACCESS_LINK_HUMAN_TEST_ID",
         "ACCESS_LINK_HUMAN_STEP_ID",
         "ACCESS_LINK_HUMAN_PLUGIN",
         "ACCESS_LINK_HUMAN_DEPENDENCIES",
@@ -723,6 +755,7 @@ function Invoke-TestNvim {
     }
     try {
         $env:ACCESS_LINK_HUMAN_PROFILE = $Profile
+        $env:ACCESS_LINK_HUMAN_TEST_ID = $HumanTestId
         $env:ACCESS_LINK_HUMAN_STEP_ID = $StepId
         $env:ACCESS_LINK_HUMAN_PLUGIN = $AccessLinkPlugin
         $env:ACCESS_LINK_HUMAN_DEPENDENCIES = $DependenciesPath
@@ -1117,6 +1150,7 @@ function New-Result {
             )
             $status = if ($missing.Count -gt 0) { "notApplicable" } else { "pending" }
             $resultSteps += [PSCustomObject]@{
+                testId = [string]$step.testId
                 id = [string]$step.id
                 status = $status
                 note = ""
@@ -1129,7 +1163,7 @@ function New-Result {
         }
     }
     return [PSCustomObject]@{
-        schemaVersion = 3
+        schemaVersion = 4
         runId = [guid]::NewGuid().ToString()
         createdAt = [DateTimeOffset]::UtcNow.ToString("o")
         completedAt = ""
@@ -1140,7 +1174,7 @@ function New-Result {
             selectedTests = @(
                 foreach ($plan in $Plans) {
                     foreach ($step in @($plan.steps)) {
-                        "$($plan.id).$($step.id)"
+                        [string]$step.testId
                     }
                 }
             )
@@ -1171,7 +1205,7 @@ function Show-Plans {
             (Get-Message ([string]$plan.descriptionKey))
         ))
         foreach ($step in @($plan.steps)) {
-            Write-Host "  $($step.id): $(Get-Message ([string]$step.titleKey))"
+            Write-Host "  [$($step.testId)] $(Get-Message ([string]$step.titleKey))"
             Write-Host "    $(Get-Message 'runner.context'): $(Get-Message ([string]$step.contextKey))"
             Write-Host "    $(Get-Message 'runner.action'): $(Get-Message ([string]$step.actionKey))"
             Write-Host "    $(Get-Message 'runner.expected'): $(Get-Message ([string]$step.expectedKey))"
@@ -1326,7 +1360,8 @@ function Run-Plans {
                         $cardIndex,
                         (Get-Message ([string]$plan.titleKey))
                     ))
-                    Write-Host (Get-Message ([string]$step.titleKey)) -ForegroundColor Yellow
+                    Write-Host "[$($step.testId)] $(Get-Message ([string]$step.titleKey))" `
+                        -ForegroundColor Yellow
                     Write-Host (Get-Message "runner.notApplicable" @(
                         (@($step.requires) -join ", ")
                     ))
@@ -1336,7 +1371,7 @@ function Run-Plans {
                     continue
                 }
                 $taskIndex += 1
-                $title = Get-Message ([string]$step.titleKey)
+                $title = "[$($step.testId)] $(Get-Message ([string]$step.titleKey))"
                 $context = Get-Message ([string]$step.contextKey)
                 $actionText = Get-Message ([string]$step.actionKey)
                 $expectedText = Get-Message ([string]$step.expectedKey)
@@ -1365,6 +1400,7 @@ function Run-Plans {
                 $null = Read-Host (Get-Message "runner.launchPrompt")
                 $fixture = Join-Path $FixturesRoot ([string]$plan.fixture)
                 Invoke-TestNvim -Profile ([string]$plan.profile) `
+                    -HumanTestId ([string]$step.testId) `
                     -StepId ([string]$step.id) -Fixture $fixture `
                     -Context $context -Task $actionText -Expected $expectedText
                 Write-Step (Get-Message "runner.afterReturn")

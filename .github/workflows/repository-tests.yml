@@ -80,7 +80,7 @@ jobs:
           .\tests\human\framework\run.ps1 list -Suite all -Language de
           .\tests\human\framework\run.ps1 list -Suite all -Language en
           .\tests\human\framework\run.ps1 list -Language en `
-            -TestId "c-diagnostics.clang-tidy-presentation"
+            -TestId "D3"
           .\tests\human\framework\run.ps1 run -Suite all -Language en -DryRun `
             -AccessLinkPlugin "$PWD\neovim-plugin"
       - name: Validate plans, fingerprints, and result assessment

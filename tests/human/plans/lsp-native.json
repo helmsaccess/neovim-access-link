@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "lsp-native",
   "order": 10,
   "titleKey": "plan.lspNative.title",
@@ -9,6 +9,7 @@
   "fixture": "lsp_features.py",
   "steps": [
     {
+      "testId": "L1",
       "id": "status-presentation",
       "category": "language-intelligence",
       "titleKey": "plan.lspNative.status.title",
@@ -20,6 +21,7 @@
       "automatedEvidence": ["neovim-plugin/tests/lsp_status_spec.lua"]
     },
     {
+      "testId": "L2",
       "id": "automatic-parameters",
       "category": "language-intelligence",
       "titleKey": "plan.lspNative.automaticParameters.title",
@@ -35,6 +37,7 @@
       ]
     },
     {
+      "testId": "L3",
       "id": "held-parameters",
       "category": "language-intelligence",
       "titleKey": "plan.lspNative.parameters.title",
@@ -49,6 +52,7 @@
       ]
     },
     {
+      "testId": "C1",
       "id": "completion-presentation",
       "category": "completion",
       "titleKey": "plan.lspNative.completion.title",

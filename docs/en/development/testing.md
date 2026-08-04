@@ -60,8 +60,8 @@ C/Clang-Tidy and Markdown/markdownlint test live in an optional
 individually. Versioned German and English cards are shown
 by an isolated PowerShell runner that never changes a private `init.lua`.
 Each pending task gets a fresh test Neovim session and can be repeated there
-with `F2`. After every task, the runner stores a validatable JSON result below
-ignored `tmp/`; the exact selected task IDs are part of the result. A
+with its test ID by pressing `F2`. After every task, the runner stores a
+validatable JSON result below ignored `tmp/`; the exact selected task IDs are part of the result. A
 technical preflight of real providers and a Windows CI run
 of the PowerShell runner catch machine-decidable errors. See the
 [tester documentation](human-testing.md) for setup, operation, resume, and

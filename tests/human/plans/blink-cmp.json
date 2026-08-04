@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "blink-cmp",
   "order": 50,
   "titleKey": "plan.blinkCmp.title",
@@ -9,6 +9,7 @@
   "fixture": "lsp_features.py",
   "steps": [
     {
+      "testId": "C3",
       "id": "menu-presentation",
       "category": "completion",
       "titleKey": "plan.blinkCmp.menu.title",

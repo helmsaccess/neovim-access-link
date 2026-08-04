@@ -12,8 +12,8 @@ Start with the German or English tester documentation:
 
 The Windows entry point is `framework/run.ps1`. Each pending task gets a fresh
 isolated `framework/init.lua` session through `nvim -u`, and F2 repeats the
-current task inside Neovim. The runner never copies over the user's normal
-Neovim configuration. Downloaded dependencies and run results stay in the
+short test ID and current task inside Neovim. The runner never copies over the
+user's normal Neovim configuration. Downloaded dependencies and run results stay in the
 ignored repository `tmp/` directory.
 
 ## Maintained surface
@@ -29,9 +29,11 @@ ignored repository `tmp/` directory.
 The required `smoke` suite contains native LSP/completion, Python diagnostic
 presentation, and focus/fail-open checks. The `compatibility` suite contains
 short nvim-cmp, blink.cmp, C/Clang-Tidy, and Markdown/markdownlint checks.
-The interactive category selector and the `-TestId plan.step` argument can run
-any task individually. Result schema 3 records the exact selected IDs, so a
-custom run remains resumable and machine-checkable.
+The interactive category selector and short IDs such as `-TestId D3` can run
+any task individually. The longer `plan.step` names remain accepted as
+compatibility aliases. Result schema 4 records the exact short IDs on both the
+selection and each result step, so a custom run remains resumable and
+machine-checkable.
 
 ## Adding a test
 
@@ -40,7 +42,11 @@ hardware. Every step must name a `manualReason` and related automated evidence.
 If a protocol value, range, event order, provider result, or adapter state can
 be asserted in code, add an automated regression test instead.
 
-Every step belongs to one of the fixed user-facing categories. Plans may
+Every step has a globally unique, immutable two-character `testId`: `L` for
+language intelligence, `C` for completion, `D` for diagnostics, or `S` for
+session integration, followed by one uppercase alphanumeric character. Never
+renumber or reuse a published ID. Every step belongs to one of the fixed
+user-facing categories. Plans may
 select only one of the fixed profiles implemented by `init.lua`.
 They cannot contain PowerShell, shell, Lua, or Neovim commands. This keeps
 versioned test data non-executable.

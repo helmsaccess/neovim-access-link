@@ -1,6 +1,11 @@
 local root = vim.fn.getcwd()
 vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", "diagnostics")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "L2")
 vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "automatic-parameters")
+vim.fn.setenv("ACCESS_LINK_HUMAN_LANGUAGE", "en")
+vim.fn.setenv("ACCESS_LINK_HUMAN_CONTEXT", "Fixture context")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TASK", "Fixture task")
+vim.fn.setenv("ACCESS_LINK_HUMAN_EXPECTED", "Fixture expectation")
 vim.fn.setenv("ACCESS_LINK_HUMAN_DRY_RUN", "1")
 vim.api.nvim_buf_set_lines(0, 0, -1, true, { "def calculate_total():", "  pass" })
 vim.bo.filetype = "python"
@@ -15,6 +20,13 @@ end
 
 truthy(vim.fn.exists(":AccessLinkHumanTestInfo") == 2,
   "human-test info command is available")
+local notification = nil
+local original_notify = vim.notify
+vim.notify = function(message) notification = message end
+vim.cmd.AccessLinkHumanTestInfo()
+vim.notify = original_notify
+truthy(type(notification) == "string" and notification:find("Test ID L2.", 1, true) == 1,
+  "F2 task information starts with the stable short test ID")
 truthy(vim.g.access_link_human_config_ready == 1,
   "dry-run configuration reports successful completion")
 for _, key in ipairs({ "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>", "<F8>",
