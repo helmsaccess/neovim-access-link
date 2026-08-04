@@ -93,7 +93,7 @@ für ein ausdrücklich abgefragtes leeres Ergebnis stattdessen den
 unverwechselbaren Code-OSS-Klang `clear.mp3`, auf rund 262 ms mit 5 ms
 Ausklang gekürzt. Er folgt bei `NvimNvdaDiagnosticCurrent` und den übrigen
 Diagnosebefehlen der Einstellung „Diagnoseposition“, bei einer leeren
-gehaltenen Abfrage mit `NVDA+Umschalt+E` der Einstellung „Diagnosezeile“.
+gehaltenen Abfrage mit `NVDA+Umschalt+Leertaste` der Einstellung „Diagnosezeile“.
 Bloße Cursorbewegung über fehlerfreie Zeilen bleibt still. Informationen und
 Hinweise bleiben ebenfalls klanglos; der neue Klang bezeichnet kein Problem,
 sondern bestätigt nur eine aktive Abfrage ohne Treffer.

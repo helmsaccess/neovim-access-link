@@ -445,6 +445,27 @@ class TerminalIntegrationService:
 		)
 		return accepted
 
+	def held_context_script_available(
+		self,
+		kind: HeldContextKind,
+		focus_obj: object,
+		app_module: object,
+		adapter_token: object,
+	) -> bool:
+		"""Authorize a held-context gesture without changing editor or transport state."""
+		if not isinstance(kind, HeldContextKind):
+			return False
+		if self._active_identity(focus_obj, app_module, adapter_token) is None:
+			return False
+		try:
+			return (
+				self._editorSession.active_numbered_choice_context() is None
+				and self._editorSession.held_context_instance(kind) is not None
+			)
+		except Exception as error:
+			self._fail_open("developerContextGestureAuthorization", error)
+			return False
+
 	def navigate_held_context(
 		self,
 		direction: HeldContextDirection,

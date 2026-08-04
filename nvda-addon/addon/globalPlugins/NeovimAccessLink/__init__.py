@@ -351,9 +351,7 @@ _NVDA_CONFIG_SPEC = {
 	"brailleFollowSpeechExploration": (
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
 	),
-	"automaticParameterHints": (
-		f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"
-	),
+	"automaticParameterHints": (f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"),
 	"brailleRouting": {
 		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",
 		"lineAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineAction']}, min=0, max=2)",

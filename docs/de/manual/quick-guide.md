@@ -234,7 +234,8 @@ ist nur Sprache, Braille bleibt beim Quelltext. Sie lässt sich unter
 
 Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
 Den Cursor auf Funktionsname, öffnende oder schließende Aufrufklammer setzen,
-`NVDA+Umschalt+P` drücken und die NVDA-Taste weiter halten. `NVDA+h/l`
+`NVDA+Leertaste` drücken, nur die Leertaste loslassen und die NVDA-Taste weiter
+halten. `NVDA+h/l`
 schaltet ausschließlich durch die Parameter der gewählten Signatur,
 `NVDA+k/j` ausschließlich durch mehrere Signaturen. Die erste Ansicht nennt
 nur Signatur und Dokumentation. Nach dieser Ansicht und nach jedem
@@ -244,7 +245,7 @@ schaltet in die gewählte Richtung weiter. Die Sprache verwendet dabei die
 vollständigen Bezeichnungen. Auf Braille stehen platzsparend `S 1 von 2` für
 eine Signatur, `P 1 von 3` für einen Parameter und `D:` vor der Dokumentation;
 Funktions- und Parameternamen bleiben vollständig. Mit
-`NVDA+Umschalt+E` funktioniert derselbe gehaltene Ablauf für Diagnosen am
+`NVDA+Umschalt+Leertaste` funktioniert derselbe gehaltene Ablauf für Diagnosen am
 Cursor und auf der aktuellen Zeile; hier schaltet `NVDA+k/j` durch die
 Einträge. Lange Informationen lassen sich mit den üblichen Vor-/Zurück-Tasten
 vollständig durchblättern, ohne dabei in den Quelltext zu wechseln. Beim
@@ -255,6 +256,10 @@ Hintergrundaktualisierungen und Tippen bleiben stumm. Ergibt eine
 ausdrückliche Diagnoseabfrage keinen Treffer, bestätigt ein dritter kurzer
 Klang zusammen mit „keine Diagnose“ das leere Ergebnis. Reine Bewegung über
 fehlerfreie Zeilen sowie Informationen und Hinweise bleiben klanglos.
+
+Diese beiden Leertastenkombinationen übernimmt Access Link nur in der exakt
+aktiven, verbundenen Neovim-Pane. In anderen Terminal-Panes und Anwendungen
+bleiben NVDAs Standardfunktionen unverändert.
 
 Die Navigationstasten der Braillezeile besitzen davon unabhängig einen
 Braille-Cursormodus und einen Braille-Explorationsmodus. Im

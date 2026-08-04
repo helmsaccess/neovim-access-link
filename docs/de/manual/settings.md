@@ -137,7 +137,7 @@ Die Option arbeitet unabhängig von den Aktionsklängen der Registerkarte
 `Rückmeldung`: Sie ist eine Orientierungshilfe aus LSP-Signaturdaten, keine
 Bestätigung einer Editoraktion. Ist sie ausgeschaltet oder liefert der
 Sprachserver keinen eindeutigen Parameter, erfolgt keine automatische Ansage.
-Die ausdrückliche gehaltene Abfrage mit `NVDA+Umschalt+P` bleibt verfügbar.
+Die ausdrückliche gehaltene Abfrage mit `NVDA+Leertaste` bleibt verfügbar.
 
 ## Registerkarte Rückmeldung
 

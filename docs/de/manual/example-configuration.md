@@ -271,8 +271,10 @@ empfiehlt. Löschungen landen in dieser kleinen portablen Konfiguration nicht
 automatisch im Papierkorb; Oil zeigt vor Änderungen weiterhin seine von Access
 Link zugänglich gemachten Bestätigungen.
 
-Die NVDA-Kombinationen `NVDA+Umschalt+P` für Funktionssignaturen und
-`NVDA+Umschalt+E` für Diagnosen sind weiterhin fest eingebaut. Sie werden
+Die kontextbezogenen NVDA-Kombinationen `NVDA+Leertaste` für
+Funktionssignaturen und `NVDA+Umschalt+Leertaste` für Diagnosen sind bereits
+eingebaut. Access Link übernimmt sie nur in der exakt aktiven, verbundenen
+Neovim-Pane; andernorts bleibt NVDAs Standardfunktion erhalten. Sie werden
 weder in dieser `init.lua` noch in NVDA neu zugewiesen. Nur für ausführliche
 Completion-Dokumentation kann optional ein NVDA-Tastenbefehl zugeordnet werden,
 wie im vorherigen Kapitel beschrieben.

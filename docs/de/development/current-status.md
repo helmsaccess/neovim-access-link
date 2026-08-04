@@ -293,7 +293,7 @@ früheres Argument spricht erneut. Das Ereignis ist validierte reine Sprache
 und ersetzt niemals die Quelltext-Braillezeile. Die Funktion ist
 profilabhängig abschaltbar.
 
-`NVDA+Umschalt+P` startet eine korrelierte, rein lesende Abfrage von
+`NVDA+Leertaste` startet eine korrelierte, rein lesende Abfrage von
 LSP-Signaturhilfe mit Hover-Rückfall. Sie funktioniert auf dem Funktionsnamen
 sowie der unmittelbar zugehörigen öffnenden und schließenden Aufrufklammer,
 ohne den echten Cursor zu verschieben. Solange die NVDA-Taste gehalten wird,
@@ -308,6 +308,11 @@ blättern ohne Rückfall in die Quelltextnavigation.
 Ein eigener instanzgetrennter Controller bindet die Anzeige an die exakte
 Fokus-, Buffer-, Fenster-, Tab-, `changedtick`- und Cursoridentität; jede
 Abweichung verwirft Antwort und Braillemeldung.
+Das Windows-Terminal-AppModule übernimmt `NVDA+Leertaste` und
+`NVDA+Umschalt+Leertaste` nur bei exakt fokussierter, authentifizierter
+Instanz mit der jeweils benötigten Fähigkeit. Ohne diese Autorisierung bleibt
+NVDAs normale Skriptauflösung erhalten; Access Link sendet in diesem
+Rückfallpfad insbesondere keine Leertaste an das Terminal.
 
 Allgemeine Diagnostics werden unabhängig von ihrer Herkunft über
 `vim.diagnostic` validiert, begrenzt und deterministisch ausgewählt. Fünf
@@ -323,7 +328,7 @@ bleiben aber Teil der später gebündelten Praxisrunde.
 Direkt getippte native `[d`-/`]d`-Sprünge bleiben auch dann semantisch
 beobachtbar, wenn ein aufrufspezifischer Callback Neovims globalen
 Diagnosesprung-Hook ersetzt.
-`NVDA+Umschalt+E` hält eine begrenzte Liste der Diagnosen am Cursor und auf
+`NVDA+Umschalt+Leertaste` hält eine begrenzte Liste der Diagnosen am Cursor und auf
 der aktuellen Zeile; `NVDA+k/j` schaltet ohne echte Cursorbewegung. Eine
 textfreie Diagnosezusammenfassung ermöglicht getrennt konfigurierbare Fehler-
 und Warnklänge beim Betreten einer Diagnosezeile und an jeder durch

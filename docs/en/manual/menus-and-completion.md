@@ -62,8 +62,9 @@ speech-only and never covers source text in Braille. Without an unambiguous
 structured server response, Access Link neither guesses from commas nor reads
 unstructured hover text automatically.
 
-Press `NVDA+Shift+P` to request callable information at the current cursor.
-The cursor may be on the function name or on the call's immediately associated
+Press `NVDA+Space` to request callable information at the current cursor.
+Release only Space and keep NVDA held for the following navigation. The cursor
+may be on the function name or on the call's immediately associated
 opening or closing parenthesis. While at least one NVDA key remains held, the
 result stays on the Braille display. `NVDA+h/l` cycles through parameters and
 `NVDA+k/j` through multiple signatures without moving the real editor cursor.
@@ -106,8 +107,8 @@ Staticcheck for Go, Clippy for Rust, RuboCop for Ruby, and
 silent; an explicit diagnostic jump reports source, severity, optional code,
 message, and position together in speech and Braille.
 
-Press `NVDA+Shift+E` to inspect diagnostics under the cursor followed by the
-remaining diagnostics on the current line. While NVDA remains held,
+Press `NVDA+Shift+Space` to inspect diagnostics under the cursor followed by
+the remaining diagnostics on the current line. While NVDA remains held,
 `NVDA+k/j` cycles through the entries without moving the editor cursor.
 Errors and warnings can also produce a short cue when explicit navigation
 enters an affected line and at every reached cursor position within an exact

@@ -65,7 +65,7 @@ file as a diagnostic error. Access Link therefore confirms an explicitly
 empty result with the unmistakable Code - OSS `clear.mp3` cue instead, trimmed
 to about 262 ms with a 5 ms tail. For `NvimNvdaDiagnosticCurrent` and the other
 diagnostic commands it follows Diagnostic position feedback; for an empty
-held `NVDA+Shift+E` query it follows Diagnostic line feedback. Mere cursor
+held `NVDA+Shift+Space` query it follows Diagnostic line feedback. Mere cursor
 movement across clean lines remains silent. Information and hint diagnostics
 also remain soundless: the new cue denotes no problem and only confirms an
 active query with no match.

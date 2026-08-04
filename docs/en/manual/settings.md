@@ -66,7 +66,7 @@ does not change the Braille display.
 The checkbox is independent of action cues on the Feedback tab because it is
 orientation from LSP signature data, not confirmation of an editor action.
 When disabled, or when the server supplies no unambiguous active parameter,
-there is no automatic announcement. The explicit held `NVDA+Shift+P` query
+there is no automatic announcement. The explicit held `NVDA+Space` query
 remains available.
 
 ## Feedback

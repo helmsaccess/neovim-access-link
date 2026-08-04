@@ -53,6 +53,10 @@ class AppModule(appModuleHandler.AppModule):
 		(frozenset({"nvda", "shift"}), "l"): NeovimAccessLink.ExplorationAction.WORD_NEXT,
 	}
 	_EXPLORATION_VK_CODES = frozenset({72, 74, 75, 76})
+	_DEVELOPER_CONTEXT_START_KINDS = {
+		(frozenset({"nvda"}), "space"): NeovimAccessLink.HeldContextKind.CALLABLE,
+		(frozenset({"nvda", "shift"}), "space"): NeovimAccessLink.HeldContextKind.DIAGNOSTIC,
+	}
 	_STRUCTURED_NAVIGATION_KEYS = frozenset(
 		{
 			"leftarrow",
@@ -237,6 +241,18 @@ class AppModule(appModuleHandler.AppModule):
 			return None
 		return cls._EXPLORATION_ACTIONS.get((modifier_names, main_key.lower()))
 
+	@classmethod
+	def _developerContextStartKind(cls, gesture):
+		main_key = getattr(gesture, "mainKeyName", "")
+		if not isinstance(main_key, str):
+			return None
+		modifiers = getattr(gesture, "modifierNames", ())
+		try:
+			modifier_names = frozenset(name.lower() for name in modifiers if isinstance(name, str))
+		except TypeError:
+			return None
+		return cls._DEVELOPER_CONTEXT_START_KINDS.get((modifier_names, main_key.lower()))
+
 	@staticmethod
 	def _superScript(instance, gesture):
 		return super(AppModule, instance).getScript(gesture)
@@ -256,6 +272,21 @@ class AppModule(appModuleHandler.AppModule):
 		except Exception:
 			return False
 
+	def _focusedDeveloperContextAvailable(self, service, focus_obj, kind):
+		if getattr(focus_obj, "appModule", None) is not self:
+			return False
+		try:
+			return bool(
+				service.held_context_script_available(
+					kind,
+					focus_obj,
+					self,
+					self._eventToken,
+				)
+			)
+		except Exception:
+			return False
+
 	def getScript(self, gesture):
 		"""Select contextual scripts through NVDA's standard gesture resolution."""
 		main_key = getattr(gesture, "mainKeyName", "")
@@ -265,6 +296,28 @@ class AppModule(appModuleHandler.AppModule):
 			)
 		except TypeError:
 			modifier_names = frozenset({"invalid"})
+		developer_context_kind = self._developerContextStartKind(gesture)
+		if developer_context_kind is not None:
+			service = self._service()
+			try:
+				focus_obj = api.getFocusObject()
+			except Exception:
+				focus_obj = None
+			if (
+				service is not None
+				and focus_obj is not None
+				and self._focusedDeveloperContextAvailable(
+					service,
+					focus_obj,
+					developer_context_kind,
+				)
+			):
+				return (
+					self.script_holdCallableContext
+					if developer_context_kind is NeovimAccessLink.HeldContextKind.CALLABLE
+					else self.script_holdDiagnosticContext
+				)
+			return self._superScript(self, gesture)
 		if (
 			isinstance(main_key, str)
 			and main_key.lower() in self._STRUCTURED_NAVIGATION_KEYS
@@ -698,7 +751,6 @@ class AppModule(appModuleHandler.AppModule):
 		# Translators: Input Help description for held callable parameter inspection.
 		description=_("Show function parameters while the NVDA key remains pressed"),
 		category=scriptCategory,
-		gesture="kb:NVDA+shift+p",
 		speakOnDemand=True,
 	)
 	def script_holdCallableContext(self, gesture):
@@ -708,7 +760,6 @@ class AppModule(appModuleHandler.AppModule):
 		# Translators: Input Help description for held diagnostic inspection.
 		description=_("Show diagnostics while the NVDA key remains pressed"),
 		category=scriptCategory,
-		gesture="kb:NVDA+shift+e",
 		speakOnDemand=True,
 	)
 	def script_holdDiagnosticContext(self, gesture):

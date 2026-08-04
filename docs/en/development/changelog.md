@@ -153,7 +153,8 @@
 - Adds `:NvimNvdaLspStatus` for bounded, content-free current-buffer client
   status in speech/Braille; continuous LSP progress remains silent to avoid
   speech flooding.
-- Adds `NVDA+Shift+P` for a held read-only parameter view: `NVDA+h/l` cycles
+- Adds `NVDA+Space`, taken over only in the exact active Neovim context, for a
+  held read-only parameter view: `NVDA+h/l` cycles
   parameters locally and `NVDA+k/j` cycles signatures. Signature help and
   the hover fallback are fully correlated with focus, instance, editor
   identity, changed tick, and cursor position; releasing NVDA restores the
@@ -178,13 +179,18 @@
 - Additionally exercises the real pinned `none-ls.nvim` LSP bridge with
   `plenary.nvim` and a built-in diagnostic source. This likewise needs no
   adapter or bundled plugin.
-- Adds `NVDA+Shift+E` for a held, locally navigable list of diagnostics under
+- Adds `NVDA+Shift+Space` for a held, locally navigable list of diagnostics
+  under
   the cursor and on its line. Errors and warnings gain independently
   configurable line and position cues. As in Visual Studio Code, the position
   signal plays at every explicit movement within a diagnostic range and on a
   diagnostic jump; typing and asynchronous background refreshes stay silent.
   The two adopted Code - OSS signals are MIT-licensed; source commit, hashes,
   conversion, and license text are bundled.
+- Resolves both held Space gestures dynamically in the Windows Terminal
+  AppModule. Without an exactly focused, authenticated, suitably capable
+  Neovim instance, the gesture falls back to NVDA's normal command; Access
+  Link does not send a Space character to the terminal on this path.
 - Adds a separate profile-aware Braille start cell for temporary developer
   information and discards held views after any focus, buffer, text, or
   cursor change.

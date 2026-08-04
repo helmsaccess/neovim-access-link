@@ -308,11 +308,13 @@ verschachtelte Aufrufe und sprachspezifische Syntax die Parameterposition nicht
 durcheinander. Gibt der Sprachserver keinen eindeutigen aktiven Parameter
 zurück, bleibt Access Link sicherheitshalber still.
 
-`NVDA+Umschalt+P` ist bereits fest im Windows-Terminal-Modul von Access Link
-belegt und muss weder in NVDA noch in Lua zugewiesen werden. Den Cursor auf
-den Funktionsnamen oder auf die unmittelbar zugehörige öffnende oder
-schließende Klammer des Aufrufs setzen, die Kombination drücken und die
-NVDA-Taste weiter halten:
+`NVDA+Leertaste` wird vom Windows-Terminal-Modul von Access Link nur in der
+exakt aktiven, verbundenen Neovim-Pane übernommen und muss weder in NVDA noch
+in Lua zugewiesen werden. In anderen Terminal-Panes und Anwendungen bleibt
+NVDAs Standardfunktion von `NVDA+Leertaste` erhalten. Den Cursor auf den
+Funktionsnamen oder auf die unmittelbar zugehörige öffnende oder schließende
+Klammer des Aufrufs setzen, die Kombination drücken, nur die Leertaste
+loslassen und die NVDA-Taste weiter halten:
 
 | gehaltene Taste | Wirkung |
 |---|---|
@@ -348,11 +350,12 @@ Bedienelemente, übersetzt aber nicht den freien Meldungstext des Werkzeugs.
 | `[d` / `]d` | vorherige / nächste Diagnose, mit Umbruch |
 | `[D` / `]D` | erste / letzte Diagnose |
 | `Leertaste`, `d`, `d` | Diagnose an der aktuellen Position erneut ausgeben |
-| `NVDA+Umschalt+E` halten | Diagnosen am Cursor und danach auf derselben Zeile untersuchen |
+| `NVDA+Umschalt+Leertaste` aufrufen und NVDA halten | Diagnosen am Cursor und danach auf derselben Zeile untersuchen |
 | dabei `NVDA+k` / `NVDA+j` | durch mehrere Diagnosen derselben Zeile schalten |
 
-`NVDA+Umschalt+E` ist wie die Parameterabfrage bereits fest belegt. Dafür ist
-keine Lua-Funktion und keine eigene NVDA-Zuweisung nötig. Die optionalen Lua-
+`NVDA+Umschalt+Leertaste` wird wie die Parameterabfrage nur im exakt aktiven
+Neovim-Kontext übernommen. Dafür ist keine Lua-Funktion und keine eigene
+NVDA-Zuweisung nötig. Die optionalen Lua-
 Mappings benutzen bewusst Access-Links Diagnosebefehle: Dadurch bleiben auch
 mehrere Meldungen verschiedener Provider an derselben Position einzeln
 erreichbar. Fehler und Warnungen können Diagnoseklänge auslösen. Informationen

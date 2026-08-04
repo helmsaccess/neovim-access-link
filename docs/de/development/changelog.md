@@ -170,7 +170,8 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Ergänzt `:NvimNvdaLspStatus` für einen begrenzten, inhaltsfreien
   Clientstatus des aktuellen Buffers in Sprache/Braille; fortlaufender
   LSP-Fortschritt bleibt zur Vermeidung von Sprachfluten stumm.
-- Ergänzt `NVDA+Umschalt+P` für eine gehaltene, rein lesende Parameteransicht:
+- Ergänzt die nur im exakt aktiven Neovim-Kontext übernommene Kombination
+  `NVDA+Leertaste` für eine gehaltene, rein lesende Parameteransicht:
   `NVDA+h/l` schaltet lokal durch Parameter, `NVDA+k/j` durch Signaturen.
   Signaturhilfe und Hover-Rückfall sind vollständig mit Fokus, Instanz,
   Editoridentität, Textstand und Cursorposition korreliert; Loslassen der
@@ -197,7 +198,8 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 - Prüft zusätzlich die echte gepinnte `none-ls.nvim`-LSP-Brücke mit
   `plenary.nvim` und einer eingebauten Diagnosequelle. Auch hierfür ist kein
   Adapter oder ausgeliefertes Plugin erforderlich.
-- Ergänzt `NVDA+Umschalt+E` für eine gehaltene, lokal durchschaltbare Liste
+- Ergänzt `NVDA+Umschalt+Leertaste` für eine gehaltene, lokal durchschaltbare
+  Liste
   der Diagnosen am Cursor und auf der Zeile. Fehler und Warnungen erhalten
   getrennt konfigurierbare Zeilen- und Positionsklänge. Wie in Visual Studio
   Code erklingt das Positionssignal bei jeder ausdrücklichen Bewegung im
@@ -205,6 +207,11 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Hintergrundupdates bleiben stumm. Die zwei übernommenen Code-OSS-Signale
   sind MIT-lizenziert; Quellcommit, Prüfsummen, Konvertierung und Lizenztext
   werden mitgeliefert.
+- Löst die beiden gehaltenen Leertastenkombinationen dynamisch im
+  Windows-Terminal-AppModule auf. Ohne exakt fokussierte, authentifizierte und
+  entsprechend fähige Neovim-Instanz fällt die Geste auf NVDAs normalen Befehl
+  zurück; Access Link sendet dabei insbesondere keine Leertaste an das
+  Terminal.
 - Fügt eine eigene profilfähige Braille-Startzelle für temporäre
   Entwicklerinformationen hinzu und verwirft gehaltene Anzeigen bei jedem
   Fokus-, Buffer-, Text- oder Cursorwechsel.

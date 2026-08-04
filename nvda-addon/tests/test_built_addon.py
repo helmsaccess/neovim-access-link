@@ -3253,6 +3253,70 @@ class BuiltAddonTests(unittest.TestCase):
             payload={"requestId": 8},
         )
         self.assertTrue(
+            service.held_context_script_available(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        self.assertTrue(
+            service.held_context_script_available(
+                HeldContextKind.DIAGNOSTIC,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        self.assertFalse(
+            service.held_context_script_available(
+                "callable",
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        editor_session.held_context_instance.return_value = None
+        self.assertFalse(
+            service.held_context_script_available(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        editor_session.held_context_instance.return_value = ("connection-1", object())
+        editor_session.active_numbered_choice_context.return_value = object()
+        self.assertFalse(
+            service.held_context_script_available(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        editor_session.active_numbered_choice_context.return_value = None
+        self.assertFalse(
+            service.held_context_script_available(
+                HeldContextKind.CALLABLE,
+                types.SimpleNamespace(appModule=object()),
+                app_module,
+                adapter_token,
+            ),
+        )
+        focus_service.is_active_neovim_context.return_value = False
+        self.assertFalse(
+            service.held_context_script_available(
+                HeldContextKind.CALLABLE,
+                focus,
+                app_module,
+                adapter_token,
+            ),
+        )
+        focus_service.is_active_neovim_context.return_value = True
+        editor_session.begin_held_context.assert_not_called()
+        control_dispatcher.submit.assert_not_called()
+        self.assertTrue(
             service.start_held_context(
                 HeldContextKind.CALLABLE,
                 focus,
@@ -4492,6 +4556,93 @@ class BuiltAddonTests(unittest.TestCase):
             ),
         )
 
+    def test_held_developer_context_start_gestures_require_the_active_session(self) -> None:
+        import globalPlugins.NeovimAccessLink as addon_module
+        import inputCore
+        from appModules.windowsterminal import AppModule
+
+        callable_fallback = object()
+        diagnostic_fallback = object()
+        callable_gesture = types.SimpleNamespace(
+            mainKeyName="space",
+            modifierNames=("NVDA",),
+            fallbackScript=callable_fallback,
+            send=mock.Mock(),
+        )
+        diagnostic_gesture = types.SimpleNamespace(
+            mainKeyName="space",
+            modifierNames=("shift", "NVDA"),
+            fallbackScript=diagnostic_fallback,
+            send=mock.Mock(),
+        )
+        service = mock.Mock()
+        service.held_context_script_available.return_value = True
+        with mock.patch.object(addon_module, "getTerminalIntegrationService", return_value=service):
+            adapter = AppModule()
+            self.focus.appModule = adapter
+
+            callable_script = adapter.getScript(callable_gesture)
+            self.assertIs(AppModule.script_holdCallableContext, callable_script.__func__)
+            service.held_context_script_available.assert_called_once_with(
+                addon_module.HeldContextKind.CALLABLE,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+            service.held_context_script_available.reset_mock()
+
+            diagnostic_script = adapter.getScript(diagnostic_gesture)
+            self.assertIs(AppModule.script_holdDiagnosticContext, diagnostic_script.__func__)
+            service.held_context_script_available.assert_called_once_with(
+                addon_module.HeldContextKind.DIAGNOSTIC,
+                self.focus,
+                adapter,
+                adapter._eventToken,
+            )
+
+            self.addCleanup(setattr, inputCore.manager, "isInputHelpActive", False)
+            inputCore.manager.isInputHelpActive = True
+            self.assertIs(
+                AppModule.script_holdCallableContext,
+                adapter.getScript(callable_gesture).__func__,
+            )
+            service.held_context_script_available.return_value = False
+            self.assertIs(callable_fallback, adapter.getScript(callable_gesture))
+            callable_gesture.send.assert_not_called()
+            inputCore.manager.isInputHelpActive = False
+
+            self.assertIs(callable_fallback, adapter.getScript(callable_gesture))
+            self.assertIs(diagnostic_fallback, adapter.getScript(diagnostic_gesture))
+            callable_gesture.send.assert_not_called()
+            diagnostic_gesture.send.assert_not_called()
+
+            service.held_context_script_available.reset_mock()
+            for old_gesture in (
+                types.SimpleNamespace(
+                    mainKeyName="p",
+                    modifierNames=("NVDA", "shift"),
+                    fallbackScript=callable_fallback,
+                ),
+                types.SimpleNamespace(
+                    mainKeyName="e",
+                    modifierNames=("NVDA", "shift"),
+                    fallbackScript=diagnostic_fallback,
+                ),
+                types.SimpleNamespace(
+                    mainKeyName="space",
+                    modifierNames=("NVDA", "control"),
+                    fallbackScript=callable_fallback,
+                ),
+            ):
+                self.assertIs(old_gesture.fallbackScript, adapter.getScript(old_gesture))
+            service.held_context_script_available.assert_not_called()
+
+            service.held_context_script_available.return_value = True
+            self.focus.appModule = types.SimpleNamespace(appName="windowsterminal")
+            self.assertIs(callable_fallback, adapter.getScript(callable_gesture))
+            service.held_context_script_available.assert_not_called()
+            adapter.terminate()
+
     def test_held_developer_context_uses_nvda_lifetime_and_local_navigation(self) -> None:
         import globalPlugins.NeovimAccessLink as addon_module
         from appModules.windowsterminal import AppModule
@@ -4513,6 +4664,14 @@ class BuiltAddonTests(unittest.TestCase):
             )
             self.assertTrue(
                 adapter.script_holdDiagnosticContext._test_script_kwargs["speakOnDemand"],
+            )
+            self.assertNotIn(
+                "gesture",
+                adapter.script_holdCallableContext._test_script_kwargs,
+            )
+            self.assertNotIn(
+                "gesture",
+                adapter.script_holdDiagnosticContext._test_script_kwargs,
             )
             service.start_held_context.assert_called_once_with(
                 addon_module.HeldContextKind.CALLABLE,

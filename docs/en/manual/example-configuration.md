@@ -267,7 +267,9 @@ instructions. Deletions do not automatically go to the trash in this small,
 portable configuration; Oil continues to show its confirmations, which Access
 Link makes accessible.
 
-The NVDA gestures `NVDA+Shift+P` for function signatures and `NVDA+Shift+E`
-for diagnostics remain built in. They are not reassigned in this `init.lua` or
-in NVDA. Only detailed completion documentation may optionally receive an
+The contextual NVDA gestures `NVDA+Space` for function signatures and
+`NVDA+Shift+Space` for diagnostics are already built in. Access Link takes
+them over only in the exact active connected Neovim pane; NVDA's standard
+function remains available elsewhere. They are not reassigned in this
+`init.lua` or in NVDA. Only detailed completion documentation may receive an
 NVDA input gesture, as described in the preceding chapter.

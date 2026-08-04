@@ -414,9 +414,9 @@ class SettingsService:
 		braille_follow_speech_exploration_changed = previous.get(
 			"brailleFollowSpeechExploration"
 		) != values.get("brailleFollowSpeechExploration")
-		automatic_parameter_hints_changed = previous.get(
+		automatic_parameter_hints_changed = previous.get("automaticParameterHints") != values.get(
 			"automaticParameterHints"
-		) != values.get("automaticParameterHints")
+		)
 		focus_changed = previous.get("focusAnnouncement") != values.get("focusAnnouncement")
 		connections_changed = previous.get("connections") != values.get("connections")
 		self._values = values

@@ -267,7 +267,7 @@ argument remains silent, while returning to an already filled earlier
 argument speaks again. The validated event is speech-only and never replaces
 source Braille. A profile-aware setting can disable the presentation.
 
-`NVDA+Shift+P` starts a correlated read-only LSP signature-help query with a
+`NVDA+Space` starts a correlated read-only LSP signature-help query with a
 hover fallback. It works on the function name and the immediately associated
 opening and closing call parentheses without moving the real cursor. While
 NVDA remains held, `NVDA+h/l` cycles only parameters of
@@ -281,6 +281,11 @@ content pages without falling through to source navigation. A separate
 per-instance controller binds the
 view to exact focus, buffer, window, tab, changed-tick, and cursor identity;
 any mismatch discards both reply and Braille message.
+The Windows Terminal AppModule takes over `NVDA+Space` and
+`NVDA+Shift+Space` only for the exact focused authenticated instance
+advertising the required capability. Without that authorization, NVDA's
+normal script resolution remains in force; Access Link does not send a Space
+character to the terminal on this fallback path.
 
 General diagnostics are validated, bounded, and selected deterministically
 through `vim.diagnostic`, independent of their origin. Five freely mappable
@@ -295,7 +300,7 @@ Windows/NVDA acceptance. Native LSP paths such as `gopls` and
 practical round. Directly typed native `[d`/`]d` jumps remain semantically
 observable even when a per-call callback replaces Neovim's global
 diagnostic-jump hook.
-`NVDA+Shift+E` holds a bounded list of diagnostics under the cursor and on
+`NVDA+Shift+Space` holds a bounded list of diagnostics under the cursor and on
 the current line; `NVDA+k/j` cycles without moving the real cursor. A
 text-free diagnostic summary enables separately configurable error and
 warning cues when entering a diagnostic line and at every position reached by

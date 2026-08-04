@@ -292,10 +292,12 @@ visible commas. Strings, nested calls, and language-specific syntax therefore
 do not confuse parameter position. If the language server does not return an
 unambiguous active parameter, Access Link safely remains silent.
 
-`NVDA+Shift+P` is already fixed in Access Link's Windows Terminal module. It
-does not need to be assigned in NVDA or mapped in Lua. Place the cursor on the
-function name or on the call's immediately associated opening or closing
-parenthesis, press the gesture, and keep the NVDA key held:
+`NVDA+Space` is taken over by Access Link's Windows Terminal module only in
+the exact active connected Neovim pane. It does not need to be assigned in
+NVDA or mapped in Lua. NVDA's standard `NVDA+Space` function remains available
+in other terminal panes and applications. Place the cursor on the function
+name or on the call's immediately associated opening or closing parenthesis,
+press the gesture, release only Space, and keep the NVDA key held:
 
 | Held key | Action |
 |---|---|
@@ -331,11 +333,12 @@ free-form message text.
 | `[d` / `]d` | previous / next diagnostic, wrapping at the ends |
 | `[D` / `]D` | first / last diagnostic |
 | Space, `d`, `d` | report the diagnostic at the current position again |
-| hold `NVDA+Shift+E` | inspect diagnostics under the cursor, then on the same line |
+| invoke `NVDA+Shift+Space` and keep NVDA held | inspect diagnostics under the cursor, then on the same line |
 | then `NVDA+k` / `NVDA+j` | cycle through multiple diagnostics on that line |
 
-Like the parameter query, `NVDA+Shift+E` is already fixed. It requires no Lua
-function and no custom NVDA assignment. The optional Lua mappings deliberately
+Like the parameter query, `NVDA+Shift+Space` is taken over only in the exact
+active Neovim context. It requires no Lua function and no custom NVDA
+assignment. The optional Lua mappings deliberately
 use Access Link's diagnostic commands so that multiple findings from different
 providers at the same position remain individually reachable. Errors and
 warnings can produce diagnostic cues. Information and hint diagnostics are

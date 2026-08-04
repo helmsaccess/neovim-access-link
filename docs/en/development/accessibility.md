@@ -72,16 +72,22 @@ speech-only. Resolver, nesting, UTF-8, trigger/retrigger, multi-client, race,
 protocol, transport, setting, and speech tests cover the path; the guided real
 Pyright/NVDA task checks perception and latency.
 
-Held developer context uses two fixed Windows Terminal AppModule gestures.
-`NVDA+Shift+P` requests bounded LSP signature help, with hover as an
-unstructured fallback. If the real cursor is on a callable name immediately
+Held developer context uses two dynamically authorized Windows Terminal
+AppModule gestures. `NVDA+Space` requests bounded LSP signature help, with
+hover as an unstructured fallback. If the real cursor is on a callable name immediately
 followed by `(` or on that opening parenthesis, only the LSP query position is
 placed just after the delimiter. On the associated closing parenthesis, the
 unchanged LSP position already denotes the argument list, so servers can
-return structured parameters from all three cursor positions. `NVDA+Shift+E`
+return structured parameters from all three cursor positions. `NVDA+Shift+Space`
 requests diagnostics under the cursor and then on its line. While NVDA remains
 held, parameter, signature, or diagnostic selection changes locally and never
 moves the editor cursor.
+The AppModule takes over either gesture only for the exact focused,
+authenticated instance advertising the required capability. Otherwise NVDA's
+native gesture resolution remains in force; Access Link never replays Space as
+terminal input on an authorization failure.
+Built-add-on tests cover the active and foreign contexts, both native
+fallbacks, Input Help resolution, and the held NVDA-key release lifecycle.
 Releasing the final NVDA key removes the owned temporary Braille message and
 restores the editor region. Exact control and instance binding, request ID,
 buffer, window, tab, changed tick, mode, and cursor must still match.

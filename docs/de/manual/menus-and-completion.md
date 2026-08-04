@@ -138,8 +138,10 @@ Kommas geraten noch unstrukturierter Hovertext automatisch vorgelesen.
 
 ## Funktionsparameter auf Abruf
 
-Mit `NVDA+Umschalt+P` fragt Access Link die Signaturhilfe an der aktuellen
-Cursorposition ab. Der Cursor kann dabei auf dem Funktionsnamen oder auf der
+Mit `NVDA+Leertaste` fragt Access Link die Signaturhilfe an der aktuellen
+Cursorposition ab. Nur die Leertaste wird danach losgelassen; die NVDA-Taste
+bleibt für die folgende Navigation gedrückt. Der Cursor kann dabei auf dem
+Funktionsnamen oder auf der
 unmittelbar zugehörigen öffnenden oder schließenden Klammer stehen. Solange
 mindestens eine NVDA-Taste gedrückt bleibt, stehen die Informationen dauerhaft
 auf der Braillezeile. `NVDA+h/l` schaltet durch die Parameter, `NVDA+k/j`
@@ -205,7 +207,8 @@ Quelle, Schwere, vorhandener Code, Meldung und Position werden beim
 Diagnosesprung gemeinsam in Sprache und Braille ausgegeben. Änderungen eines
 Linters im Hintergrund lösen keine fortlaufende Sprachmeldung aus.
 
-Mit `NVDA+Umschalt+E` werden zuerst Diagnosen direkt am Cursor und danach
+Mit `NVDA+Umschalt+Leertaste` werden zuerst Diagnosen direkt am Cursor und
+danach
 weitere Diagnosen auf derselben Zeile abgefragt. Solange die NVDA-Taste
 gehalten wird, schaltet `NVDA+k/j` zyklisch durch die Einträge, ohne den
 Editorcursor zu bewegen. Fehler und Warnungen können außerdem beim Betreten
