@@ -76,8 +76,10 @@
   documentation is cleared, and the step no longer resembles a lost `Ctrl+N`.
 - Suppresses additional cursor or line-boundary feedback for `Ctrl+N`,
   `Ctrl+P`, and the Up and Down arrows while a structurally integrated
-  completion menu is active. In particular, the `nvim-cmp` preview now sounds
-  like `blink.cmp`: NVDA's suggestion cues mark opening and closing once each,
+  completion menu is active. The temporary text replacement performed by
+  nvim-cmp's default preview is no longer presented as typing or with a
+  replacement cue either. nvim-cmp therefore sounds like native completion
+  and `blink.cmp`: NVDA's suggestion cues mark opening and closing once each,
   not every change of the selected candidate.
 - Adds NVDA's `disconnected.wav` as the counterpart to the connection cue. It
   plays exactly for a real loss of a previously connected, focused instance;

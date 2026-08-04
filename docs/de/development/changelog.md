@@ -88,9 +88,11 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Schritt wirkt nicht mehr wie ein verschlucktes `Ctrl+N`.
 - Unterdrückt bei den strukturiert angebundenen Completion-Menüs die
   zusätzliche Cursor- oder Zeilengrenzenrückmeldung für `Ctrl+N`, `Ctrl+P`
-  sowie Auf- und Abwärtspfeil. Insbesondere die Vorschau von `nvim-cmp` klingt
-  dadurch wie `blink.cmp`: NVDAs Vorschlagsklänge markieren das Öffnen und
-  Schließen je einmal, nicht jeden Wechsel des ausgewählten Kandidaten.
+  sowie Auf- und Abwärtspfeil. Auch die vorübergehende Textersetzung durch die
+  standardmäßige `nvim-cmp`-Vorschau wird nicht mehr als Eingabe oder
+  Ersetzungsklang ausgegeben. Damit klingt `nvim-cmp` wie native Completion
+  und `blink.cmp`: NVDAs Vorschlagsklänge markieren das Öffnen und Schließen je
+  einmal, nicht jeden Wechsel des ausgewählten Kandidaten.
 - Ergänzt NVDAs `disconnected.wav` als Gegenstück zum Verbindungsklang. Er
   erklingt genau beim echten Verlust einer zuvor verbundenen, fokussierten
   Instanz; anfängliche und wiederholt gemeldete Trennzustände bleiben still.

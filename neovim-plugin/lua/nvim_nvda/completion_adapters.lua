@@ -6,6 +6,7 @@ local active_generation = 0
 local timer
 local last_signature
 local cmp_hooked = false
+local selection_edit_generation = 0
 local diagnostics = {
   activeKind = nil,
   apiVariant = nil,
@@ -242,6 +243,23 @@ function M.is_selection_key(key)
   return selection_keys[key] == true
 end
 
-function M.stop() close() end
+function M.expect_selection_edit()
+  selection_edit_generation = selection_edit_generation + 1
+  local generation = selection_edit_generation
+  vim.schedule(function()
+    if selection_edit_generation == generation then selection_edit_generation = 0 end
+  end)
+end
+
+function M.consume_selection_edit()
+  if selection_edit_generation == 0 then return false end
+  selection_edit_generation = 0
+  return true
+end
+
+function M.stop()
+  selection_edit_generation = 0
+  close()
+end
 
 return M

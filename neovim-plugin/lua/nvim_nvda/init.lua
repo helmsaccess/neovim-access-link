@@ -1303,8 +1303,9 @@ function M.setup()
       if completion_active and completion_adapters.is_selection_key(physical_key) then
         -- Completion adapters publish the selected item authoritatively.
         -- nvim-cmp may also move the Insert-mode cursor while previewing it;
-        -- do not turn that implementation detail into a line-boundary cue.
+        -- do not turn that implementation detail into editor feedback.
         pending_motion = "suppress"
+        completion_adapters.expect_selection_edit()
       else
         pending_motion = insert_motion_events[translated]
       end
@@ -1369,8 +1370,12 @@ function M.setup()
       -- Completion selection temporarily edits the buffer as the highlighted
       -- candidate changes. Its structured menu event is the authoritative
       -- output; speaking this as normal typing produces fragments such as the
-      -- candidate index or suffix over the menu announcement.
+      -- candidate suffix and a replacement cue over the menu announcement.
       if event.event == "TextChangedP" and vim.fn.pumvisible() == 1 then
+        completion_adapters.consume_selection_edit()
+        return
+      end
+      if event.event ~= "TextChanged" and completion_adapters.consume_selection_edit() then
         return
       end
       if pending_edit then

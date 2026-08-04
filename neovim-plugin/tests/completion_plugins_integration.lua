@@ -46,20 +46,30 @@ local cmp_entry = {
   },
   source = { name = "nvim_lsp" },
 }
+local cmp_entry_second = {
+  id = 701,
+  completion_item = { label = "actual_cmp_second", kind = 3 },
+  source = { name = "nvim_lsp" },
+}
 local blink_item = {
   label = "actual_blink_api", kind = 6, source_id = "lsp", source_name = "LSP",
   documentation = { value = "blink docs" },
+}
+local blink_item_second = {
+  label = "actual_blink_second", kind = 6, source_id = "lsp", source_name = "LSP",
 }
 local original_cmp_entries = cmp.get_entries
 local original_cmp_selected = cmp.get_selected_entry
 local original_blink_visible = blink.is_menu_visible
 local original_blink_items = blink.get_items
 local original_blink_index = blink.get_selected_item_idx
-cmp.get_entries = function() return { cmp_entry } end
-cmp.get_selected_entry = function() return cmp_entry end
+local cmp_selected = cmp_entry
+local blink_selected = 1
+cmp.get_entries = function() return { cmp_entry, cmp_entry_second } end
+cmp.get_selected_entry = function() return cmp_selected end
 blink.is_menu_visible = function() return true end
-blink.get_items = function() return { blink_item } end
-blink.get_selected_item_idx = function() return 1 end
+blink.get_items = function() return { blink_item, blink_item_second } end
+blink.get_selected_item_idx = function() return blink_selected end
 
 local calls = {}
 local lifecycle_calls = {}
@@ -85,6 +95,14 @@ truth(vim.wait(500, function()
     and calls[#calls].item.word == "actual_cmp_api"
 end, 10), "real nvim-cmp event reaches adapter")
 truth(calls[#calls].item.source == "nvim_lsp", "real nvim-cmp entry source is preserved")
+local cmp_lifetimes = #lifecycle_calls
+cmp_selected = cmp_entry_second
+truth(vim.wait(500, function()
+  return calls[#calls] and calls[#calls].options
+    and calls[#calls].options.selected == 2
+end, 10), "real nvim-cmp selection change reaches adapter")
+truth(#lifecycle_calls == cmp_lifetimes,
+  "real nvim-cmp selection does not restart accessible lifetime")
 cmp.event:emit("menu_closed", {})
 truth(calls[#calls].type == "close", "real nvim-cmp close event reaches adapter")
 
@@ -96,6 +114,14 @@ truth(vim.wait(500, function()
     and calls[#calls].item.word == "actual_blink_api"
 end, 10), "real blink.cmp module reaches adapter")
 truth(calls[#calls].item.source == "LSP", "real blink.cmp source is preserved")
+local blink_lifetimes = #lifecycle_calls
+blink_selected = 2
+truth(vim.wait(500, function()
+  return calls[#calls] and calls[#calls].options
+    and calls[#calls].options.selected == 2
+end, 10), "real blink.cmp selection change reaches adapter")
+truth(#lifecycle_calls == blink_lifetimes,
+  "real blink.cmp selection does not restart accessible lifetime")
 vim.api.nvim_exec_autocmds("User", { pattern = "BlinkCmpMenuClose" })
 truth(calls[#calls].type == "close", "real blink.cmp close event reaches adapter")
 

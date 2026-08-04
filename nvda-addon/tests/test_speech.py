@@ -1243,6 +1243,21 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertIsNone(selected.sound)
         self.assertEqual("suggestionsClose", closed.sound)
 
+    def test_each_completion_selection_remains_soundless(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan({"type": "menuOpened", "payload": {"itemCount": 3}})
+        for index, label in enumerate(("calculate_tax", "calculate_tip", "calculate_total"), 1):
+            action = planner.plan({"type": "menuSelectionChanged", "payload": {
+                "itemIndex": index,
+                "itemCount": 3,
+                "item": {"label": label, "kind": "function"},
+            }})[0]
+            self.assertIsNone(action.sound)
+        self.assertEqual(
+            "suggestionsClose",
+            planner.plan({"type": "menuClosed", "payload": {}})[0].sound,
+        )
+
     def test_single_completion_omits_redundant_position(self) -> None:
         planner = SpeechPlanner()
         action = planner.plan({"type": "menuSelectionChanged", "payload": {

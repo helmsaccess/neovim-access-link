@@ -21,6 +21,13 @@ equal("Print formatted output", lsp.info, "markup documentation")
 equal("entry:1", lsp.stableId, "stable ID")
 equal(true, adapters.is_selection_key("<C-N>"), "Ctrl+N is a completion selection key")
 equal(false, adapters.is_selection_key("<Tab>"), "unrelated Insert key is not suppressed")
+equal(false, adapters.consume_selection_edit(), "no completion preview edit starts pending")
+adapters.expect_selection_edit()
+equal(true, adapters.consume_selection_edit(), "pending completion preview edit is consumed once")
+equal(false, adapters.consume_selection_edit(), "consumed completion preview edit does not leak")
+adapters.expect_selection_edit()
+vim.wait(20)
+equal(false, adapters.consume_selection_edit(), "unused completion preview edit expires")
 
 local all_kinds = {
   "text", "method", "function", "constructor", "field", "variable", "class",
