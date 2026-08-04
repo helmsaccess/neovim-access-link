@@ -2,7 +2,7 @@
 
 ## Status
 
-Durch die schrittweise Migration angenommen und umgesetzt. Der gemeinsame
+Angenommen und für den Anwendungsschnitt umgesetzt. Der gemeinsame
 Dienst wird inzwischen über einen identitätsgeprüften Registrar gefunden.
 Terminalereignisse, Overlayauswahl und `nextHandler` liegen im
 Windows-Terminal-AppModule. Diese Stufe ist automatisiert sowie praktisch mit
@@ -13,6 +13,12 @@ Terminalbefehle liegen nun ebenfalls unter automatisierter und praktischer
 Abdeckung im Windows-Terminal-AppModule. Der abschließende Praxismeilenstein
 ergab keinen gemeldeten Fehler in den aktuellen lokalen, SSH-, Fokus-,
 Terminal-, Zwischenablage-, Dateimanager- und Reloadvarianten.
+
+Die darüber hinaus beschriebene physisch minimale Kompositionswurzel ist ein
+weiterhin geltendes Ziel, kein vollständig erreichter Ist-Zustand. Die
+konkrete Global-Plugin-Klasse koordiniert derzeit zusätzlich prozessweite
+NVDA-Randabläufe. Diese verbleibende Abweichung und ihre empfohlene
+schrittweise Behandlung dokumentiert [Anhang C](../global-plugin-appmodule-audit-2026-08-04.md).
 
 ## Kontext
 
@@ -29,8 +35,8 @@ liefert dem AppModule nur noch fachliche Fokus- und Suppressionsentscheidungen.
 
 ## Entscheidung
 
-Ein minimales Global Plugin bleibt als prozessweite Kompositions- und
-Lebenszykluswurzel. Es darf ausschließlich:
+Ein minimales Global Plugin bleibt das Ziel als prozessweite Kompositions- und
+Lebenszykluswurzel. Nach vollständiger Umsetzung darf es ausschließlich:
 
 - Einstellungen und Werkzeuge einmalig und symmetrisch registrieren;
 - gemeinsame Dienste aufbauen, verfügbar machen und geordnet beenden.
@@ -58,12 +64,14 @@ symmetrisch entfernt. AppModules dürfen keine ungeprüfte alte Dienstinstanz
 weiterverwenden. Die aktuelle Umsetzung veröffentlicht die vollständig
 initialisierte Instanz über einen identitätsgeprüften Registrar und entfernt
 sie vor dem übrigen Abbau.
-Der abgeschlossene Strukturaudit bestätigt außerdem, dass ausgelagerte
+Der frühere Strukturaudit bestätigt außerdem, dass ausgelagerte
 Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry- und
 Terminaldienstmodule nicht von der `GlobalPlugin`-Klasse abhängen. Die
-Kompositionswurzel behält direkte Sichten auf Gate und Instanzmanager, weil
-diese ihre häufig verwendeten Abhängigkeiten und keine eigenen
-Zustandseigentümer sind.
+Klasse bleibt aktuell dennoch ein umfangreicher prozessweiter
+NVDA-Randcontroller. Das ändert weder die Zuständigkeit des AppModules noch die
+alleinigen fachlichen Zustandseigentümer; eine weitere Zerlegung soll
+gemeinsame Abläufe nur bei klarem Besitz- und Testnutzen in gewöhnliche Dienste
+verschieben.
 
 ## Begrenzter prozessweiter Gestenbeobachter
 

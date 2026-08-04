@@ -311,6 +311,12 @@ Important cases are:
   runtime, UI, focus, claim, editor, Braille, registry, and terminal-service
   modules.
 
+These structure tests prove the application boundary and dependency
+direction. They do not prove a physically minimal Global Plugin class or a
+small `TerminalIntegrationService` method surface. The dated
+[structural re-audit in Appendix C](global-plugin-appmodule-audit-2026-08-04.md)
+assesses those properties separately, and they evolve only for domain benefit.
+
 Automatic parameter hints deliberately have independent test layers.
 `call_context_spec.lua` covers Normal/Insert rules, deep and multiline
 nesting, strings, comments, empty and incomplete calls, UTF-8, control

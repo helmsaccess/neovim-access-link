@@ -331,6 +331,12 @@ Besonders wichtig sind:
   ausgelagerten Runtime-, UI-, Fokus-, Claim-, Editor-, Braille-, Registry-
   und Terminaldienstmodulen.
 
+Diese Strukturtests belegen den Anwendungsschnitt und die Richtung der
+Abhängigkeiten. Sie belegen weder eine physisch minimale Global-Plugin-Klasse
+noch eine kleine Methodenoberfläche des Terminaldienstes. Diese Eigenschaften
+bewertet der datierte [Strukturaudit in Anhang C](global-plugin-appmodule-audit-2026-08-04.md)
+getrennt; sie werden nur bei fachlichem Nutzen weiterentwickelt.
+
 Das automatische Parameterfeature besitzt bewusst mehrere unabhängige
 Schichten. `call_context_spec.lua` prüft Normal-/Insert-Regeln,
 mehrstufige und mehrzeilige Verschachtelung, Strings, Kommentare, leere und

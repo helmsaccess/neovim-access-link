@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted and implemented through the incremental migration. The shared
+Accepted and implemented for the application boundary. The shared
 service is now located through an identity-checked registrar. Terminal events,
 overlay selection, and `nextHandler` now reside in the Windows Terminal
 AppModule. This stage is confirmed by automated and practical tests with local
@@ -12,6 +12,12 @@ Braille display. The Windows Terminal AppModule now also owns
 the configurable terminal commands under automated and practical coverage.
 The final practical milestone reported no error across the current local,
 SSH, focus, terminal, clipboard, file-manager, and reload variants.
+
+The physically minimal composition root described beyond that boundary
+remains a target, not a fully achieved current state. The concrete Global
+Plugin class currently also coordinates process-wide NVDA-edge workflows.
+[Appendix C](../global-plugin-appmodule-audit-2026-08-04.md) records this
+remaining deviation and its recommended staged treatment.
 
 ## Context
 
@@ -28,8 +34,8 @@ focus and suppression decisions to the AppModule.
 
 ## Decision
 
-A minimal Global Plugin remains as the process-wide composition and lifetime
-root. It may only:
+A minimal Global Plugin remains the target process-wide composition and
+lifetime root. Once fully implemented, it may only:
 
 - register settings and tools once and remove them symmetrically;
 - construct, expose, and shut down shared services in an orderly manner.
@@ -56,11 +62,13 @@ connections are stopped, and UI registrations are removed symmetrically.
 AppModules must not continue using an unverified stale service instance. The
 current implementation publishes the fully initialized instance through an
 identity-checked registrar and removes it before the remaining teardown.
-The completed structural audit also confirms that the extracted runtime, UI,
+The earlier structural audit also confirms that the extracted runtime, UI,
 focus, claim, editor, Braille, registry, and terminal-service modules do not
-depend on the `GlobalPlugin` class. The composition root retains direct gate
-and instance-manager views because they are its frequently used dependencies,
-not independent state owners.
+depend on the `GlobalPlugin` class. The class nevertheless remains a sizeable
+process-wide NVDA-edge controller today. This changes neither AppModule
+ownership nor the sole domain-state owners; further decomposition should move
+shared workflows into ordinary services only where ownership and testability
+clearly improve.
 
 ## Bounded process-wide gesture observer
 

@@ -105,3 +105,6 @@ aktuelle Architektur noch Status, Plan oder Code.
 - [Anhang B: Codeanalyse des abgeschlossenen Featurestands gegenüber `v0.94.2` vom 21. Juli 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) –
   quantitative und qualitative Abschlussbewertung von Testbarkeit,
   Wartbarkeit, Robustheit und zusätzlicher Strukturkomplexität.
+- [Anhang C: Reaudit von GlobalPlugin, Windows-Terminal-AppModule und gemeinsamen Diensten vom 4. August 2026](global-plugin-appmodule-audit-2026-08-04.md) –
+  aktueller Abgleich von Anwendungsscope, prozessweiten Eigentümern,
+  Dienstoberfläche und weiterhin offener Minimalrolle der Kompositionswurzel.

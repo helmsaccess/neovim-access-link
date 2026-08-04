@@ -99,3 +99,6 @@ and replace neither current architecture, status, plan, nor source code.
 - [Appendix B: Analysis of the completed feature state against `v0.94.2`, July 21, 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) —
   a quantitative and qualitative final assessment of testability,
   maintainability, robustness, and added structural complexity.
+- [Appendix C: Re-audit of the Global Plugin, Windows Terminal AppModule, and shared services, August 4, 2026](global-plugin-appmodule-audit-2026-08-04.md) —
+  a current review of application scope, process-wide owners, service surface,
+  and the composition root's still-incomplete minimal role.

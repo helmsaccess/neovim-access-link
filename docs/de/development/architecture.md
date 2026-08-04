@@ -219,7 +219,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `ConnectionCoordinator` | Instanzmanager, aktiver Client, Gate, Authentifizierung, Zuordnungen, korrelierte Anfragen sowie Zuordnung und Lebensdauer getrennter Laufzeitzustände | fachliche Mutation des Editorzustands, NVDA-Ereignisse, `nextHandler`, Dialoge oder konkrete NVDA-Ausgabe |
 | `service_registry.py` / `ServiceRegistrar` | identitätsgeprüfte prozessweite Veröffentlichung des vollständig initialisierten `TerminalIntegrationService` | Global-Plugin-Objekt, Lebenszyklusentscheidung oder Terminalereignisse |
 | `AddonRuntime` | späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder freie Dienstsuche |
-| `TerminalIntegrationService` | schmaler öffentlicher Vertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
+| `TerminalIntegrationService` | gemeinsamer, ausdrücklich begrenzter Integrationsvertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus, Entwicklerkontexte und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
 | `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-, Terminal- und Explorationspläne mit Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
@@ -229,12 +229,21 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
 | `nvda_braille.py` | NVDA-Brailleregion, Terminaloverlay, Übersetzung von Braillepositionen und Abruf des veröffentlichten Terminaldienstes | Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung |
-| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung gemeinsamer Dienste, prozessweite Registrierung und Aufruf von `AddonRuntime.close()` | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, Implementierung von Einstellungen, Werkzeugen, Präsentationsausgabe oder Abbaureihenfolge |
+| Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Veröffentlichung gemeinsamer Dienste sowie die heutige Koordination prozessweiter NVDA-Randabläufe für Verbindungen, Claims, Zwischenablage, Netzwerkereignisse, Dialoge und Präsentationsübergänge | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, konfigurierbare Skriptmetadaten oder eine zweite Kopie fachlicher Laufzeitzustände |
 | `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, kontextbezogene Gesten des Sprachexplorationsmodus und deren physischer Tastenlebenszyklus, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl, eigene Gestenauflösung oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
+
+Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
+Overlayauswahl, `nextHandler`, konfigurierbare NVDA-Skripte und Eingabebeobachter
+liegen im Windows-Terminal-AppModule. Die konkrete Global-Plugin-Klasse ist
+gegenwärtig jedoch nicht nur eine minimale Kompositionswurzel, sondern zugleich
+ein prozessweiter NVDA-Randcontroller. Gemeinsam genutzte Abläufe würden bei
+einer weiteren Zerlegung in gewöhnliche prozessweite Controller oder Dienste
+wandern, nicht in das AppModule. Eine aktuelle Bestandsaufnahme und die
+empfohlene schrittweise Weiterentwicklung stehen in [Anhang C](global-plugin-appmodule-audit-2026-08-04.md).
 
 `AddonRuntime.start()` registriert zuerst den Profilcallback, danach
 Einstellungen und Werkzeuge und veröffentlicht erst zuletzt den
@@ -296,6 +305,12 @@ aufgelöster Methodennamen; Fokusentscheidungen und F12-Autorisierungen sind
 unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
+
+„Begrenzt“ bezeichnet hier die Vertrauens- und Besitzgrenze, nicht eine
+besonders kleine Methodenoberfläche: Der konkrete Dienst bündelt heute die
+vom AppModule, vom Braillemodul und von eingehenden Entwicklerkontexten
+benötigten Operationen. Verbraucherbezogene Teilverträge sind eine mögliche
+spätere Vereinfachung, wenn sie Abhängigkeiten und Tests tatsächlich schärfen.
 
 Die prozessweite Dienstinstanz liegt in der neutralen `service_registry.py`.
 Das Global Plugin veröffentlicht und entfernt den Dienst über denselben

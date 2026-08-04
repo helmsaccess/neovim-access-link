@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: July 28, 2026.
+Status date: August 4, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -32,18 +32,28 @@ Ongoing:
 
 ## 2. Change architecture boundaries only for demonstrated benefit
 
-The slimming decided in
+The application boundary decided in
 [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) is implemented and
 has been exercised practically across multiple windows, tabs, and panes with
-local and remote sessions. `current-status.md` describes the current design;
-the changelog and Appendices A and B preserve its development and metrics.
+local and remote sessions. The re-audit in
+[Appendix C](global-plugin-appmodule-audit-2026-08-04.md) confirms that scope
+but also records the sizeable process-wide NVDA-edge coordination still in
+the concrete Global Plugin class and the broad public terminal service.
+`current-status.md` describes the current design; the changelog and
+Appendices A through C preserve its development and metrics.
 
-No further split is planned merely because of file size or LOC. Reopen this
-work only if it creates one unambiguous state owner, a smaller public
-contract, a failure path testable without NVDA, or a demonstrated robustness
-gain. AppModule event ownership, fail-open behavior, F12 isolation,
+No further split is planned merely because of file size or LOC. Take this
+work only in small domain slices when it creates one unambiguous state owner,
+a smaller public contract, a failure path testable without NVDA, or a
+demonstrated robustness gain. AppModule event ownership, fail-open behavior,
+F12 isolation,
 asynchronous transport, and separation of windows, tabs, and panes remain
 mandatory invariants.
+
+Evaluate connection/claim workflows, NVDA event delivery, context
+presentation, and consumer-specific service contracts first. Extract only
+with explicit invariants and regression tests; do not copy shared
+process-wide workflows into the AppModule.
 
 ## 3. Broaden practical isolation coverage
 

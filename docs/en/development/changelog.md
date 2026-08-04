@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Clarifies the developer documentation after a structural re-audit: the
+  Windows Terminal AppModule boundary is implemented, while the concrete
+  Global Plugin class still coordinates process-wide NVDA-edge workflows and
+  is not yet a purely minimal composition root. The new Appendix C records
+  findings, limits, and the recommended staged evolution; runtime behavior is
+  unchanged.
 - Automatically speaks the LSP-server-selected active parameter of the
   innermost function call in Insert mode. A bounded Tree-sitter/lexer
   resolver, 120 ms debounce, LSP trigger/retrigger context, and exact

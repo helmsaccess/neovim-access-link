@@ -239,6 +239,17 @@ Die vollständigen Plattformgrenzen stehen in `compatibility.md`.
   gemeldeten Fehler abgeschlossen. Die spätere praktische Prüfung des
   `z=`-Vorschlagspfads mit einer physischen Braillezeile war erfolgreich; eine
   breitere Braillematrix bleibt offen.
+- Ein erneuter Strukturaudit vom 4. August 2026 bestätigt den erreichten
+  Anwendungsschnitt: Ereigniseinstiege, Overlayauswahl, `nextHandler`,
+  konfigurierbare Skriptmetadaten und Eingabebeobachter liegen weiterhin im
+  Windows-Terminal-AppModule; ausgelagerte Dienste hängen nicht von der
+  `GlobalPlugin`-Klasse ab. Er präzisiert zugleich, dass die konkrete Klasse
+  heute noch ein umfangreicher prozessweiter NVDA-Randcontroller und keine
+  rein minimale Kompositionswurzel ist. Der öffentliche Terminaldienst ist
+  hinsichtlich Vertrauen und Besitz begrenzt, besitzt aber eine breite
+  Methodenoberfläche. Weitere Zerlegung bleibt deshalb eine schrittweise
+  Option mit konkretem Besitz- oder Testnutzen, keine Verschiebung gemeinsamer
+  Abläufe in das AppModule und kein LOC-Selbstzweck. Siehe [Anhang C](global-plugin-appmodule-audit-2026-08-04.md).
 
 ### Editorausgabe
 

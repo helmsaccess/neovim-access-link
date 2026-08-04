@@ -127,13 +127,17 @@ Three roles are enough for the basic model:
 - The shared add-on runtime exists once per NVDA process. It assembles
   settings, connections, and the other supporting areas and tears them down in
   a defined order.
-- Small separate services each perform one job, such as managing connections,
-  confirming focus, updating editor state, or delivering output to NVDA.
+- Separate services own clearly named state and responsibilities, such as
+  managing connections, confirming focus, updating editor state, or
+  delivering output to NVDA.
 
-The Global Plugin is therefore only the process-wide entry point for the
-shared runtime, not a general handler for every terminal event. This division
-keeps Windows Terminal events, networking, editor state, and NVDA output
-separate and makes the parts independently testable.
+The Global Plugin is therefore not the general handler for terminal events. It
+starts the shared runtime and, in the current implementation, also coordinates
+several process-wide workflows at the NVDA edge. Domain state remains in the
+named services; the longer-term target of a purely minimal composition root is
+not yet fully achieved. This division keeps Windows Terminal events,
+networking, editor state, and NVDA output separate and makes the parts
+independently testable.
 
 ## What “fail open” means
 

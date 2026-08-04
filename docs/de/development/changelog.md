@@ -8,6 +8,12 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Präzisiert die Entwicklerdokumentation nach einem erneuten Strukturaudit:
+  Der Windows-Terminal-AppModule-Schnitt ist umgesetzt, während die konkrete
+  Global-Plugin-Klasse weiterhin prozessweite NVDA-Randabläufe koordiniert und
+  noch keine rein minimale Kompositionswurzel ist. Der neue Anhang C hält
+  Befunde, Grenzen und die empfohlene schrittweise Weiterentwicklung fest;
+  das Laufzeitverhalten ändert sich dadurch nicht.
 - Spricht im Einfügemodus automatisch den vom LSP-Server aktiven Parameter
   des innersten Funktionsaufrufs. Ein begrenzter Tree-sitter-/Lexer-Resolver,
   120-ms-Bündelung, LSP-Trigger-/Retriggerkontext und exakte

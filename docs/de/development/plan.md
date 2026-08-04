@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 28. Juli 2026.
+Stand: 4. August 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -33,18 +33,28 @@ Laufend:
 
 ## 2. Architekturgrenzen nur bei belegtem Nutzen weiter verändern
 
-Die in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
-Verschlankung ist umgesetzt und praktisch über mehrere Fenster, Tabs und Panes
-mit lokalen und entfernten Sitzungen geprüft. Der aktuelle Aufbau steht in
-`current-status.md`; die Entwicklung und ihre Messwerte stehen im Changelog
-sowie in den Anhängen A und B.
+Der in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
+Anwendungsschnitt ist umgesetzt und praktisch über mehrere Fenster, Tabs und
+Panes mit lokalen und entfernten Sitzungen geprüft. Der erneute Audit in
+[Anhang C](global-plugin-appmodule-audit-2026-08-04.md) bestätigt diesen
+Scope, zeigt aber auch die weiterhin umfangreiche prozessweite
+NVDA-Randkoordination in der konkreten Global-Plugin-Klasse und den breiten
+öffentlichen Terminaldienst. Der aktuelle Aufbau steht in
+`current-status.md`; Entwicklung und Messwerte stehen im Changelog sowie in
+den Anhängen A bis C.
 
 Eine weitere Aufteilung ist nicht allein wegen Dateigröße oder LOC geplant.
-Sie wird nur wieder aufgenommen, wenn sie einen eindeutigen Zustandsbesitzer,
-einen kleineren öffentlichen Vertrag, einen ohne NVDA prüfbaren Fehlerpfad
-oder einen belegbaren Robustheitsgewinn schafft. AppModule-Ereignisbesitz,
+Sie wird in kleinen fachlichen Schnitten nur aufgenommen, wenn sie einen
+eindeutigen Zustandsbesitzer, einen kleineren öffentlichen Vertrag, einen ohne
+NVDA prüfbaren Fehlerpfad oder einen belegbaren Robustheitsgewinn schafft.
+AppModule-Ereignisbesitz,
 Fail-open, F12-Isolation, asynchroner Transport sowie Fenster-, Tab- und
 Pane-Trennung bleiben dabei verbindliche Invarianten.
+
+Als Kandidaten werden zuerst Verbindungs-/Claimabläufe, NVDA-Ereignisausgabe,
+Kontextpräsentation und verbraucherspezifische Dienstverträge bewertet. Eine
+Auslagerung erfolgt nur mit klaren Invarianten und Regressionstests; gemeinsam
+genutzte prozessweite Abläufe werden nicht in das AppModule kopiert.
 
 ## 3. Praktische Abschottung verbreitern
 

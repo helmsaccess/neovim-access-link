@@ -215,6 +215,17 @@ See `compatibility.md` for complete platform boundaries.
   Automated V2-6 work and practical milestone 2 are complete without a newly
   reported error. The later practical `z=` suggestion-path check with one
   physical Braille display succeeded; a broader Braille matrix remains open.
+- A structural re-audit dated August 4, 2026 confirms the achieved
+  application boundary: event entry points, overlay selection, `nextHandler`,
+  configurable script metadata, and input observers remain in the Windows
+  Terminal AppModule, and extracted services do not depend on the
+  `GlobalPlugin` class. It also clarifies that the concrete class is still a
+  sizeable process-wide NVDA-edge controller rather than a purely minimal
+  composition root. The public terminal service is bounded in trust and
+  ownership but has a broad method surface. Further decomposition therefore
+  remains a staged option with specific ownership or testing benefit, not a
+  move of shared workflows into the AppModule or a LOC goal. See
+  [Appendix C](global-plugin-appmodule-audit-2026-08-04.md).
 
 ### Editor output
 
