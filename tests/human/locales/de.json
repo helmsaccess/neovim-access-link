@@ -139,10 +139,10 @@
 
   "plan.cDiagnostics.title": "C-Diagnose mit Clang-Tidy",
   "plan.cDiagnostics.description": "Kurzer Kompatibilitätscheck, ob eine echte C-Diagnose aus nvim-lint unabhängig von Python verständlich präsentiert wird.",
-  "plan.cDiagnostics.context": "Du bist im Test-Neovim im ursprünglichen Windows-Terminal-Tab. diagnostics.c ist geöffnet und der Cursor steht auf missing. Drücke einmal Escape und verschiebe den Cursor zunächst nicht.",
+  "plan.cDiagnostics.context": "Du bist im Test-Neovim im ursprünglichen Windows-Terminal-Tab. diagnostics.c ist geöffnet und der Cursor steht auf missing_first. Drücke einmal Escape und verschiebe den Cursor zunächst nicht.",
   "plan.cDiagnostics.presentation.title": "Clang-Tidy-Diagnose wahrnehmen",
-  "plan.cDiagnostics.presentation.action": "Nach der F12-Zuordnung F6 drücken und auf „Diagnosen bereit“ warten; F6 setzt den Cursor dabei auf die echte Clang-Tidy-Testdiagnose. Dann F7 drücken, anschließend einmal F9. Bei verfügbarer Audioausgabe auf den Fehlerklang achten. Danach Escape und F10 drücken.",
-  "plan.cDiagnostics.presentation.expected": "F7 und F9 geben die echte Clang-Tidy-Fehlermeldung zu missing verständlich und jeweils genau einmal aus; Quelle und Position sind sinnvoll. Bei Audio erklingt pro Abfrage genau ein Fehlerklang ohne störende Verzögerung.",
+  "plan.cDiagnostics.presentation.action": "Nach der F12-Zuordnung zuerst F2 drücken: Die erneut ausgegebene Aufgabe muss mit Test-ID D3 beginnen. Dann F6 drücken und auf „Diagnosen bereit“ warten; F6 setzt den Cursor auf die erste echte Clang-Tidy-Testdiagnose. F7 drücken, danach F9 für die zweite Diagnose und noch einmal F9 zum Zurückspringen auf die erste. Abschließend einmal F8 drücken, um rückwärts wieder die zweite Diagnose zu erreichen. Bei verfügbarer Audioausgabe auf den Fehlerklang bei jeder Diagnose achten. Danach Escape und F10 drücken.",
+  "plan.cDiagnostics.presentation.expected": "F2 nennt eindeutig D3. F7 gibt missing_first als „1 von 2“ aus. F9 erreicht missing_second als „2 von 2“ und danach wieder „1 von 2“; F8 gelangt rückwärts wieder zu „2 von 2“. Jede echte Clang-Tidy-Fehlermeldung wird verständlich und pro Tastendruck genau einmal ausgegeben; Quelle und Position sind sinnvoll. Bei Audio erklingt pro Diagnose genau ein Fehlerklang ohne störende Verzögerung.",
 
   "plan.markdownDiagnostics.title": "Markdown-Diagnose mit markdownlint",
   "plan.markdownDiagnostics.description": "Kurzer Kompatibilitätscheck, ob eine echte Markdown-Warnung aus nvim-lint verständlich präsentiert wird.",

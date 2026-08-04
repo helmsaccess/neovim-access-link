@@ -99,15 +99,25 @@ ready, count, position_count = evaluate("c-diagnostics", {
     severity = severity.ERROR,
     lnum = 1,
   },
+  {
+    source = "clang-tidy",
+    code = "clang-diagnostic-error",
+    severity = severity.ERROR,
+    lnum = 2,
+  },
   { source = "clangd", code = "clang-diagnostic-error", severity = severity.ERROR, lnum = 1 },
 })
 equal(ready, true, "Clang-Tidy fixture diagnostic is ready")
-equal(count, 1, "only the expected Clang-Tidy diagnostic is counted")
+equal(count, 2, "both expected Clang-Tidy diagnostics are counted")
 equal(position_count, 1, "Clang-Tidy diagnostic is at the test position")
 primary = readiness.primary("c-diagnostics", {
   {
     source = "clang-tidy", code = "clang-diagnostic-error",
     severity = severity.ERROR, lnum = 1, col = 9,
+  },
+  {
+    source = "clang-tidy", code = "clang-diagnostic-error",
+    severity = severity.ERROR, lnum = 2, col = 17,
   },
 }, severity)
 equal(primary.col, 9, "F6 uses the real Clang-Tidy diagnostic column")
@@ -119,9 +129,20 @@ ready, count, position_count = evaluate("c-diagnostics", {
     lnum = 0,
   },
 })
-equal(ready, false, "Clang-Tidy diagnostic on another line is not ready")
+equal(ready, false, "one Clang-Tidy diagnostic is insufficient")
 equal(count, 1, "matching Clang-Tidy diagnostic remains observable")
 equal(position_count, 0, "wrong Clang-Tidy position is not counted")
+ready = evaluate("c-diagnostics", {
+  {
+    source = "clang-tidy", code = "clang-diagnostic-error",
+    severity = severity.ERROR, lnum = 1,
+  },
+  {
+    source = "clang-tidy", code = "clang-diagnostic-error",
+    severity = severity.ERROR, lnum = 1,
+  },
+})
+equal(ready, false, "two Clang-Tidy diagnostics on one fixture line are insufficient")
 
 ready, count, position_count = evaluate("markdown-diagnostics", {
   {

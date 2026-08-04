@@ -139,10 +139,10 @@
 
   "plan.cDiagnostics.title": "C diagnostic with Clang-Tidy",
   "plan.cDiagnostics.description": "A short compatibility check that a real C diagnostic from nvim-lint is presented clearly, independently of Python.",
-  "plan.cDiagnostics.context": "You are in the test Neovim in the original Windows Terminal tab. diagnostics.c is open and the cursor is on missing. Press Escape once and do not move the cursor yet.",
+  "plan.cDiagnostics.context": "You are in the test Neovim in the original Windows Terminal tab. diagnostics.c is open and the cursor is on missing_first. Press Escape once and do not move the cursor yet.",
   "plan.cDiagnostics.presentation.title": "Perceive a Clang-Tidy diagnostic",
-  "plan.cDiagnostics.presentation.action": "After claiming with F12, press F6 and wait for “Diagnostics ready”; F6 places the cursor on the real Clang-Tidy test diagnostic. Then press F7, followed by F9 once. When audio is available, listen for the error sound. Then press Escape and F10.",
-  "plan.cDiagnostics.presentation.expected": "F7 and F9 each report the real Clang-Tidy error for missing clearly and exactly once; its source and position are meaningful. With audio, each query produces exactly one error sound without disruptive delay.",
+  "plan.cDiagnostics.presentation.action": "After claiming with F12, first press F2: the repeated task must start with test ID D3. Then press F6 and wait for “Diagnostics ready”; F6 places the cursor on the first real Clang-Tidy test diagnostic. Press F7, then F9 for the second diagnostic, and F9 once more to wrap to the first. Finally press F8 once to move backwards to the second diagnostic again. When audio is available, listen for the error sound at every diagnostic. Then press Escape and F10.",
+  "plan.cDiagnostics.presentation.expected": "F2 clearly identifies D3. F7 reports missing_first as “1 of 2”. F9 reaches missing_second as “2 of 2” and then “1 of 2” again; F8 moves backwards to “2 of 2”. Each real Clang-Tidy error is reported clearly and exactly once per key press; its source and position are meaningful. With audio, each diagnostic produces exactly one error sound without disruptive delay.",
 
   "plan.markdownDiagnostics.title": "Markdown diagnostic with markdownlint",
   "plan.markdownDiagnostics.description": "A short compatibility check that a real Markdown warning from nvim-lint is presented clearly.",

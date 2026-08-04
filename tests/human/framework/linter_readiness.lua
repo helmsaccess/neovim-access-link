@@ -106,16 +106,22 @@ function M.evaluate(profile, diagnostics, severity)
 
   if profile == "c-diagnostics" then
     local count = 0
-    local at_test_position = 0
+    local at_first_test_position = 0
+    local at_second_test_position = 0
     for _, diagnostic in ipairs(diagnostics) do
       if diagnostic.source == "clang-tidy"
           and text(diagnostic.code) == "clang-diagnostic-error"
           and diagnostic.severity == severity.ERROR then
         count = count + 1
-        if diagnostic.lnum == 1 then at_test_position = at_test_position + 1 end
+        if diagnostic.lnum == 1 then
+          at_first_test_position = at_first_test_position + 1
+        elseif diagnostic.lnum == 2 then
+          at_second_test_position = at_second_test_position + 1
+        end
       end
     end
-    return count >= 1 and at_test_position >= 1, count, at_test_position
+    return count >= 2 and at_first_test_position >= 1 and at_second_test_position >= 1,
+      count, at_first_test_position
   end
 
   if profile == "markdown-diagnostics" then

@@ -320,7 +320,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		for candidate in ("calculate_total", "calculate_tax", "calculate_tip"):
 			self.assertIn(f"def {candidate}(", lsp_fixture)
 		self.assertEqual("from os import path, sep", diagnostic_fixture.splitlines()[0])
-		self.assertIn("return missing;", (HUMAN_ROOT / "fixtures" / "diagnostics.c").read_text())
+		c_fixture = (HUMAN_ROOT / "fixtures" / "diagnostics.c").read_text(encoding="utf-8")
+		self.assertIn("missing_first", c_fixture)
+		self.assertIn("missing_second", c_fixture)
 		self.assertEqual(
 			2,
 			(HUMAN_ROOT / "fixtures" / "diagnostics.md").read_text().count("# "),
@@ -335,12 +337,17 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				]
 				diagnostic_expectation = locales[language]["plan.diagnostics.held.expected"]
 				earcon_expectation = locales[language]["plan.diagnostics.navigation.expected"]
+				c_diagnostic_expectation = locales[language][
+					"plan.cDiagnostics.presentation.expected"
+				]
 				for value in ("price", "quantity", "discount", "j/k", "h/l"):
 					self.assertIn(value, parameter_expectation)
 				for value in ("path", "sep", "j/k"):
 					self.assertIn(value, diagnostic_expectation)
 				for value in ("price", "quantity", "discount", "Braille"):
 					self.assertIn(value, automatic_expectation)
+				for value in ("D3", "missing_first", "missing_second", "1", "2"):
+					self.assertIn(value, c_diagnostic_expectation)
 				for value in ("five", "fünf"):
 					if value in earcon_expectation.lower():
 						break

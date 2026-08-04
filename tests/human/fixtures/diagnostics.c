@@ -1,3 +1,4 @@
 int main(void) {
-  return missing;
+  int first = missing_first;
+  return first + missing_second;
 }

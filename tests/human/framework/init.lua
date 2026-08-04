@@ -22,6 +22,7 @@ local human_messages = language == "de" and {
   callable_close = "Cursor auf schließender Klammer.",
   callable_unavailable = "Diese Testhilfe ist nur in der Python-Funktionsdatei verfügbar.",
   insertion_unavailable = "Diese Aufgabe benötigt keine vorbereitete Eingabestelle.",
+  f5_unavailable = "F5 hat in dieser Aufgabe keine Funktion.",
 } or {
   test_id = "Test ID %s.",
   diagnostics_waiting = "Waiting for %s diagnostics.",
@@ -32,6 +33,7 @@ local human_messages = language == "de" and {
   callable_close = "Cursor on closing parenthesis.",
   callable_unavailable = "This test helper is available only in the Python callable fixture.",
   insertion_unavailable = "This task does not require a prepared insertion position.",
+  f5_unavailable = "F5 has no action in this task.",
 }
 local valid_profiles = {
   setup = true,
@@ -249,6 +251,10 @@ if profile == "diagnostics" then
     vim.api.nvim_win_set_cursor(0, { 2, 0 })
     access_link_command("NvimNvdaDiagnosticCurrent")
   end, { desc = "Access Link human test: query a clean diagnostic position" })
+else
+  vim.keymap.set("n", "<F5>", function()
+    vim.notify(human_messages.f5_unavailable)
+  end, { desc = "Access Link human test: no F5 action in this task" })
 end
 vim.keymap.set("n", "<F6>", function()
   if run_linter_with_feedback then

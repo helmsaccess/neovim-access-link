@@ -74,6 +74,42 @@ for _, case in ipairs({
     case.id .. " prepares the insertion point described by its task")
 end
 
+vim.cmd.stopinsert()
+vim.api.nvim_buf_set_lines(0, 0, -1, true, {
+  "int main(void) {",
+  "  int first = missing_first;",
+  "  return first + missing_second;",
+  "}",
+})
+vim.bo.filetype = "c"
+vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", "c-diagnostics")
+vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "clang-tidy-presentation")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "D3")
+vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
+dofile(root .. "/tests/human/framework/init.lua")
+for _, key in ipairs({ "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>",
+    "<F8>", "<F9>", "<F10>" }) do
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  truthy(type(mapping) == "table" and mapping.desc ~= nil,
+    "D3 task mapping missing for " .. key)
+end
+local d3_f5 = vim.fn.maparg("<F5>", "n", false, true)
+truthy(type(d3_f5.callback) == "function",
+  "D3 gives an explicit response for its unused F5 key")
+notification = nil
+vim.notify = function(message) notification = message end
+d3_f5.callback()
+vim.notify = original_notify
+truthy(notification == "F5 has no action in this task.",
+  "D3 does not leave F5 as a silent dead key")
+local d3_f2 = vim.fn.maparg("<F2>", "n", false, true)
+notification = nil
+vim.notify = function(message) notification = message end
+d3_f2.callback()
+vim.notify = original_notify
+truthy(type(notification) == "string" and notification:find("Test ID D3.", 1, true) == 1,
+  "D3 repeats its stable ID through F2")
+
 local parentheses = dofile(root .. "/tests/human/framework/completion_parentheses.lua")
 local function_item = {
   label = "calculate_total",
