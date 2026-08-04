@@ -295,6 +295,8 @@ if uses_linter then
     lint.linters_by_ft = { c = { linter_name } }
     lint.linters.clangtidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
       "ACCESS_LINK_HUMAN_CLANG_TIDY is required")
+    lint.linters.clangtidy.parser = linter_readiness.clang_tidy_parser(
+      require("lint.parser"), vim.diagnostic.severity)
   else
     linter_name = "markdownlint-cli2"
     linter_display_name = "markdownlint"

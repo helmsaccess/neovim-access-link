@@ -2,6 +2,34 @@
 
 local M = {}
 
+-- nvim-lint's upstream clangtidy parser currently stops the filename at the
+-- first colon.  That drops every diagnostic whose absolute Windows path
+-- starts with a drive letter (for example X:\\fixture.c).  Keep the provider
+-- output contract here so the human-test profile behaves the same for local,
+-- mapped-drive, and UNC worktrees.  The profile invokes Clang-Tidy for only
+-- the current buffer, so the filename is deliberately not exposed as the
+-- parser's special `file` group: older nvim-lint releases also mistake UNC
+-- paths for relative paths during their buffer-path comparison.
+local clang_tidy_pattern = [=[(.+):(%d+):(%d+): (%w+): ([^[]+) %[(.*)%]]=]
+
+function M.clang_tidy_parser(parser, severity)
+  assert(type(parser) == "table" and type(parser.from_pattern) == "function",
+    "lint parser module is required")
+  assert(type(severity) == "table", "severity must be a table")
+  return parser.from_pattern(
+    clang_tidy_pattern,
+    { "_file", "lnum", "col", "severity", "message", "code" },
+    {
+      error = severity.ERROR,
+      warning = severity.WARN,
+      information = severity.INFO,
+      hint = severity.HINT,
+      note = severity.HINT,
+    },
+    { source = "clang-tidy" }
+  )
+end
+
 local function text(value)
   return tostring(value or "")
 end

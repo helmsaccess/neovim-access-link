@@ -26,7 +26,11 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
   Aufgaben-ID. Die optionale Kompatibilitätssuite ergänzt je einen kleinen
   Realitätscheck für C mit Clang-Tidy und Markdown mit markdownlint. Die exakt
   festgelegten Werkzeuge werden nur bei Auswahl eines passenden Tests
-  installiert und vorhandene Versionen wiederverwendet.
+  installiert und vorhandene Versionen wiederverwendet. Ein eigener
+  Clang-Tidy-Parser erhält dabei Windows-Laufwerks- und UNC-Pfade; der
+  C-Kompatibilitätstest verliert echte Diagnosen daher nicht mehr am
+  Doppelpunkt des Laufwerksbuchstabens oder an der UNC-Pfaderkennung älterer
+  `nvim-lint`-Versionen.
 - Behebt die SSH-Sitzungserkennung, wenn interaktives Neovim und der spätere
   nichtinteraktive Bridge-Aufruf unterschiedliche Laufzeitumgebungen sehen.
   Die Bridge durchsucht nun das konfigurierte Laufzeitverzeichnis, das sichere

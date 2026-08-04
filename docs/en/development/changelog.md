@@ -19,7 +19,10 @@
   task ID. The optional compatibility suite adds one small reality check each
   for C with Clang-Tidy and Markdown with markdownlint. Exactly pinned tools
   are installed only when a matching test is selected, and existing versions
-  are reused.
+  are reused. A dedicated Clang-Tidy parser preserves Windows drive and UNC
+  paths, so the C compatibility test no longer loses real diagnostics at a
+  drive-letter colon or through older `nvim-lint` versions' UNC-path
+  detection.
 - Fixes SSH session discovery when interactive Neovim and the bridge's later
   non-interactive command observe different runtime environments. The bridge
   now scans the configured runtime directory, the safe user-owned

@@ -231,6 +231,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn("first_line_warnings >= 2", readiness)
 		self.assertIn('text(diagnostic.code) == "F821"', readiness)
 		self.assertIn('linter_name = "clangtidy"', configuration)
+		self.assertIn("linter_readiness.clang_tidy_parser(", configuration)
+		self.assertIn("local clang_tidy_pattern", readiness)
 		self.assertIn('text(diagnostic.code) == "clang-diagnostic-error"', readiness)
 		self.assertIn('linter_name = "markdownlint-cli2"', configuration)
 		self.assertIn('text(diagnostic.message):find("MD025"', readiness)
