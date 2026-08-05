@@ -3,80 +3,104 @@
 ## Zentrale Metadaten
 
 `buildVars.py` ist die einzige gepflegte Quelle für Produktidentität und
-Versionsdaten. Die Datei folgt bewusst dem Namens- und Strukturmuster der
-offiziellen NVDA-Add-on-Vorlage.
+Versionsdaten. Sie enthält:
 
-Enthalten sind:
-
-- interner NVDA-Identifier `NeovimAccessLink`,
-- sichtbarer Produktname „Neovim Access Link“,
-- Autor Emanuel Helms `<emanuel@helmsaccess.de>`,
-- bewusst festgelegte Produktversion,
-- eine pro Featurebranch verwaltete Entwicklungsbuildnummer,
-- bewusst festgelegter Releasekanal,
+- internen Add-on-Identifier und sichtbaren Produktnamen;
+- Autor, numerische Produktversion und Releasekanal;
+- branchlokale Entwicklungsbuildnummer;
 - minimale und zuletzt getestete NVDA-Version.
 
-Seit dem Cleanup für 0.94 lautet der interne Identifier `NeovimAccessLink`.
-Dieser Wechsel ist ein bewusster Schnitt: NVDA behandelt einen älteren Stand
-mit der ID `nvimNvdaAccess` als anderes Add-on. Vor einem Praxistest muss der
-alte Stand deshalb deinstalliert und NVDA neu gestartet werden. Einstellungen,
-Profile und Gestenzuweisungen der alten ID werden nicht übernommen. Der
-Identifier ist kein zweiter sichtbarer Produktname.
+`store_version()` liefert ausschließlich `MAJOR.MINOR.PATCH` für Manifest und
+NVDA Add-on Store. `artifact_version()` ergänzt bei Entwicklungsständen
+`-dev.N` sowie nach Möglichkeit Branch- und Commitmetadaten für Dateinamen,
+Diagnosebericht und gebündelte Komponenten. Das installierte Manifest wird
+beim Build aus diesen Werten erzeugt und nicht separat gepflegt.
 
-## Abgeleitete Werte
+## Entwicklungsstände
 
-`buildVars.store_version()` liefert ausschließlich die in `buildVars.py`
-eingetragene numerische Produktversion für `manifest.ini` und den NVDA Add-on
-Store. `buildVars.development_version()` ergänzt für Entwicklungsstände eine
-branchlokale SemVer-Kennung wie `1.2.3-dev.1` und nach Möglichkeit
-Build-Metadaten aus Branch und Commit. `buildVars.artifact_version()` verwendet
-diese vollständige Kennung für Pakete und Laufzeitdiagnosen. Der Store sieht
-damit keine interne Buildnummer.
+`development_build` ist auf Featurebranches eine positive Ganzzahl. Der erste
+geänderte installierbare Stand eines neuen Branches verwendet `1`; weitere
+Änderungen an installierbarem Inhalt erhöhen den Wert innerhalb dieses
+Branches. Ein unverändert reproduzierter Stand darf denselben Wert verwenden.
 
-`development_build = None` kennzeichnet ausschließlich einen bewusst
-freigegebenen Releasezustand. Dann entspricht auch die Artefaktversion der
-normalen Produktversion. Der Wert darf nicht beiläufig aus Branchname,
-Buildumgebung oder bisherigem Versionsverlauf abgeleitet werden.
+`development_build = None` kennzeichnet ausschließlich einen ausdrücklich
+freigegebenen Releasezustand. Produktversion, Kanal, Tag und Pre-Release-Status
+werden nicht aus Branchname oder bisherigem Verlauf abgeleitet.
 
-Der Add-on-Builder erzeugt aus den zentralen Daten:
+## Prüfung und Build
 
-- `manifest.ini` im installierbaren Archiv,
-- einen eindeutigen Archivnamen wie
-  `NeovimAccessLink-1.2.3-dev.1+feature.example.<commit>.nvda-addon`,
-- den sichtbaren Komponentenpaketnamen
-  `neovim-access-link-1.2.3-dev.1+feature.example.<commit>-user.tar.gz`,
-- die Laufzeitversion in Diagnosebericht und Log,
-- die Version des gebündelten Linux-Komponentenpakets.
+Vor einem auslieferbaren Build wird der endgültige Worktree geprüft:
 
-Das Quellverzeichnis enthält absichtlich kein separat gepflegtes Manifest mit
-duplizierten Werten. Zur Laufzeit verwendet das Add-on die öffentliche
-`addonHandler.getCodeAddon()`-Schnittstelle und liest sein von NVDA geladenes
-Manifest.
+```bash
+python3 tools/run_tests.py all
+python3 tools/build_nvda_addon.py
+tools/build_documentation.sh
+```
 
-## Versions- und Freigaberegeln
+`all` führt sichere, SSH- und Socketphasen nacheinander aus; die Umgebung muss
+Listener und kurzlebige Neovim-Prozesse erlauben. In eingeschränkten
+Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
+[Teststrategie](testing.md) getrennt ausgeführt.
 
-- Produktversion und Releasekanal werden als ausdrückliche
-  Freigabeentscheidung festgelegt und nicht automatisch hergeleitet.
-- Die Entwicklungsbuildnummer wird innerhalb des jeweiligen Branches erhöht,
-  sobald sich der bereitgestellte installierbare Inhalt ändert.
-- Ein neuer Featurebranch beginnt mit einer eigenen Buildfolge; Branch- und
-  Commit-Metadaten verhindern Verwechslungen zwischen parallelen Branches.
-- Ein unverändert reproduzierter Stand darf denselben Namen behalten.
-- Tags, stabile Releases und Änderungen der Produktversion benötigen eine
-  ausdrückliche Freigabeentscheidung.
+Der Add-on-Build prüft Manifest, gebündelte Komponenten, Abhängigkeiten und
+Archivinhalt. Der Dokumentationsbuild synchronisiert ausführbare Beispiele,
+prüft Markdown- und HTML-Links sowie die deutsche und englische Struktur und
+erzeugt acht HTML-Dokumente.
 
-Vor einem neuen Build werden alte Artefakte aus `dist/` entfernt. Anschließend
-erzeugt `python3 tools/build_nvda_addon.py` das Add-on. Tests extrahieren das
-tatsächliche Archiv und vergleichen Manifest, Dateiname und Laufzeitmetadaten
-mit `buildVars.py`.
+## Releasevorbereitung
 
-`tools/build_documentation.sh` erzeugt die deutschen und englischen Fassungen
-von Quick Guide, Handbuch, Entwicklerdokumentation und dem eigenständigen
-Leitfaden für geführte Praxistests. Der Build prüft ausdrücklich, dass beide
-Handbücher ihr Braille-Kapitel und beide Testleitfäden ihren erwarteten
-Hauptabschnitt enthalten. Alle acht HTML-Dateien werden zusätzlich in genau
-einem versionierten Dokumentations-ZIP unter `dist/` gebündelt.
+Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
+Stand:
 
-Das unveränderte GPL-v2-Lizenzdokument wird in das Add-on und das Paket der
-Benutzerkomponenten aufgenommen. Einzelheiten zu Projekt- und
-Beitragslizenzierung stehen unter [Lizenzierung und Beiträge](licensing-and-contributions.md).
+1. Produktversion, Kanal und `development_build = None` in `buildVars.py`;
+2. aktuellen Release- und Changeloglink in `README.md` sowie den deutschen und
+   englischen Changelogabschnitt;
+3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
+   Dokumentation;
+4. erfolgreiche vollständige Tests und frisch gebaute Artefakte;
+5. einen Commit und ein annotiertes oder leichtgewichtiges Tag `vMAJOR.MINOR.PATCH`
+   auf genau diesem Commit.
+
+Push, Tag und GitHub-Veröffentlichung erfolgen nur nach ausdrücklicher
+Freigabe. Vor dem Tag wird geprüft, dass Worktree, Version, README-Links und
+Artefaktnamen zusammenpassen.
+
+## Abbruchbedingungen
+
+Die Freigabe wird vor Tag oder Veröffentlichung abgebrochen, wenn Tests oder
+Builds fehlschlagen, der Worktree unerwartete Änderungen enthält, Version und
+Links nicht zusammenpassen, ein Artefakt nicht aus dem getaggten Stand stammt
+oder eine erforderliche praktische Prüfung offen ist. Ein vorhandener Tag wird
+nicht still verschoben; eine Korrektur erhält nach Entscheidung des Nutzers
+eine neue Produktversion oder einen ausdrücklich neu aufgebauten, noch nicht
+veröffentlichten Tag.
+
+## GitHub und Add-on Store
+
+Ein GitHub-Pre-Release wird aus dem freigegebenen Tag erstellt, erhält die
+englische Releasebeschreibung und genau die beiden unten genannten Assets.
+Danach werden Tagziel, Pre-Release-Markierung, Assetnamen und Downloads auf
+GitHub erneut geprüft.
+
+Die Einreichung in den NVDA Add-on Store ist ein getrennter Vorgang im
+Add-on-Datastore. Sie verweist auf einen bereits veröffentlichten,
+unveränderlichen Stand und folgt dessen aktueller Einreichungsprüfung. Nach
+einer Store-Einreichung werden Tag und Assets nicht ersetzt; eine Korrektur
+erhält eine neue Produktversion.
+
+## Veröffentlichungsartefakte
+
+Eine GitHub-Veröffentlichung enthält genau zwei herunterladbare Dateien:
+
+- `NeovimAccessLink-<version>.nvda-addon`;
+- `neovim-access-link-<version>-documentation.zip` mit Quick Guide, Handbuch,
+  Entwicklerdokumentation und geführten Praxistests in Deutsch und Englisch.
+
+Die Releasebeschreibung fasst die Änderungen seit der vorherigen
+Produktversion zusammen, nennt wichtige Grenzen und verlinkt bei Bedarf eine
+dauerhafte technische Analyse. Release- und Zusammenarbeitstext ist Englisch.
+
+Die unveränderte GPL-v2-Lizenz wird in Add-on und Benutzerkomponentenpaket
+aufgenommen. Weitere Angaben stehen unter
+[Lizenzierung und Beiträge](licensing-and-contributions.md) und
+[Abhängigkeiten](dependencies.md).

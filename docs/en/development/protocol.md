@@ -4,6 +4,19 @@ Protocol v2 is the only supported semantic interface between Neovim and the
 NVDA add-on. It is a bounded application protocol, not a transparent Neovim
 RPC tunnel. Read `architecture.md` first for the process and lifecycle model.
 
+## Authoritative source contracts
+
+| Area | Validator or producer | Contract tests |
+|---|---|---|
+| Framing and envelope | [`codec.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/codec.py), [`messages.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/messages.py) | [`test_protocol.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/tests/test_protocol.py) |
+| Local controls and capabilities | [`local_client.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/local_client.py) | [`test_local_client.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/tests/test_local_client.py) |
+| SSH stdio forwarding | [`stdio.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/bridge/python/nvim_nvda_bridge/stdio.py) | [`test_stdio.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/bridge/python/tests/test_stdio.py) |
+| Neovim state and fixed operations | [`state.lua`](https://github.com/helmsaccess/neovim-access-link/blob/main/neovim-plugin/lua/nvim_nvda/state.lua), [`init.lua`](https://github.com/helmsaccess/neovim-access-link/blob/main/neovim-plugin/lua/nvim_nvda/init.lua) | [Lua contract tests](https://github.com/helmsaccess/neovim-access-link/tree/main/neovim-plugin/tests) |
+
+This page explains the valid contract; the linked validators are authoritative
+for accepted values. A protocol change updates the producer, both transport
+validators, tests, and both language versions together.
+
 ## Transports
 
 ### SSH stdio
@@ -215,7 +228,7 @@ free-running editor stream.
 Buffer text is not transferred wholesale. See `accessibility.md` for the
 semantic feature matrix.
 
-### File-manager payloads
+**File-manager payloads.**
 
 File-manager state carries bounded semantic values. Entry names are at most
 512 UTF-8 bytes, paths and roots at most 2048 bytes, and type or adapter labels

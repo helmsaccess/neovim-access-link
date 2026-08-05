@@ -1,123 +1,130 @@
 # Add-on settings reference
 
-The “Neovim Access Link” category is registered in NVDA's normal Settings
-dialog and stores validated values in `config.conf` section
-`NeovimAccessLink`. NVDA configuration profiles provide inheritance and active-
-profile writes. `post_configProfileSwitch` reloads effective values without
-stopping an authenticated runtime connection.
+## Authoritative source contracts
 
-Tabs are “General”, “Feedback”, “Navigation”, “Braille”, and “Connections”.
-The Braille tab groups speech-exploration presentation, routing actions, and
-spelling-suggestion placement. Feedback values are numeric Off, Speech, Tones,
-or Both Speech and Tones. Existing NVDA Keyboard, Document Formatting, Object
-Presentation, and Braille settings remain authoritative for typing echo,
-indentation/spelling, automatic suggestions, translation, drivers, and cursor
-presentation.
+The NVDA configuration schema and its defaults live in
+[`__init__.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py).
+[`settings_service.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/settings_service.py)
+owns normalization, profile changes, and persistence;
+[`nvda_ui.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py)
+owns the visible controls. Package and profile tests in
+[`test_built_addon.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/tests/test_built_addon.py)
+verify schema, defaults, UI values, and persistence. This page is the readable
+developer reference, not a second schema source.
 
-General also contains a profile-aware session-focus choice: no announcement,
-current structured line, or the existing file/special context with mode and
-connection name. Existing context is the default. The choice does not alter
-focus correlation, structured Braille, or the existing mode-sound settings.
+## Storage and profiles
 
-The top-level profile-aware Boolean `automaticParameterHints` defaults to
-`true`. It permits only speech presentation of validated
-`activeParameterChanged` events. With `false`, automatic parameter transitions
-remain silent; held developer contexts and persistent Braille planning are
-unchanged. The value causes no network or LSP work on NVDA's main thread.
+The “Neovim Access Link” category uses
+`config.conf["NeovimAccessLink"]` and therefore NVDA's normal configuration
+profiles. “Apply” or “OK” writes changed values to the active profile; unset
+values inherit like other NVDA settings. There is no separate JSON settings
+store.
 
-The top-level profile-aware integer `brailleSuggestionStart` is one-based and
-defaults to 1. It positions only the transient text of an active spelling
-choice. The NVDA Braille adapter compares it with
-`braille.handler.displaySize`; values beyond the current display are ignored
-at presentation time and cell 1 is used. Before adding blank cells, the region
-translates the unshifted suggestion with NVDA's active Braille table. The last
-start at which the translated result completely fits then limits the requested
-cell to the left; a longer suggestion starts at cell 1. The setting never
-changes speech or the persistent editor Braille plan.
+`SettingsService` loads, normalizes, and stores a complete detached copy of
+effective values. Invalid types or ranges fall back to defaults and are
+diagnosed without confidential content. A profile switch reloads feedback
+immediately. Connection changes apply to new connections and do not stop an
+already authenticated editor session.
 
-The top-level profile-aware integer `brailleDeveloperStart` follows the same
-validation and fit rules. It positions only held function-parameter and
-diagnostic views and remains independent of `brailleSuggestionStart`. Both
-values default to 1.
+## Interface and ownership
 
-The top-level profile-aware Boolean `brailleFollowSpeechExploration` defaults
-to `true`. It allows the Braille plan to present the contextual speech
-exploration controller's validated virtual line while canonical editor state
-remains unchanged. The separate Braille exploration controller takes
-priority. With `false`, Braille planning remains at the canonical cursor
-during `NVDA+h/j/k/l` and `Shift+NVDA+h/l`.
+The NVDA Settings dialog contains five tabs:
 
-The nested profile-aware `brailleRouting` section contains three choice
-indices:
+- “General” for global feedback, session focus, and automatic parameter speech;
+- “Feedback” for individual speech and cue events;
+- “Navigation” for detail after normal navigation and speech exploration;
+- “Braille” for exploration, routing actions, and transient views;
+- “Connections” for local Windows Neovim and saved SSH targets.
 
-- `wordAction`: 0 for route only, 1 for `cw`, and 2 for `dw`;
-- `lineAction`: 0 for route only, 1 for `c$`, and 2 for `d$`;
-- `lineStart`: 0 for the routed position, 1 for the first non-blank
-  character, and 2 for the absolute line beginning.
+The add-on does not duplicate an applicable NVDA setting. Typing echo comes
+from Keyboard, indentation plus spelling and grammar from Document Formatting,
+automatic suggestion cues from Object Presentation, and translation, driver,
+and cursor shape from Braille.
 
-All defaults are 0. `lineStart` is consulted only when a line action is
-enabled. Repeat timing comes from NVDA's public
-`config.conf["keyboard"]["multiPressTimeout"]` setting; the add-on has no
-second timing value. `SettingsService` validates these indices and exposes
-only resolved symbolic values to terminal integration.
+## Feedback
 
-The nested `navigationDetails` section stores four profile-aware choice
-indices: `navigationWord` and `explorationWord` are 0 for the base word only
-or 1 for word plus cursor character. `navigationLine` and `explorationLine`
-are bit-like choice indices: 0 is the base line only, 1 adds the current word,
-2 adds the cursor character, and 3 adds both in word-then-character order.
-Defaults 1, 2, 1, and 2 preserve the behavior predating these controls.
-`SettingsService` resolves the indices to booleans before passing them through
-the neutral editor and exploration planning interfaces; core planners never
-read NVDA configuration directly. Exploration values are resolved from the
-active profile when NVDA is released; they change neither virtual exploration
-steps nor character exploration.
+Feedback values use `0 = Off`, `1 = Speech`, `2 = Tones`, and `3 = Both Speech
+and Tones`. The global value bounds individual actions. `diagnosticLine` and
+`diagnosticPosition` allow only Off or Tones.
 
-Feedback also contains a profile-aware copy/paste success setting using the
-same Off, Speech, Tones, or Both Speech and Tones values. Failures remain audible.
-`diagnosticLine` and `diagnosticPosition` independently gate passive error or
-warning cues on entering an affected line or at every position reached by
-explicit navigation within an exact range. The settings UI
-offers only Off and Tones for these keys; complete text remains available
-through explicit diagnostic inspection and navigation.
-The four clipboard commands have no default gestures and are assigned through
-NVDA's Input Gestures dialog after Windows Terminal was focused before opening
-it. Like the other configurable terminal commands, they belong to that
-AppModule and are not resolved in unrelated applications. After the class has
-loaded, NVDA may nevertheless continue displaying a saved assignment elsewhere
-through its global user gesture map. Transfer direction, register, and target
-buffer cannot be supplied as free-form commands, and no automatic
-synchronization is provided. The register command replaces fixed register 0
-and points the unnamed register to it; named user registers are not touched.
+| Key | Default | Purpose |
+|---|---:|---|
+| `global` | 3 | upper bound for all add-on feedback |
+| `mode`, `delete`, `replace` | 3 | mode changes and editing |
+| `lineBoundary`, `lineCrossed` | 2 | line boundaries and line transitions |
+| `fileBoundary`, `matchingError` | 3 | file boundaries and missing counterpart |
+| `diagnosticLine`, `diagnosticPosition` | 2 | deliberate error/warning cues |
+| `clipboard` | 3 | success of explicit clipboard commands |
 
-An SSH profile stores ID, display name, host/alias, optional Linux user, port,
-optional key, and authentication method. Host and user are separate fields;
-combined values from older add-on IDs are not migrated. Inputs are validated
-against option injection and duplicate IDs. Password values are runtime-only.
-Local Windows Neovim is the typed `localWindowsTcp` target and has no saved
-profile or configurable port. There is no separate JSON settings store or
-import from former add-on IDs.
+`focusAnnouncement` uses `0 = no announcement`, `1 = current line`, and
+`2 = current file or special context with mode and connection name`. Default
+is 2. `automaticParameterHints` defaults to enabled and controls only brief
+validated speech for the active function parameter.
 
-F12 is the default claim gesture shared by packaged configuration. Activation
-inventories eligible targets; F12 selects only a newly incremented claim.
-The Windows Terminal app module observes F12 through
-`decide_executeGesture` without binding an NVDA script. NVDA therefore passes
-the original physical key directly to Neovim, while the observer separately
-queues claim evaluation. Neovim matches the unchanged `typed` value instead
-of relying on terminal-code mapping. While support is disabled, the observer
-is inert and F12 has no add-on effect. While support is enabled, each physical
-F12 authorizes one attempt for the exact focused control; the add-on refreshes
-terminal identity and looks for the fresh claim. Without one, it remains silent
-and creates no binding, dialog, or suppression.
-Authorization additionally requires NVDA's current focus object, that exact
-Windows Terminal AppModule instance, the complete UIA control identity, and
-the gate to agree. A single remaining AppModule is not a fallback. In Insert
-mode F12 remains observable as the physical claim but produces no text when
-the key was otherwise unbound. Existing Insert-mode mappings are preserved.
-Because no reverse channel from NVDA to that Neovim instance exists before the
-first connection, this narrow reservation also applies inside Neovim when NVDA
-does not authorize that press for assignment; F12 remains unchanged outside
-Neovim.
-Manual target/session selection remains available for passwords and special
-cases. Remembered terminal bindings use stable runtime IDs and live only in
-memory.
+## Navigation details
+
+`navigationDetails` keeps separate values for normal navigation and speech
+exploration release output:
+
+| Key | Values | Default |
+|---|---|---:|
+| `navigationWord`, `explorationWord` | 0 word; 1 word and cursor character | 1 |
+| `navigationLine`, `explorationLine` | 0 line; 1 plus word; 2 plus cursor character; 3 plus word and character | 2 |
+
+Neutral speech planners receive already resolved Boolean values and do not
+read NVDA configuration. Exploration values are read from the active profile
+when NVDA is released; they alter neither virtual movement nor character
+exploration.
+
+## Braille
+
+| Key | Default | Behavior |
+|---|---:|---|
+| `brailleFollowSpeechExploration` | `true` | Braille follows the virtual speech-exploration position; separate Braille exploration has priority. |
+| `brailleSuggestionStart` | 1 | one-based starting cell for transient spelling suggestions |
+| `brailleDeveloperStart` | 1 | one-based starting cell for held parameter and diagnostic views |
+
+Starting cells range from 1 through 1000. If the physical display is shorter,
+cell 1 is used. After Braille translation, the start moves left when needed so
+the complete text fits where possible. These values change neither speech nor
+the persistent editor region.
+
+`brailleRouting` contains three choice indices:
+
+- `wordAction`: 0 route only, 1 `cw`, 2 `dw`;
+- `lineAction`: 0 route only, 1 `c$`, 2 `d$`;
+- `lineStart`: 0 routed position, 1 first non-blank, 2 line beginning.
+
+Every default is 0. `lineStart` applies only when a line action is enabled.
+Repeat timing comes exclusively from NVDA's public
+`keyboard.multiPressTimeout` setting.
+
+## Connections and assignment
+
+`connections` stores a JSON-encoded list of validated SSH profiles inside the
+NVDA configuration section. A profile contains internal ID, display name,
+host or OpenSSH alias, optional Linux user, port, optional key file, and
+authentication method. Host and user remain separate fields. Duplicate IDs,
+invalid ports, and option injection are rejected; passwords are runtime-only.
+
+Local Windows Neovim is the fixed `localWindowsTcp` target. It has no saved
+profile or configurable port; its dynamic endpoint remains on `127.0.0.1`.
+
+F12 is the packaged physical assignment key, not an assignable NVDA script.
+With support enabled, one F12 press authorizes exactly one attempt for the
+focused Windows Terminal control. Focus object, concrete AppModule instance,
+complete UIA identity, gate, and fresh session claim must agree. Without a
+match, no binding, dialog, or suppression is created.
+
+The assignable “Select a server and connect this terminal to a new Neovim
+session” command opens profile selection and then requires F12 in the desired
+session. Runtime bindings use UIA runtime IDs, live only in memory, and are not
+guessed from window titles or terminal text.
+
+## Validation boundary
+
+Settings control only planning, UI, and construction of new connections. They
+cannot bypass a capability, focus, identity, or protocol check or generate
+free-form Lua, Ex, register, or transport commands. Schema and defaults belong
+to add-on code; this reference and both language versions change together with
+schema, profile, UI, localization, and package tests.

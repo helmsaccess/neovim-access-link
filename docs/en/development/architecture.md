@@ -27,8 +27,10 @@ Five rules follow from this approach:
 5. Errors restore NVDA's normal terminal path: the system fails open rather
    than silent.
 
-The integration decision is explained in
-`adr/0001-neovim-integration-point.md`.
+The semantic plugin-event decision is explained in
+[ADR-0001](adr/0001-neovim-integration-point.md). The current local and remote
+transport paths are defined by
+[ADR-0006](adr/0006-local-tcp-and-ssh-stdio-transports.md).
 
 ## Runtime model: three processes
 
@@ -226,12 +228,11 @@ the instance, focus, and gate must also match.
 
 The application boundary is therefore cleanly implemented: terminal events,
 overlay selection, `nextHandler`, configurable NVDA scripts, and input
-observers live in the Windows Terminal AppModule. The concrete Global Plugin
-class is currently not only a minimal composition root, however; it also acts
-as a process-wide NVDA-edge controller. Further decomposition would move
-shared workflows into ordinary process-wide controllers or services, not into
-the AppModule. [Appendix C](global-plugin-appmodule-audit-2026-08-04.md)
-records the current inventory and the recommended staged evolution.
+observers live in the Windows Terminal AppModule. The Global Plugin is the
+process-wide composition root and joins shared services to NVDA's process
+boundary; it owns no application events.
+[ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) records the rationale
+for this boundary.
 
 `AddonRuntime.start()` first registers the profile callback, then Settings and
 Tools, and publishes the terminal service last. If any step fails, the runtime
@@ -250,33 +251,13 @@ gesture, and produces no diagnostic effect. Claim, managed-connection,
 network, Braille, and delayed main-thread callbacks additionally pass through
 a runtime check that covers unpublication between queueing and execution.
 
-The Global Plugin no longer exposes compatibility properties for editor
-planner, canonical state, mode, structured typing state, completion
-documentation, or transport capabilities. Tests and internal consumers use
-the explicit `EditorSessionController` and `ConnectionCoordinator` ownership
-boundary. This avoids maintaining a second writable editor-state interface.
-
-It also no longer exposes compatibility properties for pending claims,
-inventory state, baselines, eligible targets, inventory errors, or discovery
-generation. Tests use `SessionClaimService` directly, so claim state has one
-writable owner and one explicit inspection boundary.
-
-Passive compatibility views for presentation sound caches, remembered
-bindings and offers, runtime and request containers, and AppModule/adapter
-focus data have also been removed. Their tests inspect `NvdaPresentation`,
-`ConnectionCoordinator`, or `TerminalFocusService` directly. This does not
-move active NVDA effects or terminal-event ownership into those tests.
-
-The focused terminal object and lifecycle sweep timestamp likewise have no
-Global Plugin compatibility view. Braille refresh and lifecycle tests use the
-owning `TerminalFocusService`; focus decisions and UIA lifetime handling remain
-encapsulated there.
-
-Active client and instance state, connection status, authenticated-instance
-tracking, per-instance terminal passthrough, and deferred full states also
-have no Global Plugin compatibility properties. The Global Plugin joins
-effects at the NVDA boundary through `ConnectionCoordinator` directly; that
-coordinator remains the sole writable owner of these fields.
+Editor state, mode, completion documentation, transport capabilities,
+connection instances, and pending requests belong exclusively to
+`EditorSessionController` and `ConnectionCoordinator`. Claim and inventory
+state belongs exclusively to `SessionClaimService`; focus and UIA lifetime
+state belongs to `TerminalFocusService`; concrete output and sound caches
+belong to `NvdaPresentation`. The Global Plugin exposes no second writable
+interface for these states.
 
 The AppModule and Braille overlay receive only the
 `TerminalIntegrationService`; the concrete Global Plugin remains hidden behind
@@ -286,11 +267,9 @@ values. If the service is absent, has been replaced during add-on reload, or
 violates the contract, the AppModule passes the original gesture or native
 NVDA event through fail-open.
 
-“Bounded” describes the trust and ownership boundary here, not an especially
-small method surface: the concrete service currently combines operations used
-by the AppModule, the Braille module, and inbound developer contexts.
-Consumer-specific subcontracts remain a possible later simplification when
-they materially sharpen dependencies and tests.
+“Bounded” describes the trust and ownership boundary: the service exposes only
+the typed operations required by the AppModule, the Braille module, and
+inbound developer contexts.
 
 The process-wide service instance lives in neutral `service_registry.py`. The
 Global Plugin publishes and removes the service through the same
@@ -326,7 +305,7 @@ starts the normal focus-context handshake only for the same control, AppModule,
 adapter token, and instance selection. A different terminal focus discards the
 reactivation; missing or uncertain focus keeps native output open.
 
-The V2-5 `EditorSessionController` uses the active runtime managed by
+The `EditorSessionController` uses the active runtime managed by
 `ConnectionCoordinator` but is solely responsible for its domain mutation. It
 owns state and mode transitions, transport capabilities, menu documentation,
 connection state, per-instance terminal passthrough, and isolated typing echo.

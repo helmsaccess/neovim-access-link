@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 4. August 2026.
+Stand: 5. August 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -22,14 +22,13 @@ Laufend:
   bevor Protokolldetails und Spezialfälle folgen;
 - dauerhafte Referenz, aktuellen Status, aktiven Plan, Changelog und datierte
   Berichte klar trennen;
-- deutsche und englische Kernkapitel strukturell parallel halten;
-- ältere englische Handbuch- und Entwicklerkapitel, die gegenüber den
-  deutschen Fassungen gekürzt sind, schrittweise inhaltlich angleichen;
-  zuerst Einstellungen, Kommunikation, Komponenteninstallation, SSH/tmux und
-  Sicherheit;
+- deutsche und englische Kapitel durch den Dokumentationsbuild strukturell
+  parallel halten und inhaltliche Änderungen gemeinsam prüfen;
 - Aussagen zu Prozessen, Session-Registry, Zuordnung, Gate, Rückkanälen,
   Polling und Fallbacks gegen den aktuellen Code prüfen;
-- HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen.
+- HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen;
+- aktuelle Erklärungen frei von Entwicklungschronologie halten und Geschichte
+  auf Changelog, datierte Berichte und ADRs begrenzen.
 
 ## 2. Architekturgrenzen nur bei belegtem Nutzen weiter verändern
 

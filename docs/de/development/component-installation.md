@@ -1,27 +1,24 @@
-# Rootlose Installation und SSH-stdio-Transport
+# Komponenteninstallation und SSH-stdio
 
-## Unterstützter Zustand
+## Laufzeitmodell
 
-Der Anwender installiert die Linux-Komponenten ohne Root-Rechte einmal nach
-`~/.local` und startet danach ausschließlich normales Neovim:
-
-```text
-nvim datei
-```
-
-Das NVDA-Add-on startet bei Aktivierung selbst:
+Anwender installieren die Linux-Komponenten ohne Root-Rechte nach `~/.local`
+und starten danach normales Neovim. Bei einer entfernten Aktivierung startet
+das Add-on selbst einen nichtinteraktiven SSH-Prozess:
 
 ```text
 ssh.exe -T -o BatchMode=yes <ssh-alias> nvim-nvda-bridge
 ```
 
-Bridge-Ereignisse laufen als gerahmtes MessagePack direkt über stdout; Kontrolle
-läuft über stdin. Der SSH-Prozess endet bei Deaktivierung oder NVDA-Ende. Damit
-entfallen TCP-Forward, fester Port und gemeinsames Anwendungstoken.
+Gerahmtes MessagePack läuft über Standardausgabe, Steuerung über
+Standardeingabe. Bei Deaktivierung oder NVDA-Ende wird der SSH-Prozess beendet.
+Es gibt keine Portweiterleitung, keinen festen Port und kein gemeinsames
+Anwendungstoken.
 
-## Rootloses Paket
+## Rootloses Benutzerpaket
 
-Das Benutzerpaket ist ein `tar.gz` mit:
+`tools/build_user_package.py` erzeugt aus den versionierten Bridge-, Protokoll-
+und Pluginquellen ein `tar.gz` mit:
 
 ```text
 bin/nvim-nvda-bridge
@@ -30,115 +27,73 @@ share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
 install.py
 ```
 
-`nvim-nvda-bridge` ist eine ausführbare Python-Zipapp, keine Shell-Hülle. Sie
-enthält Bridge, Protokollcodec und den reinen Python-MessagePack-Fallback. Der
-Installer kopiert ausschließlich nach einem frei wählbaren Präfix, standardmäßig
-`~/.local`, und benötigt weder RPM noch `sudo`.
+Die Bridge ist eine Python-Zipapp mit Protokollcodec und portablem
+MessagePack. Das Archiv liegt im Add-on unter
+`globalPlugins/NeovimAccessLink/resources/server-user.tar.gz`. Der
+Menüinstaller überträgt genau diese Bytes über SSH-stdin; das Ziel benötigt
+Python 3, aber keinen Repositoryzugriff, externen Download, RPM oder `sudo`.
 
-Ein RPM kann später als optionale systemweite Distributionsform ergänzt werden.
-Das kombinierte Archiv ist der unterstützte reproduzierbare,
-distributionsunabhängige Installationsweg.
+`linux-components.json` hält Neovims Sitzungsmarkierung und NVDAs beobachtete
+F12-Geste konsistent. Änderungen werden im Quellpaket vorgenommen, danach
+werden Add-on und Zielkomponenten zusammen neu gebaut beziehungsweise
+aktualisiert. Eine isolierte Änderung einer installierten Kopie wird nicht
+unterstützt.
 
-Beim Bau der `.nvda-addon` erzeugt `tools/build_user_package.py` dieses Archiv
-direkt aus den versionierten Verzeichnissen `bridge/`, `protocol/`,
-`neovim-plugin/` und `packaging/install_user.py`. Anschließend wird es als
-`globalPlugins/NeovimAccessLink/resources/server-user.tar.gz` in das Add-on
-eingebettet. Der Menüinstaller liest genau diese Ressource und überträgt ihre
-Bytes über SSH-stdin; die Zielmaschine greift weder auf das Repository noch auf
-einen Downloadserver zu.
+## Sitzungsregistrierung
 
-`linux-components.json` ist der gemeinsame, versionierte Vertrag zwischen
-Add-on und Linux-Komponenten. Er deklariert derzeit denselben Bezeichner für
-Neovims Sitzungsmarkierung und NVDAs ausschließlich beobachtete Geste,
-standardmäßig `<F12>` und `kb:f12`. Das ist keine NVDA-Skriptbindung und kein
-Neovim-Keymapping; beide Seiten erkennen denselben physischen Tastendruck an
-ihren jeweiligen öffentlichen Eingabeschnittstellen.
-Der Paketbau akzeptiert nur zusammenpassende Funktionstasten F1 bis F24. Das
-Plugin liest seine installierte Kopie; eine zusätzliche Kopie liegt zur
-Diagnose unter `~/.local/share/nvim-nvda/linux-components.json`. Änderungen
-sind als Paketänderung vorzunehmen: Konfiguration ändern, Add-on neu bauen und
-danach die Linux-Komponenten über das NVDA-Menü aktualisieren. Eine isolierte
-Änderung nur auf dem Linux-Ziel würde die beiden Seiten auseinanderbringen und
-ist daher nicht unterstützt.
+Das Plugin startet mit `serverstart()` einen privaten Unix-RPC-Socket und legt
+pro Neovim-Instanz einen kurzlebigen JSON-Datensatz im privaten
+Benutzerlaufzeitverzeichnis an. Enthalten sind nur die zur Erkennung und
+Validierung benötigten Prozess-, Zeit-, Endpunkt- und Sitzungsangaben. Diese
+Dateien sind keine Windows-Registry-Einträge.
 
-## Dateibasierte Neovim-Sitzungsregistrierung
+Interaktives Neovim und ein späterer nichtinteraktiver SSH-Prozess können
+unterschiedliche `XDG_RUNTIME_DIR`-Werte sehen. Die Bridge prüft deshalb das
+konfigurierte Laufzeitverzeichnis, das dem Benutzer gehörende `/run/user/UID`
+und den privaten Fallback unter `/tmp`. Sie liest nur private Verzeichnisse des
+aktuellen Benutzers, führt identische Datensätze zusammen und validiert
+Prozess, Nonce, Endpunkt, Eigentümer und Protokoll vor jeder Verwendung.
 
-Diese Sitzungsregistrierung besteht aus JSON-Dateien im Dateisystem und hat
-nichts mit der Windows-Registry zu tun. Auf dem hier beschriebenen Linux-Ziel
-liegt sie im privaten Laufzeitverzeichnis des Benutzers.
+## SSH-Stream und Sicherheit
 
-Das installierte Plugin startet über `serverstart()` selbst einen privaten
-Unix-RPC-Socket und registriert PID, Socket, monotone und reale Startzeit,
-Arbeitsverzeichnis sowie einen optionalen Sitzungsnamen unter
-`$XDG_RUNTIME_DIR/nvim-nvda/sessions`. Die stdio-Bridge kann eine explizit
-ermittelte lebende Sitzung öffnen. Dadurch blockiert eine ältere, etwa in einem
-anderen tmux-Fenster laufende Neovim-Instanz die Verbindung nicht. Das Add-on
-listet Sitzungen und hält ihre numerischen IDs von der Bedienoberfläche fern.
+Die Bridge sendet vor dem Binärprotokoll eine feste ASCII-Markierung. Der
+Windows-Client verwirft Shell-Startausgaben vor dieser Markierung; danach ist
+stdout ausschließlich dem Protokoll vorbehalten und Diagnostik geht nach
+stderr.
 
-Interaktives Neovim und der spätere nichtinteraktive SSH-Befehl der Bridge
-können unterschiedliche Werte für `XDG_RUNTIME_DIR` sehen. Die Bridge prüft
-deshalb alle für diesen Benutzer zulässigen Orte: das konfigurierte
-Laufzeitverzeichnis, das dem Benutzer gehörende `/run/user/UID` und den
-privaten Fallback unter `/tmp`. Nur private Verzeichnisse des aktuellen
-Benutzers werden gelesen; identische Sitzungsdatensätze werden zusammengeführt.
+- SSH authentifiziert Host und Benutzer. Schlüssel, Agent oder gespeicherte
+  OpenSSH-Konfiguration sind der Standardpfad.
+- `BatchMode=yes` verhindert unsichtbare Passwortabfragen im NVDA-Prozess.
+  Für ausdrücklich konfigurierte Passwortanmeldung verwendet das Add-on einen
+  zugänglichen Dialog und speichert das Passwort nicht.
+- `ClearAllForwardings=yes` verhindert die Übernahme konfigurierter
+  Portweiterleitungen.
+- Installation, Verbindung und Entfernung laufen außerhalb von NVDAs
+  Hauptthread und besitzen Zeitgrenzen.
 
-## SSH-Startausgaben
+## Installation und Aktualisierung
 
-Da Shell-Startdateien auf manchen Zielsystemen unerwünschte Bytes ausgeben,
-sendet die Bridge vor dem Binärprotokoll eine feste ASCII-Markierung. Der
-Windows-Client verwirft alles vor dieser Markierung. Nach der Markierung ist
-stdout ausschließlich dem Protokoll vorbehalten; Diagnosen gehen nach stderr.
+Verbindungen werden unter „NVDA-Menü → Optionen → Einstellungen… → Neovim
+Access Link → Verbindungen“ verwaltet. „Verbindung hinzufügen…“ erfasst Name,
+Host oder OpenSSH-Alias, Linux-Benutzer, Port, optionale Schlüsseldatei und
+Anmeldeart.
 
-## Sicherheitsmodell
+„NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder
+aktualisieren…“ bietet „Dieser Computer“ und alle gespeicherten
+Linux-Verbindungen als zunächst leere Mehrfachauswahl an. Ausgewählte Ziele
+werden im Hintergrund bearbeitet; eine Ergebnisübersicht meldet jeden Erfolg
+und Fehler. Lokal wird das Plugin atomar unter
+`%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda` ersetzt.
+Neovim muss nach einer Installation oder Aktualisierung neu gestartet werden.
 
-- SSH authentifiziert Benutzer und Host; bevorzugt werden Schlüssel und Agent.
-- Schlüssel-/Agentanmeldung verwendet `BatchMode=yes` und verhindert damit
-  unsichtbare Passwortdialoge im NVDA-Prozess.
-- Ein Verbindungstest darf für Hostschlüssel- oder Schlüsselersteinrichtung ein
-  sichtbares Terminal öffnen.
-- Die rootlose Installation verändert keine SSH-Konfiguration. Bei der
-  ausdrücklich gewählten Passwortanmeldung fragt das Add-on zugänglich nach
-  und speichert das Passwort nicht.
-- Der Anwenderablauf verwendet ausschließlich SSH-stdio; alte Tunnel- und
-  Token-Hilfswerkzeuge sind entfernt.
+## Entfernung
 
-## Installation aus NVDA
+„NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen…“ verwendet
+dieselbe Mehrfachauswahl. Neovim muss auf den gewählten Zielen beendet sein;
+das Add-on beendet keine Neovim- oder tmux-Sitzung.
 
-Nach Installation des Add-ons werden Verbindungen unter „NVDA-Menü → Optionen
-→ Einstellungen… → Neovim Access Link → Verbindungen“ verwaltet. „Verbindung
-hinzufügen...“ öffnet ein
-gemeinsames Formular für Name, Host oder OpenSSH-Alias, Linux-Benutzer, Port,
-optionale Schlüsseldatei und verständlich erklärte Anmeldeart.
-
-Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...`
-listet „Dieser Computer“ und alle gespeicherten Linux-Verbindungen mit Konto,
-Ziel, Port und Anmeldeart als zunächst leere Checkboxliste. Einzelne oder über
-die initial fokussierte Checkbox „Alle Verbindungen auswählen“ alle Ziele
-werden ausdrücklich ausgewählt. Danach installiert das Add-on das lokale
-Plugin beziehungsweise überträgt sein Benutzerpaket im Hintergrund auf die
-gewählten Linux-Konten und zeigt Erfolge und Fehlschläge gesammelt an.
-
-Die Installation läuft im Hintergrund und blockiert NVDA nicht. Die empfohlene
-OpenSSH-Auswahl verwendet Schlüssel, Agent oder Windows-SSH-Konfiguration. Die
-alternative Passwortauswahl verwendet den zugänglichen NVDA-Dialog und hält das
-Passwort ausschließlich im Speicher. Danach ist Neovim einmal neu zu starten.
-Künftige Add-on-Aktivierungen starten und beenden den SSH-stdio-Prozess
-automatisch.
-
-## Entfernung aus NVDA
-
-`NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen...` verwendet
-dieselbe zunächst leere, zugänglich beschriftete Mehrfachauswahl wie die
-Installation. Neovim muss auf den gewählten Zielen vorher beendet werden; das
-Add-on beendet keine laufenden Neovim- oder tmux-Sitzungen. Die Arbeit läuft
-außerhalb des NVDA-Hauptthreads und endet mit einer nicht blockierenden
-Ergebnisübersicht pro Ziel.
-
-Lokal wird nur
-`%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda` gelöscht. Leere,
-vom Installer angelegte Paketverzeichnisse werden anschließend aufgeräumt,
-nichtleere Elternverzeichnisse aber erhalten. Über SSH löscht ein einzelner,
-auf 30 Sekunden begrenzter Benutzerbefehl ausschließlich:
+Lokal wird nur das installierte Pluginverzeichnis entfernt. Über SSH entfernt
+ein zeitlich begrenzter Benutzerbefehl ausschließlich:
 
 ```text
 ~/.local/bin/nvim-nvda-bridge
@@ -148,9 +103,13 @@ auf 30 Sekunden begrenzter Benutzerbefehl ausschließlich:
 ```
 
 Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
-Neovim-Konfiguration, andere Plugins und Laufzeit-Sitzungsdaten gehören nicht
-zu den installierten Komponenten und werden nicht gelöscht.
+Neovim-Konfiguration, andere Plugins und Laufzeit-Sitzungsdaten bleiben
+erhalten.
 
-Installation und Laufzeit setzen `ClearAllForwardings=yes`. Dadurch werden alte
-`LocalForward`-Einträge aus der 0.1-Konfiguration für diese Prozesse ignoriert
-und können nicht mit einer bereits laufenden interaktiven SSH-Sitzung kollidieren.
+## Zuständiger Code und Tests
+
+Paketbau und Installation liegen in `tools/build_user_package.py`,
+`packaging/install_user.py` und den Installationsdiensten des Add-ons. Die
+Bridge-Einstiege liegen unter `bridge/`, die Sitzungsregistrierung im
+Neovim-Plugin. Paket-, SSH- und Sockettests werden getrennt ausgeführt; die
+zugehörigen Befehle stehen in [Teststrategie](testing.md).

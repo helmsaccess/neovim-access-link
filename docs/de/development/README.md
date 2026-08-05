@@ -16,18 +16,18 @@ Reihenfolge:
 
 1. [Überblick für neue Entwickler](overview.md) – Grundidee, Datenfluss und
    Aufgabenteilung ohne Implementierungsdetails.
-2. [Architektur](architecture.md) – Prozesse, Begriffe, Zuständigkeiten und der
-   vollständige Lebenszyklus einer Verbindung.
-3. [Repository-Struktur](repository-layout.md) – wo die zugehörigen Quellen und
+2. [Repository-Struktur](repository-layout.md) – wo die zugehörigen Quellen und
    Tests liegen.
-4. [Einstieg für Entwicklung und Tests](getting-started.md) – Voraussetzungen,
+3. [Einstieg für Entwicklung und Tests](getting-started.md) – Voraussetzungen,
    erste Befehle und passende Prüfungen für typische Änderungen.
-5. [Aktueller Status](current-status.md) – bestätigte Plattformen, Reifegrad
+4. [Aktueller Status](current-status.md) – bestätigte Plattformen, Reifegrad
    und bekannte Grenzen des gegenwärtigen Stands.
+5. [Architektur](architecture.md) – Prozesse, Zuständigkeiten und der
+   vollständige Lebenszyklus einer Verbindung.
 
-Die ersten drei Dokumente erklären dauerhaft gültige Zusammenhänge. Der
-aktuelle Status ist dagegen eine Momentaufnahme und darf nicht als
-Architekturbeschreibung verwendet werden.
+Überblick, Repository-Struktur und Architektur erklären dauerhaft gültige
+Zusammenhänge. Der aktuelle Status ist dagegen eine Momentaufnahme und darf
+nicht als Architekturbeschreibung verwendet werden.
 
 ## Nach Aufgabe weiterlesen
 
@@ -37,7 +37,7 @@ Architekturbeschreibung verwendet werden.
 - [Teststrategie](testing.md)
 - [Geführte Praxistests mit NVDA](human-testing.md)
 - [Kompatibilität](compatibility.md)
-- [NVDA-2026.1-API-Prüfung](nvda-2026.1-api-notes.md)
+- [NVDA-API-Grenzen](nvda-2026.1-api-notes.md)
 
 ### Verbindung, Installation oder Sicherheit ändern
 
@@ -51,7 +51,7 @@ Architekturbeschreibung verwendet werden.
 - [Interne Einstellungsreferenz](settings-reference.md)
 - [Lokalisierung mit gettext](localization.md)
 - [Release-, Versions- und Buildprozess](release-and-build.md)
-- [Gebündelte Abhängigkeiten](../../../nvda-addon/DEPENDENCIES.md)
+- [Abhängigkeiten](dependencies.md)
 - [Lizenzierung und Beiträge](licensing-and-contributions.md)
 
 ## Entscheidungen, Planung und Verlauf
@@ -65,6 +65,7 @@ Code.
 - [ADR-0003: enger Oil-Bestätigungsfallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA-Lebensdauer und Besitz von Anwendungsevents](adr/0004-nvda-lifetime-and-event-ownership.md)
 - [ADR-0005: Kontextbezogene Eingabe für den Sprachexplorationsmodus](adr/0005-contextual-exploration-input.md)
+- [ADR-0006: Lokales TCP und SSH-Standardstreams als Transporte](adr/0006-local-tcp-and-ssh-stdio-transports.md)
 - [Aktiver Plan](plan.md)
 - [Changelog](changelog.md)
 
@@ -82,8 +83,7 @@ Code.
 - `current-status.md` nennt bestätigte Plattformen und noch offene Breite.
 - `plan.md` enthält beabsichtigte Arbeit; eine Planung ist keine bereits
   implementierte Funktion.
-- `changelog.md` fasst abgeschlossene Änderungen nach Produktversion zusammen;
-  die detaillierte Zwischenbuild-Historie ist ein Anhang.
+- `changelog.md` fasst abgeschlossene Änderungen nach Produktversion zusammen.
 - Datierte Qualitätsreviews dokumentieren Vergleichsbasis und Nachweise eines
   bestimmten Entwicklungsstands. Für später geändertes Verhalten sind
   Architektur, Status und Code maßgeblich.
@@ -106,7 +106,8 @@ aktuelle Architektur noch Status, Plan oder Code.
   quantitative und qualitative Abschlussbewertung von Testbarkeit,
   Wartbarkeit, Robustheit und zusätzlicher Strukturkomplexität.
 - [Anhang C: Reaudit von GlobalPlugin, Windows-Terminal-AppModule und gemeinsamen Diensten vom 4. August 2026](global-plugin-appmodule-audit-2026-08-04.md) –
-  aktueller Abgleich von Anwendungsscope, prozessweiten Eigentümern,
-  Dienstoberfläche und weiterhin offener Minimalrolle der Kompositionswurzel.
-- [Anhang D: Detaillierte Changelog-Historie](changelog-history.md) –
-  archivierte Entwicklungs- und Testbuild-Einträge bis zum 5. August 2026.
+  Abgleich von Anwendungsscope, prozessweiten Eigentümern, Dienstoberfläche
+  und der verbleibenden Rolle der Kompositionswurzel zu diesem Zeitpunkt.
+
+Die ausführliche Zwischenbuild-Historie bleibt als `changelog-history.md` im
+Repository archiviert und ist nicht Teil der aktuellen Entwicklerdokumentation.

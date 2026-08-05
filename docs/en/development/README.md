@@ -14,17 +14,18 @@ New contributors should read these pages in order:
 
 1. [Overview for new developers](overview.md) — the basic idea, data flow, and
    division of work without implementation detail.
-2. [Architecture](architecture.md) — processes, terminology, responsibilities,
-   and the complete connection lifecycle.
-3. [Repository layout](repository-layout.md) — where the corresponding sources
+2. [Repository layout](repository-layout.md) — where the corresponding sources
    and tests live.
-4. [Development and test onboarding](getting-started.md) — prerequisites,
+3. [Development and test onboarding](getting-started.md) — prerequisites,
    first commands, and checks for common kinds of changes.
-5. [Current status](current-status.md) — confirmed platforms, maturity, and
+4. [Current status](current-status.md) — confirmed platforms, maturity, and
    known limitations of the current revision.
+5. [Architecture](architecture.md) — processes, responsibilities, and the
+   complete connection lifecycle.
 
-The first three documents explain durable relationships. Current status is a
-snapshot and must not be used as an architecture specification.
+Overview, repository layout, and architecture explain durable relationships.
+Current status is a snapshot and must not be used as an architecture
+specification.
 
 ## Continue by task
 
@@ -34,7 +35,7 @@ snapshot and must not be used as an architecture specification.
 - [Test strategy](testing.md)
 - [Guided practical tests with NVDA](human-testing.md)
 - [Compatibility](compatibility.md)
-- [NVDA 2026.1 API review](nvda-2026.1-api-notes.md)
+- [NVDA API boundaries](nvda-2026.1-api-notes.md)
 
 ### Connection, installation, or security changes
 
@@ -61,6 +62,7 @@ are neither user instructions nor substitutes for the current code.
 - [ADR-0003: narrow Oil confirmation fallback](adr/0003-oil-confirmation-fallback.md)
 - [ADR-0004: NVDA lifetime and application-event ownership](adr/0004-nvda-lifetime-and-event-ownership.md)
 - [ADR-0005: Contextual input for speech exploration mode](adr/0005-contextual-exploration-input.md)
+- [ADR-0006: Local TCP and SSH standard streams as transports](adr/0006-local-tcp-and-ssh-stdio-transports.md)
 - [Active plan](plan.md)
 - [Changelog](changelog.md)
 
@@ -77,8 +79,7 @@ are neither user instructions nor substitutes for the current code.
   publication steps.
 - `current-status.md` records confirmed platforms and remaining coverage gaps.
 - `plan.md` describes intended work; a plan is not an implemented feature.
-- `changelog.md` summarizes completed changes by product version; the detailed
-  intermediate-build history is an appendix.
+- `changelog.md` summarizes completed changes by product version.
 - Dated quality reviews record the comparison basis and evidence for one
   development state. Architecture, current status, and code govern behavior
   changed afterward.
@@ -100,7 +101,9 @@ and replace neither current architecture, status, plan, nor source code.
   a quantitative and qualitative final assessment of testability,
   maintainability, robustness, and added structural complexity.
 - [Appendix C: Re-audit of the Global Plugin, Windows Terminal AppModule, and shared services, August 4, 2026](global-plugin-appmodule-audit-2026-08-04.md) —
-  a current review of application scope, process-wide owners, service surface,
-  and the composition root's still-incomplete minimal role.
-- [Appendix D: Detailed changelog history](changelog-history.md) — archived
-  development and test-build entries through August 5, 2026.
+  a review of application scope, process-wide owners, service surface, and the
+  composition root's remaining role at that time.
+
+The detailed intermediate-build history remains archived as
+`changelog-history.md` in the repository and is not part of the current
+developer documentation.

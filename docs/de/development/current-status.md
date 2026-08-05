@@ -40,9 +40,9 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Windows-Terminal-Ereignisse und `nextHandler` gehören dem AppModule.
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin
-  bleibt der prozessweite NVDA-Rand und die Kompositionswurzel; der aktuelle
-  Schnitt ist in [Architektur](architecture.md) und
-  [Anhang C](global-plugin-appmodule-audit-2026-08-04.md) dokumentiert.
+  bleibt der prozessweite NVDA-Rand und die Kompositionswurzel; den aktuellen
+  Schnitt beschreibt die [Architektur](architecture.md). Der datierte Anhang C
+  bewahrt nur die damalige Prüfgrundlage.
 
 ### Editor und Ausgabe
 
@@ -92,7 +92,10 @@ wird geprüft und mitgebaut. Quick Guide, Handbuch, Entwicklerdokumentation und
 geführter Praxistest-Leitfaden entstehen in Deutsch und Englisch als acht
 geprüfte HTML-Dateien. Die kopierbare Neovim-Beispielkonfiguration stammt aus
 einer echten getesteten Lua-Datei und wird identisch in beide Handbücher
-synchronisiert.
+synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
+deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
+Markdownlinks und generierte HTML-Ziele. GitHub Actions führt diesen Build als
+eigenen Job aus.
 
 ## Prüfnachweis
 

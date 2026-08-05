@@ -3,7 +3,22 @@
 Protokoll v2 ist die einzige unterstützte semantische Schnittstelle zum
 NVDA-Add-on. Es existiert keine Aushandlung oder Kompatibilität mit v1.
 
+## Maßgebliche Quellverträge
+
+| Bereich | Validator oder Produzent | Vertragstests |
+|---|---|---|
+| Framing und Envelope | [`codec.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/codec.py), [`messages.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/messages.py) | [`test_protocol.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/tests/test_protocol.py) |
+| Lokale Controls und Capabilities | [`local_client.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/nvim_nvda_protocol/local_client.py) | [`test_local_client.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/protocol/python/tests/test_local_client.py) |
+| SSH-stdio-Weiterleitung | [`stdio.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/bridge/python/nvim_nvda_bridge/stdio.py) | [`test_stdio.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/bridge/python/tests/test_stdio.py) |
+| Neovim-Zustand und feste Operationen | [`state.lua`](https://github.com/helmsaccess/neovim-access-link/blob/main/neovim-plugin/lua/nvim_nvda/state.lua), [`init.lua`](https://github.com/helmsaccess/neovim-access-link/blob/main/neovim-plugin/lua/nvim_nvda/init.lua) | [Lua-Vertragstests](https://github.com/helmsaccess/neovim-access-link/tree/main/neovim-plugin/tests) |
+
+Diese Seite erklärt den gültigen Vertrag; die verlinkten Validatoren sind für
+akzeptierte Werte maßgeblich. Eine Protokolländerung aktualisiert Produzent,
+beide Transportvalidatoren, Tests und beide Sprachfassungen gemeinsam.
+
 ## Transport
+
+### SSH-stdio
 
 Bei Linux startet das NVDA-Add-on pro Verbindung einen Windows-OpenSSH-Prozess. Dessen
 Remote-Befehl startet `~/.local/bin/nvim-nvda-bridge`; das Anwendungsprotokoll
@@ -20,6 +35,8 @@ NVIM-NVDA-STDIO/2
 Der Client verwirft höchstens 64 KiB Shell-Startausgabe vor dieser Markierung.
 Danach ist stdout ausschließlich dem gerahmten Protokoll vorbehalten;
 Diagnosen gehen nach stderr.
+
+### Lokales Windows-RPC
 
 Bei lokalem Windows-Neovim verbindet sich `LocalTcpClient` direkt mit Neovims
 dynamischem MessagePack-RPC-Port auf exakt `127.0.0.1`. Der SSH-Startmarker und

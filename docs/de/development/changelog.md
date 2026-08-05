@@ -28,6 +28,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Präzisiert nach erneutem Architekturaudit die verbleibende prozessweite
   Rolle des Global Plugins, ohne den AppModule-eigenen Ereignispfad zu
   verbreitern.
+- Ordnet die Entwicklerdokumentation nach Einstieg, aktuellen Erklärungen,
+  Aufgaben, Referenzen und Entscheidungen neu, entfernt veraltete
+  Transportaussagen und ergänzt einen eigenen CI-Build mit automatischer
+  Strukturprüfung der deutschen und englischen Fassungen.
 
 ## 0.96.0
 

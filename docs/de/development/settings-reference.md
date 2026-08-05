@@ -1,314 +1,135 @@
 # Add-on-Einstellungen
 
-Die Kategorie „Neovim Access Link“ erscheint im normalen
-NVDA-Einstellungsdialog. Eigene semantische Rückmeldungen verwenden dasselbe
-Modell wie „Zeileneinrückung ansagen“ unter „Dokument-Formatierungen“:
+## Maßgebliche Quellverträge
 
-- Aus
-- Sprache
-- Töne
-- Sprache und Töne
+Das NVDA-Konfigurationsschema und seine Standards stehen in
+[`__init__.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py).
+[`settings_service.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/settings_service.py)
+besitzt Normalisierung, Profilwechsel und Speicherung;
+[`nvda_ui.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py)
+besitzt die sichtbaren Controls. Paket- und Profiltests in
+[`test_built_addon.py`](https://github.com/helmsaccess/neovim-access-link/blob/main/nvda-addon/tests/test_built_addon.py)
+prüfen Schema, Defaults, UI-Werte und Speicherung. Diese Seite ist die
+entwicklerseitige Lesereferenz, nicht eine zweite Schemaquelle.
 
-Die Seite verwendet fünf zugängliche Registerkarten: „Allgemein“ mit globaler
-Rückmeldung und Sitzungsfokus, „Rückmeldung“ mit den Einzelaktionen,
-„Navigation“ mit den Detailoptionen, „Braille“ mit Exploration,
-Routingaktionen und Rechtschreibvorschlägen sowie „Verbindungen“ mit lokalem
-Windows-Neovim und Linux-Verbindungen. Innerhalb der Registerkarten sorgen
-beschriftete Gruppen für eine nachvollziehbare Tab-Reihenfolge.
+## Speicherung und Profile
 
-„Allgemein“ enthält außerdem die profilfähige Auswahl für bestätigten
-Sitzungsfokus: keine Ansage, aktuelle strukturierte Zeile oder den bisherigen
-Datei-/Spezialkontext mit Modus und Verbindungsname. Der bisherige Kontext ist
-Standard. Die Auswahl steuert weder Fokuskorrelation noch strukturierte
-Braillezeile oder die vorhandenen Modusklang-Einstellungen.
+Die Kategorie „Neovim Access Link“ verwendet den Abschnitt
+`config.conf["NeovimAccessLink"]` und damit NVDAs normale
+Konfigurationsprofile. „Übernehmen“ oder „OK“ schreibt geänderte Werte in das
+aktive Profil; nicht gesetzte Werte werden wie andere NVDA-Einstellungen
+geerbt. Es gibt keinen separaten JSON-Einstellungsspeicher.
 
-Der profilfähige boolesche Wert `automaticParameterHints` ist standardmäßig
-`true`. Er erlaubt ausschließlich die Sprachpräsentation validierter
-`activeParameterChanged`-Ereignisse. Bei `false` bleiben automatische
-Parameterübergänge still; gehaltene Entwicklerkontexte und die dauerhafte
-Brailleplanung ändern sich nicht. Der Wert löst keine Netzwerk- oder
-LSP-Arbeit auf NVDAs Hauptthread aus.
+`SettingsService` lädt, normalisiert und speichert eine vollständige Kopie der
+wirksamen Werte. Ungültige Typen oder Bereiche werden durch Standardwerte
+ersetzt und ohne vertraulichen Inhalt diagnostiziert. Ein Profilwechsel lädt
+Rückmeldung sofort neu. Verbindungsänderungen gelten für neue Verbindungen und
+beenden keine bereits authentifizierte Editorsitzung.
 
-Der profilfähige Ganzzahlwert `brailleSuggestionStart` ist einsbasiert und
-standardmäßig 1. Er positioniert ausschließlich den vorübergehenden Text einer
-aktiven Rechtschreibauswahl. Der NVDA-Brailleadapter vergleicht ihn mit
-`braille.handler.displaySize`; liegt die Position außerhalb der aktuellen
-Braillezeile, wird sie bei der Ausgabe ignoriert und Modul 1 verwendet.
-Vor dem Einfügen führender Leerzellen übersetzt die Region den unverschobenen
-Vorschlag mit NVDAs aktiver Brailletabelle. Der späteste vollständig passende
-Start begrenzt anschließend den eingestellten Wert nach links; ein längerer
-Vorschlag beginnt auf Modul 1. Sprache und dauerhafte Editor-Brailleplanung
-bleiben unverändert.
+## Oberfläche und Zuständigkeit
 
-Der profilfähige Ganzzahlwert `brailleDeveloperStart` folgt denselben
-Validierungs- und Einpassregeln. Er positioniert ausschließlich die gehaltene
-Anzeige von Funktionsparametern und Diagnosen und ist von
-`brailleSuggestionStart` unabhängig. Beide Werte verwenden standardmäßig 1.
+Der NVDA-Einstellungsdialog enthält fünf Registerkarten:
 
-Der profilfähige boolesche Wert `brailleFollowSpeechExploration` ist
-standardmäßig `true`. Er erlaubt dem Brailleplan, die validierte virtuelle
-Zeile des Controllers für den Sprachexplorationsmodus anzuzeigen. Der
-kanonische Editorzustand bleibt unverändert. Der getrennte
-Braille-Explorationscontroller besitzt Vorrang. Bei `false` bleibt die
-Brailleplanung während `NVDA+h/j/k/l` und `Umschalt+NVDA+h/l` am kanonischen
-Cursorzustand.
+- „Allgemein“ für globale Rückmeldung, Sitzungsfokus und automatische
+  Parameteransage;
+- „Rückmeldung“ für einzelne Sprach- und Klangereignisse;
+- „Navigation“ für Details nach normaler Navigation und Sprachexploration;
+- „Braille“ für Exploration, Routingaktionen und flüchtige Ansichten;
+- „Verbindungen“ für lokales Windows-Neovim und gespeicherte SSH-Ziele.
 
-Der verschachtelte profilfähige Abschnitt `brailleRouting` enthält drei
-Auswahlindizes:
+Das Add-on dupliziert keine geeignete NVDA-Einstellung. Tastaturecho kommt aus
+„Tastatur“, Einrückung sowie Rechtschreibung und Grammatik aus
+„Dokument-Formatierungen“, automatische Vorschlagsklänge aus
+„Objekt-Darstellung“ und Übersetzung, Treiber sowie Cursorform aus „Braille“.
 
-- `wordAction`: 0 für nur Routing, 1 für `cw`, 2 für `dw`;
-- `lineAction`: 0 für nur Routing, 1 für `c$`, 2 für `d$`;
-- `lineStart`: 0 für die Routingposition, 1 für das erste
-  Nicht-Leerzeichen, 2 für den absoluten Zeilenanfang.
+## Rückmeldung
 
-Alle Standardwerte sind 0. `lineStart` wird nur bei einer aktivierten
-Zeilenaktion ausgewertet. Die Wiederholungsfrist stammt aus NVDAs öffentlicher
-Einstellung `config.conf["keyboard"]["multiPressTimeout"]`; das Add-on besitzt
-dafür keinen zweiten Zeitwert. `SettingsService` validiert die Indizes und
-stellt der Terminalintegration ausschließlich die aufgelösten symbolischen
-Werte bereit.
+Rückmeldungswerte verwenden `0 = Aus`, `1 = Sprache`, `2 = Töne` und
+`3 = Sprache und Töne`. Der globale Wert begrenzt die einzelnen Aktionen.
+`diagnosticLine` und `diagnosticPosition` erlauben nur Aus oder Töne.
 
-Der globale Wert wird mit dem Wert der einzelnen Aktion kombiniert. Steht der
-globale Wert beispielsweise auf „Sprache“, kann keine Aktion einen Ton
-ausgeben, ihre aktivierte Sprachausgabe bleibt jedoch erhalten.
+| Schlüssel | Standard | Zweck |
+|---|---:|---|
+| `global` | 3 | Obergrenze aller Add-on-Rückmeldungen |
+| `mode`, `delete`, `replace` | 3 | Moduswechsel und Bearbeitung |
+| `lineBoundary`, `lineCrossed` | 2 | Zeilengrenzen und Zeilenwechsel |
+| `fileBoundary`, `matchingError` | 3 | Dateigrenzen und fehlendes Gegenzeichen |
+| `diagnosticLine`, `diagnosticPosition` | 2 | gezielte Fehler-/Warnungsklänge |
+| `clipboard` | 3 | Erfolg ausdrücklicher Zwischenablagebefehle |
 
-Konfigurierbar sind nur Rückmeldungen, für die NVDA keine passendere bestehende
-Option besitzt:
+`focusAnnouncement` verwendet `0 = keine Ansage`, `1 = aktuelle Zeile` und
+`2 = aktueller Datei- oder Spezialkontext mit Modus und Verbindungsname`.
+Standard ist 2. `automaticParameterHints` ist standardmäßig aktiv und steuert
+nur kurze validierte Sprachhinweise zum aktiven Funktionsparameter.
 
-- Wechsel zwischen Insert- und Normalmodus; andere Modi bleiben immer sprachlich zugänglich
-- Löschen und Backspace
-- Ersetzen
-- Zeilenanfang und Zeilenende
-- Dateianfang und Dateiende
-- Hinweis beim Überschreiten einer Zeilengrenze
-- fehlendes passendes Klammerzeichen
-- Diagnosefehler oder -warnung beim Eintritt in eine betroffene Zeile
-- Diagnosefehler oder -warnung an jeder durch ausdrückliche Navigation
-  erreichten Position in einem exakten Bereich
-- Erfolg beim expliziten Kopieren und Einfügen
+## Navigationsdetails
 
-Für die beiden reinen Diagnoseklänge bietet die Oberfläche nur `Aus` und
-`Töne`; sie erzeugen keine beiläufige Sprachausgabe.
+`navigationDetails` hält getrennte Werte für normale Navigation und die
+Abschlussansage der Sprachexploration:
 
-Folgende Funktionen werden bewusst nicht dupliziert:
+| Schlüssel | Werte | Standard |
+|---|---|---:|
+| `navigationWord`, `explorationWord` | 0 Wort; 1 Wort und Cursorzeichen | 1 |
+| `navigationLine`, `explorationLine` | 0 Zeile; 1 plus Wort; 2 plus Cursorzeichen; 3 plus Wort und Zeichen | 2 |
 
-| Funktion | Zuständige NVDA-Einstellung |
-| --- | --- |
-| Einrückung | Optionen → Einstellungen… → Dokument-Formatierungen → Zeileneinrückung ansagen |
-| Rechtschreibung und Grammatik | Optionen → Einstellungen… → Dokument-Formatierungen → Rechtschreib- und Grammatikfehler |
-| Vorschlagsmenüs | Optionen → Einstellungen… → Objekt-Darstellung → Automatische Vorschläge mit Klang melden |
-| Zeichen- und Wortecho | Tastatur, eingegebene Zeichen/Wörter ansagen |
+Die neutralen Sprachplaner erhalten bereits aufgelöste boolesche Werte und
+lesen NVDAs Konfiguration nicht selbst. Explorationswerte werden beim
+Loslassen der NVDA-Taste aus dem aktiven Profil gelesen; sie verändern weder
+virtuelle Bewegung noch Zeichenexploration.
 
-Die Rückmeldungswerte werden im Abschnitt `NeovimAccessLink` von NVDAs regulärer
-Konfiguration als Zahlen von 0 bis 3 gespeichert; die Fokusauswahl verwendet
-0 bis 2. Unbekannte oder ungültige Werte werden verworfen und im redigierten
-Diagnosebericht gemeldet.
+## Braille
 
-Der verschachtelte Abschnitt `navigationDetails` enthält vier profilfähige
-Auswahlindizes. `navigationWord` und `explorationWord` verwenden 0 für nur das
-Grundwort und 1 für Wort plus Cursorzeichen. `navigationLine` und
-`explorationLine` verwenden 0 für nur die Grundzeile, 1 zusätzlich für das
-aktuelle Wort, 2 zusätzlich für das Cursorzeichen und 3 für beides in der
-Reihenfolge Wort, Zeichen. Die Standardwerte 1, 2, 1 und 2 erhalten das
-Verhalten vor Einführung dieser Auswahl. `SettingsService` löst sie in
-boolesche Planungswerte auf; die NVDA-neutralen Sprach- und
-Explorationsplaner lesen nie unmittelbar aus NVDAs Konfiguration. Die
-Explorationswerte werden beim Loslassen der NVDA-Taste neu aus dem aktiven
-Profil aufgelöst; sie verändern weder virtuelle Explorationsschritte noch
-Zeichenexploration.
+| Schlüssel | Standard | Verhalten |
+|---|---:|---|
+| `brailleFollowSpeechExploration` | `true` | Braille folgt der virtuellen Position der Sprachexploration; der eigene Braille-Explorationsmodus hat Vorrang. |
+| `brailleSuggestionStart` | 1 | einsbasierte Startzelle flüchtiger Rechtschreibvorschläge |
+| `brailleDeveloperStart` | 1 | einsbasierte Startzelle gehaltener Parameter- und Diagnoseansichten |
 
-Die vier Zwischenablagebefehle besitzen keine Standardgesten. Anwender weisen ihnen
-in NVDAs Dialog „Tastenzuordnungen“ eigene Tastenkombinationen zu. Konfiguriert wird nur
-die Erfolgsrückmeldung; Übertragungsrichtung, Register und Zielbuffer werden
-nicht durch frei eingegebene Befehle oder automatische Synchronisation
-gesteuert. Der Registerbefehl ersetzt fest Register 0 und lässt das unbenannte
-Register darauf zeigen; benannte Benutzerregister bleiben unverändert.
+Die Startzellen liegen im Bereich 1 bis 1000. Ist die reale Anzeige kürzer,
+wird Zelle 1 verwendet. Nach der Brailleübersetzung wird der Start bei Bedarf
+nach links verschoben, damit der vollständige Text möglichst auf die Anzeige
+passt. Diese Werte verändern weder Sprache noch die dauerhafte Editorregion.
 
-## NVDA-Konfigurationsprofil
+`brailleRouting` enthält drei Auswahlindizes:
 
-Der Add-on-Dialog besitzt keine eigene Profilwahl und aktiviert oder deaktiviert
-keine NVDA-Profile. Seine Werte sind stattdessen native, validierte
-`config.conf`-Einstellungen. Wird der Dialog bei einem aktiven
-NVDA-Konfigurationsprofil mit „Übernehmen“ oder „OK“ gespeichert, schreibt NVDA
-geänderte Add-on-Werte in genau dieses Profil. Nicht geänderte Werte werden wie
-andere NVDA-Einstellungen aus darunterliegenden Profilen beziehungsweise der
-Basiskonfiguration geerbt.
+- `wordAction`: 0 nur Routing, 1 `cw`, 2 `dw`;
+- `lineAction`: 0 nur Routing, 1 `c$`, 2 `d$`;
+- `lineStart`: 0 Routingposition, 1 erstes Nicht-Leerzeichen, 2 Zeilenanfang.
 
-Manuelle und automatisch ausgelöste NVDA-Profilwechsel laden die wirksamen
-Add-on-Werte unmittelbar neu. Rückmeldungsoptionen gelten sofort;
-Verbindungswerte gelten für den nächsten Verbindungsaufbau. Eine bereits
-authentifizierte laufende Editorverbindung wird durch einen bloßen
-NVDA-Profilwechsel nicht unterbrochen. Es gibt keinen separaten JSON-
-Einstellungsspeicher und keinen Import aus älteren Add-on-IDs.
+Alle Standards sind 0. `lineStart` wird nur bei aktivierter Zeilenaktion
+verwendet. Die Wiederholungsfrist stammt ausschließlich aus NVDAs öffentlicher
+Einstellung `keyboard.multiPressTimeout`.
 
-## SSH-Verbindungsprofile
+## Verbindungen und Zuordnung
 
-Ein SSH-Verbindungsprofil trennt Anzeigename, Host beziehungsweise OpenSSH-
-Alias, Port, Linux-Benutzer und optionale Schlüsseldatei. Der lokale Windows-
-Benutzername wird an keiner Stelle als Linux-Benutzername eingesetzt. Ein
-leeres Benutzerfeld bedeutet ausschließlich, dass OpenSSH den Benutzer aus
-seiner Konfiguration bestimmen soll.
+`connections` speichert eine JSON-kodierte Liste validierter SSH-Profile in
+NVDAs Konfigurationsabschnitt. Ein Profil enthält interne ID, Anzeigename,
+Host oder OpenSSH-Alias, optionalen Linux-Benutzer, Port, optionale
+Schlüsseldatei und Anmeldeart. Host und Benutzer bleiben getrennte Felder.
+Doppelte IDs, ungültige Ports und Optionsinjektion werden abgewiesen;
+Passwörter sind ausschließlich Laufzeitdaten.
 
-Host und Benutzer müssen in getrennten Feldern stehen; kombinierte Altwerte
-wie `linux-user@example-host` werden nicht migriert. Profilkennungen, Hosts, Ports,
-Benutzernamen, Schlüsselpfade und Authentifizierungsart werden vor Benutzung
-validiert; doppelte Kennungen und Optionsinjektion werden abgewiesen.
+Lokales Windows-Neovim ist der feste Zieltyp `localWindowsTcp`. Es besitzt
+kein gespeichertes Profil und keinen konfigurierbaren Port; der dynamische
+Endpunkt bleibt auf `127.0.0.1`.
 
-Lokales Windows-Neovim wird ohne gespeichertes Profil automatisch erkannt; dafür
-werden weder Host noch Konto oder Port eingegeben. Für die Komponenteninstallation wird bei jedem Aufruf
-ausdrücklich aus dem lokalen Rechner und allen gespeicherten Linux-
-Verbindungen gewählt. Ein
-abweichender Port wird mit `ssh -p`, eine Schlüsseldatei als separates
-`-i`-Argument übergeben; Pfade mit Leerzeichen bleiben dadurch ein einzelnes
-Argument.
+F12 ist die paketierte physische Zuordnungstaste und kein frei belegbares
+NVDA-Skript. Bei aktiviertem Dienst autorisiert ein F12-Druck genau einen
+Versuch für das fokussierte Windows-Terminal-Control. Fokusobjekt, konkrete
+AppModule-Instanz, vollständige UIA-Identität, Gate und frischer
+Sitzungs-Claim müssen übereinstimmen. Ohne Treffer entstehen keine Bindung,
+kein Dialog und keine Unterdrückung.
 
-In der Gruppe „Gespeicherte SSH-Verbindungen“ können Linux-Verbindungen hinzugefügt, bearbeitet
-und entfernt werden. Hinzufügen und Bearbeiten öffnet jeweils genau ein
-beschriftetes Formular für Anzeigename, Host/Alias, Linux-Benutzer, Port,
-optionale Schlüsseldatei und Anmeldeart. Ein Abbruch lässt die Settings
-unverändert; ein Validierungsfehler öffnet dasselbe Formular mit den bisherigen
-Eingaben erneut.
-Erst „OK“ beziehungsweise „Übernehmen“ im NVDA-Dialog schreibt atomisch auf
-Datenträger. Änderungen an der Liste starten bei aktivierter Barrierefreiheit
-eine neue Hintergrunderfassung, ohne bereits laufende Editorverbindungen zu
-beenden.
+Der frei belegbare Befehl „Server wählen und dieses Terminal mit einer neuen
+Neovim-Sitzung verbinden“ öffnet die Profilauswahl und verlangt danach F12 in
+der gewünschten Sitzung. Laufzeitbindungen verwenden UIA-Runtime-IDs, leben
+nur im Speicher und werden nicht aus Fenstertiteln oder Terminaltext geraten.
 
-Im Formular heißen die Anmeldearten „OpenSSH-Einrichtung verwenden (empfohlen:
-Schlüssel, ssh-agent oder SSH-Konfiguration)“ und „Beim Verbinden nach dem
-SSH-Passwort fragen (Passwort wird nicht gespeichert)“. Die erste Auswahl verwendet die normale Windows-
-OpenSSH-Konfiguration, Schlüsseldateien oder ssh-agent und eignet sich, wenn
-`ssh` unter Windows bereits ohne Passwortdialog funktioniert. Die zweite
-Auswahl erklärt, dass der Linux-SSH-Server Passwortanmeldung erlauben muss.
-NVDA fragt beim ersten Verbindungsaufbau der Aktivierung zugänglich nach dem
-Passwort. Es wird nur im Arbeitsspeicher gehalten, für Reconnects derselben
-Aktivierung wiederverwendet und beim Deaktivieren oder Beenden verworfen.
+## Validierungsgrenze
 
-Der Menüpunkt `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...`
-öffnet vor jeder Installation eine Checkboxliste aus „Dieser Computer“ und allen gespeicherten
-Linux-Verbindungen. Jeder Eintrag
-nennt Anzeigename, Linux-Konto, Host, Port und verständliche Anmeldeart. Keine
-Verbindung ist vorausgewählt. Die initial fokussierte Checkbox „Alle
-Verbindungen auswählen“ markiert beziehungsweise demarkiert alle Ziele; alternativ lassen
-sich einzelne Verbindungen ankreuzen. Sind dadurch alle Einzelziele markiert,
-aktiviert sich die Sammelcheckbox ebenfalls; beim Demarkieren eines Ziels wird
-sie wieder deaktiviert. „OK“ akzeptiert nur eine nichtleere Auswahl. Das
-lokale Plugin beziehungsweise das kombinierte Linux-Benutzerpaket wird im
-Hintergrund ohne Administrator- oder Root-Rechte installiert. Der abschließende Dialog listet
-kompakt und ohne NVDA zu blockieren getrennt auf, welche Verbindungen
-erfolgreich aktualisiert wurden und welche mit welchem kurzen Grund
-fehlgeschlagen sind.
-
-Das Passwort erscheint weder in JSON noch Kommandozeile oder Diagnose. Windows
-OpenSSH erhält es mit `SSH_ASKPASS_REQUIRE=force` über einen mitgelieferten
-Helfer, dessen Datei selbst kein Geheimnis enthält. Der SSH-Prozess erlaubt nur
-einen Passwortversuch und deaktiviert in diesem Modus Public-Key-Fallback.
-
-Profile sind gespeicherte Linux-Zielkonten und dürfen dieselben Werte besitzen. Zwei
-Profile können daher beispielsweise beide `editor@example-host` verwenden und bleiben
-durch ihre interne ID getrennt. Parallele SSH-Laufzeitverbindungen sind als
-eigene Instanzen umgesetzt. Lokale Windows-Sitzungen sind als eigener Typ
-`localWindowsTcp` umgesetzt. Ihr dynamischer Port ist ausschließlich an
-`127.0.0.1` gebunden und wird niemals manuell konfiguriert.
-
-Hostwerte dürfen DNS-Namen, OpenSSH-Aliase, IPv4- oder IPv6-Literale sein.
-Mehrere unterschiedliche Hosts können parallel verbunden und explizit an
-verschiedene Terminals gebunden werden. SSH-Port, Schlüssel und
-Authentifizierung gelten je Profil und werden nicht global geteilt.
-
-`F12` ist die fest konfigurierte Zuordnungstaste des installierten Plugins und
-kein frei belegbarer NVDA-Befehl. Bei eingeschaltetem Dienst autorisiert jeder physische
-F12-Druck genau einen Zuordnungsversuch für die vollständige UIA-Identität des
-fokussierten Windows-Terminal-Controls. NVDA reicht die Geste unverändert an
-Windows Terminal und Neovim weiter und vergleicht danach die Claim-Sequenzen
-der lokalen JSON-Sitzungsdateien und aller automatisch erfassten
-SSH-Verbindungen. Diese dateibasierte Sitzungsregistrierung ist keine Windows-
-Registry. Das Plugin schreibt ohne sichtbare Neovim-Meldung eine monotone
-Markierung in seine private Sitzungsdatei; das Add-on wählt lokal
-beziehungsweise über SSH nur die jüngste, höchstens
-15 Sekunden alte Markierung. Dadurch ist
-auch bei identischen Konten, Arbeitsverzeichnissen und Sitzungsnamen keine ID-
-Eingabe und kein Raten anhand des Terminalinhalts nötig. Nach einer
-Komponentenaktualisierung muss Neovim neu gestartet werden, damit die
-F12-Erkennung verfügbar ist.
-Das Windows-Terminal-App-Modul beobachtet F12 mit
-`decide_executeGesture`, ohne ein NVDA-Skript zu binden. NVDA lässt dadurch den
-ursprünglichen physischen Tastendruck direkt zu Neovim durch; der Beobachter
-stellt die Claim-Auswertung getrennt in die Ereigniswarteschlange. Neovim
-vergleicht den unveränderten `typed`-Wert statt einer terminalcodeabhängigen
-Zuordnung. Bei ausgeschaltetem Dienst ist der Beobachter inaktiv. Bei
-eingeschaltetem Dienst aktualisiert das Add-on nach F12 die Terminalzuordnung
-und sucht nach genau dem dadurch neu entstandenen Claim; ohne Treffer bleibt
-die Prüfung still und ohne Bindung, Dialog oder Unterdrückung.
-Vor der Autorisierung müssen das aktuelle NVDA-Fokusobjekt, genau dessen
-Windows-Terminal-AppModule-Instanz, die vollständige UIA-Control-Identität und
-das Gate übereinstimmen. Ein einzelnes noch lebendes AppModule genügt nicht als
-Fallback. Im Insert-Modus bleibt F12 als physischer Claim sichtbar, erzeugt bei
-ansonsten unbelegter Taste danach aber keinen Text. Bestehende
-Insert-Mode-Belegungen werden nicht ersetzt. Da vor der ersten Verbindung kein
-Rückkanal von NVDA zu dieser Neovim-Instanz besteht, gilt diese schmale
-Reservierung innerhalb Neovims auch dann, wenn NVDA den Tastendruck nicht für
-eine Zuordnung autorisiert; außerhalb von Neovim bleibt F12 unverändert.
-
-Der Aktivierungsbefehl startet die Hintergrunderfassung. F12 wird erst nach der
-Bereitschaftsmeldung zur Zuordnung ausgewertet. Der gesonderte Befehl „Server wählen und dieses
-Terminal mit einer neuen Neovim-Sitzung verbinden“ wählt ein Ziel und bereitet
-danach denselben control-spezifischen F12-Nachweis vor.
-
-Diese Befehle werden derzeit ausschließlich in eindeutig erkanntem Windows
-Terminal aktiv. Die ausgelieferte `frontend-policy.json` führt Windows Terminal
-als aktiviert und PuTTY lediglich als geplant. Die Richtlinie ist keine
-Benutzereinstellung: Ein weiteres Terminal kann erst nach Implementierung und
-Prüfung eines passenden Adapters freigegeben werden. In allen anderen Fenstern
-bleiben Verbindungsaufbau, strukturierte Ausgabe, Braille-Overlay und
-Terminalunterdrückung aus.
-Auch F12 ist keine globale Add-on-Belegung: Die Geste gehört zum von NVDA nur
-für `windowsterminal.exe` geladenen AppModule. Notepad, PuTTY und andere
-Anwendungen laden diesen Eingabescriptpfad überhaupt nicht. Beim Verlassen von
-Windows Terminal löscht NVDAs AppModule-Lebenszyklus den aktiven
-Unterdrückungszustand.
-
-Die SSH-Abfrage verwendet das ausdrücklich gewählte Verbindungsprofil. Neovim kann vor
-der ersten Bridgeverbindung nicht selbst aus der entfernten SSH-Sitzung zum
-Windows-Add-on zurückrufen. Für ein anderes Konto oder einen anderen Host muss
-daher zuerst das passende Profil aktiviert oder der dialogbasierte
-Verbindungsbefehl verwendet werden.
-
-Nach vorherigem Fokussieren von Windows Terminal können Anwender über NVDAs
-Dialog „Eingaben“ zusätzlich eine eigene Tastenkombination für „Server wählen
-und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ vergeben. Dieser
-Befehl gehört wie die übrigen frei belegbaren Terminalbefehle zum Windows-
-Terminal-AppModule und wird in fremden Anwendungen nicht aufgelöst. Nach dem
-Laden der Klasse kann NVDAs globale Benutzergestenkarte eine gespeicherte
-Zuordnung dort trotzdem weiter im Dialog darstellen. Der Befehl öffnet immer
-die Profilauswahl. Die früher angebotenen,
-leicht verwechselbaren Befehle zum Auswählen oder zyklischen Wechseln einer
-bereits laufenden Verbindung sind nicht mehr öffentlich. Es gibt keine
-kollisionsanfällige Standardbelegung für diesen dialogbasierten Zusatzbefehl
-und keine heuristische Zuordnung anhand von Fenstertiteln. Die Auswahl gilt für
-das beim Aufruf fokussierte Terminal.
-
-Der Befehl „Server wählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ lässt
-sich in NVDAs Dialog „Eingaben“ frei mit einer Taste belegen. Er fragt immer
-ausdrücklich nach dem Profil, verlangt danach F12 im gewünschten Neovim und
-zeigt nur bei mehreren frisch markierten Sitzungen eine kurze Auswahl mit Name
-und Arbeitsverzeichnis. Interne IDs werden nicht angezeigt, und das
-Add-on versucht keine Zuordnung anhand von Fenstertiteln oder Terminaltext.
-
-Ein Profil reicht für mehrere parallele Neovim-Instanzen desselben Kontos.
-Bei gleichen Arbeitsverzeichnissen können sie mit
-`NVIM_NVDA_SESSION_NAME="Name" nvim` oder später mit
-`:NvimNvdaSessionName Name` benannt werden. Ohne Namen ergänzt die Auswahl
-Startzeit und laufende Nummer und kennzeichnet bereits verbundene Sitzungen.
-
-Der Verbindungsbefehl erzeugt eine eigene Laufzeitinstanz.
-Nach deren erstem gültigen `fullState` kann der Anwender eine ausschließlich im
-RAM gehaltene Zuordnung zum aktuellen Windows-Terminal-Control bestätigen. Sie
-verwendet die UIA-Runtime-ID statt Titel oder Terminaltext. Ein eigener
-NVDA-Befehl vergisst die Zuordnung wieder. Abgelehnte oder veraltete IDs lösen
-keine automatische Verbindung aus.
-Jede Instanz behält ihren eigenen SSH-Prozess und Reconnectzustand. Laufende
-Instanzen erscheinen im schnellen Auswahldialog. Alternativ kann „nächste
-Neovim-Verbindung“ in NVDAs Dialog „Eingaben“ mit einer eigenen Taste belegt
-werden. „Ausgewählte Instanz trennen“ beendet nur die an dieses Terminal
-gebundene Verbindung. Beim Umschalten fordert das Add-on den vollständigen
-Neovim-Zustand neu an.
+Einstellungswerte steuern ausschließlich Planung, UI und den Aufbau neuer
+Verbindungen. Sie dürfen weder einen Capability-, Fokus-, Identitäts- oder
+Protokollcheck umgehen noch frei formulierte Lua-, Ex-, Register- oder
+Transportbefehle erzeugen. Schema und Standards gehören zum Add-on-Code;
+diese Referenz und beide Sprachfassungen werden bei Änderungen gemeinsam mit
+Schema-, Profil-, UI-, Lokalisierungs- und Pakettests aktualisiert.

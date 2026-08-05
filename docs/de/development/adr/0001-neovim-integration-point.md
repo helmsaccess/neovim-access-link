@@ -1,7 +1,14 @@
 # ADR-0001: Hybrider Neovim-Andockpunkt
 
-- Status: akzeptiert
-- Datum: 2026-07-11
+## Status
+
+Durch [ADR-0006](0006-local-tcp-and-ssh-stdio-transports.md) teilweise abgelöst.
+
+Datum: 2026-07-11.
+
+Die Entscheidung für semantische Ereignisse aus einem Lua-Plugin gilt weiterhin. Die hier
+beschriebene Bridge mit Loopback-Listener und SSH-Portweiterleitung entspricht nicht mehr der
+aktuellen Transportarchitektur; ADR-0006 ersetzt diesen Teil der Entscheidung.
 
 ## Kontext und Messung
 

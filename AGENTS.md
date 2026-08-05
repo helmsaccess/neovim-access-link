@@ -50,9 +50,9 @@ take precedence.
 - Prefer simplification and deletion over new layers, state, or parallel paths when tests show
   required behavior is preserved.
 - Preserve unrelated user changes and keep changes focused.
-- Store project-specific temporary sources, downloaded tools, test workspaces, reproductions,
-  and reports under `/nfs/src/nal-tmp/`, outside the repository and its worktrees. Do not use a
-  repository-local `tmp/` directory or the system `/tmp` for this project.
+- Store agent-created temporary sources, downloaded tools, test workspaces, reproductions, and
+  reports under `/nfs/src/nal-tmp/`, outside the repository and its worktrees. This does not
+  replace runtime paths or tool-owned ignored output directories documented by the project.
 - Follow the established conventions of each component and upstream API; do not impose one
   component's style on another.
 - Logging is diagnostic only; correctness must never depend on it.

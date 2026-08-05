@@ -1,100 +1,73 @@
 # Latenz
 
-## Messdefinition
+## Messmodell und Ziel
 
-Getrennt gemessen werden Neovim-Callback bis Send, Transport, Parsing/Dispatch,
-Speech-Queue-Aufruf und Gesamtpipeline. Monotone hochauflösende Uhren sind
-Pflicht; Uhren verschiedener Rechner werden nicht ohne Synchronisationsmodell
-direkt subtrahiert.
+Messungen trennen Neovim-Callback bis Send, Transport, Parsing und Dispatch,
+Aufruf der NVDA-Ausgabequeue und Gesamtpipeline. Sie verwenden monotone,
+hochauflösende Uhren. Zeitstempel verschiedener Rechner werden ohne
+Synchronisationsmodell nicht direkt voneinander abgezogen.
 
-Ziele bis Speech-Aufruf: Median <20 ms, p95 <40 ms, p99 <75 ms.
+Das Ziel vom Neovim-Ereignis bis zum Speech-Aufruf lautet Median unter 20 ms,
+p95 unter 40 ms und p99 unter 75 ms. Ein synthetischer Messwert belegt nur den
+gemessenen Abschnitt; die praktische Wahrnehmung unter NVDA bleibt eine eigene
+Prüfung.
 
-## Vorläufige lokale Ergebnisse (2026-07-11)
+## Nicht blockierender NVDA-Pfad
 
-| Modell | n | p50 | p95 | p99 | Maximum |
-|---|---:|---:|---:|---:|---:|
-| Lua-Zustandsaufnahme im Prozess | 10.001 | 1,19 µs | 4,63 µs | 8,68 µs | 70,95 µs |
-| externer RPC-Snapshot, 6 Requests | 10.000 | 195,29 µs | 277,63 µs | 418,74 µs | 2.062,81 µs |
-| hybrider Lua-Snapshot, 1 RPC-Request | 10.000 | 68,92 µs | 103,92 µs | 135,36 µs | 951,29 µs |
+NVDAs Hauptthread wartet nie auf SSH, Socket-I/O, DNS, Reconnect,
+Installation, Parsing oder Logging. Eingabe- und Regionscallbacks validieren
+kleine unveränderliche Payloads und legen sie ohne Warten in begrenzte Queues.
+Worker führen Transportzugriffe aus; Ergebnisse kehren über NVDAs
+Ereignisqueue zur Präsentation zurück.
 
-Der Test läuft headless auf dem lokalen Rocky-System. Er misst sechs Kernfelder
-in einer Lua-Funktion, aber weder Socket-Senden noch Ereignisdispatch oder NVDA.
-LAN-/SSH- und NVDA-Werte bleiben bis zum Zugriff auf das Zielsystem offen.
+Eine volle oder geschlossene Queue, ein veraltetes Ergebnis oder ein
+Fokuswechsel verwirft eine optionale Steueraktion fail-open. Beim Loslassen
+einer Explorationstaste verwendet die Ausgabe bereits vorhandenen kanonischen
+Zustand und wartet nicht auf einen Roundtrip.
 
-Der externe RPC-Test lief über SSH außerhalb der Sandbox auf demselben
-Zielsystem. Die sechs synchronen Roundtrips sind ein konservativer Basisfall;
-ein produktiver Client bündelt Aufrufe oder verwendet Push-Ereignisse.
+## Begrenzte Hochfrequenzpfade
 
-Dateimanager-Renderereignisse werden ohne Warte-Timer innerhalb genau eines
-Neovim-Schedulerzyklus zusammengefasst. Danach wird der aktive Adapterzustand
-einmal gelesen und nur bei einer echten semantischen Änderung gesendet.
-Inaktive Ziele werden vor und nach dem Schedulerwechsel verworfen. Es gibt
-keine periodische Adapter- oder Dateisystemabfrage.
-Synchrone Aktionsresultate desselben aktiven Ziels verwenden denselben
-Schedulerzyklus zur Bündelung. Das ist kein Wartefenster: Nach Ablauf dieses
-Zyklus wird sofort genau eine typisierte Sammelmeldung geplant.
-Eingebaute Dateimanageradapter werden direkt nach `filetype` gewählt. Ein
-externer Detector oder Provider besitzt ein Budget von 5 ms. Drei wiederholte
-Überschreitungen oder Fehler führen bufferlokal für fünf Sekunden zur
-fail-open-Abkühlung. Diese Frist wird nur bei bestehenden Ereignissen geprüft;
-es gibt dafür keinen Timer und keine Hintergrundabfrage.
-Der Oil-Bestätigungsfallback läuft ebenfalls nur auf bereits eintreffenden
-Buffer-/Fensterereignissen. Er liest höchstens 200 Bufferzeilen und beendet
-die Erkennung beim ersten unbekannten Format; daraus entsteht weder ein Timer
-noch eine periodische Prüfung.
+- Cursor-, Text- und UI-Ereignisse dürfen nur zusammengefasst werden, wenn
+  Reihenfolge, Sitzungsidentität und neuester semantischer Zustand erhalten
+  bleiben. Eine Sequenzlücke fordert `fullState` an.
+- Dateimanager-Renderereignisse und synchrone Aktionsresultate werden innerhalb
+  genau eines Neovim-Schedulerzyklus zusammengefasst. Es gibt keine
+  periodische Datei- oder Adapterabfrage.
+- Externe Dateimanager-Detektoren besitzen ein Budget von 5 ms. Wiederholte
+  Fehler oder Überschreitungen aktivieren eine bufferlokale, ereignisgetriebene
+  Abkühlung.
+- Der Oil-Bestätigungsfallback liest nur bei vorhandenen Ereignissen und
+  höchstens 200 Bufferzeilen.
+- Sprachexploration begrenzt Antworten auf 16 KiB, Wortsuche auf 256 Zeilen
+  beziehungsweise 64 KiB und Wiederholung auf 64 Schritte.
+- Braille-Routing, Braille-Zeilennavigation und Braille-Exploration verwenden
+  denselben begrenzten Control-Dispatcher. Übersetzung und Planung auf NVDAs
+  Hauptthread führen kein Transport-I/O aus.
 
-Explorationsgesten planen auf NVDAs Hauptthread nur einen begrenzten
-Steuerpayload. Ein begrenzter Worker sendet ihn; Socket- oder SSH-I/O findet
-nicht im Gestenskript statt. Eine Antwort enthält höchstens 16 KiB Text.
-Wortsuche ist auf 256 Zeilen beziehungsweise 64 KiB und Wiederholung auf 64
-Schritte begrenzt. Die Schlussansage beim Loslassen verwendet den bereits
-vorliegenden kanonischen Zustand und wartet nicht auf einen Roundtrip.
+Die erste Routingbetätigung bleibt unmittelbar. Nur wenn konfigurierte Doppel-
+und Dreifachaktionen unterschieden werden müssen, hält `core.callLater` einen
+bereits lokal geplanten Auftrag bis zum Ablauf von NVDAs
+Mehrfachbetätigungsfrist zurück. Der Callback schläft nicht und führt kein I/O
+aus.
 
-Braille-Routing verwendet denselben begrenzten Control-Dispatcher. Regions-
-und Routingcallbacks bilden auf NVDAs Hauptthread ausschließlich die
-übersetzte Zelle auf einen bereits validierten festen Payload ab und legen
-eine unveränderliche Kopie ohne Warten in die Queue. Erst der Worker ruft
-`send_control` auf. Das ist insbesondere für SSH erforderlich, weil dessen
-Stdio-Client in `send_control` auf den Pipe-Lock zugreift, schreibt und
-`flush()` aufruft. Eine volle oder geschlossene Queue verwirft die optionale
-Routingaktion fail-open; sie darf NVDA niemals blockieren.
+## Reproduzierbare Messungen
 
-Die erste Betätigung einer Routingtaste bleibt auch bei aktivierten
-Mehrfachaktionen unverzögert. Wenn Wort- und Zeilenaktion gleichzeitig
-konfiguriert sind, hält `core.callLater` nur den bereits lokal geplanten
-Wortauftrag bis zum Ablauf von NVDAs Mehrfachbetätigungsfrist zurück. Der
-Callback wartet nicht, schläft nicht und führt kein I/O aus; eine dritte
-Betätigung entwertet ihn per Token. Erst der daraus entstehende feste
-`brailleRouteAction`-Auftrag wird wie anderes Routing nichtblockierend in
-denselben Dispatcher gelegt.
+`tools/latency/serialization_benchmark.py` vergleicht MessagePack und kompaktes
+JSON mit einem repräsentativen Zustandsereignis:
 
-`moveBrailleLine` verwendet denselben Dispatcher und dieselben
-Nichtblockierungsregeln. Der NVDA-Regionscallback prüft und reiht nur den
-kleinen festen Payload ein. Virtuelle-zu-Bytespalten-Abbildung,
-Cursorbewegung und Zustandsereignis entstehen im Neovim-Prozess.
+```bash
+python3 tools/latency/serialization_benchmark.py
+```
 
-Im Braille-Explorationsmodus ersetzt ein ebenso begrenzter
-`brailleExploreLineRequest` diesen Cursorauftrag. Der NVDA-Hauptthread
-verändert nur lokalen Planungszustand und wartet nicht auf die virtuelle
-Zeile. Ergebnisse sind auf 16 KiB begrenzt, werden korreliert und lösen nur
-eine öffentliche Brailleaktualisierung aus. Eine volle Queue, veraltete
-Antwort oder ein Fokuswechsel verwirft den optionalen Schritt fail-open.
+Ergebnisse werden nur zusammen mit Plattform, Versionen, Transport, Workload,
+Stichprobenzahl, Perzentilen und Fehlern interpretiert. Die Mikrobenchmarks,
+die zur ursprünglichen Wahl des semantischen Lua-Pfads führten, bleiben als
+Entscheidungskontext in [ADR-0001](adr/0001-neovim-integration-point.md).
 
-## Serialisierung
+## Praktische Abnahme
 
-| Format | n | Bytes | Encode Median | Decode Median |
-|---|---:|---:|---:|---:|
-| MessagePack | 100.000 | 289 | 2,83 µs | 3,59 µs |
-| kompaktes JSON/UTF-8 | 100.000 | 353 | 10,71 µs | 10,64 µs |
-
-CBOR wurde nicht gemessen, weil es eine weitere Python- und Lua-Abhängigkeit
-erfordert. Direkte Neovim-RPC-Nachrichten verwenden MessagePack, sind aber kein
-ausreichend eingeschränktes Protokoll für den Windows-Endpunkt.
-
-## Push-Durchsatz
-
-Der produktionsnahe Prototyp übertrug 10.000 Lua-`rpcnotify`-Ereignisse an den
-Python-Bridgeclient in 316,68 ms (31.578 Ereignisse/s); ein Wiederholungslauf
-erreichte 29.309 Ereignisse/s. Das ist ein Burst-Durchsatztest, keine
-Einzelereignis-Latenzmessung. Er belegt ausreichende Reserve, ersetzt aber nicht
-Queue-, SSH- und Speech-Latenzmessungen.
+Vor einer Veröffentlichung werden wahrgenommene Navigation, Completion,
+Diagnoseausgabe, lokale Verbindungen und SSH-Verbindungen unter NVDA geprüft.
+Die automatisierten Tests sichern Nichtblockierung, Begrenzungen, Korrelation
+und Rückfallpfade; sie ersetzen keine praktische Prüfung von Sprachsynthese,
+Braillehardware oder realer Netzwerklatenz.

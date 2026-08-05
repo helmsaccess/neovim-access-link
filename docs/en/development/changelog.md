@@ -24,6 +24,9 @@ test-build entries through August 5, 2026.
   and English HTML manuals.
 - Clarifies the Global Plugin's remaining process-wide role after a renewed
   architecture audit without broadening the AppModule-owned event path.
+- Reorganizes developer documentation around onboarding, current explanation,
+  tasks, references, and decisions; removes stale transport claims and adds a
+  dedicated CI build with automated German/English structure validation.
 
 ## 0.96.0
 

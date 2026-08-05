@@ -28,8 +28,10 @@ Aus diesem Ansatz folgen fünf Regeln:
 5. Fehler öffnen den normalen NVDA-Terminalpfad wieder: Das System fällt offen
    aus, nicht still.
 
-Die Entscheidung für diese Integration ist in
-`adr/0001-neovim-integration-point.md` begründet.
+Die Entscheidung für semantische Plugin-Ereignisse ist in
+[ADR-0001](adr/0001-neovim-integration-point.md) begründet. Die aktuellen
+lokalen und entfernten Transportwege legt
+[ADR-0006](adr/0006-local-tcp-and-ssh-stdio-transports.md) fest.
 
 ## Laufzeitmodell: drei Prozesse
 
@@ -238,12 +240,10 @@ nicht; auch Instanz, Fokus und Gate müssen passen.
 
 Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
 Overlayauswahl, `nextHandler`, konfigurierbare NVDA-Skripte und Eingabebeobachter
-liegen im Windows-Terminal-AppModule. Die konkrete Global-Plugin-Klasse ist
-gegenwärtig jedoch nicht nur eine minimale Kompositionswurzel, sondern zugleich
-ein prozessweiter NVDA-Randcontroller. Gemeinsam genutzte Abläufe würden bei
-einer weiteren Zerlegung in gewöhnliche prozessweite Controller oder Dienste
-wandern, nicht in das AppModule. Eine aktuelle Bestandsaufnahme und die
-empfohlene schrittweise Weiterentwicklung stehen in [Anhang C](global-plugin-appmodule-audit-2026-08-04.md).
+liegen im Windows-Terminal-AppModule. Das Global Plugin ist die prozessweite
+Kompositionswurzel und verbindet gemeinsame Dienste mit NVDAs Prozessrand; es
+besitzt keine Anwendungsevents. [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md)
+begründet diese Grenze.
 
 `AddonRuntime.start()` registriert zuerst den Profilcallback, danach
 Einstellungen und Werkzeuge und veröffentlicht erst zuletzt den
@@ -266,37 +266,13 @@ Claim-, Managed-Connection-, Netzwerk-, Braille- und verzögerte
 Hauptthreadcallbacks laufen zusätzlich durch eine Runtimeprüfung, die auch
 zwischen Einreihen und Ausführung erfolgtes Unpublish berücksichtigt.
 
-Das Global Plugin bietet keine Kompatibilitätseigenschaften für Editorplaner,
-kanonischen Zustand, Modus, strukturierten Tippechozustand,
-Completion-Dokumentation oder Transport-Capabilities mehr an. Tests und
-interne Aufrufer verwenden die ausdrückliche Besitzgrenze von
-`EditorSessionController` und `ConnectionCoordinator`. Dadurch bleibt keine
-zweite schreibbare Editorzustandsschnittstelle erhalten.
-
-Es bietet auch keine Kompatibilitätseigenschaften für ausstehende Claims,
-Inventarzustand, Baselines, zulässige Ziele, Inventarfehler oder
-Discovery-Generation mehr an. Tests verwenden `SessionClaimService` direkt;
-damit besitzt Claimzustand einen schreibbaren Eigentümer und eine ausdrückliche
-Prüfgrenze.
-
-Passive Kompatibilitätssichten für Präsentations-Sound-Caches, gemerkte
-Bindungen und Angebote, Runtime- und Requestcontainer sowie
-AppModule-/Adapterfokusdaten sind ebenfalls entfernt. Ihre Tests prüfen
-`NvdaPresentation`, `ConnectionCoordinator` oder `TerminalFocusService`
-direkt. Aktive NVDA-Wirkungen oder Terminalereignisbesitz werden dadurch nicht
-in diese Tests verschoben.
-
-Auch fokussiertes Terminalobjekt und Zeitwert des Lifecycle-Sweeps besitzen
-keine Global-Plugin-Kompatibilitätssicht mehr. Brailleaktualisierung und
-Lifecycletests verwenden den besitzenden `TerminalFocusService`;
-Fokusentscheidungen und UIA-Lebensbehandlung bleiben dort gekapselt.
-
-Auch aktiver Client- und Instanzzustand, Verbindungsstatus, Verfolgung
-authentifizierter Instanzen, instanzbezogener Terminal-Passthrough und
-zurückgestellte Full-States besitzen keine
-Global-Plugin-Kompatibilitätseigenschaften mehr. Das Global Plugin verbindet
-Wirkungen am NVDA-Rand direkt über `ConnectionCoordinator`; dieser Coordinator
-bleibt alleiniger schreibbarer Eigentümer dieser Felder.
+Editorzustand, Modus, Completion-Dokumentation, Transportfähigkeiten,
+Verbindungsinstanzen und ausstehende Anfragen gehören ausschließlich
+`EditorSessionController` und `ConnectionCoordinator`. Claim- und
+Inventarzustand gehören ausschließlich `SessionClaimService`; Fokus- und
+UIA-Lebenszustand gehören `TerminalFocusService`; konkrete Ausgabe und
+Sound-Caches gehören `NvdaPresentation`. Das Global Plugin stellt für diese
+Zustände keine zweite schreibbare Schnittstelle bereit.
 
 Das AppModule und das Braille-Overlay erhalten ausschließlich den
 `TerminalIntegrationService`. Das konkrete Global Plugin bleibt hinter diesem
@@ -306,11 +282,9 @@ unveränderliche Werte. Fehlt der Dienst, wurde er beim Add-on-Neuladen ersetzt
 oder verletzt er den Vertrag, übergibt das AppModule die Originalgeste oder das
 native NVDA-Ereignis fail-open.
 
-„Begrenzt“ bezeichnet hier die Vertrauens- und Besitzgrenze, nicht eine
-besonders kleine Methodenoberfläche: Der konkrete Dienst bündelt heute die
-vom AppModule, vom Braillemodul und von eingehenden Entwicklerkontexten
-benötigten Operationen. Verbraucherbezogene Teilverträge sind eine mögliche
-spätere Vereinfachung, wenn sie Abhängigkeiten und Tests tatsächlich schärfen.
+„Begrenzt“ bezeichnet hier die Vertrauens- und Besitzgrenze: Der Dienst bietet
+nur die vom AppModule, vom Braillemodul und von eingehenden
+Entwicklerkontexten benötigten, typisierten Operationen an.
 
 Die prozessweite Dienstinstanz liegt in der neutralen `service_registry.py`.
 Das Global Plugin veröffentlicht und entfernt den Dienst über denselben
@@ -349,7 +323,7 @@ Fokuskontext-Handshake an. Ein abweichender Terminalfokus verwirft die
 Reaktivierung; ein ausbleibender oder unklarer Fokus lässt die native Ausgabe
 offen.
 
-Der in V2-5 eingeführte `EditorSessionController` verwendet die vom
+Der `EditorSessionController` verwendet die vom
 `ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren
 fachliche Mutation zuständig. Er übernimmt Zustands- und Modusübergänge,
 Transportfähigkeiten, Menü-Dokumentation, Verbindungszustand,

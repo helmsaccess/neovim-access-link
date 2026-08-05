@@ -45,9 +45,14 @@ Erzeugte oder private Dateien haben feste Orte:
 
 - `dist/`: installierbare, eindeutig versionierte Pakete;
 - `build/`: erzeugte HTML-Dokumentation und andere reproduzierbare Ergebnisse;
-- `tmp/`: lokale, private und kurzlebige Untersuchungen, Testarbeitsbereiche
-  und heruntergeladene Projektwerkzeuge; projektspezifische temporäre Dateien
-  gehören nicht in das systemweite `/tmp`.
+- `tmp/human-test-state/` und `tmp/human-test-results/`: vom geführten
+  Praxistest-Runner erzeugte, ignorierte Zustände und Ergebnisse.
+- `/nfs/src/nal-tmp/`: agenteneigene Untersuchungen, Berichte, Downloads,
+  Reproduktionen und Testarbeitsbereiche außerhalb des Repositorys.
+
+Der private Linux-Laufzeitfallback unter `/tmp` ist ein Teil der
+Sitzungsregistrierung und kein Entwicklungsarbeitsbereich. Weitere
+repositorylokale `tmp/`-Inhalte werden nicht als Projektquelle verwendet.
 
 Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 

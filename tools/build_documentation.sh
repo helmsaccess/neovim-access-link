@@ -55,6 +55,7 @@ developer_sources=(
   docs/de/development/adr/0003-oil-confirmation-fallback.md
   docs/de/development/adr/0004-nvda-lifetime-and-event-ownership.md
   docs/de/development/adr/0005-contextual-exploration-input.md
+  docs/de/development/adr/0006-local-tcp-and-ssh-stdio-transports.md
   docs/de/development/security.md
   docs/de/development/latency.md
   docs/de/development/protocol.md
@@ -65,12 +66,15 @@ developer_sources=(
   docs/de/development/release-and-build.md
   docs/de/development/nvda-2026.1-api-notes.md
   docs/de/development/licensing-and-contributions.md
-  nvda-addon/DEPENDENCIES.md
+  docs/de/development/dependencies.md
   docs/de/development/plan.md
   docs/de/development/changelog.md
   docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/de/development/global-plugin-appmodule-audit-2026-08-04.md
+)
+
+developer_archive_sources=(
   docs/de/development/changelog-history.md
 )
 
@@ -113,6 +117,7 @@ developer_en_sources=(
   docs/en/development/adr/0003-oil-confirmation-fallback.md
   docs/en/development/adr/0004-nvda-lifetime-and-event-ownership.md
   docs/en/development/adr/0005-contextual-exploration-input.md
+  docs/en/development/adr/0006-local-tcp-and-ssh-stdio-transports.md
   docs/en/development/security.md
   docs/en/development/latency.md
   docs/en/development/protocol.md
@@ -129,6 +134,9 @@ developer_en_sources=(
   docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/en/development/global-plugin-appmodule-audit-2026-08-04.md
+)
+
+developer_en_archive_sources=(
   docs/en/development/changelog-history.md
 )
 
@@ -245,12 +253,15 @@ PY
 }
 
 for source in "${quick_sources[@]}" "${handbook_sources[@]}" "${developer_sources[@]}" \
-  "${human_testing_sources[@]}" "${quick_en_sources[@]}" "${handbook_en_sources[@]}" \
-  "${developer_en_sources[@]}" "${human_testing_en_sources[@]}"; do
+  "${developer_archive_sources[@]}" "${human_testing_sources[@]}" \
+  "${quick_en_sources[@]}" "${handbook_en_sources[@]}" \
+  "${developer_en_sources[@]}" "${developer_en_archive_sources[@]}" \
+  "${human_testing_en_sources[@]}"; do
   validate_source "$source"
 done
 
-python3 - "$root/docs/de/manual" "$root/docs/en/manual" <<'PY'
+python3 - "$root/docs/de/manual" "$root/docs/en/manual" \
+  "$root/docs/de/development" "$root/docs/en/development" <<'PY'
 from pathlib import Path
 import sys
 
@@ -274,19 +285,32 @@ def heading_levels(path):
             levels.append(level)
     return levels
 
-de_directory = Path(sys.argv[1])
-en_directory = Path(sys.argv[2])
-de_names = {path.name for path in de_directory.glob("*.md")}
-en_names = {path.name for path in en_directory.glob("*.md")}
-if de_names != en_names:
-    raise SystemExit("error: German and English manual source sets differ")
-for name in sorted(de_names):
-    de_levels = heading_levels(de_directory / name)
-    en_levels = heading_levels(en_directory / name)
-    if de_levels != en_levels:
+def validate_mirror(de_directory, en_directory, label):
+    de_names = {
+        path.relative_to(de_directory)
+        for path in de_directory.rglob("*.md")
+    }
+    en_names = {
+        path.relative_to(en_directory)
+        for path in en_directory.rglob("*.md")
+    }
+    if de_names != en_names:
+        missing_en = sorted(str(path) for path in de_names - en_names)
+        missing_de = sorted(str(path) for path in en_names - de_names)
         raise SystemExit(
-            f"error: German and English manual heading structures differ: {name}"
+            f"error: German and English {label} source sets differ; "
+            f"missing English={missing_en}, missing German={missing_de}"
         )
+    for name in sorted(de_names):
+        de_levels = heading_levels(de_directory / name)
+        en_levels = heading_levels(en_directory / name)
+        if de_levels != en_levels:
+            raise SystemExit(
+                f"error: German and English {label} heading structures differ: {name}"
+            )
+
+validate_mirror(Path(sys.argv[1]), Path(sys.argv[2]), "manual")
+validate_mirror(Path(sys.argv[3]), Path(sys.argv[4]), "developer")
 PY
 
 declare -A included_manual=()
@@ -302,7 +326,8 @@ while IFS= read -r discovered; do
 done < <(cd "$root" && find docs/de/manual -maxdepth 1 -type f -name '*.md' | sort)
 
 declare -A included_developer=()
-for source in "${developer_sources[@]}" "${human_testing_sources[@]}"; do
+for source in "${developer_sources[@]}" "${developer_archive_sources[@]}" \
+  "${human_testing_sources[@]}"; do
   [[ "$source" == docs/de/development/* ]] && included_developer["$source"]=1
 done
 while IFS= read -r discovered; do
@@ -326,7 +351,8 @@ while IFS= read -r discovered; do
 done < <(cd "$root" && find docs/en/manual -maxdepth 1 -type f -name '*.md' | sort)
 
 declare -A included_en_developer=()
-for source in "${developer_en_sources[@]}" "${human_testing_en_sources[@]}"; do
+for source in "${developer_en_sources[@]}" "${developer_en_archive_sources[@]}" \
+  "${human_testing_en_sources[@]}"; do
   included_en_developer["$source"]=1
 done
 while IFS= read -r discovered; do
@@ -339,34 +365,45 @@ done < <(cd "$root" && find docs/en/development -type f -name '*.md' | sort)
 
 validate_html() {
   local output="$1"
-  if grep -Eiq 'href="[^"]*\.md([#?"][^"]*)?' "$output"; then
-    echo "error: generated HTML still contains links to Markdown sources: $output" >&2
-    exit 1
-  fi
-
   python3 - "$output" <<'PY'
 from html.parser import HTMLParser
 from pathlib import Path
 import sys
+from urllib.parse import urlsplit
 
 class Links(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = set()
         self.references = set()
+        self.targets = set()
 
     def handle_starttag(self, _tag, attributes):
         values = dict(attributes)
         if "id" in values:
             self.ids.add(values["id"])
-        if values.get("href", "").startswith("#"):
-            self.references.add(values["href"][1:])
+        target = values.get("href", "")
+        if target:
+            self.targets.add(target)
+        if target.startswith("#"):
+            self.references.add(target[1:])
 
 links = Links()
 links.feed(Path(sys.argv[1]).read_text(encoding="utf-8"))
 missing = sorted(links.references - links.ids)
 if missing:
     raise SystemExit("error: generated HTML has missing internal targets: " + ", ".join(missing))
+relative_markdown = sorted(
+    target
+    for target in links.targets
+    if not urlsplit(target).scheme
+    and urlsplit(target).path.lower().endswith(".md")
+)
+if relative_markdown:
+    raise SystemExit(
+        "error: generated HTML still contains links to Markdown sources: "
+        + ", ".join(relative_markdown)
+    )
 PY
 
   local h1_count

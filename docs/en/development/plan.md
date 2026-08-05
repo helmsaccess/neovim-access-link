@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: August 4, 2026.
+Status date: August 5, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -21,14 +21,14 @@ Ongoing:
   protocol details and special cases;
 - keep durable reference, current status, active plan, changelog, and dated
   reports clearly separated;
-- keep German and English core chapters structurally parallel;
-- incrementally align older English user-manual and developer chapters that
-  are shorter than their German counterparts, starting with settings,
-  communication, component installation, SSH/tmux, and security;
+- keep German and English chapters structurally parallel through the
+  documentation build and review content changes together;
 - verify claims about processes, session registry, assignment, gate, reverse
   controls, polling, and fallbacks against the current code;
 - validate the HTML build, internal links, and published sources
-  automatically.
+  automatically;
+- keep current explanations free of development chronology and restrict
+  history to changelogs, dated reports, and ADRs.
 
 ## 2. Change architecture boundaries only for demonstrated benefit
 

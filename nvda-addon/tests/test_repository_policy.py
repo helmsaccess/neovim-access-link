@@ -172,6 +172,13 @@ class RepositoryPolicyTests(unittest.TestCase):
             ),
         )
 
+    def test_ci_builds_the_complete_documentation_set(self) -> None:
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(1, workflow.count("tools/build_documentation.sh"))
+        self.assertIn("German and English documentation build", workflow)
+
     def test_ci_pins_real_completion_plugin_matrix(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
             encoding="utf-8"

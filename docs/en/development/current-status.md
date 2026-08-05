@@ -38,9 +38,9 @@ complete platform and version boundaries.
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
   presentation, and runtime. The Global Plugin remains the process-wide NVDA
-  edge and composition root; [architecture](architecture.md) and
-  [Appendix C](global-plugin-appmodule-audit-2026-08-04.md) describe the current
-  boundary.
+  edge and composition root; [architecture](architecture.md) describes the
+  current boundary. The dated Appendix C only preserves the review basis at
+  that time.
 
 ### Editor and presentation
 
@@ -88,6 +88,9 @@ verified and packaged. The Quick Guide, user manual, developer documentation,
 and guided practical-test guide are built in German and English as eight
 validated HTML files. The copyable Neovim example comes from one real tested
 Lua file and is synchronized identically into both manuals.
+The documentation build also checks complete German and English source sets,
+parallel heading structures, Markdown links, and generated HTML targets.
+GitHub Actions runs this build as a dedicated job.
 
 ## Verification evidence
 

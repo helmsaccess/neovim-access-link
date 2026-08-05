@@ -2,49 +2,27 @@
 
 ## Status
 
-Accepted and implemented for the application boundary. The shared
-service is now located through an identity-checked registrar. Terminal events,
-overlay selection, and `nextHandler` now reside in the Windows Terminal
-AppModule. This stage is confirmed by automated and practical tests with local
-and remote connections across multiple WT windows, tabs, and panes. The
-structured region and routing path has since also been checked with a physical
-Braille display. The Windows Terminal AppModule now also owns
-the configurable terminal commands under automated and practical coverage.
-The final practical milestone reported no error across the current local,
-SSH, focus, terminal, clipboard, file-manager, and reload variants.
-
-The physically minimal composition root described beyond that boundary
-remains a target, not a fully achieved current state. The concrete Global
-Plugin class currently also coordinates process-wide NVDA-edge workflows.
-[Appendix C](../global-plugin-appmodule-audit-2026-08-04.md) records this
-remaining deviation and its recommended staged treatment.
+Accepted and implemented.
 
 ## Context
 
-NVDA loads the Global Plugin once per NVDA process, while it creates a Windows
-Terminal AppModule for the corresponding application process. Settings, tools,
-and shared local and SSH connections therefore need one lifetime with orderly
-shutdown. Windows Terminal events, overlay selection, and `nextHandler` belong
-to the AppModule instead.
+NVDA loads the Global Plugin once per NVDA process and creates one Windows
+Terminal AppModule per application process. Settings, tools, and shared local
+and SSH connections need one lifetime with orderly shutdown. Windows Terminal
+events, overlay selection, and `nextHandler` belong to the AppModule.
 
-The former implementation placed public event entry points in the AppModule
-but delegated decisions and `nextHandler` to a large Global Plugin instance.
-That delegation has been removed; the shared service now returns only domain
-focus and suppression decisions to the AppModule.
+NVDA extension points invoked process-wide may still be necessary. They must
+not widen application scope: an operation is allowed only when the current
+focus object, registered AppModule instance, concrete terminal control, and
+confirmed connection state all match.
 
 ## Decision
 
-A minimal Global Plugin remains the target process-wide composition and
-lifetime root. Once fully implemented, it may only:
-
-- register settings and tools once and remove them symmetrically;
-- construct, expose, and shut down shared services in an orderly manner.
-
-Connections, assignments, the gate, protocol state, and presentation planning
-reside in ordinary services that do not inherit from `GlobalPlugin`. Their
-contract accepts concrete terminal identities and domain data and returns
-decisions or output plans. It owns neither public AppModule events nor
-`nextHandler` or the overlay list.
+The Global Plugin is the process-wide composition and lifetime root. It
+registers settings and tools, constructs shared services, publishes them only
+after complete initialization, and shuts them down in a defined order. Domain
+connection, assignment, gate, protocol, and presentation state resides in
+ordinary services that do not inherit from `GlobalPlugin`.
 
 The Windows Terminal AppModule owns:
 
@@ -52,98 +30,39 @@ The Windows Terminal AppModule owns:
 - selection and removal of its overlays;
 - metadata and dispatch for configurable terminal commands;
 - every invocation of `nextHandler`, at most once per event;
-- the fail-open decision when the service, identity, or state is missing,
-  stale, ambiguous, or faulty.
+- the fail-open decision for missing, stale, ambiguous, or faulty state.
 
-During startup, a shared service is exposed only after complete
-initialization. During reload or termination, it is first marked unavailable;
-pending focus decisions are then discarded, suppression is disabled,
+The AppModule-managed `inputCore.decide_executeGesture` observer is registered
+only while at least one Windows Terminal AppModule is alive. It considers only
+the explicitly supported candidates: F12, contextual numbered choices, and
+the exactly identified public NVDA Braille next-line command. Every other
+gesture remains unchanged. Each match is revalidated against the focus object,
+AppModule, control identity, service generation, and gate.
+
+On termination or reload, the shared service is marked unavailable first.
+Pending focus decisions are then discarded, suppression is disabled,
 connections are stopped, and UI registrations are removed symmetrically.
-AppModules must not continue using an unverified stale service instance. The
-current implementation publishes the fully initialized instance through an
-identity-checked registrar and removes it before the remaining teardown.
-The earlier structural audit also confirms that the extracted runtime, UI,
-focus, claim, editor, Braille, registry, and terminal-service modules do not
-depend on the `GlobalPlugin` class. The class nevertheless remains a sizeable
-process-wide NVDA-edge controller today. This changes neither AppModule
-ownership nor the sole domain-state owners; further decomposition should move
-shared workflows into ordinary services only where ownership and testability
-clearly improve.
+AppModules do not use an unverified stale service instance.
 
-## Bounded process-wide gesture observer
-
-The Windows Terminal AppModule owns registration with the public but
-process-wide `inputCore.decide_executeGesture` decider. Registration exists
-only while at least one instance of this AppModule is loaded, is removed
-symmetrically, and may observe only three narrowly bounded cases:
-
-- F12 as the explicit assignment signal, which is not an NVDA script;
-- `NVDA+j/k/Enter` and the still-held bare `j/k` autorepeat continuation of an
-  already authorized numbered choice;
-- NVDA's public
-  `globalCommands.GlobalCommands.braille_nextLine` command, confirmed by exact
-  script name and script location.
-
-Every other gesture returns unchanged. The observer queries focus only for one
-of these candidates and then works exclusively with the focus object's
-concrete registered AppModule instance.
-
-After an F12 match, NVDA's current focus object, its concrete registered
-AppModule instance, and the control identity derived from it must match the
-gate; merely having one AppModule instance is not substitute evidence.
-Assignment may start only when the same concrete focused Windows Terminal
-control is also confirmed again on NVDA's main thread. Any mismatch falls back
-to native processing without an assignment. Numbered choices have the same
-identity and generation checks and may consume only their fixed navigation or
-accept actions.
-
-The Braille-display observation does not consume the gesture, perform a
-transport action, or read driver state or private Braille buffers. After exact
-focus, AppModule, event-token, and service-generation checks, it merely sets a
-one-shot marker for the same NVDA event turn. The marker is discarded after
-use or, at the latest, through NVDA's event queue. It is needed because NVDA's
-public `TextInfoRegion.nextLine()` method is invoked both for a direct
-next-line command and for a horizontal region-boundary transition, but
-receives neither the gesture nor a direction. Without this marker, the add-on
-could not reliably distinguish the desired semantic target column during
-direct downward navigation from horizontal panning. This avoids driver hooks
-and private NVDA state.
-
-## Non-negotiable invariants
+## Invariants
 
 - Errors, disconnects, reload, and uncertain focus immediately fail open to
   NVDA's native terminal handling.
-- Tabs, split panes, windows, and multiple Windows Terminal processes remain
-  separated by concrete control identity.
-- Local and SSH sessions may share a lifetime but must never adopt one
-  another's output, focus response, or assignment.
+- Tabs, panes, windows, and Windows Terminal processes remain separated by
+  concrete control identity.
+- Local and SSH sessions never adopt one another's output, focus response, or
+  assignment.
 - Network I/O, reconnects, parsing, and logging never block NVDA's main thread.
-- Native focus handling required by LiveText remains intact; regression tests
-  define its order as prepare focus, invoke `nextHandler` exactly once, then
-  complete speech suppression and any pending `fullState`. Adapter tokens and
-  focus generations reject late completions.
-
-## Command scope
-
-NVDA 2026.1.1 builds the Input Gestures dialog from the object that was focused
-before opening it and from that object's AppModule. Commands on the Windows
-Terminal AppModule are therefore discoverable when Windows Terminal was
-focused first. They now reside there, which scopes normal NVDA resolution to
-that application. Dispatch still revalidates the concrete AppModule instance
-and control identity so a focus race fails open. Assignments stored by earlier
-feature builds for the Global Plugin must be assigned again. No new global
-default gestures are introduced. NVDA may display a saved AppModule assignment
-from another application after the class has loaded because Input Gestures
-enumerates the global user gesture map first; runtime resolution remains bound
-to the focused AppModule instance.
+- Native LiveText focus handling remains intact: prepare focus, invoke
+  `nextHandler` exactly once, then complete speech suppression and any pending
+  `fullState`.
 
 ## Consequences
 
-Global lifetime remains where it prevents duplicate registrations and
-connections. Application events move closer to NVDA's AppModule model. The
-migration proceeds in phases; a phase is retained only when automated and
-practical checks demonstrate at least the existing multi-window, focus, and
-fail-open reliability.
+Application events follow NVDA's AppModule model. Process-wide lifetime remains
+where it prevents duplicate registration and competing connections. Further
+extraction from the composition root is useful only when it clearly improves
+ownership, testability, or fault isolation.
 
-ADR-0002 remains authoritative for private NVDA API exceptions. This ADR
-clarifies ownership without permitting additional private API use.
+ADR-0002 remains authoritative for NVDA API exceptions. This ADR permits no
+new private API use.
