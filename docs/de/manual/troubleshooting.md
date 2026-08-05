@@ -1,141 +1,115 @@
-# Fehlerdiagnose und Diagnosebericht
+# Fehler beheben und Diagnosebericht erstellen
 
-Bei einem Fehler sollte zuerst geklärt werden, ob das Neovim-Plugin geladen ist,
-die gewünschte Sitzung gefunden wird oder erst der eigentliche Transport
-scheitert. Neovim Access Link enthält dafür einen kopierbaren Diagnosebericht.
+Gehen Sie vom ersten fehlenden Schritt aus: Add-on aktiv, Plugin geladen,
+Sitzung gefunden, Verbindung hergestellt und optionales Werkzeug eingerichtet.
 
 ## Diagnosebericht kopieren
 
-Windows Terminal fokussieren und danach „NVDA-Menü → Optionen →
-Tastenbefehle… → Neovim Access Link“ öffnen. Standardmäßig ist dem Befehl
-`NVDA+Alt+D` zugewiesen. Der Bericht wird in die Windows-Zwischenablage
-kopiert.
+Fokussieren Sie Windows Terminal und drücken Sie `NVDA+Alt+D`. Alternativ
+finden Sie den Befehl unter `NVDA-Menü → Optionen → Tastenbefehle… → Neovim
+Access Link`. Der Bericht wird in die Windows-Zwischenablage kopiert.
 
 Editortext, Auswahl, Registerinhalt, Passwörter und Tokens werden durch
-Platzhalter ersetzt. Technische Installationsmeldungen können dennoch lokale
-Pfade, Profilnamen oder SSH-Ziele enthalten. Vor dem Weitergeben muss der
-Bericht deshalb auf persönliche Systemangaben geprüft werden.
+Platzhalter ersetzt. Installationsmeldungen können trotzdem lokale Pfade,
+Profilnamen oder SSH-Ziele enthalten. Prüfen Sie den Bericht deshalb vor dem
+Weitergeben.
 
 ## Das Add-on reagiert nicht
 
-1. Prüfen, ob Windows Terminal fokussiert ist. Das Add-on greift absichtlich
-   nicht in Notepad, PuTTY oder andere Anwendungen ein.
-2. Unter „NVDA-Menü → Optionen → Tastenbefehle…“ prüfen, ob dem
-   Aktivierungsbefehl eine Geste zugewiesen wurde. Fehlt die Kategorie, den
-   Dialog schließen, Windows Terminal fokussieren und erneut öffnen.
-3. NVDA neu starten und erneut testen.
-4. Prüfen, ob „Neovim Access Link“ in NVDAs Liste installierter Add-ons
+1. Fokussieren Sie Windows Terminal. In anderen Anwendungen greift Access Link
+   nicht ein.
+2. Prüfen Sie in NVDAs Liste installierter Add-ons, ob Neovim Access Link
    aktiviert ist.
+3. Öffnen Sie bei fokussiertem Windows Terminal den Tastenbefehlsdialog und
+   weisen Sie dem Aktivierungsbefehl eine Geste zu.
+4. Starten Sie NVDA nach einer Installation oder Aktualisierung neu.
 
-## Das lokale Plugin wird nicht gefunden
+Fehlt die Kategorie im Tastenbefehlsdialog, schließen Sie den Dialog,
+fokussieren Sie Windows Terminal und öffnen Sie ihn erneut.
 
-Neovim nach jeder Komponenteninstallation vollständig schließen und neu
-starten. Ein bereits laufendes Neovim verwendet weiterhin die Pluginfassung,
-die beim Start geladen wurde.
+## Das Neovim-Plugin ist installiert, aber nicht geladen
 
-Im lokalen Neovim prüfen:
+Schließen Sie alle betroffenen Neovim-Instanzen, aktualisieren Sie die
+Komponenten für das richtige Ziel und starten Sie Neovim neu. Prüfen Sie dann:
 
 ```vim
 :echo exists(':NvimNvdaSessionName')
 ```
 
-Die erwartete Ausgabe ist `2`. Bei einem anderen Wert:
-
-1. alle lokalen Neovim-Instanzen schließen,
-2. im Komponentenmenü ausschließlich „Dieser Computer“ aktualisieren,
-3. das Ergebnis prüfen,
-4. Neovim neu starten.
+Die erwartete Ausgabe ist `2`. Ein Plugin-Manager, der `packpath` oder das
+Laden von Start-Paketen ersetzt, muss die vom Add-on installierte lokale Kopie
+registrieren. Installieren Sie keine zweite Kopie. Einzelheiten und ein
+`lazy.nvim`-Beispiel stehen unter
+[LSP, Autovervollständigung und Linter einrichten](language-tools.md#access-link-plugin-und-plugin-manager).
 
 ## F12 stellt keine Verbindung her
 
-1. Nach dem Aktivieren die Bereitschaftsmeldung abwarten.
-2. Das gewünschte Neovim fokussieren.
-3. F12 genau einmal drücken und bis zu zwei Sekunden warten.
-4. Nicht mehrfach schnell hintereinander drücken; jeder neue Tastendruck startet
-   eine neue Zuordnungsauflösung.
-5. Den manuellen Befehl „Server wählen und dieses Terminal mit einer neuen
-   Neovim-Sitzung verbinden“ testen.
+1. Aktivieren Sie Access Link und warten Sie auf die Bereitschaftsmeldung.
+2. Fokussieren Sie das gewünschte Neovim-Pane.
+3. Drücken Sie F12 genau einmal und warten Sie bis zu zwei Sekunden.
+4. Verwenden Sie als Gegenprobe den belegbaren Befehl „Server wählen und dieses
+   Terminal mit einer neuen Neovim-Sitzung verbinden“.
 
-Im Diagnosebericht sind besonders diese Kategorien hilfreich:
-
-- `claimInventoryReady`: Anzahl gefundener lokaler und entfernter Sitzungen,
-- `sessionClaimGestureReceived`: F12 hat das Windows-Terminal-AppModule erreicht,
-- `automaticLocalClaimChecked`: Ergebnis der lokalen Nachsuche,
-- `automaticClaimResolutionCompleted`: Anzahl eindeutiger Treffer,
-- `localTcpStart` oder `sshProcessStart`: der Transport wurde gestartet.
-
-Fehlt `sessionClaimGestureReceived`, war der Dienst nicht eingeschaltet, ein
-anderes Control war fokussiert oder die F12-Geste erreichte das AppModule
-nicht. Ohne frischen Neovim-Claim bleibt die Prüfung absichtlich still. Werden
-null lokale Sitzungen gemeldet, ist meist das lokale Plugin nicht geladen.
-
-## SSH-Verbindung schlägt fehl
-
-Die gleiche Anmeldung zuerst außerhalb des Add-ons in Windows Terminal prüfen:
-
-```text
-ssh benutzer@example.invalid
-```
-
-Dabei müssen Hostschlüssel bestätigt, Schlüsseldateien lesbar und eventuelle
-Schlüsselpassphrasen über `ssh-agent` oder die normale OpenSSH-Abfrage
-verfügbar sein. Bei Passwortprofilen muss der Server Passwortanmeldung für das
-betreffende Konto erlauben.
-
-Das Add-on ändert weder die Windows-SSH-Konfiguration noch `sshd_config` auf dem
-Server. Ein Fehler wie „Host key verification failed“ muss daher zuerst mit dem
-normalen Windows-OpenSSH-Client behoben werden.
+Schnelle wiederholte F12-Eingaben starten jeweils eine neue Zuordnungsprüfung.
+Kopieren Sie den Diagnosebericht direkt im betroffenen Pane, wenn die Verbindung
+ausbleibt.
 
 ## Die falsche Sitzung ist verbunden
 
-1. Den betroffenen Tab oder das betroffene Pane fokussieren.
-2. Die Verbindung für dieses Control trennen oder die temporäre
-   Terminalbindung vergessen.
-3. Das gewünschte Neovim fokussieren und erneut F12 drücken.
-4. Bei identischen Arbeitsverzeichnissen freiwillige Sitzungsnamen verwenden.
+1. Fokussieren Sie das betroffene Windows-Terminal-Pane.
+2. Trennen Sie seine Verbindung oder vergessen Sie seine vorübergehende
+   Zuordnung.
+3. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
 
-Beispiel unter Linux:
+Bei mehreren gleichartigen Sitzungen erleichtert ein freiwilliger Name die
+Auswahl, zum Beispiel unter Linux:
 
 ```text
 NVIM_NVDA_SESSION_NAME=Dokumentation nvim
 ```
 
-Bereits verbundene Sitzungen werden im manuellen Dialog entsprechend
-gekennzeichnet.
+## SSH-Verbindung schlägt fehl
+
+Testen Sie dasselbe Ziel zuerst außerhalb des Add-ons in Windows Terminal:
+
+```text
+ssh benutzer@example.invalid
+```
+
+Bestätigen Sie dort den Hostschlüssel und klären Sie Schlüsseldateien,
+Passphrasen, `ssh-agent` oder die serverseitige Passwortanmeldung. Access Link
+ändert weder die Windows-SSH-Konfiguration noch `sshd_config` auf dem Server.
+Aktualisieren Sie danach die Linux-Komponenten und starten Sie Neovim neu.
+
+## Access Link funktioniert, aber LSP oder Diagnosen fehlen
+
+Drücken Sie den in Ihrer Neovim-Konfiguration belegten LSP-Statusbefehl oder
+führen Sie `:NvimNvdaLspStatus` aus. Meldet Access Link keinen aktiven Client,
+prüfen Sie mit `:checkhealth vim.lsp` die Neovim-Konfiguration und ob der
+Sprachserver auf dem Rechner gefunden wird, auf dem Neovim läuft.
+
+Diagnosen erscheinen erst, wenn ein Sprachserver oder Linter sie über Neovims
+Diagnose-API veröffentlicht. Prüfen Sie den Werkzeugbefehl im selben Terminal
+und starten Sie einen manuell belegten Linterlauf. Die
+[Einrichtungsanleitung](language-tools.md) enthält einen vollständigen
+Python-Testweg.
 
 ## Terminalfragmente werden gesprochen
 
-Bei einer korrekt verbundenen, fokussierten Neovim-Sitzung unterdrückt das
-Add-on die native Terminalausgabe und verwendet strukturierte Ereignisse. Die
-Unterdrückung ist absichtlich nicht global. Sie endet insbesondere:
+Eine verbundene und sicher zugeordnete Neovim-Sitzung verwendet strukturierte
+Ausgabe. Native Terminalausgabe bleibt aktiv in einem unverbundenen Pane, bei
+direkter Eingabe in `:terminal`, nach einer Trennung und immer dann, wenn Access
+Link die Zuordnung nicht sicher bestätigen kann.
 
-- nach einer Deaktivierung oder einem Verbindungsabbruch,
-- in einem nicht zugeordneten Fenster, Tab oder Pane,
-- bei einem eingebetteten `:terminal` im direkten Terminalmodus,
-- wenn das Sitzungs- oder Fokus-Gate die Zuordnung nicht sicher bestätigen kann.
-
-Treten Fragmente nur nach einem Fenster-, Tab- oder Panewechsel auf, im Diagnosebericht die
-Terminalidentität und die ausgewählte Verbindungsinstanz prüfen. Der Bericht
-sollte unmittelbar nach dem unerwünschten Fragment kopiert werden.
+Treten unerwartete Fragmente nach einem Fenster-, Tab- oder Panewechsel auf,
+kopieren Sie den Diagnosebericht sofort im betroffenen Pane. Deaktivieren Sie
+Access Link als Sicherheitsprüfung; die normale Terminalausgabe muss dann
+vollständig zurückkehren.
 
 ## NVDA reagiert nach einem Dialog nicht
 
-Die optionale Rückfrage zum Merken einer F12-Zuordnung stellt die Verbindung
-nach dem Schließen selbst wieder her; ein Fensterwechsel sollte dafür nicht
-erforderlich sein. Eine Zustimmung gilt für diesen Windows-Terminal-Tab bis
-NVDA oder Windows Terminal beendet wird. Wird Neovim während eines Testlaufs im
-gleichen Tab beendet und neu gestartet, verbindet F12 die neue Sitzung ohne
-erneute Merkfrage. Bleibt Access Link danach still, den Diagnosebericht noch im
-betroffenen Windows-Terminal-Tab kopieren, bevor der Fokus gewechselt wird.
-
-Komponenteninstallation und SSH-Abfragen laufen im Hintergrund. Ein sichtbarer
-Ergebnisdialog darf NVDA nicht blockieren. Falls NVDA dennoch nicht reagiert:
-
-1. mit `Alt+Tab` nach einem offenen Ergebnis- oder Passwortdialog suchen,
-2. den Dialog schließen oder abbrechen,
-3. falls nötig NVDA neu starten,
-4. anschließend Diagnosebericht und NVDAs vorheriges Protokoll sichern.
-
-NVDAs Protokolle können über den normalen NVDA-Protokollbetrachter geöffnet
-werden. Zugangsdaten oder vertraulicher Editortext dürfen nicht ungeprüft
-weitergegeben werden.
+Suchen Sie mit `Alt+Tab` nach einem offenen Ergebnis-, Bestätigungs- oder
+Passwortdialog und schließen oder brechen Sie ihn ab. Starten Sie NVDA neu,
+wenn es nicht mehr reagiert. Sichern Sie anschließend den Diagnosebericht und
+NVDAs vorheriges Protokoll. Prüfen Sie beide vor dem Weitergeben auf vertrauliche
+Angaben.

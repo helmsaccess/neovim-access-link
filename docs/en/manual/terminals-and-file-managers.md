@@ -1,124 +1,112 @@
 # Embedded terminal and file managers
 
-In Neovim's embedded terminal, Terminal mode and Terminal-Normal mode are
-different. Direct terminal interaction must remain usable and native output is
-allowed where the semantic editor gate does not apply. Returning to an editor
-buffer restores structured Neovim reporting.
+## Use an embedded terminal
 
-Entering direct terminal input uses the same focus cue as Insert mode. Leaving
-it for Terminal-Normal mode uses the Normal-mode cue. Passthrough is switched
-before either optional cue, so native terminal output remains fail open.
-Because `Ctrl+\`, `Ctrl+N` can be awkward on some keyboard layouts, the Input
-Gestures category also exposes “Leave direct input in the active Neovim
-terminal”. It has no default gesture and targets only the authenticated
-Neovim terminal bound to the focused Windows Terminal control. `i` returns to
-direct input.
+`:terminal` opens a Neovim terminal buffer. During direct input, Access Link
+releases NVDA's native Windows Terminal output. Shells and TUI applications
+running inside them therefore remain usable through NVDA's normal terminal
+support. The Access Link session and its association remain active.
 
-The assignable leave-input command stops only direct terminal input. It does
-not terminate the shell process or delete the terminal buffer. Neovim rejects
-`:bd` while the terminal job is running with `E89`; the add-on explains this
-before Neovim's following hit-enter state. Only an intentional `:bd!`
-terminates that job, so the add-on never invokes it automatically. `:bp` and
-`:bn` can switch only to another existing listed buffer. If `:terminal`
-replaced the sole empty buffer, the add-on reports that no other listed buffer
-exists. Open a separate buffer, for example with `:new | terminal`, when a
-reliable previous-buffer destination is wanted.
+Starting direct terminal input uses the Insert-mode sound. Leave direct input
+with `Ctrl+\`, then `Ctrl+n`. Neovim enters Terminal-Normal mode, Access Link
+resumes structured navigation, and the Normal-mode sound plays.
 
-Opening Neovim's command line with `:` announces command-line mode and plays a
-short mid-pitch tone. Returning from it in a terminal context uses the Normal
-cue. For `:bp`, `:bn`, and their full forms, transient spoken return modes are
-not added before the destination presentation selected under Session focus.
-The cue remains; No announcement stays silent. Typed input, errors, and ordinary messages displayed after command execution are
-reported structurally; messages are also shown briefly in Braille. If an Ex
-command only produces a message and returns to the same editor state, the
-matching return cue plays first. No announcement keeps the message alone,
-Current line appends the complete line, and the context choice appends
-file/special context, mode, and connection. A later asynchronous message is
-not falsely associated.
-Neovim's structured `TermClose` reports the terminal process exit status;
-shell output while it runs remains native terminal output.
+If that sequence is difficult on your keyboard layout, assign an NVDA gesture
+to `Leave direct input in the active Neovim terminal` under
+`NVDA menu > Preferences > Input gestures... > Neovim Access Link`. This NVDA
+command works only in the connected and focused terminal buffer.
 
-`:terminal` creates a terminal buffer and uses the entry presentation selected
-under Session focus. With Current line, the add-on waits event-first for the
-first real terminal line; the following automatic cursor event is not repeated
-as one initial character. `i` enters direct terminal input, presents the full
-current cursor line, and then leaves native terminal output fail-open.
+`i` without the NVDA key is then a Neovim command again and starts direct
+terminal input. Access Link ends neither the shell nor the terminal buffer.
 
-Windows Terminal is currently the only approved front end. The add-on's event
-handlers and gestures live in its NVDA AppModule, so Notepad, PuTTY, and other
-applications are not queried or modified.
+A running terminal job prevents ordinary `:bd`; Neovim reports `E89`. `:bd!`
+explicitly ends the job. Open a terminal with `:new | terminal` when the
+previous editor buffer needs to remain visible.
 
-A ready-to-use Oil setup is provided in
-[Small Python configuration with Lazy and Oil](example-configuration.md).
+## Neovim command line and messages
 
-The plugin contains adapters for netrw and the public APIs of Oil, nvim-tree,
-Neo-tree, and mini.files. It can announce item type, name, state, and supported
-actions. Supported public plugin events also report same-entry changes without
-cursor movement: marked, unmarked, copied, cut, file-manager clipboard
-cleared, expanded, or collapsed. Pure render bursts are coalesced; state is
-not queried periodically. Confirmed actions are compactly reported as created,
-added, renamed, copied, moved, deleted, changed, or restored. Immediate batches
-produce one summary, and Access Link transfers at most a basename, never the
-complete source or destination path. Oil can additionally report a completion
-failure or some cancellations. For other plugins, their own failure/cancel
-messages remain authoritative where the public API has no result event; Access
-Link does not guess. Adapters load only for the active matching buffer. Unsupported custom
-file-manager drawings do not fall back to terminal scraping.
-In Oil, the semantic name follows the visible draft during editing. After
-`0`, `c$`, a new name, and Escape, speech and Braille should therefore show
-the new name even though the file is renamed only by `:w`. `0`, `$`, `gg`,
-and `G` retain their line/file boundary cues. Access Link deliberately reports
-no rename success before `:w`.
+`:` opens Neovim's command line. Access Link presents Command-line mode,
+input, errors, and the structured result message. After execution, the setting
+under `General > Session focus` applies:
 
-The basic workflows are the same for source-code and writing projects:
-navigate and enter directories; open, create, rename, duplicate/copy, move,
-mark and batch-process files; and delete, cancel, or restore where available.
-Names with spaces, Unicode, and punctuation remain complete. Opening a file
-uses the Session focus choice and the following automatic cursor event does
-not repeat one character. Access Link performs none of these filesystem
-operations and never confirms a prompt itself. If a plugin exposes no public
-completion event, its own result remains authoritative and Access Link does
-not invent success.
-Very long names and paths are byte-bounded for transport but never cut inside
-a Unicode character. If a third-party adapter returns invalid UTF-8 text, an
-optional field is ignored; an invalid required name suppresses only the
-semantic entry. Normal Neovim navigation remains available in both cases.
-netrw supports its thin, long, wide, and tree presentations. Banner lines are
-manager context without an invented entry; spaces, tabs, and Unicode in names
-are preserved. If an optional adapter repeatedly fails or stalls Neovim, it is
-briefly suspended for the affected buffer while normal navigation remains
-active. `:checkhealth nvim_nvda` reports counters without paths, file names,
-or internal error text. External adapters must be synchronous and small and
-must perform neither file/network I/O nor polling.
-When no entry is temporarily selected, context output uses at most the final
-name of the focused directory level. It does not speak a complete local,
-remote, or virtual path.
+- `No announcement` leaves only the message.
+- `Current line` adds the cursor line.
+- `Current context, mode and connection name` adds the destination context.
 
-The persistent Braille line presents a file-manager entry's name, type, and
-state instead of the visible plugin row's icons, indentation decoration, and
-extra columns. Routing is available only inside the name when that name occurs
-exactly once in the real buffer row. Type and status text is synthetic
-orientation and deliberately has no routing action.
-Navigation speech does not replace this persistent line with a transient
-Braille message. Kind and state labels use the add-on's language.
+When a command produces only a message and returns to the same mode, Access
+Link still plays the matching return sound. A later asynchronous message is
+not attributed to that command.
 
-For the most structured input and selection prompts, use
-`select_prompts = true` with nvim-tree and `use_popups_for_input = false` with
-Neo-tree. These public options use Neovim's central `vim.ui.select` and
-`vim.ui.input` APIs, whose acceptance and cancellation Access Link observes.
-Access Link never changes those plugin settings automatically. Lua
-`confirm()` prompts also report the selected choice. mini.files uses such a
-Yes/No/Cancel confirmation for its combined rename, duplicate, and delete
-synchronization.
+## File managers and test status
 
-For Oil, keep `skip_confirm_for_simple_edits = false`. Oil then asks before
-simple rename or duplicate operations as well; deletes and complex actions
-are confirmed regardless of that option. Its custom confirmation float has a
-deliberately narrow fallback: Access Link reports “rename or move”, “copy or
-duplicate”, delete or trash actions, count, and Y/N, never the rendered raw
-row or complete paths. A directly typed `n` is reported as cancellation;
-after `y`, Oil's public completion event remains authoritative for success or
-failure. Access Link never answers or repeats the action itself. The fallback
-applies only to Oil's `oil_preview` in a real floating window; unknown or
-changed rendering remains fail-open to normal structured buffer/window
-output. Other plugin-specific popups are not recognized automatically.
+Access Link does not perform file operations itself. The file manager opens,
+creates, renames, copies, moves, or deletes files. Access Link makes the
+selected entry, type, state, and confirmation prompt accessible.
+
+| File manager | Access Link status |
+| --- | --- |
+| Oil | practically confirmed on Windows with NVDA and Neovim 0.12 |
+| netrw | adapter automatically tested with Neovim 0.10.1 and 0.12.3 |
+| nvim-tree | adapter automatically tested against its public plugin API |
+| Neo-tree | adapter automatically tested against its public plugin API |
+| mini.files | adapter automatically tested against its public plugin API |
+
+Oil is therefore the only file manager with practical confirmation from the
+current Windows/NVDA testing. The other adapters remain available, but their
+complete workflows are not practically confirmed.
+
+## Navigate entries
+
+For a recognized file-manager entry, Access Link presents the full name and
+semantic type. Types include file, directory, symbolic link, socket, pipe, and
+device file. Available state such as selection or expanded tree node is also
+presented in speech and Braille.
+
+Names with spaces, Unicode, and punctuation remain complete. In a file
+manager, the persistent Braille line shows name, type, and state instead of
+decorative icons and extra columns. Routing within the real name moves the
+Neovim cursor; synthetic type and state text has no routing position.
+
+When a file opens, `General > Session focus` applies. Access Link does not
+repeat the following automatic cursor event as one character.
+
+## Use Oil
+
+The [Optional example configuration with Lazy and
+Oil](example-configuration.md) provides a directly usable setup.
+
+Oil represents a directory as an editable buffer. A name first changes only in
+that buffer. Example rename workflow:
+
+1. Navigate to the entry.
+2. Press `0`, then `c$`.
+3. Type the new name and press `Escape`.
+4. Check the new draft name through speech or Braille.
+5. Save with `:w`.
+6. Confirm or reject Oil's prompt.
+
+Access Link shows the edited name before `:w`, but reports an executed file
+operation only after Oil supplies its result.
+
+Set `skip_confirm_for_simple_edits = false` in Oil. Oil then prompts before
+simple renames and duplicates as well. Deletions and complex actions have a
+confirmation independently of this setting.
+
+For an Oil confirmation, Access Link presents the action, count, and Y/N, but
+not complete paths. `y` and `n` without the NVDA key are input to Oil. Access
+Link never answers the prompt automatically. After `y`, Oil's result reports
+success or failure; `n` is presented as cancellation.
+
+## Prompts in other file managers
+
+For structured selection and input prompts, use `select_prompts = true` in
+nvim-tree and `use_popups_for_input = false` in Neo-tree. These options route
+prompts through Neovim's central selection or input API. Access Link does not
+change plugin options.
+
+mini.files uses an accessible yes/no/cancel prompt for grouped changes. When a
+file manager supplies no semantic result, its own message remains authoritative;
+Access Link does not announce invented success.
+
+Other file managers retain normal Neovim navigation. Semantic file type,
+selection, and tree state are not promised without a dedicated adapter.

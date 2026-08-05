@@ -11,6 +11,11 @@ unmittelbar an der unveränderten Einfügeposition weitergeschrieben werden.
 
 ## Bedienung
 
+Diese Kombinationen verwenden die NVDA-Taste und gehören damit zur
+Screenreader-Bedienung. Neovims `h`, `j`, `k` und `l` ohne NVDA-Taste bewegen
+dagegen den echten Editorcursor; Access Link gibt deren Ergebnis zugänglich
+aus, ändert aber nicht den Neovim-Befehl.
+
 Die NVDA-Taste bleibt während des Sprachexplorationsmodus gedrückt:
 
 | Taste | Bewegung der virtuellen Leseposition |

@@ -1,26 +1,77 @@
-# Using SSH, tmux, and Neovim
+# Use SSH and tmux
 
-The add-on does not drive the visible shell. Open Windows Terminal, log in with
-SSH normally, enter the desired tmux window or pane, and start `nvim`.
-Activation first uses short, bounded OpenSSH calls to inventory reachable
-sessions. A persistent hidden bridge connection is created only after F12 or
-the manual workflow confirms one specific Neovim session.
+The remote Access Link path connects Windows Terminal to Neovim on a Linux
+target. The practically confirmed target is Rocky Linux 10.2 with Python 3 and
+OpenSSH.
 
-Create profiles under `NVDA menu → Preferences → Settings... → Neovim Access
-Link → Connections`, then install components with `NVDA menu → Tools → Neovim
-Access Link: Install or update components...`.
+## Prerequisites
 
-Keys, `ssh-agent`, or an OpenSSH alias are recommended. Confirm host keys and
-test the login visibly before relying on the add-on. Password mode is available
-only when the server permits it; the password remains in memory and is passed
-through the bundled askpass helper, not the command line.
+First test a normal login in Windows Terminal:
 
-The Linux plugin registers each Neovim independently. Multiple instances under
-the same account, even in the same directory, remain distinct. An optional
-`NVIM_NVDA_SESSION_NAME` environment variable or `:NvimNvdaSessionName` command
-can provide a human-readable label. F12 remains the authoritative binding
-signal.
+```text
+ssh user@example.invalid
+```
 
-Shell startup output before the bridge marker is discarded. After the marker,
-stdout belongs exclusively to the protocol and diagnostics use stderr. SSH
-forwardings are explicitly disabled for the bridge process.
+Confirm host keys and configure keys, `ssh-agent`, OpenSSH configuration, or
+permitted password login before enabling Access Link. The add-on changes
+neither Windows OpenSSH configuration nor `sshd_config` on the Linux target.
+
+## Configure a Linux connection
+
+1. Open `NVDA menu > Preferences > Settings... > Neovim Access Link`.
+2. Open `Connections` and select `Add connection...`.
+3. Enter the SSH target, account, port, and sign-in method.
+4. Confirm the settings dialog.
+5. Close running Neovim instances on that target.
+6. Open `NVDA menu > Tools > Neovim Access Link: Install or update
+   components...`.
+7. Select the saved connection and check the result.
+
+Installation places the plugin and bridge in the Linux account's home
+directory and requires no root privileges.
+
+## Connect a remote session
+
+1. Sign in over SSH in the intended Windows Terminal tab or pane.
+2. Start `nvim` on the Linux target.
+3. Press the assigned Access Link activation gesture.
+4. Wait for the ready message.
+5. Focus Neovim and press F12 once.
+6. Wait for connection confirmation.
+
+The visible SSH session carries your shell and keyboard input. Separately,
+Access Link opens its own SSH connection to the bridge for accessibility data.
+The Linux computer opens no additional network port for this connection.
+
+## Use tmux
+
+Start tmux in the visible SSH session and then start Neovim:
+
+```text
+tmux new -s work
+nvim
+```
+
+Access Link associates the concrete Neovim instance, not the tmux window. A
+Neovim session inside tmux remains active when the visible SSH session ends.
+After attaching again, focus its pane; Access Link restores a remembered
+association after focus is confirmed. Press F12 again when no remembered
+association exists.
+
+Several Neovim instances inside tmux are separate Access Link sessions. Use
+descriptive session names for similar working directories:
+
+```text
+NVIM_NVDA_SESSION_NAME=Backend nvim
+NVIM_NVDA_SESSION_NAME=Documentation nvim
+```
+
+## Connection loss
+
+When the background connection ends, Access Link releases native Windows
+Terminal output. The visible SSH session and Neovim in tmux do not end as a
+result.
+
+Restore normal SSH access first. Then enable Access Link again and press F12 in
+the intended Neovim pane. See [Troubleshooting](troubleshooting.md) for more
+checks.

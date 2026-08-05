@@ -6,8 +6,8 @@ presentation remain controlled by NVDA.
 
 The features have been practically tested with a Papenmeier BRAILLEX EL 80c
 with 80 Braille cells. They use NVDA's standard display-driver and navigation
-commands and are not limited to that model; other Braille displays supported
-by NVDA should work accordingly.
+commands. Other NVDA-supported displays are not practically confirmed with
+Access Link.
 
 The display contains only information relevant to working in Neovim. Windows
 Terminal labels such as “Windows PowerShell”, status lines, and content from
@@ -225,7 +225,7 @@ cursor:
   reading column, and horizontal viewport in the associated Neovim session.
   Returning restores that exact view; the other session owns a separate one.
   The configured focus announcement remains audible but creates no transient
-  Braille message which would cover that viewport until the message timeout.
+  Braille message that covers that viewport until the message timeout.
   Only disconnect resets the affected session to Braille cursor mode.
 
 No key combination is assigned to the toggle by default. Under
@@ -236,8 +236,8 @@ or “Braille cursor mode” when switching.
 
 For example, use this mode to read several lines above and below the current
 insertion point without having to find that point again before continuing to
-type. If an explored location should become the editing location, press its
-routing key once.
+type. To make an explored location the editing location, press its routing key
+once.
 
 Both Braille navigation modes are available in structured editor modes. They
 are unavailable while Neovim's command line is active or while an embedded

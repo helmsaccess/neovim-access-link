@@ -6,8 +6,8 @@ des Cursors werden weiterhin in NVDA eingestellt.
 
 Die Funktionen wurden praktisch mit einer Papenmeier BRAILLEX EL 80c mit
 80 Braillemodulen getestet. Sie verwenden NVDAs normale Brailletreiber- und
-Navigationsbefehle und sind nicht auf dieses Modell beschränkt; andere von
-NVDA unterstützte Braillezeilen sollten entsprechend funktionieren.
+Navigationsbefehle. Weitere von NVDA unterstützte Braillezeilen sind mit Access
+Link nicht praktisch bestätigt.
 
 Die Anzeige enthält nur die für die Arbeit in Neovim wichtigen Informationen.
 Bezeichnungen von Windows Terminal wie „Windows PowerShell“, Statuszeilen und
@@ -29,8 +29,8 @@ Name, der Typ und der Zustand des aktuellen Eintrags. Weitere Informationen
 dazu stehen im Kapitel
 [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md).
 
-NVDA sollte für die normale Editoranzeige auf „Cursor verfolgen“ eingestellt
-sein. Bei „Sprachausgabe anzeigen“ gibt die Braillezeile wie von NVDA
+Stellen Sie NVDA für die normale Editoranzeige auf „Cursor verfolgen“. Bei
+„Sprachausgabe anzeigen“ gibt die Braillezeile wie von NVDA
 vorgesehen die gesprochene Ausgabe wieder und folgt nicht dauerhaft der
 Editorzeile.
 
@@ -58,7 +58,7 @@ ergänzt:
 Brailleübersetzung, Treiber, Cursorform, Auswahlmarkierung und das Ansagen des
 Zeichens beim Routing bleiben normale NVDA-Einstellungen. Eine ausführliche
 Beschreibung aller Auswahlwerte steht unter
-[Einstellungen des NVDA-Add-ons](settings.md#registerkarte-braille).
+[Einstellungen des NVDA-Add-ons](settings.md#braille).
 
 ## Cursor mit Routingtasten versetzen
 
@@ -245,11 +245,11 @@ Neovim-Cursor zu verschieben:
   wiederhergestellt; die andere Session besitzt ihre eigene. Die konfigurierte
   Fokusansage bleibt dabei hörbar, erzeugt aber keine vorübergehende
   Braillemeldung, die diesen Ausschnitt bis zum Nachrichten-Timeout verdecken
-  würde. Erst eine Trennung setzt die betroffene Session in den
+  kann. Erst eine Trennung setzt die betroffene Session in den
   Braille-Cursormodus zurück.
 
 Für den Umschalter ist absichtlich keine Tastenkombination vorgegeben. Unter
-`NVDA-Menü → Optionen → Eingaben` kann in der Kategorie
+`NVDA-Menü → Optionen → Tastenbefehle…` kann in der Kategorie
 `Neovim Access Link` dem Befehl „Braillezeilen-Navigation zwischen
 Braille-Cursormodus und Braille-Explorationsmodus umschalten“ eine Taste
 zugewiesen werden. NVDA meldet beim Umschalten „Braille-Explorationsmodus“

@@ -11,6 +11,11 @@ immediately at the unchanged insertion point.
 
 ## Operation
 
+These combinations use the NVDA key and therefore belong to screen-reader
+control. Neovim's `h`, `j`, `k`, and `l` without the NVDA key move the real
+editor cursor; Access Link presents their result accessibly but does not change
+the Neovim command.
+
 Keep the NVDA key held during speech exploration mode:
 
 | Key | Virtual reading movement |
@@ -52,9 +57,9 @@ Speech exploration mode works without a Braille display. By default, however,
 a connected Braille display also presents the virtual reading position
 temporarily. It returns to the real cursor when the mode ends.
 
-Disable “Braille display follows the speech exploration mode position” under
-`Neovim Access Link → Braille → Speech exploration mode` if the Braille
-display should remain at the real cursor during speech movements.
+To keep the Braille display at the real cursor during speech movements,
+disable “Braille display follows the speech exploration mode position” under
+`Neovim Access Link → Braille → Speech exploration mode`.
 
 Pressing one routing key at the temporarily displayed position adopts that
 position as the real Neovim cursor. Double- and triple-press routing editing

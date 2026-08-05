@@ -1,160 +1,106 @@
 # Neovim Access Link – Handbuch
 
-Neovim Access Link verbindet Neovim in Windows Terminal mit NVDA. Statt das
-wechselnde Terminalbild auszulesen, erhält das Add-on strukturierte Daten
-direkt von Neovim. Dadurch kann NVDA Editorzustände wie Modus, Cursorposition,
+Neovim Access Link verbindet Neovim in Windows Terminal mit NVDA. Das Add-on
+erhält strukturierte Informationen direkt von Neovim und gibt Modus, Cursor,
 Textänderungen, Auswahl, Einrückung, Vervollständigung und Diagnosen gezielt
-ausgeben. Der Sprachexplorationsmodus liest Zeichen, Wörter und Zeilen
-vorübergehend, ohne den echten Neovim-Cursor zu bewegen.
+über Sprache, Sounds und Braille aus.
 
-Das Handbuch beschreibt den aktuellen Beta-Stand für NVDA 2026.1.x unter
-Windows 11. Unterstützt werden:
+Dieses Handbuch richtet sich an erfahrene NVDA-Nutzer, die Neovim neu lernen
+oder mit Access Link produktiv verwenden. Für die erste Installation und
+Verbindung dient der [Quick Guide](quick-guide.md).
 
-- lokales Windows-Neovim als `nvim.exe` in Windows Terminal,
-- Neovim auf Linux über SSH,
-- mehrere Windows-Terminal-Fenster, -Tabs und geteilte Panes,
-- mehrere parallele lokale und entfernte Neovim-Instanzen,
-- gemischte Neovim- und normale Shell-Panes,
-- tmux innerhalb einer SSH-Sitzung.
+## Unterstützter Arbeitsbereich
 
-Noch nicht unterstützt werden andere Terminalprogramme wie PuTTY, grafische
-Neovim-Oberflächen und automatisch erkannte portable oder durch `NVIM_APPNAME`
-getrennte Windows-Datenverzeichnisse.
+Access Link unterstützt derzeit:
 
-Die erweiterte [Braille-Unterstützung](braille.md) zeigt strukturierte
-Editorzeilen statt Terminalfragmenten. Sie umfasst Routing in Normal-, Insert-
-und Befehlszeilenmodus, die Einfügeposition hinter dem letzten Zeichen,
-automatischen Nachlauf langer Zeilen, Navigationstasten der Braillezeile und
-einen eigenständigen Braille-Explorationsmodus.
+- lokales `nvim.exe` in Windows Terminal;
+- Neovim auf Linux über SSH;
+- Normal-, Insert-, Replace-, Visual-, Select-, Operator-Pending- und
+  Befehlszeilenmodus;
+- Neovims Terminal-Normalmodus und native Terminalausgabe bei direkter
+  Terminaleingabe;
+- mehrere Windows-Terminal-Fenster, Tabs und geteilte Panes;
+- parallele lokale und entfernte Neovim-Sitzungen sowie normale Shell-Panes;
+- tmux innerhalb einer SSH-Sitzung;
+- strukturierte Sprache und Braille, Sprachexploration, Completion, LSP,
+  Diagnosen und Neovims Rechtschreibvorschläge;
+- Dateiverwaltung mit Oil; weitere Dateimanager besitzen automatisiert
+  geprüfte Adapter.
+
+Praktisch bestätigt ist die Referenzumgebung Windows 11 25H2, NVDA 2026.1.1,
+Windows Terminal 1.24.x und Neovim 0.10.1 beziehungsweise 0.12.3. Der entfernte
+Pfad ist mit Rocky Linux 10.2 bestätigt. Die vollständigen Nachweise und offenen
+Prüfbereiche stehen in der
+[Kompatibilitätsübersicht](../development/compatibility.md).
+
+Andere Terminalprogramme, grafische Neovim-Oberflächen, portable
+Windows-Installationen und getrennte Datenverzeichnisse über `NVIM_APPNAME`
+sind nicht unterstützt.
 
 ## Reifegrad
 
-Das Add-on befindet sich im Beta-Stadium. Fehler, unvollständige Rückmeldungen
-und Änderungen an der Bedienung sind weiterhin möglich. Vor wichtiger Arbeit
-sind normale Backups und ein schrittweiser Einstieg mit der eigenen NVDA-,
-Neovim- und Terminalkonfiguration sinnvoll.
+Das Add-on ist Beta. Die dokumentierten Referenzabläufe sind praktisch oder
+automatisiert geprüft; die Kombinationen aus NVDA-Konfiguration,
+Braillehardware, Neovim-Versionen und Plugins sind nicht vollständig
+abgedeckt. Verwenden Sie für wichtige Dateien eine normale Versionsverwaltung
+oder Sicherung.
 
-## Für wen welches Dokument gedacht ist
+## Wie Access Link arbeitet
 
-Wer das Add-on erstmals einrichtet, beginnt mit dem separaten
-[Quick Guide](neovim-access-link-quick-guide-de.html). Er enthält nur die
-nötigen Schritte von der Installation bis zur ersten lokalen oder entfernten
-Verbindung.
+Das NVDA-Add-on läuft unter Windows. Ein Neovim-Plugin liefert semantische
+Editorzustände. Bei einer entfernten Sitzung überträgt eine kleine Bridge diese
+Daten durch eine eigene SSH-Verbindung.
 
-Dieses Handbuch erklärt anschließend die unterstützten Einstellungen,
-Kommunikationswege und Bedienkonzepte aus Anwendersicht. Architektur und
-Entwicklungsstand werden getrennt in der Entwicklungsdokumentation des
-Quellprojekts beschrieben.
+Eine Access-Link-Sitzung ist eine konkrete laufende Neovim-Instanz. Access Link
+ordnet genau ein fokussiertes Windows-Terminal-Control genau einer solchen
+Sitzung zu. Ein Control ist der Inhalt eines Tabs oder eines einzelnen Panes.
+Dadurch bleiben in demselben Windows-Terminal-Fenster verbundene Neovim-Panes
+und normale Shell-Panes unabhängig.
 
-## Grundbegriffe
+Das ist eine wesentliche Stärke des Add-ons: Ein Windows-Terminal-Tab kann in
+mehrere Panes geteilt sein, und jedes Pane arbeitet wie ein eigenes Terminal.
+Sie können zwischen lokalen Neovim-Sitzungen, entfernten SSH-Sitzungen und
+normalen Shells wechseln. Access Link übernimmt nur die exakt verbundene und
+fokussierte Neovim-Pane. Alle anderen Panes behalten NVDAs normales
+Terminalverhalten.
 
-### Add-on
+Bei Deaktivierung, Trennung, ungültigen Daten oder einer nicht eindeutig
+bestätigten Zuordnung unterdrückt Access Link keine Terminalausgabe. NVDA fällt
+offen auf sein normales Terminalverhalten zurück.
 
-Das NVDA-Add-on läuft unter Windows. Es verwaltet Einstellungen, Verbindungen,
-Sprache, Braille und die sichere Unterdrückung der normalen Terminalausgabe,
-sobald eine Neovim-Sitzung eindeutig verbunden ist.
+## Zwei Arten von Tasteneingaben
 
-### Neovim-Plugin
+Das Handbuch unterscheidet zwei klar getrennte Ebenen:
 
-Das Plugin läuft in jeder unterstützten Neovim-Instanz. Es liest Editorzustände
-über Neovims APIs und erzeugt semantische Ereignisse. Das Plugin wird über den
-Komponentenbefehl des Add-ons installiert und nach einem Neovim-Neustart
-automatisch geladen.
+- **NVDA-Tastenkombinationen** enthalten die NVDA-Taste, zum Beispiel
+  `NVDA+Alt+D` oder `NVDA+h`. NVDA entscheidet über diese Kombinationen. Access
+  Link übernimmt sie nur im jeweils dokumentierten, verbundenen
+  Neovim-Kontext. Außerhalb dieses Kontexts gelten NVDAs normale Befehle.
+- **Neovim-Befehle** enthalten keine NVDA-Taste, zum Beispiel `i`, `Esc`, `w`,
+  `z=` oder `:w`. Neovim führt diese Eingaben aus. Access Link ersetzt ihre
+  Funktion nicht, sondern macht Ergebnis, Modus und Cursorbewegung zugänglich.
 
-### Bridge
+Eine Schreibweise mit Pluszeichen bezeichnet gleichzeitig gehaltene Tasten:
+`NVDA+Alt+D`. Eine durch Kommas getrennte Folge bezeichnet nacheinander
+gedrückte Tasten: `Leertaste`, `l`, `s`. Neovims `z=` bedeutet ebenfalls zwei
+nacheinander gedrückte Tasten.
 
-Bei einer Linux-Verbindung übersetzt die Bridge zwischen Neovims RPC-Protokoll
-und dem begrenzten Nachrichtenstrom über SSH. Sie wird pro Benutzer ohne
-root-Rechte installiert. Für lokales Windows-Neovim ist keine separate Bridge
-nötig; das Add-on verbindet sich direkt mit dem lokalen Neovim-RPC-Port auf
-`127.0.0.1`.
+## Empfohlener Leseweg
 
-### Verbindung
+1. [Neovim- und Windows-Terminal-Grundlagen](basics.md)
+2. [Verbindung, täglicher Einstieg und Sitzungswechsel](communication.md)
+3. [Sprachexplorationsmodus](speech-exploration.md)
+4. [Braille-Unterstützung](braille.md)
+5. [Menüs, Completion und Diagnosen](menus-and-completion.md)
+6. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
+7. [SSH und tmux](ssh-and-tmux.md)
+8. [LSP, Completion und Linter einrichten](language-tools.md)
+9. [Optionale Beispielkonfiguration mit Lazy und Oil](example-configuration.md)
+10. [Befehlsreferenz](commands.md)
+11. [Einstellungsreferenz](settings.md)
+12. [Sounds und Earcons](sounds.md)
+13. [Fehlerdiagnose](troubleshooting.md)
 
-Eine gespeicherte Linux-Verbindung enthält nur Angaben zum SSH-Ziel und zur
-Anmeldeart. Sie bezeichnet noch keine bestimmte laufende Neovim-Instanz. Für
-lokales Windows-Neovim ist kein gespeicherter Verbindungseintrag erforderlich.
-
-### Sitzung
-
-Eine Sitzung ist eine konkrete laufende Neovim-Instanz. Auf demselben Rechner
-können mehrere Sitzungen parallel existieren, auch mit identischem
-Arbeitsverzeichnis.
-
-### Terminalzuordnung
-
-Die Zuordnung verbindet genau ein Windows-Terminal-Control – je nach Aufbau
-ein Tab oder Pane – mit genau einer laufenden Neovim-Sitzung. Sie wird nicht aus Fenstertiteln oder Terminaltext
-erraten. Standardmäßig bestätigt der Benutzer die fokussierte Sitzung mit F12.
-
-## Das wichtigste Bedienmodell
-
-Der normale Ablauf besteht aus vier getrennten Schritten:
-
-1. Das Add-on und die Komponenten werden installiert.
-2. Der Aktivierungsbefehl erfasst erreichbare lokale und gespeicherte entfernte
-   Ziele im Hintergrund. Dabei entsteht noch keine dauerhafte Editorverbindung.
-3. F12 markiert die gerade fokussierte Neovim-Instanz kurzzeitig und still.
-4. Das Add-on findet genau diesen neuen Claim und bindet die Sitzung an das
-   fokussierte Windows-Terminal-Control, also je nach Layout an den Inhalt
-   eines Tabs oder an ein Pane.
-
-F12 ist daher weder ein Ein-/Ausschalter noch ein SSH-Verbindungsprofil. Die
-Taste wird von NVDAs ausschließlich für Windows Terminal geladenem AppModule
-erkannt, unverändert an Windows Terminal und Neovim weitergereicht und danach
-zur eindeutigen Auswahl ausgewertet. In anderen Anwendungen greift das Add-on
-nicht auf F12 zu.
-
-Wenn der automatische Weg nicht passt, kann dem Befehl „Server wählen und
-dieses Terminal mit einer neuen Neovim-Sitzung verbinden“ eine eigene
-NVDA-Geste zugewiesen werden. Der zugängliche Dialog zeigt verständliche Namen
-und Arbeitsverzeichnisse; interne Sitzungs-IDs müssen nicht eingegeben werden.
-
-## Sicherheit und Verhalten bei Fehlern
-
-Lokale RPC-Verbindungen sind ausschließlich an IPv4-Loopback `127.0.0.1`
-gebunden. Entfernte Verbindungen verwenden SSH-stdin/stdout und öffnen keine
-zusätzlichen Netzwerkports. Passwörter werden weder im Profil noch im
-Diagnosebericht gespeichert.
-
-Normale Terminalausgabe wird nur unterdrückt, wenn das fokussierte
-Windows-Terminal-Control einer authentifizierten und aktiven Neovim-Sitzung
-zugeordnet ist. Bei Deaktivierung, Verbindungsabbruch, ungültigen Ereignissen
-oder unbekanntem Control fällt NVDA auf die normale Terminalausgabe zurück.
-
-## Handbuchkapitel
-
-1. [Einstellungen und Verbindungsprofile](settings.md)
-2. [Sprachexplorationsmodus](speech-exploration.md)
-3. [Kommunikation, Verbindungen und Sitzungszuordnung](communication.md)
-4. [Betrieb mit SSH und tmux](ssh-and-tmux.md)
-5. [LSP, Autovervollständigung und Linter einrichten](language-tools.md)
-6. [Kleine Python-Konfiguration mit Lazy und Oil](example-configuration.md)
-7. [Menüs und Vervollständigung](menus-and-completion.md)
-8. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
-9. [Sounds und Earcons](sounds.md)
-10. [Braille-Unterstützung](braille.md)
-11. [Fehlerdiagnose und Diagnosebericht](troubleshooting.md)
-
-## Erste Schritte nach der Einrichtung
-
-Nach Installation und Einrichtung sollte nicht sofort mit einer wichtigen
-Datei begonnen werden. In einem vorübergehenden Puffer:
-
-1. Insert-, Normal- und Visual-Modus wechseln.
-2. Zeichen, Wörter und Zeilen navigieren.
-3. Den Sprachexplorationsmodus mit gedrückter NVDA-Taste verwenden und prüfen,
-   dass der echte Cursor stehen bleibt.
-4. Text einfügen und löschen.
-5. Zwischen zwei verbundenen Tabs wechseln.
-6. Das Add-on deaktivieren und sicherstellen, dass NVDA wieder die normale
-   Terminalausgabe verwendet.
-
-Bei mehreren Sitzungen muss NVDA stets nur den Inhalt des aktuell fokussierten
-und zugeordneten Neovim ausgeben. Terminalstatuszeilen, Inhalte anderer Tabs
-und Ereignisse einer früheren Sitzung dürfen nicht gesprochen werden.
-
-## Versionshinweis
-
-Dieses Handbuch gilt für NVDA 2026.1.x unter Windows 11 und Neovim 0.10.1 oder
-neuer. Für entfernte Sitzungen wird Linux mit Python 3 und OpenSSH benötigt.
+Die allgemeine Neovim-Bedienung lernen Sie mit `:Tutor`. Neovims
+[offizielle Hilfe](https://neovim.io/doc/user/) enthält außerdem `nvim-intro`,
+die Aufgabenanleitung und die vollständige Befehlsreferenz.

@@ -1,164 +1,133 @@
-# Manual: Communication, connections, and session binding
+# Connection, first editing session, and session switching
 
-## Term: file-based session registry
+Installation, activation, and connection are separate steps:
 
-“Registry” in this documentation never means the Windows Registry. Neovim
-Access Link neither reads nor writes `HKCU` or `HKLM` and creates no Windows
-Registry keys. It means only a plugin-managed directory of short-lived JSON
-session records:
+1. The component command installs the Neovim plugin and, for Linux, the bridge.
+2. Your assigned activation gesture enables the Access Link service and finds
+   reachable sessions.
+3. F12 associates the focused Windows Terminal control with the currently
+   focused Neovim session.
 
-- on Windows, normally
-  `%LOCALAPPDATA%\nvim-nvda\sessions\<PID>-<nonce>.json`;
-- on Linux,
-  `$XDG_RUNTIME_DIR/nvim-nvda/sessions/<PID>-<nonce>.json`, with a private
-  per-user directory below `/tmp` as fallback.
+An installed component is therefore not yet a running connection.
 
-These files contain only the session and endpoint metadata needed for
-discovery and F12 binding. They do not store a Windows Terminal window, tab,
-or pane mapping. The NVDA add-on keeps that binding only in memory for its
-current runtime.
+## Activation and F12
 
-## What activation does
+The activation gesture is an NVDA command and normally contains the NVDA key
+or another combination assigned in NVDA's Input Gestures dialog. NVDA runs it
+while Windows Terminal is focused.
 
-Activation turns the shared service on or off. When turning it on, it starts a bounded background inventory. It reads local registered
-sessions and queries saved SSH targets that can be reached without opening a
-password dialog. It does not immediately create permanent connections to every
-target. Wait for the ready message before pressing F12. While the service is
-enabled, each physical F12 press authorizes one pairing attempt for the exact
-focused control's complete UIA identity. The activation command remains the
-global off switch even when an unbound control has focus.
+F12 belongs to the normal Windows Terminal and Neovim keyboard path. Access
+Link does not block it: Neovim receives the key and briefly marks the current
+session. Access Link then connects exactly that new match to the focused
+control. F12 does not turn the add-on on or off.
 
-## What F12 does
+Press F12 once and wait for confirmation. Several rapid presses start several
+separate selection attempts.
 
-The physical F12 press itself is the exact, one-shot authorization. In unbound
-shells, file managers, and other controls, F12 remains an ordinary key. A
-single claim check may run in response to that explicit action, but without a
-fresh Neovim claim it remains silent and creates no dialog, binding, or
-suppression. F12 is
-forwarded to Windows Terminal and Neovim first. The plugin increments a
-monotonic claim value in its private JSON session record without displaying a
-message. The add-on compares that value with its activation baseline:
+## Complete the first editing session
 
-- one changed session is connected;
-- multiple real changes produce an accessible choice;
-- no change produces no guessed connection.
+After connection, Neovim supplies the current buffer, mode, cursor, and other
+semantic state. Begin in an unimportant buffer:
 
-Titles, terminal text, current directory, user name, and wall-clock
-synchronization are not used. Each additional window, tab, or pane is claimed
-independently with its own physical F12 press.
+1. Press `i`, type text, and press `Escape`.
+2. Navigate in Normal mode with `h`, `j`, `k`, and `l`.
+3. Save with `:w` or `:w filename`.
+4. Test a selection with `v` and movement commands.
+5. Switch to another shell pane and back.
+6. Press the activation gesture again to disable Access Link.
 
-If Neovim exits and restarts in the same remembered tab, it is a new Neovim
-session with a new endpoint and connection instance. A fresh F12 press is still
-required as authorization, after which the old instance is replaced. Remembering
-the tab only skips the repeated remember question and permits later correlated
-focus restoration; it never trusts a newly started process automatically. Once
-the first valid `fullState` authenticates that new instance, NVDA's
-`connected.wav` confirms the connection when Global action feedback permits
-sounds. The Normal-mode cue has no connection-status role and may be absent for
-a new session in an already focused tab. If that focused, previously connected
-instance is really disconnected, `disconnected.wav` confirms the transition;
-an initially disconnected state does not produce a loss cue.
+`i`, `Escape`, `h`, `j`, `k`, `l`, `v`, and `:w` are Neovim commands. Neovim
+changes the mode, cursor, selection, or file. Access Link makes those changes
+accessible.
 
-## Local Windows path
+Key combinations containing the NVDA key belong to the screen-reader layer.
+Examples are `NVDA+h` for speech exploration and `NVDA+Alt+D` for the
+diagnostic report. Access Link takes over these commands only in the documented
+exact connected Neovim context.
 
-The plugin starts a dynamic Neovim RPC endpoint bound exactly to `127.0.0.1`
-and records it in a short-lived JSON session file below
-`%LOCALAPPDATA%\nvim-nvda\sessions`. This does not use the Windows Registry.
-After a claim, the add-on opens
-a dedicated background RPC client for that one session. No fixed port,
-`nvim --listen`, wrapper, SSH process, or administrator privilege is required.
+## Switch between tabs and panes
 
-## Remote Linux path
+A Windows Terminal pane is a separate terminal control. Access Link keeps a
+separate association for each control:
 
-The interactive SSH window is the user's visible terminal session and may
-contain tmux and Neovim. After a claim, the add-on starts a separate hidden
-Windows OpenSSH process running `nvim-nvda-bridge --session ...`. The bridge
-connects to the selected private Unix RPC socket and sends bounded protocol-v2
-events over SSH stdout; control travels over stdin. Closing the interactive SSH
-window and stopping the bridge connection are separate operations.
+- A connected Neovim pane receives structured output.
+- An unconnected Neovim pane keeps NVDA's native terminal output until you
+  press F12 there.
+- A shell pane remains entirely on NVDA's native terminal output.
+- An embedded Neovim terminal buffer also uses native terminal output during
+  direct input.
 
-## Switching and failure
+After focus changes, Access Link restores an existing association only after a
+matching response from its Neovim session. Native terminal output remains
+active until that confirmation. State from the previously focused pane is
+therefore not presented in the new pane.
 
-Each runtime connection has its own client, state, sequence, and terminal
-binding. On window, tab, or pane changes, suppression is cleared immediately.
-Only the instance bound to the focused control receives a correlated context
-request; its matching authenticated response may restore speech, Braille,
-sounds, and suppression. Stale, unbound, and previously focused instance events
-are ignored.
+## Connect more sessions
 
-Disconnect, timeout, invalid sequence, deactivation, or loss of focus clears
-the gate and restores normal terminal output. The add-on never suppresses an
-unknown application or an unbound tab.
+Start Neovim in another window, tab, or pane and press F12 there. Existing
+connected controls remain active. Local and remote sessions can be mixed in
+the same Windows Terminal window.
 
-## Speech exploration mode: read without moving Neovim's cursor
+When several sessions have similar names, the manual connection dialog shows
+the connection name, working directory, and existing association. For more
+orientation, set a session name before starting Neovim:
 
-Speech exploration mode is an independent speech feature of the add-on, not a
-Braille mode. In a connected and confirmed Neovim control, hold the NVDA key
-and use these fixed reading commands:
+```text
+NVIM_NVDA_SESSION_NAME=Documentation nvim
+```
 
-| Key | Virtual reading movement |
-|---|---|
-| `NVDA+h` / `NVDA+l` | previous / next character |
-| `NVDA+k` / `NVDA+j` | previous / next line |
-| `Shift+NVDA+h` / `Shift+NVDA+l` | previous / next word |
+In PowerShell:
 
-The ephemeral reading position is initialized from the real cursor, and each
-requested movement then changes only that virtual position. The buffer, mode,
-view, and real cursor do not change. Every movement speaks the character,
-word, or line at the virtual position.
+```powershell
+$env:NVIM_NVDA_SESSION_NAME = "Documentation"
+nvim.exe
+```
 
-Releasing NVDA returns output to the unchanged real cursor. Character
-speech exploration reads its character. Word and line speech exploration use the respective
-choices under `Settings → Neovim Access Link → Navigation → Speech exploration
-release`. Word output may add the cursor character. Line output may add the
-current word, the cursor character, both in that order, or neither. The base
-word or line is never disabled. These two choices are independent of the
-corresponding normal-navigation settings.
+The name is only an aid for selection and does not change Neovim's working
+directory.
 
-During character speech exploration, a short two-note cue marks a return to the real
-cursor position. The same cue marks a return to the original word or line
-during word or line speech exploration. It follows the configured
-line-boundary sound feedback.
+## Remember or manually select an association
 
-The commands apply in every Neovim mode supported by the add-on, including
-Normal, Insert, Replace, Visual, Operator-pending, command line,
-Terminal-normal, and direct Terminal input. They apply only in the exact
-focused, authenticated Neovim pane. The same keys retain normal NVDA behavior
-in a shell, an unbound pane, another tab, or another application. After
-installing a build that adds this feature, update the Neovim components and
-restart running Neovim instances.
+After a new F12 association, Access Link asks whether to remember it for the
+Windows Terminal tab until NVDA or Windows Terminal exits. On a later tab
+switch, Access Link restores the matching running session after focus is
+confirmed.
 
-See [Speech exploration mode](speech-exploration.md) for the complete user
-description, including optional Braille presentation and the distinction from
-Braille exploration mode.
+The following assignable commands are available under
+`NVDA menu > Preferences > Input gestures... > Neovim Access Link`:
 
-## Use built-in spelling suggestions
+- `Choose a server and connect this terminal to a new Neovim session`;
+- `Disconnect the selected Neovim connection instance`;
+- `Forget the temporary Neovim connection for the focused terminal`.
 
-Neovim's `z=` opens a numbered list and then waits for a number. The add-on
-recognizes only this proven active spelling prompt. A brief spoken message
-announces the successfully recognized non-empty list once. While NVDA remains
-held, `NVDA+j` selects the next item and `NVDA+k` the previous item, wrapping
-at the ends. Speech and Braille present only the suggestion itself; Neovim's
-internal number is not exposed.
+The first command opens the accessible selection dialog when F12 does not
+produce one exact match. Disconnect ends the selected Access Link connection,
+not Neovim or SSH. Forget removes only the remembered tab association for the
+current NVDA process.
 
-`NVDA+Enter` accepts the selected correction. This contextual command takes
-priority over a user-assigned add-on action such as “Paste Windows clipboard
-text” only in the exact recognized prompt. With no local selection, it reports
-“No item selected” and performs no other action. NVDA Input Help never
-executes it.
+## Local and remote connections
 
-Releasing the final NVDA key discards only the add-on's local selection and
-restores the editor Braille line. Neovim's prompt remains open and can be
-explored again or cancelled with `Escape`. Focus changes, disconnects, editor
-context changes, or closing the prompt discard its transient state. Shells,
-other tabs and panes, and other Neovim prompts retain their normal keyboard
-behavior.
+Local Windows Neovim connects only through the local computer. Remote Neovim
+uses two independent SSH connections:
 
-## Manual selection
+- The visible Windows Terminal session remains your ordinary shell and carries
+  your keyboard input.
+- Access Link opens a separate background SSH connection to the installed
+  bridge and transfers only bounded accessibility data through it.
 
-Focus Windows Terminal, then assign “Choose a server and connect this terminal
-to a new Neovim session” in `NVDA menu → Preferences → Input gestures...`.
-Use it for password profiles or
-when automatic inventory cannot see the intended target. Choose the target,
-focus the intended Neovim in the same control, and press F12. A session choice
-appears only if multiple fresh matches genuinely remain.
+The bridge opens no additional network service on Linux. Access Link stores no
+passwords. A password profile keeps the password in memory only for the
+current NVDA process.
+
+## Disconnection and error behavior
+
+Access Link suppresses native terminal output only for an active,
+authenticated, and focused Neovim association. When support is disabled, the
+transport ends, data is invalid, focus is uncertain, or the control is
+unknown, NVDA's native terminal output remains or becomes active.
+
+Suppression never applies to an entire Windows Terminal window. A failure in
+one session does not change any other pane association.
+
+See [Troubleshooting](troubleshooting.md) for symptoms and checks. See the
+[Command reference](commands.md) for the complete command list.

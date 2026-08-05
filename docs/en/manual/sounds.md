@@ -1,76 +1,63 @@
 # Sounds and earcons
 
-All audio files are read completely when the add-on starts. Triggering an
-event therefore performs no file access. If a file is missing or cannot be
-played, the add-on stays operational and uses its short synthesized fallback.
+Access Link uses short sounds so that frequent editor states do not always
+need speech. The `Feedback` tab controls speech and sounds separately for each
+event. Typing echo, indentation, spelling, and grammar follow NVDA's own
+settings.
 
-Sounds can supplement or replace speech for configured editor actions. Current
-cues cover a newly authenticated or re-established connection through NVDA's
-installed `waves/connected.wav`, a real focused transport loss through
-`waves/disconnected.wav`, Insert/direct terminal input, a short mid-pitch command-line tone,
-and the transition to Normal or canonical Terminal-Normal,
-matching errors, deletion, replace,
-line/file boundaries, and crossing a line. Completion open/close and spelling
-cues follow the relevant NVDA settings.
+## Sound overview
 
-The connection cue plays exactly for the first authenticated full state of an
-instance and again after a real transport disconnection. It does not repeat for
-another `fullState` resynchronization during the same connected transport
-lifetime. `disconnected.wav` plays only when a previously connected,
-currently focused instance really becomes disconnected; an initial or repeated
-disconnected state stays silent. Both cues follow the sound component of Global
-action feedback and are independent of editor mode. Like the other NVDA-native
-files, they are read from the installed NVDA directory and are not redistributed
-by the add-on.
+| Event | Sound | Setting |
+| --- | --- | --- |
+| connection established | NVDA's `connected.wav` | `Global action feedback` |
+| active connection disconnected | NVDA's `disconnected.wav` | `Global action feedback` |
+| Insert mode or direct terminal input | NVDA's focus-mode sound | `Insert and normal mode changes` |
+| Normal or Terminal-Normal mode | NVDA's browse-mode sound | `Insert and normal mode changes` |
+| Neovim command line | short middle tone | `Insert and normal mode changes` |
+| text deletion | short deletion sound | `Deleting text` |
+| text replacement | short replacement sound | `Replacing text` |
+| beginning or end of line | distinct boundary sounds | `Line boundaries` |
+| beginning or end of file | distinct boundary sounds | `File boundaries` |
+| horizontal movement into another line | short transition sound | `Crossing into another line` |
+| missing bracket pair | NVDA's error sound | `Missing matching bracket` |
+| suggestion menu opened or closed | NVDA's suggestion sounds | NVDA suggestion setting |
+| spelling or grammar error | NVDA's text-error sound | NVDA Document Formatting |
+| diagnostic line or position | short error or warning sound | corresponding diagnostic setting |
+| explicit diagnostic query with no result | short neutral confirmation sound | corresponding diagnostic setting |
 
-Mode sounds instead confirm an actual mode transition or a correlated focus
-context. The first full state of a new connection instance created after F12
-is neither and therefore produces no Normal-mode sound. A subsequently
-confirmed focus context may produce at most one additional, semantically
-separate Normal- or Insert-mode cue. When sounds are disabled, the spoken
-connection-started message and subsequent semantic add-on output remain the
-authoritative checks.
+A connection or mode sound plays only for the corresponding confirmed state
+transition. Resynchronizing the same state does not repeat it.
 
-The spelling cue is emitted after completing a misspelled word and when normal
-word navigation or word speech exploration reaches an affected word. NVDA's spelling
-and grammar settings remain authoritative; the add-on introduces no separate
-option. In that NVDA setting, Speech controls the localized “spelling error”
-or “grammar error” label, Sound controls `textError.wav`, and Braille controls
-only the error markers on the display. Normal word navigation and word
-speech exploration mode interpret the same combination; the reached word remains spoken
-independently.
+## Indentation
 
-Diagnostic errors, warnings, and an explicitly empty diagnostic query use
-three short accessibility signals from the MIT-licensed Code - OSS source of
-Visual Studio Code. The bundled sound
-license records the pinned source commit, source and WAV hashes, WAV decoding,
-and the complete MIT license. As in VS Code, the line and position signals
-reuse the same file for each severity. Up to roughly 0.9 seconds of trailing
-digital silence contained in the decoded files is losslessly reduced to 5 ms;
-no non-zero PCM frame is changed or discarded. Before every deliberately
-triggered diagnostic signal, the already memory-resident player is also
-restarted. The next entry of the same severity on one line therefore gets its
-own immediate cue. During explicit
-cursor navigation, the line cue plays once on entering a diagnostic line and
-the position cue plays at every cursor position reached within a diagnostic
-range. Typing and
-asynchronous `DiagnosticChanged` refreshes stay silent: unlike VS Code, the
-terminal integration does not receive equivalent internal editor state for
-its marker timer and typing debounce. The Diagnostic line and Diagnostic
-position feedback settings can disable the two signal classes separately.
+Indentation follows NVDA's setting under `Document Formatting`. Access Link
+uses NVDA's tone pitch and duration and produces an indentation tone only when
+indentation changes.
 
-VS Code diagnostic navigation returns silently when its marker list is empty.
-Its existing but unrelated “no inlay hints” signal even uses the same audio
-file as a diagnostic error. Access Link therefore confirms an explicitly
-empty result with the unmistakable Code - OSS `clear.mp3` cue instead, trimmed
-to about 262 ms with a 5 ms tail. For `NvimNvdaDiagnosticCurrent` and the other
-diagnostic commands it follows Diagnostic position feedback; for an empty
-held `NVDA+Shift+Space` query it follows Diagnostic line feedback. Mere cursor
-movement across clean lines remains silent. Information and hint diagnostics
-also remain soundless: the new cue denotes no problem and only confirms an
-active query with no match.
+## Spelling and grammar
 
-Select Off, Speech, Tones, or Both Speech and Tones under `NVDA menu → Preferences
-→ Settings... → Neovim Access Link`. Sounds are bundled resources and are
-played on NVDA's main thread through its audio facilities. A missing sound must
-fail safely without blocking editor feedback or terminal fallback.
+NVDA Document Formatting controls speech, sounds, and Braille marking
+independently:
+
+- `Speech` controls the localized spelling- or grammar-error announcement.
+- `Sound` controls the text-error sound.
+- `Braille` controls marking on the Braille display.
+
+The same setting applies after completing a misspelled word, during normal word
+navigation, and during word exploration. The reached word is still spoken
+independently of error feedback.
+
+## Diagnostics
+
+Errors and warnings have distinct short sounds. Access Link plays them during
+deliberate navigation into a diagnostic line or diagnostic position. Typing
+and background updates remain silent. Information and hint diagnostics produce
+no diagnostic sound.
+
+An explicit diagnostic query with no result uses a separate neutral sound and
+the message `no diagnostic`. Ordinary navigation over text without diagnostics
+remains silent.
+
+Sources and licenses for bundled audio files are in
+`resources/sounds/LICENSE.txt` in the installed add-on and in the developer
+documentation.

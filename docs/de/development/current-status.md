@@ -1,10 +1,10 @@
 # Aktueller Status
 
-Stand: 31. Juli 2026. Produktversion im Quellstand:
-0.97.0, Entwicklungsbuild 9.
+Stand: 5. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0.
+Die genaue Entwicklungsbuildnummer und die Git-Metadaten werden beim Build aus
+`buildVars.py` erzeugt und deshalb in dieser Momentaufnahme nicht wiederholt.
 
-Der Quellstand hat die Entwicklungslinie 0.97.0 begonnen. Der aktuell
-veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
+Der aktuell veröffentlichte Beta-Pre-Release bleibt 0.96.0; sein
 GitHub-Veröffentlichungslink und die versionsbezogenen deutschen und
 englischen Changelog-Links bleiben prominent in `README.md`. Die vom Projekt
 festgelegte Reife ist Beta. Diese Dokumentation leitet aus Testumfang,

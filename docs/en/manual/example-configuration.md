@@ -12,7 +12,7 @@ includes:
 - practical LSP, linter, and Access Link mappings.
 
 The preceding chapter,
-[Setting up LSP, auto-completion, and linters](language-tools.md), explains the
+[Setting up LSP, completion, and linters](language-tools.md), explains the
 general behavior, additional languages, and the alternative `vim.pack` setup.
 
 ## Installing prerequisites
@@ -243,10 +243,14 @@ these checks afterwards:
 | `:Lazy` | Oil, `nvim-lspconfig`, and `nvim-lint` are shown as loaded |
 
 In this variant, update plugins with `:Lazy update`, not `:packupdate`. The
-generated `lazy-lock.json` records the plugin versions that were actually used
-and should be retained together with a backed-up configuration.
+generated `lazy-lock.json` records the plugin versions that were actually used.
+Keep it together with a backed-up configuration.
 
 ## Operation
+
+The keys in the following table are Neovim keys without the NVDA key. Neovim
+executes the mapped actions; Access Link makes their results accessible through
+speech and Braille.
 
 | Key | Effect |
 |---|---|

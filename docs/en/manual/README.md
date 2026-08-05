@@ -1,78 +1,102 @@
 # Neovim Access Link — User Manual
 
-Neovim Access Link provides NVDA with structured state from Neovim instead of
-scraping the changing terminal screen. It can report mode, cursor movement,
-editing, selections, indentation, completion, diagnostics, and other semantic
-editor events. Speech exploration mode can read characters, words, and lines
-temporarily without moving Neovim's real cursor.
+Neovim Access Link connects Neovim in Windows Terminal to NVDA. The add-on
+receives structured information directly from Neovim and presents modes,
+cursor movement, text changes, selections, indentation, completion, and
+diagnostics through speech, sounds, and Braille.
 
-Supported today are local Windows `nvim.exe` and Linux Neovim over SSH in
-Windows Terminal, including multiple windows, tabs, split panes, mixed Neovim
-and ordinary shell panes, accounts, and tmux sessions. PuTTY, graphical Neovim
-front ends, portable layouts, and automatic `NVIM_APPNAME` layouts are not
+This manual is for experienced NVDA users who are learning Neovim or want to
+use Access Link productively. Use the [Quick Guide](quick-guide.md) for the
+first installation and connection.
+
+## Supported workflow
+
+Access Link currently supports:
+
+- local `nvim.exe` in Windows Terminal;
+- Neovim on Linux over SSH;
+- Normal, Insert, Replace, Visual, Select, Operator-pending, and Command-line
+  modes;
+- Neovim Terminal-Normal mode and native terminal output during direct
+  terminal input;
+- multiple Windows Terminal windows, tabs, and split panes;
+- parallel local and remote Neovim sessions alongside ordinary shell panes;
+- tmux inside an SSH session;
+- structured speech and Braille, speech exploration, completion, LSP,
+  diagnostics, and Neovim spelling suggestions;
+- file management with Oil; other file managers have automatically tested
+  adapters.
+
+The practically confirmed reference environment uses Windows 11 25H2,
+NVDA 2026.1.1, Windows Terminal 1.24.x, and Neovim 0.10.1 or 0.12.3. The
+remote path is confirmed on Rocky Linux 10.2. See the
+[compatibility overview](../development/compatibility.md) for the complete
+evidence and remaining test coverage.
+
+Other terminal applications, graphical Neovim frontends, portable Windows
+installations, and data directories separated with `NVIM_APPNAME` are not
 supported.
-
-Advanced [Braille support](braille.md) presents structured editor lines
-instead of terminal fragments. It includes routing in Normal, Insert, and
-command-line modes, the insertion position after the final character,
-automatic following on long lines, Braille display navigation controls, and
-an independent Braille exploration mode.
 
 ## Maturity
 
-The add-on is beta software. Defects, incomplete feedback, and changes to its
-operation remain possible. Keep normal backups and introduce the add-on
-gradually with your own NVDA, Neovim, and terminal configuration before
-relying on it for important work.
+The add-on is beta. The documented reference workflows have practical or
+automated coverage, but the combinations of NVDA configuration, Braille
+hardware, Neovim versions, and plugins are not exhaustively covered. Use
+normal version control or backups for important files.
 
-## Core concepts
+## How Access Link works
 
-- The **NVDA add-on** manages settings, connections, speech, Braille, sounds,
-  and safe suppression of native terminal output.
-- The **Neovim plugin** reads editor APIs and emits semantic events.
-- The Linux **bridge** connects one registered Neovim instance to NVDA over
-  SSH stdin/stdout. Local Windows Neovim connects directly over `127.0.0.1`.
-- A saved **connection** describes a Linux SSH account, not a running editor.
-- A **session** is one running Neovim instance.
-- A **terminal binding** links exactly one Windows Terminal control—depending
-  on the layout, a tab or pane—to one session.
+The NVDA add-on runs on Windows. A Neovim plugin supplies semantic editor
+state. For a remote session, a small bridge carries that state through a
+separate SSH connection.
 
-## Normal operating model
+An Access Link session is one running Neovim instance. Access Link associates
+exactly one focused Windows Terminal control with exactly one session. A
+control is the content of a tab or one pane. Connected Neovim panes and normal
+shell panes in the same Windows Terminal window therefore remain independent.
 
-Install the add-on and components, activate discovery, focus the desired
-Neovim, then press F12. Neovim records a short silent claim and the add-on binds
-the one changed session to the current tab. F12 is not activation and is not an
-SSH profile. It is handled only in Windows Terminal and remains untouched in
-other applications.
+This is a central strength of the add-on: one Windows Terminal tab can contain
+several panes, and each pane behaves like a separate terminal. You can switch
+between local Neovim sessions, remote SSH sessions, and ordinary shells.
+Access Link takes over only the exact connected and focused Neovim pane. Every
+other pane keeps NVDA's normal terminal behavior.
 
-If automatic claiming is unsuitable, assign a gesture to “Choose a server and
-connect this terminal to a new Neovim session”. Accessible dialogs show names
-and working directories; internal IDs are never required.
+When support is disabled, the connection ends, data is invalid, or the
+association cannot be confirmed exactly, Access Link does not suppress
+terminal output. NVDA fails open to its normal terminal behavior.
 
-## Security and failure behavior
+## Two kinds of keyboard input
 
-Local RPC is bound only to IPv4 loopback `127.0.0.1`. Remote communication uses
-SSH stdin/stdout and opens no extra listener. Passwords are not stored in the
-profile or diagnostic report. Native terminal output is suppressed only for a
-focused, authenticated, explicitly bound Neovim session. Deactivation,
-disconnect, invalid state, or an unknown window fails open to normal NVDA
-terminal output.
+This manual distinguishes two separate input layers:
 
-## Manual chapters
+- **NVDA key combinations** include the NVDA key, such as `NVDA+Alt+D` or
+  `NVDA+h`. NVDA resolves these combinations. Access Link takes them over only
+  in the documented connected Neovim context. Outside that context, NVDA's
+  normal commands apply.
+- **Neovim commands** do not contain the NVDA key, such as `i`, `Escape`, `w`,
+  `z=`, or `:w`. Neovim executes these inputs. Access Link does not replace
+  their function; it makes their result, mode, and cursor movement accessible.
 
-1. [Settings and connection profiles](settings.md)
-2. [Speech exploration mode](speech-exploration.md)
-3. [Communication, connections, and session binding](communication.md)
-4. [SSH, tmux, and Neovim](ssh-and-tmux.md)
-5. [Setting up LSP, auto-completion, and linters](language-tools.md)
-6. [Small Python configuration with Lazy and Oil](example-configuration.md)
-7. [Menus and completion](menus-and-completion.md)
-8. [Embedded terminal and file managers](terminals-and-file-managers.md)
-9. [Sounds and earcons](sounds.md)
-10. [Braille support](braille.md)
-11. [Troubleshooting and diagnostic report](troubleshooting.md)
+A plus sign means that keys are held together: `NVDA+Alt+D`. A sequence
+separated by commas means that keys are pressed one after another: `Space`,
+`l`, `s`. Neovim's `z=` also means two keys pressed in sequence.
 
-Begin with the separate [Quick Guide](neovim-access-link-quick-guide-en.html)
-and use a disposable buffer before important work. Include character, word,
-and line speech exploration while holding NVDA and verify that the real cursor
-does not move.
+## Recommended reading order
+
+1. [Neovim and Windows Terminal basics](basics.md)
+2. [Connection, first editing session, and session switching](communication.md)
+3. [Speech exploration mode](speech-exploration.md)
+4. [Braille support](braille.md)
+5. [Menus, completion, and diagnostics](menus-and-completion.md)
+6. [Embedded terminal and file managers](terminals-and-file-managers.md)
+7. [SSH and tmux](ssh-and-tmux.md)
+8. [Set up LSP, completion, and linters](language-tools.md)
+9. [Optional example configuration with Lazy and Oil](example-configuration.md)
+10. [Command reference](commands.md)
+11. [Settings reference](settings.md)
+12. [Sounds and earcons](sounds.md)
+13. [Troubleshooting](troubleshooting.md)
+
+Learn general Neovim operation with `:Tutor`. Neovim's
+[official help](https://neovim.io/doc/user/) also provides `nvim-intro`, its
+task-oriented user manual, and the complete command reference.

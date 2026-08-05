@@ -1,316 +1,185 @@
 # Neovim Access Link – Quick Guide
 
-Dieser Quick Guide führt von der Installation bis zur ersten funktionierenden
-Verbindung. Er beschreibt den aktuellen Beta-Stand für NVDA 2026.1.x unter
-Windows 11. Unterstützt wird Neovim in Windows Terminal:
+Dieser Quick Guide führt erfahrene NVDA-Nutzer mit wenig Neovim-Erfahrung von
+der Installation bis zu einer bestätigten ersten Verbindung. Die vollständige
+Bedienung steht im [Handbuch](README.md).
 
-- lokal als Windows-Programm `nvim.exe`,
-- entfernt auf Linux über eine normale SSH-Sitzung,
-- mit mehreren Windows-Terminal-Tabs und -Fenstern,
-- optional innerhalb von tmux auf dem Linux-Rechner.
-
-Andere Terminalprogramme und grafische Neovim-Oberflächen werden derzeit nicht
+Access Link unterstützt Neovim in Windows Terminal lokal unter Windows und
+entfernt auf Linux über SSH. Mehrere Fenster, Tabs und geteilte Panes dürfen
+lokale Neovim-Sitzungen, entfernte Neovim-Sitzungen und normale Shells mischen.
+Andere Terminalprogramme und grafische Neovim-Oberflächen sind nicht
 unterstützt.
 
-Der aktuelle Stand ist Beta. Fehler, unvollständige Rückmeldungen und
-Änderungen an der Bedienung sind weiterhin möglich. Fehler sollten mit einem
-redigierten Diagnosebericht gemeldet werden.
+Der entfernte Pfad verwendet Linux, Python 3 und OpenSSH. Praktisch bestätigt
+ist Rocky Linux 10.2; weitere Linux-Systeme sind nicht praktisch bestätigt.
 
-## 1. Voraussetzungen
+## 1. Voraussetzungen prüfen
 
-Für alle Verbindungen werden benötigt:
+Erforderlich sind:
 
-- Windows 11,
-- NVDA 2026.1.x,
-- Windows Terminal,
+- Windows 11;
+- NVDA 2026.1.x;
+- Windows Terminal;
 - Neovim 0.10.1 oder neuer.
 
-Für ein Linux-Ziel werden zusätzlich benötigt:
+Öffnen Sie Windows Terminal und prüfen Sie die lokale Installation:
 
-- Python 3 auf dem Linux-Rechner,
-- der Windows-OpenSSH-Client,
-- eine funktionierende SSH-Anmeldung. Empfohlen werden ein SSH-Schlüssel,
-  `ssh-agent` oder ein bereits eingerichteter SSH-Alias. Eine zugängliche
-  Passwortabfrage ist ebenfalls möglich.
+```text
+nvim.exe --version
+```
 
-## 2. Add-on installieren
-
-Bei einem Wechsel von einem Build mit der früheren internen ID
-`nvimNvdaAccess` zuerst dieses alte Add-on deinstallieren und NVDA neu starten.
-Andernfalls können beide Global Plugins gleichzeitig geladen werden. Alte
-Einstellungen und Tastenzuweisungen werden nicht übernommen.
-
-1. Die Datei `NeovimAccessLink-<Version>.nvda-addon` unter Windows öffnen.
-2. Die Installation in NVDA bestätigen.
-3. NVDA neu starten.
-
-Nach dem Neustart erscheint unter „NVDA-Menü → Optionen → Einstellungen…“ die
-Kategorie „Neovim Access Link“. Unter „NVDA-Menü → Optionen →
-Tastenbefehle…“ gibt es ebenfalls eine gleichnamige Kategorie für die
-Tastenzuweisungen, wenn vor dem Öffnen des Dialogs Windows Terminal fokussiert
-war.
-
-## 3. Eigene Aktivierungstaste festlegen
-
-1. Ein beliebiges Windows-Terminal-Control fokussieren und danach „NVDA-Menü →
-   Optionen → Tastenbefehle…“ öffnen.
-2. Die Kategorie „Neovim Access Link“ suchen.
-3. Dem Befehl „Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte
-   Verbindungen erkennen“ eine gut erreichbare Tastenkombination zuweisen.
-
-NVDA zeigt die zunächst unbelegten Befehle an, wenn Windows Terminal vor dem
-Öffnen des Dialogs fokussiert war. Nach einer Zuweisung und dem Laden des
-Windows-Terminal-AppModules kann NVDA die gespeicherte Zuordnung bis zum
-nächsten NVDA-Neustart auch aus anderen Anwendungen heraus auflisten. Das ist
-nur die Darstellung von NVDAs Benutzergestenkarte: Ausgeführt wird der Befehl
-weiterhin ausschließlich bei fokussiertem Windows Terminal. Eine Belegung kann
-dadurch keinen anderen NVDA-Befehl in fremden Anwendungen verdrängen. Nach
-einem Wechsel von einem früheren Featurebuild, der diese Befehle noch dem
-Global Plugin zuordnete, müssen gewünschte Tastenkombinationen einmal neu
-belegt werden.
-
-`Ctrl+Alt+N` sollte nicht verwendet werden, weil Windows diese Kombination je
-nach NVDA-Installation für einen NVDA-Neustart verwenden kann.
-
-`F12` muss nicht als Aktivierungstaste eingerichtet werden. F12 dient nur dazu,
-die gerade fokussierte Neovim-Instanz eindeutig mit dem aktuellen
-Windows-Terminal-Control zu verbinden. Bei eingeschaltetem Dienst autorisiert
-jeder physische F12-Druck genau einen Zuordnungsversuch für das gerade
-fokussierte Control.
-
-Für die Zwischenablage stehen in derselben Kategorie vier weitere Befehle ohne
-Standardbelegung bereit:
-
-- aktive Neovim-Visual-Auswahl in die Windows-Zwischenablage kopieren;
-- Neovims letzten Yank aus Register 0 in die Windows-Zwischenablage kopieren;
-- Windows-Zwischenablagentext in den aktiven Neovim-Buffer einfügen;
-- Windows-Zwischenablagentext in Neovims aktuelles unbenanntes Register
-  übertragen, damit er anschließend mit `p` verwendet werden kann.
-
-Diese Befehle müssen bei Bedarf mit eigenen NVDA-Tastenkombinationen belegt
-werden. Sie wirken nur in der ausdrücklich gebundenen und aktuell fokussierten
-Neovim-Sitzung. Außerhalb von Windows Terminal werden sie von NVDA nicht als
-AppModule-Befehle aufgelöst; normales Windows-Terminal-Copy-and-Paste bleibt
-unverändert.
-
-## 4. Komponenten installieren
-
-Vor der Aktualisierung alle laufenden Neovim-Instanzen auf den ausgewählten
-Rechnern schließen. Dadurch ist ausgeschlossen, dass eine bereits geladene
-alte Pluginfassung bis zum nächsten Neovim-Neustart weiterläuft.
-
-1. „NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder aktualisieren...“
-   öffnen.
-2. Für lokales Windows-Neovim „Dieser Computer“ markieren.
-3. Gewünschte Linux-Verbindungen markieren. Anfangs ist absichtlich kein Ziel
-   ausgewählt; „Alle Verbindungen auswählen“ markiert alle Ziele.
-4. Mit „OK“ starten.
-5. Die Ergebnisübersicht prüfen. Jedes Ziel wird als erfolgreich oder
-   fehlgeschlagen aufgeführt.
-6. Neovim anschließend neu starten.
-
-Das Add-on bringt Plugin, Bridge und Konfiguration selbst mit. Die Zielrechner
-laden während der Installation nichts aus dem Internet. Unter Linux erfolgt
-die Installation ohne root-Rechte in das Home-Verzeichnis des jeweiligen
-Benutzers.
-
-Zum vollständigen Entfernen zuerst Neovim auf den gewünschten Zielen beenden
-und „NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen...“ öffnen.
-Ziele wie bei der Installation ausdrücklich markieren und die Ergebnisübersicht
-prüfen. Verbindungsprofile, Neovim- und SSH-Konfiguration sowie andere Plugins
-bleiben erhalten.
-
-## 5. Linux-Verbindung anlegen
-
-Dieser Schritt entfällt für lokales Windows-Neovim.
-
-1. „NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link“ öffnen.
-2. Auf der Seite „Verbindungen“ „Verbindung hinzufügen...“ wählen.
-3. Einen verständlichen Namen, Server oder SSH-Alias, Linux-Benutzernamen und
-   SSH-Port eintragen.
-4. Als Anmeldeart möglichst „OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel,
-   ssh-agent oder SSH-Konfiguration)“ wählen. Dann gelten die normale
-   SSH-Konfiguration, Schlüssel und `ssh-agent`.
-5. Alternativ „Beim Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht
-   gespeichert)“ wählen. Das Passwort wird nur für die
-   aktuelle NVDA-Laufzeit verwendet und nicht gespeichert.
-6. Die Einstellungen speichern und danach die Komponenten für diese Verbindung
-   wie in Abschnitt 4 installieren.
-
-Vor der ersten Verbindung sollte eine normale Anmeldung in Windows Terminal
-funktionieren, beispielsweise:
+Für Neovim auf Linux benötigen Sie zusätzlich Python 3 auf dem Linux-Ziel, den
+Windows-OpenSSH-Client und eine funktionierende SSH-Anmeldung. Prüfen Sie diese
+Anmeldung vor der Access-Link-Einrichtung:
 
 ```text
 ssh benutzer@example.invalid
 ```
 
-## 6. Erste lokale Verbindung
+Schlüssel, `ssh-agent`, eine OpenSSH-Konfiguration oder eine vom Add-on
+angeforderte Passwortanmeldung sind unterstützt.
 
-1. In Windows Terminal `nvim.exe` starten.
-2. Die selbst festgelegte Aktivierungstaste drücken.
-3. Die Meldung abwarten, dass die Verbindungen bereit sind.
-4. Das gewünschte Neovim fokussieren und F12 genau einmal drücken.
-5. Bis zu zwei Sekunden auf die Verbindungsbestätigung warten.
+## 2. Add-on installieren
 
-Das lokale Plugin öffnet selbst einen dynamischen Port ausschließlich auf
-`127.0.0.1`. Ein fester Port, `nvim --listen`, ein Wrapper oder ein manuell
-gestarteter Hilfsprozess ist nicht erforderlich.
+1. Öffnen Sie `NeovimAccessLink-<Version>.nvda-addon` unter Windows.
+2. Bestätigen Sie die Installation in NVDA.
+3. Starten Sie NVDA neu.
 
-## 7. Erste SSH-Verbindung
+Nach dem Neustart enthält `NVDA-Menü → Optionen → Einstellungen…` die Kategorie
+`Neovim Access Link`.
 
-1. Im gewünschten Windows-Terminal-Tab normal per SSH anmelden.
-2. Optional tmux starten.
-3. Auf dem Linux-Rechner Neovim starten.
-4. Die Aktivierungstaste drücken und die Bereitschaftsmeldung abwarten.
-5. Das gewünschte Neovim fokussieren und F12 einmal drücken.
+## 3. Aktivierungsgeste zuweisen
 
-Die sichtbare SSH-Sitzung bleibt unverändert. Das Add-on öffnet zusätzlich eine
-unsichtbare SSH-stdio-Verbindung zur installierten Bridge. Es liest weder den
-Fenstertitel noch den Terminalinhalt, um Server oder Neovim zu erraten.
+1. Fokussieren Sie Windows Terminal.
+2. Öffnen Sie `NVDA-Menü → Optionen → Tastenbefehle…`.
+3. Öffnen Sie die Kategorie `Neovim Access Link`.
+4. Weisen Sie dem Befehl `Neovim-Barrierefreiheit ein- oder ausschalten und
+   konfigurierte Verbindungen erkennen` eine gut erreichbare Geste zu.
 
-## 8. Mehrere Fenster, Tabs, Panes und Sitzungen
+Verwenden Sie nicht `Ctrl+Alt+N`, wenn diese Kombination in Ihrer
+NVDA-Installation NVDA neu startet.
 
-Jedes Windows-Terminal-Control wird getrennt zugeordnet. Ein Control entspricht
-je nach Aufbau dem Inhalt eines Tabs oder Panes:
+Die zugewiesene Geste ist ein **NVDA-Befehl**: NVDA verarbeitet sie bei
+fokussiertem Windows Terminal. `F12` ist dagegen keine Aktivierungsgeste.
+Access Link reicht F12 an Neovim weiter und verwendet den Tastendruck danach,
+um die fokussierte Neovim-Sitzung eindeutig auszuwählen.
 
-1. Zum noch unverbundenen Fenster, Tab oder Pane wechseln.
-2. Im gewünschten Neovim F12 drücken. Bereits verbundene andere Controls laufen
-   dabei weiter.
+## 4. Komponenten installieren
 
-Zwischen bereits verbundenen Controls kann ohne erneutes F12 gewechselt werden.
-Das Add-on lässt beim Wechsel zunächst die native Terminalausgabe aktiv und
-übernimmt erst nach einer passenden Neovim-Fokusantwort wieder die strukturierte
-Ausgabe. Ein nicht verbundenes Control bleibt vollständig im nativen NVDA-
-Terminalverhalten. F12 prüft dort nur als ausdrückliche Benutzeraktion auf einen
-frischen Neovim-Claim; ohne Treffer gibt es keine Bindung, keinen Dialog und
-keine Unterdrückung.
+Schließen Sie vor einer Installation oder Aktualisierung alle betroffenen
+Neovim-Instanzen.
 
-Für mehrere Neovim-Instanzen mit gleichem Arbeitsverzeichnis kann vor dem Start
-ein freiwilliger Name gesetzt werden:
+1. Öffnen Sie `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten
+   installieren oder aktualisieren...`.
+2. Markieren Sie `Dieser Computer – lokales Neovim` für lokales
+   Windows-Neovim.
+3. Markieren Sie gespeicherte Linux-Verbindungen für entfernte Sitzungen.
+4. Bestätigen Sie mit `OK`.
+5. Prüfen Sie im Ergebnisdialog jedes ausgewählte Ziel.
 
-```text
-NVIM_NVDA_SESSION_NAME=Dokumentation nvim
-NVIM_NVDA_SESSION_NAME=Programmierung nvim
-```
+Access Link installiert seine mitgelieferte Plugin-Kopie in Neovims
+Standarddatenverzeichnis. Eine einfache Neovim-Konfiguration lädt dieses
+Start-Plugin beim nächsten Neovim-Start automatisch. Ein Plugin-Manager, der
+Neovims `packpath` oder Start-Plugins ersetzt, muss die bereits installierte
+lokale Kopie ausdrücklich laden. Installieren Sie keine zweite Access-Link-
+Kopie aus einem Plugin-Repository. Das optionale
+[Lazy-Beispiel](example-configuration.md) zeigt die passende Einbindung.
 
-Unter PowerShell lautet die entsprechende Form:
+## 5. Optional: Linux-Verbindung speichern
 
-```powershell
-$env:NVIM_NVDA_SESSION_NAME = "Dokumentation"
-nvim.exe
-```
+Überspringen Sie diesen Abschnitt für lokales Windows-Neovim.
 
-Der Name dient nur der verständlichen Auswahl. Eine interne Sitzungs-ID muss
-niemals eingegeben werden.
+1. Öffnen Sie `NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link`.
+2. Öffnen Sie die Registerkarte `Verbindungen`.
+3. Wählen Sie `Verbindung hinzufügen...`.
+4. Tragen Sie Verbindungsname, Server oder SSH-Alias und SSH-Port ein.
+5. Tragen Sie den Linux-Benutzernamen ein, sofern die OpenSSH-Konfiguration ihn
+   nicht festlegt.
+6. Wählen Sie die Anmeldemethode.
+7. Bestätigen Sie das Formular und danach den NVDA-Einstellungsdialog.
+8. Installieren Sie die Komponenten für diese Verbindung wie in Abschnitt 4.
 
-## 9. Tägliche Bedienung
+`OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder
+SSH-Konfiguration)` verwendet Ihre normale Windows-OpenSSH-Einrichtung. `Beim
+Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht gespeichert)` hält
+das eingegebene Passwort nur bis zum Ende der aktuellen NVDA-Laufzeit im
+Arbeitsspeicher.
 
-Nach erfolgreicher Verbindung stammen Sprache und Braille aus strukturierten
-Neovim-Ereignissen. Moduswechsel, Cursorbewegung, Bearbeitung, Auswahl,
-Einrückung, Rechtschreibfehler und Neovims Standard-Vervollständigung können
-dadurch unabhängig vom sichtbaren Terminalbild ausgegeben werden.
+## 6. Erste Sitzung verbinden
 
-F12 ist kein Ein-/Ausschalter. Zum Beenden der Unterstützung wird erneut die
-selbst festgelegte Aktivierungstaste verwendet. Bei Verbindungsverlust oder
-Deaktivierung fällt NVDA automatisch auf die normale Terminalausgabe zurück.
+### Lokal unter Windows
 
-Der Sprachexplorationsmodus liest Text ohne Cursorbewegung: NVDA gedrückt
-halten und mit `h/l` zeichenweise, mit `k/j` zeilenweise oder mit
-`Umschalt+h/l` wortweise lesen. Beim Loslassen spricht das Add-on das aktuelle
-Zeichen beziehungsweise die auf der Registerkarte `Navigation` gewählten
-Wort-/Zeilendetails. Diese festen Kombinationen gelten nur in der
-exakt verbundenen Neovim-Pane; in Shells und anderen Tabs oder Panes arbeitet
-NVDA unverändert. Ein kurzer Doppelton meldet, wenn die virtuelle Position
-wieder das Zeichen, Wort oder die Zeile erreicht, an dem der
-Sprachexplorationsmodus begann.
+1. Starten Sie `nvim.exe` in Windows Terminal.
+2. Drücken Sie die in Abschnitt 3 zugewiesene Aktivierungsgeste.
+3. Warten Sie auf die Meldung, dass lokale und gespeicherte Verbindungen geprüft
+   werden beziehungsweise bereitstehen.
+4. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
+5. Warten Sie auf die Verbindungsbestätigung.
 
-Beim Schreiben in einer Funktionsargumentliste spricht Access Link automatisch
-den vom Sprachserver aktiven Parameter. Nach einem Komma folgt der nächste;
-kehrt der Cursor in ein bereits ausgefülltes früheres Argument zurück, wird
-dieser Parameter erneut gesprochen. Bewegung innerhalb desselben Arguments
-bleibt still. Bei Verschachtelung gilt der innerste Aufruf. Die kurze Ausgabe
-ist nur Sprache, Braille bleibt beim Quelltext. Sie lässt sich unter
-`Einstellungen… → Neovim Access Link → Allgemein` profilabhängig abschalten.
+### Auf Linux über SSH
 
-Funktionsparameter lassen sich abfragen, ohne den Editorcursor zu bewegen:
-Den Cursor auf Funktionsname, öffnende oder schließende Aufrufklammer setzen,
-`NVDA+Leertaste` drücken, nur die Leertaste loslassen und die NVDA-Taste weiter
-halten. `NVDA+h/l`
-schaltet ausschließlich durch die Parameter der gewählten Signatur,
-`NVDA+k/j` ausschließlich durch mehrere Signaturen. Die erste Ansicht nennt
-nur Signatur und Dokumentation. Nach dieser Ansicht und nach jedem
-Signaturwechsel beginnt die Parameterauswahl neu: Der erste Druck auf
-`NVDA+h` oder `NVDA+l` zeigt immer Parameter 1; erst der nächste Druck
-schaltet in die gewählte Richtung weiter. Die Sprache verwendet dabei die
-vollständigen Bezeichnungen. Auf Braille stehen platzsparend `S 1 von 2` für
-eine Signatur, `P 1 von 3` für einen Parameter und `D:` vor der Dokumentation;
-Funktions- und Parameternamen bleiben vollständig. Mit
-`NVDA+Umschalt+Leertaste` funktioniert derselbe gehaltene Ablauf für Diagnosen am
-Cursor und auf der aktuellen Zeile; hier schaltet `NVDA+k/j` durch die
-Einträge. Lange Informationen lassen sich mit den üblichen Vor-/Zurück-Tasten
-vollständig durchblättern, ohne dabei in den Quelltext zu wechseln. Beim
-Loslassen der letzten NVDA-Taste verschwindet die
-vorübergehende Brailleanzeige. Fehler und Warnungen können beim gezielten
-Betreten ihrer Zeile oder ihres Bereichs einen kurzen Klang auslösen;
-Hintergrundaktualisierungen und Tippen bleiben stumm. Ergibt eine
-ausdrückliche Diagnoseabfrage keinen Treffer, bestätigt ein dritter kurzer
-Klang zusammen mit „keine Diagnose“ das leere Ergebnis. Reine Bewegung über
-fehlerfreie Zeilen sowie Informationen und Hinweise bleiben klanglos.
+1. Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per SSH an.
+2. Starten Sie auf dem Linux-Ziel `nvim`.
+3. Drücken Sie die Aktivierungsgeste und warten Sie auf die Bereitschaftsmeldung.
+4. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
+5. Warten Sie auf die Verbindungsbestätigung.
 
-Diese beiden Leertastenkombinationen übernimmt Access Link nur in der exakt
-aktiven, verbundenen Neovim-Pane. In anderen Terminal-Panes und Anwendungen
-bleiben NVDAs Standardfunktionen unverändert.
+## 7. Verbindung praktisch bestätigen
 
-Die Navigationstasten der Braillezeile besitzen davon unabhängig einen
-Braille-Cursormodus und einen Braille-Explorationsmodus. Im
-Braille-Cursormodus versetzen Oben und Unten den echten Neovim-Cursor. Im
-Braille-Explorationsmodus lassen sich mehrere
-Zeilen lesen, während der Cursor stehen bleibt; eine Routingtaste übernimmt
-die erkundete Stelle. Der Umschalter hat keine Standardgeste und kann unter
-`NVDA-Menü → Optionen → Eingaben → Neovim Access Link` zugewiesen werden.
-Der Sprachexplorationsmodus ist kein Braillefeature, kann seine virtuelle
-Position aber optional auf der Braillezeile anzeigen.
+Verwenden Sie einen unwichtigen Buffer:
 
-Neovims eingebaute Rechtschreibvorschläge lassen sich mit Neovim Access Link
-zugänglich bedienen. Cursor auf das falsch geschriebene Wort setzen und `z=`
-drücken. Eine kurze Sprachmeldung bestätigt, dass Vorschläge verfügbar sind.
-Danach die NVDA-Taste gedrückt halten und mit `j` beziehungsweise `k` durch die
-Vorschläge gehen. Das Add-on spricht nur den Vorschlagstext ohne Nummer und
-zeigt ihn vorübergehend auf Braille. `NVDA+Eingabe` übernimmt den gewählten
-Vorschlag. Wird stattdessen nur die NVDA-Taste losgelassen, verwirft
-das Add-on die lokale Auswahl, lässt Neovims Vorschlagsliste aber offen und
-stellt die normale Braillezeile wieder her; `Esc` bricht anschließend Neovims
-Abfrage ab. Dieser Ablauf gilt nur für die exakt verbundene Neovim-Pane. Bei
-Bedarf kann
-die Registerkarte `Braille` den vorübergehenden Vorschlag ab einem späteren
-Braillemodul anzeigen; eine auf der aktuellen Braillezeile nicht vorhandene
-Position fällt sicher auf Modul 1 zurück. Reicht der verbleibende Platz nicht,
-wird der Vorschlag bis höchstens Modul 1 nach links verschoben und endet
-möglichst am rechten Rand.
+1. Drücken Sie `i`. Access Link meldet den Insert-Modus entsprechend Ihren
+   Einstellungen.
+2. Schreiben Sie eine kurze Zeile.
+3. Drücken Sie `Esc`. Access Link meldet den Normalmodus.
+4. Navigieren Sie mit `h` und `l` zeichenweise sowie mit `j` und `k`
+   zeilenweise. Neovim bewegt den Cursor; Access Link spricht die semantische
+   Position und spielt konfigurierte Grenzklänge.
+5. Halten Sie die NVDA-Taste und drücken Sie `h` oder `l`. Access Link liest
+   Zeichen, ohne den echten Neovim-Cursor zu bewegen. Beim Loslassen der
+   NVDA-Taste kehrt die Ausgabe zum echten Cursor zurück.
 
-## 10. Wenn keine Verbindung entsteht
+Die letzten beiden Schritte zeigen den Unterschied der Eingabeebenen: `h`,
+`j`, `k` und `l` ohne NVDA-Taste sind normale Neovim-Befehle. Access Link macht
+ihre Wirkung zugänglich. `NVDA+h`, `NVDA+j`, `NVDA+k` und `NVDA+l` sind
+kontextbezogene NVDA-Befehle für die Sprachexploration.
 
-In dieser Reihenfolge prüfen:
+## 8. Tabs und Panes prüfen
 
-1. Läuft Neovim wirklich in Windows Terminal?
-2. Wurde Neovim nach der Komponenteninstallation vollständig neu gestartet?
-3. Kam vor F12 die Bereitschaftsmeldung?
-4. Wurde F12 nur einmal gedrückt und anschließend kurz gewartet?
+Ein Windows-Terminal-Tab enthält ein Terminal. Ein geteilter Tab enthält
+mehrere Panes und damit mehrere getrennte Terminals.
+
+1. Wechseln Sie in ein anderes Pane mit einer normalen Shell. NVDA verwendet
+   dort seine normale Terminalausgabe; Access Link übernimmt keine
+   Neovim-Tastenkombinationen.
+2. Wechseln Sie zurück zur verbundenen Neovim-Pane. Access Link stellt nach der
+   bestätigten Fokusantwort die strukturierte Ausgabe wieder her.
+3. Starten Sie bei Bedarf Neovim in einem weiteren Tab oder Pane und drücken Sie
+   dort F12. Die erste Zuordnung bleibt bestehen.
+
+## 9. Wenn keine Verbindung entsteht
+
+Prüfen Sie in dieser Reihenfolge:
+
+1. Läuft Neovim in Windows Terminal?
+2. Ist die Aktivierungsgeste zugewiesen und wurde sie vor F12 gedrückt?
+3. Wurde Neovim nach der Komponenteninstallation vollständig neu gestartet?
+4. Lädt die Neovim-Konfiguration das installierte Access-Link-Plugin?
 5. Funktioniert bei Linux die normale SSH-Anmeldung außerhalb des Add-ons?
 
-Im lokalen Neovim zeigt folgender Befehl, ob das Plugin geladen wurde:
+Prüfen Sie das Plugin in Neovim:
 
 ```vim
 :echo exists(':NvimNvdaSessionName')
 ```
 
-Die erwartete Ausgabe ist `2`. Bei einem anderen Wert die lokalen Komponenten
-bei vollständig geschlossenem Neovim erneut installieren und Neovim neu
-starten.
+Die Ausgabe `2` bestätigt, dass Neovim das Plugin geladen hat. Bei einer anderen
+Ausgabe schließen Sie alle betroffenen Neovim-Instanzen, aktualisieren die
+Komponenten und prüfen die Plugin-Manager-Konfiguration.
 
-Für eine genauere Analyse den NVDA-Befehl „Neovim-Diagnosebericht kopieren“
-ausführen. Die Standardgeste ist `NVDA+Alt+D`. Der Bericht entfernt Editortext
-und Zugangsdaten, bevor er in die Zwischenablage kopiert wird.
+`NVDA+Alt+D` kopiert den redigierten Diagnosebericht. Prüfen Sie ihn vor dem
+Weitergeben trotzdem auf lokale Pfade, Profilnamen und SSH-Ziele.
 
-Ausführliche Erklärungen und sämtliche Einstellungen stehen im separaten
-[Handbuch](neovim-access-link-handbook-de.html).
+Die erste Verbindung ist damit eingerichtet. Das
+[Handbuch](README.md) erklärt Neovim-Grundlagen, tägliche Bedienung, Braille,
+Completion, Diagnosen, Dateiverwaltung und sämtliche Einstellungen.

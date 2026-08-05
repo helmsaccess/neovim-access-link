@@ -1,11 +1,12 @@
 # Current status
 
-Status date: July 31, 2026. Product version in the source tree:
-0.97.0 development build 9.
+Status date: August 5, 2026. The source tree belongs to the 0.97.0 development
+line. The exact development build number and Git metadata are generated from
+`buildVars.py` and are therefore not repeated in this snapshot.
 
-The source tree has started the 0.97.0 development line. The current published
-beta pre-release remains 0.96.0; its GitHub release link and version-specific
-English and German changelog links remain prominent in `README.md`.
+The current published beta pre-release remains 0.96.0; its GitHub release link
+and version-specific English and German changelog links remain prominent in
+`README.md`.
 Project-defined maturity is beta. This documentation does not infer a higher
 stability classification from test coverage, version number, or feature count.
 

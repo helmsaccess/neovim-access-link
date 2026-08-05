@@ -26,16 +26,18 @@ quick_sources=(
 
 handbook_sources=(
   docs/de/manual/README.md
-  docs/de/manual/settings.md
-  docs/de/manual/speech-exploration.md
+  docs/de/manual/basics.md
   docs/de/manual/communication.md
+  docs/de/manual/speech-exploration.md
+  docs/de/manual/braille.md
+  docs/de/manual/menus-and-completion.md
+  docs/de/manual/terminals-and-file-managers.md
   docs/de/manual/ssh-and-tmux.md
   docs/de/manual/language-tools.md
   docs/de/manual/example-configuration.md
-  docs/de/manual/menus-and-completion.md
-  docs/de/manual/terminals-and-file-managers.md
+  docs/de/manual/commands.md
+  docs/de/manual/settings.md
   docs/de/manual/sounds.md
-  docs/de/manual/braille.md
   docs/de/manual/troubleshooting.md
 )
 
@@ -81,16 +83,18 @@ quick_en_sources=(
 
 handbook_en_sources=(
   docs/en/manual/README.md
-  docs/en/manual/settings.md
-  docs/en/manual/speech-exploration.md
+  docs/en/manual/basics.md
   docs/en/manual/communication.md
+  docs/en/manual/speech-exploration.md
+  docs/en/manual/braille.md
+  docs/en/manual/menus-and-completion.md
+  docs/en/manual/terminals-and-file-managers.md
   docs/en/manual/ssh-and-tmux.md
   docs/en/manual/language-tools.md
   docs/en/manual/example-configuration.md
-  docs/en/manual/menus-and-completion.md
-  docs/en/manual/terminals-and-file-managers.md
+  docs/en/manual/commands.md
+  docs/en/manual/settings.md
   docs/en/manual/sounds.md
-  docs/en/manual/braille.md
   docs/en/manual/troubleshooting.md
 )
 
@@ -142,12 +146,98 @@ validate_source() {
     echo "error: configured Markdown source is missing: $source" >&2
     exit 1
   }
-  local first_heading
-  first_heading="$(awk '/^#/ { print; exit }' "$path")"
-  [[ "$first_heading" == "# "* && "$first_heading" != "## "* ]] || {
-    echo "error: Markdown source must begin its heading structure with H1: $source" >&2
-    exit 1
-  }
+  python3 - "$path" <<'PY'
+from pathlib import Path
+import re
+import sys
+from urllib.parse import unquote
+
+path = Path(sys.argv[1])
+headings = []
+prose_lines = []
+fence = None
+for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    stripped = line.lstrip()
+    if fence:
+        if stripped.startswith(fence):
+            fence = None
+        continue
+    if stripped.startswith("```"):
+        fence = "```"
+        continue
+    if stripped.startswith("~~~"):
+        fence = "~~~"
+        continue
+    prose_lines.append(line)
+    level = len(stripped) - len(stripped.lstrip("#"))
+    if 1 <= level <= 6 and len(stripped) > level and stripped[level] == " ":
+        headings.append((line_number, level))
+
+if not headings or headings[0][1] != 1:
+    raise SystemExit(f"error: Markdown source must begin its heading structure with H1: {path}")
+h1_lines = [line for line, level in headings if level == 1]
+if len(h1_lines) != 1:
+    raise SystemExit(
+        f"error: Markdown source must contain exactly one H1, found {len(h1_lines)}: {path}"
+    )
+previous_level = headings[0][1]
+for line_number, level in headings[1:]:
+    if level > previous_level + 1:
+        raise SystemExit(
+            f"error: Markdown heading skips from H{previous_level} to H{level} "
+            f"at line {line_number}: {path}"
+        )
+    previous_level = level
+
+for match in re.finditer(r"\[[^]]+\]\(([^)]+)\)", "\n".join(prose_lines)):
+    raw_target = match.group(1).strip()
+    if raw_target.startswith("<") and ">" in raw_target:
+        target = raw_target[1:raw_target.index(">")]
+    else:
+        target = raw_target.split(maxsplit=1)[0]
+    if not target or target.startswith(("#", "http://", "https://", "mailto:")):
+        continue
+    target_path = target.split("#", 1)[0].split("?", 1)[0]
+    if not target_path:
+        continue
+    resolved = (path.parent / target_path).resolve()
+    if not resolved.exists():
+        raise SystemExit(f"error: Markdown link target does not exist: {target} in {path}")
+    if "#" in target and resolved.suffix.lower() == ".md":
+        fragment = unquote(target.split("#", 1)[1])
+        identifiers = set()
+        identifier_counts = {}
+        target_fence = None
+        for target_line in resolved.read_text(encoding="utf-8").splitlines():
+            target_stripped = target_line.lstrip()
+            if target_fence:
+                if target_stripped.startswith(target_fence):
+                    target_fence = None
+                continue
+            if target_stripped.startswith("```"):
+                target_fence = "```"
+                continue
+            if target_stripped.startswith("~~~"):
+                target_fence = "~~~"
+                continue
+            target_level = len(target_stripped) - len(target_stripped.lstrip("#"))
+            if not (
+                1 <= target_level <= 6
+                and len(target_stripped) > target_level
+                and target_stripped[target_level] == " "
+            ):
+                continue
+            heading_text = target_stripped[target_level + 1:].strip().rstrip("#").strip()
+            identifier = re.sub(r"[^\w\s-]", "", heading_text.casefold())
+            identifier = re.sub(r"\s+", "-", identifier)
+            count = identifier_counts.get(identifier, 0)
+            identifier_counts[identifier] = count + 1
+            identifiers.add(identifier if count == 0 else f"{identifier}-{count}")
+        if fragment not in identifiers:
+            raise SystemExit(
+                f"error: Markdown link has a missing heading target: {target} in {path}"
+            )
+PY
 }
 
 for source in "${quick_sources[@]}" "${handbook_sources[@]}" "${developer_sources[@]}" \
@@ -155,6 +245,45 @@ for source in "${quick_sources[@]}" "${handbook_sources[@]}" "${developer_source
   "${developer_en_sources[@]}" "${human_testing_en_sources[@]}"; do
   validate_source "$source"
 done
+
+python3 - "$root/docs/de/manual" "$root/docs/en/manual" <<'PY'
+from pathlib import Path
+import sys
+
+def heading_levels(path):
+    levels = []
+    fence = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.lstrip()
+        if fence:
+            if stripped.startswith(fence):
+                fence = None
+            continue
+        if stripped.startswith("```"):
+            fence = "```"
+            continue
+        if stripped.startswith("~~~"):
+            fence = "~~~"
+            continue
+        level = len(stripped) - len(stripped.lstrip("#"))
+        if 1 <= level <= 6 and len(stripped) > level and stripped[level] == " ":
+            levels.append(level)
+    return levels
+
+de_directory = Path(sys.argv[1])
+en_directory = Path(sys.argv[2])
+de_names = {path.name for path in de_directory.glob("*.md")}
+en_names = {path.name for path in en_directory.glob("*.md")}
+if de_names != en_names:
+    raise SystemExit("error: German and English manual source sets differ")
+for name in sorted(de_names):
+    de_levels = heading_levels(de_directory / name)
+    en_levels = heading_levels(en_directory / name)
+    if de_levels != en_levels:
+        raise SystemExit(
+            f"error: German and English manual heading structures differ: {name}"
+        )
+PY
 
 declare -A included_manual=()
 for source in "${quick_sources[@]}" "${handbook_sources[@]}"; do
@@ -264,6 +393,10 @@ build_html() {
   [[ "$output" == *-en.html ]] && language=en
   if [[ "$use_link_filter" == "yes" ]]; then
     extra+=(--file-scope --lua-filter=docs/markdown-links.lua)
+  elif [[ "$use_link_filter" == "quick" ]]; then
+    extra+=(--lua-filter=docs/quick-links.lua)
+  elif [[ "$use_link_filter" == "quick-en" ]]; then
+    extra+=(--lua-filter=docs/quick-links-en.lua)
   elif [[ "$use_link_filter" == "development" ]]; then
     extra+=(--file-scope --lua-filter=docs/development-links.lua)
   elif [[ "$use_link_filter" == "english" ]]; then
@@ -290,7 +423,7 @@ build_html() {
 
 mkdir -p "$output_dir"
 build_html \
-  "$quick_output" "$product_name – Quick Guide" no \
+  "$quick_output" "$product_name – Quick Guide" quick \
   "${quick_sources[@]}"
 build_html \
   "$handbook_output" "$product_name – Handbuch" yes \
@@ -302,7 +435,7 @@ build_html \
   "$human_testing_output" "$product_name – Geführte Praxistests mit NVDA" no \
   "${human_testing_sources[@]}"
 build_html \
-  "$quick_en_output" "$product_name – Quick Guide" no \
+  "$quick_en_output" "$product_name – Quick Guide" quick-en \
   "${quick_en_sources[@]}"
 build_html \
   "$handbook_en_output" "$product_name – User Manual" english \
@@ -314,9 +447,61 @@ build_html \
   "$human_testing_en_output" "$product_name – Guided Practical Tests with NVDA" no \
   "${human_testing_en_sources[@]}"
 
+python3 - "$quick_output" "$handbook_output" "$developer_output" \
+  "$human_testing_output" "$quick_en_output" "$handbook_en_output" \
+  "$developer_en_output" "$human_testing_en_output" <<'PY'
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+import sys
+
+class Document(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = set()
+        self.links = []
+
+    def handle_starttag(self, _tag, attributes):
+        values = dict(attributes)
+        if "id" in values:
+            self.ids.add(values["id"])
+        if "href" in values:
+            self.links.append(values["href"])
+
+documents = {}
+for argument in sys.argv[1:]:
+    path = Path(argument).resolve()
+    document = Document()
+    document.feed(path.read_text(encoding="utf-8"))
+    documents[path] = document
+
+for source, document in documents.items():
+    for href in document.links:
+        parsed = urlsplit(href)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        target = (source.parent / unquote(parsed.path)).resolve()
+        if target.suffix.lower() != ".html":
+            continue
+        if target not in documents:
+            raise SystemExit(
+                f"error: generated HTML links to a missing document: {href} in {source}"
+            )
+        if parsed.fragment and parsed.fragment not in documents[target].ids:
+            raise SystemExit(
+                f"error: generated HTML link has a missing target: {href} in {source}"
+            )
+PY
+
 validate_required_section \
   "$handbook_output" \
   "docs__de__manual__language-toolsmd__lsp-autovervollständigung-und-linter-einrichten"
+validate_required_section \
+  "$handbook_output" \
+  "docs__de__manual__basicsmd__neovim--und-windows-terminal-grundlagen"
+validate_required_section \
+  "$handbook_output" \
+  "docs__de__manual__commandsmd__befehlsreferenz"
 validate_required_section \
   "$handbook_output" \
   "docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil"
@@ -328,7 +513,13 @@ validate_required_section \
   "docs__de__manual__speech-explorationmd__sprachexplorationsmodus"
 validate_required_section \
   "$handbook_en_output" \
-  "docs__en__manual__language-toolsmd__setting-up-lsp-auto-completion-and-linters"
+  "docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__basicsmd__neovim-and-windows-terminal-basics"
+validate_required_section \
+  "$handbook_en_output" \
+  "docs__en__manual__commandsmd__command-reference"
 validate_required_section \
   "$handbook_en_output" \
   "docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil"

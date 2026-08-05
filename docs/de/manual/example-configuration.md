@@ -247,10 +247,14 @@ helfen diese Prüfungen:
 
 Aktualisierungen werden in dieser Variante mit `:Lazy update` und nicht mit
 `:packupdate` angestoßen. Die erzeugte `lazy-lock.json` hält die tatsächlich
-verwendeten Plugin-Versionen fest und sollte zusammen mit einer gesicherten
-Konfiguration aufbewahrt werden.
+verwendeten Plugin-Versionen fest. Bewahren Sie sie zusammen mit einer
+gesicherten Konfiguration auf.
 
 ## Bedienung
+
+Die Tasten in der folgenden Tabelle sind Neovim-Tasten ohne NVDA-Taste.
+Neovim führt die zugeordneten Aktionen aus; Access Link macht ihre Ergebnisse
+für Sprache und Braille zugänglich.
 
 | Taste | Wirkung |
 |---|---|
