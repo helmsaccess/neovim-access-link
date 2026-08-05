@@ -176,7 +176,7 @@ class RepositoryPolicyTests(unittest.TestCase):
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
             encoding="utf-8"
         )
-        self.assertEqual(1, workflow.count("tools/build_documentation.sh"))
+        self.assertEqual(1, workflow.count("run: bash tools/build_documentation.sh"))
         self.assertIn("German and English documentation build", workflow)
 
     def test_ci_pins_real_completion_plugin_matrix(self) -> None:

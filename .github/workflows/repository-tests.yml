@@ -66,7 +66,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends pandoc
       - name: Build and validate all documentation artifacts
-        run: tools/build_documentation.sh
+        run: bash tools/build_documentation.sh
 
   human-test-runner-windows:
     name: Guided human-test runner on Windows PowerShell
