@@ -7,6 +7,13 @@
 - Give every document a defined reader and purpose. Quick guides follow the shortest verified
   path to first success; manuals put common tasks before settings and reference; developer
   documentation introduces an overview before context, boundaries, reasoning, and detail.
+- Developer documentation assumes advanced Neovim use and professional NVDA knowledge. Skip
+  general Neovim, NVDA, Git, and programming tutorials, but explain every project-specific
+  process, ownership boundary, invariant, trust boundary, and contributor workflow it relies on.
+- Keep current explanation, task-oriented procedures, technical reference, decisions, and
+  history distinct. Current pages describe the present implementation; history belongs only in
+  changelogs, explicitly dated reports, and ADRs. Superseded ADRs retain the old decision and link
+  to its replacement instead of being rewritten as current architecture.
 - Use lists for real sequences or sets and tables for compact comparisons or mappings. Prefer
   prose when it reads more naturally; developer documentation may need more structured material,
   but no document should accumulate lists or tables without a clear readability benefit.
@@ -31,6 +38,9 @@
 - Preserve each document's target language. Project collaboration and publication text outside
   localized documentation is English.
 - Prefer source code and tests over historical reports when describing current behavior.
+- Keep protocol, settings, capability, and dependency references traceable to their owning code
+  and tests. Automate structural DE/EN parity and source-value checks where practical instead of
+  relying on duplicated prose.
 - Keep executable examples in real source files. Where GitHub Markdown cannot include them
   directly, generate committed fenced blocks from the canonical source and validate exact sync.
 - Treat plans and dated reports as context, not proof that a feature is implemented now.

@@ -103,6 +103,9 @@ take precedence.
 ## Documentation and publication
 
 - Keep documentation accurate, understandable, internally consistent, and logically ordered.
+- Current-facing documentation describes only the present implementation. Keep history in
+  changelogs, explicitly dated reports, and ADRs; mark an ADR as superseded and link its
+  replacement when the decision no longer governs the current architecture.
 - Use prose, lists, and tables according to the reader's task. Lists and tables must materially
   improve scanning or comparison; use them with judgment rather than as a default or an obstacle.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
