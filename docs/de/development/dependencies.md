@@ -22,9 +22,9 @@ von Lizenz, Wartung, Größe, Latenz und Paketierung.
 
 ## Maßgebliche Quellen und Prüfung
 
-`buildVars.py` legt die akzeptierte MessagePack-Version fest.
-`tools/build_nvda_addon.py` und `tools/build_user_package.py` besitzen Auswahl,
-Lizenzprüfung und Paketziele. Die gepinnten Build- und Testwerkzeuge stehen in
+`tools/build_nvda_addon.py` und `tools/build_user_package.py` legen die
+akzeptierte MessagePack-Version fest und besitzen Auswahl, Lizenzprüfung und
+Paketziele. Die gepinnten Build- und Testwerkzeuge stehen in
 `tools/requirements-ci.txt`, `tools/requirements-linter-ci.txt` und dem
 Repository-Testworkflow. Pakettests untersuchen die erzeugten Archive; diese
 Seite wiederholt nur die für Entwickler relevante Rolle der Abhängigkeiten.

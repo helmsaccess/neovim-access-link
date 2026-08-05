@@ -94,8 +94,8 @@ geprüfte HTML-Dateien. Die kopierbare Neovim-Beispielkonfiguration stammt aus
 einer echten getesteten Lua-Datei und wird identisch in beide Handbücher
 synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
 deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
-Markdownlinks und generierte HTML-Ziele. GitHub Actions führt diesen Build als
-eigenen Job aus.
+Markdownlinks, generierte HTML-Ziele sowie Sprach-, Titel- und
+Beschreibungsmetadaten. GitHub Actions führt diesen Build als eigenen Job aus.
 
 ## Prüfnachweis
 

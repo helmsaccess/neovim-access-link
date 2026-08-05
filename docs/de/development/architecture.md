@@ -33,14 +33,15 @@ Die Entscheidung für semantische Plugin-Ereignisse ist in
 lokalen und entfernten Transportwege legt
 [ADR-0006](adr/0006-local-tcp-and-ssh-stdio-transports.md) fest.
 
-## Laufzeitmodell: drei Prozesse
+## Laufzeitmodell: bis zu vier Prozesse
 
-Zur Laufzeit sind höchstens drei Prozesse beteiligt:
+Lokal sind zwei, bei einer entfernten Sitzung vier Prozesse beteiligt:
 
 | Prozess | Läuft wo? | Verantwortung |
 |---|---|---|
 | Neovim mit Lua-Plugin | lokal unter Windows oder entfernt unter Linux | Erzeugt semantische Zustände und registriert die Sitzung. |
 | Python-Bridge | nur bei einer entfernten SSH-Verbindung auf Linux | Verbindet den privaten Neovim-RPC-Socket mit einem begrenzten Protokoll über SSH-stdin/stdout. |
+| Windows OpenSSH | nur bei einer entfernten SSH-Verbindung auf Windows | Authentifiziert Host und Benutzer und transportiert die Standardstreams der Bridge. |
 | NVDA mit Add-on | Windows | Verwaltet Verbindungen und Fokus, prüft Ereignisse und plant Sprache, Klänge und Braille. |
 
 `protocol/python/` und `nvda-addon/core/` sind keine weiteren Prozesse. Es sind
@@ -609,6 +610,11 @@ Der Rückkanal ist eine feste Allowlist und keine allgemeine Remote-Steuerung:
   `stopinsert` aus.
 - `exploreTextRequest` bewegt nur eine flüchtige Leseposition, und
   `endExplorationRequest` verwirft sie; beide verändern den echten Cursor nie.
+- `brailleExploreLineRequest` bewegt nur die getrennte virtuelle Braillezeile,
+  und `endBrailleExplorationRequest` verwirft ausschließlich diesen Zustand.
+- `callableContextRequest` und `diagnosticContextRequest` lesen korreliert
+  Signatur-, Hover- beziehungsweise Diagnosekontext, ohne Cursor oder Buffer
+  zu verändern.
 - `acceptNumberedChoiceRequest` bestätigt ausschließlich den bereits
   validierten Index einer aktiven nativen Auswahlliste.
 

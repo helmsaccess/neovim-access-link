@@ -17,8 +17,10 @@ Local RPC connects only to a dynamic plugin-registered endpoint on
 ## Session files and installation
 
 The file-based session registry is in a private user directory. Records are
-validated by owner, process start, PID, nonce, and endpoint; they are not
-Windows Registry keys.
+validated on Linux by directory and file owner, process start, PID, nonce, and
+socket. On Windows, the add-on validates the schema, nonce-bound filename,
+live PID, and IPv4-loopback-only endpoint. The records are not Windows
+Registry keys.
 
 Cleanup never terminates a process. A socket is removed only when the record
 explicitly identifies it as plugin-owned and path, PID, and nonce agree.

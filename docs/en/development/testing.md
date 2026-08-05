@@ -82,7 +82,7 @@ allowed.
 | Speech, sound, or Braille | neutral planner, NVDA adapter, Unicode/routing/region cases, and practical output |
 | Setting or UI | schema, profile switch, localization, package test, and both manual languages |
 | Installer or package content | package, installation, removal, and built-archive tests |
-| Documentation | example synchronization, language mirror, Markdown/HTML links, and a fresh documentation build |
+| Documentation | example synchronization, language mirror, HTML metadata, Markdown/HTML links, and a fresh documentation build |
 
 Where practical, a bug-fix commit adds a regression test at the lowest useful
 layer and integration evidence at the boundary where the defect appeared.
@@ -135,18 +135,21 @@ tools/build_documentation.sh
 ```
 
 The build checks the canonical Lua example, German and English source files
-and heading structures, local Markdown links, generated HTML targets, and the
-eight expected files in the ZIP. Historical archives explicitly excluded from
-current documentation are validated but not included in HTML.
+and heading structures, local Markdown links, generated HTML targets,
+language, title, and description metadata, and the eight expected files in the
+ZIP. Historical archives explicitly excluded from current documentation are
+validated but not included in HTML.
 
 When work changes both installable code and documentation, build both
 artifacts from the same final worktree.
 
 ## Practical testing
 
-The guided runner lives under `tests/human/framework/` and writes plans,
-fingerprints, and results to ignored `tmp/human-test-state/`. This tool-owned
-path is not an agent workspace or a location for manual project files.
+The guided runner lives under `tests/human/framework/`; its versioned plans
+live under `tests/human/plans/`. It writes installed tools and setup
+fingerprints to `tmp/human-test-state/`, while results go to
+`tmp/human-test-results/`. These tool-owned paths are not agent workspaces or
+locations for manual project files.
 
 Practical checks are selected by risk. Connection or focus changes cover at
 least:

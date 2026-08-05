@@ -8,12 +8,14 @@ add-on.
 
 ## What actually runs
 
-Runtime involves at most three processes:
+Runtime involves two processes locally and four for a remote session:
 
 1. Neovim loads the Lua plugin.
-2. For a remote Linux session, a Python bridge connects exactly that Neovim
-   instance to SSH stdin/stdout. Local Windows operation has no bridge.
-3. NVDA loads the Global Plugin and, only for Windows Terminal, the AppModule.
+2. NVDA loads the Global Plugin and, only for Windows Terminal, the AppModule.
+3. For a remote Linux session, NVDA starts Windows OpenSSH.
+4. The remote Python bridge connects exactly that Neovim instance to the
+   standard streams carried by SSH. Local operation omits the last two
+   processes.
 
 Protocol, connection models, and speech/Braille planning are libraries inside
 these processes, not additional services. [Repository layout](repository-layout.md)
@@ -42,10 +44,10 @@ Complete local verification requires:
 - ConfigObj 5.0.8 for NVDA-compatible manifest validation during the add-on
   build;
 - Pexpect 4.9.0 for bridge and TUI integration tests;
-- Ruff 0.14.5, matching NVDA 2026.1;
+- Ruff 0.15.4 as pinned by `tools/requirements-linter-ci.txt`;
 - Neovim for real Lua suites;
 - for the extended real-linter matrix, Go, Rust with Clippy, Ruby, and Node.js
-  in the versions fixed by `testing.md`;
+  in the versions pinned by the repository test workflow;
 - Pandoc for HTML builds; 3.1.11.1 is confirmed;
 - Git for diff and whitespace checks.
 

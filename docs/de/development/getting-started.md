@@ -8,12 +8,14 @@ Add-ons steht im [Anwenderhandbuch](../manual/README.md).
 
 ## Was tatsächlich läuft
 
-Zur Laufzeit sind höchstens drei Prozesse beteiligt:
+Lokal sind zwei, bei einer entfernten Sitzung vier Prozesse beteiligt:
 
 1. Neovim lädt das Lua-Plugin.
-2. Bei einer entfernten Linux-Sitzung verbindet eine Python-Bridge genau diese
-   Neovim-Instanz mit SSH-stdin/stdout. Lokal unter Windows entfällt sie.
-3. NVDA lädt das Global Plugin und – nur für Windows Terminal – das AppModule.
+2. NVDA lädt das Global Plugin und – nur für Windows Terminal – das AppModule.
+3. Bei einer entfernten Linux-Sitzung startet NVDA Windows OpenSSH.
+4. Die entfernte Python-Bridge verbindet genau diese Neovim-Instanz mit den
+   über SSH transportierten Standardstreams. Lokal entfallen die letzten beiden
+   Prozesse.
 
 Protokoll, Verbindungsmodelle sowie Sprach- und Brailleplanung sind
 Bibliotheken innerhalb dieser Prozesse, keine weiteren Dienste. Die
@@ -42,10 +44,10 @@ Für die vollständige lokale Prüfung werden benötigt:
 - `msgpack` exakt in Version 1.1.1 für Protokolltests und Paketbau;
 - ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im Add-on-Build;
 - Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
-- Ruff 0.14.5 entsprechend NVDA 2026.1;
+- Ruff 0.15.4 entsprechend `tools/requirements-linter-ci.txt`;
 - Neovim für die echten Lua-Suiten;
 - für die erweiterte reale Lintermatrix zusätzlich Go, Rust mit Clippy, Ruby
-  und Node.js in den unter `testing.md` festgelegten Versionen;
+  und Node.js in den vom Repository-Testworkflow gepinnten Versionen;
 - Pandoc für den HTML-Build; bestätigt ist 3.1.11.1;
 - Git für Diff- und Whitespace-Prüfungen.
 

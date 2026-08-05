@@ -44,8 +44,8 @@ and cursor shape from Braille.
 ## Feedback
 
 Feedback values use `0 = Off`, `1 = Speech`, `2 = Tones`, and `3 = Both Speech
-and Tones`. The global value bounds individual actions. `diagnosticLine` and
-`diagnosticPosition` allow only Off or Tones.
+and Tones`. The global value bounds individual actions. The interface offers
+`diagnosticLine` and `diagnosticPosition` only as Off or Tones.
 
 | Key | Default | Purpose |
 |---|---:|---|

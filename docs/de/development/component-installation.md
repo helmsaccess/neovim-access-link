@@ -7,8 +7,11 @@ und starten danach normales Neovim. Bei einer entfernten Aktivierung startet
 das Add-on selbst einen nichtinteraktiven SSH-Prozess:
 
 ```text
-ssh.exe -T -o BatchMode=yes <ssh-alias> nvim-nvda-bridge
+ssh.exe -T [feste SSH-Optionen] <ssh-ziel> "$HOME/.local/bin/nvim-nvda-bridge --session <sitzungs-id>"
 ```
+
+Port, Schlüsseldatei und Passwortoptionen werden aus dem validierten
+Verbindungsprofil ergänzt.
 
 Gerahmtes MessagePack läuft über Standardausgabe, Steuerung über
 Standardeingabe. Bei Deaktivierung oder NVDA-Ende wird der SSH-Prozess beendet.

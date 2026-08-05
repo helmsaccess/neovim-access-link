@@ -365,7 +365,10 @@ done < <(cd "$root" && find docs/en/development -type f -name '*.md' | sort)
 
 validate_html() {
   local output="$1"
-  python3 - "$output" <<'PY'
+  local expected_language="$2"
+  local expected_title="$3"
+  local expected_description="$4"
+  python3 - "$output" "$expected_language" "$expected_title" "$expected_description" <<'PY'
 from html.parser import HTMLParser
 from pathlib import Path
 import sys
@@ -375,11 +378,24 @@ class Links(HTMLParser):
     def __init__(self):
         super().__init__()
         self.ids = set()
+        self.html_attributes = {}
+        self.metadata = {}
         self.references = set()
         self.targets = set()
+        self.title_parts = []
+        self.in_title = False
 
-    def handle_starttag(self, _tag, attributes):
+    def handle_starttag(self, tag, attributes):
         values = dict(attributes)
+        if tag == "html":
+            self.html_attributes = values
+        elif tag == "meta":
+            if "charset" in values:
+                self.metadata["charset"] = values["charset"]
+            if "name" in values and "content" in values:
+                self.metadata[values["name"].casefold()] = values["content"]
+        elif tag == "title":
+            self.in_title = True
         if "id" in values:
             self.ids.add(values["id"])
         target = values.get("href", "")
@@ -388,8 +404,30 @@ class Links(HTMLParser):
         if target.startswith("#"):
             self.references.add(target[1:])
 
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self.in_title = False
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title_parts.append(data)
+
 links = Links()
 links.feed(Path(sys.argv[1]).read_text(encoding="utf-8"))
+expected_language, expected_title, expected_description = sys.argv[2:]
+for attribute in ("lang", "xml:lang"):
+    if links.html_attributes.get(attribute) != expected_language:
+        raise SystemExit(
+            f"error: generated HTML has incorrect {attribute}: {sys.argv[1]}"
+        )
+if links.metadata.get("charset", "").casefold() != "utf-8":
+    raise SystemExit(f"error: generated HTML is missing UTF-8 metadata: {sys.argv[1]}")
+if "width=device-width" not in links.metadata.get("viewport", ""):
+    raise SystemExit(f"error: generated HTML is missing responsive viewport metadata: {sys.argv[1]}")
+if "".join(links.title_parts).strip() != expected_title:
+    raise SystemExit(f"error: generated HTML has an incorrect title: {sys.argv[1]}")
+if links.metadata.get("description") != expected_description:
+    raise SystemExit(f"error: generated HTML has an incorrect description: {sys.argv[1]}")
 missing = sorted(links.references - links.ids)
 if missing:
     raise SystemExit("error: generated HTML has missing internal targets: " + ", ".join(missing))
@@ -426,12 +464,12 @@ validate_required_section() {
 build_html() {
   local output="$1"
   local title="$2"
-  local use_link_filter="$3"
-  shift 3
+  local description="$3"
+  local language="$4"
+  local use_link_filter="$5"
+  shift 5
   local sources=("$@")
   local extra=()
-  local language=de
-  [[ "$output" == *-en.html ]] && language=en
   if [[ "$use_link_filter" == "yes" ]]; then
     extra+=(--file-scope --lua-filter=docs/markdown-links.lua)
   elif [[ "$use_link_filter" == "quick" ]]; then
@@ -450,6 +488,7 @@ build_html() {
     --embed-resources \
     --shift-heading-level-by=1 \
     --metadata title="$title" \
+    --metadata description="$description" \
     --metadata lang="$language" \
     --toc \
     --toc-depth=4 \
@@ -458,34 +497,50 @@ build_html() {
     --css=docs/documentation.css \
     --output="$output" \
     "${sources[@]}")
-  validate_html "$output"
+  validate_html "$output" "$language" "$title" "$description"
   echo "built $output ($(wc -c < "$output") bytes) from ${#sources[@]} Markdown sources"
 }
 
 mkdir -p "$output_dir"
 build_html \
-  "$quick_output" "$product_name – Quick Guide" quick \
+  "$quick_output" "$product_name – Quick Guide" \
+  "Kurzanleitung zur Installation und ersten Nutzung von $product_name mit NVDA und Windows Terminal." \
+  de quick \
   "${quick_sources[@]}"
 build_html \
-  "$handbook_output" "$product_name – Handbuch" yes \
+  "$handbook_output" "$product_name – Handbuch" \
+  "Anwenderhandbuch für $product_name mit Installation, Bedienung, Einstellungen und Fehlerbehebung." \
+  de yes \
   "${handbook_sources[@]}"
 build_html \
-  "$developer_output" "$product_name – Entwicklerdokumentation" development \
+  "$developer_output" "$product_name – Entwicklerdokumentation" \
+  "Entwicklerdokumentation zu Architektur, Protokoll, Sicherheit, Tests und Build von $product_name." \
+  de development \
   "${developer_sources[@]}"
 build_html \
-  "$human_testing_output" "$product_name – Geführte Praxistests mit NVDA" no \
+  "$human_testing_output" "$product_name – Geführte Praxistests mit NVDA" \
+  "Geführte praktische Tests für $product_name mit NVDA, Windows Terminal, Sprache und Braille." \
+  de no \
   "${human_testing_sources[@]}"
 build_html \
-  "$quick_en_output" "$product_name – Quick Guide" quick-en \
+  "$quick_en_output" "$product_name – Quick Guide" \
+  "Quick installation and first-use guide for $product_name with NVDA and Windows Terminal." \
+  en quick-en \
   "${quick_en_sources[@]}"
 build_html \
-  "$handbook_en_output" "$product_name – User Manual" english \
+  "$handbook_en_output" "$product_name – User Manual" \
+  "User manual for $product_name covering installation, operation, settings, and troubleshooting." \
+  en english \
   "${handbook_en_sources[@]}"
 build_html \
-  "$developer_en_output" "$product_name – Developer Documentation" english \
+  "$developer_en_output" "$product_name – Developer Documentation" \
+  "Developer documentation for the architecture, protocol, security, testing, and build of $product_name." \
+  en english \
   "${developer_en_sources[@]}"
 build_html \
-  "$human_testing_en_output" "$product_name – Guided Practical Tests with NVDA" no \
+  "$human_testing_en_output" "$product_name – Guided Practical Tests with NVDA" \
+  "Guided practical tests for $product_name with NVDA, Windows Terminal, speech, and Braille." \
+  en no \
   "${human_testing_en_sources[@]}"
 
 python3 - "$quick_output" "$handbook_output" "$developer_output" \

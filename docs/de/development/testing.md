@@ -83,7 +83,7 @@ dort sinnvoll, wo alle drei Phasen zulässig sind.
 | Sprache, Klang oder Braille | neutraler Planer, NVDA-Adapter, Unicode-/Routing-/Regionsfälle und praktische Ausgabe |
 | Einstellung oder UI | Schema, Profilwechsel, Lokalisierung, Pakettest und beide Handbuchsprachen |
 | Installer oder Paketinhalt | Paket-, Installations-, Entfernungs- und gebaute Archivtests |
-| Dokumentation | Beispiel-Synchronisierung, Sprachspiegel, Markdown-/HTML-Links und frischer Dokumentationsbuild |
+| Dokumentation | Beispiel-Synchronisierung, Sprachspiegel, HTML-Metadaten, Markdown-/HTML-Links und frischer Dokumentationsbuild |
 
 Ein Fehlerbehebungscommit ergänzt nach Möglichkeit einen Regressionstest auf
 der niedrigsten sinnvollen Schicht und einen Integrationsnachweis an der
@@ -140,19 +140,21 @@ tools/build_documentation.sh
 
 Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche und
 englische Quelldateien und Überschriftenstrukturen, lokale Markdownlinks,
-generierte HTML-Ziele und die acht erwarteten Dokumente im ZIP. Historische
-Archive, die ausdrücklich nicht zur aktuellen Dokumentation gehören, werden
-validiert, aber nicht in das HTML aufgenommen.
+generierte HTML-Ziele, Sprach-, Titel- und Beschreibungsmetadaten sowie die
+acht erwarteten Dokumente im ZIP. Historische Archive, die ausdrücklich nicht
+zur aktuellen Dokumentation gehören, werden validiert, aber nicht in das HTML
+aufgenommen.
 
 Ändert eine Arbeit sowohl installierbaren Inhalt als auch Dokumentation,
 werden beide Artefakte aus demselben finalen Worktree erzeugt.
 
 ## Praktische Prüfung
 
-Der geführte Runner liegt unter `tests/human/framework/` und schreibt Pläne,
-Fingerprints und Ergebnisse in das ignorierte Verzeichnis
-`tmp/human-test-state/`. Dieser tool-eigene Pfad ist kein Arbeitsverzeichnis
-für Agenten oder manuelle Projektdateien.
+Der geführte Runner liegt unter `tests/human/framework/`; seine versionierten
+Pläne liegen unter `tests/human/plans/`. Eingerichtete Werkzeuge und
+Setup-Fingerprints schreibt er nach `tmp/human-test-state/`, Ergebnisse
+dagegen nach `tmp/human-test-results/`. Diese tool-eigenen Pfade sind keine
+Arbeitsverzeichnisse für Agenten oder manuelle Projektdateien.
 
 Praktische Prüfschwerpunkte werden risikoorientiert gewählt. Bei Änderungen an
 Verbindung oder Fokus gehören mindestens dazu:

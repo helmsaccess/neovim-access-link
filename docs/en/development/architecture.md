@@ -32,14 +32,15 @@ The semantic plugin-event decision is explained in
 transport paths are defined by
 [ADR-0006](adr/0006-local-tcp-and-ssh-stdio-transports.md).
 
-## Runtime model: three processes
+## Runtime model: up to four processes
 
-At most three processes participate at runtime:
+Two processes participate locally and four for a remote session:
 
 | Process | Location | Responsibility |
 |---|---|---|
 | Neovim with the Lua plugin | locally on Windows or remotely on Linux | Produces semantic state and registers the session. |
 | Python bridge | only on Linux for a remote SSH connection | Connects the private Neovim RPC socket to a bounded protocol over SSH stdin/stdout. |
+| Windows OpenSSH | only on Windows for a remote SSH connection | Authenticates host and user and transports the bridge's standard streams. |
 | NVDA with the add-on | Windows | Manages connections and focus, validates events, and plans speech, sounds, and Braille. |
 
 `protocol/python/` and `nvda-addon/core/` are not additional processes. They
@@ -546,6 +547,11 @@ The reverse channel is a fixed allowlist, not general remote control:
 - `leaveTerminalInputRequest` performs only Neovim's fixed `stopinsert`.
 - `exploreTextRequest` moves only an ephemeral reading position, while
   `endExplorationRequest` discards it; neither moves the real cursor.
+- `brailleExploreLineRequest` moves only the separate virtual Braille line,
+  while `endBrailleExplorationRequest` discards only that state.
+- `callableContextRequest` and `diagnosticContextRequest` read correlated
+  signature, hover, or diagnostic context without moving the cursor or
+  changing the buffer.
 - `acceptNumberedChoiceRequest` confirms only the already validated index of
   an active native choice list.
 

@@ -26,7 +26,8 @@ Laufend:
   parallel halten und inhaltliche Änderungen gemeinsam prüfen;
 - Aussagen zu Prozessen, Session-Registry, Zuordnung, Gate, Rückkanälen,
   Polling und Fallbacks gegen den aktuellen Code prüfen;
-- HTML-Build, interne Links und veröffentlichte Quellen automatisiert prüfen;
+- HTML-Build, Metadaten, interne Links und veröffentlichte Quellen
+  automatisiert prüfen;
 - aktuelle Erklärungen frei von Entwicklungschronologie halten und Geschichte
   auf Changelog, datierte Berichte und ADRs begrenzen.
 

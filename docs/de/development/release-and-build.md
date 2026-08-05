@@ -44,8 +44,9 @@ Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
 
 Der Add-on-Build prüft Manifest, gebündelte Komponenten, Abhängigkeiten und
 Archivinhalt. Der Dokumentationsbuild synchronisiert ausführbare Beispiele,
-prüft Markdown- und HTML-Links sowie die deutsche und englische Struktur und
-erzeugt acht HTML-Dokumente.
+prüft Markdown- und HTML-Links, die deutsche und englische Struktur sowie
+Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
+HTML-Dokumente.
 
 ## Releasevorbereitung
 

@@ -2,9 +2,9 @@
 
 Diese Seite ordnet die Bausteine aus [Überblick](overview.md) und
 [Architektur](architecture.md) konkreten Quellpfaden zu. Die Verzeichnisse
-folgen Laufzeit- und Vertrauensgrenzen. Sie sind nicht alle
-eigene Programme: Zur Laufzeit existieren ein Neovim-Prozess, bei SSH zusätzlich
-ein Bridge-Prozess und unter Windows der NVDA-Prozess. `protocol/python/` und
+folgen Laufzeit- und Vertrauensgrenzen. Sie sind nicht alle eigene Programme:
+Lokal laufen Neovim und NVDA; bei SSH kommen der von NVDA gestartete Windows-
+OpenSSH-Prozess und die entfernte Bridge hinzu. `protocol/python/` und
 `nvda-addon/core/` sind gemeinsam verwendete Bibliotheksschichten.
 
 ## Quellbereiche und Einstiegspunkte

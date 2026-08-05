@@ -25,7 +25,7 @@ Ongoing:
   documentation build and review content changes together;
 - verify claims about processes, session registry, assignment, gate, reverse
   controls, polling, and fallbacks against the current code;
-- validate the HTML build, internal links, and published sources
+- validate the HTML build, metadata, internal links, and published sources
   automatically;
 - keep current explanations free of development chronology and restrict
   history to changelogs, dated reports, and ADRs.

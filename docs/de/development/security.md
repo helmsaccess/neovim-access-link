@@ -20,8 +20,11 @@ konfigurieren.
 ## Sitzungsdateien und Installation
 
 Die dateibasierte Sitzungsregistrierung liegt in einem privaten
-Benutzerverzeichnis. Datensätze werden anhand von Eigentümer, Prozessstart,
-PID, Nonce und Endpunkt validiert; sie sind keine Windows-Registry-Schlüssel.
+Benutzerverzeichnis. Unter Linux prüft die Bridge Verzeichnis- und
+Dateieigentümer, Prozessstart, PID, Nonce und Socket. Unter Windows prüft das
+Add-on Schema, noncegebundenen Dateinamen, lebende PID und den ausschließlich
+an IPv4-Loopback gebundenen Endpunkt. Die Datensätze sind keine
+Windows-Registry-Schlüssel.
 
 Bereinigung beendet keinen Prozess. Ein Socket wird nur entfernt, wenn der
 Datensatz ihn ausdrücklich als plugin-eigen kennzeichnet und Pfad, PID und

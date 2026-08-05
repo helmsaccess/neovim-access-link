@@ -46,7 +46,8 @@ Das Add-on dupliziert keine geeignete NVDA-Einstellung. Tastaturecho kommt aus
 
 Rückmeldungswerte verwenden `0 = Aus`, `1 = Sprache`, `2 = Töne` und
 `3 = Sprache und Töne`. Der globale Wert begrenzt die einzelnen Aktionen.
-`diagnosticLine` und `diagnosticPosition` erlauben nur Aus oder Töne.
+Die Oberfläche bietet für `diagnosticLine` und `diagnosticPosition` nur Aus
+oder Töne an.
 
 | Schlüssel | Standard | Zweck |
 |---|---:|---|

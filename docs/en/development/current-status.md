@@ -89,8 +89,9 @@ and guided practical-test guide are built in German and English as eight
 validated HTML files. The copyable Neovim example comes from one real tested
 Lua file and is synchronized identically into both manuals.
 The documentation build also checks complete German and English source sets,
-parallel heading structures, Markdown links, and generated HTML targets.
-GitHub Actions runs this build as a dedicated job.
+parallel heading structures, Markdown links, generated HTML targets, and
+language, title, and description metadata. GitHub Actions runs this build as a
+dedicated job.
 
 ## Verification evidence
 

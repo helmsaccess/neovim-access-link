@@ -44,8 +44,8 @@ strategy](testing.md).
 
 The add-on build validates the manifest, bundled components, dependencies, and
 archive contents. The documentation build synchronizes executable examples,
-checks Markdown and HTML links plus German/English structure, and creates eight
-HTML documents.
+checks Markdown and HTML links, German/English structure, and each output's
+language, title, and description, and creates eight HTML documents.
 
 ## Release preparation
 

@@ -7,8 +7,11 @@ start normal Neovim. For remote activation, the add-on starts a noninteractive
 SSH process itself:
 
 ```text
-ssh.exe -T -o BatchMode=yes <ssh-alias> nvim-nvda-bridge
+ssh.exe -T [fixed SSH options] <ssh-target> "$HOME/.local/bin/nvim-nvda-bridge --session <session-id>"
 ```
+
+Port, identity-file, and password options are added from the validated
+connection profile.
 
 Framed MessagePack uses standard output and controls use standard input. The
 SSH process ends on deactivation or NVDA shutdown. There is no port forward,

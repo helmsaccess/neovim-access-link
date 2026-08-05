@@ -19,9 +19,9 @@ documented purpose, license, maintenance, size, latency, and packaging impact.
 
 ## Authoritative sources and validation
 
-`buildVars.py` defines the accepted MessagePack version.
-`tools/build_nvda_addon.py` and `tools/build_user_package.py` own selection,
-license validation, and package destinations. Pinned build and test tools live
+`tools/build_nvda_addon.py` and `tools/build_user_package.py` define the
+accepted MessagePack version and own selection, license validation, and
+package destinations. Pinned build and test tools live
 in `tools/requirements-ci.txt`, `tools/requirements-linter-ci.txt`, and the
 repository test workflow. Package tests inspect the resulting archives; this
 page only repeats the dependency roles relevant to developers.
