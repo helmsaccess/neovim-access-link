@@ -8,6 +8,10 @@ die Windows-Registry. Das Produkt verwendet keine Schlüssel unter `HKCU` oder
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Ordnet Quick Guide und Handbuch nach einem vollständigen Leseraudit neu: Der Quick Guide führt
+  auf dem kürzesten geprüften Weg zur ersten Verbindung, das Handbuch stellt typische Aufgaben
+  vor Einstellungen und Referenz und trennt NVDA-Befehle eindeutig von Neovim-Eingaben. Deutsche
+  und englische Quellen sowie erzeugte HTML-Links werden gemeinsam geprüft.
 - Präzisiert die Entwicklerdokumentation nach einem erneuten Strukturaudit:
   Der Windows-Terminal-AppModule-Schnitt ist umgesetzt, während die konkrete
   Global-Plugin-Klasse weiterhin prozessweite NVDA-Randabläufe koordiniert und

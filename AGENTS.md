@@ -35,7 +35,8 @@ take precedence.
 - Architecture or ownership changes: `architecture.md` and the relevant ADR.
 - Protocol or trust-boundary changes: `protocol.md`, `security.md`, and the relevant ADR.
 - Tests, builds, or releases: `testing.md` and `release-and-build.md`.
-- Current support and remaining limits: `current-status.md`, `compatibility.md`, and `plan.md`.
+- Current implementation and support limits: `current-status.md` and `compatibility.md`;
+  completed changes: `changelog.md`; planned work: `plan.md`.
 - German developer documentation is the technical source of truth; update its English mirror
   in the same change so both languages make the same claim.
 
@@ -58,7 +59,9 @@ take precedence.
 - Do not add unowned TODOs. Record intentional follow-up work with scope and a durable reference.
 - For bug fixes, add a regression test where practical.
 - Keep behavior, tests, architecture records, and affected German and English documentation
-  current in the same change; do not knowingly leave stale documentation behind.
+  current in the same change. Changes to behavior, support, architecture, compatibility,
+  developer workflows, or release state also update both languages of `current-status.md` and
+  `changelog.md`; do not complete the change while either snapshot or history is stale.
 
 ## Validation
 

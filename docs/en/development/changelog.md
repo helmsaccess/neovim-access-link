@@ -3,6 +3,10 @@
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Restructures the Quick Guide and manual after a complete reader-focused audit: the Quick Guide
+  now follows the shortest verified path to a first connection, the manual puts common tasks
+  before settings and reference, and NVDA commands are clearly separated from Neovim input.
+  German and English sources and generated HTML links are validated together.
 - Clarifies the developer documentation after a structural re-audit: the
   Windows Terminal AppModule boundary is implemented, while the concrete
   Global Plugin class still coordinates process-wide NVDA-edge workflows and
