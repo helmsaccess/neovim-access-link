@@ -82,8 +82,8 @@ Code.
 - `current-status.md` nennt bestätigte Plattformen und noch offene Breite.
 - `plan.md` enthält beabsichtigte Arbeit; eine Planung ist keine bereits
   implementierte Funktion.
-- `changelog.md` bewahrt den zeitlichen Verlauf; ältere Einträge beschreiben
-  nicht automatisch das heutige Verhalten.
+- `changelog.md` fasst abgeschlossene Änderungen nach Produktversion zusammen;
+  die detaillierte Zwischenbuild-Historie ist ein Anhang.
 - Datierte Qualitätsreviews dokumentieren Vergleichsbasis und Nachweise eines
   bestimmten Entwicklungsstands. Für später geändertes Verhalten sind
   Architektur, Status und Code maßgeblich.
@@ -108,3 +108,5 @@ aktuelle Architektur noch Status, Plan oder Code.
 - [Anhang C: Reaudit von GlobalPlugin, Windows-Terminal-AppModule und gemeinsamen Diensten vom 4. August 2026](global-plugin-appmodule-audit-2026-08-04.md) –
   aktueller Abgleich von Anwendungsscope, prozessweiten Eigentümern,
   Dienstoberfläche und weiterhin offener Minimalrolle der Kompositionswurzel.
+- [Anhang D: Detaillierte Changelog-Historie](changelog-history.md) –
+  archivierte Entwicklungs- und Testbuild-Einträge bis zum 5. August 2026.

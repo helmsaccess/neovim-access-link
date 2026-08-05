@@ -379,7 +379,15 @@ Verify at least:
   guided practical-test guide;
 - exactly one H1 per HTML file, valid internal targets, and no remaining `.md`
   links;
+- byte-identical code blocks synchronized from the real Lua example into both
+  manual languages;
 - explicit assignment of every published Markdown source to an HTML build.
+
+`examples/neovim-lazy-python/init.lua` is the executable source of the
+copyable example configuration. After a change,
+`python3 tools/sync_documentation_examples.py --write` synchronizes the
+committed Markdown code blocks for GitHub. Tests and the documentation build
+use `--check` and reject drift.
 
 ## Rules for practical tests
 
@@ -670,16 +678,20 @@ In an embedded terminal, also check:
 - `:bd` on a live job, no-op `:bp`/`:bn`, a real buffer switch, `exit`, and
   exit status.
 
-### Clipboard
+### Assignable commands
 
-Focus Windows Terminal before opening NVDA's Input Gestures dialog. The product
-category and freely assignable commands must be visible there, absent from an
-unrelated application's AppModule command set, and executable only for the
-exact focused Windows Terminal AppModule. After assigning a gesture and
-loading that AppModule class, reopening the dialog elsewhere may still list
-the saved mapping through NVDA's global user map; verify that execution remains
-scoped. Reassign commands once after moving from a build that stored them under
-the Global Plugin.
+Focus Windows Terminal before opening NVDA's Input Gestures dialog. The
+product category and its assignable commands must be visible there. After
+focus moves to an unrelated application, they must not resolve from that
+application's AppModule script set. Once a gesture is assigned and the
+Windows Terminal AppModule class has loaded, NVDA's global user map may still
+list the saved mapping elsewhere in the dialog; execution must remain scoped.
+A focus change between resolution and execution must pass the original gesture
+through exactly once, and two Windows Terminal AppModule instances must not
+execute commands for each other. Reassign the intended gestures once after
+moving from a build that stored the scripts under the Global Plugin.
+
+### Clipboard
 
 Locally and over SSH, check:
 

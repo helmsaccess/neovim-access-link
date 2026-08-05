@@ -71,6 +71,7 @@ developer_sources=(
   docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/de/development/global-plugin-appmodule-audit-2026-08-04.md
+  docs/de/development/changelog-history.md
 )
 
 human_testing_sources=(
@@ -128,6 +129,7 @@ developer_en_sources=(
   docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/en/development/global-plugin-appmodule-audit-2026-08-04.md
+  docs/en/development/changelog-history.md
 )
 
 human_testing_en_sources=(
@@ -138,6 +140,8 @@ command -v pandoc >/dev/null || {
   echo "error: pandoc is required (tested with 3.1.11.1)" >&2
   exit 1
 }
+
+python3 "$root/tools/sync_documentation_examples.py" --check
 
 validate_source() {
   local source="$1"

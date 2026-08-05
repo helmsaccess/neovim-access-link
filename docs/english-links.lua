@@ -46,6 +46,7 @@ local targets = {
   ["dependencies.md"] = "#docs__en__development__dependenciesmd__bundled-dependencies",
   ["plan.md"] = "#docs__en__development__planmd__active-plan",
   ["changelog.md"] = "#docs__en__development__changelogmd__changelog",
+  ["changelog-history.md"] = "#docs__en__development__changelog-historymd__detailed-changelog-history",
 
   ["../manual/README.md"] = "neovim-access-link-handbook-en.html",
 }

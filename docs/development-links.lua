@@ -31,6 +31,7 @@ local targets = {
   ["../../../nvda-addon/DEPENDENCIES.md"] = "#nvda-addon__dependenciesmd__gebündelte-abhängigkeiten",
   ["plan.md"] = "#docs__de__development__planmd__aktiver-plan",
   ["changelog.md"] = "#docs__de__development__changelogmd__changelog",
+  ["changelog-history.md"] = "#docs__de__development__changelog-historymd__detaillierte-changelog-historie",
 
   ["../manual/README.md"] = "neovim-access-link-handbook-de.html",
   ["../manual/communication.md"] = "neovim-access-link-handbook-de.html#docs__de__manual__communicationmd__handbuch-kommunikation-verbindung-und-sitzungszuordnung",

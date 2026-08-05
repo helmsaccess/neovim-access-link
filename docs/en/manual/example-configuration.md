@@ -63,6 +63,8 @@ nvim ~/.config/nvim/init.lua
 Copy all of the following content and save it. The same tested file is
 available in the
 [GitHub repository](https://github.com/helmsaccess/neovim-access-link/blob/main/examples/neovim-lazy-python/init.lua).
+This code block is generated from that real Lua file, so the GitHub view and
+the built manual remain identical to the executable source.
 
 <!-- BEGIN lazy-python-example -->
 ```lua

@@ -407,8 +407,16 @@ Geprüft werden mindestens:
   Praxistest-Leitfaden auf Deutsch und Englisch;
 - genau eine H1 pro HTML, gültige interne Sprungziele und keine verbliebenen
   `.md`-Links;
+- aus der echten Lua-Beispieldatei synchronisierte, bytegleiche Codeblöcke in
+  beiden Handbuchsprachen;
 - ausdrückliche Zuordnung jeder veröffentlichten Markdown-Quelle zu einem
   HTML-Build.
+
+`examples/neovim-lazy-python/init.lua` ist die ausführbare Quelle der
+kopierbaren Beispielkonfiguration. Nach einer Änderung synchronisiert
+`python3 tools/sync_documentation_examples.py --write` die committed
+Markdown-Codeblöcke für GitHub. Tests und Dokumentationsbuild verwenden
+`--check` und lehnen Abweichungen ab.
 
 ## Regeln für praktische Tests
 
@@ -794,10 +802,6 @@ einem Build mit GlobalPlugin-Skripten werden die gewünschten Gesten einmal neu
 zugewiesen.
 
 ### Zwischenablage
-
-Die Produktkategorie muss in NVDAs Tastenbefehldialog auch aus einer fremden
-Anwendung sichtbar sein. Eine dort zugewiesene Geste muss außerhalb eines
-gültigen Neovim-Controls unverändert weiterlaufen.
 
 Lokal und über SSH prüfen:
 

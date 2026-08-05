@@ -65,6 +65,9 @@ nvim ~/.config/nvim/init.lua
 Den folgenden Inhalt vollständig übernehmen und speichern. Dieselbe geprüfte
 Datei steht im
 [GitHub-Repository](https://github.com/helmsaccess/neovim-access-link/blob/main/examples/neovim-lazy-python/init.lua).
+Der Codeblock wird aus dieser echten Lua-Datei erzeugt und bleibt deshalb in
+der GitHub-Ansicht und im gebauten Handbuch identisch mit der ausführbaren
+Quelle.
 
 <!-- BEGIN lazy-python-example -->
 ```lua

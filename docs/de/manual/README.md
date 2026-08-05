@@ -87,6 +87,8 @@ nacheinander gedrückte Tasten.
 
 ## Empfohlener Leseweg
 
+### Aufgaben
+
 1. [Neovim- und Windows-Terminal-Grundlagen](basics.md)
 2. [Verbindung, täglicher Einstieg und Sitzungswechsel](communication.md)
 3. [Sprachexplorationsmodus](speech-exploration.md)
@@ -96,10 +98,17 @@ nacheinander gedrückte Tasten.
 7. [SSH und tmux](ssh-and-tmux.md)
 8. [LSP, Completion und Linter einrichten](language-tools.md)
 9. [Optionale Beispielkonfiguration mit Lazy und Oil](example-configuration.md)
-10. [Befehlsreferenz](commands.md)
-11. [Einstellungsreferenz](settings.md)
-12. [Sounds und Earcons](sounds.md)
-13. [Fehlerdiagnose](troubleshooting.md)
+
+Die Aufgabenkapitel nennen die benötigten Tasten direkt. Für normale Abläufe
+müssen Sie nicht zwischen Anleitung und Referenz wechseln.
+
+### Referenz und Hilfe
+
+- [Befehlsreferenz](commands.md) für NVDA-Gesten, frei belegbare Befehle, F12
+  und häufige Neovim-Eingaben;
+- [Einstellungsreferenz](settings.md) für alle Optionen und Verbindungen;
+- [Sounds und Earcons](sounds.md) für die Bedeutung der Signale;
+- [Fehlerdiagnose](troubleshooting.md) für konkrete Störungen.
 
 Die allgemeine Neovim-Bedienung lernen Sie mit `:Tutor`. Neovims
 [offizielle Hilfe](https://neovim.io/doc/user/) enthält außerdem `nvim-intro`,

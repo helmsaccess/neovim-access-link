@@ -77,8 +77,8 @@ are neither user instructions nor substitutes for the current code.
   publication steps.
 - `current-status.md` records confirmed platforms and remaining coverage gaps.
 - `plan.md` describes intended work; a plan is not an implemented feature.
-- `changelog.md` preserves chronology; an older entry does not automatically
-  describe current behavior.
+- `changelog.md` summarizes completed changes by product version; the detailed
+  intermediate-build history is an appendix.
 - Dated quality reviews record the comparison basis and evidence for one
   development state. Architecture, current status, and code govern behavior
   changed afterward.
@@ -102,3 +102,5 @@ and replace neither current architecture, status, plan, nor source code.
 - [Appendix C: Re-audit of the Global Plugin, Windows Terminal AppModule, and shared services, August 4, 2026](global-plugin-appmodule-audit-2026-08-04.md) —
   a current review of application scope, process-wide owners, service surface,
   and the composition root's still-incomplete minimal role.
+- [Appendix D: Detailed changelog history](changelog-history.md) — archived
+  development and test-build entries through August 5, 2026.

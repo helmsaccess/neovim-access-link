@@ -83,6 +83,8 @@ separated by commas means that keys are pressed one after another: `Space`,
 
 ## Recommended reading order
 
+### Tasks
+
 1. [Neovim and Windows Terminal basics](basics.md)
 2. [Connection, first editing session, and session switching](communication.md)
 3. [Speech exploration mode](speech-exploration.md)
@@ -92,10 +94,17 @@ separated by commas means that keys are pressed one after another: `Space`,
 7. [SSH and tmux](ssh-and-tmux.md)
 8. [Set up LSP, completion, and linters](language-tools.md)
 9. [Optional example configuration with Lazy and Oil](example-configuration.md)
-10. [Command reference](commands.md)
-11. [Settings reference](settings.md)
-12. [Sounds and earcons](sounds.md)
-13. [Troubleshooting](troubleshooting.md)
+
+Task chapters give the required keys where they are needed. Routine workflows
+do not require switching between the instructions and a reference.
+
+### Reference and help
+
+- [Command reference](commands.md) for NVDA gestures, assignable commands, F12,
+  and common Neovim input;
+- [settings reference](settings.md) for all options and connections;
+- [sounds and earcons](sounds.md) for cue meanings;
+- [troubleshooting](troubleshooting.md) for specific failures.
 
 Learn general Neovim operation with `:Tutor`. Neovim's
 [official help](https://neovim.io/doc/user/) also provides `nvim-intro`, its

@@ -103,6 +103,8 @@ take precedence.
 ## Documentation and publication
 
 - Keep documentation accurate, understandable, internally consistent, and logically ordered.
+- Use prose, lists, and tables according to the reader's task. Lists and tables must materially
+  improve scanning or comparison; use them with judgment rather than as a default or an obstacle.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
   exhaustive coverage or response-time guarantees.
 - In manuals, use localized UI names from the translation catalogs.

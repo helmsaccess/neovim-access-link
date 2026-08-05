@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import pathlib
 import runpy
+import tempfile
 import unittest
 
 
@@ -51,6 +52,29 @@ def discover_agents_paths() -> set[pathlib.Path]:
 
 
 class RepositoryPolicyTests(unittest.TestCase):
+    def test_documentation_example_sync_tool_updates_marked_blocks(self) -> None:
+        namespace = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/sync_documentation_examples.py"),
+            run_name="documentation_example_sync_test",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = pathlib.Path(directory)
+            source = temporary / "example.lua"
+            target = temporary / "manual.md"
+            source.write_text('print("current")\n', encoding="utf-8")
+            target.write_text(
+                "before\n<!-- BEGIN lazy-python-example -->\n"
+                "```lua\nprint(\"stale\")\n```\n"
+                "<!-- END lazy-python-example -->\nafter\n",
+                encoding="utf-8",
+            )
+            synchronize = namespace["_synchronize"]
+            synchronize.__globals__["SOURCE"] = source
+            self.assertTrue(synchronize(target, write=False))
+            self.assertTrue(synchronize(target, write=True))
+            self.assertFalse(synchronize(target, write=False))
+            self.assertIn('```lua\nprint("current")\n```', target.read_text(encoding="utf-8"))
+
     def test_lazy_python_example_is_identical_in_both_manuals(self) -> None:
         example = (
             REPOSITORY_ROOT / "examples/neovim-lazy-python/init.lua"
