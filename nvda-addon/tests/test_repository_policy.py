@@ -5,6 +5,7 @@ import pathlib
 import runpy
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -52,6 +53,45 @@ def discover_agents_paths() -> set[pathlib.Path]:
 
 
 class RepositoryPolicyTests(unittest.TestCase):
+    def test_optional_windows_build_uses_an_isolated_temporary_environment(self) -> None:
+        namespace = runpy.run_path(
+            str(REPOSITORY_ROOT / "build.py"),
+            run_name="optional_windows_build_test",
+        )
+        environment_builder = mock.Mock()
+        with (
+            mock.patch.object(namespace["sys"], "argv", ["build.py"]),
+            mock.patch.object(namespace["venv"], "EnvBuilder", return_value=environment_builder),
+            mock.patch.object(namespace["subprocess"], "run") as run,
+            mock.patch("builtins.print"),
+        ):
+            namespace["build"]()
+
+        environment = environment_builder.create.call_args.args[0]
+        self.assertFalse(environment.exists())
+        self.assertEqual(2, run.call_count)
+        install_command = run.call_args_list[0].args[0]
+        build_command = run.call_args_list[1].args[0]
+        self.assertIn("--isolated", install_command)
+        self.assertIn("--no-input", install_command)
+        self.assertEqual(
+            str(REPOSITORY_ROOT / "tools/requirements-build.txt"),
+            install_command[-1],
+        )
+        self.assertEqual(
+            str(REPOSITORY_ROOT / "tools/build_nvda_addon.py"),
+            build_command[-1],
+        )
+        self.assertEqual("1", run.call_args_list[0].kwargs["env"]["PYTHONNOUSERSITE"])
+
+    def test_optional_windows_launcher_is_parameterless_and_keeps_results_visible(self) -> None:
+        launcher = (REPOSITORY_ROOT / "build.cmd").read_text(encoding="utf-8")
+        self.assertIn('pushd "%~dp0"', launcher)
+        self.assertIn("py -3 build.py", launcher)
+        self.assertIn("python build.py", launcher)
+        self.assertIn("pause", launcher)
+        self.assertNotIn("tools\\build_nvda_addon.py", launcher)
+
     def test_documentation_example_sync_tool_updates_marked_blocks(self) -> None:
         namespace = runpy.run_path(
             str(REPOSITORY_ROOT / "tools/sync_documentation_examples.py"),

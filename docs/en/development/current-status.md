@@ -114,6 +114,9 @@ The documentation build also checks complete German and English source sets,
 parallel heading structures, Markdown links, generated HTML targets, and
 language, title, and description metadata. GitHub Actions runs this build as a
 dedicated job.
+Windows users can additionally run parameterless `build.cmd` to build the
+current development state. The wrapper uses only a temporary Python environment
+and leaves the regular build and CI path unchanged.
 
 ## Verification evidence
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import gzip
 import importlib.metadata
 import json
 import pathlib
@@ -21,6 +22,22 @@ if str(ROOT) not in sys.path:
 import buildVars
 
 COMPONENT_CONFIG = ROOT / "neovim-plugin" / "config" / "linux-components.json"
+
+
+def normalized_archive_info(member: tarfile.TarInfo) -> tarfile.TarInfo:
+    """Return portable, reproducible metadata for the Linux component archive."""
+    member.uid = 0
+    member.gid = 0
+    member.uname = ""
+    member.gname = ""
+    member.mtime = 0
+    member.pax_headers = {}
+    if member.isdir() or member.issym():
+        member.mode = 0o755
+    elif member.isfile():
+        executable = member.name.endswith(("/bin/nvim-nvda-bridge", "/install.py"))
+        member.mode = 0o755 if executable else 0o644
+    return member
 
 
 def linux_component_config() -> dict:
@@ -88,8 +105,10 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         shutil.copy2(ROOT / "LICENSE", package / "LICENSE")
         (package / "install.py").chmod(0o755)
         staged_output = temporary / output.name
-        with tarfile.open(staged_output, "w:gz", format=tarfile.PAX_FORMAT) as archive:
-            archive.add(package, arcname=package.name)
+        with staged_output.open("wb") as raw_archive:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=raw_archive, mtime=0) as compressed:
+                with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
+                    archive.add(package, arcname=package.name, filter=normalized_archive_info)
         staged_output.replace(output)
     return output
 

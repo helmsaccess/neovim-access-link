@@ -47,6 +47,13 @@ archive contents. The documentation build synchronizes executable examples,
 checks Markdown and HTML links, German/English structure, and each output's
 language, title, and description, and creates eight HTML documents.
 
+`build.cmd` is an additional parameterless convenience path for Windows users
+who want to build the current development state from a source download. It
+requires Python 3.10 or newer and an internet connection, installs the
+pinned build dependencies only in a temporary Python environment, and writes
+the `.nvda-addon` to `dist`. It does not replace or alter the validated
+developer and CI process above.
+
 ## Release preparation
 
 An approved version requires one coherent state containing:

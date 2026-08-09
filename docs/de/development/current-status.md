@@ -120,6 +120,9 @@ synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
 deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
 Markdownlinks, generierte HTML-Ziele sowie Sprach-, Titel- und
 Beschreibungsmetadaten. GitHub Actions führt diesen Build als eigenen Job aus.
+Windows-Nutzer können zusätzlich mit `build.cmd` parameterlos einen aktuellen
+Entwicklungsstand bauen. Der Wrapper verwendet nur ein temporäres
+Python-Environment und lässt den regulären Build- und CI-Weg unverändert.
 
 ## Prüfnachweis
 

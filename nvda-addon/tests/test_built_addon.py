@@ -179,6 +179,13 @@ class BuiltAddonTests(unittest.TestCase):
     def _buildUserPackage(self) -> pathlib.Path:
         return build_user_package.build(pathlib.Path(self.temporary.name) / "artifacts")
 
+    def test_linux_user_package_is_reproducible(self) -> None:
+        root = pathlib.Path(self.temporary.name)
+        first = build_user_package.build(root / "first")
+        second = build_user_package.build(root / "second")
+
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+
     def _install_mocks(self) -> None:
         addon_handler = types.ModuleType("addonHandler")
         addon_handler.initTranslation = lambda: None
@@ -4000,6 +4007,23 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertTrue(any(name.endswith("/install.py") for name in names))
             self.assertTrue(any(name.endswith("/plugin/nvim_nvda.lua") for name in names))
             self.assertTrue(any(name.endswith("/LICENSE") for name in names))
+            regular_members = [member for member in package.getmembers() if member.isfile()]
+            bridge_member = next(
+                member for member in regular_members
+                if member.name.endswith("/bin/nvim-nvda-bridge")
+            )
+            installer_member = next(
+                member for member in regular_members if member.name.endswith("/install.py")
+            )
+            self.assertEqual(0o755, bridge_member.mode)
+            self.assertEqual(0o755, installer_member.mode)
+            self.assertTrue(all(member.uid == member.gid == 0 for member in package.getmembers()))
+            self.assertTrue(all(member.mtime == 0 for member in package.getmembers()))
+            self.assertTrue(all(
+                member.mode == 0o644
+                for member in regular_members
+                if member not in (bridge_member, installer_member)
+            ))
             extraction = pathlib.Path(self.temporary.name) / "linux-package"
             package.extractall(extraction, filter="data")
         source = next(extraction.iterdir())

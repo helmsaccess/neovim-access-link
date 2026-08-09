@@ -48,6 +48,13 @@ prüft Markdown- und HTML-Links, die deutsche und englische Struktur sowie
 Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
 HTML-Dokumente.
 
+`build.cmd` ist ein zusätzlicher, parameterloser Komfortweg für Windows-Nutzer,
+die einen aktuellen Entwicklungsbuild aus einem Quellcode-Download erzeugen.
+Er benötigt Python 3.10 oder neuer und eine Internetverbindung, richtet die
+festgelegten Buildabhängigkeiten ausschließlich in einem temporären
+Python-Environment ein und legt das `.nvda-addon` in `dist` ab. Der validierte
+Entwickler- und CI-Prozess oben bleibt davon unberührt.
+
 ## Releasevorbereitung
 
 Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
