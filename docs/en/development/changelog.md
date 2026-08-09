@@ -6,7 +6,10 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-- Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- No changes.
+
+## 0.97.0 (beta)
+
 - Adds the HTTPS project URL to the add-on manifest.
 - Adds an optional parameterless Windows build from source. A temporary Python
   environment leaves the system installation unchanged, while the embedded

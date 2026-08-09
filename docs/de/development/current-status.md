@@ -1,9 +1,9 @@
 # Aktueller Status
 
-Stand: 9. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
-die genaue Entwicklungsbuildnummer und Git-Metadaten erzeugt `buildVars.py`.
-Der aktuell veröffentlichte Beta-Pre-Release ist 0.96.0. Das Projekt leitet aus
-Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung ab.
+Stand: 9. August 2026. Der Quellstand ist der Beta-Release 0.97.0;
+`buildVars.py` erzeugt Release-Artefakte ohne Entwicklungsbuildnummer oder
+Git-Metadaten. Das Projekt leitet aus Testumfang oder Funktionsmenge keine
+höhere Stabilitätseinstufung ab.
 
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften
 Stands. [Architektur](architecture.md) und

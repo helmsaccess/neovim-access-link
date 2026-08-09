@@ -6,7 +6,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-- Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Keine Änderungen.
+
+## 0.97.0 (Beta)
+
 - Ergänzt die HTTPS-Projektadresse im Add-on-Manifest.
 - Ergänzt einen optionalen parameterlosen Windows-Build aus dem Quellcode. Ein
   temporäres Python-Environment schützt die Systeminstallation; das
