@@ -10,6 +10,12 @@ local native_operation_task = step_id == "native-search-replacement"
 local native_rename_task = step_id == "native-lsp-rename"
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
+-- Real language servers and linters can need noticeably longer on a cold
+-- Windows start, especially when the fixtures live on a network drive. Keep
+-- one bounded allowance for every provider-facing wait so setup remains
+-- deterministic without rejecting a working provider after only 15 seconds.
+local provider_timeout_ms = 60000
+local provider_poll_interval_ms = 50
 local configuration_source = assert(debug.getinfo(1, "S").source)
 assert(configuration_source:sub(1, 1) == "@", "human-test init path is unavailable")
 local framework_root = vim.fs.dirname(configuration_source:sub(2))
@@ -400,6 +406,7 @@ local run_linter = nil
 local run_linter_with_feedback = nil
 local linter_diagnostics_ready = nil
 local linter_display_name = nil
+local linter_failure_details = nil
 
 vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
   { desc = "Access Link human test: repeat current task" })
@@ -630,9 +637,19 @@ if uses_linter then
     linter_name = "clangtidy"
     linter_display_name = "Clang-Tidy"
     lint.linters_by_ft = { c = { linter_name } }
-    lint.linters.clangtidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
+    local clang_tidy = lint.linters.clangtidy
+    clang_tidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
       "ACCESS_LINK_HUMAN_CLANG_TIDY is required")
-    lint.linters.clangtidy.parser = linter_readiness.clang_tidy_parser(
+    clang_tidy.args = {
+      "--quiet",
+      "--config-file=" .. vim.fs.joinpath(vim.fn.getcwd(), ".clang-tidy"),
+      function() return vim.api.nvim_buf_get_name(0) end,
+      "--",
+      "-std=c11",
+    }
+    clang_tidy.append_fname = false
+    clang_tidy.stream = "both"
+    clang_tidy.parser = linter_readiness.clang_tidy_parser(
       require("lint.parser"), vim.diagnostic.severity)
   else
     linter_name = "markdownlint-cli2"
@@ -642,8 +659,13 @@ if uses_linter then
     markdownlint.cmd = assert(vim.env.ACCESS_LINK_HUMAN_MARKDOWNLINT,
       "ACCESS_LINK_HUMAN_MARKDOWNLINT is required")
     markdownlint.args = {
-      "--config", vim.fs.joinpath(vim.fn.getcwd(), ".markdownlint.json"), "-",
+      "--config", vim.fs.joinpath(vim.fn.getcwd(), ".markdownlint.json"),
+      function() return vim.api.nvim_buf_get_name(0) end,
     }
+    markdownlint.stdin = false
+    markdownlint.append_fname = false
+    markdownlint.parser = linter_readiness.markdownlint_parser(
+      require("lint.parser"), vim.diagnostic.severity)
   end
 
   linter_diagnostics_ready = function()
@@ -651,6 +673,26 @@ if uses_linter then
       profile,
       vim.diagnostic.get(0),
       vim.diagnostic.severity
+    )
+  end
+  linter_failure_details = function()
+    local diagnostics = vim.diagnostic.get(0)
+    local observed = {}
+    for _, diagnostic in ipairs(diagnostics) do
+      observed[#observed + 1] = string.format(
+        "%s/%s/severity-%s/line-%s",
+        tostring(diagnostic.source or "no-source"),
+        tostring(diagnostic.code or "no-code"),
+        tostring(diagnostic.severity or "none"),
+        tostring(type(diagnostic.lnum) == "number" and diagnostic.lnum + 1 or "none")
+      )
+    end
+    local running = lint.get_running(0)
+    return string.format(
+      "observed %d diagnostics (%s); active linters: %s",
+      #diagnostics,
+      #observed > 0 and table.concat(observed, ", ") or "none",
+      #running > 0 and table.concat(running, ", ") or "none"
     )
   end
 
@@ -681,9 +723,9 @@ if uses_linter then
     vim.notify(string.format(human_messages.diagnostics_waiting, linter_display_name))
     run_linter()
     vim.schedule(function()
-      local ready = vim.wait(15000, function()
+      local ready = vim.wait(provider_timeout_ms, function()
         return linter_diagnostics_ready()
-      end, 50)
+      end, provider_poll_interval_ms)
       readiness_pending = false
       if ready then
         local _, count = linter_diagnostics_ready()
@@ -777,7 +819,8 @@ local function assert_callable_choices_ready()
       function(_, _, payload) result = payload end
     )
     assert(accepted, "Access Link did not accept callable fixture position " .. index)
-    assert(vim.wait(15000, function() return result ~= nil end, 50),
+    assert(vim.wait(provider_timeout_ms, function() return result ~= nil end,
+      provider_poll_interval_ms),
       "Pyright did not answer callable fixture position " .. index)
     assert(result.ok, "callable fixture position " .. index
       .. " did not produce signature help")
@@ -822,7 +865,8 @@ local function assert_completion_choices_ready()
   vim.lsp.buf_request_all(0, "textDocument/completion", params, function(value)
     results = value
   end)
-  local answered = vim.wait(15000, function() return results ~= nil end, 50)
+  local answered = vim.wait(provider_timeout_ms,
+    function() return results ~= nil end, provider_poll_interval_ms)
   vim.api.nvim_buf_set_lines(0, line_count, line_count + 2, false, {})
   vim.api.nvim_win_set_cursor(0, original_cursor)
   assert(answered, "Pyright did not answer the completion fixture request")
@@ -867,8 +911,10 @@ local function assert_completion_profile_ready()
     assert(blink_config.keymap.preset == "none",
       "blink.cmp inherited completion mappings outside the test profile")
     local auto_show = blink_config.completion.menu.auto_show
-    local auto_show_enabled = type(auto_show) == "function"
-      and auto_show({}, {}) or auto_show
+    local auto_show_enabled = auto_show
+    if type(auto_show) == "function" then
+      auto_show_enabled = auto_show({}, {})
+    end
     assert(auto_show_enabled == false,
       "blink.cmp automatic completion would bypass the F5 test trigger")
     for _, key in ipairs({ "<C-n>", "<C-p>" }) do
@@ -919,9 +965,9 @@ end
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   assert_completion_runtime_isolated()
   if uses_pyright then
-    local attached = vim.wait(15000, function()
+    local attached = vim.wait(provider_timeout_ms, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
-    end, 50)
+    end, provider_poll_interval_ms)
     assert(attached, "Pyright did not attach to the human-test fixture")
     local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
     assert(client:supports_method("textDocument/completion"),
@@ -944,10 +990,12 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   if uses_linter then
     assert(run_linter, "the diagnostic profile did not configure its linter")
     run_linter()
-    local categorized = vim.wait(15000, function()
+    local categorized = vim.wait(provider_timeout_ms, function()
       return linter_diagnostics_ready()
-    end, 50)
-    assert(categorized, linter_display_name .. " did not publish the expected diagnostic")
+    end, provider_poll_interval_ms)
+    assert(categorized, linter_display_name
+      .. " did not publish the expected diagnostic; "
+      .. assert(linter_failure_details)())
   end
   vim.g.access_link_human_preflight_ready = 1
 end, { desc = "Verify real providers for the guided human-test profile" })

@@ -120,11 +120,20 @@ multiple instances, focus and fail-open behavior, editor and presentation
 planning, Lua with real headless Neovim processes, package contents,
 localization, and documentation links. Pinned runs use Neovim 0.10.1 or 0.12.3
 according to their purpose and exercise real completion, LSP, diagnostic, and
-linter paths. Listener-free, SSH, and real socket tests run separately. See the
+linter paths. The Clang-Tidy profile invokes the pinned binary directly, fixes
+the language mode and supplied test configuration explicitly, and merges
+standard and error output. The
+markdownlint profile checks the absolute fixture instead of relying on a cold
+stdin run; both parsers retain complete Windows drive and UNC paths.
+Preflight and test helpers use one bounded 60-second wait for real providers.
+This permits cold Windows and network-drive starts without waiting forever for
+a stalled provider.
+Listener-free, SSH, and real socket tests run separately. See the
 [test strategy](testing.md) for commands and detail.
 Guided practical tests isolate the remaining perceptual checks for speech,
-Braille, sounds, focus, and response time; their structure and safe key choices
-are documented in [guided practical tests](human-testing.md).
+Braille, sounds, focus, and response time. Their technical preflight confirms
+real provider data and task-specific isolated key control; their structure and
+safe key choices are documented in [guided practical tests](human-testing.md).
 
 Practical confirmation includes:
 

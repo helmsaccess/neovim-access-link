@@ -271,16 +271,18 @@ package installation. Clang-Tidy and markdownlint are not installed
 preemptively for a normal smoke run. Only the technical preflight for actually
 selected profiles is repeated after a relevant runtime change.
 
-A technical preflight then starts every selected test profile. For LSP tasks,
-it waits for an attached Pyright client. The rename task requires its native
-rename capability. In completion profiles the preflight requests the three
-named candidates; signature tasks additionally require at least two signatures
-with three parameters each. In the Python diagnostic profile, it requires
+A direct probe first checks the real output of every required linter against
+its pinned fixture. A technical preflight then starts every selected test
+profile. For LSP tasks, it waits for an attached Pyright client. The rename
+task requires its native rename capability. In completion profiles the
+preflight requests the three named candidates; signature tasks additionally
+require at least two signatures with three parameters each. In the Python
+diagnostic profile, it requires
 two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
 The C and Markdown profiles require a real Clang-Tidy error and markdownlint
-MD025 warning, respectively.
-A human tester only sees a perception task after these machine-decidable
-foundations work.
+MD025 warning, respectively. If one profile fails, the runner still checks the
+remaining selected profiles and then summarizes every failure. A human tester
+only sees a perception task after these machine-decidable foundations work.
 
 **Set up or repair test dependencies** is the explicit repair operation: it
 reinstalls managed plugin revisions and repeats this preflight. The normal

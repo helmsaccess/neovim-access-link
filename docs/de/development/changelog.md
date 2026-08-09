@@ -12,7 +12,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
   und Braille.
 - Härtet native Completion, `nvim-cmp` und `blink.cmp`, einschließlich
   Dokumentationsauflösung, Menüklängen und dem Zustand ohne ausgewählten
-  Kandidaten.
+  Kandidaten. Behebt zudem die falsche Ablehnung der bewusst deaktivierten
+  automatischen Blink-Menüöffnung durch die Praxistest-Vorprüfung.
 - Macht native inkrementelle Suche, `inccommand`-Ersetzungsvorschauen,
   Quickfix-/Positionslisten, Ersetzungsabfragen, Mehrbuffer-Ersetzungen und
   LSP-Rename-Abschlüsse zugänglich. Neovim und der Sprachserver behalten die
@@ -22,7 +23,14 @@ und Testbuild-Einträge bis zum 5. August 2026.
   L4- bis L6-Abläufe isolieren die verbleibende praktische NVDA-Prüfung.
 - Vereinheitlicht Diagnosen aus LSP, `nvim-lint`, ALE und `none-ls.nvim`,
   erweitert Navigationsbefehle und ergänzt getrennte Fehler-, Warn- und
-  Leerbestätigungsklänge.
+  Leerbestätigungsklänge. Der Clang-Tidy-Praxistest startet unter Windows
+  direkt das gepinnte Programm, verwendet einen festgelegten C-Modus und die
+  mitgelieferte Testkonfiguration und wertet beide Ausgabekanäle aus. Eine
+  einheitliche begrenzte Wartezeit berücksichtigt kalte Providerstarts auf
+  Windows und Netzlaufwerken. Markdownlint prüft die absolute Testdatei
+  statt eines unzuverlässigen stdin-Kaltstarts. Die Einrichtung prüft reale
+  Linterausgaben vorab und sammelt Fehler aller ausgewählten Profile in einem
+  Lauf.
 - Behebt Linux-Sitzungserkennung mit abweichenden Laufzeitumgebungen und ohne
   `XDG_RUNTIME_DIR` sowie Fokus- und Merkpfade nach der optionalen
   F12-Rückfrage.

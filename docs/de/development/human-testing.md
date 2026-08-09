@@ -285,7 +285,9 @@ bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
 technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
 relevanten Laufzeitänderungen wiederholt.
 
-Danach startet eine technische Vorprüfung jedes ausgewählten Testprofils. Bei
+Danach prüft der Runner die echten Ausgaben aller benötigten Linter direkt mit
+den festgelegten Testdateien. Anschließend startet eine technische Vorprüfung
+jedes ausgewählten Testprofils. Bei
 LSP-Aufgaben wartet sie tatsächlich auf einen angehängten Pyright-Client. Die
 Rename-Aufgabe verlangt dessen native Rename-Fähigkeit. In den
 Completion-Profilen fordert die Vorprüfung die drei benannten Kandidaten ab;
@@ -293,9 +295,11 @@ bei den Signaturaufgaben zusätzlich mindestens zwei Signaturen mit jeweils
 drei Parametern. Im Diagnoseprofil
 erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
 einen Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
-Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Ein menschlicher Tester wird erst zu einer
-Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren Grundlagen
-funktionieren.
+Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Schlägt
+ein Profil fehl, werden die weiteren ausgewählten Profile trotzdem geprüft;
+der Runner fasst danach alle Fehler zusammen. Ein menschlicher Tester wird erst
+zu einer Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren
+Grundlagen funktionieren.
 
 **Testabhängigkeiten einrichten oder reparieren** ist die ausdrückliche
 Reparaturfunktion: Sie installiert die verwalteten Plugin-Revisionen neu und

@@ -126,12 +126,21 @@ SSH-Clients, mehrere Instanzen, Fokus und Fail-open-Verhalten, Editor- und
 Präsentationsplanung, Lua mit echten headless-Neovim-Prozessen, Paketinhalt,
 Lokalisierung sowie Dokumentationslinks. Gepinnte Läufe verwenden je nach
 Testzweck Neovim 0.10.1 oder 0.12.3 und reale Completion-, LSP-, Diagnose- und
-Linterpfade.
+Linterpfade. Das Clang-Tidy-Profil verwendet direkt das gepinnte Programm,
+legt C11 sowie die mitgelieferte Testkonfiguration explizit fest und führt
+Standard- und Fehlerausgabe zusammen. Das
+Markdownlint-Profil prüft die absolute Testdatei statt eines stdin-Kaltstarts;
+beide Parser erhalten Windows-Laufwerks- und UNC-Pfade vollständig.
+Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
+begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
+und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.
 Listenerfreie, SSH- und echte Sockettests laufen getrennt. Einzelheiten und
 Befehle stehen in [Teststrategie](testing.md).
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
-Sprache, Braille, Klängen, Fokus und Reaktionszeit; Aufbau und sichere
-Tastenbelegung stehen in [Geführte Praxistests](human-testing.md).
+Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
+bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
+Tastensteuerung; Aufbau und sichere Tastenbelegung stehen in
+[Geführte Praxistests](human-testing.md).
 
 Praktisch bestätigt wurden insbesondere:
 

@@ -36,7 +36,8 @@ $PythonRoot = Join-Path $StateRoot "python"
 $PythonScripts = Join-Path $PythonRoot "Scripts"
 $VenvPython = Join-Path $PythonScripts "python.exe"
 $RuffPath = Join-Path $PythonScripts "ruff.exe"
-$ClangTidyPath = Join-Path $PythonScripts "clang-tidy.exe"
+$ClangTidyPath = Join-Path $PythonRoot `
+    "Lib\site-packages\clang_tidy\data\bin\clang-tidy.exe"
 $NodeRoot = Join-Path $StateRoot "node"
 $NodeBin = Join-Path $NodeRoot "node_modules\.bin"
 $PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
@@ -226,6 +227,76 @@ function Invoke-OptionalExternalText {
         return [PSCustomObject]@{ Succeeded = $false; Text = "" }
     }
     return [PSCustomObject]@{ Succeeded = $true; Text = $result.Text }
+}
+
+function Test-ToolFixtureContracts {
+    param(
+        [Parameter(Mandatory = $true)][bool]$NeedsRuff,
+        [Parameter(Mandatory = $true)][bool]$NeedsClangTidy,
+        [Parameter(Mandatory = $true)][bool]$NeedsMarkdownlint
+    )
+    $failures = @()
+    Write-Step (Get-Message "runner.setup.toolProbes")
+
+    if ($NeedsRuff) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.py"
+        $probe = Invoke-ExternalText -Command $RuffPath -Arguments @(
+            "check", "--isolated", "--no-cache", "--output-format", "json", $fixture
+        )
+        $valid = $false
+        if ($probe.ExitCode -eq 1) {
+            try {
+                $diagnostics = @($probe.Text | ConvertFrom-Json)
+                $f401 = @($diagnostics | Where-Object { $_.code -eq "F401" }).Count
+                $f821 = @($diagnostics | Where-Object { $_.code -eq "F821" }).Count
+                $valid = $f401 -ge 2 -and $f821 -ge 1
+            } catch {
+                $valid = $false
+            }
+        }
+        if (-not $valid) {
+            $failures += "Ruff"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "Ruff", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    if ($NeedsClangTidy) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.c"
+        $configuration = Join-Path $FixturesRoot ".clang-tidy"
+        $probe = Invoke-ExternalText -Command $ClangTidyPath -Arguments @(
+            "--quiet", "--config-file=$configuration", $fixture, "--", "-std=c11"
+        )
+        $first = ([regex]::Matches(
+            $probe.Text, "missing_first.*\[clang-diagnostic-error\]"
+        )).Count
+        $second = ([regex]::Matches(
+            $probe.Text, "missing_second.*\[clang-diagnostic-error\]"
+        )).Count
+        if ($probe.ExitCode -ne 1 -or $first -lt 1 -or $second -lt 1) {
+            $failures += "Clang-Tidy"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "Clang-Tidy", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    if ($NeedsMarkdownlint) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.md"
+        $configuration = Join-Path $FixturesRoot ".markdownlint.json"
+        $probe = Invoke-ExternalText -Command $MarkdownlintPath -Arguments @(
+            "--config", $configuration, $fixture
+        )
+        if ($probe.ExitCode -ne 1 -or $probe.Text -notmatch "MD025") {
+            $failures += "markdownlint"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "markdownlint", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    return @($failures)
 }
 
 function Invoke-Python {
@@ -1020,6 +1091,10 @@ function Install-TestEnvironment {
             )
         }
     }
+    $setupFailures = @(Test-ToolFixtureContracts `
+        -NeedsRuff $needsRuff `
+        -NeedsClangTidy $needsClangTidy `
+        -NeedsMarkdownlint $needsMarkdownlint)
     Invoke-TestNvim -Profile "setup" -Headless
     $preflightFixtures = @{
         "native" = "lsp_features.py"
@@ -1036,8 +1111,20 @@ function Install-TestEnvironment {
             Fixture = $preflightFixtures[$profileName]
         }
         Write-Step (Get-Message "runner.setup.preflight" @($probe.Profile))
-        Invoke-TestNvim -Profile $probe.Profile `
-            -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
+        try {
+            Invoke-TestNvim -Profile $probe.Profile `
+                -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
+        } catch {
+            $setupFailures += "profile $($probe.Profile)"
+            Write-Host (Get-Message "runner.setup.preflightFailed" @(
+                $probe.Profile
+            )) -ForegroundColor Red
+        }
+    }
+    if ($setupFailures.Count -gt 0) {
+        throw (Get-Message "runner.setup.failures" @(
+            ($setupFailures -join ", ")
+        ))
     }
     $marker = [PSCustomObject]@{
         schemaVersion = 4
