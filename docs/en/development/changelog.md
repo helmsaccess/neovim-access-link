@@ -10,7 +10,8 @@ test-build entries through August 5, 2026.
 - Adds the HTTPS project URL to the add-on manifest.
 - Adds an optional parameterless Windows build from source. A temporary Python
   environment leaves the system installation unchanged, while the embedded
-  Linux package receives reproducible Unix metadata.
+  Linux package receives portable Python modules and reproducible Unix
+  metadata.
 - Adds Insert-mode LSP active-parameter speech and held, read-only signature,
   parameter, and diagnostic views with correlated speech and Braille.
 - Hardens native completion, `nvim-cmp`, and `blink.cmp`, including

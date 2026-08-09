@@ -4007,6 +4007,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertTrue(any(name.endswith("/install.py") for name in names))
             self.assertTrue(any(name.endswith("/plugin/nvim_nvda.lua") for name in names))
             self.assertTrue(any(name.endswith("/LICENSE") for name in names))
+            self.assertFalse(any(name.endswith((".pyd", ".so")) for name in names))
             regular_members = [member for member in package.getmembers() if member.isfile()]
             bridge_member = next(
                 member for member in regular_members

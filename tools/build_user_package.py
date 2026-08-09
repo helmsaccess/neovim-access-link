@@ -12,7 +12,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
-import zipapp
+import zipfile
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -62,6 +62,30 @@ def copy_python_package(source: pathlib.Path, destination: pathlib.Path) -> None
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
 
+def copy_portable_python_package(source: pathlib.Path, destination: pathlib.Path) -> None:
+    destination.mkdir()
+    for module in sorted(source.glob("*.py")):
+        shutil.copy2(module, destination / module.name)
+
+
+def create_portable_zipapp(source: pathlib.Path, destination: pathlib.Path) -> None:
+    with destination.open("wb") as stream:
+        stream.write(b"#!/usr/bin/env python3\n")
+    with zipfile.ZipFile(
+        destination,
+        "a",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=9,
+    ) as archive:
+        for module in sorted(path for path in source.rglob("*") if path.is_file()):
+            relative = module.relative_to(source).as_posix()
+            info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
+            info.create_system = 3
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            archive.writestr(info, module.read_bytes(), compresslevel=9)
+
+
 def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
     version = project_version()
     linux_component_config()
@@ -87,14 +111,17 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         msgpack = importlib.metadata.distribution("msgpack")
         if msgpack.version != "1.1.1":
             raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack.version}")
-        copy_python_package(pathlib.Path(msgpack.locate_file("msgpack")), application / "msgpack")
+        copy_portable_python_package(
+            pathlib.Path(msgpack.locate_file("msgpack")),
+            application / "msgpack",
+        )
         (application / "__main__.py").write_text(
             "from nvim_nvda_bridge.__main__ import main\nraise SystemExit(main())\n",
             encoding="utf-8",
         )
         bridge = package / "bin" / "nvim-nvda-bridge"
         bridge.parent.mkdir(parents=True)
-        zipapp.create_archive(application, bridge, interpreter="/usr/bin/env python3", compressed=True)
+        create_portable_zipapp(application, bridge)
         bridge.chmod(0o755)
         plugin = package / "share" / "nvim" / "site" / "pack" / "nvim-nvda" / "start" / "nvim-nvda"
         shutil.copytree(ROOT / "neovim-plugin", plugin, ignore=shutil.ignore_patterns("tests"))
