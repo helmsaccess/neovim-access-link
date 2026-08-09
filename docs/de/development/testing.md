@@ -96,7 +96,9 @@ Zusätzliche Skripte prüfen reale öffentliche Plugin- und Werkzeugverträge:
 - `tools/test_completion_plugins.sh` für `nvim-cmp` und `blink.cmp`;
 - `tools/test_linter_plugins.sh` für `nvim-lint`, ALE und reale Linter;
 - `tools/test_none_ls.sh` für die `none-ls.nvim`-LSP-Brücke;
-- `tools/test_neovim_plugin.sh` für listenerfreie Lua-Spezifikationen.
+- `tools/test_neovim_plugin.sh` für den seriellen vollständigen
+  Lua-Kompatibilitätslauf. Er enthält auch Session-Spezifikationen mit lokalen
+  Listenern und benötigt deshalb eine dafür erlaubte Umgebung.
 
 Die GitHub-Matrix führt diese Verträge mit den im Workflow gepinnten
 Neovim-, Plugin-, Sprach- und Werkzeugversionen aus. Die Checkouts sind reine

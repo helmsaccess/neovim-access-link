@@ -11,6 +11,19 @@ local M = {}
 -- parser's special `file` group: older nvim-lint releases also mistake UNC
 -- paths for relative paths during their buffer-path comparison.
 local clang_tidy_pattern = [=[(.+):(%d+):(%d+): (%w+): ([^[]+) %[(.*)%]]=]
+-- The Markdown profile also passes only the current absolute filename.  This
+-- avoids the CLI's intermittent first stdin run on Windows while retaining
+-- drive-letter and UNC paths, with or without a reported column.
+local markdownlint_with_column_pattern = [=[^(.+):(%d+):(%d+) (error MD%d+.*)$]=]
+local markdownlint_without_column_pattern = [=[^(.+):(%d+) (error MD%d+.*)$]=]
+
+local function markdownlint_match(line)
+  local file, lnum, col, message = line:match(markdownlint_with_column_pattern)
+  if file then return { file, lnum, col, message } end
+  file, lnum, message = line:match(markdownlint_without_column_pattern)
+  if file then return { file, lnum, "", message } end
+  return {}
+end
 
 function M.clang_tidy_parser(parser, severity)
   assert(type(parser) == "table" and type(parser.from_pattern) == "function",
@@ -27,6 +40,18 @@ function M.clang_tidy_parser(parser, severity)
       note = severity.HINT,
     },
     { source = "clang-tidy" }
+  )
+end
+
+function M.markdownlint_parser(parser, severity)
+  assert(type(parser) == "table" and type(parser.from_pattern) == "function",
+    "lint parser module is required")
+  assert(type(severity) == "table", "severity must be a table")
+  return parser.from_pattern(
+    markdownlint_match,
+    { "_file", "lnum", "col", "message" },
+    {},
+    { source = "markdownlint", severity = severity.WARN }
   )
 end
 

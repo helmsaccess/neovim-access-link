@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "markdown-diagnostics",
   "order": 70,
   "titleKey": "plan.markdownDiagnostics.title",
@@ -13,7 +13,7 @@
       "id": "markdownlint-presentation",
       "category": "diagnostics",
       "titleKey": "plan.markdownDiagnostics.presentation.title",
-      "contextKey": "plan.markdownDiagnostics.context",
+      "purposeKey": "plan.markdownDiagnostics.presentation.purpose",
       "actionKey": "plan.markdownDiagnostics.presentation.action",
       "expectedKey": "plan.markdownDiagnostics.presentation.expected",
       "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],

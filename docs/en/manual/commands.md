@@ -71,6 +71,8 @@ presents their semantic effect.
 | `v` | begin a Visual selection |
 | `y` | yank a selection in Neovim |
 | `p` | paste a Neovim register |
+| `/pattern` / `?pattern` | search forward / backward |
+| `:%s/old/new/gc` | replace matches in the current buffer with confirmation |
 | `z=` | open spelling suggestions for the current word |
 | `:w` | save the buffer |
 | `:q` | close the Neovim window when no unsaved changes remain |

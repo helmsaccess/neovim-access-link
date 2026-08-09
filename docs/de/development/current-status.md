@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 5. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
+Stand: 7. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
 die genaue Entwicklungsbuildnummer und Git-Metadaten erzeugt `buildVars.py`.
 Der aktuell veröffentlichte Beta-Pre-Release ist 0.96.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung ab.
@@ -14,9 +14,10 @@ Stands. [Architektur](architecture.md) und
 ## Referenzumgebung
 
 Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA 2026.1.1,
-Windows Terminal 1.24.x, OpenSSH für Windows 9.5p2, Rocky Linux 10.2 und
-Neovim 0.10.1 beziehungsweise 0.12.3 geprüft. Lokales Windows-Neovim,
-Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung sind abgedeckt.
+Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim 0.10.1 und 0.12.3
+auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2 geprüft. Lokales
+Windows-Neovim, Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung
+sind abgedeckt.
 Die vollständigen Plattform- und Versionsgrenzen stehen in
 [Kompatibilität](compatibility.md).
 
@@ -61,6 +62,21 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   Typ, Quelle und verfügbare Dokumentation. LSP-Hover, Signaturhilfe,
   automatische aktive Parameter und gehaltene Parameteransichten sind
   korreliert und bewegen den Editorcursor nicht.
+- Native inkrementelle Suche meldet Vorschautreffer, begrenzte Trefferzahlen,
+  Umbrüche am Bufferende und sichtbare Suchhervorhebung. Direkte
+  `inccommand`-Ersetzungen im aktuellen Buffer melden für `nosplit` und
+  `split` die Vorschauzeile und die begrenzte Anzahl betroffener Zeilen.
+- Quickfix- und Positionslisten melden Anzahl, Position und die vollständige
+  ausgewählte Trefferzeile. Native Ersetzungsabfragen nennen Zeile und
+  Position, bevor Neovim die Antwort verarbeitet.
+- Bufferlokale Ersetzungen verwenden Neovims Ergebnismeldung oder ersatzweise
+  die beobachtete Zahl geänderter Zeilen. Mehrbuffer-Ersetzungen erhalten eine
+  einzige Zusammenfassung beobachteter geänderter und ungespeicherter Buffer;
+  Neovims interne Bufferwechsel erscheinen nicht als Fokuswechsel.
+  Automatisierte Tests decken Quickfix-Dateien, gelistete Buffer und
+  Argumentdateien einschließlich eines zunächst ungeladenen Argumentbuffers
+  ab. Die geführten L4- und L6-Abläufe sind noch nicht vollständig praktisch
+  unter Windows/NVDA abgenommen.
 - Diagnosen aus `vim.diagnostic` lassen sich nach aktueller, vorheriger,
   nächster, erster und letzter Position lesen. Gehaltene Diagnoseansichten,
   Fehler-, Warn- und Leerbestätigungsklänge verwenden denselben validierten
@@ -75,6 +91,12 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   bestehen für native LSP-Completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`,
   ALE und `none-ls.nvim`; Benutzer installieren die jeweiligen externen
   Sprachserver und Linter selbst.
+- Native LSP-Umbenennung bleibt vollständig bei Neovim und dem Sprachserver.
+  Access Link beobachtet `LspRequest` und tatsächliche Bufferänderungen und
+  fasst interne Text-, Cursor- und Kontextänderungen zu einem belegbaren
+  Abschluss zusammen. Der geführte L5-Test gibt beide tatsächlich umbenannten
+  Referenzzeilen ohne zusätzlichen Puffer- oder Fokuswechsel aus. Dieser Ablauf
+  ist automatisiert, noch nicht praktisch unter Windows/NVDA abgenommen.
 - Direkte Eingabe in einem Neovim-Terminalbuffer verwendet natives
   Terminal-Passthrough. Terminal-Normalmodus, Kommandozeilenrückkehr,
   Prozessende und Bufferwechsel bleiben strukturiert.
@@ -102,10 +124,23 @@ Beschreibungsmetadaten. GitHub Actions führt diesen Build als eigenen Job aus.
 Automatisierte Suiten prüfen Protokoll und Begrenzungen, Bridge, lokale und
 SSH-Clients, mehrere Instanzen, Fokus und Fail-open-Verhalten, Editor- und
 Präsentationsplanung, Lua mit echten headless-Neovim-Prozessen, Paketinhalt,
-Lokalisierung sowie Dokumentationslinks. Gepinnte Matrizen decken Neovim
-0.10.1 und 0.12.3 sowie reale Completion-, LSP-, Diagnose- und Linterpfade ab.
+Lokalisierung sowie Dokumentationslinks. Gepinnte Läufe verwenden je nach
+Testzweck Neovim 0.10.1 oder 0.12.3 und reale Completion-, LSP-, Diagnose- und
+Linterpfade. Das Clang-Tidy-Profil verwendet direkt das gepinnte Programm,
+legt C11 sowie die mitgelieferte Testkonfiguration explizit fest und führt
+Standard- und Fehlerausgabe zusammen. Das
+Markdownlint-Profil prüft die absolute Testdatei statt eines stdin-Kaltstarts;
+beide Parser erhalten Windows-Laufwerks- und UNC-Pfade vollständig.
+Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
+begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
+und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.
 Listenerfreie, SSH- und echte Sockettests laufen getrennt. Einzelheiten und
 Befehle stehen in [Teststrategie](testing.md).
+Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
+Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
+bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
+Tastensteuerung; Aufbau und sichere Tastenbelegung stehen in
+[Geführte Praxistests](human-testing.md).
 
 Praktisch bestätigt wurden insbesondere:
 

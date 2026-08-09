@@ -11,14 +11,34 @@ test-build entries through August 5, 2026.
   parameter, and diagnostic views with correlated speech and Braille.
 - Hardens native completion, `nvim-cmp`, and `blink.cmp`, including
   documentation resolution, menu cues, and the no-selected-candidate state.
+  It also fixes the practical-test preflight incorrectly rejecting Blink's
+  intentionally disabled automatic menu display.
+- Makes native incremental search, `inccommand` replacement previews, Quickfix
+  and location lists, replacement prompts, multi-buffer replacement, and LSP
+  rename completion accessible. Neovim and the language server retain
+  execution; Access Link coalesces internal buffer, cursor, and context changes
+  into one evidence-based completion report. Automated multi-file tests cover
+  Quickfix files, listed buffers, and argument files; guided L4 through L6
+  isolate the remaining practical NVDA checks.
 - Unifies diagnostics from LSP, `nvim-lint`, ALE, and `none-ls.nvim`, extends
   navigation commands, and adds distinct error, warning, and empty-result
-  cues.
+  cues. On Windows, the Clang-Tidy practical test launches the pinned binary
+  directly, uses an explicit C mode and supplied test configuration, and
+  consumes both output streams. One bounded wait allowance accommodates cold
+  provider starts on Windows and network drives.
+  Markdownlint checks the absolute fixture instead of relying on an unreliable
+  cold stdin run. Setup probes real linter output first and collects failures
+  from all selected profiles in one run.
 - Fixes Linux session discovery across differing runtime environments and
   without `XDG_RUNTIME_DIR`, plus focus and remembered-binding paths after the
   optional F12 question.
 - Separates safe, SSH, and socket verification into independent test phases
   and expands reproducible completion, LSP, linter, and guided practical tests.
+  Compact task cards state purpose, numbered steps, and pass condition; F2
+  repeats the task while F1 and F11 remain free because of Neovim and Windows
+  Terminal default bindings.
+- Updates selection and LSP test APIs for Neovim 0.12 while retaining Neovim
+  0.10 compatibility.
 - Restructures the Quick Guide and manual around reader tasks. One real,
   tested Lua example generates identical code blocks for GitHub and the German
   and English HTML manuals.

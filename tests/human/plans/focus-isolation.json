@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "focus-isolation",
   "order": 30,
   "titleKey": "plan.focus.title",
@@ -13,7 +13,7 @@
       "id": "focus-and-disconnect",
       "category": "session-integration",
       "titleKey": "plan.focus.workflow.title",
-      "contextKey": "plan.focus.context",
+      "purposeKey": "plan.focus.workflow.purpose",
       "actionKey": "plan.focus.workflow.action",
       "expectedKey": "plan.focus.workflow.expected",
       "manualReasons": ["windowsFocus", "speechPerception", "latencyUsability"],

@@ -54,6 +54,22 @@ msgstr ""
 msgid "- {name} ({target}): {reason}"
 msgstr ""
 
+#: nvda-addon/core/nvim_nvda_core/speech.py:1022
+msgid "1 buffer changed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1034 nvda-addon/core/nvim_nvda_core/speech.py:1066
+msgid "1 changed buffer remains unsaved"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:976
+msgid "1 line affected"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:661
+msgid "1 line changed"
+msgstr ""
+
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:800
 msgid ": Install or update components..."
 msgstr ""
@@ -66,7 +82,7 @@ msgstr ""
 msgid "Activate Neovim accessibility before connecting a terminal"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1365
+#: nvda-addon/core/nvim_nvda_core/speech.py:1605
 msgid "add"
 msgstr ""
 
@@ -74,7 +90,7 @@ msgstr ""
 msgid "Add Linux connection"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1359
+#: nvda-addon/core/nvim_nvda_core/speech.py:1599
 msgid "added"
 msgstr ""
 
@@ -86,11 +102,11 @@ msgstr ""
 msgid "After &word exploration in speech exploration mode:"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:493
+#: nvda-addon/core/nvim_nvda_core/speech.py:524
 msgid "all folds closed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:494
+#: nvda-addon/core/nvim_nvda_core/speech.py:525
 msgid "all folds opened"
 msgstr ""
 
@@ -102,7 +118,7 @@ msgstr ""
 msgid "Automatically speak the active function &parameter while typing"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1497
+#: nvda-addon/core/nvim_nvda_core/speech.py:1750
 msgid "beginning of file"
 msgstr ""
 
@@ -110,11 +126,11 @@ msgstr ""
 msgid "Beginning of line"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1196 nvda-addon/core/nvim_nvda_core/speech.py:1429 nvda-addon/core/nvim_nvda_core/speech.py:1505 nvda-addon/core/nvim_nvda_core/speech.py:435 nvda-addon/core/nvim_nvda_core/speech.py:833 nvda-addon/core/nvim_nvda_core/speech.py:880 nvda-addon/core/nvim_nvda_core/speech.py:933
+#: nvda-addon/core/nvim_nvda_core/speech.py:1117 nvda-addon/core/nvim_nvda_core/speech.py:1170 nvda-addon/core/nvim_nvda_core/speech.py:1436 nvda-addon/core/nvim_nvda_core/speech.py:1668 nvda-addon/core/nvim_nvda_core/speech.py:1758 nvda-addon/core/nvim_nvda_core/speech.py:441 nvda-addon/core/nvim_nvda_core/speech.py:500 nvda-addon/core/nvim_nvda_core/speech.py:933 nvda-addon/core/nvim_nvda_core/speech.py:971
 msgid "blank"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1227
+#: nvda-addon/core/nvim_nvda_core/speech.py:1467
 msgid "block device"
 msgstr ""
 
@@ -142,19 +158,19 @@ msgstr ""
 msgid "Braille exploration mode unavailable"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:483
+#: nvda-addon/core/nvim_nvda_core/speech.py:514
 msgid "canceled"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1408
+#: nvda-addon/core/nvim_nvda_core/speech.py:1648
 msgid "cancelled"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:846
+#: nvda-addon/core/nvim_nvda_core/speech.py:1083
 msgid "carriage return"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1365
+#: nvda-addon/core/nvim_nvda_core/speech.py:1605
 msgid "change"
 msgstr ""
 
@@ -166,11 +182,15 @@ msgstr ""
 msgid "Change word (cw)"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1359
+#: nvda-addon/core/nvim_nvda_core/speech.py:1599
 msgid "changed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1226
+#: nvda-addon/core/nvim_nvda_core/speech.py:671
+msgid "changed line count incomplete"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1466
 msgid "character device"
 msgstr ""
 
@@ -186,7 +206,7 @@ msgstr ""
 msgid "class"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1305
+#: nvda-addon/core/nvim_nvda_core/speech.py:1545
 msgid "clipboard cleared"
 msgstr ""
 
@@ -194,7 +214,7 @@ msgstr ""
 msgid "Close Neovim on the selected targets, then choose where to remove the components. Other Neovim plugins and configuration are preserved."
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1248 nvda-addon/core/nvim_nvda_core/speech.py:1309
+#: nvda-addon/core/nvim_nvda_core/speech.py:1488 nvda-addon/core/nvim_nvda_core/speech.py:1549
 msgid "collapsed"
 msgstr ""
 
@@ -267,7 +287,7 @@ msgstr ""
 msgid "constructor"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1242 nvda-addon/core/nvim_nvda_core/speech.py:1301 nvda-addon/core/nvim_nvda_core/speech.py:1360
+#: nvda-addon/core/nvim_nvda_core/speech.py:1482 nvda-addon/core/nvim_nvda_core/speech.py:1541 nvda-addon/core/nvim_nvda_core/speech.py:1600
 msgid "copied"
 msgstr ""
 
@@ -275,7 +295,7 @@ msgstr ""
 msgid "Copied from Neovim"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1366
+#: nvda-addon/core/nvim_nvda_core/speech.py:1606
 msgid "copy"
 msgstr ""
 
@@ -336,11 +356,11 @@ msgstr ""
 msgid "Could not write text to the Windows clipboard"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1366
+#: nvda-addon/core/nvim_nvda_core/speech.py:1606
 msgid "create"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1360
+#: nvda-addon/core/nvim_nvda_core/speech.py:1600
 msgid "created"
 msgstr ""
 
@@ -356,7 +376,7 @@ msgstr ""
 msgid "Current line"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1244 nvda-addon/core/nvim_nvda_core/speech.py:1303
+#: nvda-addon/core/nvim_nvda_core/speech.py:1484 nvda-addon/core/nvim_nvda_core/speech.py:1543
 msgid "cut"
 msgstr ""
 
@@ -365,7 +385,7 @@ msgstr ""
 msgid "D: {documentation}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1367
+#: nvda-addon/core/nvim_nvda_core/speech.py:1607
 msgid "delete"
 msgstr ""
 
@@ -377,11 +397,11 @@ msgstr ""
 msgid "Delete word (dw)"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1361
+#: nvda-addon/core/nvim_nvda_core/speech.py:1601
 msgid "deleted"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1634 nvda-addon/core/nvim_nvda_core/speech.py:1680 nvda-addon/core/nvim_nvda_core/speech.py:423
+#: nvda-addon/core/nvim_nvda_core/speech.py:1887 nvda-addon/core/nvim_nvda_core/speech.py:1933 nvda-addon/core/nvim_nvda_core/speech.py:429
 #, python-brace-format
 msgid "deleted {text}"
 msgstr ""
@@ -390,7 +410,7 @@ msgstr ""
 msgid "Developer information"
 msgstr ""
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3110 nvda-addon/core/nvim_nvda_core/speech.py:1573
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:3110 nvda-addon/core/nvim_nvda_core/speech.py:1826
 msgid "diagnostic"
 msgstr ""
 
@@ -402,7 +422,7 @@ msgstr ""
 msgid "Diagnostics when entering a &line:"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1223
+#: nvda-addon/core/nvim_nvda_core/speech.py:1463
 msgid "directory"
 msgstr ""
 
@@ -427,11 +447,11 @@ msgstr ""
 msgid "Edit Linux connection"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1065
+#: nvda-addon/core/nvim_nvda_core/speech.py:1302
 msgid "empty"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1499
+#: nvda-addon/core/nvim_nvda_core/speech.py:1752
 msgid "end of file"
 msgstr ""
 
@@ -456,11 +476,11 @@ msgstr ""
 msgid "event"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1246 nvda-addon/core/nvim_nvda_core/speech.py:1309
+#: nvda-addon/core/nvim_nvda_core/speech.py:1486 nvda-addon/core/nvim_nvda_core/speech.py:1549
 msgid "expanded"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1408
+#: nvda-addon/core/nvim_nvda_core/speech.py:1648
 msgid "failed"
 msgstr ""
 
@@ -477,20 +497,20 @@ msgstr ""
 msgid "field"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1223 nvda-addon/core/nvim_nvda_core/speech.py:43
+#: nvda-addon/core/nvim_nvda_core/speech.py:1463 nvda-addon/core/nvim_nvda_core/speech.py:43
 msgid "file"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1048 nvda-addon/core/nvim_nvda_core/speech.py:1107
+#: nvda-addon/core/nvim_nvda_core/speech.py:1285 nvda-addon/core/nvim_nvda_core/speech.py:1347
 msgid "file manager"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1136
+#: nvda-addon/core/nvim_nvda_core/speech.py:1376
 #, python-brace-format
 msgid "file {filename}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1399
+#: nvda-addon/core/nvim_nvda_core/speech.py:1639
 msgid "file-manager action"
 msgstr ""
 
@@ -498,19 +518,19 @@ msgstr ""
 msgid "First non-blank character"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:496
+#: nvda-addon/core/nvim_nvda_core/speech.py:527
 msgid "fold changed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:488
+#: nvda-addon/core/nvim_nvda_core/speech.py:519
 msgid "fold closed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:489
+#: nvda-addon/core/nvim_nvda_core/speech.py:520
 msgid "fold opened"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:490
+#: nvda-addon/core/nvim_nvda_core/speech.py:521
 msgid "fold toggled"
 msgstr ""
 
@@ -518,11 +538,11 @@ msgstr ""
 msgid "folder"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:491
+#: nvda-addon/core/nvim_nvda_core/speech.py:522
 msgid "folds closed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:492
+#: nvda-addon/core/nvim_nvda_core/speech.py:523
 msgid "folds opened"
 msgstr ""
 
@@ -546,7 +566,7 @@ msgstr ""
 msgid "grammar error"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1083 nvda-addon/core/nvim_nvda_core/speech.py:1130
+#: nvda-addon/core/nvim_nvda_core/speech.py:1323 nvda-addon/core/nvim_nvda_core/speech.py:1370
 msgid "help"
 msgstr ""
 
@@ -582,7 +602,7 @@ msgstr ""
 msgid "Invalid connection"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1440
+#: nvda-addon/core/nvim_nvda_core/speech.py:1685
 msgid "invalid cursor position"
 msgstr ""
 
@@ -606,7 +626,7 @@ msgstr ""
 msgid "Line and cursor character"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:846
+#: nvda-addon/core/nvim_nvda_core/speech.py:1083
 msgid "line break"
 msgstr ""
 
@@ -618,7 +638,7 @@ msgstr ""
 msgid "Line only"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:849
+#: nvda-addon/core/nvim_nvda_core/speech.py:1086
 msgid "line separator"
 msgstr ""
 
@@ -626,7 +646,7 @@ msgstr ""
 msgid "line start"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1537 nvda-addon/core/nvim_nvda_core/speech.py:1572 nvda-addon/core/nvim_nvda_core/speech.py:839
+#: nvda-addon/core/nvim_nvda_core/speech.py:1790 nvda-addon/core/nvim_nvda_core/speech.py:1825 nvda-addon/core/nvim_nvda_core/speech.py:939
 #, python-brace-format
 msgid "line {line}"
 msgstr ""
@@ -657,7 +677,7 @@ msgstr ""
 msgid "Local Neovim, {session}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1060 nvda-addon/core/nvim_nvda_core/speech.py:1122
+#: nvda-addon/core/nvim_nvda_core/speech.py:1297 nvda-addon/core/nvim_nvda_core/speech.py:1362 nvda-addon/core/nvim_nvda_core/speech.py:993
 msgid "location list"
 msgstr ""
 
@@ -670,45 +690,53 @@ msgstr ""
 msgid "Looking for Neovim sessions on {name}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:579
+#: nvda-addon/core/nvim_nvda_core/speech.py:610
 #, python-brace-format
 msgid "LSP clients: {clients}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:549
+#: nvda-addon/core/nvim_nvda_core/speech.py:580
 #, python-brace-format
 msgid "macro {name} played"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:544
+#: nvda-addon/core/nvim_nvda_core/speech.py:575
 #, python-brace-format
 msgid "macro {name} recorded"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:517
+#: nvda-addon/core/nvim_nvda_core/speech.py:548
 #, python-brace-format
 msgid "mark {name} set, line {line}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:522
+#: nvda-addon/core/nvim_nvda_core/speech.py:553
 #, python-brace-format
 msgid "mark {name}, {text}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1240 nvda-addon/core/nvim_nvda_core/speech.py:1295
+#: nvda-addon/core/nvim_nvda_core/speech.py:1480 nvda-addon/core/nvim_nvda_core/speech.py:1535
 msgid "marked"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:835
+#: nvda-addon/core/nvim_nvda_core/speech.py:949
+msgid "match count incomplete"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:946
+msgid "match count timed out"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:935
 #, python-brace-format
 msgid "match {index} of {count}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1534
+#: nvda-addon/core/nvim_nvda_core/speech.py:1787
 msgid "matching pair"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1533
+#: nvda-addon/core/nvim_nvda_core/speech.py:1786
 #, python-brace-format
 msgid "matching {character}"
 msgstr ""
@@ -721,12 +749,12 @@ msgstr ""
 msgid "Missing matching &bracket:"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:327
+#: nvda-addon/core/nvim_nvda_core/speech.py:333
 #, python-brace-format
 msgid "mode {mode}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1092 nvda-addon/core/nvim_nvda_core/speech.py:1141
+#: nvda-addon/core/nvim_nvda_core/speech.py:1332 nvda-addon/core/nvim_nvda_core/speech.py:1381
 msgid "modified"
 msgstr ""
 
@@ -738,11 +766,11 @@ msgstr ""
 msgid "More than one Neovim session confirmed F12. Select the intended session."
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1367
+#: nvda-addon/core/nvim_nvda_core/speech.py:1607
 msgid "move"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1361
+#: nvda-addon/core/nvim_nvda_core/speech.py:1601
 msgid "moved"
 msgstr ""
 
@@ -759,7 +787,7 @@ msgstr ""
 msgid "Multiple Neovim sessions found on {name}; opening session selection"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1225
+#: nvda-addon/core/nvim_nvda_core/speech.py:1465
 msgid "named pipe"
 msgstr ""
 
@@ -903,7 +931,7 @@ msgstr ""
 msgid "new line"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:505
+#: nvda-addon/core/nvim_nvda_core/speech.py:536
 msgid "next fold"
 msgstr ""
 
@@ -924,11 +952,11 @@ msgstr ""
 msgid "No completion or hover documentation available"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:467
+#: nvda-addon/core/nvim_nvda_core/speech.py:473
 msgid "No completion selected"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1549
+#: nvda-addon/core/nvim_nvda_core/speech.py:1802
 msgid "no diagnostic"
 msgstr ""
 
@@ -948,7 +976,7 @@ msgstr ""
 msgid "No local Neovim accessibility session was found. Install the local components and restart Neovim"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:582
+#: nvda-addon/core/nvim_nvda_core/speech.py:613
 msgid "No LSP client attached"
 msgstr ""
 
@@ -964,6 +992,14 @@ msgstr ""
 msgid "No parameters in this signature"
 msgstr ""
 
+#: nvda-addon/core/nvim_nvda_core/speech.py:966
+msgid "no preview changes"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:931
+msgid "no search match"
+msgstr ""
+
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:929
 msgid "No target selected"
 msgstr ""
@@ -972,7 +1008,7 @@ msgstr ""
 msgid "No temporary Neovim connection is remembered for this terminal"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:847
+#: nvda-addon/core/nvim_nvda_core/speech.py:1084
 msgid "nonbreaking space"
 msgstr ""
 
@@ -992,7 +1028,7 @@ msgstr ""
 msgid "Off"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1148
+#: nvda-addon/core/nvim_nvda_core/speech.py:1388
 #, python-brace-format
 msgid "on {connection}"
 msgstr ""
@@ -1030,7 +1066,7 @@ msgstr ""
 msgid "P {index} of {count}: {parameter}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:850
+#: nvda-addon/core/nvim_nvda_core/speech.py:1087
 msgid "paragraph separator"
 msgstr ""
 
@@ -1039,17 +1075,17 @@ msgstr ""
 msgid "Parameter {index} of {count}: {parameter}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:799
+#: nvda-addon/core/nvim_nvda_core/speech.py:894
 #, python-brace-format
 msgid "parameter {index} of {count}: {parameter}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:754 nvda-addon/core/nvim_nvda_core/speech.py:773 nvda-addon/core/nvim_nvda_core/speech.py:775
+#: nvda-addon/core/nvim_nvda_core/speech.py:849 nvda-addon/core/nvim_nvda_core/speech.py:868 nvda-addon/core/nvim_nvda_core/speech.py:870
 #, python-brace-format
 msgid "parameter {parameter}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:806
+#: nvda-addon/core/nvim_nvda_core/speech.py:901
 #, python-brace-format
 msgid "parameter: {parameter}"
 msgstr ""
@@ -1070,7 +1106,11 @@ msgstr ""
 msgid "Pasted into Neovim"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:507
+#: nvda-addon/core/nvim_nvda_core/speech.py:982
+msgid "preview count incomplete"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:538
 msgid "previous fold"
 msgstr ""
 
@@ -1082,7 +1122,7 @@ msgstr ""
 msgid "property"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1062 nvda-addon/core/nvim_nvda_core/speech.py:1124
+#: nvda-addon/core/nvim_nvda_core/speech.py:1299 nvda-addon/core/nvim_nvda_core/speech.py:1364 nvda-addon/core/nvim_nvda_core/speech.py:993
 msgid "quickfix"
 msgstr ""
 
@@ -1090,11 +1130,11 @@ msgstr ""
 msgid "Read documentation for the selected Neovim completion item or LSP hover"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1094 nvda-addon/core/nvim_nvda_core/speech.py:1143
+#: nvda-addon/core/nvim_nvda_core/speech.py:1334 nvda-addon/core/nvim_nvda_core/speech.py:1383
 msgid "read only"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:539
+#: nvda-addon/core/nvim_nvda_core/speech.py:570
 #, python-brace-format
 msgid "recording macro {name}"
 msgstr ""
@@ -1103,7 +1143,7 @@ msgstr ""
 msgid "reference"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:534
+#: nvda-addon/core/nvim_nvda_core/speech.py:565
 #, python-brace-format
 msgid "register {name}"
 msgstr ""
@@ -1126,11 +1166,28 @@ msgstr ""
 msgid "Removing Neovim components from {count} targets"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1368
+#: nvda-addon/core/nvim_nvda_core/speech.py:1608
 msgid "rename"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1362
+#: nvda-addon/core/nvim_nvda_core/speech.py:1049
+msgid "rename canceled"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1056
+msgid "rename completed; 1 buffer changed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1058
+#, python-brace-format
+msgid "rename completed; {count} buffers changed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1052
+msgid "rename request completed; no buffer changes observed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1602
 msgid "renamed"
 msgstr ""
 
@@ -1138,21 +1195,35 @@ msgstr ""
 msgid "replace mode"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:425
+#: nvda-addon/core/nvim_nvda_core/speech.py:484
+msgid "Replace this match? Y yes, N no, A all, Q quit, L last"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:431
 #, python-brace-format
 msgid "replaced {text}"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:985
+#, python-brace-format
+msgid "replacement preview, {result}"
 msgstr ""
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1064
 msgid "Restart Neovim once on successfully updated targets."
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1368
+#: nvda-addon/core/nvim_nvda_core/speech.py:1608
 msgid "restore"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1362
+#: nvda-addon/core/nvim_nvda_core/speech.py:1602
 msgid "restored"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1698
+#, python-brace-format
+msgid "result {index} of {count}"
 msgstr ""
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:405 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:418
@@ -1192,6 +1263,19 @@ msgstr ""
 msgid "Saved SSH connections"
 msgstr ""
 
+#: nvda-addon/core/nvim_nvda_core/speech.py:627 nvda-addon/core/nvim_nvda_core/speech.py:952
+msgid "search highlighting active"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:630
+msgid "search highlighting cleared"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:956
+#, python-brace-format
+msgid "search preview, {result}"
+msgstr ""
+
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:884
 msgid "Select all connections"
 msgstr ""
@@ -1228,7 +1312,7 @@ msgstr ""
 msgid "Select where the Neovim session is running."
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:480
+#: nvda-addon/core/nvim_nvda_core/speech.py:511
 #, python-brace-format
 msgid "selected {item}"
 msgstr ""
@@ -1253,7 +1337,7 @@ msgstr ""
 msgid "Sign-in method:"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:819
+#: nvda-addon/core/nvim_nvda_core/speech.py:914
 #, python-brace-format
 msgid "signature {index} of {count}"
 msgstr ""
@@ -1267,11 +1351,11 @@ msgstr ""
 msgid "snippet"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1225
+#: nvda-addon/core/nvim_nvda_core/speech.py:1465
 msgid "socket"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:758
+#: nvda-addon/core/nvim_nvda_core/speech.py:853
 #, python-brace-format
 msgid "source {source}"
 msgstr ""
@@ -1281,7 +1365,7 @@ msgstr ""
 msgid "Source: {source}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:845
+#: nvda-addon/core/nvim_nvda_core/speech.py:1082
 msgid "space"
 msgstr ""
 
@@ -1354,19 +1438,19 @@ msgstr ""
 msgid "Successful: {count}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:457
+#: nvda-addon/core/nvim_nvda_core/speech.py:463
 msgid "Suggestions"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1224
+#: nvda-addon/core/nvim_nvda_core/speech.py:1464
 msgid "symbolic link"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:845
+#: nvda-addon/core/nvim_nvda_core/speech.py:1082
 msgid "tab"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1071 nvda-addon/core/nvim_nvda_core/speech.py:1170
+#: nvda-addon/core/nvim_nvda_core/speech.py:1311 nvda-addon/core/nvim_nvda_core/speech.py:1410
 #, python-brace-format
 msgid "tab {index} of {count}"
 msgstr ""
@@ -1375,7 +1459,7 @@ msgstr ""
 msgid "Temporary Neovim connection forgotten"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1085 nvda-addon/core/nvim_nvda_core/speech.py:1128
+#: nvda-addon/core/nvim_nvda_core/speech.py:1325 nvda-addon/core/nvim_nvda_core/speech.py:1368
 msgid "terminal"
 msgstr ""
 
@@ -1391,7 +1475,7 @@ msgstr ""
 msgid "text"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:597
+#: nvda-addon/core/nvim_nvda_core/speech.py:655
 msgid "text replaced"
 msgstr ""
 
@@ -1524,11 +1608,11 @@ msgstr ""
 msgid "unit"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1297
+#: nvda-addon/core/nvim_nvda_core/speech.py:1537
 msgid "unmarked"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1090 nvda-addon/core/nvim_nvda_core/speech.py:1139
+#: nvda-addon/core/nvim_nvda_core/speech.py:1330 nvda-addon/core/nvim_nvda_core/speech.py:1379
 msgid "unnamed buffer"
 msgstr ""
 
@@ -1569,7 +1653,7 @@ msgstr ""
 msgid "When focusing or changing buffers in a Neovim session:"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1075 nvda-addon/core/nvim_nvda_core/speech.py:1175
+#: nvda-addon/core/nvim_nvda_core/speech.py:1315 nvda-addon/core/nvim_nvda_core/speech.py:1415
 #, python-brace-format
 msgid "window {index} of {count}"
 msgstr ""
@@ -1582,51 +1666,75 @@ msgstr ""
 msgid "Word only"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:528
+#: nvda-addon/core/nvim_nvda_core/speech.py:942
+msgid "wrapped"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:559
 #, python-brace-format
 msgid "yanked to register {name}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:848
+#: nvda-addon/core/nvim_nvda_core/speech.py:1085
 msgid "zero width space"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1404
+#: nvda-addon/core/nvim_nvda_core/speech.py:1644
 #, python-brace-format
 msgid "{action} of {name}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:512
+#: nvda-addon/core/nvim_nvda_core/speech.py:543
 #, python-brace-format
 msgid "{action}, line {line}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:499
+#: nvda-addon/core/nvim_nvda_core/speech.py:530
 #, python-brace-format
 msgid "{action}, lines {start} to {end}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1503
+#: nvda-addon/core/nvim_nvda_core/speech.py:1756
 #, python-brace-format
 msgid "{boundary}, {line}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1380
+#: nvda-addon/core/nvim_nvda_core/speech.py:1024
+#, python-brace-format
+msgid "{count} buffers changed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1036 nvda-addon/core/nvim_nvda_core/speech.py:1068
+#, python-brace-format
+msgid "{count} changed buffers remain unsaved"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1620
 #, python-brace-format
 msgid "{count} file-manager actions completed"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1384
+#: nvda-addon/core/nvim_nvda_core/speech.py:1624
 #, python-brace-format
 msgid "{count} items {action}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:871
+#: nvda-addon/core/nvim_nvda_core/speech.py:979
+#, python-brace-format
+msgid "{count} lines affected"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:664
+#, python-brace-format
+msgid "{count} lines changed"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1108
 #, python-brace-format
 msgid "{count} {name}s"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1567 nvda-addon/core/nvim_nvda_core/speech.py:748 nvda-addon/core/nvim_nvda_core/speech.py:779
+#: nvda-addon/core/nvim_nvda_core/speech.py:1820 nvda-addon/core/nvim_nvda_core/speech.py:843 nvda-addon/core/nvim_nvda_core/speech.py:874
 #, python-brace-format
 msgid "{index} of {count}"
 msgstr ""
@@ -1644,6 +1752,31 @@ msgstr ""
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1637
 #, python-brace-format
 msgid "{label}, started {started}"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:497
+#, python-brace-format
+msgid "{line}, line {lineNumber}, column {column}, {prompt}"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1003
+#, python-brace-format
+msgid "{listName}, 1 result"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1000
+#, python-brace-format
+msgid "{listName}, no results"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1006
+#, python-brace-format
+msgid "{listName}, {count} results"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1027 nvda-addon/core/nvim_nvda_core/speech.py:1041 nvda-addon/core/nvim_nvda_core/speech.py:1073
+#, python-brace-format
+msgid "{message}; {detail}"
 msgstr ""
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1034 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1172
@@ -1666,7 +1799,7 @@ msgstr ""
 msgid "{name}, working directory {cwd}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1390
+#: nvda-addon/core/nvim_nvda_core/speech.py:1630
 #, python-brace-format
 msgid "{name}, {action}"
 msgstr ""
@@ -1681,9 +1814,14 @@ msgstr ""
 msgid "{severity}, diagnostic {index} of {count}: {message}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:1410
+#: nvda-addon/core/nvim_nvda_core/speech.py:1650
 #, python-brace-format
 msgid "{subject} {outcome}"
+msgstr ""
+
+#: nvda-addon/core/nvim_nvda_core/speech.py:1012
+#, python-brace-format
+msgid "{summary}, result {index} of {count}"
 msgstr ""
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:891
@@ -1691,17 +1829,17 @@ msgstr ""
 msgid "{target}: {session}"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:932
+#: nvda-addon/core/nvim_nvda_core/speech.py:1169
 #, python-brace-format
 msgid "{text} block selected"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:957 nvda-addon/core/nvim_nvda_core/speech.py:993
+#: nvda-addon/core/nvim_nvda_core/speech.py:1194 nvda-addon/core/nvim_nvda_core/speech.py:1230
 #, python-brace-format
 msgid "{text} selected"
 msgstr ""
 
-#: nvda-addon/core/nvim_nvda_core/speech.py:963 nvda-addon/core/nvim_nvda_core/speech.py:994
+#: nvda-addon/core/nvim_nvda_core/speech.py:1200 nvda-addon/core/nvim_nvda_core/speech.py:1231
 #, python-brace-format
 msgid "{text} unselected"
 msgstr ""

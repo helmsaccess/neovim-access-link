@@ -5,8 +5,10 @@
 - Keep documentation accurate, understandable for its intended audience, internally consistent,
   precise, and ordered from overview to detail. Do not knowingly leave either language stale.
 - Give every document a defined reader and purpose. Quick guides follow the shortest verified
-  path to first success; manuals put common tasks before settings and reference; developer
-  documentation introduces an overview before context, boundaries, reasoning, and detail.
+  path to first success; change them only at the user's request or when that path is inaccurate,
+  and do not grow them merely because features are added. Manuals put common tasks before
+  settings and reference; developer documentation introduces an overview before context,
+  boundaries, reasoning, and detail.
 - Developer documentation assumes advanced Neovim use and professional NVDA knowledge. Skip
   general Neovim, NVDA, Git, and programming tutorials, but explain every project-specific
   process, ownership boundary, invariant, trust boundary, and contributor workflow it relies on.

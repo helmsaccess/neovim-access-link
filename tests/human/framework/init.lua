@@ -4,8 +4,18 @@
 local profile = (vim.env.ACCESS_LINK_HUMAN_PROFILE or "native"):lower()
 local test_id = (vim.env.ACCESS_LINK_HUMAN_TEST_ID or ""):upper()
 local step_id = (vim.env.ACCESS_LINK_HUMAN_STEP_ID or ""):lower()
+local native_operation_task = step_id == "native-search-replacement"
+  or step_id == "native-lsp-rename"
+  or step_id == "native-buffer-replacement"
+local native_rename_task = step_id == "native-lsp-rename"
 local dry_run = vim.env.ACCESS_LINK_HUMAN_DRY_RUN == "1"
 local language = (vim.env.ACCESS_LINK_HUMAN_LANGUAGE or "en"):lower()
+-- Real language servers and linters can need noticeably longer on a cold
+-- Windows start, especially when the fixtures live on a network drive. Keep
+-- one bounded allowance for every provider-facing wait so setup remains
+-- deterministic without rejecting a working provider after only 15 seconds.
+local provider_timeout_ms = 60000
+local provider_poll_interval_ms = 50
 local configuration_source = assert(debug.getinfo(1, "S").source)
 assert(configuration_source:sub(1, 1) == "@", "human-test init path is unavailable")
 local framework_root = vim.fs.dirname(configuration_source:sub(2))
@@ -14,6 +24,9 @@ local completion_parentheses = dofile(vim.fs.joinpath(
   framework_root, "completion_parentheses.lua"))
 local human_messages = language == "de" and {
   test_id = "Test-ID %s.",
+  test_purpose = "Zweck dieses Tests:",
+  keys_and_steps = "Tasten und Schritte:",
+  pass_when = "Bestanden, wenn:",
   diagnostics_waiting = "%s-Diagnosen werden ermittelt. Bitte warten.",
   diagnostics_ready = "Diagnosen bereit: %d von %s. Der Cursor steht jetzt auf der ersten Testdiagnose. Jetzt F7 drücken.",
   diagnostics_not_ready = "%s-Diagnosen wurden nicht rechtzeitig bereit.",
@@ -23,8 +36,20 @@ local human_messages = language == "de" and {
   callable_unavailable = "Diese Testhilfe ist nur in der Python-Funktionsdatei verfügbar.",
   insertion_unavailable = "Diese Aufgabe benötigt keine vorbereitete Eingabestelle.",
   f5_unavailable = "F5 hat in dieser Aufgabe keine Funktion.",
+  rename_prompt = "Neuer Name: ",
+  rename_reference_missing = "Das umbenannte Symbol wurde in der Referenzdatei nicht gefunden.",
+  rename_reference = "Umbenannte Referenz %d von %d, Zeile %d: %s",
+  buffer_replacement_missing = "Die vorbereitete Buffer-Ersetzung ist nicht vollständig sichtbar.",
+  buffer_replacement = "Geänderter Buffer %d von %d, %s: %d Vorkommen von %s",
+  native_command_failed = "Der vorbereitete native Neovim-Befehl ist fehlgeschlagen: %s",
+  quickfix_unavailable = "Die vorbereitete Quickfix-Liste enthält nicht genug Treffer.",
+  quickfix_first = "Bereits beim ersten Quickfix-Treffer.",
+  quickfix_last = "Bereits beim letzten Quickfix-Treffer.",
 } or {
   test_id = "Test ID %s.",
+  test_purpose = "Purpose of this test:",
+  keys_and_steps = "Keys and steps:",
+  pass_when = "Pass when:",
   diagnostics_waiting = "Waiting for %s diagnostics.",
   diagnostics_ready = "Diagnostics ready: %d from %s. The cursor is now on the first test diagnostic. Press F7 now.",
   diagnostics_not_ready = "%s diagnostics did not become ready in time.",
@@ -34,6 +59,15 @@ local human_messages = language == "de" and {
   callable_unavailable = "This test helper is available only in the Python callable fixture.",
   insertion_unavailable = "This task does not require a prepared insertion position.",
   f5_unavailable = "F5 has no action in this task.",
+  rename_prompt = "New Name: ",
+  rename_reference_missing = "The renamed symbol was not found in the reference file.",
+  rename_reference = "Renamed reference %d of %d, line %d: %s",
+  buffer_replacement_missing = "The prepared buffer replacement is not fully visible.",
+  buffer_replacement = "Changed buffer %d of %d, %s: %d occurrences of %s",
+  native_command_failed = "The prepared native Neovim command failed: %s",
+  quickfix_unavailable = "The prepared Quickfix list does not contain enough results.",
+  quickfix_first = "Already at the first Quickfix result.",
+  quickfix_last = "Already at the last Quickfix result.",
 }
 local valid_profiles = {
   setup = true,
@@ -218,28 +252,162 @@ local function cycle_callable_fixture_position()
 end
 
 local function show_current_task()
-  local context = vim.env.ACCESS_LINK_HUMAN_CONTEXT or ""
+  local purpose = vim.env.ACCESS_LINK_HUMAN_PURPOSE or ""
   local task = vim.env.ACCESS_LINK_HUMAN_TASK or ""
   local expected = vim.env.ACCESS_LINK_HUMAN_EXPECTED or ""
   local parts = vim.tbl_filter(function(value) return value ~= "" end, {
     test_id ~= "" and string.format(human_messages.test_id, test_id) or "",
-    context,
-    task,
-    expected,
+    purpose ~= "" and human_messages.test_purpose .. "\n" .. purpose or "",
+    task ~= "" and human_messages.keys_and_steps .. "\n" .. task or "",
+    expected ~= "" and human_messages.pass_when .. "\n" .. expected or "",
   })
   vim.notify(table.concat(parts, "\n\n"), vim.log.levels.INFO, {
     title = "Access Link human test",
   })
 end
 
+local function cross_file_reference_buffer(listed)
+  local path = vim.fn.fnamemodify("lsp_rename_consumer.py", ":p")
+  local buffer = vim.fn.bufadd(path)
+  vim.fn.bufload(buffer)
+  if listed then vim.bo[buffer].buflisted = true end
+  return buffer
+end
+
+local renamed_reference_index = 0
+
+local function report_renamed_reference()
+  local buffer = cross_file_reference_buffer()
+  local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, true)
+  local references = {}
+  for line_number, line in ipairs(lines) do
+    if line:find("calculate_gratuity", 1, true) then
+      references[#references + 1] = { line = line_number, text = line }
+    end
+  end
+  if #references == 0 then
+    vim.notify(human_messages.rename_reference_missing, vim.log.levels.ERROR)
+    return
+  end
+  renamed_reference_index = renamed_reference_index % #references + 1
+  local selected = references[renamed_reference_index]
+  vim.notify(string.format(human_messages.rename_reference,
+    renamed_reference_index, #references, selected.line, selected.text))
+end
+
+local BUFFER_REPLACEMENT_TEXT = "calculate_tip_buffered"
+local buffer_replacement_index = 0
+
+local function buffer_replacement_results()
+  local expected = {
+    ["lsp_features.py"] = true,
+    ["lsp_rename_consumer.py"] = true,
+  }
+  local results = {}
+  for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buffer) and vim.api.nvim_buf_is_loaded(buffer) then
+      local name = vim.fs.basename(vim.api.nvim_buf_get_name(buffer))
+      if expected[name] then
+        local count = 0
+        for _, line in ipairs(vim.api.nvim_buf_get_lines(buffer, 0, -1, true)) do
+          local start = 1
+          while true do
+            local first, last = line:find(BUFFER_REPLACEMENT_TEXT, start, true)
+            if not first then break end
+            count = count + 1
+            start = last + 1
+          end
+        end
+        if count > 0 then results[#results + 1] = { name = name, count = count } end
+      end
+    end
+  end
+  table.sort(results, function(left, right) return left.name < right.name end)
+  return results
+end
+
+local function report_buffer_replacement()
+  local results = buffer_replacement_results()
+  if #results ~= 2 then
+    vim.notify(human_messages.buffer_replacement_missing, vim.log.levels.ERROR)
+    return
+  end
+  buffer_replacement_index = buffer_replacement_index % #results + 1
+  local selected = results[buffer_replacement_index]
+  vim.notify(string.format(human_messages.buffer_replacement,
+    buffer_replacement_index, #results, selected.name, selected.count,
+    BUFFER_REPLACEMENT_TEXT))
+end
+
+local function start_native_lsp_rename()
+  -- Neovim's default rename prompt is prefilled with the current symbol. The
+  -- guided test uses an empty public vim.ui.input prompt so the tester can
+  -- type the requested name directly, then delegates prepareRename, rename,
+  -- and WorkspaceEdit handling to Neovim's public LSP API.
+  renamed_reference_index = 0
+  vim.ui.input({ prompt = human_messages.rename_prompt, scope = "cursor" }, function(name)
+    if type(name) == "string" and name ~= "" then vim.lsp.buf.rename(name) end
+  end)
+end
+
+local function run_observed_native_command(command, silent)
+  -- The human-test helper executes the same native Ex command as the written
+  -- workflow, while the production observer remains responsible for semantic
+  -- result and replacement events. Avoiding a key-expanded mapping prevents
+  -- generated command characters from being presented as physical typing.
+  local operations = require("nvim_nvda.native_operations")
+  operations.command_line_enter(":")
+  operations.command_line_changed(":", command)
+  operations.command_line_leave(":", command)
+  local execution = silent and "silent " .. command or command
+  local ok, error_value = pcall(vim.cmd, execution)
+  if not ok then
+    operations.cancel_command()
+    vim.notify(string.format(human_messages.native_command_failed, error_value),
+      vim.log.levels.ERROR)
+    return false
+  end
+  vim.defer_fn(function()
+    operations.finish_command(vim.v.statusmsg)
+  end, 25)
+  return true
+end
+
+local function move_in_quickfix(command)
+  local ok_details, details = pcall(vim.fn.getqflist, { idx = 0, size = 0 })
+  if not ok_details or type(details) ~= "table" or (tonumber(details.size) or 0) < 2 then
+    vim.notify(human_messages.quickfix_unavailable, vim.log.levels.ERROR)
+    return
+  end
+  local index = tonumber(details.idx) or 0
+  local size = tonumber(details.size) or 0
+  if command == "cprevious" and index <= 1 then
+    vim.notify(human_messages.quickfix_first)
+    return
+  elseif command == "cnext" and index >= size then
+    vim.notify(human_messages.quickfix_last)
+    return
+  end
+  local target = command == "cprevious" and index - 1 or index + 1
+  local ok, error_value = pcall(function()
+    local window = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1] or {}
+    if window.quickfix ~= 1 then vim.cmd.copen() end
+    assert(vim.fn.setqflist({}, "a", { idx = target }) == 0,
+      "could not select the Quickfix result")
+  end)
+  if not ok then
+    vim.notify(string.format(human_messages.native_command_failed, error_value),
+      vim.log.levels.ERROR)
+    return
+  end
+end
+
 local run_linter = nil
 local run_linter_with_feedback = nil
 local linter_diagnostics_ready = nil
 local linter_display_name = nil
+local linter_failure_details = nil
 
-vim.keymap.set("n", "<F1>", function()
-  access_link_command("NvimNvdaLspStatus")
-end, { desc = "Access Link human test: LSP status" })
 vim.keymap.set({ "n", "i" }, "<F2>", show_current_task,
   { desc = "Access Link human test: repeat current task" })
 vim.keymap.set("n", "<F3>", prepare_current_probe,
@@ -274,6 +442,49 @@ vim.keymap.set("n", "<F9>", function()
 end, { desc = "Access Link human test: next diagnostic" })
 vim.keymap.set("n", "<F10>", "<Cmd>qa!<CR>",
   { desc = "Access Link human test: exit without saving" })
+
+if step_id == "status-presentation" then
+  vim.keymap.set("n", "<F3>", function()
+    access_link_command("NvimNvdaLspStatus")
+  end, { desc = "Access Link human test: LSP status" })
+elseif step_id == "native-search-replacement" then
+  vim.keymap.set("n", "<F3>", function()
+    run_observed_native_command("vimgrep /calculate_tip/gj *.py", true)
+  end, { desc = "Access Link human test: project search into Quickfix" })
+  vim.keymap.set("n", "<F4>", function()
+    move_in_quickfix("cnext")
+  end, { desc = "Access Link human test: next Quickfix result" })
+  vim.keymap.set("n", "<F5>", function()
+    move_in_quickfix("cprevious")
+  end, { desc = "Access Link human test: previous Quickfix result" })
+  vim.keymap.set("n", "<F6>", function()
+    run_observed_native_command("cfdo %s/calculate_tip/calculate_tip_checked/gc")
+  end, { desc = "Access Link human test: confirmed project replacement" })
+elseif step_id == "native-buffer-replacement" then
+  vim.keymap.set("n", "<F3>", function()
+    buffer_replacement_index = 0
+    local hidden = vim.o.hidden
+    vim.o.hidden = true
+    run_observed_native_command(
+      "bufdo %s/calculate_tip/calculate_tip_buffered/ge", true)
+    vim.o.hidden = hidden
+  end, { desc = "Access Link human test: replace across listed buffers" })
+  vim.keymap.set("n", "<F4>", report_buffer_replacement,
+    { desc = "Access Link human test: verify changed buffer" })
+elseif step_id == "native-lsp-rename" then
+  vim.keymap.set("n", "<F3>", start_native_lsp_rename,
+    { desc = "Access Link human test: native LSP rename" })
+  vim.keymap.set("n", "<F4>", report_renamed_reference,
+    { desc = "Access Link human test: report renamed reference" })
+end
+
+if step_id == "native-lsp-rename" or step_id == "native-buffer-replacement" then
+  -- Load the known cross-file target before the add-on connection and guided
+  -- interaction. The tested native operation can then update both buffers
+  -- without turning fixture loading into tester-visible focus feedback.
+  cross_file_reference_buffer(step_id == "native-buffer-replacement")
+end
+
 vim.api.nvim_create_user_command("AccessLinkHumanTestInfo", function()
   show_current_task()
 end, { desc = "Show the active guided human-test profile" })
@@ -426,9 +637,19 @@ if uses_linter then
     linter_name = "clangtidy"
     linter_display_name = "Clang-Tidy"
     lint.linters_by_ft = { c = { linter_name } }
-    lint.linters.clangtidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
+    local clang_tidy = lint.linters.clangtidy
+    clang_tidy.cmd = assert(vim.env.ACCESS_LINK_HUMAN_CLANG_TIDY,
       "ACCESS_LINK_HUMAN_CLANG_TIDY is required")
-    lint.linters.clangtidy.parser = linter_readiness.clang_tidy_parser(
+    clang_tidy.args = {
+      "--quiet",
+      "--config-file=" .. vim.fs.joinpath(vim.fn.getcwd(), ".clang-tidy"),
+      function() return vim.api.nvim_buf_get_name(0) end,
+      "--",
+      "-std=c11",
+    }
+    clang_tidy.append_fname = false
+    clang_tidy.stream = "both"
+    clang_tidy.parser = linter_readiness.clang_tidy_parser(
       require("lint.parser"), vim.diagnostic.severity)
   else
     linter_name = "markdownlint-cli2"
@@ -438,8 +659,13 @@ if uses_linter then
     markdownlint.cmd = assert(vim.env.ACCESS_LINK_HUMAN_MARKDOWNLINT,
       "ACCESS_LINK_HUMAN_MARKDOWNLINT is required")
     markdownlint.args = {
-      "--config", vim.fs.joinpath(vim.fn.getcwd(), ".markdownlint.json"), "-",
+      "--config", vim.fs.joinpath(vim.fn.getcwd(), ".markdownlint.json"),
+      function() return vim.api.nvim_buf_get_name(0) end,
     }
+    markdownlint.stdin = false
+    markdownlint.append_fname = false
+    markdownlint.parser = linter_readiness.markdownlint_parser(
+      require("lint.parser"), vim.diagnostic.severity)
   end
 
   linter_diagnostics_ready = function()
@@ -447,6 +673,26 @@ if uses_linter then
       profile,
       vim.diagnostic.get(0),
       vim.diagnostic.severity
+    )
+  end
+  linter_failure_details = function()
+    local diagnostics = vim.diagnostic.get(0)
+    local observed = {}
+    for _, diagnostic in ipairs(diagnostics) do
+      observed[#observed + 1] = string.format(
+        "%s/%s/severity-%s/line-%s",
+        tostring(diagnostic.source or "no-source"),
+        tostring(diagnostic.code or "no-code"),
+        tostring(diagnostic.severity or "none"),
+        tostring(type(diagnostic.lnum) == "number" and diagnostic.lnum + 1 or "none")
+      )
+    end
+    local running = lint.get_running(0)
+    return string.format(
+      "observed %d diagnostics (%s); active linters: %s",
+      #diagnostics,
+      #observed > 0 and table.concat(observed, ", ") or "none",
+      #running > 0 and table.concat(running, ", ") or "none"
     )
   end
 
@@ -477,9 +723,9 @@ if uses_linter then
     vim.notify(string.format(human_messages.diagnostics_waiting, linter_display_name))
     run_linter()
     vim.schedule(function()
-      local ready = vim.wait(15000, function()
+      local ready = vim.wait(provider_timeout_ms, function()
         return linter_diagnostics_ready()
-      end, 50)
+      end, provider_poll_interval_ms)
       readiness_pending = false
       if ready then
         local _, count = linter_diagnostics_ready()
@@ -531,6 +777,12 @@ end
 local function fixture_cursor(name)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
   if name == "lsp_features.py" then
+    if step_id == "native-lsp-rename" then
+      for line_number, line in ipairs(lines) do
+        local byte = line:find("calculate_tip", 1, true)
+        if byte then return { line_number, byte - 1 } end
+      end
+    end
     local positions = callable_fixture_positions()
     return positions and positions[1].cursor or nil
   elseif name == "diagnostics.py" then
@@ -567,7 +819,8 @@ local function assert_callable_choices_ready()
       function(_, _, payload) result = payload end
     )
     assert(accepted, "Access Link did not accept callable fixture position " .. index)
-    assert(vim.wait(15000, function() return result ~= nil end, 50),
+    assert(vim.wait(provider_timeout_ms, function() return result ~= nil end,
+      provider_poll_interval_ms),
       "Pyright did not answer callable fixture position " .. index)
     assert(result.ok, "callable fixture position " .. index
       .. " did not produce signature help")
@@ -612,7 +865,8 @@ local function assert_completion_choices_ready()
   vim.lsp.buf_request_all(0, "textDocument/completion", params, function(value)
     results = value
   end)
-  local answered = vim.wait(15000, function() return results ~= nil end, 50)
+  local answered = vim.wait(provider_timeout_ms,
+    function() return results ~= nil end, provider_poll_interval_ms)
   vim.api.nvim_buf_set_lines(0, line_count, line_count + 2, false, {})
   vim.api.nvim_win_set_cursor(0, original_cursor)
   assert(answered, "Pyright did not answer the completion fixture request")
@@ -657,8 +911,10 @@ local function assert_completion_profile_ready()
     assert(blink_config.keymap.preset == "none",
       "blink.cmp inherited completion mappings outside the test profile")
     local auto_show = blink_config.completion.menu.auto_show
-    local auto_show_enabled = type(auto_show) == "function"
-      and auto_show({}, {}) or auto_show
+    local auto_show_enabled = auto_show
+    if type(auto_show) == "function" then
+      auto_show_enabled = auto_show({}, {})
+    end
     assert(auto_show_enabled == false,
       "blink.cmp automatic completion would bypass the F5 test trigger")
     for _, key in ipairs({ "<C-n>", "<C-p>" }) do
@@ -709,28 +965,37 @@ end
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   assert_completion_runtime_isolated()
   if uses_pyright then
-    local attached = vim.wait(15000, function()
+    local attached = vim.wait(provider_timeout_ms, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
-    end, 50)
+    end, provider_poll_interval_ms)
     assert(attached, "Pyright did not attach to the human-test fixture")
     local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
     assert(client:supports_method("textDocument/completion"),
       "Pyright does not advertise completion support")
-    assert_completion_profile_ready()
-    if profile == "native" then
+    if native_rename_task then
+      assert(client:supports_method("textDocument/rename"),
+        "Pyright does not advertise rename support")
+    elseif not native_operation_task then
+      assert_completion_profile_ready()
+    end
+    if profile == "native" and not native_operation_task then
       assert_callable_choices_ready()
     end
-    if profile == "native" or profile == "cmp" or profile == "blink" then
+    if (profile == "native" and not native_operation_task)
+        or profile == "cmp" or profile == "blink" then
       assert_completion_choices_ready()
     end
+    if native_operation_task then move_to_fixture_cursor("lsp_features.py") end
   end
   if uses_linter then
     assert(run_linter, "the diagnostic profile did not configure its linter")
     run_linter()
-    local categorized = vim.wait(15000, function()
+    local categorized = vim.wait(provider_timeout_ms, function()
       return linter_diagnostics_ready()
-    end, 50)
-    assert(categorized, linter_display_name .. " did not publish the expected diagnostic")
+    end, provider_poll_interval_ms)
+    assert(categorized, linter_display_name
+      .. " did not publish the expected diagnostic; "
+      .. assert(linter_failure_details)())
   end
   vim.g.access_link_human_preflight_ready = 1
 end, { desc = "Verify real providers for the guided human-test profile" })

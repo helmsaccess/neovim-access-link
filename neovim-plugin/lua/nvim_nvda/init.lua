@@ -12,6 +12,7 @@ local clipboard = require("nvim_nvda.clipboard")
 local exploration = require("nvim_nvda.exploration")
 local numbered_choice = require("nvim_nvda.numbered_choice")
 local developer_context = require("nvim_nvda.developer_context")
+local native_operations = require("nvim_nvda.native_operations")
 local M = {}
 
 local channel
@@ -53,7 +54,6 @@ local oil_confirmation_choice
 local command_line_active = false
 local command_line_text = ""
 local command_line_type = ""
-local command_changedtick = 0
 local command_line_generated_keys = false
 local last_command_line_echo = ""
 local command_output_pending = false
@@ -140,17 +140,7 @@ local function fold_at_cursor()
 end
 
 local function search_details(pattern, direction)
-  local count = vim.fn.searchcount({ recompute = 1, maxcount = 9999, timeout = 50 })
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  return {
-    searchPattern = pattern or vim.fn.getreg("/"),
-    searchDirection = direction,
-    matchIndex = tonumber(count.current) or 0,
-    matchCount = tonumber(count.total) or 0,
-    matchIncomplete = tonumber(count.incomplete) or 0,
-    matchLine = cursor[1],
-    matchByteColumn = cursor[2],
-  }
+  return native_operations.search_details(pattern, direction, false)
 end
 
 local function is_word_terminator(key)
@@ -289,6 +279,8 @@ local function emit_prebuilt(event_type, payload, extra)
   return ok
 end
 
+native_operations.set_prebuilt_emitter(emit_prebuilt)
+
 local function emit_oil_confirmation()
   local details = file_manager_prompt.current_oil_confirmation()
   if not details then return false end
@@ -402,6 +394,7 @@ local function setup_notifications()
   if notify_wrapped then return end
   local original = vim.notify
   vim.notify = function(message, level, options)
+    native_operations.note_notification()
     emit("messageReceived", "vim.notify", {
       message = bounded_utf8(tostring(message), 2048), messageLevel = tonumber(level),
       messageTitle = type(options) == "table" and options.title or nil,
@@ -540,6 +533,10 @@ local function setup_ui_events()
         or kind == "confirm_sub" and "confirmSub"
         or kind == "return_prompt" and "more"
       if prompt_kind then
+        -- Tracked native :substitute commands publish their blocking prompt
+        -- synchronously from CmdlineEnter. A scheduled ext_messages copy can
+        -- arrive only after the user has already answered it.
+        if prompt_kind == "confirmSub" and native_operations.is_active() then return end
         local text = message_text(content)
         if prompt_kind == "confirm" and pending_spell_choice then
           local candidate = pending_spell_choice
@@ -656,6 +653,16 @@ local function setup_ui_events()
       open_legacy_spell_choice(arguments[2])
       return
     end
+    if legacy_blocking_messages and event == "msg_show"
+      and arguments[1] == "confirm_sub" and native_operations.is_substitute_active() then
+      -- Neovim 0.10 delivers this public UI event while waiting for input and
+      -- cannot run scheduled work. Its callback still permits read-only state
+      -- queries; retain the normal-autocmd snapshot as a fail-open fallback.
+      local snapshot_ok, snapshot = pcall(state.snapshot, "substitutePromptContext")
+      if snapshot_ok then native_operations.capture_substitute_prompt_snapshot(snapshot) end
+      native_operations.open_legacy_substitute_prompt()
+      return
+    end
     -- Neovim 0.12 enforces the fast-event boundary for vim.ui_attach. The
     -- scheduled path is also correct for non-blocking 0.10 UI events.
     vim.schedule(dispatch)
@@ -667,6 +674,7 @@ function M.register_channel(rpc_channel)
   channel = rpc_channel
   sequence = 0
   exploration.reset()
+  native_operations.reset()
   pending_spell_choice = nil
   active_numbered_choice = nil
   signature_help.set_connected(true)
@@ -693,6 +701,7 @@ end
 function M.unregister_channel(rpc_channel)
   if channel == rpc_channel then
     exploration.reset()
+    native_operations.reset()
     pending_spell_choice = nil
     active_numbered_choice = nil
     pcall(vim.ui_detach, ui_namespace)
@@ -1064,6 +1073,7 @@ function M.setup()
   signature_help.setup(emit, group)
   lsp_hover.setup(emit, group)
   lsp_status.setup(emit)
+  native_operations.setup(emit, group)
   require("nvim_nvda.diagnostics").setup(emit, group)
   setup_notifications()
   setup_ui_functions()
@@ -1092,6 +1102,7 @@ function M.setup()
     local observer_ok, observer_result = pcall(function()
     local translated = vim.fn.keytrans(key)
     local typed_translated = vim.fn.keytrans(typed or "")
+    if typed_translated ~= "" then native_operations.clear_post_rename_updates() end
     if oil_confirmation_buffer then
       if typed_translated ~= "" then
         local choice = typed_translated:lower()
@@ -1147,6 +1158,10 @@ function M.setup()
       -- CmdlineLeave. They are command output, not a directly typed motion.
       pending_motion = nil
       return
+    end
+    if command_line_active and (command_line_type == "/" or command_line_type == "?")
+      and (translated == "<C-G>" or translated == "<C-T>") then
+      native_operations.search_preview_key(command_line_type, command_line_text)
     end
     local raw_mode = vim.api.nvim_get_mode().mode
     -- Neovim 0.10 can still report raw Normal mode from vim.on_key while its
@@ -1349,6 +1364,17 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,
     callback = function(event)
+      if native_operations.consume_intermediate_update("cursor") then
+        if native_operations.is_substitute_active() then
+          local snapshot_ok, snapshot = pcall(state.snapshot, "substitutePromptContext")
+          if snapshot_ok then native_operations.capture_substitute_prompt_snapshot(snapshot) end
+        end
+        native_operations.note_intermediate_update()
+        pending_motion = nil
+        pending_motion_details = nil
+        pending_search_direction = nil
+        return
+      end
       local diagnostic_navigation = require("nvim_nvda.diagnostics").consume_navigation()
       if diagnostic_navigation then
         pending_motion = "diagnosticMoved"
@@ -1365,6 +1391,14 @@ function M.setup()
       if emit_oil_confirmation() then return end
       if suppress_next_text_change then
         suppress_next_text_change = false
+        return
+      end
+      if native_operations.consume_text_change() then
+        if native_operations.is_substitute_active() then
+          local snapshot_ok, snapshot = pcall(state.snapshot, "substitutePromptContext")
+          if snapshot_ok then native_operations.capture_substitute_prompt_snapshot(snapshot) end
+        end
+        native_operations.note_intermediate_update()
         return
       end
       -- Completion selection temporarily edits the buffer as the highlighted
@@ -1399,11 +1433,12 @@ function M.setup()
         predicted_ui_error_code = nil
         command_line_text = ""
         command_line_type = vim.fn.getcmdtype()
-        command_changedtick = vim.api.nvim_buf_get_changedtick(0)
+        native_operations.command_line_enter(command_line_type)
         vim.v.errmsg = ""
         vim.v.statusmsg = ""
       end
       command_line_text = vim.fn.getcmdline()
+      native_operations.command_line_changed(command_line_type, command_line_text)
       emit("commandLineChanged", event.event, {
         commandLineType = command_line_type,
       })
@@ -1418,8 +1453,12 @@ function M.setup()
       command_line_active = false
       local command = command_line_text
       local command_type = command_line_type
+      local native_active = native_operations.command_line_leave(command_type, command)
+      if native_active and native_operations.is_substitute_active() then
+        local snapshot_ok, snapshot = pcall(state.snapshot, "substitutePromptContext")
+        if snapshot_ok then native_operations.capture_substitute_prompt_snapshot(snapshot) end
+      end
       last_command_line_echo = command_type .. command
-      local before_tick = command_changedtick
       command_line_text = ""
       command_line_type = ""
       command_line_generated_keys = command_type == ":"
@@ -1435,30 +1474,46 @@ function M.setup()
       vim.defer_fn(function()
         local message = vim.v.errmsg
         if not guarded and not command_line_active and type(message) == "string" and message ~= "" then
+          native_operations.cancel_command()
           vim.v.errmsg = ""
           emit("errorReceived", "commandError", { message = bounded_utf8(message, 2048) })
         elseif not command_line_active and (command_type == "/" or command_type == "?") then
           local ok, details = pcall(search_details, command, command_type)
           if ok then emit("searchMatchChanged", "searchCommand", details) end
-        elseif not command_line_active and command_type == ":"
-          and (command:match("^%s*%%?s[^%w%s]") or command:match("^%s*substitute%s+"))
-          and vim.api.nvim_buf_get_changedtick(0) ~= before_tick then
+        elseif not command_line_active and not native_operations.is_active() then
           local status = vim.v.statusmsg
-          emit("replacementPerformed", "substituteCommand", {
-            replacementMessage = bounded_utf8(status, 2048),
-          })
-        elseif not command_line_active and type(vim.v.statusmsg) == "string"
-          and vim.v.statusmsg ~= "" then
-          local status = vim.v.statusmsg
-          vim.v.statusmsg = ""
-          local command_line_return = command_output_pending
-          command_output_pending = false
-          emit("messageReceived", "commandStatus", {
-            message = bounded_utf8(status, 2048), commandLineReturn = command_line_return,
-          })
+          if type(status) == "string" and status ~= "" then
+            vim.v.statusmsg = ""
+            local command_line_return = command_output_pending
+            command_output_pending = false
+            emit("messageReceived", "commandStatus", {
+              message = bounded_utf8(status, 2048), commandLineReturn = command_line_return,
+            })
+          end
         end
-        command_output_pending = false
+        if not native_operations.is_active() then command_output_pending = false end
       end, 20)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("SafeState", {
+    group = group,
+    callback = function()
+      -- SafeState is not emitted while Neovim is halfway through a command,
+      -- executing a mapping, or waiting in a confirmation prompt. It is the
+      -- public completion boundary for native project commands that can move
+      -- through several buffers and prompts.
+      local status = bounded_utf8(vim.v.statusmsg, 2048)
+      local recognized, native_emitted = native_operations.finish_command(status)
+      if not recognized then return end
+      if native_emitted then
+        vim.v.statusmsg = ""
+      elseif type(status) == "string" and status ~= "" then
+        emit("messageReceived", "commandStatus", {
+          message = status, commandLineReturn = command_output_pending,
+        })
+      end
+      command_output_pending = false
     end,
   })
   vim.api.nvim_create_autocmd("CompleteChanged", {
@@ -1572,14 +1627,33 @@ function M.setup()
       })
     end,
   })
+  local context_change_pending = false
+  local context_change_reason
+  local context_change_suppressed = false
   vim.api.nvim_create_autocmd({
     "BufEnter", "BufWinEnter", "WinEnter", "TabEnter", "TermOpen", "TermEnter", "TermLeave",
   }, {
     group = group,
     callback = function(event)
-      local reason = event.event
+      context_change_reason = event.event
+      if native_operations.consume_intermediate_update("context") then
+        if native_operations.is_substitute_active() then
+          local snapshot_ok, snapshot = pcall(state.snapshot, "substitutePromptContext")
+          if snapshot_ok then native_operations.capture_substitute_prompt_snapshot(snapshot) end
+        end
+        native_operations.note_intermediate_update()
+        context_change_suppressed = true
+      end
+      if context_change_pending then return end
+      context_change_pending = true
       vim.schedule(function()
-        if not emit_oil_confirmation() then emit("contextChanged", reason) end
+        context_change_pending = false
+        local final_reason = context_change_reason or event.event
+        context_change_reason = nil
+        local suppressed = context_change_suppressed
+        context_change_suppressed = false
+        if suppressed then return end
+        if not emit_oil_confirmation() then emit("contextChanged", final_reason) end
       end)
     end,
   })

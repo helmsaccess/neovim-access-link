@@ -160,10 +160,12 @@ client exists.
 
 Important types include `fullState`, `modeChanged`, `characterMoved`,
 `wordMoved`, `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
-`textReplaced`, `searchMatchChanged`, `menuOpened`,
+`textReplaced`, `searchMatchChanged`, `searchHighlightChanged`,
+`substitutePreviewChanged`, `menuOpened`,
 `menuSelectionChanged`, `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`,
 `signatureChanged`, `activeParameterChanged`,
 `signatureClosed`, `hoverChanged`, `hoverClosed`, `lspStatus`,
+`lspRenameCompleted`, `resultListChanged`, `replacementPerformed`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
@@ -199,6 +201,76 @@ speech and Braille automatically use only the summary. `hoverClosed` discards
 the per-instance hover documentation without its own presentation.
 `lspStatus` contains only bounded names of LSP clients attached to the current
 buffer and is emitted only by `:NvimNvdaLspStatus`.
+`searchMatchChanged.payload.searchPreview=true` marks a transient `incsearch`
+preview coalesced for 35 ms. The plugin takes Neovim's current window position
+and asks Neovim to recompute the match count for the current pattern through
+`searchcount({pattern=..., recompute=1, maxcount=9999, timeout=50})` with
+bounded work while that command-line pattern is still provisional; it does not
+implement a separate search. `matchIncomplete` preserves Neovim's timeout or
+result-limit marker. `searchWrapped` is derived from direction, the preceding
+match, and cursor position; `searchHighlighting` reflects `hlsearch` and
+`v:hlsearch`. The final match remains an ordinary `searchMatchChanged` event
+without `searchPreview`. `searchHighlightChanged` reports clearing through
+`:nohlsearch` or an `hlsearch` option change when that changes the visible
+state.
+
+`substitutePreviewChanged.payload.previewActive=true` describes Neovim's
+native `inccommand` preview. The plugin attaches to Neovim's public buffer
+updates with `preview=true` and reads the temporary preview state inside that
+callback; it neither executes the replacement nor parses it as a second
+replacement engine. Neovim provides this callback for direct `:substitute`
+commands, not for the outer multi-buffer loops. After 35 ms coalescing, the
+payload contains
+`previewLineText`, `previewChangedLineCount`, `previewHasChanges`,
+`previewIncomplete`, and `inccommandMode`. Comparison is bounded to 2,048
+lines and 256 KiB. Larger buffers retain the current preview line while
+`previewIncomplete=true` marks an incomplete count. Leaving or canceling the
+command line emits `previewActive=false` without its own presentation.
+
+`resultListChanged` follows only successfully completed native `vimgrep`,
+`vimgrepadd`, `grep`, `grepadd`, `lvimgrep`, `lvimgrepadd`, `lgrep`, or
+`lgrepadd` commands. `listKind` is `quickfix` or `locationList`; `itemCount`
+and `itemIndex` come from `getqflist()` or `getloclist()`. When Neovim opens
+the selected result, the following `contextChanged` is
+authoritative. When selection remains in the open list, `cursorMoved` instead
+carries the complete result row and list position. A redundant event belonging
+to the same physical key sequence is coalesced.
+`replacementPerformed` follows the native replacement family recognized by
+`nvim_parse_cmd()`: `substitute`, `smagic`, `snomagic`, `&`, and `~`, including
+their use through `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo`, or `bufdo`. It carries
+Neovim's bounded status message, the scope, and counts of observed changed and
+unsaved buffers. Buffer-local replacements also contain the changed-line count
+observed through public buffer updates. This is a fallback when Neovim's
+`report`-dependent status message supplies no count, not a count of individual
+substitutions. Exceeding the observation bound sets
+`changedLineCountIncomplete=true`. For a bulk command, intermediate generic
+text, cursor, and context change events are suppressed only for that running
+command. Observation ends
+at Neovim's public `SafeState`, which is not emitted halfway through a
+command, mapping, or confirmation prompt. Execution and confirmation answers
+remain owned by Neovim.
+Neovim's internal `-` command-line type for a native replacement prompt stays
+within the same observation and does not begin a new command. Where Neovim
+publishes this type as a command-line event, it synchronously emits
+`promptOpened` before the answer and `promptClosed` afterwards within an
+already classified `:substitute` command. Neovim 0.10 supplies the same
+evidence through its public `msg_show.confirm_sub` UI event; the callback only
+reads current state and does not inspect a rendered terminal row. The
+`substituteConfirmation` reason permits a localized fixed description while
+the validated snapshot supplies the result row and position.
+
+`lspRenameCompleted` observes only public `LspRequest` events for
+`textDocument/rename`. Its payload reports `changesObserved`,
+`noChangesObserved`, or `canceled` plus counts of buffer changes actually
+observed. The observer retains metadata for at most 2,048 Neovim buffers and
+copies no file content. It replaces neither LSP handlers nor `WorkspaceEdit`
+and does not claim success without an observed edit. After the last open
+rename request, it waits 500 ms for trailing buffer changes. Generic text,
+cursor, and context reports remain suppressed during that observation. In the
+observed Neovim 0.12 event ordering, one event of each kind can still arrive
+after public request completion; the observer discards at most one such
+trailing event per kind. The next physical key clears any unused residual
+state before its own effect is observed.
 `diagnosticChanged` refreshes canonical state after `DiagnosticChanged` but
 has no automatic presentation. `diagnosticMoved` follows an explicitly
 observed diagnostic jump or an Access Link diagnostic command. Its snapshot

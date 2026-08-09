@@ -108,7 +108,8 @@ equal("noResult", emitted.payload.resultCode, "interior rejection is explicit")
 equal(0, #emitted.payload.items, "interior rejection starts no hover fallback")
 equal({ 1, 20 }, vim.api.nvim_win_get_cursor(0), "rejected query does not move cursor")
 
-vim.lsp.stop_client(client_id, true)
+local client = assert(vim.lsp.get_client_by_id(client_id), "real LSP client remains available")
+client:stop(true)
 vim.wait(3000, function() return vim.lsp.get_client_by_id(client_id) == nil end, 10)
 
 print(string.format("real developer-context LSP tests: %d assertions passed", assertions))

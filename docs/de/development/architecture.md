@@ -726,6 +726,42 @@ Signaturwechsel betrifft ausschließlich deren Parameterliste. Das validierte
 Brailleplanung bleibt beim Quelltext. Transport und NVDA-Hauptthread führen
 keine LSP-Abfrage aus.
 
+### Native Suche, Ersetzung und LSP-Umbenennung
+
+`native_operations.lua` ist ein begrenzter Beobachter, keine zweite Such-,
+Ersetzungs- oder Refactoring-Engine. `nvim_parse_cmd()` klassifiziert
+ausschließlich bekannte native Ex-Befehle. `incsearch`, Quickfix- und
+Positionslisten sowie `LspRequest` liefern öffentlichen Zustand; Neovims
+normale Handler führen Befehle, Bestätigungen und `WorkspaceEdit` aus.
+
+Für eine native `inccommand`-Ersetzung hängt sich der Beobachter mit
+`preview=true` an Neovims öffentliche Buffer-Updates. Nur während dieses
+Callbacks ist Neovims temporärer Vorschautext über die Buffer-API sichtbar.
+Das gilt ausschließlich für den von Neovim als vorschaufähig markierten
+direkten `:substitute`-Befehl; die äußeren `:bufdo`-, `:argdo`-, Quickfix- und
+Positionslisten-Befehle stellen keine solche Livevorschau bereit.
+Der Beobachter erfasst dort die Vorschauzeile und vergleicht höchstens 2048
+Zeilen beziehungsweise 256 KiB mit einem Ausgangszustand, den er erst nach der
+semantischen Klassifizierung als `:substitute` erstellt. Größere Puffer
+erhalten nur eine als unvollständig gekennzeichnete Rückmeldung. Der
+Ausgangszustand wird beim Verlassen der Befehlszeile verworfen; der Beobachter
+führt keine Ersetzung aus.
+
+Vor einer nativen Mehrbuffer-Ersetzung oder LSP-Umbenennung speichert der
+Beobachter für höchstens 2048 Neovim-Buffer nur `changedtick`, Name und
+`modified`. Nach Abschluss vergleicht er diese Metadaten und erzeugt eine
+belegbare Zusammenfassung. Er kopiert keine Dateiinhalte, analysiert keine
+LSP-Edits und schreibt oder lädt keinen Buffer selbst. Welche Buffer ein
+Mehrbuffer-Befehl besucht, bestimmen ausschließlich Neovims Quickfix-,
+Positions-, Argument- oder Bufferlisten. Ein 35-ms-Debounce begrenzt Such- und
+Ersetzungsvorschauen; nach der letzten
+offenen LSP-Rename-Anfrage wartet der Beobachter 500 ms auf nachlaufende
+Bufferänderungen. Währenddessen und für höchstens ein anschließend
+zugestelltes Text-, Cursor- oder Kontextsignal je
+Art bleiben interne Zwischenmeldungen aus. Der nächste physische Tastendruck
+beendet jeden ungenutzten Restzustand. Fehler, unbekannte Befehle und fehlende
+Änderungen fallen auf Neovims normale Meldungen zurück.
+
 ### Gehaltene Entwicklerkontexte
 
 Das Windows-Terminal-AppModule besitzt den physischen Lebenszyklus der

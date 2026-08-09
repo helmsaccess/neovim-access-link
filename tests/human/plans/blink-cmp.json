@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "blink-cmp",
   "order": 50,
   "titleKey": "plan.blinkCmp.title",
@@ -13,7 +13,7 @@
       "id": "menu-presentation",
       "category": "completion",
       "titleKey": "plan.blinkCmp.menu.title",
-      "contextKey": "plan.completionPlugin.context",
+      "purposeKey": "plan.blinkCmp.menu.purpose",
       "actionKey": "plan.blinkCmp.menu.action",
       "expectedKey": "plan.blinkCmp.menu.expected",
       "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],

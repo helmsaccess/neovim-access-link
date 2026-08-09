@@ -54,6 +54,57 @@ equal(#unc_diagnostic, 6, "UNC-path diagnostic is parsed")
 equal(unc_diagnostic[1], [[\\space.example\share\diagnostics.c]],
   "UNC path remains intact")
 
+local markdown_parser_spec
+local markdown_parser = readiness.markdownlint_parser({
+  from_pattern = function(pattern, groups, severity_map, defaults)
+    markdown_parser_spec = {
+      pattern = pattern,
+      groups = groups,
+      severity_map = severity_map,
+      defaults = defaults,
+    }
+    return markdown_parser_spec
+  end,
+}, severity)
+equal(markdown_parser, markdown_parser_spec,
+  "markdownlint parser is built through nvim-lint")
+equal(markdown_parser.defaults.source, "markdownlint",
+  "markdownlint parser preserves its source")
+equal(markdown_parser.defaults.severity, severity.WARN,
+  "markdownlint findings remain warnings")
+equal(markdown_parser.groups[1], "_file",
+  "markdownlint parser avoids nvim-lint's UNC path comparison")
+
+local function parse_markdownlint(line)
+  return markdown_parser.pattern(line)
+end
+
+local markdown_drive_diagnostic = parse_markdownlint(
+  [[X:\worktrees\feature-lsp\tests\human\fixtures\diagnostics.md:3 error ]] ..
+  [[MD025/single-title/single-h1 Multiple top-level headings]]
+)
+equal(#markdown_drive_diagnostic, 4,
+  "Windows drive-path markdownlint diagnostic is parsed")
+equal(markdown_drive_diagnostic[1],
+  [[X:\worktrees\feature-lsp\tests\human\fixtures\diagnostics.md]],
+  "markdownlint Windows drive path remains intact")
+equal(markdown_drive_diagnostic[2], "3", "markdownlint line is parsed")
+equal(markdown_drive_diagnostic[3], "", "missing markdownlint column stays empty")
+assert(markdown_drive_diagnostic[4]:find("MD025", 1, true),
+  "markdownlint message retains its rule identifier")
+assertions = assertions + 1
+
+local markdown_unc_diagnostic = parse_markdownlint(
+  [[\\space.example\share\diagnostics.md:3:1 error MD025 Multiple headings]]
+)
+equal(#markdown_unc_diagnostic, 4, "UNC-path markdownlint diagnostic is parsed")
+equal(markdown_unc_diagnostic[1], [[\\space.example\share\diagnostics.md]],
+  "markdownlint UNC path remains intact")
+equal(markdown_unc_diagnostic[3], "1", "markdownlint column is parsed when present")
+equal(#parse_markdownlint(
+  [[node:internal/fs/promises:639:25 Error while reading configuration]]), 0,
+  "unrelated stack traces are not markdownlint diagnostics")
+
 local ready, count, position_count = evaluate("diagnostics", {
   { source = "Ruff", code = "F401", severity = severity.WARN, lnum = 0 },
   { source = "ruff", code = "F401", severity = severity.WARN, lnum = 0 },

@@ -12,9 +12,9 @@ Start with the German or English tester documentation:
 
 The Windows entry point is `framework/run.ps1`. Each pending task gets a fresh
 isolated `framework/init.lua` session through `nvim -u`, and F2 repeats the
-short test ID and current task inside Neovim. The runner never copies over the
-user's normal Neovim configuration. Downloaded dependencies and run results stay in the
-ignored repository `tmp/` directory.
+short test ID, purpose, numbered steps, and pass condition inside Neovim. The
+runner never copies over the user's normal Neovim configuration. Downloaded
+dependencies and run results stay in the ignored repository `tmp/` directory.
 
 ## Maintained surface
 
@@ -26,9 +26,10 @@ ignored repository `tmp/` directory.
 - `framework/validate.py`: definition/runtime fingerprints and result validation;
 - `framework/init.lua`: isolated Neovim profile used only by the runner.
 
-The required `smoke` suite contains native LSP/completion, Python diagnostic
-presentation, and focus/fail-open checks. The `compatibility` suite contains
-short nvim-cmp, blink.cmp, C/Clang-Tidy, and Markdown/markdownlint checks.
+The required `smoke` suite contains native LSP, search/replacement, completion,
+Python diagnostic presentation, and focus/fail-open checks. The `compatibility`
+suite contains short nvim-cmp, blink.cmp, C/Clang-Tidy, and
+Markdown/markdownlint checks.
 The interactive category selector and short IDs such as `-TestId D3` can run
 any task individually. The longer `plan.step` names remain accepted as
 compatibility aliases. Result schema 4 records the exact short IDs on both the
@@ -50,6 +51,11 @@ user-facing categories. Plans may
 select only one of the fixed profiles implemented by `init.lua`.
 They cannot contain PowerShell, shell, Lua, or Neovim commands. This keeps
 versioned test data non-executable.
+
+Every localized task uses one short paragraph for its purpose, sequentially
+numbered action lines, and one short paragraph for its pass condition. The
+validator rejects other line breaks, leaving display-width wrapping to Windows
+Terminal.
 
 After editing definitions, run:
 

@@ -12,16 +12,35 @@ und Testbuild-Einträge bis zum 5. August 2026.
   und Braille.
 - Härtet native Completion, `nvim-cmp` und `blink.cmp`, einschließlich
   Dokumentationsauflösung, Menüklängen und dem Zustand ohne ausgewählten
-  Kandidaten.
+  Kandidaten. Behebt zudem die falsche Ablehnung der bewusst deaktivierten
+  automatischen Blink-Menüöffnung durch die Praxistest-Vorprüfung.
+- Macht native inkrementelle Suche, `inccommand`-Ersetzungsvorschauen,
+  Quickfix-/Positionslisten, Ersetzungsabfragen, Mehrbuffer-Ersetzungen und
+  LSP-Rename-Abschlüsse zugänglich. Neovim und der Sprachserver behalten die
+  Ausführung; Access Link bündelt interne Buffer-, Cursor- und Kontextwechsel
+  zu einer belegbaren Abschlussmeldung. Automatisierte Mehrdateitests decken
+  Quickfix-Dateien, gelistete Buffer und Argumentdateien ab; die geführten
+  L4- bis L6-Abläufe isolieren die verbleibende praktische NVDA-Prüfung.
 - Vereinheitlicht Diagnosen aus LSP, `nvim-lint`, ALE und `none-ls.nvim`,
   erweitert Navigationsbefehle und ergänzt getrennte Fehler-, Warn- und
-  Leerbestätigungsklänge.
+  Leerbestätigungsklänge. Der Clang-Tidy-Praxistest startet unter Windows
+  direkt das gepinnte Programm, verwendet einen festgelegten C-Modus und die
+  mitgelieferte Testkonfiguration und wertet beide Ausgabekanäle aus. Eine
+  einheitliche begrenzte Wartezeit berücksichtigt kalte Providerstarts auf
+  Windows und Netzlaufwerken. Markdownlint prüft die absolute Testdatei
+  statt eines unzuverlässigen stdin-Kaltstarts. Die Einrichtung prüft reale
+  Linterausgaben vorab und sammelt Fehler aller ausgewählten Profile in einem
+  Lauf.
 - Behebt Linux-Sitzungserkennung mit abweichenden Laufzeitumgebungen und ohne
   `XDG_RUNTIME_DIR` sowie Fokus- und Merkpfade nach der optionalen
   F12-Rückfrage.
 - Trennt sichere, SSH- und Socket-Prüfungen in unabhängige Testphasen und
   erweitert die reproduzierbaren Completion-, LSP-, Linter- und geführten
-  Praxistests.
+  Praxistests. Kompakte Aufgabenkarten nennen Zweck, nummerierte Schritte und
+  Bestehenskriterium; F2 wiederholt die Aufgabe, während F1 und F11 wegen der
+  Standardbelegungen von Neovim und Windows Terminal frei bleiben.
+- Aktualisiert Auswahl- und LSP-Test-APIs für Neovim 0.12, ohne die
+  Kompatibilität mit Neovim 0.10 aufzugeben.
 - Ordnet Quick Guide und Handbuch nach Leseraufgaben neu. Eine echte, getestete
   Lua-Beispielkonfiguration erzeugt identische Codeblöcke für GitHub und die
   deutschen und englischen HTML-Handbücher.

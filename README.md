@@ -16,14 +16,19 @@ release notes for 0.96.0: [English](docs/en/development/changelog.md#0960) or
 
 ## What it helps with
 
-Practically tested workflows include:
+Supported workflows include:
 
 - Normal, Insert, and Visual editing with mode feedback;
 - character, word, and line navigation with configurable cursor context;
 - read-only speech exploration of characters and lines with `NVDA+h/j/k/l`,
   plus words with `Shift+NVDA+h/l`, without moving Neovim's real cursor;
-- selections, editing, messages, built-in completion plus `nvim-cmp` and
-  `blink.cmp`, and buffer changes;
+- selections, editing, messages, buffer changes, and Neovim's built-in
+  completion plus `nvim-cmp` and `blink.cmp`;
+- LSP status, hover, signature and active-parameter feedback, completion item
+  details, and completion reports for Neovim-owned rename operations;
+- diagnostics from Neovim's provider-neutral diagnostic API, with navigation,
+  held speech or Braille views, and separate error, warning, and empty-result
+  cues;
 - Neovim's command line and embedded terminal;
 - copying Visual selections or register 0 to Windows and sending Windows
   clipboard text back to Neovim, locally and over SSH;
@@ -31,6 +36,28 @@ Practically tested workflows include:
   name; and
 - file management through the Neovim plugin Oil, including navigation, rename
   preview, boundary sounds, and confirmation prompts.
+
+## LSP, completion, and linters
+
+Access Link does not replace or install language servers, completion plugins,
+or linters. Neovim and the configured tools perform the language operation;
+Access Link presents their results through Neovim's public LSP, completion, and
+diagnostic APIs. The same accessible path can therefore serve different
+languages and toolchains.
+
+The guided reference workflow has been exercised with Pyright for Python LSP
+features and Ruff through `nvim-lint` for diagnostics. Automated contract tests
+also cover native completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`, ALE, and
+`none-ls.nvim`. Real automated linter processes include Clang-Tidy for C/C++,
+ShellCheck for shell scripts, Staticcheck for Go, Clippy for Rust, RuboCop for
+Ruby, and `markdownlint-cli2` for Markdown. These examples verify the shared
+interfaces; they do not promise every provider version or project
+configuration.
+
+The [language-tools chapter](docs/en/manual/language-tools.md) explains the
+boundary and provides a tested Pyright and Ruff setup.
+
+## Braille and sound feedback
 
 Advanced Braille support includes a structured editor line instead of
 terminal-screen fragments, cursor routing in Normal, Insert, and command-line
@@ -84,9 +111,9 @@ steps.
 ## Compatibility and status
 
 The confirmed reference environment uses Windows 11, NVDA 2026.1.x, Windows
-Terminal, local Windows Neovim, and Neovim on Rocky Linux 10 over Windows
-OpenSSH. Neovim 0.10.1 is the reference version; selected local Windows and
-file-management workflows with Oil have also been tested with Neovim 0.12.3.
+Terminal, local Windows Neovim 0.12.3, and Neovim 0.10.1 or 0.12.3 on Rocky
+Linux 10 over Windows OpenSSH. Local Neovim 0.10.1 remains covered by
+automated tests.
 
 Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See

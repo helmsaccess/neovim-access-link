@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "nvim-cmp",
   "order": 40,
   "titleKey": "plan.nvimCmp.title",
@@ -13,7 +13,7 @@
       "id": "menu-presentation",
       "category": "completion",
       "titleKey": "plan.nvimCmp.menu.title",
-      "contextKey": "plan.completionPlugin.context",
+      "purposeKey": "plan.nvimCmp.menu.purpose",
       "actionKey": "plan.nvimCmp.menu.action",
       "expectedKey": "plan.nvimCmp.menu.expected",
       "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],

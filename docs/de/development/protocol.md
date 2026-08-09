@@ -244,11 +244,13 @@ stdio-Sitzung keine Ereignisse für spätere Wiedergabe.
 
 Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `lineChanged`, `selectionChanged`, `textChanged`, `textDeleted`,
-`textReplaced`, `searchMatchChanged`, `menuOpened`, `menuSelectionChanged`,
+`textReplaced`, `searchMatchChanged`, `searchHighlightChanged`,
+`substitutePreviewChanged`, `menuOpened`, `menuSelectionChanged`,
 `menuSelectionCleared`, `menuItemUpdated`, `menuClosed`, `signatureChanged`,
 `activeParameterChanged`,
 `signatureClosed`,
-`hoverChanged`, `hoverClosed`, `lspStatus`, `diagnosticChanged`,
+`hoverChanged`, `hoverClosed`, `lspStatus`, `lspRenameCompleted`,
+`resultListChanged`, `replacementPerformed`, `diagnosticChanged`,
 `diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
@@ -289,6 +291,81 @@ Zusammenfassung. `hoverClosed` verwirft die instanzbezogene
 Hover-Dokumentation ohne eigene Meldung.
 `lspStatus` enthält ausschließlich die begrenzten Namen der am aktuellen
 Buffer hängenden LSP-Clients und wird nur durch `:NvimNvdaLspStatus` erzeugt.
+`searchMatchChanged.payload.searchPreview=true` kennzeichnet einen flüchtigen,
+mit 35 ms gebündelten `incsearch`-Vorschautreffer. Das Plugin übernimmt
+Neovims aktuelle Fensterposition und lässt Neovim die Trefferzahl für das
+noch nicht bestätigte Befehlszeilenmuster mit
+`searchcount({pattern=..., recompute=1, maxcount=9999, timeout=50})` begrenzt
+neu bestimmen; es implementiert keine eigene Suche. `matchIncomplete` übernimmt
+Neovims Kennzeichen für Zeit- oder Treffergrenzen. `searchWrapped` wird aus
+Suchrichtung, vorherigem Treffer und Cursorposition abgeleitet;
+`searchHighlighting` übernimmt `hlsearch` und `v:hlsearch`. Der endgültige
+Suchtreffer bleibt ein normales `searchMatchChanged` ohne `searchPreview`.
+`searchHighlightChanged` meldet das Aufheben durch `:nohlsearch` oder eine
+Änderung der Option `hlsearch`, sofern dadurch der sichtbare Zustand wechselt.
+
+`substitutePreviewChanged.payload.previewActive=true` beschreibt Neovims
+native `inccommand`-Vorschau. Das Plugin hängt mit `preview=true` an Neovims
+öffentliche Buffer-Updates und liest den temporären Vorschauzustand innerhalb
+dieses Callbacks; es führt den Ersetzungsbefehl weder selbst aus noch parst es
+ihn als eigene Ersetzungslogik. Neovim stellt diesen Callback für direkte
+`:substitute`-Befehle bereit, nicht für die äußeren Mehrbuffer-Schleifen. Nach
+35 ms Bündelung enthält die Payload
+`previewLineText`, `previewChangedLineCount`, `previewHasChanges`,
+`previewIncomplete` und `inccommandMode`. Der Vergleich ist auf 2048 Zeilen
+und 256 KiB begrenzt. Bei größeren Puffern bleibt die aktuelle Vorschauzeile
+erhalten, während `previewIncomplete=true` die unvollständige Zählung
+kennzeichnet. Beim Verlassen oder Abbrechen folgt `previewActive=false` ohne
+eigene Ausgabe.
+
+`resultListChanged` folgt ausschließlich erfolgreich abgeschlossenen nativen
+`vimgrep`-, `vimgrepadd`-, `grep`-, `grepadd`-, `lvimgrep`-, `lvimgrepadd`-,
+`lgrep`- oder `lgrepadd`-Befehlen. `listKind` ist `quickfix` oder
+`locationList`; `itemCount` und `itemIndex` stammen aus `getqflist()` oder
+`getloclist()`. Öffnet Neovim den ausgewählten Treffer, ist der folgende
+`contextChanged` maßgeblich. Bleibt die Auswahl in der offenen Liste, trägt
+`cursorMoved` stattdessen die vollständige Trefferzeile und Listenposition.
+Ein zur gleichen physischen Tastenfolge gehörendes redundantes Ereignis wird
+gebündelt. `replacementPerformed` folgt der von `nvim_parse_cmd()` erkannten
+nativen Ersetzungsfamilie `substitute`, `smagic`, `snomagic`, `&` und `~`
+sowie deren Ausführung über `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo` oder `bufdo`.
+Es enthält die von Neovim gelieferte begrenzte Statusmeldung, den Umfang und
+Anzahlen beobachteter geänderter beziehungsweise noch ungespeicherter Buffer.
+Bei bufferlokalen Ersetzungen enthält es zusätzlich die über öffentliche
+Buffer-Updates beobachtete Anzahl geänderter Zeilen. Diese dient nur als
+Rückmeldung, wenn Neovims von `report` abhängige Statusmeldung keine eigene
+Anzahl liefert; sie ist keine Anzahl einzelner Ersetzungen. Eine überschrittene
+Beobachtungsgrenze setzt `changedLineCountIncomplete=true`.
+Bei einem Bulk-Befehl werden zwischenliegende generische Text-, Cursor- und
+Kontextänderungsereignisse für genau diesen laufenden Befehl unterdrückt. Die
+Beobachtung endet an Neovims öffentlichem `SafeState`, der nicht während eines
+halb ausgeführten Befehls, einer laufenden Tastenbelegung oder einer
+Bestätigungsabfrage ausgelöst wird. Ausführung und Bestätigungsantworten
+bleiben bei Neovim. Neovims interner Befehlszeilentyp `-` für eine native
+Ersetzungsabfrage bleibt Teil derselben Beobachtung und beginnt keinen neuen
+Befehl. Wo Neovim diesen Typ als Befehlszeilenereignis veröffentlicht, erzeugt
+er innerhalb eines bereits klassifizierten `:substitute`-Befehls synchron
+`promptOpened` vor der Antwort und `promptClosed` danach. Neovim 0.10 liefert
+denselben Nachweis als öffentliches `msg_show.confirm_sub`-UI-Ereignis; der
+Callback liest den aktuellen Zustand nur und verwendet keine gerenderte
+Terminalzeile. Der Grund `substituteConfirmation` erlaubt eine lokalisierte
+feste Beschreibung, während Zeile und Position aus dem validierten Snapshot
+stammen.
+
+`lspRenameCompleted` beobachtet ausschließlich öffentliche `LspRequest`-
+Ereignisse für `textDocument/rename`. Die Payload meldet `changesObserved`,
+`noChangesObserved` oder `canceled` sowie Anzahlen tatsächlich beobachteter
+Bufferänderungen. Der Beobachter hält höchstens Metadaten von 2048 Neovim-
+Buffern und kopiert keine Dateiinhalte. Er ersetzt weder LSP-Handler noch
+`WorkspaceEdit` und behauptet ohne beobachtete Änderung keinen Erfolg. Nach
+der letzten offenen Rename-Anfrage wartet er 500 ms auf nachlaufende
+Bufferänderungen. Generische Text-, Cursor- und Kontextmeldungen bleiben
+während dieser Beobachtung aus. In der beobachteten Ereignisreihenfolge von
+Neovim 0.12 kann nach dem öffentlichen Anfrageabschluss je Ereignisart noch ein
+Ereignis eintreffen; der Beobachter verwirft höchstens dieses eine nachlaufende
+Ereignis. Der nächste physische
+Tastendruck löscht jeden ungenutzten Restzustand, bevor seine eigene Wirkung
+beobachtet wird.
 `diagnosticChanged` aktualisiert den kanonischen Zustand nach
 `DiagnosticChanged`, bleibt aber ohne automatische Präsentation.
 `diagnosticMoved` wird nach einer ausdrücklich beobachteten oder über einen

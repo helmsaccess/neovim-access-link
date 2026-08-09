@@ -36,7 +36,8 @@ $PythonRoot = Join-Path $StateRoot "python"
 $PythonScripts = Join-Path $PythonRoot "Scripts"
 $VenvPython = Join-Path $PythonScripts "python.exe"
 $RuffPath = Join-Path $PythonScripts "ruff.exe"
-$ClangTidyPath = Join-Path $PythonScripts "clang-tidy.exe"
+$ClangTidyPath = Join-Path $PythonRoot `
+    "Lib\site-packages\clang_tidy\data\bin\clang-tidy.exe"
 $NodeRoot = Join-Path $StateRoot "node"
 $NodeBin = Join-Path $NodeRoot "node_modules\.bin"
 $PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
@@ -96,6 +97,19 @@ function Write-Step {
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host ""
     Write-Host "==> $Message" -ForegroundColor Cyan
+}
+
+function Write-TaskSection {
+    param(
+        [Parameter(Mandatory = $true)][string]$Label,
+        [Parameter(Mandatory = $true)][string]$Text,
+        [int]$Indent = 0
+    )
+    $prefix = " " * $Indent
+    Write-Host "$prefix$($Label):" -ForegroundColor Cyan
+    foreach ($line in @($Text -split '\r?\n')) {
+        Write-Host "$prefix  $line"
+    }
 }
 
 function Get-RequiredCommand {
@@ -213,6 +227,76 @@ function Invoke-OptionalExternalText {
         return [PSCustomObject]@{ Succeeded = $false; Text = "" }
     }
     return [PSCustomObject]@{ Succeeded = $true; Text = $result.Text }
+}
+
+function Test-ToolFixtureContracts {
+    param(
+        [Parameter(Mandatory = $true)][bool]$NeedsRuff,
+        [Parameter(Mandatory = $true)][bool]$NeedsClangTidy,
+        [Parameter(Mandatory = $true)][bool]$NeedsMarkdownlint
+    )
+    $failures = @()
+    Write-Step (Get-Message "runner.setup.toolProbes")
+
+    if ($NeedsRuff) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.py"
+        $probe = Invoke-ExternalText -Command $RuffPath -Arguments @(
+            "check", "--isolated", "--no-cache", "--output-format", "json", $fixture
+        )
+        $valid = $false
+        if ($probe.ExitCode -eq 1) {
+            try {
+                $diagnostics = @($probe.Text | ConvertFrom-Json)
+                $f401 = @($diagnostics | Where-Object { $_.code -eq "F401" }).Count
+                $f821 = @($diagnostics | Where-Object { $_.code -eq "F821" }).Count
+                $valid = $f401 -ge 2 -and $f821 -ge 1
+            } catch {
+                $valid = $false
+            }
+        }
+        if (-not $valid) {
+            $failures += "Ruff"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "Ruff", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    if ($NeedsClangTidy) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.c"
+        $configuration = Join-Path $FixturesRoot ".clang-tidy"
+        $probe = Invoke-ExternalText -Command $ClangTidyPath -Arguments @(
+            "--quiet", "--config-file=$configuration", $fixture, "--", "-std=c11"
+        )
+        $first = ([regex]::Matches(
+            $probe.Text, "missing_first.*\[clang-diagnostic-error\]"
+        )).Count
+        $second = ([regex]::Matches(
+            $probe.Text, "missing_second.*\[clang-diagnostic-error\]"
+        )).Count
+        if ($probe.ExitCode -ne 1 -or $first -lt 1 -or $second -lt 1) {
+            $failures += "Clang-Tidy"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "Clang-Tidy", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    if ($NeedsMarkdownlint) {
+        $fixture = Join-Path $FixturesRoot "diagnostics.md"
+        $configuration = Join-Path $FixturesRoot ".markdownlint.json"
+        $probe = Invoke-ExternalText -Command $MarkdownlintPath -Arguments @(
+            "--config", $configuration, $fixture
+        )
+        if ($probe.ExitCode -ne 1 -or $probe.Text -notmatch "MD025") {
+            $failures += "markdownlint"
+            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+                "markdownlint", $probe.ExitCode
+            )) -ForegroundColor Red
+        }
+    }
+
+    return @($failures)
 }
 
 function Invoke-Python {
@@ -718,7 +802,7 @@ function Invoke-TestNvim {
         [string]$HumanTestId = "",
         [string]$StepId = "",
         [string]$Fixture = "",
-        [string]$Context = "",
+        [string]$Purpose = "",
         [string]$Task = "",
         [string]$Expected = "",
         [switch]$Headless,
@@ -738,7 +822,7 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_CLANG_TIDY",
         "ACCESS_LINK_HUMAN_MARKDOWNLINT",
         "ACCESS_LINK_HUMAN_DRY_RUN",
-        "ACCESS_LINK_HUMAN_CONTEXT",
+        "ACCESS_LINK_HUMAN_PURPOSE",
         "ACCESS_LINK_HUMAN_TASK",
         "ACCESS_LINK_HUMAN_EXPECTED",
         "ACCESS_LINK_HUMAN_LANGUAGE",
@@ -764,7 +848,7 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_CLANG_TIDY = $ClangTidyPath
         $env:ACCESS_LINK_HUMAN_MARKDOWNLINT = $MarkdownlintPath
         $env:ACCESS_LINK_HUMAN_DRY_RUN = if ($ConfigurationDryRun) { "1" } else { $null }
-        $env:ACCESS_LINK_HUMAN_CONTEXT = $Context
+        $env:ACCESS_LINK_HUMAN_PURPOSE = $Purpose
         $env:ACCESS_LINK_HUMAN_TASK = $Task
         $env:ACCESS_LINK_HUMAN_EXPECTED = $Expected
         $env:ACCESS_LINK_HUMAN_LANGUAGE = $Language
@@ -1007,6 +1091,10 @@ function Install-TestEnvironment {
             )
         }
     }
+    $setupFailures = @(Test-ToolFixtureContracts `
+        -NeedsRuff $needsRuff `
+        -NeedsClangTidy $needsClangTidy `
+        -NeedsMarkdownlint $needsMarkdownlint)
     Invoke-TestNvim -Profile "setup" -Headless
     $preflightFixtures = @{
         "native" = "lsp_features.py"
@@ -1023,8 +1111,20 @@ function Install-TestEnvironment {
             Fixture = $preflightFixtures[$profileName]
         }
         Write-Step (Get-Message "runner.setup.preflight" @($probe.Profile))
-        Invoke-TestNvim -Profile $probe.Profile `
-            -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
+        try {
+            Invoke-TestNvim -Profile $probe.Profile `
+                -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
+        } catch {
+            $setupFailures += "profile $($probe.Profile)"
+            Write-Host (Get-Message "runner.setup.preflightFailed" @(
+                $probe.Profile
+            )) -ForegroundColor Red
+        }
+    }
+    if ($setupFailures.Count -gt 0) {
+        throw (Get-Message "runner.setup.failures" @(
+            ($setupFailures -join ", ")
+        ))
     }
     $marker = [PSCustomObject]@{
         schemaVersion = 4
@@ -1206,9 +1306,12 @@ function Show-Plans {
         ))
         foreach ($step in @($plan.steps)) {
             Write-Host "  [$($step.testId)] $(Get-Message ([string]$step.titleKey))"
-            Write-Host "    $(Get-Message 'runner.context'): $(Get-Message ([string]$step.contextKey))"
-            Write-Host "    $(Get-Message 'runner.action'): $(Get-Message ([string]$step.actionKey))"
-            Write-Host "    $(Get-Message 'runner.expected'): $(Get-Message ([string]$step.expectedKey))"
+            Write-TaskSection -Label (Get-Message "runner.testPurpose") `
+                -Text (Get-Message ([string]$step.purposeKey)) -Indent 4
+            Write-TaskSection -Label (Get-Message "runner.action") `
+                -Text (Get-Message ([string]$step.actionKey)) -Indent 4
+            Write-TaskSection -Label (Get-Message "runner.expected") `
+                -Text (Get-Message ([string]$step.expectedKey)) -Indent 4
         }
     }
 }
@@ -1372,7 +1475,7 @@ function Run-Plans {
                 }
                 $taskIndex += 1
                 $title = "[$($step.testId)] $(Get-Message ([string]$step.titleKey))"
-                $context = Get-Message ([string]$step.contextKey)
+                $purpose = Get-Message ([string]$step.purposeKey)
                 $actionText = Get-Message ([string]$step.actionKey)
                 $expectedText = Get-Message ([string]$step.expectedKey)
                 Write-Step (Get-Message "runner.testProgress" @(
@@ -1384,15 +1487,11 @@ function Run-Plans {
                     $cardIndex,
                     (Get-Message ([string]$plan.titleKey))
                 )) -ForegroundColor Yellow
-                Write-Host (Get-Message "runner.purpose" @(
-                    (Get-Message ([string]$plan.descriptionKey))
-                ))
+                Write-TaskSection -Label (Get-Message "runner.testPurpose") -Text $purpose
                 Write-Host ""
-                Write-Host "$(Get-Message 'runner.context'): $context"
+                Write-TaskSection -Label (Get-Message "runner.action") -Text $actionText
                 Write-Host ""
-                Write-Host "$(Get-Message 'runner.action'): $actionText"
-                Write-Host ""
-                Write-Host "$(Get-Message 'runner.expected'): $expectedText"
+                Write-TaskSection -Label (Get-Message "runner.expected") -Text $expectedText
                 Write-Host ""
                 Write-Host (Get-Message "runner.orientation") -ForegroundColor Cyan
                 Write-Host (Get-Message "runner.claimReminder")
@@ -1402,9 +1501,9 @@ function Run-Plans {
                 Invoke-TestNvim -Profile ([string]$plan.profile) `
                     -HumanTestId ([string]$step.testId) `
                     -StepId ([string]$step.id) -Fixture $fixture `
-                    -Context $context -Task $actionText -Expected $expectedText
+                    -Purpose $purpose -Task $actionText -Expected $expectedText
                 Write-Step (Get-Message "runner.afterReturn")
-                Write-Host "$(Get-Message 'runner.expected'): $expectedText"
+                Write-TaskSection -Label (Get-Message "runner.expected") -Text $expectedText
                 $outcome = Get-Outcome $title
                 $resultStep.status = $outcome.status
                 $resultStep.note = $outcome.note
