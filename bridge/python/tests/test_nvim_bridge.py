@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import json
 import pathlib
+import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -839,6 +841,478 @@ class NvimBridgeTests(unittest.TestCase):
 					process.kill()
 					process.wait(timeout=3)
 
+	def test_real_tui_guided_quickfix_keys_keep_semantic_feedback(self) -> None:
+		root = pathlib.Path.cwd()
+		temporary_root = root / "tmp"
+		temporary_root.mkdir(exist_ok=True)
+		with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			runtime = os.path.join(directory, "runtime")
+			os.mkdir(runtime)
+			environment = {
+				**os.environ,
+				"TERM": "xterm-256color",
+				"XDG_RUNTIME_DIR": runtime,
+				"XDG_DATA_HOME": os.path.join(directory, "data"),
+				"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+				"XDG_STATE_HOME": os.path.join(directory, "state"),
+				"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+				"ACCESS_LINK_HUMAN_PROFILE": "native",
+				"ACCESS_LINK_HUMAN_TEST_ID": "L4",
+				"ACCESS_LINK_HUMAN_STEP_ID": "native-search-replacement",
+				"ACCESS_LINK_HUMAN_LANGUAGE": "en",
+				"ACCESS_LINK_HUMAN_DRY_RUN": "1",
+			}
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n",
+					"-u",
+					str(root / "tests/human/framework/init.lua"),
+					"-i",
+					"NONE",
+					"--noplugin",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"set runtimepath^={root / 'neovim-plugin'}",
+					"lsp_features.py",
+					"-c",
+					"runtime plugin/nvim_nvda.lua",
+					"--listen",
+					nvim_socket,
+				],
+				cwd=str(root / "tests/human/fixtures"),
+				env=environment,
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+
+				start = len(events)
+				process.send(b"\x1bOR")  # F3: populate Quickfix.
+				self._wait(
+					condition,
+					lambda: any(event["type"] == "resultListChanged" for event in events[start:]),
+				)
+				search_events = events[start:]
+				result_list = next(
+					event for event in search_events if event["type"] == "resultListChanged"
+				)
+				self.assertEqual(4, result_list["payload"]["itemCount"])
+
+				start = len(events)
+				process.send(b"\x1bOS")  # F4: second result.
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "contextChanged"
+						and event["payload"].get("resultIndex") == 2
+						for event in events[start:]
+					),
+				)
+				self.assertFalse(any(
+					event["type"] == "characterMoved" for event in events[start:]
+				))
+
+				start = len(events)
+				process.send(b"\x1bOS")  # F4 again: third result within Quickfix.
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "cursorMoved"
+						and event["payload"].get("resultIndex") == 3
+						for event in events[start:]
+					),
+				)
+				self.assertFalse(any(
+					event["type"] == "contextChanged" for event in events[start:]
+				))
+
+				for expected_index in (2, 1):
+					start = len(events)
+					process.send(b"\x1b[15~")  # F5: previous result within Quickfix.
+					self._wait(
+						condition,
+						lambda expected_index=expected_index: any(
+							event["type"] == "cursorMoved"
+							and event["payload"].get("resultIndex") == expected_index
+							for event in events[start:]
+						),
+					)
+					self.assertFalse(any(
+						event["type"] == "contextChanged" for event in events[start:]
+					))
+
+				start = len(events)
+				process.send(b"\x1b[15~")  # F5 again: remain at first result.
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "messageReceived"
+						and event["payload"].get("message")
+						== "Already at the first Quickfix result."
+						for event in events[start:]
+					),
+				)
+				boundary_events = events[start:]
+				self.assertFalse(any(
+					event["type"] == "errorReceived" for event in boundary_events
+				))
+				self.assertFalse(any(
+					"No more items" in str(event["payload"].get("message", ""))
+					for event in boundary_events
+				))
+
+				start = len(events)
+				process.send(b"\x1b[17~")  # F6: confirmed project replacement.
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "promptOpened"
+						and event["payload"].get("promptKind") == "confirmSub"
+						for event in events[start:]
+					),
+				)
+				for answer in b"yn":
+					prior = len(events)
+					process.send(bytes((answer,)))
+					self._wait(
+						condition,
+						lambda: any(
+							event["type"] == "promptOpened"
+							and event["payload"].get("promptKind") == "confirmSub"
+							for event in events[prior:]
+						),
+					)
+				process.send(b"a")
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "replacementPerformed" for event in events[start:]
+					),
+					timeout=5,
+				)
+				time.sleep(0.2)
+				replacement_events = events[start:]
+				replacements = [
+					event for event in replacement_events
+					if event["type"] == "replacementPerformed"
+				]
+				prompts_opened = [
+					event for event in replacement_events
+					if event["type"] == "promptOpened"
+					and event["payload"].get("promptKind") == "confirmSub"
+				]
+				prompts_closed = [
+					event for event in replacement_events
+					if event["type"] == "promptClosed"
+					and event["payload"].get("promptKind") == "confirmSub"
+				]
+				self.assertEqual(3, len(prompts_opened))
+				self.assertEqual(3, len(prompts_closed))
+				self.assertTrue(all(
+					event["payload"].get("lineText")
+					and event["payload"].get("reason") == "substituteConfirmation"
+					for event in prompts_opened
+				))
+				self.assertEqual(
+					[30, 36, 1],
+					[event["payload"]["cursor"]["line"] for event in prompts_opened],
+				)
+				self.assertEqual(1, len(replacements))
+				self.assertEqual(2, replacements[0]["payload"]["changedBufferCount"])
+				unexpected_updates = [
+					(event["type"], event["payload"].get("reason"))
+					for event in replacement_events
+					if event["type"] in {"contextChanged", "textChanged", "cursorMoved"}
+				]
+				self.assertEqual([], unexpected_updates)
+			finally:
+				bridge.stop()
+				process.terminate(force=True)
+
+	def test_real_tui_guided_lsp_rename_keys_complete_and_report_references(self) -> None:
+		root = pathlib.Path.cwd()
+		temporary_root = root / "tmp"
+		temporary_root.mkdir(exist_ok=True)
+		with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
+			workspace = pathlib.Path(directory) / "workspace"
+			workspace.mkdir()
+			for name in ("lsp_features.py", "lsp_rename_consumer.py"):
+				shutil.copy2(root / "tests/human/fixtures" / name, workspace / name)
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			runtime = os.path.join(directory, "runtime")
+			os.mkdir(runtime)
+			environment = {
+				**os.environ,
+				"TERM": "xterm-256color",
+				"XDG_RUNTIME_DIR": runtime,
+				"XDG_DATA_HOME": os.path.join(directory, "data"),
+				"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+				"XDG_STATE_HOME": os.path.join(directory, "state"),
+				"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+				"ACCESS_LINK_HUMAN_PROFILE": "native",
+				"ACCESS_LINK_HUMAN_TEST_ID": "L5",
+				"ACCESS_LINK_HUMAN_STEP_ID": "native-lsp-rename",
+				"ACCESS_LINK_HUMAN_LANGUAGE": "en",
+				"ACCESS_LINK_HUMAN_DRY_RUN": "1",
+				"ACCESS_LINK_TEST_LSP_SERVER": str(
+					root / "neovim-plugin/tests/fixtures/lsp_test_server.py"
+				),
+				"ACCESS_LINK_TEST_PYTHON": sys.executable,
+			}
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n",
+					"-u",
+					str(root / "tests/human/framework/init.lua"),
+					"-i",
+					"NONE",
+					"--noplugin",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"set runtimepath^={root / 'neovim-plugin'}",
+					"lsp_features.py",
+					"-c",
+					"runtime plugin/nvim_nvda.lua",
+					"-c",
+					"call cursor(30, 5)",
+					"-c",
+					(
+						"lua vim.lsp.start({name='access-link-test-lsp',"
+						"cmd={vim.env.ACCESS_LINK_TEST_PYTHON,"
+						"vim.env.ACCESS_LINK_TEST_LSP_SERVER},root_dir=vim.fn.getcwd()})"
+					),
+					"--listen",
+					nvim_socket,
+				],
+				cwd=str(workspace),
+				env=environment,
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"""
+					local function report_when_ready()
+					  if #vim.lsp.get_clients({bufnr = 0}) > 0 then
+					    vim.cmd('NvimNvdaLspStatus')
+					  else
+					    vim.defer_fn(report_when_ready, 20)
+					  end
+					end
+					report_when_ready()
+					""",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "lspStatus"
+						and event["payload"].get("clientCount") == 1
+						for event in events
+					),
+					timeout=5,
+				)
+
+				start = len(events)
+				process.send(b"\x1bOR")  # F3: open the prepared native rename prompt.
+				self._wait(
+					condition,
+					lambda: any(event["type"] == "commandLineChanged" for event in events[start:]),
+				)
+				process.send(b"calculate_gratuity\r")
+				self._wait(
+					condition,
+					lambda: any(event["type"] == "lspRenameCompleted" for event in events[start:]),
+					timeout=5,
+				)
+				rename_events = [
+					event for event in events[start:] if event["type"] == "lspRenameCompleted"
+				]
+				self.assertEqual(1, len(rename_events))
+				self.assertEqual("changesObserved", rename_events[0]["payload"]["renameResult"])
+				self.assertEqual(2, rename_events[0]["payload"]["changedBufferCount"])
+				self.assertEqual(2, rename_events[0]["payload"]["modifiedBufferCount"])
+				rename_intermediate_updates = [
+						(event["type"], event["payload"].get("reason"))
+						for event in events[start:]
+						if event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+					]
+				self.assertEqual(
+					[], rename_intermediate_updates,
+					[
+						(
+							event["type"], event["payload"].get("reason"),
+							event["payload"].get("message"),
+						)
+						for event in events[start:]
+					],
+				)
+				self.assertFalse(any(
+					event["type"] == "errorReceived" for event in events[start:]
+				))
+
+				for expected in (
+					"Renamed reference 1 of 2, line 1: "
+					"from lsp_features import calculate_gratuity",
+					"Renamed reference 2 of 2, line 4: "
+					"suggested_tip = calculate_gratuity(40.0)",
+				):
+					start = len(events)
+					process.send(b"\x1bOS")  # F4: report the next renamed reference.
+					self._wait(
+						condition,
+						lambda expected=expected: any(
+							event["type"] == "messageReceived"
+							and event["payload"].get("message") == expected
+							for event in events[start:]
+						),
+					)
+					self.assertFalse(any(
+						event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+						for event in events[start:]
+					))
+					self.assertFalse(any(
+						event["type"] == "errorReceived" for event in events[start:]
+					))
+			finally:
+				bridge.stop()
+				process.terminate(force=True)
+
+			self.assertEqual(
+				"from lsp_features import calculate_tip",
+				(workspace / "lsp_rename_consumer.py").read_text(encoding="utf-8").splitlines()[0],
+			)
+
+	def test_real_tui_guided_buffer_replacement_reports_one_aggregate_result(self) -> None:
+		root = pathlib.Path.cwd()
+		temporary_root = root / "tmp"
+		temporary_root.mkdir(exist_ok=True)
+		with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
+			workspace = pathlib.Path(directory) / "workspace"
+			workspace.mkdir()
+			for name in ("lsp_features.py", "lsp_rename_consumer.py"):
+				shutil.copy2(root / "tests/human/fixtures" / name, workspace / name)
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			runtime = os.path.join(directory, "runtime")
+			os.mkdir(runtime)
+			environment = {
+				**os.environ,
+				"TERM": "xterm-256color",
+				"XDG_RUNTIME_DIR": runtime,
+				"XDG_DATA_HOME": os.path.join(directory, "data"),
+				"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+				"XDG_STATE_HOME": os.path.join(directory, "state"),
+				"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+				"ACCESS_LINK_HUMAN_PROFILE": "native",
+				"ACCESS_LINK_HUMAN_TEST_ID": "L6",
+				"ACCESS_LINK_HUMAN_STEP_ID": "native-buffer-replacement",
+				"ACCESS_LINK_HUMAN_LANGUAGE": "en",
+				"ACCESS_LINK_HUMAN_DRY_RUN": "1",
+			}
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n",
+					"-u",
+					str(root / "tests/human/framework/init.lua"),
+					"-i",
+					"NONE",
+					"--noplugin",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"set runtimepath^={root / 'neovim-plugin'}",
+					"lsp_features.py",
+					"-c",
+					"runtime plugin/nvim_nvda.lua",
+					"--listen",
+					nvim_socket,
+				],
+				cwd=str(workspace),
+				env=environment,
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+				time.sleep(0.2)
+				start = len(events)
+				process.send(b"\x1bOR")  # F3: replace across both loaded buffers.
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "replacementPerformed" for event in events[start:]
+					),
+					timeout=5,
+				)
+				time.sleep(0.2)
+				replacement_events = events[start:]
+				replacements = [
+					event for event in replacement_events
+					if event["type"] == "replacementPerformed"
+				]
+				self.assertEqual(1, len(replacements))
+				self.assertEqual("buffers", replacements[0]["payload"]["replacementScope"])
+				self.assertEqual(2, replacements[0]["payload"]["changedBufferCount"])
+				self.assertEqual(2, replacements[0]["payload"]["modifiedBufferCount"])
+				self.assertFalse(any(
+					event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+					for event in replacement_events
+				), [
+					(event["type"], event["payload"].get("reason"), event["payload"].get("fileName"))
+					for event in replacement_events
+				])
+
+				for expected in (
+					"lsp_features.py: 2 occurrences of calculate_tip_buffered",
+					"lsp_rename_consumer.py: 2 occurrences of calculate_tip_buffered",
+				):
+					start = len(events)
+					process.send(b"\x1bOS")  # F4: verify the next changed buffer.
+					self._wait(
+						condition,
+						lambda expected=expected: any(
+							event["type"] == "messageReceived"
+							and expected in str(event["payload"].get("message", ""))
+							for event in events[start:]
+						),
+					)
+					self.assertFalse(any(
+						event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+						for event in events[start:]
+					))
+			finally:
+				bridge.stop()
+				process.terminate(force=True)
+
+			for name in ("lsp_features.py", "lsp_rename_consumer.py"):
+				disk_text = (workspace / name).read_text(encoding="utf-8")
+				self.assertIn("calculate_tip", disk_text)
+				self.assertNotIn("calculate_tip_buffered", disk_text)
+
 	def test_real_tui_omnifunc_emits_popup_selection_and_close(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
@@ -1001,6 +1475,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
+				self._drain_tui_output(process)
 				process.send(b"feature\r")
 				self._wait(
 					condition,
@@ -1266,8 +1741,24 @@ class NvimBridgeTests(unittest.TestCase):
 				)
 				process.send(b"\x1b")
 				bridge.nvim.notify("nvim_win_set_cursor", 0, [1, 0])
+				bridge.nvim.notify("nvim_exec_lua", "vim.o.hlsearch=true", [])
 				time.sleep(0.05)
-				process.send(b"/beta\r")
+				prior = len(events)
+				process.send(b"/be")
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "searchMatchChanged"
+						and e["payload"].get("searchPreview") is True
+						for e in events[prior:]
+					),
+				)
+				preview = next(
+					e for e in reversed(events[prior:])
+					if e["type"] == "searchMatchChanged" and e["payload"].get("searchPreview") is True
+				)
+				self.assertEqual(1, preview["payload"]["matchLine"])
+				process.send(b"ta\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1284,6 +1775,7 @@ class NvimBridgeTests(unittest.TestCase):
 						first_match["payload"]["matchLine"],
 					),
 				)
+				self.assertTrue(first_match["payload"].get("searchHighlighting"))
 				# Let the TUI finish the search-result redraw before sending
 				# the next physical key. The structured event may arrive a
 				# few milliseconds before the terminal has consumed redraw.
@@ -1297,13 +1789,25 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"N")
+				process.send(b"n")
 				self._wait(
 					condition,
 					lambda: any(
 						e["type"] == "searchMatchChanged"
 						and e["payload"].get("matchLine") == 1
+						and e["payload"].get("searchWrapped") is True
+						for e in events[prior:]
+					),
+				)
+				prior = len(events)
+				process.send(b"N")
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "searchMatchChanged"
+						and e["payload"].get("matchLine") == 2
 						and e["payload"].get("searchDirection") == "previous"
+						and e["payload"].get("searchWrapped") is True
 						for e in events[prior:]
 					),
 				)
@@ -1317,10 +1821,67 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events
 					),
 				)
+				prior = len(events)
+				process.send(b":nohlsearch\r")
+				self._wait(
+					condition,
+					lambda: any(
+						e["type"] == "searchHighlightChanged"
+						and e["payload"].get("searchHighlighting") is False
+						for e in events[prior:]
+					),
+				)
 				process.send(b":%s/beta/gamma/g\r")
 				self._wait(condition, lambda: any(e["type"] == "replacementPerformed" for e in events))
 				replacement = next(e for e in reversed(events) if e["type"] == "replacementPerformed")
 				self.assertIn("replacementMessage", replacement["payload"])
+				self.assertEqual(1, replacement["payload"].get("changedBufferCount"))
+				self.assertEqual(2, replacement["payload"].get("changedLineCount"))
+
+				for inccommand_mode in ("nosplit", "split"):
+					bridge.nvim.notify(
+						"nvim_exec_lua", f"vim.o.inccommand={inccommand_mode!r}", [],
+					)
+					time.sleep(0.05)
+					self._drain_tui_output(process)
+					prior = len(events)
+					process.send(b":%s/gamma/delta/g")
+					self._wait(
+						condition,
+						lambda: any(
+							e["type"] == "substitutePreviewChanged"
+							and e["payload"].get("previewActive") is True
+							for e in events[prior:]
+						),
+					)
+					preview = next(
+						e for e in reversed(events[prior:])
+						if e["type"] == "substitutePreviewChanged"
+						and e["payload"].get("previewActive") is True
+					)
+					self.assertEqual(2, preview["payload"].get("previewChangedLineCount"))
+					self.assertEqual(inccommand_mode, preview["payload"].get("inccommandMode"))
+					self.assertIn("delta", preview["payload"].get("previewLineText", ""))
+					process.send(b"\x1b")
+					self._wait(
+						condition,
+						lambda: any(
+							e["type"] == "substitutePreviewChanged"
+							and e["payload"].get("previewActive") is False
+							for e in events[prior:]
+						),
+					)
+				prior = len(events)
+				process.send(b":s/gamma/delta/\r")
+				self._wait(
+					condition,
+					lambda: any(e["type"] == "replacementPerformed" for e in events[prior:]),
+				)
+				local_replacement = next(
+					e for e in reversed(events[prior:]) if e["type"] == "replacementPerformed"
+				)
+				self.assertEqual("", local_replacement["payload"].get("replacementMessage"))
+				self.assertEqual(1, local_replacement["payload"].get("changedLineCount"))
 				bridge.nvim.notify(
 					"nvim_exec_lua",
 					"local lines={'function demo() {','  return (x)','}'}; "

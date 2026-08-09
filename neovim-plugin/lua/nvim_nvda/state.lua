@@ -6,6 +6,7 @@ local diagnostics = require("nvim_nvda.diagnostics")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
+
 local modern_string_indices = vim.fn.has("nvim-0.11") == 1
 
 local function character_column(line, byte_column)
@@ -47,6 +48,39 @@ local function character_at(line, byte_column)
   return string.sub(line, byte_column + 1, finish)
 end
 
+local function character_region(buf, indexed, selection_option)
+  if vim.fn.exists("*getregionpos") == 1 then
+    local region = {}
+    local positions = vim.fn.getregionpos(
+      vim.fn.getpos("v"),
+      vim.fn.getpos("."),
+      { type = "v", exclusive = selection_option == "exclusive", eol = true }
+    )
+    for _, segment in ipairs(positions) do
+      local start_position = segment[1]
+      local end_position = segment[2]
+      local line_number = start_position[2]
+      local text = indexed[line_number] or ""
+      local start_column = math.max(0, start_position[3] - 1)
+      local end_column = end_position[3] - 1
+      if end_column < #text then
+        end_column = end_column + #character_at(text, end_column)
+      else
+        end_column = #text
+      end
+      region[line_number - 1] = { start_column, math.max(start_column, end_column) }
+    end
+    return region
+  end
+  return vim.region(
+    buf,
+    "v",
+    ".",
+    "v",
+    selection_option ~= "exclusive"
+  )
+end
+
 local function current_word(line, byte_column)
   local character = character_at(line, byte_column)
   -- `expand("<cword>")` searches forward when the cursor is on punctuation.
@@ -72,6 +106,8 @@ function M.snapshot(reason)
   local windows, window_index = vim.api.nvim_tabpage_list_wins(0), 1
   for index, window in ipairs(windows) do if window == win then window_index = index end end
   local window_info = vim.fn.getwininfo(win)[1] or {}
+  local window_type = window_info.loclist == 1 and "locationList"
+    or (window_info.quickfix == 1 and "quickfix" or "normal")
   local command_line = ""
   local command_line_position = 0
   local virtual_column = vim.fn.virtcol(".") - 1
@@ -106,8 +142,7 @@ function M.snapshot(reason)
     tabCount = #tabs,
     windowIndex = window_index,
     windowCount = #windows,
-    windowType = window_info.loclist == 1 and "locationList"
-      or (window_info.quickfix == 1 and "quickfix" or "normal"),
+    windowType = window_type,
     bufferName = vim.api.nvim_buf_get_name(buf),
     filetype = vim.bo[buf].filetype,
     buftype = vim.bo[buf].buftype,
@@ -137,6 +172,18 @@ function M.snapshot(reason)
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
   result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])
   result.diagnosticSummary = diagnostics.summary(buf, cursor[1], cursor[2])
+  if window_type == "quickfix" or window_type == "locationList" then
+    local ok, details
+    if window_type == "locationList" then
+      ok, details = pcall(vim.fn.getloclist, 0, { idx = 0, size = 0 })
+    else
+      ok, details = pcall(vim.fn.getqflist, { idx = 0, size = 0 })
+    end
+    if ok and type(details) == "table" then
+      result.resultIndex = math.max(0, tonumber(details.idx) or 0)
+      result.resultCount = math.max(0, tonumber(details.size) or 0)
+    end
+  end
   if visual_modes[mode_raw] then
     local position = vim.fn.getpos("v")
     local anchor = { line = position[2], byteColumn = math.max(0, position[3] - 1) }
@@ -179,13 +226,7 @@ function M.snapshot(reason)
         region[line_number - 1] = { start_column, end_column }
       end
     else
-      region = vim.region(
-        buf,
-        { anchor.line - 1, anchor.byteColumn },
-        { cursor[1] - 1, cursor[2] },
-        mode_raw,
-        vim.o.selection ~= "exclusive"
-      )
+      region = character_region(buf, indexed, vim.o.selection)
     end
     local current = region[cursor[1] - 1]
     local exact_text = vim.fn.getregion(

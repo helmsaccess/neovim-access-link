@@ -28,31 +28,34 @@ diagnostics intentionally have no dedicated diagnostic sound and are therefore
 not presented as additional sound types.
 
 The runner is intended even for testers with little Neovim experience. Before
-every task, it provides this orientation:
+every task, it structures the instruction as follows:
 
 | Display | Meaning |
 | --- | --- |
-| **Where you are** | current Windows Terminal tab and current program |
-| **What to do now** | keys to press and action to perform next |
-| **How to recognize the correct outcome** | expected perceptible output |
-| `Escape`, then `F2` | display and report the test ID and current task again in Neovim |
+| **Purpose of this test** | feature being checked and why it matters |
+| **Keys and steps** | short numbered sequence with the effect of each key |
+| **Pass when** | expected perceptible output |
+| `Escape`, then `F2` | display and report the test ID, purpose, steps, and pass condition again in Neovim |
 | `Escape`, then `F10` | safely close test Neovim and return to runner PowerShell |
 
-No colon commands are needed in Neovim. The personal `init.lua`, Lazy
+Hard line breaks separate numbered steps only. Windows Terminal wraps longer
+lines to its current width, so a maximized window uses the available space.
+Longer native workflows are assigned to the function keys named by the task;
+testers do not have to enter colon commands. The personal `init.lua`, Lazy
 configuration, and Neovim data directories are not changed.
 
 ## Which suite should be used?
 
 | Suite | Contents | When to run it |
 | --- | --- | --- |
-| `smoke` | native LSP and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 10 to 15 minutes |
+| `smoke` | native LSP, search, replacement, and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 20 to 30 minutes |
 | `compatibility` | nvim-cmp and blink.cmp completion menus plus one C/Clang-Tidy and one Markdown/markdownlint diagnostic | after changes to adapters, linter integration, or dependencies |
 | `all` | both suites in one result | only when both areas are affected |
 | individual selection | individual tasks grouped by category in the menu | targeted recheck of an affected area; saves time and unnecessary downloads |
 
 | Individual-selection category | Examples |
 | --- | --- |
-| LSP and language intelligence | LSP status, automatic active parameters, and held function signatures |
+| LSP and language intelligence | LSP status, automatic active parameters, held function signatures, native search/replacement, and LSP rename |
 | Completion | native completion, nvim-cmp, and blink.cmp |
 | Diagnostics and linters | Ruff, Clang-Tidy, and markdownlint |
 | Session and terminal integration | focus isolation and fail-open behavior |
@@ -71,6 +74,9 @@ in test Neovim. Thus, “failure in D3” is an unambiguous reference.
 | `L1` | LSP status |
 | `L2` | automatic active parameters |
 | `L3` | held function signatures and parameters |
+| `L4` | native search, Quickfix, and project-wide replacement |
+| `L5` | native LSP rename across files |
+| `L6` | native replacement across listed buffers |
 | `C1` | native completion |
 | `C2` | nvim-cmp |
 | `C3` | blink.cmp |
@@ -168,8 +174,8 @@ Read one instruction in PowerShell
 -> select only that outcome back in PowerShell
 ```
 
-Before startup, the runner states **Where you are**, **What to do now**, and
-**How to recognize the correct outcome**. Only then press Enter.
+Before startup, the runner states **Purpose of this test**, **Keys and steps**,
+and **Pass when**. Only then press Enter.
 
 When test Neovim appears:
 
@@ -179,8 +185,8 @@ When test Neovim appears:
 3. Focus the original Windows Terminal tab, press `F12` exactly once, and wait
    briefly for the connection.
 4. Perform only the displayed task.
-5. If uncertain, press `Escape`, then `F2`. The test ID, current location,
-   action, and expectation are displayed again as a Neovim notification and
+5. If uncertain, press `Escape`, then `F2`. The test ID, purpose, numbered
+   steps, and pass condition are displayed again as a Neovim notification and
    reported by Access Link.
 6. After observing the result, press `Escape`, then `F10`. The runner
    PowerShell is now visible again in the original tab.
@@ -195,9 +201,13 @@ Each task names only the keys it needs. This table is a reference:
 
 | Key | Meaning in test Neovim |
 | --- | --- |
-| `Escape`, then `F2` | repeat the ID and current task at any time |
-| `F1` | report the active LSP status through Access Link |
-| `F3` | open the insertion location prepared for the current task and enter Insert mode automatically; in a completion task, press `F5` next |
+| `Escape`, then `F2` | repeat the ID, purpose, steps, and pass condition at any time |
+| `F3` in L1 | report the active LSP status through Access Link |
+| `F3` in insertion and completion tasks | open the prepared insertion location and enter Insert mode automatically; in a completion task, press `F5` next |
+| `F3`, `F4`, `F5` in L4 | run the native project search and open its Quickfix list, then select the next and previous result within the list |
+| `F6` in L4 | start native project-wide replacement with Neovim's confirmation prompts |
+| `F3`, `F4` in L5 | open an empty name field, pass its input to Neovim's native LSP rename, and then report both renamed reference rows in sequence |
+| `F3`, `F4` in L6 | run the prepared `bufdo` replacement and then report both files that actually changed |
 | `F5` in the diagnostic profile | move to a prepared clean position and explicitly query its current diagnostic |
 | `F6` | run the selected linter, wait for readiness, and place the cursor on the first expected test diagnostic |
 | `F7` | report the diagnostic at the current position |
@@ -206,9 +216,36 @@ Each task names only the keys it needs. This table is a reference:
 
 Completion is navigated with `Ctrl+N` and `Ctrl+P`, accepted with `Ctrl+Y`,
 and closed with `Ctrl+E`. Braille tasks spell out the required held NVDA
-gesture. Neovim command-line mode is never required. `F11` is deliberately
-unused because Windows Terminal binds it to full-screen mode by default and
-therefore intercepts it before Neovim can receive it.
+gesture. L4 deliberately uses the short slash search; testers do not have to
+type longer colon commands because task-specific function keys execute the
+prepared native commands directly. Neovim retains execution and every
+confirmation prompt; generated command characters are not presented as typed
+input. In L4, `F3` reports the result count and `F4` or `F5` reports the
+complete result row and position. Repeated selection remains in the open
+Quickfix window; source files and windows are not announced as focus changes.
+Another press at the first or last result reports the reached boundary;
+neither an isolated character nor Neovim's “No more items” message may be
+presented. `F6` presents every native confirmation prompt before an answer is
+required, followed by exactly one aggregate summary; internally visited files
+or windows must not appear as focus changes. `F1` and `F11` are deliberately
+unused: F1 opens Neovim help, while F11 toggles Windows Terminal full-screen
+mode by default.
+
+In L5, the known reference file is already loaded before interaction. `F3`
+therefore accepts only the new name; Neovim, Pyright, and Neovim's normal
+`WorkspaceEdit` handler continue to own the rename. Each press of `F4` reports
+the next reference row that was actually changed without switching the current
+buffer. An automated TUI/RPC test drives those physical function keys with a
+deterministic test language server and excludes additional text, cursor, and
+context reports. The guided test is left to assess only speech and perceived
+latency under Windows/NVDA.
+
+L6 complements L4 with Neovim's buffer list. The second file is loaded and
+explicitly listed before interaction; `F3` lets Neovim run `bufdo` across both
+files. Access Link should provide only one aggregate result. Two presses of
+`F4` then verify the actual buffer contents without changing the current
+buffer. An automated real TUI/RPC test drives the same function keys and
+excludes additional text, cursor, and context reports.
 
 ## What happens automatically before the first test
 
@@ -235,9 +272,10 @@ a normal smoke run. Only the technical preflight for actually selected
 profiles is repeated after a relevant runtime change.
 
 A technical preflight then starts every selected test profile. For LSP tasks,
-it waits for an attached Pyright client. In the completion profiles it requests the three named
-candidates; in the native LSP profile it additionally requires at least two
-signatures with three parameters each. In the Python diagnostic profile, it requires
+it waits for an attached Pyright client. The rename task requires its native
+rename capability. In completion profiles the preflight requests the three
+named candidates; signature tasks additionally require at least two signatures
+with three parameters each. In the Python diagnostic profile, it requires
 two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
 The C and Markdown profiles require a real Clang-Tidy error and markdownlint
 MD025 warning, respectively.
@@ -360,7 +398,8 @@ If Access Link does not connect:
 2. install or update local Neovim components from the NVDA menu;
 3. ensure the original tab containing test Neovim is focused;
 4. press `F12` exactly once there and wait briefly;
-5. press `Escape`, `F2` to check whether the test ID and task are reported.
+5. press `Escape`, `F2` to check whether the test ID, purpose, steps, and pass
+   condition are reported.
 
 If Pyright, a linter, or a completion plugin is unavailable, select **Set up or
 repair test dependencies**. A failed technical preflight is a setup problem,

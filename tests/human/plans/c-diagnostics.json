@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "c-diagnostics",
   "order": 60,
   "titleKey": "plan.cDiagnostics.title",
@@ -13,7 +13,7 @@
       "id": "clang-tidy-presentation",
       "category": "diagnostics",
       "titleKey": "plan.cDiagnostics.presentation.title",
-      "contextKey": "plan.cDiagnostics.context",
+      "purposeKey": "plan.cDiagnostics.presentation.purpose",
       "actionKey": "plan.cDiagnostics.presentation.action",
       "expectedKey": "plan.cDiagnostics.presentation.expected",
       "manualReasons": ["speechPerception", "latencyUsability", "audioPerception"],

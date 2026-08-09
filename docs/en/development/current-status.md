@@ -1,6 +1,6 @@
 # Current status
 
-Status date: August 5, 2026. The source tree belongs to the 0.97.0 development
+Status date: August 7, 2026. The source tree belongs to the 0.97.0 development
 line; `buildVars.py` generates the exact development build number and Git
 metadata. The current published beta pre-release is 0.96.0. The project does
 not infer a higher stability classification from test coverage or feature
@@ -58,6 +58,30 @@ tab changes, plus structured Neovim messages.
   type, source, and available documentation. LSP hover, signature help,
   automatic active parameters, and held parameter views are correlated and do
   not move the editor cursor.
+- Native incremental search reports preview matches with a count recomputed by
+  Neovim for the still provisional input pattern, bounded-count status,
+  wrapping at buffer boundaries, and visible search highlighting. Direct
+  native `inccommand` previews in the current buffer report the previewed line
+  and a bounded affected-line count for both `nosplit` and `split`.
+  Buffer-local replacements add the observed changed-line count when Neovim
+  supplies no native quantity.
+  `vimgrep`/`grep` and
+  their location-list variants report result count and position; confirmed
+  and cross-buffer `:substitute` workflows receive one completion report with
+  observed changed and unsaved buffers. Internal buffer, context, and cursor
+  changes from such a bulk command are coalesced until Neovim's safe command
+  completion and are not presented as focus changes. Multiple Neovim
+  autocommands from the same window transition produce only one semantic
+  context change. Selection changes in Quickfix and location lists report the
+  complete result row and position; an immediately following generic cursor
+  event is not also presented as an isolated character. The guided project
+  flow repeatedly selects within the open Quickfix list without opening source
+  files as focus changes. Native `:substitute` confirmations are presented
+  with their result row and position before each answer. Real regression tests
+  cover Quickfix files, listed buffers, and argument files, including an
+  initially unloaded argument buffer. Guided L4 and L6 cover Quickfix-file and
+  buffer-list replacement respectively; L6 has not yet been practically
+  accepted under Windows/NVDA.
 - Diagnostics from `vim.diagnostic` can be read at the current, previous, next,
   first, and last position. Held diagnostic views and error, warning, and
   empty-result cues use the same validated data path.
@@ -71,6 +95,12 @@ tab changes, plus structured Neovim messages.
   native LSP completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`, ALE, and
   `none-ls.nvim`; users install the applicable external language servers and
   linters themselves.
+- Native LSP rename remains entirely owned by Neovim and the language server.
+  Access Link observes `LspRequest` and actual buffer changes, then reports one
+  evidence-based completion instead of internal text, cursor, and context
+  updates. The guided L5 test reports both references that were actually
+  renamed without an extra buffer or focus transition. This workflow is
+  automated but not yet practically accepted under Windows/NVDA.
 - Direct input in a Neovim terminal buffer uses native terminal pass-through.
   Terminal-Normal mode, command-line return, process exit, and buffer changes
   remain structured.
@@ -99,9 +129,18 @@ Automated suites cover protocol and bounds, bridge, local and SSH clients,
 multiple instances, focus and fail-open behavior, editor and presentation
 planning, Lua with real headless Neovim processes, package contents,
 localization, and documentation links. Pinned matrices cover Neovim 0.10.1 and
-0.12.3 plus real completion, LSP, diagnostic, and linter paths. Listener-free,
-SSH, and real socket tests run separately. See the [test
+0.12.3 plus real completion, LSP, diagnostic, and linter paths. Visual
+selection uses `getregionpos()` on Neovim 0.12 and retains the non-deprecated
+`vim.region()` fallback only on 0.10. Listener-free, SSH, and real socket tests
+run separately. See the [test
 strategy](testing.md) for commands and detail.
+Each guided practical task presents a short purpose, numbered keys and steps,
+and a pass condition. Only step boundaries are hard-wrapped; Windows Terminal
+wraps text to the current window width.
+Scope, necessary preconditions, and outcome-relevant limitations appear only
+when they affect the assessment.
+F2 repeats the complete task; F1 and F11 remain unused because Neovim reserves
+F1 for help and Windows Terminal reserves F11 for full-screen mode.
 
 Practical confirmation includes:
 

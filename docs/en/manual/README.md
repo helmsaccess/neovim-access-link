@@ -89,7 +89,7 @@ separated by commas means that keys are pressed one after another: `Space`,
 2. [Connection, first editing session, and session switching](communication.md)
 3. [Speech exploration mode](speech-exploration.md)
 4. [Braille support](braille.md)
-5. [Menus, completion, and diagnostics](menus-and-completion.md)
+5. [Search, menus, completion, and diagnostics](menus-and-completion.md)
 6. [Embedded terminal and file managers](terminals-and-file-managers.md)
 7. [SSH and tmux](ssh-and-tmux.md)
 8. [Set up LSP, completion, and linters](language-tools.md)

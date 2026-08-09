@@ -93,7 +93,7 @@ nacheinander gedrückte Tasten.
 2. [Verbindung, täglicher Einstieg und Sitzungswechsel](communication.md)
 3. [Sprachexplorationsmodus](speech-exploration.md)
 4. [Braille-Unterstützung](braille.md)
-5. [Menüs, Completion und Diagnosen](menus-and-completion.md)
+5. [Suche, Menüs, Completion und Diagnosen](menus-and-completion.md)
 6. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
 7. [SSH und tmux](ssh-and-tmux.md)
 8. [LSP, Completion und Linter einrichten](language-tools.md)

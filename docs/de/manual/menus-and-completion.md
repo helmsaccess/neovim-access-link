@@ -1,4 +1,4 @@
-# Menüs, Completion und Diagnosen
+# Suche, Menüs, Completion und Diagnosen
 
 Access Link gibt Neovims strukturierte Menüs und Entwicklungsinformationen über
 Sprache und Braille aus. Die Tasten ohne NVDA-Taste bleiben Neovim- oder
@@ -64,6 +64,59 @@ Geben Sie in Neovim ein:
 
 Der Befehl nennt die LSP-Clients des aktuellen Buffers oder meldet, dass kein
 Client verbunden ist. Er ist ein Neovim-Befehl und enthält keine NVDA-Taste.
+
+## Suchen und Ersetzen
+
+Neovim führt Suche und Ersetzung weiterhin selbst aus. Access Link ergänzt
+die zugängliche Rückmeldung:
+
+- Bei aktivem `incsearch` nennt `/Muster` beziehungsweise `?Muster` schon
+  während der Eingabe den von Neovim angezeigten Vorschautreffer. Die Meldung
+  enthält Trefferposition und -anzahl. Sie nennt außerdem, wenn Neovim die
+  Zählung begrenzt hat oder die Suche am anderen Pufferende fortsetzt. Nach
+  `Enter` arbeiten `n` und `N` wie in Neovim üblich.
+- Bei aktivem `inccommand` gibt eine eingegebene `:substitute`-Ersetzung die
+  von Neovim dargestellte Vorschauzeile und die Anzahl betroffener Zeilen über
+  Sprache und Braille aus. Das gilt für `inccommand=nosplit` und
+  `inccommand=split`. Bei großen Puffern kennzeichnet die Meldung eine
+  unvollständige Zählung. Neovim bietet diese Livevorschau nur für einen
+  direkten Ersetzungsbefehl im aktuellen Buffer, nicht für `:bufdo`, `:argdo`
+  oder Ergebnislisten-Schleifen.
+- Nach einer bestätigten Suche meldet Access Link eine aktive
+  Suchhervorhebung. `:nohlsearch` oder `:set nohlsearch` melden, dass sie
+  aufgehoben wurde.
+- Ein bestätigtes Ersetzen wie `:%s/alt/neu/gc` nennt in jeder nativen
+  `y/n/a/q/l`-Abfrage die betroffene Zeile und Position. Die Antwort verarbeitet
+  ausschließlich Neovim.
+- Nach einer Ersetzung verwendet Access Link Neovims eigene Ergebnismeldung.
+  Liefert Neovim wegen seiner `report`-Einstellung keine Anzahl, nennt die
+  Meldung stattdessen die beobachtete Anzahl geänderter Zeilen. Diese Anzahl
+  ist keine selbst berechnete Zahl einzelner Ersetzungen.
+- `:vimgrep` und `:grep` melden die Größe ihrer Quickfix-Liste;
+  `:lvimgrep` und `:lgrep` entsprechend die Positionsliste. In einem geöffneten
+  Ergebnisfenster nennt die Navigation die aktuelle Trefferposition.
+- Ersetzungen über `:cdo`, `:cfdo`, `:ldo`, `:lfdo`, `:argdo` oder `:bufdo`
+  werden nach Abschluss einmal zusammengefasst. Die Meldung nennt beobachtete
+  geänderte und noch ungespeicherte Buffer, nicht jede Zwischenänderung. Die
+  dabei von Neovim intern durchlaufenen Buffer werden nicht als Fokuswechsel
+  ausgegeben. Neovim bestimmt weiterhin selbst, welche Quickfix-Dateien,
+  Argumente oder gelisteten Buffer der jeweilige Befehl besucht.
+
+Diese Unterstützung gilt für Neovims native Befehle. Eigene Suchoberflächen
+eines Plugins benötigen einen öffentlichen strukturierten Zustand oder einen
+eigenen Adapter.
+
+## Symbole mit LSP umbenennen
+
+Verwenden Sie Neovims vorhandenen LSP-Rename-Befehl oder Ihr eigenes Mapping;
+in Neovim 0.12 ist dafür standardmäßig `grn` vorgesehen. Der verbundene
+Sprachserver muss `textDocument/rename` unterstützen.
+
+Access Link ersetzt weder den Rename-Dialog noch den LSP-Handler. Es beobachtet
+Neovims öffentliche `LspRequest`-Ereignisse und die tatsächlich geänderten
+Buffer. Nach Abschluss nennt es die beobachtete Anzahl geänderter und noch
+ungespeicherter Buffer, ohne interne Text-, Cursor- oder Fokuswechsel einzeln
+auszugeben. Ohne beobachtete Änderung behauptet es keinen Erfolg.
 
 ## Funktionsparameter beim Schreiben
 

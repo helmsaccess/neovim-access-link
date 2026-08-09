@@ -8,6 +8,9 @@ import sys
 from typing import Any
 
 
+root_uri = ""
+
+
 def read_message() -> dict[str, Any] | None:
 	content_length = None
 	while True:
@@ -36,11 +39,15 @@ def send_message(value: dict[str, Any]) -> None:
 
 
 def result_for(message: dict[str, Any]) -> Any:
+	global root_uri
 	method = message.get("method")
 	if method == "initialize":
+		params = message.get("params", {})
+		root_uri = params.get("rootUri") or ""
 		return {
 			"capabilities": {
 				"hoverProvider": True,
+				"renameProvider": {"prepareProvider": True},
 				"signatureHelpProvider": {"triggerCharacters": ["("]},
 				"textDocumentSync": 1,
 			},
@@ -78,6 +85,88 @@ def result_for(message: dict[str, Any]) -> Any:
 			"contents": {
 				"kind": "markdown",
 				"value": "Real hover fallback from the test LSP server.",
+			},
+		}
+	if method == "textDocument/prepareRename":
+		primary_uri = message.get("params", {}).get("textDocument", {}).get("uri", "")
+		if primary_uri.endswith("/lsp_features.py"):
+			return {
+				"range": {
+					"start": {"line": 29, "character": 4},
+					"end": {"line": 29, "character": 17},
+				},
+				"placeholder": "calculate_tip",
+			}
+		return {
+			"range": {
+				"start": {"line": 0, "character": 4},
+				"end": {"line": 0, "character": 15},
+			},
+			"placeholder": "shared_name",
+		}
+	if method == "textDocument/rename":
+		params = message.get("params", {})
+		primary_uri = params.get("textDocument", {}).get("uri", "")
+		new_name = params.get("newName", "renamed_name")
+		if primary_uri.endswith("/lsp_features.py"):
+			secondary_uri = primary_uri.rsplit("/", 1)[0] + "/lsp_rename_consumer.py"
+			return {
+				"changes": {
+					primary_uri: [
+						{
+							"range": {
+								"start": {"line": 29, "character": 4},
+								"end": {"line": 29, "character": 17},
+							},
+							"newText": new_name,
+						},
+						{
+							"range": {
+								"start": {"line": 35, "character": 16},
+								"end": {"line": 35, "character": 29},
+							},
+							"newText": new_name,
+						},
+					],
+					secondary_uri: [
+						{
+							"range": {
+								"start": {"line": 0, "character": 25},
+								"end": {"line": 0, "character": 38},
+							},
+							"newText": new_name,
+						},
+						{
+							"range": {
+								"start": {"line": 3, "character": 16},
+								"end": {"line": 3, "character": 29},
+							},
+							"newText": new_name,
+						},
+					],
+				},
+			}
+		secondary_uri = root_uri.rstrip("/") + "/native_operations_secondary.py"
+		return {
+			"changes": {
+				primary_uri: [
+					{
+						"range": {
+							"start": {"line": 0, "character": 4},
+							"end": {"line": 0, "character": 15},
+						},
+						"newText": new_name,
+					}
+				],
+				secondary_uri: [
+					{
+						"range": {
+							"start": {"line": 0, "character": 0},
+							"end": {"line": 0, "character": 11},
+						},
+						"newText": new_name,
+					}
+				],
 			},
 		}
 	if method == "shutdown":

@@ -38,7 +38,7 @@ STEP_FIELDS = {
 	"id",
 	"category",
 	"titleKey",
-	"contextKey",
+	"purposeKey",
 	"actionKey",
 	"expectedKey",
 	"manualReasons",
@@ -239,6 +239,31 @@ def _validate_message_key(key: Any, label: str, message_keys: set[str]) -> str:
 	return result
 
 
+def _validate_step_text(
+	locales: dict[str, dict[str, str]],
+	*,
+	purpose_key: str,
+	action_key: str,
+	expected_key: str,
+	label: str,
+) -> None:
+	for language, messages in locales.items():
+		purpose = messages[purpose_key]
+		expected = messages[expected_key]
+		if "\n" in purpose or "\n" in expected:
+			raise ValidationError(
+				f"{label} {language} purpose and pass condition must each be one paragraph"
+			)
+		steps = messages[action_key].splitlines()
+		if len(steps) < 2:
+			raise ValidationError(f"{label} {language} action must contain numbered steps")
+		for number, step in enumerate(steps, start=1):
+			if not step.startswith(f"{number}. "):
+				raise ValidationError(
+					f"{label} {language} action line {number} must start with '{number}. '"
+				)
+
+
 def _repository_file(relative: Any, label: str) -> str:
 	value = _string(relative, label)
 	path = Path(value)
@@ -274,7 +299,7 @@ def load_plans() -> dict[str, dict[str, Any]]:
 	for path in files:
 		plan = _object(_read_json(path), f"plan {path.name}")
 		_exact_fields(plan, PLAN_FIELDS, f"plan {path.name}")
-		if plan["schemaVersion"] != 3:
+		if plan["schemaVersion"] != 4:
 			raise ValidationError(f"plan {path.name} has unsupported schemaVersion")
 		plan_id = _id(plan["id"], f"plan {path.name} id")
 		if plan_id in plans:
@@ -322,14 +347,23 @@ def load_plans() -> dict[str, dict[str, Any]]:
 					f"{category_prefixes[category]!r} for category {category!r}"
 				)
 			_validate_message_key(step["titleKey"], f"plan {plan_id} step {step_id} titleKey", message_keys)
-			_validate_message_key(
-				step["contextKey"], f"plan {plan_id} step {step_id} contextKey", message_keys
+			purpose_key = _validate_message_key(
+				step["purposeKey"], f"plan {plan_id} step {step_id} purposeKey", message_keys
 			)
-			_validate_message_key(step["actionKey"], f"plan {plan_id} step {step_id} actionKey", message_keys)
-			_validate_message_key(
+			action_key = _validate_message_key(
+				step["actionKey"], f"plan {plan_id} step {step_id} actionKey", message_keys
+			)
+			expected_key = _validate_message_key(
 				step["expectedKey"],
 				f"plan {plan_id} step {step_id} expectedKey",
 				message_keys,
+			)
+			_validate_step_text(
+				locales,
+				purpose_key=purpose_key,
+				action_key=action_key,
+				expected_key=expected_key,
+				label=f"plan {plan_id} step {step_id}",
 			)
 			_string_set(
 				step["manualReasons"],

@@ -257,6 +257,12 @@ class SpeechPlanner:
                     self.reset()
         elif kind == "modeChanged":
             canonical = state.get("mode")
+            # Neovim reports hit-enter, more, and confirmation prompts as
+            # blocking raw modes r, rm, and r?. Their structured prompt event
+            # is authoritative; exposing the raw value as "mode r" adds a
+            # false editor-mode announcement between command and result.
+            if state.get("modeRaw") in {"r", "rm", "r?"}:
+                canonical = self._last_mode
             previous_mode = self._last_mode
             returning_from_command_line = (
                 previous_mode == "commandLine" and canonical != "commandLine"
@@ -471,6 +477,31 @@ class SpeechPlanner:
         elif kind == "promptOpened":
             prompt = state.get("prompt")
             if isinstance(prompt, str) and prompt:
+                if state.get("promptKind") == "confirmSub":
+                    if state.get("reason") == "substituteConfirmation":
+                        # Translators: Native Neovim replacement confirmation. The Latin
+                        # letters are the actual keys accepted by Neovim and must not change.
+                        prompt = self._translate(
+                            "Replace this match? Y yes, N no, A all, Q quit, L last"
+                        )
+                    line = state.get("lineText")
+                    cursor = state.get("cursor")
+                    line_number = cursor.get("line") if isinstance(cursor, dict) else None
+                    column = cursor.get("characterColumn") if isinstance(cursor, dict) else None
+                    if (
+                        isinstance(line, str)
+                        and isinstance(line_number, int)
+                        and isinstance(column, int)
+                    ):
+                        # Translators: A substitute confirmation with its source line and position.
+                        prompt = self._translate(
+                            "{line}, line {lineNumber}, column {column}, {prompt}"
+                        ).format(
+                            line=line if line else self._translate("blank"),
+                            lineNumber=line_number,
+                            column=column + 1,
+                            prompt=prompt,
+                        )
                 actions.append(SpeechAction(
                     prompt, Priority.STATUS, interrupt=True, braille_message=prompt,
                 ))
@@ -590,13 +621,63 @@ class SpeechPlanner:
             action = self._search_match(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "searchHighlightChanged":
+            if state.get("searchHighlighting") is True:
+                # Translators: Neovim is visually highlighting all matches of the current search.
+                text = self._translate("search highlighting active")
+            else:
+                # Translators: Neovim stopped visually highlighting matches of the current search.
+                text = self._translate("search highlighting cleared")
+            actions.append(SpeechAction(
+                text, Priority.STATUS, interrupt=True, braille_message=text,
+            ))
+        elif kind == "substitutePreviewChanged":
+            action = self._substitute_preview(state)
+            if action is not None:
+                actions.append(action)
+        elif kind == "resultListChanged":
+            action = self._result_list_change(state)
+            if action is not None:
+                actions.append(action)
+            current_identity = self._context_identity(state)
+            if (
+                current_identity is not None
+                and state.get("windowType") in {"quickfix", "locationList"}
+            ):
+                # Updating a native result list can move its cursor without a
+                # physical editor motion when the list is already focused.
+                # The list summary is authoritative in that context.
+                self._pending_context_cursor = current_identity
         elif kind == "replacementPerformed":
             message = state.get("replacementMessage")
             text = (
                 message if isinstance(message, str) and message
                 else self._translate("text replaced")
             )
-            actions.append(SpeechAction(text, Priority.STATUS, interrupt=True, sound="replace"))
+            changed_lines = state.get("changedLineCount")
+            if not message and isinstance(changed_lines, int) and not isinstance(changed_lines, bool):
+                if changed_lines == 1:
+                    # Translators: Added to a replacement result when one line changed.
+                    line_summary = self._translate("1 line changed")
+                elif changed_lines > 1:
+                    # Translators: Added to a replacement result; count is the changed line count.
+                    line_summary = self._translate("{count} lines changed").format(count=changed_lines)
+                else:
+                    line_summary = ""
+                if line_summary:
+                    text = f"{text}; {line_summary}"
+            if state.get("changedLineCountIncomplete") is True:
+                # Translators: The add-on bounded its observation of lines changed by a replacement.
+                text = f"{text}; {self._translate('changed line count incomplete')}"
+            if state.get("bulkReplacement") is True:
+                text = self._append_buffer_change_summary(text, state)
+            actions.append(SpeechAction(
+                text, Priority.STATUS, interrupt=True, sound="replace", braille_message=text,
+            ))
+        elif kind == "lspRenameCompleted":
+            action = self._lsp_rename_completed(state)
+            if action is not None:
+                actions.append(action)
         elif kind == "spellingErrorTyped":
             error = state.get("spellingError")
             if isinstance(error, dict):
@@ -640,6 +721,15 @@ class SpeechPlanner:
                 and current_identity != previous_identity
             ):
                 self._pending_context_cursor = current_identity
+            elif (
+                current_identity is not None
+                and state.get("windowType") in {"quickfix", "locationList"}
+            ):
+                # Moving within an already open result-list window retains the
+                # same context identity. Its context event includes the full
+                # selected row and position; suppress the following generic
+                # CursorMoved character from the physical function key.
+                self._pending_context_cursor = current_identity
             buffer_switched_in_place = (
                 isinstance(previous.get("bufferId"), int)
                 and isinstance(state.get("bufferId"), int)
@@ -667,6 +757,11 @@ class SpeechPlanner:
                 if line_ready:
                     self._pending_context_cursor = current_identity
                 self._terminal_entry_context_pending = False
+            elif state.get("windowType") in {"quickfix", "locationList"}:
+                # Result selection is navigation within a native list, not a
+                # focus announcement. Always present the selected row and its
+                # position, regardless of the configured focus detail.
+                action = self._context_change(state, previous)
             elif not buffer_switched_in_place:
                 action = (
                     self._context_focus_change(state, previous)
@@ -830,15 +925,157 @@ class SpeechPlanner:
         index = state.get("matchIndex")
         count = state.get("matchCount")
         line_number = state.get("matchLine")
-        parts = [line if line else self._translate("blank")]
+        no_match = isinstance(count, int) and count == 0 and state.get("matchIncomplete") == 0
+        if no_match:
+            # Translators: Spoken when an incremental or completed search has no match.
+            parts = [self._translate("no search match")]
+        else:
+            parts = [line if line else self._translate("blank")]
         if isinstance(index, int) and isinstance(count, int) and count > 0:
             parts.append(self._translate("match {index} of {count}").format(
                 index=index, count=count,
             ))
-        if isinstance(line_number, int) and line_number > 0:
+        if isinstance(line_number, int) and line_number > 0 and not no_match:
             parts.append(self._translate("line {line}").format(line=line_number))
+        if state.get("searchWrapped") is True:
+            # Translators: Neovim continued a search at the opposite end of the buffer.
+            parts.append(self._translate("wrapped"))
+        incomplete = state.get("matchIncomplete")
+        if incomplete == 1:
+            # Translators: Neovim stopped counting search matches at its time limit.
+            parts.append(self._translate("match count timed out"))
+        elif isinstance(incomplete, int) and incomplete > 1:
+            # Translators: Neovim found more search matches than its configured count limit.
+            parts.append(self._translate("match count incomplete"))
+        if state.get("reason") == "searchCommand" and state.get("searchHighlighting") is True:
+            # Translators: Neovim is visually highlighting all matches after a completed search.
+            parts.append(self._translate("search highlighting active"))
         text = ", ".join(parts)
+        if state.get("searchPreview") is True:
+            # Translators: Prefix for a match preview while a search pattern is being typed.
+            text = self._translate("search preview, {result}").format(result=text)
         return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
+
+    def _substitute_preview(self, state: dict[str, Any]) -> SpeechAction | None:
+        if state.get("previewActive") is not True:
+            return None
+        changed = state.get("previewHasChanges")
+        incomplete = state.get("previewIncomplete") is True
+        if changed is False and not incomplete:
+            # Translators: A native incremental substitute preview currently changes no text.
+            result = self._translate("no preview changes")
+        else:
+            line = state.get("previewLineText")
+            if not isinstance(line, str):
+                line = state.get("lineText")
+            parts = [line if isinstance(line, str) and line else self._translate("blank")]
+            changed_lines = state.get("previewChangedLineCount")
+            if isinstance(changed_lines, int) and not isinstance(changed_lines, bool):
+                if changed_lines == 1:
+                    # Translators: A native incremental substitute preview affects one line.
+                    parts.append(self._translate("1 line affected"))
+                elif changed_lines > 1:
+                    # Translators: A native substitute preview; count is the affected line count.
+                    parts.append(self._translate("{count} lines affected").format(count=changed_lines))
+            if incomplete:
+                # Translators: The native replacement preview exceeded the bounded comparison.
+                parts.append(self._translate("preview count incomplete"))
+            result = ", ".join(parts)
+        # Translators: Prefix for Neovim's native live :substitute preview.
+        text = self._translate("replacement preview, {result}").format(result=result)
+        return SpeechAction(text, Priority.NAVIGATION, interrupt=True, braille_message=text)
+
+    def _result_list_change(self, state: dict[str, Any]) -> SpeechAction | None:
+        kind = state.get("listKind")
+        if kind not in {"quickfix", "locationList"}:
+            return None
+        # Translators: Names of Neovim's two native search-result lists.
+        list_label = translatable("location list") if kind == "locationList" else translatable("quickfix")
+        label = self._translate(list_label)
+        count = state.get("itemCount")
+        if not isinstance(count, int) or count < 0:
+            return None
+        if count == 0:
+            # Translators: A named Neovim result list contains no results.
+            text = self._translate("{listName}, no results").format(listName=label)
+        elif count == 1:
+            # Translators: A named Neovim result list contains one result.
+            text = self._translate("{listName}, 1 result").format(listName=label)
+        else:
+            # Translators: A named Neovim result list and its result count.
+            text = self._translate("{listName}, {count} results").format(
+                listName=label, count=count,
+            )
+        index = state.get("itemIndex")
+        if isinstance(index, int) and 1 <= index <= count:
+            # Translators: Adds the selected result position to a result-list summary.
+            text = self._translate("{summary}, result {index} of {count}").format(
+                summary=text, index=index, count=count,
+            )
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _append_buffer_change_summary(self, text: str, state: dict[str, Any]) -> str:
+        changed = state.get("changedBufferCount")
+        if isinstance(changed, int) and changed > 0:
+            # Translators: Number of Neovim buffers changed by a native command.
+            change_text = (
+                self._translate("1 buffer changed")
+                if changed == 1
+                else self._translate("{count} buffers changed").format(count=changed)
+            )
+            # Translators: Joins two related status details into one concise announcement.
+            text = self._translate("{message}; {detail}").format(
+                message=text, detail=change_text,
+            )
+        modified = state.get("modifiedBufferCount")
+        if isinstance(modified, int) and modified > 0:
+            # Translators: Number of changed Neovim buffers which have not been saved.
+            unsaved = (
+                self._translate("1 changed buffer remains unsaved")
+                if modified == 1
+                else self._translate("{count} changed buffers remain unsaved").format(
+                    count=modified,
+                )
+            )
+            # Translators: Joins two related status details into one concise announcement.
+            text = self._translate("{message}; {detail}").format(message=text, detail=unsaved)
+        return text
+
+    def _lsp_rename_completed(self, state: dict[str, Any]) -> SpeechAction | None:
+        result = state.get("renameResult")
+        changed = state.get("changedBufferCount")
+        if result == "canceled":
+            # Translators: A native LSP rename request was canceled.
+            text = self._translate("rename canceled")
+        elif result == "noChangesObserved":
+            # Translators: A rename request ended, but Access Link observed no buffer edits.
+            text = self._translate("rename request completed; no buffer changes observed")
+        elif result == "changesObserved" and isinstance(changed, int) and changed > 0:
+            # Translators: Evidence-based result of a native LSP rename operation.
+            text = (
+                self._translate("rename completed; 1 buffer changed")
+                if changed == 1
+                else self._translate("rename completed; {count} buffers changed").format(
+                    count=changed,
+                )
+            )
+            modified = state.get("modifiedBufferCount")
+            if isinstance(modified, int) and modified > 0:
+                # Translators: Number of renamed buffers which have not been saved.
+                unsaved = (
+                    self._translate("1 changed buffer remains unsaved")
+                    if modified == 1
+                    else self._translate("{count} changed buffers remain unsaved").format(
+                        count=modified,
+                    )
+                )
+                # Translators: Joins two related status details into one concise announcement.
+                text = self._translate("{message}; {detail}").format(
+                    message=text, detail=unsaved,
+                )
+        else:
+            return None
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
     def _invisible_selection_text(self, text: str) -> str:
         names = {
@@ -1064,6 +1301,9 @@ class SpeechPlanner:
             label = self._translate(label)
             content = line if isinstance(line, str) and line else self._translate("empty")
             text = f"{label}, {content}"
+            position = self._result_position(state)
+            if position:
+                text = f"{text}, {position}"
             return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
         parts = []
@@ -1425,8 +1665,13 @@ class SpeechPlanner:
         previous_cursor = (self._previous or {}).get("cursor", {})
         line_changed = previous_cursor.get("line") != cursor.get("line")
         if announce_full or line_changed:
+            text = line if line else self._translate("blank")
+            if state.get("windowType") in {"quickfix", "locationList"}:
+                position = self._result_position(state)
+                if position:
+                    text = f"{text}, {position}"
             return SpeechAction(
-                line if line else self._translate("blank"),
+                text,
                 Priority.NAVIGATION, interrupt=True,
                 indentation_tones=indentation_quarter_tones(line),
             )
@@ -1443,6 +1688,14 @@ class SpeechPlanner:
         if character:
             return SpeechAction(character, Priority.NAVIGATION, interrupt=True, spelling=True)
         return None
+
+    def _result_position(self, state: dict[str, Any]) -> str | None:
+        index = state.get("resultIndex")
+        count = state.get("resultCount")
+        if not isinstance(index, int) or not isinstance(count, int) or not 1 <= index <= count:
+            return None
+        # Translators: Position of the current item in a Neovim result list.
+        return self._translate("result {index} of {count}").format(index=index, count=count)
 
     def _semantic_navigation(
         self,

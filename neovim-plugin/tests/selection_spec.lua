@@ -47,6 +47,10 @@ vim.bo.tabstop = 4
 vim.bo.shiftwidth = 4
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 vim.cmd("normal! v2l")
+local original_region = vim.region
+if vim.fn.exists("*getregionpos") == 1 then
+  vim.region = function() error("deprecated vim.region fallback used") end
+end
 local visual_state = state.snapshot("test")
 equal("visualCharacter", visual_state.mode, "snapshot visual mode")
 equal(4, visual_state.tabstop, "snapshot tabstop")
@@ -55,6 +59,14 @@ equal(0, visual_state.selection.currentLine.startByteColumn, "snapshot selection
 equal(8, visual_state.selection.currentLine.endByteColumn, "snapshot selection end")
 equal("\t界🙂", visual_state.selection.text, "snapshot character selection text")
 vim.cmd("normal! \27")
+vim.o.selection = "exclusive"
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.cmd("normal! v2l")
+local exclusive_visual_state = state.snapshot("testExclusive")
+equal("\t界", exclusive_visual_state.selection.text, "snapshot exclusive selection text")
+vim.cmd("normal! \27")
+vim.o.selection = "inclusive"
+vim.region = original_region
 vim.api.nvim_buf_set_lines(0, 0, -1, true, { "Petra war einkaufen.", "Zweite Zeile", "Dritte Zeile" })
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 vim.cmd("normal! Vj")
@@ -88,5 +100,5 @@ equal(1, unicode_block_state.tabCount, "tab count")
 equal(1, unicode_block_state.windowIndex, "window index")
 equal(1, unicode_block_state.windowCount, "window count")
 equal("normal", unicode_block_state.windowType, "normal window type")
-print("selection/state tests: 44 assertions passed")
+print("selection/state tests: 45 assertions passed")
 vim.cmd("qa!")

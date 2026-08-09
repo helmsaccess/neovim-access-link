@@ -229,7 +229,8 @@ Die Beispielkonfiguration verwendet folgende Neovim-Tasten ohne NVDA-Taste:
 
 Access Link spricht und zeigt die von Neovim gelieferten Informationen auf
 Braille. Die vollständige Bedienung von Completion, Funktionssignaturen und
-Diagnosen steht unter [Menüs, Completion und Diagnosen](menus-and-completion.md).
+Diagnosen steht unter
+[Suche, Menüs, Completion und Diagnosen](menus-and-completion.md).
 
 ## Weitere Sprachen und vorhandene Plugins
 

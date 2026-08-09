@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 5. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
+Stand: 7. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
 die genaue Entwicklungsbuildnummer und Git-Metadaten erzeugt `buildVars.py`.
 Der aktuell veröffentlichte Beta-Pre-Release ist 0.96.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung ab.
@@ -61,6 +61,32 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   Typ, Quelle und verfügbare Dokumentation. LSP-Hover, Signaturhilfe,
   automatische aktive Parameter und gehaltene Parameteransichten sind
   korreliert und bewegen den Editorcursor nicht.
+- Native inkrementelle Suche meldet Vorschautreffer mit einer für das noch
+  nicht bestätigte Eingabemuster von Neovim neu bestimmten Trefferzahl,
+  begrenzte Zählungen, Umbrüche am Pufferende und den sichtbaren
+  Suchhervorhebungszustand. Direkte native `inccommand`-Vorschauen im
+  aktuellen Buffer melden für `nosplit` und `split` die Vorschauzeile und eine
+  begrenzte Anzahl betroffener Zeilen. Bufferlokale Ersetzungen ergänzen bei
+  fehlender nativer Mengenangabe die beobachtete Anzahl geänderter Zeilen.
+  `vimgrep`/`grep` und ihre
+  Positionslistenvarianten melden Ergebnisanzahl und -position; bestätigte und
+  bufferübergreifende `:substitute`-Abläufe erhalten eine einzige
+  Abschlussmeldung mit beobachteten geänderten und ungespeicherten Buffern.
+  Interne Buffer-, Kontext- und Cursorwechsel eines solchen Bulk-Befehls
+  werden bis zu Neovims sicherem Befehlsabschluss gebündelt und nicht als
+  Fokuswechsel präsentiert.
+  Mehrere Neovim-Autokommandos desselben Fensterwechsels ergeben dabei nur
+  einen semantischen Kontextwechsel. Auswahlwechsel in Quickfix- und
+  Positionslisten melden die vollständige Trefferzeile samt Position; ein
+  unmittelbar folgendes generisches Cursorereignis wird nicht zusätzlich als
+  einzelnes Zeichen ausgegeben. Der geführte Projektablauf wählt wiederholt
+  innerhalb der offenen Quickfix-Liste aus, ohne Quelldateien als Fokuswechsel
+  zu öffnen. Native `:substitute`-Bestätigungen werden vor der jeweiligen
+  Antwort mit Trefferzeile und Position ausgegeben. Reale Regressionstests
+  decken Quickfix-Dateien, gelistete Buffer und Argumentdateien ab,
+  einschließlich eines zunächst ungeladenen Argumentbuffers. Die geführten
+  L4- und L6-Abläufe prüfen Quickfix- beziehungsweise Bufferlisten-Ersetzung;
+  L6 ist noch nicht praktisch unter Windows/NVDA abgenommen.
 - Diagnosen aus `vim.diagnostic` lassen sich nach aktueller, vorheriger,
   nächster, erster und letzter Position lesen. Gehaltene Diagnoseansichten,
   Fehler-, Warn- und Leerbestätigungsklänge verwenden denselben validierten
@@ -75,6 +101,12 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   bestehen für native LSP-Completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`,
   ALE und `none-ls.nvim`; Benutzer installieren die jeweiligen externen
   Sprachserver und Linter selbst.
+- Native LSP-Umbenennung bleibt vollständig bei Neovim und dem Sprachserver.
+  Access Link beobachtet `LspRequest` und tatsächliche Bufferänderungen und
+  fasst interne Text-, Cursor- und Kontextänderungen zu einem belegbaren
+  Abschluss zusammen. Der geführte L5-Test gibt beide tatsächlich umbenannten
+  Referenzzeilen ohne zusätzlichen Puffer- oder Fokuswechsel aus. Dieser Ablauf
+  ist automatisiert, noch nicht praktisch unter Windows/NVDA abgenommen.
 - Direkte Eingabe in einem Neovim-Terminalbuffer verwendet natives
   Terminal-Passthrough. Terminal-Normalmodus, Kommandozeilenrückkehr,
   Prozessende und Bufferwechsel bleiben strukturiert.
@@ -104,8 +136,17 @@ SSH-Clients, mehrere Instanzen, Fokus und Fail-open-Verhalten, Editor- und
 Präsentationsplanung, Lua mit echten headless-Neovim-Prozessen, Paketinhalt,
 Lokalisierung sowie Dokumentationslinks. Gepinnte Matrizen decken Neovim
 0.10.1 und 0.12.3 sowie reale Completion-, LSP-, Diagnose- und Linterpfade ab.
+Visuelle Auswahl verwendet unter Neovim 0.12 `getregionpos()` und nur unter
+0.10 den dort noch nicht veralteten `vim.region()`-Fallback.
 Listenerfreie, SSH- und echte Sockettests laufen getrennt. Einzelheiten und
 Befehle stehen in [Teststrategie](testing.md).
+Die geführten Praxistests zeigen pro Aufgabe einen kurzen Zweck, nummerierte
+Tasten und Schritte sowie ein Bestehenskriterium. Nur Schrittgrenzen sind fest
+umgebrochen; Windows Terminal übernimmt den Umbruch an der Fensterbreite.
+Geltungsbereich, notwendige Voraussetzungen und ergebnisrelevante Grenzen
+erscheinen nur, wenn sie die Bewertung beeinflussen.
+F2 wiederholt die vollständige Aufgabe; F1 und F11 bleiben wegen Neovim-Hilfe
+beziehungsweise Windows-Terminal-Vollbild unbelegt.
 
 Praktisch bestätigt wurden insbesondere:
 

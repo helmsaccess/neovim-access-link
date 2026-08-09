@@ -107,6 +107,20 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			set(plans),
 		)
 		self.assertEqual(set(validator.load_locales()["de"]), set(validator.load_locales()["en"]))
+		for language, messages in validator.load_locales().items():
+			self.assertNotIn("runner.context", messages)
+			for plan in plans.values():
+				for step in plan["steps"]:
+					purpose = messages[step["purposeKey"]]
+					expected = messages[step["expectedKey"]]
+					actions = messages[step["actionKey"]].splitlines()
+					self.assertNotIn("\n", purpose)
+					self.assertNotIn("\n", expected)
+					self.assertGreaterEqual(len(actions), 2)
+					self.assertTrue(
+						all(line.startswith(f"{number}. ") for number, line in enumerate(actions, 1)),
+						(language, step["testId"]),
+					)
 		dependencies = validator.validate_dependencies()
 		self.assertRegex(dependencies["tools"]["pyrightSha512"], r"^[0-9a-f]{128}$")
 		self.assertEqual("22.1.8", dependencies["tools"]["clangTidy"])
@@ -131,6 +145,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				"automatic-parameters",
 				"held-parameters",
 				"completion-presentation",
+				"native-search-replacement",
+				"native-lsp-rename",
+				"native-buffer-replacement",
 			],
 			[step["id"] for step in plans["lsp-native"]["steps"]],
 		)
@@ -144,7 +161,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			{plan["profile"] for plan in plans.values()},
 		)
 		self.assertEqual(
-			{"L1", "L2", "L3", "C1", "C2", "C3", "D1", "D2", "D3", "D4", "S1"},
+			{"L1", "L2", "L3", "L4", "L5", "L6", "C1", "C2", "C3", "D1", "D2", "D3", "D4", "S1"},
 			{step["testId"] for plan in plans.values() for step in plan["steps"]},
 		)
 
@@ -156,7 +173,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 					self.assertIn(step["category"], validator.ALLOWED_CATEGORIES)
 					self.assertTrue(step["automatedEvidence"])
 					self.assertTrue(step["titleKey"])
-					self.assertTrue(step["contextKey"])
+					self.assertTrue(step["purposeKey"])
 					for relative in step["automatedEvidence"]:
 						self.assertTrue((validator.REPOSITORY_ROOT / relative).is_file())
 
@@ -189,6 +206,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn("Invoke-Expression", runner)
 		self.assertIn("Sort-Object { [int]$_.order }", runner)
 		self.assertIn("Invoke-TestNvim -Profile ([string]$plan.profile)", runner)
+		self.assertIn("function Write-TaskSection", runner)
+		self.assertIn("-split '\\r?\\n'", runner)
 		self.assertIn('-HumanTestId ([string]$step.testId)', runner)
 		self.assertIn('-StepId ([string]$step.id)', runner)
 		self.assertIn('"ACCESS_LINK_HUMAN_TEST_ID"', runner)
@@ -248,12 +267,16 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		readiness = (HUMAN_ROOT / "framework" / "linter_readiness.lua").read_text(
 			encoding="utf-8"
 		)
-		self.assertIn('"<F2>"', configuration)
-		self.assertIn("ACCESS_LINK_HUMAN_CONTEXT", configuration)
+		self.assertIn('vim.keymap.set({ "n", "i" }, "<F2>"', configuration)
+		self.assertNotIn('"<F1>"', configuration)
+		self.assertIn("ACCESS_LINK_HUMAN_PURPOSE", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TASK", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_EXPECTED", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_TEST_ID", configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_STEP_ID", configuration)
+		self.assertIn('test_purpose = "Zweck dieses Tests:"', configuration)
+		self.assertIn('keys_and_steps = "Tasten und Schritte:"', configuration)
+		self.assertIn('pass_when = "Bestanden, wenn:"', configuration)
 		self.assertIn("{ 1, 15 }", configuration)
 		self.assertIn('lint.try_lint(linter_name, { cwd = process_directory })', configuration)
 		self.assertIn('diagnostics_ready = "Diagnosen bereit:', configuration)
@@ -301,6 +324,32 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('completion_parentheses.apply(event.entry.completion_item)', configuration)
 		self.assertIn('"<F4>", cycle_callable_fixture_position', configuration)
 		self.assertIn('"<F3>", prepare_current_probe', configuration)
+		self.assertIn('step_id == "status-presentation"', configuration)
+		self.assertIn('access_link_command("NvimNvdaLspStatus")', configuration)
+		self.assertIn('step_id == "native-search-replacement"', configuration)
+		self.assertIn(
+			'run_observed_native_command("vimgrep /calculate_tip/gj *.py", true)',
+			configuration,
+		)
+		self.assertIn('move_in_quickfix("cnext")', configuration)
+		self.assertIn('move_in_quickfix("cprevious")', configuration)
+		self.assertIn(
+			'run_observed_native_command("cfdo %s/calculate_tip/calculate_tip_checked/gc")',
+			configuration,
+		)
+		self.assertNotIn(':vimgrep /calculate_tip/gj *.py<CR>', configuration)
+		self.assertNotIn(':cfdo %s/calculate_tip/calculate_tip_checked/gc<CR>', configuration)
+		self.assertIn('step_id == "native-lsp-rename"', configuration)
+		self.assertIn('vim.ui.input({ prompt = human_messages.rename_prompt', configuration)
+		self.assertIn('vim.lsp.buf.rename(name)', configuration)
+		self.assertIn('"<F3>", start_native_lsp_rename', configuration)
+		self.assertIn('"<F4>", report_renamed_reference', configuration)
+		self.assertIn('step_id == "native-buffer-replacement"', configuration)
+		self.assertIn(
+			'"bufdo %s/calculate_tip/calculate_tip_buffered/ge", true',
+			configuration,
+		)
+		self.assertIn('"<F4>", report_buffer_replacement', configuration)
 		self.assertNotIn('"<F11>"', configuration)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
@@ -349,6 +398,12 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		)
 		self.assertEqual(2, lsp_fixture.count("@overload"))
 		self.assertGreaterEqual(lsp_fixture.count("discount: float"), 3)
+		rename_fixture = (HUMAN_ROOT / "fixtures" / "lsp_rename_consumer.py").read_text(
+			encoding="utf-8"
+		)
+		self.assertIn("from lsp_features import calculate_tip", rename_fixture)
+		self.assertIn("calculate_tip(40.0)", rename_fixture)
+		self.assertEqual(2, lsp_fixture.count("calculate_tip"))
 		for candidate in ("calculate_total", "calculate_tax", "calculate_tip"):
 			self.assertIn(f"def {candidate}(", lsp_fixture)
 		self.assertEqual("from os import path, sep", diagnostic_fixture.splitlines()[0])
@@ -363,6 +418,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		locales = validator.load_locales()
 		for language in ("de", "en"):
 			with self.subTest(language=language):
+				search_action = locales[language]["plan.lspNative.searchReplacement.action"]
+				rename_action = locales[language]["plan.lspNative.rename.action"]
 				parameter_expectation = locales[language]["plan.lspNative.parameters.expected"]
 				automatic_expectation = locales[language][
 					"plan.lspNative.automaticParameters.expected"
@@ -380,6 +437,14 @@ class HumanTestFrameworkTests(unittest.TestCase):
 					self.assertIn(value, automatic_expectation)
 				for value in ("D3", "missing_first", "missing_second", "1", "2"):
 					self.assertIn(value, c_diagnostic_expectation)
+				for key in ("F3", "F4", "F5", "F6"):
+					self.assertIn(key, search_action)
+				self.assertNotIn(":vimgrep", search_action)
+				self.assertNotIn(":cfdo", search_action)
+				for key in ("F3", "F4"):
+					self.assertIn(key, rename_action)
+				self.assertNotIn(":bnext", rename_action)
+				self.assertNotIn("grn", rename_action)
 				for value in ("five", "fünf"):
 					if value in earcon_expectation.lower():
 						break

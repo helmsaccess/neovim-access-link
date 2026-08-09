@@ -98,6 +98,19 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
+function Write-TaskSection {
+    param(
+        [Parameter(Mandatory = $true)][string]$Label,
+        [Parameter(Mandatory = $true)][string]$Text,
+        [int]$Indent = 0
+    )
+    $prefix = " " * $Indent
+    Write-Host "$prefix$($Label):" -ForegroundColor Cyan
+    foreach ($line in @($Text -split '\r?\n')) {
+        Write-Host "$prefix  $line"
+    }
+}
+
 function Get-RequiredCommand {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
@@ -718,7 +731,7 @@ function Invoke-TestNvim {
         [string]$HumanTestId = "",
         [string]$StepId = "",
         [string]$Fixture = "",
-        [string]$Context = "",
+        [string]$Purpose = "",
         [string]$Task = "",
         [string]$Expected = "",
         [switch]$Headless,
@@ -738,7 +751,7 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_CLANG_TIDY",
         "ACCESS_LINK_HUMAN_MARKDOWNLINT",
         "ACCESS_LINK_HUMAN_DRY_RUN",
-        "ACCESS_LINK_HUMAN_CONTEXT",
+        "ACCESS_LINK_HUMAN_PURPOSE",
         "ACCESS_LINK_HUMAN_TASK",
         "ACCESS_LINK_HUMAN_EXPECTED",
         "ACCESS_LINK_HUMAN_LANGUAGE",
@@ -764,7 +777,7 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_CLANG_TIDY = $ClangTidyPath
         $env:ACCESS_LINK_HUMAN_MARKDOWNLINT = $MarkdownlintPath
         $env:ACCESS_LINK_HUMAN_DRY_RUN = if ($ConfigurationDryRun) { "1" } else { $null }
-        $env:ACCESS_LINK_HUMAN_CONTEXT = $Context
+        $env:ACCESS_LINK_HUMAN_PURPOSE = $Purpose
         $env:ACCESS_LINK_HUMAN_TASK = $Task
         $env:ACCESS_LINK_HUMAN_EXPECTED = $Expected
         $env:ACCESS_LINK_HUMAN_LANGUAGE = $Language
@@ -1206,9 +1219,12 @@ function Show-Plans {
         ))
         foreach ($step in @($plan.steps)) {
             Write-Host "  [$($step.testId)] $(Get-Message ([string]$step.titleKey))"
-            Write-Host "    $(Get-Message 'runner.context'): $(Get-Message ([string]$step.contextKey))"
-            Write-Host "    $(Get-Message 'runner.action'): $(Get-Message ([string]$step.actionKey))"
-            Write-Host "    $(Get-Message 'runner.expected'): $(Get-Message ([string]$step.expectedKey))"
+            Write-TaskSection -Label (Get-Message "runner.testPurpose") `
+                -Text (Get-Message ([string]$step.purposeKey)) -Indent 4
+            Write-TaskSection -Label (Get-Message "runner.action") `
+                -Text (Get-Message ([string]$step.actionKey)) -Indent 4
+            Write-TaskSection -Label (Get-Message "runner.expected") `
+                -Text (Get-Message ([string]$step.expectedKey)) -Indent 4
         }
     }
 }
@@ -1372,7 +1388,7 @@ function Run-Plans {
                 }
                 $taskIndex += 1
                 $title = "[$($step.testId)] $(Get-Message ([string]$step.titleKey))"
-                $context = Get-Message ([string]$step.contextKey)
+                $purpose = Get-Message ([string]$step.purposeKey)
                 $actionText = Get-Message ([string]$step.actionKey)
                 $expectedText = Get-Message ([string]$step.expectedKey)
                 Write-Step (Get-Message "runner.testProgress" @(
@@ -1384,15 +1400,11 @@ function Run-Plans {
                     $cardIndex,
                     (Get-Message ([string]$plan.titleKey))
                 )) -ForegroundColor Yellow
-                Write-Host (Get-Message "runner.purpose" @(
-                    (Get-Message ([string]$plan.descriptionKey))
-                ))
+                Write-TaskSection -Label (Get-Message "runner.testPurpose") -Text $purpose
                 Write-Host ""
-                Write-Host "$(Get-Message 'runner.context'): $context"
+                Write-TaskSection -Label (Get-Message "runner.action") -Text $actionText
                 Write-Host ""
-                Write-Host "$(Get-Message 'runner.action'): $actionText"
-                Write-Host ""
-                Write-Host "$(Get-Message 'runner.expected'): $expectedText"
+                Write-TaskSection -Label (Get-Message "runner.expected") -Text $expectedText
                 Write-Host ""
                 Write-Host (Get-Message "runner.orientation") -ForegroundColor Cyan
                 Write-Host (Get-Message "runner.claimReminder")
@@ -1402,9 +1414,9 @@ function Run-Plans {
                 Invoke-TestNvim -Profile ([string]$plan.profile) `
                     -HumanTestId ([string]$step.testId) `
                     -StepId ([string]$step.id) -Fixture $fixture `
-                    -Context $context -Task $actionText -Expected $expectedText
+                    -Purpose $purpose -Task $actionText -Expected $expectedText
                 Write-Step (Get-Message "runner.afterReturn")
-                Write-Host "$(Get-Message 'runner.expected'): $expectedText"
+                Write-TaskSection -Label (Get-Message "runner.expected") -Text $expectedText
                 $outcome = Get-Outcome $title
                 $resultStep.status = $outcome.status
                 $resultStep.note = $outcome.note

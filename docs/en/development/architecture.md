@@ -655,6 +655,39 @@ validated `activeParameterChanged` event is speech-only, leaving canonical
 Braille on source text. Neither transport nor NVDA's main thread performs LSP
 requests.
 
+### Native search, replacement, and LSP rename
+
+`native_operations.lua` is a bounded observer, not a second search,
+replacement, or refactoring engine. `nvim_parse_cmd()` classifies only known
+native Ex commands. `incsearch`, Quickfix and location lists, and `LspRequest`
+provide public state; Neovim's normal handlers execute commands,
+confirmations, and `WorkspaceEdit`.
+
+For a native `inccommand` replacement, the observer attaches to Neovim's
+public buffer updates with `preview=true`. Neovim's temporary preview text is
+visible through the buffer API only during this callback. The observer
+receives this state only for the direct `:substitute` command that Neovim
+marks previewable; the outer `:bufdo`, `:argdo`, Quickfix, and location-list
+commands provide no such live preview. The observer
+captures the previewed line there and compares at most 2,048 lines or 256 KiB
+with a baseline created only after semantic `:substitute` classification.
+Larger buffers receive only feedback marked as incomplete. The baseline is
+discarded when the command line closes; the observer executes no replacement.
+
+Before a native multi-buffer replacement or LSP rename, the observer stores
+only `changedtick`, name, and `modified` for at most 2,048 Neovim buffers. It
+compares that metadata after completion and emits an evidence-based summary.
+It copies no file contents, interprets no LSP edits, and writes no buffer. A
+real regression suite lets Neovim visit Quickfix files, listed buffers, and
+argument files itself; the argument test includes an initially unloaded
+buffer. A 35-ms debounce bounds search and replacement previews; after the
+last open LSP rename request, the observer waits 500 ms for trailing buffer
+changes. Internal intermediate
+reports remain suppressed during that interval and for at most one later
+text, cursor, or context signal of each kind. The next physical key ends any
+unused residual state. Errors, unknown commands, and absent changes fall back
+to Neovim's ordinary messages.
+
 ### Held developer contexts
 
 The Windows Terminal AppModule owns the physical NVDA-key lifetime and

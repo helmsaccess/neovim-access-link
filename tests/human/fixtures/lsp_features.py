@@ -33,4 +33,5 @@ def calculate_tip(price: float, rate: float = 0.15) -> float:
 
 
 total = calculate_total(3.5, 2, 0.1)
+suggested_tip = calculate_tip(20.0)
 print(total)

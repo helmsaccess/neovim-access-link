@@ -1,4 +1,6 @@
 local root = vim.fn.getcwd()
+package.path = root .. "/neovim-plugin/lua/?.lua;" .. root
+  .. "/neovim-plugin/lua/?/init.lua;" .. package.path
 vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", "diagnostics")
 vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "L2")
 vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "automatic-parameters")
@@ -29,12 +31,14 @@ truthy(type(notification) == "string" and notification:find("Test ID L2.", 1, tr
   "F2 task information starts with the stable short test ID")
 truthy(vim.g.access_link_human_config_ready == 1,
   "dry-run configuration reports successful completion")
-for _, key in ipairs({ "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>", "<F8>",
+for _, key in ipairs({ "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>", "<F8>",
     "<F9>", "<F10>" }) do
   local mapping = vim.fn.maparg(key, "n", false, true)
   truthy(type(mapping) == "table" and mapping.desc ~= nil,
     "normal-mode mapping missing for " .. key)
 end
+truthy(vim.fn.maparg("<F1>", "n") == "",
+  "F1 remains available for Neovim help")
 truthy(vim.fn.maparg("<F11>", "n") == "",
   "F11 remains available to Windows Terminal instead of being a dead Neovim mapping")
 local preparation = vim.fn.maparg("<F3>", "n", false, true)
@@ -75,6 +79,84 @@ for _, case in ipairs({
 end
 
 vim.cmd.stopinsert()
+vim.fn.setenv("ACCESS_LINK_HUMAN_PROFILE", "native")
+vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "native-search-replacement")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "L4")
+vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
+dofile(root .. "/tests/human/framework/init.lua")
+local l4_mappings = {}
+for _, key in ipairs({ "<F3>", "<F4>", "<F5>", "<F6>" }) do
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  truthy(type(mapping) == "table" and type(mapping.callback) == "function",
+    "L4 " .. key .. " uses a callable helper without generated command typing")
+  truthy(mapping.rhs == nil or mapping.rhs == "",
+    "L4 " .. key .. " does not expose an Ex command as mapped keystrokes")
+  l4_mappings[key] = mapping
+end
+local native_events = {}
+local native_operations = require("nvim_nvda.native_operations")
+local native_group = vim.api.nvim_create_augroup(
+  "AccessLinkHumanNativeOperationSpec", { clear = true })
+native_operations.setup(function(event_type, reason, payload)
+  native_events[#native_events + 1] = {
+    type = event_type, reason = reason, payload = payload,
+  }
+end, native_group)
+vim.cmd.lcd(root .. "/tests/human/fixtures")
+l4_mappings["<F3>"].callback()
+truthy(vim.wait(1000, function()
+  return #native_events > 0 and native_events[#native_events].type == "resultListChanged"
+end, 10), "L4 F3 emits the production native result-list event")
+truthy(native_events[#native_events].payload.itemCount == 4,
+  "L4 project search has four deterministic fixture results")
+l4_mappings["<F4>"].callback()
+local quickfix = vim.fn.getqflist({ idx = 0, size = 0 })
+local window = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1] or {}
+truthy(quickfix.idx == 2 and window.quickfix == 1,
+  "L4 F4 selects the second result in the open Quickfix list")
+l4_mappings["<F5>"].callback()
+quickfix = vim.fn.getqflist({ idx = 0, size = 0 })
+window = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1] or {}
+truthy(quickfix.idx == 1 and window.quickfix == 1,
+  "L4 F5 selects the previous result without leaving Quickfix")
+vim.api.nvim_feedkeys("yna", "t", false)
+l4_mappings["<F6>"].callback()
+truthy(vim.wait(1000, function()
+  return #native_events > 1 and native_events[#native_events].type == "replacementPerformed"
+end, 10), "L4 F6 completes the production replacement observation")
+truthy(native_events[#native_events].payload.changedBufferCount == 2,
+  "L4 confirmed replacement changes both fixture buffers")
+truthy(native_events[#native_events].payload.modifiedBufferCount == 2,
+  "L4 confirmed replacement leaves both fixture buffers unsaved")
+vim.cmd.cclose()
+vim.cmd.lcd(root)
+native_operations.reset()
+pcall(vim.api.nvim_del_augroup_by_id, native_group)
+
+vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "native-lsp-rename")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "L5")
+vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
+dofile(root .. "/tests/human/framework/init.lua")
+for _, key in ipairs({ "<F3>", "<F4>" }) do
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  truthy(type(mapping) == "table" and type(mapping.callback) == "function",
+    "L5 " .. key .. " uses a callable native LSP test helper")
+end
+
+vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "native-buffer-replacement")
+vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "L6")
+vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
+dofile(root .. "/tests/human/framework/init.lua")
+truthy(vim.fn.buflisted(vim.fn.bufnr(vim.fn.fnamemodify(
+  "lsp_rename_consumer.py", ":p"))) == 1,
+  "L6 explicitly lists the prepared second buffer for native bufdo")
+for _, key in ipairs({ "<F3>", "<F4>" }) do
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  truthy(type(mapping) == "table" and type(mapping.callback) == "function",
+    "L6 " .. key .. " uses a callable buffer-list test helper")
+end
+
+vim.cmd.stopinsert()
 vim.api.nvim_buf_set_lines(0, 0, -1, true, {
   "int main(void) {",
   "  int first = missing_first;",
@@ -87,7 +169,7 @@ vim.fn.setenv("ACCESS_LINK_HUMAN_STEP_ID", "clang-tidy-presentation")
 vim.fn.setenv("ACCESS_LINK_HUMAN_TEST_ID", "D3")
 vim.api.nvim_del_user_command("AccessLinkHumanTestInfo")
 dofile(root .. "/tests/human/framework/init.lua")
-for _, key in ipairs({ "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>",
+for _, key in ipairs({ "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>",
     "<F8>", "<F9>", "<F10>" }) do
   local mapping = vim.fn.maparg(key, "n", false, true)
   truthy(type(mapping) == "table" and mapping.desc ~= nil,

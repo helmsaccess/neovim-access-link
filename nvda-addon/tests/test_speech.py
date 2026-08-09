@@ -62,6 +62,23 @@ class SpeechPlannerTests(unittest.TestCase):
         planner.plan(event("fullState", mode="insert", modeRaw="i"))
         self.assertEqual([], planner.plan(event("modeChanged", mode="insert", modeRaw="ix")))
 
+    def test_blocking_prompt_modes_do_not_expose_raw_mode_names(self) -> None:
+        for raw_mode in ("r", "rm", "r?"):
+            with self.subTest(rawMode=raw_mode):
+                planner = SpeechPlanner()
+                planner.plan(event("fullState", mode="normal", modeRaw="n"))
+                planner.plan(event(
+                    "commandLineChanged", mode="commandLine", modeRaw="c",
+                    commandLine="cfdo %s/old/new/gc", commandLineType=":",
+                ))
+                planner.plan(event("modeChanged", mode="commandLine", modeRaw="c"))
+                blocked = planner.plan(event(
+                    "modeChanged", mode="unknown", modeRaw=raw_mode, modeBlocking=True,
+                ))
+                returned = planner.plan(event("modeChanged", mode="normal", modeRaw="n"))
+                self.assertEqual([], blocked)
+                self.assertEqual([], returned)
+
     def test_command_line_mode_survives_preceding_command_line_event(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState", mode="normal", modeRaw="n"))
@@ -95,7 +112,72 @@ class SpeechPlannerTests(unittest.TestCase):
             "searchMatchChanged", line="large result", row=9,
             matchIndex=0, matchCount=0, matchLine=9, matchIncomplete=2,
         ))[0]
-        self.assertEqual("large result, line 9", unknown.text)
+        self.assertEqual("large result, line 9, match count incomplete", unknown.text)
+
+    def test_search_preview_and_no_match_are_explicit(self) -> None:
+        planner = SpeechPlanner()
+        preview = planner.plan(event(
+            "searchMatchChanged", line="target line", row=3,
+            matchIndex=1, matchCount=2, matchLine=3, matchIncomplete=0,
+            searchPreview=True,
+        ))[0]
+        self.assertEqual("search preview, target line, match 1 of 2, line 3", preview.text)
+        missing = planner.plan(event(
+            "searchMatchChanged", line="unchanged line", row=3,
+            matchIndex=0, matchCount=0, matchLine=3, matchIncomplete=0,
+            searchPreview=True,
+        ))[0]
+        self.assertEqual("search preview, no search match", missing.text)
+
+    def test_search_wrap_and_persistent_highlighting_are_explicit(self) -> None:
+        planner = SpeechPlanner()
+        wrapped = planner.plan(event(
+            "searchMatchChanged", line="alpha", matchIndex=1, matchCount=3, matchLine=1,
+            matchIncomplete=0, searchWrapped=True, searchHighlighting=True,
+            reason="searchCommand",
+        ))[0]
+        self.assertEqual(
+            "alpha, match 1 of 3, line 1, wrapped, search highlighting active",
+            wrapped.text,
+        )
+        timed_out = planner.plan(event(
+            "searchMatchChanged", line="large result", matchIndex=1, matchCount=9999,
+            matchLine=9, matchIncomplete=1,
+        ))[0]
+        self.assertEqual(
+            "large result, match 1 of 9999, line 9, match count timed out",
+            timed_out.text,
+        )
+        cleared = planner.plan(event(
+            "searchHighlightChanged", searchHighlighting=False,
+        ))[0]
+        self.assertEqual("search highlighting cleared", cleared.text)
+
+    def test_native_substitute_preview_reports_neovims_previewed_lines(self) -> None:
+        planner = SpeechPlanner()
+        preview = planner.plan(event(
+            "substitutePreviewChanged", line="old old", previewActive=True,
+            previewHasChanges=True, previewLineText="new new", previewChangedLineCount=1,
+            previewIncomplete=False,
+        ))[0]
+        self.assertEqual("replacement preview, new new, 1 line affected", preview.text)
+        self.assertEqual(preview.text, preview.braille_message)
+        no_changes = planner.plan(event(
+            "substitutePreviewChanged", previewActive=True, previewHasChanges=False,
+            previewChangedLineCount=0, previewIncomplete=False,
+        ))[0]
+        self.assertEqual("replacement preview, no preview changes", no_changes.text)
+        incomplete = planner.plan(event(
+            "substitutePreviewChanged", previewActive=True,
+            previewLineText="new text", previewIncomplete=True,
+        ))[0]
+        self.assertEqual(
+            "replacement preview, new text, preview count incomplete",
+            incomplete.text,
+        )
+        self.assertEqual([], planner.plan(event(
+            "substitutePreviewChanged", previewActive=False,
+        )))
 
     def test_replacement_uses_status_and_sound(self) -> None:
         planner = SpeechPlanner()
@@ -103,6 +185,125 @@ class SpeechPlannerTests(unittest.TestCase):
             "replacementPerformed", replacementMessage="2 substitutions on 2 lines",
         ))[0]
         self.assertEqual(("2 substitutions on 2 lines", "replace"), (action.text, action.sound))
+        local = planner.plan(event(
+            "replacementPerformed", replacementMessage="", changedLineCount=1,
+            changedLineCountIncomplete=False,
+        ))[0]
+        self.assertEqual(("text replaced; 1 line changed", "replace"), (local.text, local.sound))
+        bounded = planner.plan(event(
+            "replacementPerformed", replacementMessage="", changedLineCount=2048,
+            changedLineCountIncomplete=True,
+        ))[0]
+        self.assertEqual(
+            "text replaced; 2048 lines changed; changed line count incomplete",
+            bounded.text,
+        )
+
+    def test_bulk_replacement_and_lsp_rename_report_observed_buffers(self) -> None:
+        planner = SpeechPlanner()
+        replaced = planner.plan(event(
+            "replacementPerformed",
+            replacementMessage="4 substitutions on 4 lines",
+            bulkReplacement=True,
+            changedBufferCount=2,
+            modifiedBufferCount=2,
+        ))[0]
+        self.assertEqual(
+            "4 substitutions on 4 lines; 2 buffers changed; "
+            "2 changed buffers remain unsaved",
+            replaced.text,
+        )
+        self.assertEqual(replaced.text, replaced.braille_message)
+
+        renamed = planner.plan(event(
+            "lspRenameCompleted",
+            renameResult="changesObserved",
+            changedBufferCount=2,
+            modifiedBufferCount=2,
+            renamedBufferCount=0,
+            createdBufferCount=0,
+            deletedBufferCount=0,
+        ))[0]
+        self.assertEqual(
+            "rename completed; 2 buffers changed; 2 changed buffers remain unsaved",
+            renamed.text,
+        )
+        no_changes = planner.plan(event(
+            "lspRenameCompleted",
+            renameResult="noChangesObserved",
+            changedBufferCount=0,
+        ))[0]
+        self.assertEqual(
+            "rename request completed; no buffer changes observed",
+            no_changes.text,
+        )
+
+    def test_project_result_list_reports_count_and_position(self) -> None:
+        planner = SpeechPlanner()
+        action = planner.plan(event(
+            "resultListChanged", listKind="quickfix", itemCount=4, itemIndex=1,
+        ))[0]
+        self.assertEqual("quickfix, 4 results, result 1 of 4", action.text)
+        empty = planner.plan(event(
+            "resultListChanged", listKind="locationList", itemCount=0, itemIndex=0,
+        ))[0]
+        self.assertEqual("location list, no results", empty.text)
+
+    def test_quickfix_feedback_suppresses_physical_function_key_cursor_noise(self) -> None:
+        source = {
+            "bufferId": 1, "windowId": 10, "tabpageId": 20,
+            "bufferName": "/work/source.py", "mode": "normal", "modeRaw": "n",
+        }
+        quickfix = {
+            "bufferId": 2, "windowId": 11, "tabpageId": 20,
+            "bufferName": "", "buftype": "quickfix", "filetype": "qf",
+            "windowType": "quickfix", "mode": "normal", "modeRaw": "n",
+            "resultCount": 4,
+        }
+        for focus_announcement in ("none", "line", "context"):
+            with self.subTest(focusAnnouncement=focus_announcement):
+                planner = SpeechPlanner()
+                planner.plan(event("fullState", line="source", **source))
+
+                opened = planner.plan(event(
+                    "contextChanged", line="lsp_features.py|3| calculate total",
+                    row=2, byte_column=0, resultIndex=2, **quickfix,
+                ), focus_announcement=focus_announcement)
+                physical_f4_cursor = planner.plan(event(
+                    "cursorMoved", line="lsp_features.py|3| calculate total",
+                    row=2, byte_column=0, resultIndex=2, **quickfix,
+                ), focus_announcement=focus_announcement)
+                returned = planner.plan(event(
+                    "contextChanged", line="lsp_features.py|1| calculate value",
+                    row=1, byte_column=0, resultIndex=1, **quickfix,
+                ), focus_announcement=focus_announcement)
+                physical_f5_cursor = planner.plan(event(
+                    "cursorMoved", line="lsp_features.py|1| calculate value",
+                    row=1, byte_column=0, resultIndex=1, **quickfix,
+                ), focus_announcement=focus_announcement)
+                refreshed = planner.plan(event(
+                    "resultListChanged", line="lsp_features.py|1| calculate value",
+                    row=1, byte_column=0, listKind="quickfix", itemCount=4,
+                    itemIndex=1, resultIndex=1, **quickfix,
+                ), focus_announcement=focus_announcement)
+                physical_f3_cursor = planner.plan(event(
+                    "cursorMoved", line="lsp_features.py|1| calculate value",
+                    row=1, byte_column=0, resultIndex=1, **quickfix,
+                ), focus_announcement=focus_announcement)
+
+                self.assertEqual(1, len(opened))
+                self.assertIn("quickfix, lsp_features.py|3| calculate total", opened[0].text)
+                self.assertIn("result 2 of 4", opened[0].text)
+                self.assertEqual(1, len(returned))
+                self.assertIn("quickfix, lsp_features.py|1| calculate value", returned[0].text)
+                self.assertIn("result 1 of 4", returned[0].text)
+                self.assertEqual(
+                    "quickfix, 4 results, result 1 of 4",
+                    refreshed[0].text,
+                )
+                self.assertEqual([], physical_f4_cursor)
+                self.assertEqual([], physical_f5_cursor)
+                self.assertEqual([], physical_f3_cursor)
 
     def test_visual_line_speaks_only_newly_selected_line(self) -> None:
         planner = SpeechPlanner()
@@ -341,8 +542,12 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("window 2 of 3, file three.lua, modified", window.text)
         quickfix = planner.plan(event(
             "contextChanged", windowType="quickfix", line="script.sh|4| warning SC2086",
+            resultIndex=2, resultCount=5,
         ))[0]
-        self.assertEqual("quickfix, script.sh|4| warning SC2086", quickfix.text)
+        self.assertEqual(
+            "quickfix, script.sh|4| warning SC2086, result 2 of 5",
+            quickfix.text,
+        )
 
     def test_context_choice_coalesces_window_mode_file_flags_and_connection(self) -> None:
         planner = SpeechPlanner()
@@ -1305,6 +1510,32 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("selected Yes", yes.text)
         self.assertEqual("selected No", no.text)
         self.assertEqual("selected Cancel", cancel.text)
+
+    def test_substitute_confirmation_includes_current_target_context(self) -> None:
+        action = SpeechPlanner().plan({"type": "promptOpened", "payload": {
+            "promptKind": "confirmSub",
+            "prompt": "replace with new (y/n/a/q/l)?",
+            "lineText": "old value here",
+            "cursor": {"line": 7, "byteColumn": 4, "characterColumn": 4},
+        }})[0]
+        self.assertEqual(
+            "old value here, line 7, column 5, replace with new (y/n/a/q/l)?",
+            action.text,
+        )
+        self.assertEqual(action.text, action.braille_message)
+
+        native = SpeechPlanner().plan({"type": "promptOpened", "payload": {
+            "reason": "substituteConfirmation",
+            "promptKind": "confirmSub",
+            "prompt": "Replace this match? Y yes, N no, A all, Q quit, L last",
+            "lineText": "old value here",
+            "cursor": {"line": 7, "byteColumn": 4, "characterColumn": 4},
+        }})[0]
+        self.assertEqual(
+            "old value here, line 7, column 5, "
+            "Replace this match? Y yes, N no, A all, Q quit, L last",
+            native.text,
+        )
 
     def test_folds_marks_registers_and_macros_are_structured(self) -> None:
         planner = SpeechPlanner()
