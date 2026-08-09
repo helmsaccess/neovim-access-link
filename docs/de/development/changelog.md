@@ -7,6 +7,7 @@ und Testbuild-Einträge bis zum 5. August 2026.
 ## Unveröffentlicht
 
 - Beginnt die Entwicklungslinie 0.97.0 nach dem Beta-Pre-Release 0.96.0.
+- Ergänzt die HTTPS-Projektadresse im Add-on-Manifest.
 - Ergänzt LSP-Parameteransagen im Insert-Modus sowie gehaltene, rein lesende
   Ansichten für Signaturen, Parameter und Diagnosen mit korrelierter Sprache
   und Braille.

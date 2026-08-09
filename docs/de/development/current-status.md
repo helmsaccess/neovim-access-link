@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 7. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
+Stand: 9. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.97.0;
 die genaue Entwicklungsbuildnummer und Git-Metadaten erzeugt `buildVars.py`.
 Der aktuell veröffentlichte Beta-Pre-Release ist 0.96.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung ab.
@@ -28,6 +28,8 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Das `.nvda-addon` enthält NVDA-Integration, Neovim-Plugin und ein rootloses
   Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Der Werkzeugdialog
   installiert, aktualisiert oder entfernt lokale und gespeicherte SSH-Ziele.
+- Das Manifest nennt die HTTPS-Projektadresse für weitere Informationen und
+  Aktualisierungen.
 - Lokale Sitzungen verwenden dynamisches, nur an `127.0.0.1` gebundenes TCP;
   entfernte Sitzungen verwenden SSH-stdin/stdout und einen privaten
   Unix-RPC-Socket. Sitzungen werden aus kurzlebigen JSON-Dateien erkannt, nicht

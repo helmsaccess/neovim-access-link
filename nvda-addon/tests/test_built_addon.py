@@ -694,6 +694,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(buildVars.manifest(), dict(manifest))
         self.assertEqual("NeovimAccessLink", manifest["name"])
         self.assertEqual(buildVars.store_version(), manifest["version"])
+        self.assertEqual(
+            "https://github.com/helmsaccess/neovim-access-link",
+            manifest["url"],
+        )
         self.assertNotIn("dev", manifest["version"])
 
     def test_archive_contains_only_the_new_addon_identity(self) -> None:

@@ -79,7 +79,7 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
     manifest = ConfigObj(str(path), encoding="utf-8", list_values=True)
     required = (
         "name", "summary", "description", "author", "version",
-        "minimumNVDAVersion", "lastTestedNVDAVersion",
+        "url", "minimumNVDAVersion", "lastTestedNVDAVersion",
     )
     for field in required:
         value = manifest.get(field)
@@ -90,6 +90,8 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
             raise RuntimeError(f"invalid NVDA API version in {field}: {manifest[field]!r}")
     if ADDON_VERSION.fullmatch(manifest["version"]) is None:
         raise RuntimeError(f"invalid Add-on Store version: {manifest['version']!r}")
+    if not manifest["url"].startswith("https://"):
+        raise RuntimeError("manifest url must use HTTPS")
     def api_tuple(value: str) -> tuple[int, int, int]:
         parts = [int(part) for part in value.split(".")]
         return tuple((parts + [0])[:3])

@@ -1,6 +1,6 @@
 # Current status
 
-Status date: August 7, 2026. The source tree belongs to the 0.97.0 development
+Status date: August 9, 2026. The source tree belongs to the 0.97.0 development
 line; `buildVars.py` generates the exact development build number and Git
 metadata. The current published beta pre-release is 0.96.0. The project does
 not infer a higher stability classification from test coverage or feature
@@ -26,6 +26,8 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - The `.nvda-addon` contains the NVDA integration, Neovim plugin, and a
   rootless Linux user package with bridge, protocol, and installer. The Tools
   dialog installs, updates, or removes local and saved SSH targets.
+- The manifest provides the HTTPS project URL for further information and
+  updates.
 - Local sessions use dynamic TCP bound only to `127.0.0.1`; remote sessions use
   SSH stdin/stdout and a private Unix RPC socket. Short-lived JSON files, not
   the Windows Registry, provide session discovery.

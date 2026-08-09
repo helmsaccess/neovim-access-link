@@ -7,6 +7,7 @@ test-build entries through August 5, 2026.
 ## Unreleased
 
 - Starts the 0.97.0 development line after the 0.96.0 beta pre-release.
+- Adds the HTTPS project URL to the add-on manifest.
 - Adds Insert-mode LSP active-parameter speech and held, read-only signature,
   parameter, and diagnostic views with correlated speech and Braille.
 - Hardens native completion, `nvim-cmp`, and `blink.cmp`, including

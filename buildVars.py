@@ -8,7 +8,7 @@ import subprocess
 
 product_version = "0.97.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 10
+development_build: int | None = 11
 release_channel = "beta"
 
 addon_info = {
@@ -20,6 +20,7 @@ addon_info = {
         "remote SSH sessions across Windows Terminal windows, tabs, and panes."
     ),
     "author": "Emanuel Helms <emanuel@helmsaccess.de>",
+    "url": "https://github.com/helmsaccess/neovim-access-link",
     "minimumNVDAVersion": "2026.1",
     "lastTestedNVDAVersion": "2026.1.1",
 }
