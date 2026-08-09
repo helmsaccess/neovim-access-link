@@ -22,15 +22,16 @@ Access Link unterstützt derzeit:
 - mehrere Windows-Terminal-Fenster, Tabs und geteilte Panes;
 - parallele lokale und entfernte Neovim-Sitzungen sowie normale Shell-Panes;
 - tmux innerhalb einer SSH-Sitzung;
-- strukturierte Sprache und Braille, Sprachexploration, Completion, LSP,
-  Diagnosen und Neovims Rechtschreibvorschläge;
+- strukturierte Sprache und Braille, Sprachexploration, native Suche und
+  Ersetzung, Completion, LSP einschließlich Umbenennung, Diagnosen und Neovims
+  Rechtschreibvorschläge;
 - Dateiverwaltung mit Oil; weitere Dateimanager besitzen automatisiert
   geprüfte Adapter.
 
 Praktisch bestätigt ist die Referenzumgebung Windows 11 25H2, NVDA 2026.1.1,
-Windows Terminal 1.24.x und Neovim 0.10.1 beziehungsweise 0.12.3. Der entfernte
-Pfad ist mit Rocky Linux 10.2 bestätigt. Die vollständigen Nachweise und offenen
-Prüfbereiche stehen in der
+Windows Terminal 1.24.x und lokales Neovim 0.12.3. Der entfernte Pfad ist mit
+Neovim 0.10.1 und 0.12.3 auf Rocky Linux 10.2 bestätigt. Die vollständigen
+Nachweise und offenen Prüfbereiche stehen in der
 [Kompatibilitätsübersicht](../development/compatibility.md).
 
 Andere Terminalprogramme, grafische Neovim-Oberflächen, portable
@@ -93,7 +94,7 @@ nacheinander gedrückte Tasten.
 2. [Verbindung, täglicher Einstieg und Sitzungswechsel](communication.md)
 3. [Sprachexplorationsmodus](speech-exploration.md)
 4. [Braille-Unterstützung](braille.md)
-5. [Suche, Menüs, Completion und Diagnosen](menus-and-completion.md)
+5. [Suche, Ersetzung, Completion und Diagnosen](menus-and-completion.md)
 6. [Eingebettetes Terminal und Dateimanager](terminals-and-file-managers.md)
 7. [SSH und tmux](ssh-and-tmux.md)
 8. [LSP, Completion und Linter einrichten](language-tools.md)

@@ -94,7 +94,9 @@ Additional scripts exercise real public plugin and tool contracts:
 - `tools/test_completion_plugins.sh` for `nvim-cmp` and `blink.cmp`;
 - `tools/test_linter_plugins.sh` for `nvim-lint`, ALE, and real linters;
 - `tools/test_none_ls.sh` for the `none-ls.nvim` LSP bridge;
-- `tools/test_neovim_plugin.sh` for listener-free Lua specifications.
+- `tools/test_neovim_plugin.sh` for the serial complete Lua compatibility run.
+  It also includes session specifications with local listeners and therefore
+  needs an environment that permits them.
 
 The GitHub matrix runs these contracts with Neovim, plugin, language, and tool
 versions pinned by the workflow. Checkouts are test-only dependencies and are

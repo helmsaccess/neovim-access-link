@@ -22,14 +22,15 @@ Access Link currently supports:
 - multiple Windows Terminal windows, tabs, and split panes;
 - parallel local and remote Neovim sessions alongside ordinary shell panes;
 - tmux inside an SSH session;
-- structured speech and Braille, speech exploration, completion, LSP,
-  diagnostics, and Neovim spelling suggestions;
+- structured speech and Braille, speech exploration, native search and
+  replacement, LSP including rename, completion, diagnostics, and Neovim
+  spelling suggestions;
 - file management with Oil; other file managers have automatically tested
   adapters.
 
 The practically confirmed reference environment uses Windows 11 25H2,
-NVDA 2026.1.1, Windows Terminal 1.24.x, and Neovim 0.10.1 or 0.12.3. The
-remote path is confirmed on Rocky Linux 10.2. See the
+NVDA 2026.1.1, Windows Terminal 1.24.x, and local Neovim 0.12.3. The remote
+path is confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2. See the
 [compatibility overview](../development/compatibility.md) for the complete
 evidence and remaining test coverage.
 
@@ -89,7 +90,7 @@ separated by commas means that keys are pressed one after another: `Space`,
 2. [Connection, first editing session, and session switching](communication.md)
 3. [Speech exploration mode](speech-exploration.md)
 4. [Braille support](braille.md)
-5. [Search, menus, completion, and diagnostics](menus-and-completion.md)
+5. [Search, replacement, completion, and diagnostics](menus-and-completion.md)
 6. [Embedded terminal and file managers](terminals-and-file-managers.md)
 7. [SSH and tmux](ssh-and-tmux.md)
 8. [Set up LSP, completion, and linters](language-tools.md)

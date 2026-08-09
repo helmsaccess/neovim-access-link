@@ -70,6 +70,8 @@ meldet ihre semantische Wirkung.
 | `v` | Visual-Auswahl beginnen |
 | `y` | Auswahl in Neovim kopieren |
 | `p` | Inhalt eines Neovim-Registers einfügen |
+| `/Muster` / `?Muster` | vorwärts / rückwärts suchen |
+| `:%s/alt/neu/gc` | Treffer im aktuellen Buffer mit Bestätigung ersetzen |
 | `z=` | Rechtschreibvorschläge für das aktuelle Wort öffnen |
 | `:w` | Buffer speichern |
 | `:q` | Neovim-Fenster beenden, sofern keine ungespeicherten Änderungen vorliegen |

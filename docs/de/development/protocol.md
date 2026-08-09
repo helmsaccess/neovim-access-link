@@ -318,16 +318,17 @@ erhalten, während `previewIncomplete=true` die unvollständige Zählung
 kennzeichnet. Beim Verlassen oder Abbrechen folgt `previewActive=false` ohne
 eigene Ausgabe.
 
-`resultListChanged` folgt ausschließlich erfolgreichen nativen `vimgrep`-,
-`grep`-, `lvimgrep`- oder `lgrep`-Befehlen. `listKind` ist `quickfix` oder
+`resultListChanged` folgt ausschließlich erfolgreich abgeschlossenen nativen
+`vimgrep`-, `vimgrepadd`-, `grep`-, `grepadd`-, `lvimgrep`-, `lvimgrepadd`-,
+`lgrep`- oder `lgrepadd`-Befehlen. `listKind` ist `quickfix` oder
 `locationList`; `itemCount` und `itemIndex` stammen aus `getqflist()` oder
 `getloclist()`. Öffnet Neovim den ausgewählten Treffer, ist der folgende
 `contextChanged` maßgeblich. Bleibt die Auswahl in der offenen Liste, trägt
 `cursorMoved` stattdessen die vollständige Trefferzeile und Listenposition.
 Ein zur gleichen physischen Tastenfolge gehörendes redundantes Ereignis wird
-gebündelt. `replacementPerformed` folgt nativen
-`:substitute`-Befehlen
-und deren Ausführung über `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo` oder `bufdo`.
+gebündelt. `replacementPerformed` folgt der von `nvim_parse_cmd()` erkannten
+nativen Ersetzungsfamilie `substitute`, `smagic`, `snomagic`, `&` und `~`
+sowie deren Ausführung über `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo` oder `bufdo`.
 Es enthält die von Neovim gelieferte begrenzte Statusmeldung, den Umfang und
 Anzahlen beobachteter geänderter beziehungsweise noch ungespeicherter Buffer.
 Bei bufferlokalen Ersetzungen enthält es zusätzlich die über öffentliche

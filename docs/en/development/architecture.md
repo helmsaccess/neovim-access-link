@@ -677,15 +677,14 @@ discarded when the command line closes; the observer executes no replacement.
 Before a native multi-buffer replacement or LSP rename, the observer stores
 only `changedtick`, name, and `modified` for at most 2,048 Neovim buffers. It
 compares that metadata after completion and emits an evidence-based summary.
-It copies no file contents, interprets no LSP edits, and writes no buffer. A
-real regression suite lets Neovim visit Quickfix files, listed buffers, and
-argument files itself; the argument test includes an initially unloaded
-buffer. A 35-ms debounce bounds search and replacement previews; after the
-last open LSP rename request, the observer waits 500 ms for trailing buffer
-changes. Internal intermediate
-reports remain suppressed during that interval and for at most one later
-text, cursor, or context signal of each kind. The next physical key ends any
-unused residual state. Errors, unknown commands, and absent changes fall back
+It copies no file contents, interprets no LSP edits, and neither writes nor
+loads a buffer itself. Neovim's Quickfix, location, argument, or buffer lists
+alone determine which buffers a multi-buffer command visits. A 35-ms debounce
+bounds search and replacement previews; after the last open LSP rename
+request, the observer waits 500 ms for trailing buffer changes. Internal
+intermediate reports remain suppressed during that interval and for at most
+one later text, cursor, or context signal of each kind. The next physical key
+ends any unused residual state. Errors, unknown commands, and absent changes fall back
 to Neovim's ordinary messages.
 
 ### Held developer contexts

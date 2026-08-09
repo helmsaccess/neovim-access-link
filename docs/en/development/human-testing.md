@@ -263,13 +263,13 @@ Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
 mounted directories on Windows.
 
-Later runs compare a separate environment fingerprint, tool versions required by the selection,
-versions, and all four plugin revisions. Changes only to task wording,
-translations, or result logic therefore do not trigger setup again. If the
-required tools and plugins already match, they are reused without package
-installation. Clang-Tidy and markdownlint are not installed preemptively for
-a normal smoke run. Only the technical preflight for actually selected
-profiles is repeated after a relevant runtime change.
+Later runs compare a separate environment fingerprint, the tool versions
+required by the selection, and all four plugin revisions. Changes only to task
+wording, translations, or result logic therefore do not trigger setup again.
+If the required tools and plugins already match, they are reused without
+package installation. Clang-Tidy and markdownlint are not installed
+preemptively for a normal smoke run. Only the technical preflight for actually
+selected profiles is repeated after a relevant runtime change.
 
 A technical preflight then starts every selected test profile. For LSP tasks,
 it waits for an attached Pyright client. The rename task requires its native

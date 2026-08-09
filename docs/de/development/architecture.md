@@ -751,13 +751,13 @@ Vor einer nativen Mehrbuffer-Ersetzung oder LSP-Umbenennung speichert der
 Beobachter für höchstens 2048 Neovim-Buffer nur `changedtick`, Name und
 `modified`. Nach Abschluss vergleicht er diese Metadaten und erzeugt eine
 belegbare Zusammenfassung. Er kopiert keine Dateiinhalte, analysiert keine
-LSP-Edits und schreibt keinen Buffer. Reale Regressionstests lassen Neovim
-Quickfix-Dateien, gelistete Buffer und Argumentdateien selbst besuchen; der
-Argumenttest schließt einen zunächst ungeladenen Buffer ein. Ein
-35-ms-Debounce begrenzt Such- und Ersetzungsvorschauen; nach der letzten
+LSP-Edits und schreibt oder lädt keinen Buffer selbst. Welche Buffer ein
+Mehrbuffer-Befehl besucht, bestimmen ausschließlich Neovims Quickfix-,
+Positions-, Argument- oder Bufferlisten. Ein 35-ms-Debounce begrenzt Such- und
+Ersetzungsvorschauen; nach der letzten
 offenen LSP-Rename-Anfrage wartet der Beobachter 500 ms auf nachlaufende
-Bufferänderungen. Währenddessen und für
-höchstens ein anschließend zugestelltes Text-, Cursor- oder Kontextsignal je
+Bufferänderungen. Währenddessen und für höchstens ein anschließend
+zugestelltes Text-, Cursor- oder Kontextsignal je
 Art bleiben interne Zwischenmeldungen aus. Der nächste physische Tastendruck
 beendet jeden ungenutzten Restzustand. Fehler, unbekannte Befehle und fehlende
 Änderungen fallen auf Neovims normale Meldungen zurück.

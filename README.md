@@ -84,9 +84,9 @@ steps.
 ## Compatibility and status
 
 The confirmed reference environment uses Windows 11, NVDA 2026.1.x, Windows
-Terminal, local Windows Neovim, and Neovim on Rocky Linux 10 over Windows
-OpenSSH. Neovim 0.10.1 is the reference version; selected local Windows and
-file-management workflows with Oil have also been tested with Neovim 0.12.3.
+Terminal, local Windows Neovim 0.12.3, and Neovim 0.10.1 or 0.12.3 on Rocky
+Linux 10 over Windows OpenSSH. Local Neovim 0.10.1 remains covered by
+automated tests.
 
 Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See

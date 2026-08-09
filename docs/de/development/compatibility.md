@@ -43,8 +43,13 @@ kann. Bestehende Benutzerbelegungen bleiben unverändert.
 
 ## Plugin- und Werkzeugverträge
 
-Die Testmatrix führt die in den Testwerkzeugen gepinnten Versionen auf
-Neovim 0.10.1 und 0.12.3 aus. Dazu gehören:
+Die automatisierten Pfade verwenden je nach Testzweck Neovim 0.10.1 oder
+0.12.3. Der vollständige Repository-Basissatz auf 0.10.1 deckt ab:
+
+- native Suche, `inccommand`, Quickfix-/Positionslisten,
+  Mehrbuffer-Ersetzungen und LSP-Rename über öffentliche Neovim-Ereignisse;
+
+Getrennte Matrizen prüfen auf 0.10.1 und 0.12.3:
 
 - `nvim-cmp` und `blink.cmp` für Completion;
 - `nvim-lint`, ALE und `none-ls.nvim` für providerneutrale Diagnosen über
@@ -52,10 +57,16 @@ Neovim 0.10.1 und 0.12.3 aus. Dazu gehören:
 - Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop und
   `markdownlint-cli2` als reale Linterprozesse.
 
+Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3, führt
+aber keine praktische NVDA-Abnahme aus.
+
 Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten und
 werden nicht ausgeliefert. Sprachen sind nicht im Add-on fest verdrahtet. Ein
 weiterer Sprachserver oder Linter gilt erst dann als automatisiert abgedeckt,
 wenn ein realer gepinnter Vertragstest denselben semantischen Pfad bestätigt.
+Die nativen Mehrdateitests lassen Neovim Quickfix-Dateien, gelistete Buffer und
+Argumentdateien selbst auswählen; ein Test beginnt mit einem noch ungeladenen
+Argumentbuffer. L4 bis L6 bleiben davon getrennte praktische NVDA-Prüfungen.
 
 Oil, netrw, mini.files, nvim-tree und Neo-tree verwenden öffentliche APIs oder
 dokumentierte Ereignisse. Fehlt ein erforderliches Ereignis oder ändert sich

@@ -227,17 +227,19 @@ lines and 256 KiB. Larger buffers retain the current preview line while
 `previewIncomplete=true` marks an incomplete count. Leaving or canceling the
 command line emits `previewActive=false` without its own presentation.
 
-`resultListChanged` follows only successful native `vimgrep`, `grep`,
-`lvimgrep`, or `lgrep` commands. `listKind` is `quickfix` or `locationList`;
-`itemCount` and `itemIndex` come from `getqflist()` or `getloclist()`. When
-Neovim opens the selected result, the following `contextChanged` is
+`resultListChanged` follows only successfully completed native `vimgrep`,
+`vimgrepadd`, `grep`, `grepadd`, `lvimgrep`, `lvimgrepadd`, `lgrep`, or
+`lgrepadd` commands. `listKind` is `quickfix` or `locationList`; `itemCount`
+and `itemIndex` come from `getqflist()` or `getloclist()`. When Neovim opens
+the selected result, the following `contextChanged` is
 authoritative. When selection remains in the open list, `cursorMoved` instead
 carries the complete result row and list position. A redundant event belonging
 to the same physical key sequence is coalesced.
-`replacementPerformed` follows native `:substitute` commands and their use
-through `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo`, or `bufdo`. It carries Neovim's
-bounded status message, the scope, and counts of observed changed and unsaved
-buffers. Buffer-local replacements also contain the changed-line count
+`replacementPerformed` follows the native replacement family recognized by
+`nvim_parse_cmd()`: `substitute`, `smagic`, `snomagic`, `&`, and `~`, including
+their use through `cdo`, `cfdo`, `ldo`, `lfdo`, `argdo`, or `bufdo`. It carries
+Neovim's bounded status message, the scope, and counts of observed changed and
+unsaved buffers. Buffer-local replacements also contain the changed-line count
 observed through public buffer updates. This is a fallback when Neovim's
 `report`-dependent status message supplies no count, not a count of individual
 substitutions. Exceeding the observation bound sets

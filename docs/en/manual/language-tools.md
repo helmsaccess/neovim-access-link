@@ -227,7 +227,7 @@ The example uses these Neovim keys without the NVDA key:
 Access Link speaks and displays on Braille the information supplied by Neovim.
 The complete operation of completion, function signatures, and diagnostics is
 documented in
-[Search, menus, completion, and diagnostics](menus-and-completion.md).
+[Search, replacement, completion, and diagnostics](menus-and-completion.md).
 
 ## Other languages and existing plugins
 

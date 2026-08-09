@@ -1,9 +1,48 @@
-# Search, menus, completion, and diagnostics
+# Search, replacement, completion, and diagnostics
 
-Access Link presents Neovim's structured menus and development information in
-speech and Braille. Keys without the NVDA key remain Neovim or plugin
-commands. Combinations containing the NVDA key open only the documented Access
-Link views.
+Access Link presents Neovim's search, replacement, and structured development
+information in speech and Braille. Keys without the NVDA key remain Neovim or
+plugin commands. Combinations containing the NVDA key open only the documented
+Access Link views.
+
+## Search and replace
+
+Neovim still executes search and replacement itself. Access Link adds
+accessible feedback:
+
+- With `incsearch` enabled, `/pattern` or `?pattern` reports the preview match
+  displayed by Neovim while the pattern is being typed. The report includes
+  match position and count. It also says when Neovim bounded the count or
+  continued at the opposite end of the buffer. After `Enter`, `n` and `N`
+  retain their normal Neovim behavior.
+- With `inccommand` enabled, a typed `:substitute` reports Neovim's previewed
+  line and the number of affected lines through speech and Braille. This works
+  with both `inccommand=nosplit` and `inccommand=split`. Large buffers mark the
+  count as incomplete. Neovim provides this live preview only for a direct
+  replacement command in the current buffer, not for `:bufdo`, `:argdo`, or
+  result-list loops.
+- After an accepted search, Access Link reports active search highlighting.
+  `:nohlsearch` or `:set nohlsearch` reports that it has been cleared.
+- A confirmed replacement such as `:%s/old/new/gc` includes the affected line
+  and position in every native `y/n/a/q/l` question. Only Neovim processes the
+  answer.
+- After a replacement, Access Link uses Neovim's own result message. When
+  Neovim's `report` setting provides no count, the report instead includes the
+  observed number of changed lines. This is not a separately calculated count
+  of individual substitutions.
+- `:vimgrep` and `:grep`, including their `add` variants, report the size of
+  their Quickfix list; `:lvimgrep` and `:lgrep` do the same for the location
+  list. Navigation in an open result window includes the current result
+  position.
+- Replacements through `:cdo`, `:cfdo`, `:ldo`, `:lfdo`, `:argdo`, or `:bufdo`
+  receive one aggregate completion report. It names observed changed and
+  unsaved buffers instead of every intermediate edit. Buffers visited
+  internally by Neovim are not presented as focus changes. Neovim still
+  decides which Quickfix files, arguments, or listed buffers each command
+  visits.
+
+This support applies to native Neovim commands. A plugin-specific search UI
+needs public structured state or a dedicated adapter.
 
 ## Completion menus
 
@@ -63,44 +102,6 @@ Enter this Neovim command:
 
 It names the LSP clients attached to the current buffer or reports that no
 client is attached. It is a Neovim command and does not contain the NVDA key.
-
-## Search and replace
-
-Neovim still executes search and replacement itself. Access Link adds
-accessible feedback:
-
-- With `incsearch` enabled, `/pattern` or `?pattern` reports the preview match
-  displayed by Neovim while the pattern is being typed. The report includes
-  match position and count. It also says when Neovim bounded the count or
-  continued at the opposite end of the buffer. After `Enter`, `n` and `N`
-  retain their normal Neovim behavior.
-- With `inccommand` enabled, a typed `:substitute` reports Neovim's previewed
-  line and the number of affected lines through speech and Braille. This works
-  with both `inccommand=nosplit` and `inccommand=split`. Large buffers mark the
-  count as incomplete. Neovim provides this live preview only for a direct
-  replacement command in the current buffer, not for `:bufdo`, `:argdo`, or
-  result-list loops.
-- After an accepted search, Access Link reports active search highlighting.
-  `:nohlsearch` or `:set nohlsearch` reports that it has been cleared.
-- A confirmed replacement such as `:%s/old/new/gc` includes the affected line
-  and position in every native `y/n/a/q/l` question. Only Neovim processes the
-  answer.
-- After a replacement, Access Link uses Neovim's own result message. When
-  Neovim's `report` setting provides no count, the report instead includes the
-  observed number of changed lines. This is not a separately calculated count
-  of individual substitutions.
-- `:vimgrep` and `:grep` report the size of their Quickfix list;
-  `:lvimgrep` and `:lgrep` do the same for the location list. Navigation in an
-  open result window includes the current result position.
-- Replacements through `:cdo`, `:cfdo`, `:ldo`, `:lfdo`, `:argdo`, or `:bufdo`
-  receive one aggregate completion report. It names observed changed and
-  unsaved buffers instead of every intermediate edit. Buffers visited
-  internally by Neovim are not presented as focus changes. Neovim still
-  decides which Quickfix files, arguments, or listed buffers each command
-  visits.
-
-This support applies to native Neovim commands. A plugin-specific search UI
-needs public structured state or a dedicated adapter.
 
 ## Rename symbols with LSP
 

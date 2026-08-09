@@ -13,34 +13,13 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Härtet native Completion, `nvim-cmp` und `blink.cmp`, einschließlich
   Dokumentationsauflösung, Menüklängen und dem Zustand ohne ausgewählten
   Kandidaten.
-- Macht inkrementelle Suche mit verlässlicher Trefferzahl für das noch nicht
-  bestätigte Muster, native
-  Projekt-Trefferlisten, bestätigte und
-  bufferübergreifende Ersetzung sowie LSP-Rename-Abschlüsse zugänglich, ohne
-  Neovims Befehls- oder LSP-Logik zu ersetzen; geführte Praxistests bereiten
-  die längeren nativen Abläufe über aufgabenspezifische Funktionstasten vor,
-  ohne erzeugte Befehlszeichen als Eingabe auszugeben; überlappende
-  Neovim-Kontextsignale werden dabei zu einem Wechsel gebündelt, und native
-  Ersetzungsabfragen unterbrechen die laufende Abschlussbeobachtung nicht.
-  Bufferübergreifende Ersetzungen bleiben bis zu Neovims `SafeState` eine
-  einzige Beobachtung; ihre internen Buffer-, Kontext- und Cursorwechsel
-  erzeugen keine Fokusansagen und die Gesamtsumme entsteht erst nach der
-  letzten Bestätigungsabfrage.
-  Quickfix-Auswahlwechsel melden auch bei echten Funktionstasten die
-  vollständige Trefferzeile statt eines nachfolgenden einzelnen
-  Cursorzeichens; die geführten Tasten bleiben bei wiederholter Auswahl in der
-  Liste und melden Grenzen ohne Neovims rohe Grenzfehler. Native
-  Ersetzungsabfragen werden vor der jeweiligen Antwort mit Zeile und Position
-  ausgegeben. LSP-Umbenennungen bündeln nachlaufende Bufferänderungen und
-  unterdrücken interne Text-, Cursor- und Kontextmeldungen bis zur einmaligen
-  belegbaren Zusammenfassung. Der geführte L5-Test gibt beide umbenannten
-  Referenzzeilen ohne irreführenden Puffer- oder Fokuswechsel aus.
-- Ergänzt native `inccommand`-Ersetzungsvorschauen, Suchumbrüche,
-  begrenzte Trefferzählungen und den sichtbaren Suchhervorhebungszustand.
-  Bufferlokale Ersetzungen melden ersatzweise beobachtete geänderte Zeilen,
-  wenn Neovim keine eigene Mengenmeldung liefert. Reale Mehrdateitests decken
-  Quickfix-Dateien, gelistete Buffer und Argumentdateien ab; der neue geführte
-  L6-Test prüft die gebündelte Ausgabe einer Bufferlisten-Ersetzung.
+- Macht native inkrementelle Suche, `inccommand`-Ersetzungsvorschauen,
+  Quickfix-/Positionslisten, Ersetzungsabfragen, Mehrbuffer-Ersetzungen und
+  LSP-Rename-Abschlüsse zugänglich. Neovim und der Sprachserver behalten die
+  Ausführung; Access Link bündelt interne Buffer-, Cursor- und Kontextwechsel
+  zu einer belegbaren Abschlussmeldung. Automatisierte Mehrdateitests decken
+  Quickfix-Dateien, gelistete Buffer und Argumentdateien ab; die geführten
+  L4- bis L6-Abläufe isolieren die verbleibende praktische NVDA-Prüfung.
 - Vereinheitlicht Diagnosen aus LSP, `nvim-lint`, ALE und `none-ls.nvim`,
   erweitert Navigationsbefehle und ergänzt getrennte Fehler-, Warn- und
   Leerbestätigungsklänge.
@@ -49,12 +28,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
   F12-Rückfrage.
 - Trennt sichere, SSH- und Socket-Prüfungen in unabhängige Testphasen und
   erweitert die reproduzierbaren Completion-, LSP-, Linter- und geführten
-  Praxistests. Deren Aufgabenkarten erklären nun jeweils Zweck, nummerierte
-  Tastenfolgen und Bestehenskriterium; feste Umbrüche bleiben auf echte
-  Schrittgrenzen beschränkt. Sie nennen Geltungsbereich, Voraussetzungen oder
-  Grenzen nur, wenn diese die Bewertung beeinflussen. F2 wiederholt stets die
-  vollständige Aufgabe; F1 und F11 bleiben wegen der Standardbelegungen von
-  Neovim und Windows Terminal frei.
+  Praxistests. Kompakte Aufgabenkarten nennen Zweck, nummerierte Schritte und
+  Bestehenskriterium; F2 wiederholt die Aufgabe, während F1 und F11 wegen der
+  Standardbelegungen von Neovim und Windows Terminal frei bleiben.
 - Aktualisiert Auswahl- und LSP-Test-APIs für Neovim 0.12, ohne die
   Kompatibilität mit Neovim 0.10 aufzugeben.
 - Ordnet Quick Guide und Handbuch nach Leseraufgaben neu. Eine echte, getestete
