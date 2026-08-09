@@ -8,7 +8,7 @@ test-build entries through August 5, 2026.
 
 - No changes.
 
-## 0.97.0 (beta)
+## 0.97.0
 
 - Adds the HTTPS project URL to the add-on manifest.
 - Adds an optional parameterless Windows build from source. A temporary Python

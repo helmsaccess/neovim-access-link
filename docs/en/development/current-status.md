@@ -1,9 +1,9 @@
 # Current status
 
-Status date: August 9, 2026. The source tree is the 0.97.0 beta release;
-`buildVars.py` generates release artifacts without a development build number
-or Git metadata. The project does not infer a higher stability classification
-from test coverage or feature count.
+Status date: August 9, 2026. The source tree is release 0.97.0;
+`buildVars.py` sets its release channel to beta and generates artifacts without
+a development build number or Git metadata. The project does not infer a
+higher stability classification from test coverage or feature count.
 
 This page is the compact snapshot of implemented and verified behavior. See
 [architecture](architecture.md) and the [feature matrix](accessibility.md) for

@@ -1,8 +1,8 @@
 # Aktueller Status
 
-Stand: 9. August 2026. Der Quellstand ist der Beta-Release 0.97.0;
-`buildVars.py` erzeugt Release-Artefakte ohne Entwicklungsbuildnummer oder
-Git-Metadaten. Das Projekt leitet aus Testumfang oder Funktionsmenge keine
+Stand: 9. August 2026. Der Quellstand ist Release 0.97.0; `buildVars.py` setzt
+den Release-Kanal auf Beta und erzeugt Artefakte ohne Entwicklungsbuildnummer
+oder Git-Metadaten. Das Projekt leitet aus Testumfang oder Funktionsmenge keine
 höhere Stabilitätseinstufung ab.
 
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften

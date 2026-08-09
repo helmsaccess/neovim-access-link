@@ -8,7 +8,7 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 - Keine Änderungen.
 
-## 0.97.0 (Beta)
+## 0.97.0
 
 - Ergänzt die HTTPS-Projektadresse im Add-on-Manifest.
 - Ergänzt einen optionalen parameterlosen Windows-Build aus dem Quellcode. Ein
