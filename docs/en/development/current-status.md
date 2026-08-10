@@ -144,8 +144,10 @@ Listener-free, SSH, and real socket tests run separately. See the
 [test strategy](testing.md) for commands and detail.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
-real provider data and task-specific isolated key control; their structure and
-safe key choices are documented in [guided practical tests](human-testing.md).
+real provider data and task-specific isolated key control. The compatibility
+suite also includes four lazy.nvim tasks with fully local Git fixtures for its
+window, installation, update, and synchronization; structure and safe key
+choices are documented in [guided practical tests](human-testing.md).
 
 Practical confirmation includes:
 

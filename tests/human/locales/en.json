@@ -19,6 +19,7 @@
   "category.completion": "Completion",
   "category.diagnostics": "Diagnostics and linters",
   "category.session-integration": "Session and terminal integration",
+  "category.plugin-management": "Plugin management",
   "runner.invalidChoice": "That choice is unavailable. Enter one of the displayed numbers.",
   "runner.language": "Language: {0}",
   "runner.capability.audio": "Can you hear the Access Link sounds during this run?",
@@ -167,5 +168,24 @@
   "plan.markdownDiagnostics.presentation.title": "Perceive a markdownlint warning",
   "plan.markdownDiagnostics.presentation.purpose": "Checks whether Access Link also presents Markdown findings clearly. markdownlint detects a second level-one heading here; nvim-lint passes the warning to Neovim.",
   "plan.markdownDiagnostics.presentation.action": "1. F6: run markdownlint; wait for “Diagnostics ready”.\n2. F7: read the warning at the current position.\n3. F9: reach the same single warning again as a navigation target. With audio, listen for the warning sound.\n4. Escape, then F10: end the test without saving.",
-  "plan.markdownDiagnostics.presentation.expected": "F6 announces collection and readiness without inserting a single character such as “number sign”. F7 and F9 each report the markdownlint MD025 warning once with a meaningful position. With audio, each message produces one warning sound."
+  "plan.markdownDiagnostics.presentation.expected": "F6 announces collection and readiness without inserting a single character such as “number sign”. F7 and F9 each report the markdownlint MD025 warning once with a meaningful position. With audio, each message produces one warning sound.",
+
+  "plan.lazy.title": "Plugin management with lazy.nvim",
+  "plan.lazy.description": "Checks the lazy.nvim window plus install, update, and sync with fully isolated local test plugins.",
+  "plan.lazy.window.title": "Read and operate the lazy.nvim window",
+  "plan.lazy.window.purpose": "Checks whether Access Link recognizes lazy.nvim as a plugin manager and makes its line-oriented interface understandable.",
+  "plan.lazy.window.action": "1. F3: open lazy.nvim. Use j and k to read several plugin lines.\n2. Enter: open details for the current line; press Enter again to close them.\n3. ?: open lazy.nvim help; press ? again to return to the plugin list.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
+  "plan.lazy.window.expected": "NVDA reads complete, useful lines with plugin names and status. Details and help are understandable to navigate; opening and closing produce no stale, duplicate, or unrelated file and focus announcements.",
+  "plan.lazy.install.title": "Install a test plugin",
+  "plan.lazy.install.purpose": "Checks clear feedback for a real lazy.nvim install from an isolated local Git repository.",
+  "plan.lazy.install.action": "1. F3: open lazy.nvim and read the missing access-link-install-target entry.\n2. F4: start installation; wait for the completion announcement.\n3. F5: verify the test plugin's actual Git state.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
+  "plan.lazy.install.expected": "NVDA announces the start and successful completion of installation once each. F5 confirms that access-link-install-target is completely installed at the expected revision; no user data or real plugins are changed.",
+  "plan.lazy.update.title": "Update a test plugin",
+  "plan.lazy.update.purpose": "Checks clear feedback for a real lazy.nvim update between two local Git revisions.",
+  "plan.lazy.update.action": "1. F3: open lazy.nvim and read access-link-update-target with its available update.\n2. F4: start the update; wait for the completion announcement.\n3. F5: verify the test plugin's actual Git state.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
+  "plan.lazy.update.expected": "NVDA announces the start and successful completion of the update once each. F5 confirms the new expected Git revision; no user data or real plugins are changed.",
+  "plan.lazy.sync.title": "Synchronize install, update, and cleanup",
+  "plan.lazy.sync.purpose": "Checks lazy.nvim synchronization as one coherent operation with a missing, an outdated, and a no-longer-configured test plugin.",
+  "plan.lazy.sync.action": "1. F3: open lazy.nvim and read the prepared plugin states.\n2. F4: start synchronization; wait for the completion announcement.\n3. F5: verify installation, update, and removal from the actual Git directories.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
+  "plan.lazy.sync.expected": "NVDA announces synchronization as one operation with exactly one start and one completion message; internal install, update, and cleanup steps cause no extra flood of messages. F5 confirms all three expected final states."
 }

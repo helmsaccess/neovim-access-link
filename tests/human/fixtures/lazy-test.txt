@@ -1,0 +1,2 @@
+This buffer belongs to the isolated lazy.nvim guided test.
+No user configuration or installed plugin is changed.

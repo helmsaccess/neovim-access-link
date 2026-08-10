@@ -254,10 +254,10 @@ Fokusisolation und Fail-open</td>
 </tr>
 <tr class="even">
 <td><code>compatibility</code></td>
-<td>Completion-Menüs von nvim-cmp und blink.cmp sowie je eine
-C-/Clang-Tidy- und Markdown-/markdownlint-Diagnose</td>
-<td>nach Änderungen an Adaptern, Linterintegration oder
-Abhängigkeiten</td>
+<td>Completion-Menüs von nvim-cmp und blink.cmp, C-/Clang-Tidy- und
+Markdown-/markdownlint-Diagnosen sowie lazy.nvim-Pluginverwaltung</td>
+<td>nach Änderungen an Adaptern, Linterintegration, Pluginverwaltung
+oder Abhängigkeiten</td>
 </tr>
 <tr class="odd">
 <td><code>all</code></td>
@@ -297,6 +297,11 @@ Funktionssignaturen, native Suche/Ersetzung und LSP-Rename</td>
 <td>Sitzung und Terminalintegration</td>
 <td>Fokusisolation und Fail-open</td>
 </tr>
+<tr class="odd">
+<td>Plugin-Verwaltung</td>
+<td>lazy.nvim-Fenster, Installation, Aktualisierung und
+Synchronisierung</td>
+</tr>
 </tbody>
 </table>
 <section id="stabile-test-ids" class="level4">
@@ -304,11 +309,12 @@ Funktionssignaturen, native Suche/Ersetzung und LSP-Rename</td>
 <p>Jede Aufgabe besitzt eine eindeutige zweistellige ID. Der erste
 Buchstabe bezeichnet die Kategorie (<code>L</code>
 LSP/Sprachintelligenz, <code>C</code> Completion, <code>D</code>
-Diagnosen, <code>S</code> Sitzung); das zweite Zeichen unterscheidet die
-Aufgaben. Diese IDs werden nie umnummeriert oder erneut vergeben. Sie
-erscheinen im Auswahlmenü, vor jeder Aufgabe, in der JSON-Ergebnisdatei
-und bei <code>F2</code> in Test-Neovim. Damit genügt beispielsweise
-„Fehler in D3“ als eindeutige Referenz.</p>
+Diagnosen, <code>S</code> Sitzung, <code>P</code> Plugin-Verwaltung);
+das zweite Zeichen unterscheidet die Aufgaben. Diese IDs werden nie
+umnummeriert oder erneut vergeben. Sie erscheinen im Auswahlmenü, vor
+jeder Aufgabe, in der JSON-Ergebnisdatei und bei <code>F2</code> in
+Test-Neovim. Damit genügt beispielsweise „Fehler in D3“ als eindeutige
+Referenz.</p>
 <table>
 <thead>
 <tr class="header">
@@ -372,6 +378,23 @@ und bei <code>F2</code> in Test-Neovim. Damit genügt beispielsweise
 <tr class="even">
 <td><code>S1</code></td>
 <td>Fokusisolation und Verbindungsabbruch</td>
+</tr>
+<tr class="odd">
+<td><code>P1</code></td>
+<td>lazy.nvim-Fenster und Navigation</td>
+</tr>
+<tr class="even">
+<td><code>P2</code></td>
+<td>Installation eines isolierten Test-Plugins</td>
+</tr>
+<tr class="odd">
+<td><code>P3</code></td>
+<td>Aktualisierung eines isolierten Test-Plugins</td>
+</tr>
+<tr class="even">
+<td><code>P4</code></td>
+<td>Synchronisierung mit Installation, Aktualisierung und
+Bereinigung</td>
 </tr>
 </tbody>
 </table>
@@ -602,6 +625,12 @@ und den Cursor auf die erste erwartete Testdiagnose setzen</td>
 <td>zur vorherigen beziehungsweise nächsten Diagnose springen</td>
 </tr>
 <tr class="even">
+<td><code>F3</code>, <code>F4</code>, <code>F5</code> bei P1 bis P4</td>
+<td>lazy.nvim öffnen, die vorbereitete öffentliche Verwaltungsaktion
+starten und den tatsächlichen isolierten Git-Endzustand prüfen; P1
+benötigt nur F3 und Lazys normale Tasten</td>
+</tr>
+<tr class="odd">
 <td><code>Escape</code>, dann <code>F10</code></td>
 <td>Test-Neovim ohne Speichern schließen und zu PowerShell
 zurückkehren</td>

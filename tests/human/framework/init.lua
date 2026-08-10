@@ -45,6 +45,9 @@ local human_messages = language == "de" and {
   quickfix_unavailable = "Die vorbereitete Quickfix-Liste enthält nicht genug Treffer.",
   quickfix_first = "Bereits beim ersten Quickfix-Treffer.",
   quickfix_last = "Bereits beim letzten Quickfix-Treffer.",
+  lazy_action_unavailable = "Diese Lazy-Aufgabe hat keine vorbereitete Verwaltungsaktion.",
+  lazy_verified = "Lazy-Testzustand vollständig geprüft.",
+  lazy_not_ready = "Lazy-Testzustand ist noch nicht vollständig erreicht: %s",
 } or {
   test_id = "Test ID %s.",
   test_purpose = "Purpose of this test:",
@@ -68,6 +71,9 @@ local human_messages = language == "de" and {
   quickfix_unavailable = "The prepared Quickfix list does not contain enough results.",
   quickfix_first = "Already at the first Quickfix result.",
   quickfix_last = "Already at the last Quickfix result.",
+  lazy_action_unavailable = "This Lazy task has no prepared management action.",
+  lazy_verified = "Lazy test state fully verified.",
+  lazy_not_ready = "Lazy test state is not complete yet: %s",
 }
 local valid_profiles = {
   setup = true,
@@ -78,6 +84,7 @@ local valid_profiles = {
   cmp = true,
   blink = true,
   focus = true,
+  lazy = true,
 }
 assert(valid_profiles[profile], "unsupported ACCESS_LINK_HUMAN_PROFILE")
 
@@ -143,6 +150,9 @@ if not dry_run then
   if profile == "setup" or profile == "blink" then
     add("blinkCmp", "blink.cmp")
   end
+  if profile == "setup" or profile == "lazy" then
+    add("lazyNvim", "lazy.nvim")
+  end
   if #specifications > 0 then
     vim.pack.add(specifications, { confirm = false, load = true })
     local installed = vim.pack.get(nil, { info = true })
@@ -160,6 +170,49 @@ end
 if profile == "setup" then
   vim.g.access_link_human_setup_complete = 1
   return
+end
+
+local lazy_fixture = nil
+if not dry_run and profile == "lazy" then
+  -- lazy.nvim disables Neovim's remaining startup-plugin pass. Load Access
+  -- Link explicitly first, then retain the existing runtime path. This uses
+  -- only the two plugins' public entry points and configuration APIs.
+  vim.cmd.runtime("plugin/nvim_nvda.lua")
+  local fixture_path = assert(vim.env.ACCESS_LINK_HUMAN_LAZY_FIXTURE,
+    "ACCESS_LINK_HUMAN_LAZY_FIXTURE is required")
+  lazy_fixture = read_json(fixture_path)
+  assert(lazy_fixture.schemaVersion == 1, "unsupported Lazy fixture schema")
+  assert(type(lazy_fixture.root) == "string" and lazy_fixture.root ~= "",
+    "Lazy fixture root is missing")
+  assert(type(lazy_fixture.lockfile) == "string" and lazy_fixture.lockfile ~= "",
+    "Lazy fixture lockfile is missing")
+  assert(type(lazy_fixture.plugins) == "table", "Lazy fixture plugins are missing")
+  local specifications = {}
+  for _, plugin in ipairs(lazy_fixture.plugins) do
+    assert(type(plugin.name) == "string" and plugin.name:match("^access%-link%-%l+%-target$"),
+      "Lazy fixture plugin name is invalid")
+    assert(type(plugin.url) == "string" and plugin.url ~= "",
+      "Lazy fixture plugin URL is missing")
+    assert(type(plugin.expectedRevision) == "string"
+        and plugin.expectedRevision:match("^[0-9a-f]+$")
+        and #plugin.expectedRevision == 40,
+      "Lazy fixture expected revision is invalid")
+    specifications[#specifications + 1] = {
+      name = plugin.name,
+      url = plugin.url,
+      lazy = true,
+    }
+  end
+  require("lazy").setup(specifications, {
+    root = lazy_fixture.root,
+    lockfile = lazy_fixture.lockfile,
+    install = { missing = false },
+    checker = { enabled = false },
+    change_detection = { enabled = false, notify = false },
+    readme = { enabled = false },
+    rocks = { enabled = false },
+    performance = { rtp = { reset = false } },
+  })
 end
 
 local function access_link_command(name)
@@ -443,7 +496,69 @@ end, { desc = "Access Link human test: next diagnostic" })
 vim.keymap.set("n", "<F10>", "<Cmd>qa!<CR>",
   { desc = "Access Link human test: exit without saving" })
 
-if step_id == "status-presentation" then
+local function open_lazy_window()
+  if vim.fn.exists(":Lazy") ~= 2 then
+    vim.notify("lazy.nvim is unavailable", vim.log.levels.ERROR)
+    return
+  end
+  vim.cmd("Lazy")
+end
+
+local function run_lazy_operation()
+  local action = ({
+    ["lazy-install"] = "install",
+    ["lazy-update"] = "update",
+    ["lazy-sync"] = "sync",
+  })[step_id]
+  if not action then
+    vim.notify(human_messages.lazy_action_unavailable)
+    return
+  end
+  vim.cmd("Lazy " .. action)
+end
+
+local function verify_lazy_fixture()
+  if not lazy_fixture then
+    vim.notify(human_messages.lazy_not_ready:format("fixture unavailable"),
+      vim.log.levels.ERROR)
+    return
+  end
+  local git = vim.fn.exepath("git")
+  local problems = {}
+  for _, plugin in ipairs(lazy_fixture.plugins) do
+    local directory = vim.fs.joinpath(lazy_fixture.root, plugin.name)
+    if not vim.uv.fs_stat(directory) then
+      problems[#problems + 1] = plugin.name .. " missing"
+    else
+      local result = vim.system({ git, "-C", directory, "rev-parse", "HEAD" },
+        { text = true }):wait(3000)
+      local revision = type(result.stdout) == "string" and vim.trim(result.stdout) or ""
+      if result.code ~= 0 or revision ~= plugin.expectedRevision then
+        problems[#problems + 1] = plugin.name .. " revision mismatch"
+      end
+    end
+  end
+  for _, directory in ipairs(lazy_fixture.absent or {}) do
+    if vim.uv.fs_stat(directory) then
+      problems[#problems + 1] = vim.fs.basename(directory) .. " still present"
+    end
+  end
+  if #problems == 0 then
+    vim.notify(human_messages.lazy_verified)
+  else
+    vim.notify(string.format(human_messages.lazy_not_ready,
+      table.concat(problems, ", ")), vim.log.levels.ERROR)
+  end
+end
+
+if profile == "lazy" then
+  vim.keymap.set("n", "<F3>", open_lazy_window,
+    { desc = "Access Link human test: open lazy.nvim" })
+  vim.keymap.set("n", "<F4>", run_lazy_operation,
+    { desc = "Access Link human test: run prepared lazy.nvim operation" })
+  vim.keymap.set("n", "<F5>", verify_lazy_fixture,
+    { desc = "Access Link human test: verify lazy.nvim fixture state" })
+elseif step_id == "status-presentation" then
   vim.keymap.set("n", "<F3>", function()
     access_link_command("NvimNvdaLspStatus")
   end, { desc = "Access Link human test: LSP status" })
@@ -964,6 +1079,14 @@ end
 
 vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
   assert_completion_runtime_isolated()
+  if profile == "lazy" then
+    assert(vim.fn.exists(":Lazy") == 2,
+      "lazy.nvim did not provide its public command")
+    vim.cmd("Lazy")
+    assert(vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy",
+      "lazy.nvim did not expose its documented buffer identity")
+    vim.cmd("close")
+  end
   if uses_pyright then
     local attached = vim.wait(provider_timeout_ms, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0

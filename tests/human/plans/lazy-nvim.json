@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 4,
+  "id": "lazy-nvim",
+  "order": 55,
+  "titleKey": "plan.lazy.title",
+  "descriptionKey": "plan.lazy.description",
+  "suites": ["compatibility"],
+  "profile": "lazy",
+  "fixture": "lazy-test.txt",
+  "steps": [
+    {
+      "testId": "P1",
+      "id": "lazy-window",
+      "category": "plugin-management",
+      "titleKey": "plan.lazy.window.title",
+      "purposeKey": "plan.lazy.window.purpose",
+      "actionKey": "plan.lazy.window.action",
+      "expectedKey": "plan.lazy.window.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/plugin_manager_spec.lua", "tests/human/test_framework.py"]
+    },
+    {
+      "testId": "P2",
+      "id": "lazy-install",
+      "category": "plugin-management",
+      "titleKey": "plan.lazy.install.title",
+      "purposeKey": "plan.lazy.install.purpose",
+      "actionKey": "plan.lazy.install.action",
+      "expectedKey": "plan.lazy.install.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/plugin_manager_spec.lua", "tests/human/framework/lazy_operations_probe.lua"]
+    },
+    {
+      "testId": "P3",
+      "id": "lazy-update",
+      "category": "plugin-management",
+      "titleKey": "plan.lazy.update.title",
+      "purposeKey": "plan.lazy.update.purpose",
+      "actionKey": "plan.lazy.update.action",
+      "expectedKey": "plan.lazy.update.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/plugin_manager_spec.lua", "tests/human/framework/lazy_operations_probe.lua"]
+    },
+    {
+      "testId": "P4",
+      "id": "lazy-sync",
+      "category": "plugin-management",
+      "titleKey": "plan.lazy.sync.title",
+      "purposeKey": "plan.lazy.sync.purpose",
+      "actionKey": "plan.lazy.sync.action",
+      "expectedKey": "plan.lazy.sync.expected",
+      "manualReasons": ["speechPerception", "latencyUsability"],
+      "requires": [],
+      "automatedEvidence": ["neovim-plugin/tests/plugin_manager_spec.lua", "tests/human/framework/lazy_operations_probe.lua"]
+    }
+  ]
+}

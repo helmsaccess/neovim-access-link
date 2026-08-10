@@ -31,6 +31,7 @@ $DependenciesPath = Join-Path $HumanRoot "dependencies.json"
 $ValidatorPath = Join-Path $FrameworkRoot "validate.py"
 $TestInitPath = Join-Path $FrameworkRoot "init.lua"
 $StateRoot = Join-Path $RepositoryRoot "tmp\human-test-state"
+$LazySandboxRoot = Join-Path $StateRoot "lazy-sandboxes"
 $ResultsRoot = Join-Path $RepositoryRoot "tmp\human-test-results"
 $PythonRoot = Join-Path $StateRoot "python"
 $PythonScripts = Join-Path $PythonRoot "Scripts"
@@ -427,7 +428,7 @@ function Get-EquivalentPaths {
 }
 
 function Get-TestGitSafeDirectories {
-    $names = @("nvim-lint", "nvim-cmp", "cmp-nvim-lsp", "blink.cmp")
+    $names = @("nvim-lint", "nvim-cmp", "cmp-nvim-lsp", "blink.cmp", "lazy.nvim")
     $directories = @(Get-EquivalentPaths -Path $RepositoryRoot)
     $roots = @(Get-EquivalentPaths -Path $ManagedPluginsRoot)
     foreach ($root in $roots) {
@@ -436,6 +437,12 @@ function Get-TestGitSafeDirectories {
             if ($directories -notcontains $directory) {
                 $directories += $directory
             }
+        }
+    }
+    foreach ($root in Get-EquivalentPaths -Path $LazySandboxRoot) {
+        $wildcard = "$($root.TrimEnd('/'))/*"
+        if ($directories -notcontains $wildcard) {
+            $directories += $wildcard
         }
     }
     return $directories
@@ -454,6 +461,161 @@ function Initialize-TestGitConfig {
     $utf8 = New-Object Text.UTF8Encoding($false)
     $content = ($lines -join [Environment]::NewLine) + [Environment]::NewLine
     [IO.File]::WriteAllText($TestGitConfig, $content, $utf8)
+}
+
+function Assert-LazySandboxPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $root = [IO.Path]::GetFullPath($LazySandboxRoot).TrimEnd(
+        [IO.Path]::DirectorySeparatorChar,
+        [IO.Path]::AltDirectorySeparatorChar
+    ) + [IO.Path]::DirectorySeparatorChar
+    $candidate = [IO.Path]::GetFullPath($Path)
+    if (-not $candidate.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Lazy human-test path is outside the isolated sandbox"
+    }
+    return $candidate
+}
+
+function Initialize-LazyFixture {
+    param(
+        [string]$HumanTestId = "",
+        [string]$StepId = ""
+    )
+    $key = if ([string]::IsNullOrWhiteSpace($HumanTestId)) {
+        "preflight"
+    } else {
+        $HumanTestId.ToLowerInvariant()
+    }
+    if ($key -notmatch "^[a-z0-9-]+$") {
+        throw "Lazy human-test ID contains unsupported characters"
+    }
+    $sandbox = Assert-LazySandboxPath (Join-Path $LazySandboxRoot $key)
+    if (Test-Path -LiteralPath $sandbox) {
+        Remove-Item -LiteralPath $sandbox -Recurse -Force
+    }
+    $origins = Join-Path $sandbox "origins"
+    $work = Join-Path $sandbox "source"
+    $pluginRoot = Join-Path $sandbox "plugins"
+    foreach ($directory in @($origins, $work, $pluginRoot)) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    }
+
+    $git = Get-RequiredCommand "git" (Get-Message "runner.installGit")
+    $null = Invoke-External -Command $git -Arguments @(
+        "init", "--initial-branch=main", $work
+    )
+    $pluginDirectory = Join-Path $work "plugin"
+    New-Item -ItemType Directory -Path $pluginDirectory -Force | Out-Null
+    $target = Join-Path $pluginDirectory "access_link_lazy_fixture.lua"
+    $seedA = Join-Path $FixturesRoot "lazy-plugin-a.lua"
+    $seedB = Join-Path $FixturesRoot "lazy-plugin-b.lua"
+    [IO.File]::WriteAllBytes($target, [IO.File]::ReadAllBytes($seedA))
+    $null = Invoke-External -Command $git -Arguments @(
+        "-C", $work, "add", "plugin/access_link_lazy_fixture.lua"
+    )
+    $null = Invoke-External -Command $git -Arguments @(
+        "-C", $work, "-c", "user.name=Access Link Test",
+        "-c", "user.email=human-test.invalid", "commit", "-m", "Fixture A"
+    )
+    $revisionA = Invoke-ExternalText -Command $git -Arguments @(
+        "-C", $work, "rev-parse", "HEAD"
+    )
+    if ($revisionA.ExitCode -ne 0 -or $revisionA.Text -notmatch "^[0-9a-f]{40}$") {
+        throw "Could not determine Lazy fixture revision A"
+    }
+    [IO.File]::WriteAllBytes($target, [IO.File]::ReadAllBytes($seedB))
+    $null = Invoke-External -Command $git -Arguments @(
+        "-C", $work, "add", "plugin/access_link_lazy_fixture.lua"
+    )
+    $null = Invoke-External -Command $git -Arguments @(
+        "-C", $work, "-c", "user.name=Access Link Test",
+        "-c", "user.email=human-test.invalid", "commit", "-m", "Fixture B"
+    )
+    $revisionB = Invoke-ExternalText -Command $git -Arguments @(
+        "-C", $work, "rev-parse", "HEAD"
+    )
+    if ($revisionB.ExitCode -ne 0 -or $revisionB.Text -notmatch "^[0-9a-f]{40}$") {
+        throw "Could not determine Lazy fixture revision B"
+    }
+
+    $remoteNames = @(
+        "access-link-stable-target",
+        "access-link-install-target",
+        "access-link-update-target",
+        "access-link-stale-target"
+    )
+    $remotePaths = @{}
+    foreach ($name in $remoteNames) {
+        $remote = Join-Path $origins "$name.git"
+        $null = Invoke-External -Command $git -Arguments @(
+            "clone", "--bare", $work, $remote
+        )
+        $remotePaths[$name] = $remote
+    }
+
+    function Install-LazyFixtureClone {
+        param(
+            [Parameter(Mandatory = $true)][string]$Name,
+            [Parameter(Mandatory = $true)][string]$Revision
+        )
+        $destination = Join-Path $pluginRoot $Name
+        $null = Invoke-External -Command $git -Arguments @(
+            "clone", [string]$remotePaths[$Name], $destination
+        )
+        if ($Revision -ne $revisionB.Text) {
+            $null = Invoke-External -Command $git -Arguments @(
+                "-C", $destination, "checkout", "--detach", $Revision
+            )
+        }
+    }
+
+    $operation = switch ($StepId) {
+        "lazy-install" { "install" }
+        "lazy-update" { "update" }
+        "lazy-sync" { "sync" }
+        default { "window" }
+    }
+    $configuredNames = @()
+    if ($operation -eq "window") {
+        $configuredNames = @("access-link-stable-target", "access-link-update-target")
+        foreach ($name in $configuredNames) {
+            Install-LazyFixtureClone -Name $name -Revision $revisionB.Text
+        }
+    } elseif ($operation -eq "install") {
+        $configuredNames = @("access-link-install-target")
+    } elseif ($operation -eq "update") {
+        $configuredNames = @("access-link-update-target")
+        Install-LazyFixtureClone -Name $configuredNames[0] -Revision $revisionA.Text
+    } else {
+        $configuredNames = @("access-link-install-target", "access-link-update-target")
+        Install-LazyFixtureClone -Name "access-link-update-target" -Revision $revisionA.Text
+        Install-LazyFixtureClone -Name "access-link-stale-target" -Revision $revisionB.Text
+    }
+
+    $plugins = @(
+        foreach ($name in $configuredNames) {
+            [PSCustomObject]@{
+                name = $name
+                url = [string]$remotePaths[$name]
+                expectedRevision = $revisionB.Text
+            }
+        }
+    )
+    $fixture = [PSCustomObject]@{
+        schemaVersion = 1
+        operation = $operation
+        root = $pluginRoot
+        lockfile = Join-Path $sandbox "lazy-lock.json"
+        plugins = $plugins
+        absent = if ($operation -eq "sync") {
+            @(Join-Path $pluginRoot "access-link-stale-target")
+        } else {
+            @()
+        }
+    }
+    $fixturePath = Join-Path $sandbox "fixture.json"
+    Write-JsonFile -Value $fixture -Path $fixturePath
+    return $fixturePath
 }
 
 function Assert-Definitions {
@@ -821,6 +983,7 @@ function Invoke-TestNvim {
         "ACCESS_LINK_HUMAN_RUFF",
         "ACCESS_LINK_HUMAN_CLANG_TIDY",
         "ACCESS_LINK_HUMAN_MARKDOWNLINT",
+        "ACCESS_LINK_HUMAN_LAZY_FIXTURE",
         "ACCESS_LINK_HUMAN_DRY_RUN",
         "ACCESS_LINK_HUMAN_PURPOSE",
         "ACCESS_LINK_HUMAN_TASK",
@@ -847,6 +1010,7 @@ function Invoke-TestNvim {
         $env:ACCESS_LINK_HUMAN_RUFF = $RuffPath
         $env:ACCESS_LINK_HUMAN_CLANG_TIDY = $ClangTidyPath
         $env:ACCESS_LINK_HUMAN_MARKDOWNLINT = $MarkdownlintPath
+        $env:ACCESS_LINK_HUMAN_LAZY_FIXTURE = $null
         $env:ACCESS_LINK_HUMAN_DRY_RUN = if ($ConfigurationDryRun) { "1" } else { $null }
         $env:ACCESS_LINK_HUMAN_PURPOSE = $Purpose
         $env:ACCESS_LINK_HUMAN_TASK = $Task
@@ -868,6 +1032,10 @@ function Invoke-TestNvim {
             New-Item -ItemType Directory -Path $directory -Force | Out-Null
         }
         Initialize-TestGitConfig
+        if ($Profile -eq "lazy" -and -not $ConfigurationDryRun) {
+            $env:ACCESS_LINK_HUMAN_LAZY_FIXTURE = Initialize-LazyFixture `
+                -HumanTestId $HumanTestId -StepId $StepId
+        }
         $arguments = @("-u", $TestInitPath, "-n", "-i", "NONE")
         if ($Headless) {
             $arguments += "--headless"
@@ -972,6 +1140,7 @@ function Test-SetupCurrent {
             "nvim-cmp" = $dependencies.plugins.nvimCmp
             "cmp-nvim-lsp" = $dependencies.plugins.cmpNvimLsp
             "blink.cmp" = $dependencies.plugins.blinkCmp
+            "lazy.nvim" = $dependencies.plugins.lazyNvim
         }
         foreach ($name in $managedPlugins.Keys) {
             $directory = Join-Path $ManagedPluginsRoot $name
@@ -1104,6 +1273,7 @@ function Install-TestEnvironment {
         "cmp" = "lsp_features.py"
         "blink" = "lsp_features.py"
         "focus" = "lsp_features.py"
+        "lazy" = "lazy-test.txt"
     }
     foreach ($profileName in $profiles) {
         $probe = [PSCustomObject]@{
@@ -1561,7 +1731,7 @@ switch ($Action) {
             $null = Assert-AccessLinkPluginCurrent
             foreach ($profile in @(
                 "native", "diagnostics", "c-diagnostics", "markdown-diagnostics",
-                "cmp", "blink", "focus"
+                "cmp", "blink", "focus", "lazy"
             )) {
                 Invoke-TestNvim -Profile $profile -Headless -ConfigurationDryRun
             }

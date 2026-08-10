@@ -2708,8 +2708,10 @@ real socket tests run separately. See the <a href="#docs__en__development__testi
 strategy</a> for commands and detail. Guided practical tests isolate the
 remaining perceptual checks for speech, Braille, sounds, focus, and
 response time. Their technical preflight confirms real provider data and
-task-specific isolated key control; their structure and safe key choices
-are documented in <a href="human-testing.html">guided practical
+task-specific isolated key control. The compatibility suite also
+includes four lazy.nvim tasks with fully local Git fixtures for its
+window, installation, update, and synchronization; structure and safe
+key choices are documented in <a href="human-testing.html">guided practical
 tests</a>.</p>
 <p>Practical confirmation includes:</p>
 <ul>
@@ -2864,10 +2866,12 @@ provider-neutral diagnostics through <code>vim.diagnostic</code>;</li>
 <p>The public contract of <code>lazy.nvim</code> 11.17.5 was checked
 directly. Automated tests cover the exact
 <code>nofile</code>/<code>lazy</code> buffer values and documented
-lifecycle events in a real Neovim TUI. This contract covers buffer
-identity and neutral start/end reports, not Lazy&#39;s virtual progress,
-rendered plugin rows, or a successful operation result. Practical
-Windows/NVDA acceptance remains open.</p>
+lifecycle events in a real Neovim TUI. Pinned headless tests also run
+the public install, update, and sync commands against isolated local Git
+repositories and verify their actual end states. Access Link itself
+still does not infer success from Lazy&#39;s virtual progress, rendered
+plugin rows, or error symbols. Practical Windows/NVDA acceptance remains
+open.</p>
 <p>The Windows job checks the guided-test runner with Neovim 0.12.3, but
 does not perform practical NVDA acceptance.</p>
 <p>The checkouts, language runtimes, and tools are test dependencies and
@@ -4727,6 +4731,8 @@ contracts:</p>
 <code>nvim-lint</code>, ALE, and real linters;</li>
 <li><code>tools/test_none_ls.sh</code> for the <code>none-ls.nvim</code>
 LSP bridge;</li>
+<li><code>tools/test_lazy_plugin.sh PATH_TO_LAZY_NVIM</code> for public
+lazy.nvim commands, lifecycle events, and local Git end states;</li>
 <li><code>tools/test_neovim_plugin.sh</code> for the serial complete Lua
 compatibility run. It also includes session specifications with local
 listeners and therefore needs an environment that permits them.</li>
@@ -4743,6 +4749,8 @@ and pull requests. Jobs are deliberately separated into:</p>
 <li>safe unit, package, and listener-free Lua tests;</li>
 <li>the PowerShell runner for guided practical tests;</li>
 <li>completion-plugin contracts;</li>
+<li>public lazy.nvim contracts with real install, update, and sync
+operations;</li>
 <li>diagnostic providers and real linters;</li>
 <li>mocked SSH and Askpass paths;</li>
 <li>real TUI, TCP, and Unix-socket cases;</li>
@@ -5597,6 +5605,10 @@ Lazy buffer receives an unambiguous context name, while only documented
 lifecycle events produce neutral start/end reports through speech and
 Braille. Synchronization collapses child operations without guessing
 progress, result, or success from Lazy&#39;s rendering.</li>
+<li>Adds four guided lazy.nvim practical tests for window operation,
+install, update, and synchronization. Isolated local Git fixtures and
+pinned headless contract tests verify actual end states without changing
+user configuration or installed plugins.</li>
 <li>Integrates all eight German and English HTML documents into the
 add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s

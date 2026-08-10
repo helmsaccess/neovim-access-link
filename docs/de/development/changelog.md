@@ -11,6 +11,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
   Braille. Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
   Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.
+- Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
+  Installation, Aktualisierung und Synchronisierung. Isolierte lokale
+  Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten
+  Endzustände, ohne Benutzerkonfiguration oder installierte Plugins zu ändern.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.

@@ -16,6 +16,10 @@
     "nvimLint": {
       "source": "https://github.com/mfussenegger/nvim-lint.git",
       "revision": "a219b2c9e5b4765e5c845aba119dad55806fcaf1"
+    },
+    "lazyNvim": {
+      "source": "https://github.com/folke/lazy.nvim.git",
+      "revision": "85c7ff3711b730b4030d03144f6db6375044ae82"
     }
   },
   "tools": {

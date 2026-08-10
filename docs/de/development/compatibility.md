@@ -59,10 +59,12 @@ Getrennte Matrizen prüfen auf 0.10.1 und 0.12.3:
 
 Der öffentliche Vertrag von `lazy.nvim` 11.17.5 wurde direkt geprüft.
 Automatisierte Tests decken die exakten `nofile`-/`lazy`-Pufferwerte und die
-dokumentierten Lebenszyklusereignisse in einem echten Neovim-TUI ab. Dieser
-Vertrag deckt Pufferidentität und neutrale Start-/Endmeldungen ab, nicht Lazys
-virtuellen Fortschritt, gerenderte Pluginzeilen oder ein erfolgreiches
-Operationsergebnis. Eine praktische Windows-/NVDA-Abnahme steht aus.
+dokumentierten Lebenszyklusereignisse in einem echten Neovim-TUI ab. Gepinnte
+Headless-Tests führen außerdem die öffentlichen Befehle für Installation,
+Aktualisierung und Synchronisierung mit isolierten lokalen Git-Repositories
+aus und prüfen deren tatsächlichen Endzustand. Access Link selbst leitet aus
+Lazys virtuellem Fortschritt, gerenderten Pluginzeilen oder Fehlersymbolen
+weiterhin keinen Erfolg ab. Eine praktische Windows-/NVDA-Abnahme steht aus.
 
 Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3, führt
 aber keine praktische NVDA-Abnahme aus.

@@ -56,9 +56,11 @@ Separate matrices exercise the following on both 0.10.1 and 0.12.3:
 
 The public contract of `lazy.nvim` 11.17.5 was checked directly. Automated
 tests cover the exact `nofile`/`lazy` buffer values and documented lifecycle
-events in a real Neovim TUI. This contract covers buffer identity and neutral
-start/end reports, not Lazy's virtual progress, rendered plugin rows, or a
-successful operation result. Practical Windows/NVDA acceptance remains open.
+events in a real Neovim TUI. Pinned headless tests also run the public install,
+update, and sync commands against isolated local Git repositories and verify
+their actual end states. Access Link itself still does not infer success from
+Lazy's virtual progress, rendered plugin rows, or error symbols. Practical
+Windows/NVDA acceptance remains open.
 
 The Windows job checks the guided-test runner with Neovim 0.12.3, but does not
 perform practical NVDA acceptance.

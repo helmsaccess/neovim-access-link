@@ -100,6 +100,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				"c-diagnostics",
 				"diagnostics",
 				"focus-isolation",
+				"lazy-nvim",
 				"lsp-native",
 				"markdown-diagnostics",
 				"nvim-cmp",
@@ -161,7 +162,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			{plan["profile"] for plan in plans.values()},
 		)
 		self.assertEqual(
-			{"L1", "L2", "L3", "L4", "L5", "L6", "C1", "C2", "C3", "D1", "D2", "D3", "D4", "S1"},
+			{
+				"L1", "L2", "L3", "L4", "L5", "L6",
+				"C1", "C2", "C3", "D1", "D2", "D3", "D4",
+				"S1", "P1", "P2", "P3", "P4",
+			},
 			{step["testId"] for plan in plans.values() for step in plan["steps"]},
 		)
 
@@ -214,6 +219,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('$env:ACCESS_LINK_HUMAN_TEST_ID = $HumanTestId', runner)
 		self.assertIn('"ACCESS_LINK_HUMAN_STEP_ID"', runner)
 		self.assertIn('$env:ACCESS_LINK_HUMAN_STEP_ID = $StepId', runner)
+		self.assertIn('"ACCESS_LINK_HUMAN_LAZY_FIXTURE"', runner)
+		self.assertIn("function Assert-LazySandboxPath", runner)
+		self.assertIn("function Initialize-LazyFixture", runner)
+		self.assertIn('"access-link-stale-target"', runner)
+		self.assertIn('Remove-Item -LiteralPath $sandbox -Recurse -Force', runner)
 		self.assertNotIn('"install", "--prefix", $NodeRoot', runner)
 		self.assertIn('"pack", "--pack-destination", $PackageRoot, "--ignore-scripts"', runner)
 		self.assertIn("Get-FileHash -LiteralPath $archive -Algorithm SHA512", runner)
@@ -376,6 +386,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		)
 		self.assertIn('"<F4>", report_buffer_replacement', configuration)
 		self.assertNotIn('"<F11>"', configuration)
+		self.assertIn('profile == "lazy"', configuration)
+		self.assertIn('vim.cmd("Lazy " .. action)', configuration)
+		self.assertIn('vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy"', configuration)
+		self.assertIn('vim.system({ git, "-C", directory, "rev-parse", "HEAD" }', configuration)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
 		self.assertIn('step_id == "menu-presentation"', configuration)

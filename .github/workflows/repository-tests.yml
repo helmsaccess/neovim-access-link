@@ -183,6 +183,35 @@ jobs:
           fi
           bash tools/test_completion_plugins.sh "${arguments[@]}"
 
+  lazy-plugin:
+    name: lazy.nvim public lifecycle and fixture operations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check out pinned lazy.nvim
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: folke/lazy.nvim
+          ref: 85c7ff3711b730b4030d03144f6db6375044ae82
+          path: .ci-deps/lazy.nvim
+          persist-credentials: false
+      - name: Install pinned Neovim 0.12.3
+        env:
+          LAZY_NEOVIM_ARCHIVE: nvim-linux-x86_64.tar.gz
+          LAZY_NEOVIM_DIRECTORY: nvim-linux-x86_64
+          LAZY_NEOVIM_SHA256: c441b547142860bf01bcce39e36cbed185c41112813e15443b16e5237750724d
+          LAZY_NEOVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.3/nvim-linux-x86_64.tar.gz
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$LAZY_NEOVIM_URL" --output "$LAZY_NEOVIM_ARCHIVE"
+          echo "$LAZY_NEOVIM_SHA256  $LAZY_NEOVIM_ARCHIVE" | sha256sum --check -
+          tar --extract --gzip --file "$LAZY_NEOVIM_ARCHIVE"
+          echo "$PWD/$LAZY_NEOVIM_DIRECTORY/bin" >> "$GITHUB_PATH"
+      - name: Test real lazy.nvim public commands and lifecycle events
+        run: bash tools/test_lazy_plugin.sh .ci-deps/lazy.nvim
+
   linter-plugins:
     name: Diagnostic providers (${{ matrix.name }})
     runs-on: ubuntu-24.04

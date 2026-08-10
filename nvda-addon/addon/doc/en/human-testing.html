@@ -251,9 +251,10 @@ focus isolation, and fail-open behavior</td>
 </tr>
 <tr class="even">
 <td><code>compatibility</code></td>
-<td>nvim-cmp and blink.cmp completion menus plus one C/Clang-Tidy and
-one Markdown/markdownlint diagnostic</td>
-<td>after changes to adapters, linter integration, or dependencies</td>
+<td>nvim-cmp and blink.cmp completion menus, C/Clang-Tidy and
+Markdown/markdownlint diagnostics, and lazy.nvim plugin management</td>
+<td>after changes to adapters, linter integration, plugin management, or
+dependencies</td>
 </tr>
 <tr class="odd">
 <td><code>all</code></td>
@@ -293,18 +294,22 @@ native search/replacement, and LSP rename</td>
 <td>Session and terminal integration</td>
 <td>focus isolation and fail-open behavior</td>
 </tr>
+<tr class="odd">
+<td>Plugin management</td>
+<td>lazy.nvim window, installation, update, and synchronization</td>
+</tr>
 </tbody>
 </table>
 <section id="stable-test-ids" class="level4">
 <h4>Stable test IDs</h4>
 <p>Every task has a unique two-character ID. The first letter identifies
 its category (<code>L</code> for LSP/language intelligence,
-<code>C</code> for completion, <code>D</code> for diagnostics, and
-<code>S</code> for session integration); the second character
-distinguishes tasks. IDs are never renumbered or reused. They appear in
-the selection menu, before every task, in the JSON result, and when
-<code>F2</code> is pressed in test Neovim. Thus, “failure in D3” is an
-unambiguous reference.</p>
+<code>C</code> for completion, <code>D</code> for diagnostics,
+<code>S</code> for session integration, and <code>P</code> for plugin
+management); the second character distinguishes tasks. IDs are never
+renumbered or reused. They appear in the selection menu, before every
+task, in the JSON result, and when <code>F2</code> is pressed in test
+Neovim. Thus, “failure in D3” is an unambiguous reference.</p>
 <table>
 <thead>
 <tr class="header">
@@ -368,6 +373,22 @@ unambiguous reference.</p>
 <tr class="even">
 <td><code>S1</code></td>
 <td>focus isolation and disconnect</td>
+</tr>
+<tr class="odd">
+<td><code>P1</code></td>
+<td>lazy.nvim window and navigation</td>
+</tr>
+<tr class="even">
+<td><code>P2</code></td>
+<td>installation of an isolated test plugin</td>
+</tr>
+<tr class="odd">
+<td><code>P3</code></td>
+<td>update of an isolated test plugin</td>
+</tr>
+<tr class="even">
+<td><code>P4</code></td>
+<td>synchronization with install, update, and cleanup</td>
 </tr>
 </tbody>
 </table>
@@ -582,6 +603,13 @@ the first expected test diagnostic</td>
 <td>jump to the previous or next diagnostic</td>
 </tr>
 <tr class="even">
+<td><code>F3</code>, <code>F4</code>, <code>F5</code> in P1 through
+P4</td>
+<td>open lazy.nvim, start the prepared public management action, and
+verify the actual isolated Git end state; P1 uses only F3 and Lazy&#39;s
+normal keys</td>
+</tr>
+<tr class="odd">
 <td><code>Escape</code>, then <code>F10</code></td>
 <td>close test Neovim without saving and return to PowerShell</td>
 </tr>
