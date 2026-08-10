@@ -127,6 +127,19 @@ der Ausgabe verwirft sie. Das Ereignis bestätigt nur, was die öffentliche
 Plugin-API als Abschluss meldet; fehlende Fehler- oder Abbruchereignisse werden
 nicht aus Meldungstext oder Renderzustand rekonstruiert.
 
+Die vorhandenen kanonischen Felder `buftype` und `filetype` kennzeichnen das
+Lazy-Fenster nur bei den exakten Werten `nofile` und `lazy`. Zusätzlicher
+Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich. Das
+flüchtige Ereignis `pluginManagerOperation` enthält
+`pluginManagerKind=lazyNvim`, genau eine feste Operation `install`, `update`,
+`clean`, `check`, `log` oder `sync` und eine Phase `started` oder `finished`.
+Es übernimmt keine Eventdaten, Pluginzeilen, Zähler, Pfade oder Erfolgsaussage.
+Bridge und lokaler Client validieren den Vertrag vor Veröffentlichung und
+übernehmen die drei Operationsfelder nicht in den kanonischen Zustand. Während
+`sync` werden dessen dokumentierte
+untergeordnete Installations-, Bereinigungs- und Aktualisierungsereignisse zu
+einem Start-/Endpaar zusammengefasst; ungepaarte Endereignisse bleiben still.
+
 ## Sitzungsbeginn, Sequenzierung und Resync
 
 Die erste akzeptierte Nachricht jeder Transport-Sitzung ist `fullState` mit
@@ -254,6 +267,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
+`pluginManagerOperation`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult` und
 `numberedChoiceOpened`, `numberedChoiceClosed`,

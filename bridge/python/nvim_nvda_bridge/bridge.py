@@ -25,6 +25,8 @@ from nvim_nvda_protocol import (
     valid_context_request,
     valid_diagnostic_context_result,
     valid_active_parameter_changed,
+    valid_plugin_manager_operation,
+    plugin_manager_operation_state,
 )
 
 
@@ -85,6 +87,8 @@ class Bridge:
             return dict(self._state)
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
+            return
         if event_type == "activeParameterChanged" and (
             not self._supports_plugin_capability("activeParameterHints")
             or not valid_active_parameter_changed(payload)
@@ -117,6 +121,8 @@ class Bridge:
             state = developer_context_result_state(payload)
         elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
             state = numbered_choice_state(payload)
+        elif event_type == "pluginManagerOperation":
+            state = plugin_manager_operation_state(payload)
         else:
             state = dict(payload)
         with self._state_lock:

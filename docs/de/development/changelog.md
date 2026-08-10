@@ -6,6 +6,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Ergänzt robuste Grundunterstützung für `lazy.nvim`: Der echte Lazy-Puffer
+  erhält einen eindeutigen Kontextnamen; ausschließlich dokumentierte
+  Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
+  Braille. Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
+  Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.

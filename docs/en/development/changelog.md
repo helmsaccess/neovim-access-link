@@ -6,6 +6,11 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Adds robust baseline support for `lazy.nvim`: the real Lazy buffer receives
+  an unambiguous context name, while only documented lifecycle events produce
+  neutral start/end reports through speech and Braille. Synchronization
+  collapses child operations without guessing progress, result, or success
+  from Lazy's rendering.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.

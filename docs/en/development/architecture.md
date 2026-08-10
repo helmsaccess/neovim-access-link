@@ -203,7 +203,7 @@ must not close output again before state is confirmed.
 
 | Layer | Owns | Explicitly does not own |
 |---|---|---|
-| Neovim plugin | Editor semantics, buffer/window/tab identity, UTF-8 byte columns, menus, messages, file-manager state, and ephemeral read-only exploration position | Windows focus, speech, SSH lifecycle, or moving the real cursor for exploration |
+| Neovim plugin | Editor semantics, buffer/window/tab identity, UTF-8 byte columns, menus, messages, file-manager state, plugin-manager lifecycle, and ephemeral read-only exploration position | Windows focus, speech, SSH lifecycle, or moving the real cursor for exploration |
 | Bridge | Unix RPC connection, stdio framing, bounded forwarding | Arbitrary RPC or command execution, presentation |
 | Protocol client | Size, type, session, sequence, heartbeat, and resync validation | Speech or terminal-focus decisions |
 | `ConnectionInstanceManager` | Instances and binding a `TerminalIdentity` to an instance | Guessing bindings from titles or terminal text |

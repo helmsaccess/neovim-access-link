@@ -1426,8 +1426,8 @@ is confirmed.</p>
 <tr class="odd">
 <td>Neovim plugin</td>
 <td>Editor semantics, buffer/window/tab identity, UTF-8 byte columns,
-menus, messages, file-manager state, and ephemeral read-only exploration
-position</td>
+menus, messages, file-manager state, plugin-manager lifecycle, and
+ephemeral read-only exploration position</td>
 <td>Windows focus, speech, SSH lifecycle, or moving the real cursor for
 exploration</td>
 </tr>
@@ -2648,6 +2648,12 @@ contracts cover native LSP completion, <code>nvim-cmp</code>,
 <code>blink.cmp</code>, <code>nvim-lint</code>, ALE, and
 <code>none-ls.nvim</code>; users install the applicable external
 language servers and linters themselves.</li>
+<li>Lazy&#39;s public <code>nofile</code>/<code>lazy</code> buffer receives
+an unambiguous focus context. Documented lifecycle events neutrally
+report the start and end of install, update, cleanup, checking, log
+display, and synchronization through speech and Braille. Plugin rows,
+virtual progress, and success are not inferred; practical NVDA
+acceptance remains open.</li>
 <li>Native LSP rename remains entirely owned by Neovim and the language
 server. Access Link observes <code>LspRequest</code> and actual buffer
 changes, then reports one evidence-based completion instead of internal
@@ -2855,6 +2861,13 @@ provider-neutral diagnostics through <code>vim.diagnostic</code>;</li>
 <li>Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop, and
 <code>markdownlint-cli2</code> as real linter processes.</li>
 </ul>
+<p>The public contract of <code>lazy.nvim</code> 11.17.5 was checked
+directly. Automated tests cover the exact
+<code>nofile</code>/<code>lazy</code> buffer values and documented
+lifecycle events in a real Neovim TUI. This contract covers buffer
+identity and neutral start/end reports, not Lazy&#39;s virtual progress,
+rendered plugin rows, or a successful operation result. Practical
+Windows/NVDA acceptance remains open.</p>
 <p>The Windows job checks the guided-test runner with Neovim 0.12.3, but
 does not perform practical NVDA acceptance.</p>
 <p>The checkouts, language runtimes, and tools are test dependencies and
@@ -3883,6 +3896,7 @@ while no stdio client exists.</p>
 <code>commandLineChanged</code>, <code>messageReceived</code>,
 <code>errorReceived</code>, <code>fileManagerEntryChanged</code>,
 <code>fileManagerActionResult</code>,
+<code>pluginManagerOperation</code>,
 <code>leaveTerminalInputResult</code>, <code>exploreTextResult</code>,
 <code>brailleExploreLineResult</code>,
 <code>numberedChoiceOpened</code>, <code>numberedChoiceClosed</code>,
@@ -4061,6 +4075,21 @@ Synchronous results in the same active buffer/window/tab may be combined
 within one scheduler cycle. A changed identity or manager drops the
 output. Missing failure or cancellation events are not reconstructed
 from rendering or text.</p>
+<p>The existing canonical <code>buftype</code> and <code>filetype</code>
+fields identify the Lazy window only when they are exactly
+<code>nofile</code> and <code>lazy</code>. No additional manager state
+or rendered UI text is needed. The transient
+<code>pluginManagerOperation</code> event carries
+<code>pluginManagerKind=lazyNvim</code>, exactly one fixed operation,
+<code>install</code>, <code>update</code>, <code>clean</code>,
+<code>check</code>, <code>log</code>, or <code>sync</code>, and one
+phase, <code>started</code> or <code>finished</code>. It carries no
+event data, plugin rows, counts, paths, or success claim. The bridge and
+local client validate this contract before publication and do not copy
+its three operation fields into canonical state. During
+<code>sync</code>, its documented child install, clean, and update
+events collapse into one start/end pair; unpaired finish events remain
+silent.</p>
 <p><code>promptOpened</code> carries a deliberate user-facing prompt at
 most 2048 bytes and a fixed prompt kind. <code>promptClosed</code>
 distinguishes acceptance and cancellation where Neovim proves it. Oil&#39;s
@@ -4916,6 +4945,15 @@ practically tested with one physical Braille display.</td>
 prompt, selection, and completion semantically.</td>
 <td>Real TUI tests.</td>
 </tr>
+<tr class="odd">
+<td>lazy.nvim</td>
+<td>Public buffer options identify the Lazy window. Documented
+<code>User</code> events neutrally report the start and end of
+installation, update, cleanup, checking, log display, and
+synchronization; Lazy retains result and success state.</td>
+<td>Isolated Lua, protocol, bridge, presentation, and real TUI tests;
+practical NVDA acceptance remains open.</td>
+</tr>
 </tbody>
 </table>
 <p>Background diagnostic refresh does not automatically speak every
@@ -5554,6 +5592,11 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
 <ul>
+<li>Adds robust baseline support for <code>lazy.nvim</code>: the real
+Lazy buffer receives an unambiguous context name, while only documented
+lifecycle events produce neutral start/end reports through speech and
+Braille. Synchronization collapses child operations without guessing
+progress, result, or success from Lazy&#39;s rendering.</li>
 <li>Integrates all eight German and English HTML documents into the
 add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s

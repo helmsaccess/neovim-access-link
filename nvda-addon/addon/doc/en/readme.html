@@ -284,7 +284,11 @@ loss</a></li>
 up LSP, completion, and linters</a>
 <ul>
 <li><a href="#docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers" id="toc-docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers">Access
-Link plugin and plugin managers</a></li>
+Link plugin and plugin managers</a>
+<ul>
+<li><a href="#docs__en__manual__language-toolsmd__update-plugins-with-lazynvim" id="toc-docs__en__manual__language-toolsmd__update-plugins-with-lazynvim">Update
+plugins with lazy.nvim</a></li>
+</ul></li>
 <li><a href="#docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" id="toc-docs__en__manual__language-toolsmd__recommended-beginner-path-for-python">Recommended
 beginner path for Python</a>
 <ul>
@@ -1803,6 +1807,26 @@ case for <code>lazy.nvim</code>.</p>
 <p>After restarting Neovim, confirm that the plugin is loaded:</p>
 <pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
 <p>The result <code>2</code> confirms that the command is available.</p>
+<section id="docs__en__manual__language-toolsmd__update-plugins-with-lazynvim" class="level4">
+<h4>Update plugins with lazy.nvim</h4>
+<p>Open Lazy with <code>:Lazy</code>. Access Link identifies the buffer
+as the <code>lazy.nvim plugin manager</code>; ordinary Neovim navigation
+reads the window&#39;s real text lines. <code>j</code> and <code>k</code>
+move by line as usual, <code>Enter</code> opens details for the current
+plugin, <code>?</code> toggles Lazy&#39;s help, and <code>q</code> closes
+the window.</p>
+<p>Use <code>:Lazy update</code> for a complete update.
+<code>:Lazy sync</code> installs missing plugins, removes plugins which
+are no longer needed, and updates existing plugins. Access Link reports
+the start and end of these operations through speech and Braille. The
+completion report deliberately does not claim success: check Lazy&#39;s
+window afterwards for errors and the actual result.</p>
+<p>Access Link does not semantically interpret Lazy&#39;s drawn icons and
+virtual progress, plugin rows, counts, or error text. It also replaces
+no Lazy key and confirms no deletion. When a view remains unclear, use
+Lazy&#39;s documented commands and read the real buffer lines; Access Link
+falls back to that normal buffer support.</p>
+</section>
 </section>
 <section id="docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" class="level3">
 <h3>Recommended beginner path for Python</h3>

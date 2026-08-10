@@ -169,6 +169,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
+`pluginManagerOperation`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
 `numberedChoiceClosed`, `callableContextResult`,
@@ -328,6 +329,17 @@ Complete source and destination paths are removed before sending. Synchronous
 results in the same active buffer/window/tab may be combined within one
 scheduler cycle. A changed identity or manager drops the output. Missing
 failure or cancellation events are not reconstructed from rendering or text.
+
+The existing canonical `buftype` and `filetype` fields identify the Lazy
+window only when they are exactly `nofile` and `lazy`. No additional manager
+state or rendered UI text is needed. The transient `pluginManagerOperation`
+event carries `pluginManagerKind=lazyNvim`, exactly
+one fixed operation, `install`, `update`, `clean`, `check`, `log`, or `sync`,
+and one phase, `started` or `finished`. It carries no event data, plugin rows,
+counts, paths, or success claim. The bridge and local client validate this
+contract before publication and do not copy its three operation fields into
+canonical state. During `sync`, its documented child install, clean, and update
+events collapse into one start/end pair; unpaired finish events remain silent.
 
 `promptOpened` carries a deliberate user-facing prompt at most 2048 bytes and
 a fixed prompt kind. `promptClosed` distinguishes acceptance and cancellation

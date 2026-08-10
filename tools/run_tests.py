@@ -34,6 +34,7 @@ UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
 REAL_BRIDGE_TESTS = (
     "test_real_tui_f12_claim_preserves_normal_and_insert_input",
+    "test_real_tui_lazy_context_and_lifecycle_are_semantic",
     "test_real_tui_spell_choices_are_structured_and_accept_the_native_index",
     "test_real_tui_guided_quickfix_keys_keep_semantic_feedback",
     "test_real_tui_guided_buffer_replacement_reports_one_aggregate_result",
@@ -50,6 +51,7 @@ REAL_BRIDGE_TESTS = (
 )
 MOCK_BRIDGE_TESTS = (
     "test_active_parameter_transition_is_validated_before_publication",
+    "test_plugin_manager_lifecycle_is_validated_before_publication",
     "test_bridge_accepts_only_the_exact_active_numbered_choice",
     "test_braille_exploration_uses_separate_fixed_capability_gated_entry_points",
     "test_cursor_routing_uses_only_fixed_validated_plugin_entry_point",
@@ -222,6 +224,7 @@ def jobs() -> tuple[Job, ...]:
         "test_local_client.py",
         "test_numbered_choice.py",
         "test_nvim_rpc.py",
+        "test_plugin_manager.py",
         "test_protocol.py",
         "test_signature_help.py",
         "test_terminal_control.py",
@@ -286,6 +289,7 @@ def jobs() -> tuple[Job, ...]:
         "native_operations_spec.lua",
         "native_operations_lsp_integration_spec.lua",
         "navigation_spec.lua",
+        "plugin_manager_spec.lua",
         "selection_spec.lua",
         "signature_help_spec.lua",
         "signature_help_automatic_spec.lua",

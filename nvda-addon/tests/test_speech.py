@@ -549,6 +549,75 @@ class SpeechPlannerTests(unittest.TestCase):
             quickfix.text,
         )
 
+    def test_lazy_plugin_manager_context_uses_semantic_identity(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", bufferId=1, windowId=10, tabpageId=20,
+            bufferName="/tmp/example.lua", mode="normal", modeRaw="n",
+        ))
+        changed = planner.plan(event(
+            "contextChanged", bufferId=2, windowId=10, tabpageId=20,
+            bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n",
+        ))[0]
+        focused = SpeechPlanner().plan(event(
+            "focusContext", bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n",
+        ))[0]
+        self.assertEqual("lazy.nvim plugin manager, normal mode", changed.text)
+        self.assertEqual("lazy.nvim plugin manager, normal mode", focused.text)
+        self.assertEqual(focused.text, focused.braille_message)
+
+        for buftype, filetype in (("", "lazy"), ("nofile", "lazy-lookalike")):
+            with self.subTest(buftype=buftype, filetype=filetype):
+                ordinary = SpeechPlanner().plan(event(
+                    "focusContext", bufferName="", buftype=buftype, filetype=filetype,
+                    mode="normal", modeRaw="n",
+                ))[0]
+                self.assertEqual("unnamed buffer, normal mode", ordinary.text)
+
+    def test_plugin_manager_lifecycle_is_neutral_and_brailled(self) -> None:
+        planner = SpeechPlanner()
+        started = planner.plan({"type": "pluginManagerOperation", "payload": {
+            "pluginManagerKind": "lazyNvim",
+            "pluginManagerOperation": "update",
+            "pluginManagerPhase": "started",
+        }})[0]
+        finished = planner.plan({"type": "pluginManagerOperation", "payload": {
+            "pluginManagerKind": "lazyNvim",
+            "pluginManagerOperation": "update",
+            "pluginManagerPhase": "finished",
+        }})[0]
+        self.assertEqual("lazy.nvim plugin manager: update started", started.text)
+        self.assertEqual(started.text, started.braille_message)
+        self.assertEqual(
+            "lazy.nvim plugin manager: update finished; check the plugin manager for results",
+            finished.text,
+        )
+        self.assertNotIn("success", finished.text)
+        self.assertEqual(finished.text, finished.braille_message)
+
+    def test_invalid_plugin_manager_data_fails_open(self) -> None:
+        planner = SpeechPlanner()
+        for payload in (
+            {
+                "pluginManagerKind": "other",
+                "pluginManagerOperation": "update", "pluginManagerPhase": "started",
+            },
+            {
+                "pluginManagerKind": "lazyNvim",
+                "pluginManagerOperation": "arbitrary", "pluginManagerPhase": "started",
+            },
+            {
+                "pluginManagerKind": "lazyNvim",
+                "pluginManagerOperation": "update", "pluginManagerPhase": "successful",
+            },
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual([], planner.plan({
+                    "type": "pluginManagerOperation", "payload": payload,
+                }))
+
     def test_context_choice_coalesces_window_mode_file_flags_and_connection(self) -> None:
         planner = SpeechPlanner()
         text_window = {

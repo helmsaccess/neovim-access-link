@@ -1419,8 +1419,8 @@ Zustands erneut schließen.</p>
 <tr class="odd">
 <td>Neovim-Plugin</td>
 <td>Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten,
-Menüs, Meldungen, Dateimanagerzustand und flüchtige rein lesende
-Explorationsposition</td>
+Menüs, Meldungen, Dateimanagerzustand, Plugin-Manager-Lebenszyklus und
+flüchtige rein lesende Explorationsposition</td>
 <td>Windows-Fokus, Sprache, SSH-Lebenszyklus oder Bewegung des echten
 Cursors für Exploration</td>
 </tr>
@@ -2745,6 +2745,13 @@ Verträge bestehen für native LSP-Completion, <code>nvim-cmp</code>,
 <code>blink.cmp</code>, <code>nvim-lint</code>, ALE und
 <code>none-ls.nvim</code>; Benutzer installieren die jeweiligen externen
 Sprachserver und Linter selbst.</li>
+<li>Lazys öffentlicher <code>nofile</code>-/<code>lazy</code>-Puffer
+erhält einen eindeutigen Fokuskontext. Dokumentierte
+Lebenszyklusereignisse melden Beginn und Ende von Installation,
+Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
+Synchronisierung neutral über Sprache und Braille. Pluginzeilen,
+virtueller Fortschritt und Erfolg werden nicht abgeleitet; die
+praktische NVDA-Abnahme steht aus.</li>
 <li>Native LSP-Umbenennung bleibt vollständig bei Neovim und dem
 Sprachserver. Access Link beobachtet <code>LspRequest</code> und
 tatsächliche Bufferänderungen und fasst interne Text-, Cursor- und
@@ -2960,6 +2967,14 @@ providerneutrale Diagnosen über <code>vim.diagnostic</code>;</li>
 <li>Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop und
 <code>markdownlint-cli2</code> als reale Linterprozesse.</li>
 </ul>
+<p>Der öffentliche Vertrag von <code>lazy.nvim</code> 11.17.5 wurde
+direkt geprüft. Automatisierte Tests decken die exakten
+<code>nofile</code>-/<code>lazy</code>-Pufferwerte und die
+dokumentierten Lebenszyklusereignisse in einem echten Neovim-TUI ab.
+Dieser Vertrag deckt Pufferidentität und neutrale Start-/Endmeldungen
+ab, nicht Lazys virtuellen Fortschritt, gerenderte Pluginzeilen oder ein
+erfolgreiches Operationsergebnis. Eine praktische Windows-/NVDA-Abnahme
+steht aus.</p>
 <p>Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3,
 führt aber keine praktische NVDA-Abnahme aus.</p>
 <p>Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten
@@ -4011,6 +4026,22 @@ zusammengefasst. Ein Identitäts- oder Managerwechsel vor der Ausgabe
 verwirft sie. Das Ereignis bestätigt nur, was die öffentliche Plugin-API
 als Abschluss meldet; fehlende Fehler- oder Abbruchereignisse werden
 nicht aus Meldungstext oder Renderzustand rekonstruiert.</p>
+<p>Die vorhandenen kanonischen Felder <code>buftype</code> und
+<code>filetype</code> kennzeichnen das Lazy-Fenster nur bei den exakten
+Werten <code>nofile</code> und <code>lazy</code>. Zusätzlicher
+Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich.
+Das flüchtige Ereignis <code>pluginManagerOperation</code> enthält
+<code>pluginManagerKind=lazyNvim</code>, genau eine feste Operation
+<code>install</code>, <code>update</code>, <code>clean</code>,
+<code>check</code>, <code>log</code> oder <code>sync</code> und eine
+Phase <code>started</code> oder <code>finished</code>. Es übernimmt
+keine Eventdaten, Pluginzeilen, Zähler, Pfade oder Erfolgsaussage.
+Bridge und lokaler Client validieren den Vertrag vor Veröffentlichung
+und übernehmen die drei Operationsfelder nicht in den kanonischen
+Zustand. Während <code>sync</code> werden dessen dokumentierte
+untergeordnete Installations-, Bereinigungs- und
+Aktualisierungsereignisse zu einem Start-/Endpaar zusammengefasst;
+ungepaarte Endereignisse bleiben still.</p>
 </section>
 <section id="docs__de__development__protocolmd__sitzungsbeginn-sequenzierung-und-resync" class="level3">
 <h3>Sitzungsbeginn, Sequenzierung und Resync</h3>
@@ -4148,6 +4179,7 @@ Wiedergabe.</p>
 <code>commandLineChanged</code>, <code>messageReceived</code>,
 <code>errorReceived</code>, <code>fileManagerEntryChanged</code>,
 <code>fileManagerActionResult</code>,
+<code>pluginManagerOperation</code>,
 <code>leaveTerminalInputResult</code>, <code>exploreTextResult</code>,
 <code>brailleExploreLineResult</code> und
 <code>numberedChoiceOpened</code>, <code>numberedChoiceClosed</code>,
@@ -5244,6 +5276,16 @@ geprüft.</td>
 Prompt, Auswahl und Abschluss semantisch.</td>
 <td>Echte TUI-Tests.</td>
 </tr>
+<tr class="odd">
+<td>lazy.nvim</td>
+<td>Öffentliche Bufferoptionen kennzeichnen das Lazy-Fenster.
+Dokumentierte <code>User</code>-Ereignisse melden neutral Beginn und
+Ende von Installation, Aktualisierung, Bereinigung, Prüfung,
+Protokollansicht und Synchronisierung; Ergebnis und Erfolg bleiben bei
+Lazy.</td>
+<td>Isolierte Lua-, Protokoll-, Bridge-, Präsentations- und echte
+TUI-Tests; praktische NVDA-Abnahme steht aus.</td>
+</tr>
 </tbody>
 </table>
 <p>Diagnosen werden bei Hintergrundaktualisierungen nicht automatisch
@@ -5933,6 +5975,12 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
+<li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>: Der
+echte Lazy-Puffer erhält einen eindeutigen Kontextnamen; ausschließlich
+dokumentierte Lebenszyklusereignisse liefern neutrale
+Start-/Endmeldungen über Sprache und Braille. Synchronisierung fasst
+untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg
+aus Lazys Darstellung zu erraten.</li>
 <li>Integriert alle acht deutschen und englischen HTML-Dokumente in das
 Add-on. Ein oberstes <code>Neovim Access Link</code>-Menü öffnet
 Einstellungen, Komponentenverwaltung und die zur NVDA-Sprache passende

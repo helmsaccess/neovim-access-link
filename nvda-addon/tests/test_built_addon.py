@@ -3947,6 +3947,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(validator.is_file())
         self.assertIn("valid_active_parameter_changed", validator.read_text(encoding="utf-8"))
 
+    def test_built_addon_contains_plugin_manager_protocol_validator(self) -> None:
+        validator = (
+            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "core"
+            / "plugin_manager.py"
+        )
+        self.assertTrue(validator.is_file())
+        self.assertIn("valid_plugin_manager_operation", validator.read_text(encoding="utf-8"))
+
     def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
         archive = self.archive_path
         metadata = buildVars.manifest()

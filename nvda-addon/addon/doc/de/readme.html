@@ -277,7 +277,11 @@ verwenden</a></li>
 Autovervollständigung und Linter einrichten</a>
 <ul>
 <li><a href="#docs__de__manual__language-toolsmd__access-link-plugin-und-plugin-manager" id="toc-docs__de__manual__language-toolsmd__access-link-plugin-und-plugin-manager">Access-Link-Plugin
-und Plugin-Manager</a></li>
+und Plugin-Manager</a>
+<ul>
+<li><a href="#docs__de__manual__language-toolsmd__plugins-mit-lazynvim-aktualisieren" id="toc-docs__de__manual__language-toolsmd__plugins-mit-lazynvim-aktualisieren">Plugins
+mit lazy.nvim aktualisieren</a></li>
+</ul></li>
 <li><a href="#docs__de__manual__language-toolsmd__empfohlener-einsteigerweg-für-python" id="toc-docs__de__manual__language-toolsmd__empfohlener-einsteigerweg-für-python">Empfohlener
 Einsteigerweg für Python</a>
 <ul>
@@ -1875,6 +1879,28 @@ Python-Konfiguration mit Lazy und Oil</a> zeigt diesen Sonderfall für
 <p>Prüfen Sie nach einem Neovim-Neustart, ob das Plugin geladen ist:</p>
 <pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
 <p>Die Ausgabe <code>2</code> bestätigt den geladenen Befehl.</p>
+<section id="docs__de__manual__language-toolsmd__plugins-mit-lazynvim-aktualisieren" class="level4">
+<h4>Plugins mit lazy.nvim aktualisieren</h4>
+<p>Öffnen Sie Lazy mit <code>:Lazy</code>. Access Link nennt den Puffer
+als <code>lazy.nvim-Plugin-Manager</code>; die normale Neovim-Navigation
+liest die echten Textzeilen des Fensters. <code>j</code> und
+<code>k</code> wechseln wie gewohnt die Zeile, <code>Eingabetaste</code>
+öffnet Details zum aktuellen Plugin, <code>?</code> schaltet Lazys Hilfe
+um und <code>q</code> schließt das Fenster.</p>
+<p>Für eine vollständige Aktualisierung ist <code>:Lazy update</code>
+der direkte Weg. <code>:Lazy sync</code> installiert fehlende Plugins,
+entfernt nicht mehr benötigte Plugins und aktualisiert vorhandene
+Plugins. Access Link meldet Beginn und Ende dieser Vorgänge über Sprache
+und Braille. Die Abschlussmeldung behauptet bewusst keinen Erfolg:
+Prüfen Sie danach Lazys Fenster auf Fehler und das tatsächliche
+Ergebnis.</p>
+<p>Access Link wertet weder Lazys gezeichnete Symbole und virtuellen
+Fortschritt noch Pluginzeilen, Zähler oder Fehlertexte semantisch aus.
+Es ersetzt auch keine Lazy-Taste und bestätigt keine Löschaktion. Bleibt
+eine Ansicht unverständlich, verwenden Sie Lazys dokumentierte Befehle
+und lesen Sie die echten Pufferzeilen; Access Link fällt auf diese
+normale Bufferunterstützung zurück.</p>
+</section>
 </section>
 <section id="docs__de__manual__language-toolsmd__empfohlener-einsteigerweg-für-python" class="level3">
 <h3>Empfohlener Einsteigerweg für Python</h3>

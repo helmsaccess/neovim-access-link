@@ -60,6 +60,12 @@ from .numbered_choice import (
     valid_numbered_choice_closed,
     valid_numbered_choice_opened,
 )
+from .plugin_manager import (
+    PLUGIN_MANAGER_OPERATIONS,
+    PLUGIN_MANAGER_PHASES,
+    plugin_manager_operation_state,
+    valid_plugin_manager_operation,
+)
 from .local_client import LocalTcpClient
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .reconnect import ExponentialBackoff
@@ -92,6 +98,9 @@ __all__ = [
     "MAX_MODE_RAW_BYTES",
     "MAX_VIRTUAL_COLUMN",
     "NUMBERED_CHOICE_KINDS",
+    "PLUGIN_MANAGER_OPERATIONS",
+    "PLUGIN_MANAGER_PHASES",
+    "plugin_manager_operation_state",
     "LocalTcpClient",
     "LINE_ACTIONS",
     "LINE_STARTS",
@@ -131,4 +140,5 @@ __all__ = [
     "valid_move_braille_line_request",
     "valid_numbered_choice_closed",
     "valid_numbered_choice_opened",
+    "valid_plugin_manager_operation",
 ]

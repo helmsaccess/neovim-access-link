@@ -54,6 +54,12 @@ Separate matrices exercise the following on both 0.10.1 and 0.12.3:
 - Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop, and
   `markdownlint-cli2` as real linter processes.
 
+The public contract of `lazy.nvim` 11.17.5 was checked directly. Automated
+tests cover the exact `nofile`/`lazy` buffer values and documented lifecycle
+events in a real Neovim TUI. This contract covers buffer identity and neutral
+start/end reports, not Lazy's virtual progress, rendered plugin rows, or a
+successful operation result. Practical Windows/NVDA acceptance remains open.
+
 The Windows job checks the guided-test runner with Neovim 0.12.3, but does not
 perform practical NVDA acceptance.
 

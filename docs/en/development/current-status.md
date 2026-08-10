@@ -89,6 +89,11 @@ tab changes, plus structured Neovim messages.
   native LSP completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`, ALE, and
   `none-ls.nvim`; users install the applicable external language servers and
   linters themselves.
+- Lazy's public `nofile`/`lazy` buffer receives an unambiguous focus context.
+  Documented lifecycle events neutrally report the start and end of install,
+  update, cleanup, checking, log display, and synchronization through speech
+  and Braille. Plugin rows, virtual progress, and success are not inferred;
+  practical NVDA acceptance remains open.
 - Native LSP rename remains entirely owned by Neovim and the language server.
   Access Link observes `LspRequest` and actual buffer changes, then reports one
   evidence-based completion instead of internal text, cursor, and context

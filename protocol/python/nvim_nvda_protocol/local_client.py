@@ -40,6 +40,7 @@ from .numbered_choice import (
 	valid_numbered_choice_closed,
 	valid_numbered_choice_opened,
 )
+from .plugin_manager import plugin_manager_operation_state, valid_plugin_manager_operation
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .terminal_control import (
 	terminal_control_result_state,
@@ -267,6 +268,16 @@ class LocalTcpClient:
 		return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
 	def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+		if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
+			self.on_diagnostic(
+				"localEventRejected",
+				{
+					"type": event_type,
+					"errorType": "ProtocolError",
+					"error": "invalid plugin manager operation",
+				},
+			)
+			return
 		if event_type == "activeParameterChanged" and (
 			not self._supports_plugin_capability("activeParameterHints")
 			or not valid_active_parameter_changed(payload)
@@ -341,6 +352,8 @@ class LocalTcpClient:
 			state = developer_context_result_state(state)
 		elif event_type in {"numberedChoiceOpened", "numberedChoiceClosed"}:
 			state = numbered_choice_state(state)
+		elif event_type == "pluginManagerOperation":
+			state = plugin_manager_operation_state(state)
 		with self._state_lock:
 			self._state = state
 			if event_type == "numberedChoiceOpened":

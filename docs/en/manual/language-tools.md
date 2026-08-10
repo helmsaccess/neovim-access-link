@@ -41,6 +41,25 @@ After restarting Neovim, confirm that the plugin is loaded:
 
 The result `2` confirms that the command is available.
 
+### Update plugins with lazy.nvim
+
+Open Lazy with `:Lazy`. Access Link identifies the buffer as the `lazy.nvim
+plugin manager`; ordinary Neovim navigation reads the window's real text
+lines. `j` and `k` move by line as usual, `Enter` opens details for the current
+plugin, `?` toggles Lazy's help, and `q` closes the window.
+
+Use `:Lazy update` for a complete update. `:Lazy sync` installs missing
+plugins, removes plugins which are no longer needed, and updates existing
+plugins. Access Link reports the start and end of these operations through
+speech and Braille. The completion report deliberately does not claim success:
+check Lazy's window afterwards for errors and the actual result.
+
+Access Link does not semantically interpret Lazy's drawn icons and virtual
+progress, plugin rows, counts, or error text. It also replaces no Lazy key and
+confirms no deletion. When a view remains unclear, use Lazy's documented
+commands and read the real buffer lines; Access Link falls back to that normal
+buffer support.
+
 ## Recommended beginner path for Python
 
 The following example uses Neovim 0.12, Git, Pyright, and Ruff. Access Link

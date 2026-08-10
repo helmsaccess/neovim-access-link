@@ -51,6 +51,16 @@ COMPLETION_KIND_LABELS = {
     "type parameter": translatable("type parameter"),
 }
 
+# Translators: Neutral operation names reported by a Neovim plugin manager.
+PLUGIN_MANAGER_OPERATION_LABELS = {
+    "install": translatable("installation"),
+    "update": translatable("update"),
+    "clean": translatable("cleanup"),
+    "check": translatable("update check"),
+    "log": translatable("log refresh"),
+    "sync": translatable("synchronization"),
+}
+
 
 class Priority(IntEnum):
     NAVIGATION = 10
@@ -676,6 +686,10 @@ class SpeechPlanner:
             ))
         elif kind == "lspRenameCompleted":
             action = self._lsp_rename_completed(state)
+            if action is not None:
+                actions.append(action)
+        elif kind == "pluginManagerOperation":
+            action = self._plugin_manager_operation(state)
             if action is not None:
                 actions.append(action)
         elif kind == "spellingErrorTyped":
@@ -1319,14 +1333,17 @@ class SpeechPlanner:
             return None
         buftype = state.get("buftype")
         filetype = state.get("filetype")
-        if buftype == "help" or filetype == "help":
+        plugin_manager_name = self._plugin_manager_name(state)
+        if plugin_manager_name is not None:
+            parts.append(plugin_manager_name)
+        elif buftype == "help" or filetype == "help":
             parts.append(self._translate("help"))
         elif buftype == "terminal":
             parts.append(self._translate("terminal"))
         name = state.get("bufferName")
         if isinstance(name, str) and name:
             parts.append(name.replace("\\", "/").rsplit("/", 1)[-1])
-        else:
+        elif plugin_manager_name is None:
             parts.append(self._translate("unnamed buffer"))
         if state.get("modified"):
             parts.append(self._translate("modified"))
@@ -1357,6 +1374,7 @@ class SpeechPlanner:
             window_type = state.get("windowType")
             buftype = state.get("buftype")
             filetype = state.get("filetype")
+            plugin_manager_name = self._plugin_manager_name(state)
             if window_type in {"quickfix", "locationList"}:
                 label = (
                     translatable("location list")
@@ -1364,6 +1382,8 @@ class SpeechPlanner:
                     else translatable("quickfix")
                 )
                 parts.append(self._translate(label))
+            elif plugin_manager_name is not None:
+                parts.append(plugin_manager_name)
             elif buftype == "terminal" and canonical not in {"terminal", "terminalNormal"}:
                 parts.append(self._translate("terminal"))
             elif buftype == "help" or filetype == "help":
@@ -1395,6 +1415,38 @@ class SpeechPlanner:
             interrupt=True,
             braille_message=None if isinstance(manager, dict) else text,
         )
+
+    def _plugin_manager_name(self, state: dict[str, Any]) -> str | None:
+        if state.get("buftype") != "nofile" or state.get("filetype") != "lazy":
+            return None
+        # Translators: Context label for the lazy.nvim plugin-manager window.
+        return self._translate("lazy.nvim plugin manager")
+
+    def _plugin_manager_operation(self, state: dict[str, Any]) -> SpeechAction | None:
+        # Translators: Context label for the lazy.nvim plugin manager producing this operation.
+        manager = (
+            self._translate("lazy.nvim plugin manager")
+            if state.get("pluginManagerKind") == "lazyNvim"
+            else None
+        )
+        operation = state.get("pluginManagerOperation")
+        phase = state.get("pluginManagerPhase")
+        label = PLUGIN_MANAGER_OPERATION_LABELS.get(operation)
+        if manager is None or label is None or phase not in {"started", "finished"}:
+            return None
+        operation_text = self._translate(label)
+        if phase == "started":
+            # Translators: A plugin-manager operation has begun; both placeholders are localized.
+            text = self._translate("{manager}: {operation} started").format(
+                manager=manager,
+                operation=operation_text,
+            )
+        else:
+            # Translators: Completion is neutral; the manager window contains the actual result.
+            text = self._translate(
+                "{manager}: {operation} finished; check the plugin manager for results"
+            ).format(manager=manager, operation=operation_text)
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
     def _context_focus_change(
         self, state: dict[str, Any], previous: dict[str, Any],

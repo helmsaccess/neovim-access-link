@@ -96,6 +96,12 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   bestehen für native LSP-Completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`,
   ALE und `none-ls.nvim`; Benutzer installieren die jeweiligen externen
   Sprachserver und Linter selbst.
+- Lazys öffentlicher `nofile`-/`lazy`-Puffer erhält einen eindeutigen
+  Fokuskontext. Dokumentierte Lebenszyklusereignisse melden Beginn und Ende
+  von Installation, Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
+  Synchronisierung neutral über Sprache und Braille. Pluginzeilen, virtueller
+  Fortschritt und Erfolg werden nicht abgeleitet; die praktische NVDA-Abnahme
+  steht aus.
 - Native LSP-Umbenennung bleibt vollständig bei Neovim und dem Sprachserver.
   Access Link beobachtet `LspRequest` und tatsächliche Bufferänderungen und
   fasst interne Text-, Cursor- und Kontextänderungen zu einem belegbaren
