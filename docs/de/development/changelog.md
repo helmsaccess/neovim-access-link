@@ -6,7 +6,7 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-- Keine Änderungen.
+- Beginnt die Entwicklungslinie 0.98.0 nach dem Pre-Release 0.97.0.
 
 ## 0.97.0
 
