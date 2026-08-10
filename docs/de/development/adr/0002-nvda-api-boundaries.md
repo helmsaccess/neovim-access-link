@@ -50,19 +50,21 @@ AppModules, des Prozesses und der freigegebenen UIA-Klasse verwendet.
 - Ablöseplan: Einen späteren öffentlichen, stabilen Terminal-Control-Identifier
   bevorzugen und die Runtime-ID-Abhängigkeit entfernen.
 
-## Ausnahme 3: Einbindung in NVDA-Einstellungs- und Werkzeugdialoge
+## Ausnahme 3: Einbindung in NVDA-Einstellungen und Hauptmenü
 
-Die Registrierung über `NVDASettingsDialog.categoryClasses`, der Zugriff auf
-das Werkzeugmenü und `gui.runScriptModalDialog` entsprechen verbreiteter
-NVDA-Add-on-Praxis, sind aber nicht als eigenständige, langfristig stabile
-Erweiterungsschnittstellen zugesagt.
+Die Registrierung über `NVDASettingsDialog.categoryClasses`, das Einfügen
+eines obersten Untermenüs über `gui.mainFrame.sysTrayIcon.menu` und
+`gui.runScriptModalDialog` entsprechen verbreiteter NVDA-Add-on-Praxis, sind
+aber nicht als eigenständige, langfristig stabile Erweiterungsschnittstellen
+zugesagt. Installierte Hilfe wird über NVDAs öffentliches
+`Addon.getDocFilePath()` lokalisiert aufgelöst.
 
 - Risiko: Menü- oder Dialogstruktur kann sich zwischen NVDA-Hauptversionen
   ändern; die Funktion könnte dann nicht angeboten werden.
 - Begrenzung: Registrierung und Entfernung sind symmetrisch und
   ausnahmegesichert. Netzwerk- und Installationsarbeit läuft nie im Dialog-
   oder NVDA-Hauptthread. Ein GUI-Fehler darf die Terminalausgabe nicht sperren.
-- Ablöseplan: Offizielle registrierbare Settings-/Tools-Erweiterungspunkte
+- Ablöseplan: Offizielle registrierbare Settings-/Menü-Erweiterungspunkte
   übernehmen, sobald NVDA sie bereitstellt; bis dahin pro Zielversion mit dem
   echten NVDA-Paket und dem extrahierten gebauten Add-on testen.
 

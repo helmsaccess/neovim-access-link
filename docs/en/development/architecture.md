@@ -221,7 +221,7 @@ must not close output again before state is confirmed.
 | `NvdaPresentation` | NVDA-specific delivery of planned speech, Braille messages, tones, and add-on sounds | Speech planning, transport, focus binding, or dialogs |
 | `nvda_braille.py` | NVDA Braille region, terminal overlay, Braille-position translation, and lookup of the published terminal service | A Global Plugin object, connection ownership, or focus decisions |
 | Global Plugin | NVDA-process lifetime, composition and publication of shared services, and the current coordination of process-wide NVDA-edge workflows for connections, claims, clipboard, network events, dialogs, and presentation transitions | Application events, configurable terminal commands, `nextHandler`, overlay selection, configurable script metadata, or a second copy of domain runtime state |
-| `NvdaUiManager` | One-time symmetrical settings and Tools registration, connection forms, component installation and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
+| `NvdaUiManager` | One-time symmetrical registration of the Settings category and top-level add-on menu, opening localized installed HTML help, connection forms, component installation, and removal | A Global Plugin instance, terminal events, focus binding, and suppression |
 | Windows Terminal AppModule | UIA events, overlay selection, concrete terminal focus, configurable speech-exploration-mode gestures and their physical-key lifecycle, every invocation of `nextHandler`, and native-output delegation or suppression | General target selection, separate gesture resolution, or transport |
 
 These boundaries are intentionally redundant. A valid message is not enough;
@@ -236,7 +236,8 @@ boundary; it owns no application events.
 for this boundary.
 
 `AddonRuntime.start()` first registers the profile callback, then Settings and
-Tools, and publishes the terminal service last. If any step fails, the runtime
+the add-on menu, and publishes the terminal service last. If any step fails,
+the runtime
 immediately uses its complete idempotent teardown: unpublish, close the
 published service, cancel delayed main-thread calls, open the gate, unregister
 the profile callback, stop connections exactly once through their coordinator
@@ -490,9 +491,10 @@ documents and justifies every private touchpoint.
 The settings panel, presentation adapter, and profile-switch path use snapshots
 or domain operations supplied by `SettingsService`; no dialog mutates a freely
 accessible plugin dictionary. `NvdaUiManager` receives only that service, a
-diagnostic recorder, and the small password and component-operation callbacks
-it needs. Its Tools entries and Settings category nevertheless remain registered
-exactly once for the Global Plugin's process lifetime.
+diagnostic recorder, NVDA's narrow installed add-on help resolver, and the
+small password and component-operation callbacks it needs. Its menu and
+Settings category nevertheless remain registered exactly once for the Global
+Plugin's process lifetime.
 Navigation-detail indices are resolved by the service into booleans before
 they cross the editor or exploration interfaces. The shared speech planner
 therefore remains independent of NVDA configuration and produces the same

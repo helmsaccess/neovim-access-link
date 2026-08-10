@@ -8,13 +8,16 @@ Versionsdaten. Sie enthält:
 - internen Add-on-Identifier und sichtbaren Produktnamen;
 - Autor, numerische Produktversion und Releasekanal;
 - branchlokale Entwicklungsbuildnummer;
-- minimale und zuletzt getestete NVDA-Version.
+- minimale und zuletzt getestete NVDA-Version;
+- Projektadresse, Standardhilfedatei und englisches Manifest-Changelog.
 
 `store_version()` liefert ausschließlich `MAJOR.MINOR.PATCH` für Manifest und
 NVDA Add-on Store. `artifact_version()` ergänzt bei Entwicklungsständen
 `-dev.N` sowie nach Möglichkeit Branch- und Commitmetadaten für Dateinamen,
 Diagnosebericht und gebündelte Komponenten. Das installierte Manifest wird
-beim Build aus diesen Werten erzeugt und nicht separat gepflegt.
+beim Build aus diesen Werten und dem passenden Changelogabschnitt erzeugt und
+nicht separat gepflegt. Das deutsche Lokalisierungsmanifest erhält denselben
+Abschnitt aus dem deutschen Changelog.
 
 ## Entwicklungsstände
 
@@ -42,11 +45,13 @@ Listener und kurzlebige Neovim-Prozesse erlauben. In eingeschränkten
 Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
 [Teststrategie](testing.md) getrennt ausgeführt.
 
-Der Add-on-Build prüft Manifest, gebündelte Komponenten, Abhängigkeiten und
-Archivinhalt. Der Dokumentationsbuild synchronisiert ausführbare Beispiele,
+Der Add-on-Build prüft Manifest, acht installierte lokalisierte HTML-Dokumente,
+gebündelte Komponenten, Abhängigkeiten und Archivinhalt. Der
+Dokumentationsbuild synchronisiert ausführbare Beispiele,
 prüft Markdown- und HTML-Links, die deutsche und englische Struktur sowie
 Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
-HTML-Dokumente.
+HTML-Dokumente. Er übernimmt dieselben Ergebnisse unter neutralen Dateinamen
+in `nvda-addon/addon/doc/de` und `doc/en`; CI lehnt veraltete Kopien ab.
 
 `build.cmd` ist ein zusätzlicher, parameterloser Komfortweg für Windows-Nutzer,
 die einen aktuellen Entwicklungsbuild aus einem Quellcode-Download erzeugen.
@@ -61,8 +66,9 @@ Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
 Stand:
 
 1. Produktversion, Kanal und `development_build = None` in `buildVars.py`;
-2. aktuellen Release- und Changeloglink in `README.md` sowie den deutschen und
-   englischen Changelogabschnitt;
+2. aktuellen Release- und Changeloglink in `README.md` sowie einen deutschen
+   und englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar
+   vorherigen veröffentlichten Version;
 3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
    Dokumentation;
 4. erfolgreiche vollständige Tests und frisch gebaute Artefakte;

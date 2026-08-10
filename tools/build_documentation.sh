@@ -643,6 +643,10 @@ published_outputs=(
   "$developer_en_output"
   "$human_testing_en_output"
 )
+python3 "$root/tools/sync_installed_documentation.py" \
+  --source "$output_dir" \
+  --destination "$root/nvda-addon/addon/doc" \
+  --write
 python3 - "$documentation_archive" "${published_outputs[@]}" <<'PY'
 from pathlib import Path
 import sys

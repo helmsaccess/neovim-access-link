@@ -233,7 +233,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `NvdaPresentation` | NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne und Add-on-Klänge | Sprachplanung, Transport, Fokusbindung oder Dialoge |
 | `nvda_braille.py` | NVDA-Brailleregion, Terminaloverlay, Übersetzung von Braillepositionen und Abruf des veröffentlichten Terminaldienstes | Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung |
 | Global Plugin | NVDA-Prozesslebenszyklus, Zusammensetzung und Veröffentlichung gemeinsamer Dienste sowie die heutige Koordination prozessweiter NVDA-Randabläufe für Verbindungen, Claims, Zwischenablage, Netzwerkereignisse, Dialoge und Präsentationsübergänge | Anwendungsevents, frei belegbare Terminalbefehle, `nextHandler`, Overlayauswahl, konfigurierbare Skriptmetadaten oder eine zweite Kopie fachlicher Laufzeitzustände |
-| `NvdaUiManager` | einmalige und symmetrische Registrierung von Einstellungen und Werkzeugen, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
+| `NvdaUiManager` | einmalige und symmetrische Registrierung der Einstellungskategorie und des obersten Add-on-Menüs, Öffnen lokalisierter installierter HTML-Hilfe, Verbindungsformulare, Komponenteninstallation und -entfernung | Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und Unterdrückung |
 | Windows-Terminal-AppModule | UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei belegbare Terminalbefehle, kontextbezogene Gesten des Sprachexplorationsmodus und deren physischer Tastenlebenszyklus, jeder Aufruf von `nextHandler` sowie Übergabe oder Unterdrückung nativer Ausgabe | allgemeine Zielauswahl, eigene Gestenauflösung oder Transport |
 
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
@@ -247,7 +247,7 @@ besitzt keine Anwendungsevents. [ADR-0004](adr/0004-nvda-lifetime-and-event-owne
 begründet diese Grenze.
 
 `AddonRuntime.start()` registriert zuerst den Profilcallback, danach
-Einstellungen und Werkzeuge und veröffentlicht erst zuletzt den
+Einstellungen und Add-on-Menü und veröffentlicht erst zuletzt den
 Terminaldienst. Schlägt einer dieser Schritte fehl, verwendet die Runtime
 unmittelbar ihren vollständigen, wiederholbaren Teardown. Dieser entfernt den
 Dienst, schließt den veröffentlichten Dienst, bricht verzögerte
@@ -550,8 +550,9 @@ identitätsgesichert. Diese Ausnahme und alle berührten Felder sind in
 Einstellungsdialog, Präsentation und Profilwechsel verwenden Snapshots oder
 fachliche Operationen des `SettingsService`; kein Dialog verändert ein frei
 zugängliches Plugin-Dictionary. Der `NvdaUiManager` erhält nur diesen Dienst,
-einen Diagnose-Recorder und die wenigen Callbacks für Passwort- und
-Komponentenabläufe. Menü und Einstellungskategorie bleiben trotzdem genau
+einen Diagnose-Recorder, NVDAs schmale Auflösung installierter Add-on-Hilfe
+und die wenigen Callbacks für Passwort- und Komponentenabläufe. Menü und
+Einstellungskategorie bleiben trotzdem genau
 einmal im Prozesslebenszyklus des Global Plugins registriert.
 Der Dienst löst die Indizes für Navigationsdetails in boolesche Werte auf,
 bevor sie die Editor- oder Explorationsschnittstelle überschreiten. Der

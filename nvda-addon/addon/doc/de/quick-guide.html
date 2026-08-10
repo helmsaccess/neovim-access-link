@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="description" content="Kurzanleitung zur Installation und ersten Nutzung von Neovim Access Link mit NVDA und Windows Terminal." />
+  <title>Neovim Access Link – Quick Guide</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css">:root {
+color-scheme: light dark;
+font-family: system-ui, sans-serif;
+line-height: 1.55;
+}
+body {
+margin: 0 auto;
+max-width: 78rem;
+padding: 1rem 2rem 4rem;
+}
+a { text-decoration-thickness: 0.12em; }
+a:focus-visible { outline: 0.2rem solid currentColor; outline-offset: 0.2rem; }
+nav#TOC { border: 0.1rem solid currentColor; padding: 0.5rem 1.5rem; }
+h1 { font-size: 2rem; }
+h2 { border-top: 0.15rem solid currentColor; margin-top: 3rem; padding-top: 1rem; }
+h3 { margin-top: 2rem; }
+code, pre { font-family: ui-monospace, monospace; }
+pre { border: 0.1rem solid currentColor; overflow-x: auto; padding: 0.8rem; white-space: pre-wrap; }
+table { border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; }
+th, td { border: 0.1rem solid currentColor; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+img, svg { max-width: 100%; }
+@media print {
+:root { color-scheme: light; }
+body { max-width: none; padding: 0; }
+h2 { break-before: page; }
+a { color: inherit; }
+pre, table { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Neovim Access Link – Quick Guide</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#neovim-access-link--quick-guide" id="toc-neovim-access-link--quick-guide">Neovim Access Link – Quick
+Guide</a>
+<ul>
+<li><a href="#1-voraussetzungen-prüfen" id="toc-1-voraussetzungen-prüfen">1. Voraussetzungen prüfen</a></li>
+<li><a href="#2-add-on-installieren" id="toc-2-add-on-installieren">2.
+Add-on installieren</a></li>
+<li><a href="#3-aktivierungsgeste-zuweisen" id="toc-3-aktivierungsgeste-zuweisen">3. Aktivierungsgeste
+zuweisen</a></li>
+<li><a href="#4-komponenten-installieren" id="toc-4-komponenten-installieren">4. Komponenten installieren</a></li>
+<li><a href="#5-optional-linux-verbindung-speichern" id="toc-5-optional-linux-verbindung-speichern">5. Optional:
+Linux-Verbindung speichern</a></li>
+<li><a href="#6-erste-sitzung-verbinden" id="toc-6-erste-sitzung-verbinden">6. Erste Sitzung verbinden</a>
+<ul>
+<li><a href="#lokal-unter-windows" id="toc-lokal-unter-windows">Lokal
+unter Windows</a></li>
+<li><a href="#auf-linux-über-ssh" id="toc-auf-linux-über-ssh">Auf Linux
+über SSH</a></li>
+</ul></li>
+<li><a href="#7-verbindung-praktisch-bestätigen" id="toc-7-verbindung-praktisch-bestätigen">7. Verbindung praktisch
+bestätigen</a></li>
+<li><a href="#8-tabs-und-panes-prüfen" id="toc-8-tabs-und-panes-prüfen">8. Tabs und Panes prüfen</a></li>
+<li><a href="#9-wenn-keine-verbindung-entsteht" id="toc-9-wenn-keine-verbindung-entsteht">9. Wenn keine Verbindung
+entsteht</a></li>
+</ul></li>
+</ul>
+</nav>
+<section id="neovim-access-link--quick-guide" class="level2">
+<h2>Neovim Access Link – Quick Guide</h2>
+<p>Dieser Quick Guide führt erfahrene NVDA-Nutzer mit wenig
+Neovim-Erfahrung von der Installation bis zu einer bestätigten ersten
+Verbindung. Die vollständige Bedienung steht im <a href="readme.html">Handbuch</a>.</p>
+<p>Access Link unterstützt Neovim in Windows Terminal lokal unter
+Windows und entfernt auf Linux über SSH. Mehrere Fenster, Tabs und
+geteilte Panes dürfen lokale Neovim-Sitzungen, entfernte
+Neovim-Sitzungen und normale Shells mischen. Andere Terminalprogramme
+und grafische Neovim-Oberflächen sind nicht unterstützt.</p>
+<p>Der entfernte Pfad verwendet Linux, Python 3 und OpenSSH. Praktisch
+bestätigt ist Rocky Linux 10.2; weitere Linux-Systeme sind nicht
+praktisch bestätigt.</p>
+<section id="1-voraussetzungen-prüfen" class="level3">
+<h3>1. Voraussetzungen prüfen</h3>
+<p>Erforderlich sind:</p>
+<ul>
+<li>Windows 11;</li>
+<li>NVDA 2026.1.x;</li>
+<li>Windows Terminal;</li>
+<li>Neovim 0.10.1 oder neuer.</li>
+</ul>
+<p>Öffnen Sie Windows Terminal und prüfen Sie die lokale
+Installation:</p>
+<pre class="text"><code>nvim.exe --version</code></pre>
+<p>Für Neovim auf Linux benötigen Sie zusätzlich Python 3 auf dem
+Linux-Ziel, den Windows-OpenSSH-Client und eine funktionierende
+SSH-Anmeldung. Prüfen Sie diese Anmeldung vor der
+Access-Link-Einrichtung:</p>
+<pre class="text"><code>ssh benutzer@example.invalid</code></pre>
+<p>Schlüssel, <code>ssh-agent</code>, eine OpenSSH-Konfiguration oder
+eine vom Add-on angeforderte Passwortanmeldung sind unterstützt.</p>
+</section>
+<section id="2-add-on-installieren" class="level3">
+<h3>2. Add-on installieren</h3>
+<ol type="1">
+<li>Öffnen Sie <code>NeovimAccessLink-&lt;Version&gt;.nvda-addon</code>
+unter Windows.</li>
+<li>Bestätigen Sie die Installation in NVDA.</li>
+<li>Starten Sie NVDA neu.</li>
+</ol>
+<p>Nach dem Neustart enthält
+<code>NVDA-Menü → Optionen → Einstellungen…</code> die Kategorie
+<code>Neovim Access Link</code>. Das NVDA-Hauptmenü enthält außerdem das
+Untermenü <code>Neovim Access Link</code> mit Einstellungen,
+Komponentenverwaltung und der installierten Dokumentation.</p>
+</section>
+<section id="3-aktivierungsgeste-zuweisen" class="level3">
+<h3>3. Aktivierungsgeste zuweisen</h3>
+<ol type="1">
+<li>Fokussieren Sie Windows Terminal.</li>
+<li>Öffnen Sie <code>NVDA-Menü → Optionen → Tastenbefehle…</code>.</li>
+<li>Öffnen Sie die Kategorie <code>Neovim Access Link</code>.</li>
+<li>Weisen Sie dem Befehl
+<code>Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen</code>
+eine gut erreichbare Geste zu.</li>
+</ol>
+<p>Verwenden Sie nicht <code>Ctrl+Alt+N</code>, wenn diese Kombination
+in Ihrer NVDA-Installation NVDA neu startet.</p>
+<p>Die zugewiesene Geste ist ein <strong>NVDA-Befehl</strong>: NVDA
+verarbeitet sie bei fokussiertem Windows Terminal. <code>F12</code> ist
+dagegen keine Aktivierungsgeste. Access Link reicht F12 an Neovim weiter
+und verwendet den Tastendruck danach, um die fokussierte Neovim-Sitzung
+eindeutig auszuwählen.</p>
+</section>
+<section id="4-komponenten-installieren" class="level3">
+<h3>4. Komponenten installieren</h3>
+<p>Schließen Sie vor einer Installation oder Aktualisierung alle
+betroffenen Neovim-Instanzen.</p>
+<ol type="1">
+<li>Öffnen Sie
+<code>NVDA-Menü → Neovim Access Link → Komponenten installieren oder aktualisieren...</code>.</li>
+<li>Markieren Sie <code>Dieser Computer – lokales Neovim</code> für
+lokales Windows-Neovim.</li>
+<li>Markieren Sie gespeicherte Linux-Verbindungen für entfernte
+Sitzungen.</li>
+<li>Bestätigen Sie mit <code>OK</code>.</li>
+<li>Prüfen Sie im Ergebnisdialog jedes ausgewählte Ziel.</li>
+</ol>
+<p>Access Link installiert seine mitgelieferte Plugin-Kopie in Neovims
+Standarddatenverzeichnis. Eine einfache Neovim-Konfiguration lädt dieses
+Start-Plugin beim nächsten Neovim-Start automatisch. Ein Plugin-Manager,
+der Neovims <code>packpath</code> oder Start-Plugins ersetzt, muss die
+bereits installierte lokale Kopie ausdrücklich laden. Installieren Sie
+keine zweite Access-Link- Kopie aus einem Plugin-Repository. Das
+optionale <a href="readme.html#docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil">Lazy-Beispiel</a>
+zeigt die passende Einbindung.</p>
+</section>
+<section id="5-optional-linux-verbindung-speichern" class="level3">
+<h3>5. Optional: Linux-Verbindung speichern</h3>
+<p>Überspringen Sie diesen Abschnitt für lokales Windows-Neovim.</p>
+<ol type="1">
+<li>Öffnen Sie
+<code>NVDA-Menü → Optionen → Einstellungen… → Neovim Access Link</code>.</li>
+<li>Öffnen Sie die Registerkarte <code>Verbindungen</code>.</li>
+<li>Wählen Sie <code>Verbindung hinzufügen...</code>.</li>
+<li>Tragen Sie Verbindungsname, Server oder SSH-Alias und SSH-Port
+ein.</li>
+<li>Tragen Sie den Linux-Benutzernamen ein, sofern die
+OpenSSH-Konfiguration ihn nicht festlegt.</li>
+<li>Wählen Sie die Anmeldemethode.</li>
+<li>Bestätigen Sie das Formular und danach den
+NVDA-Einstellungsdialog.</li>
+<li>Installieren Sie die Komponenten für diese Verbindung wie in
+Abschnitt 4.</li>
+</ol>
+<p><code>OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)</code>
+verwendet Ihre normale Windows-OpenSSH-Einrichtung.
+<code>Beim Verbinden nach dem SSH-Passwort fragen (Passwort wird nicht gespeichert)</code>
+hält das eingegebene Passwort nur bis zum Ende der aktuellen
+NVDA-Laufzeit im Arbeitsspeicher.</p>
+</section>
+<section id="6-erste-sitzung-verbinden" class="level3">
+<h3>6. Erste Sitzung verbinden</h3>
+<section id="lokal-unter-windows" class="level4">
+<h4>Lokal unter Windows</h4>
+<ol type="1">
+<li>Starten Sie <code>nvim.exe</code> in Windows Terminal.</li>
+<li>Drücken Sie die in Abschnitt 3 zugewiesene Aktivierungsgeste.</li>
+<li>Warten Sie auf die Meldung, dass lokale und gespeicherte
+Verbindungen geprüft werden beziehungsweise bereitstehen.</li>
+<li>Fokussieren Sie das gewünschte Neovim und drücken Sie F12
+einmal.</li>
+<li>Warten Sie auf die Verbindungsbestätigung.</li>
+</ol>
+</section>
+<section id="auf-linux-über-ssh" class="level4">
+<h4>Auf Linux über SSH</h4>
+<ol type="1">
+<li>Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per
+SSH an.</li>
+<li>Starten Sie auf dem Linux-Ziel <code>nvim</code>.</li>
+<li>Drücken Sie die Aktivierungsgeste und warten Sie auf die
+Bereitschaftsmeldung.</li>
+<li>Fokussieren Sie das gewünschte Neovim und drücken Sie F12
+einmal.</li>
+<li>Warten Sie auf die Verbindungsbestätigung.</li>
+</ol>
+</section>
+</section>
+<section id="7-verbindung-praktisch-bestätigen" class="level3">
+<h3>7. Verbindung praktisch bestätigen</h3>
+<p>Verwenden Sie einen unwichtigen Buffer:</p>
+<ol type="1">
+<li>Drücken Sie <code>i</code>. Access Link meldet den Insert-Modus
+entsprechend Ihren Einstellungen.</li>
+<li>Schreiben Sie eine kurze Zeile.</li>
+<li>Drücken Sie <code>Esc</code>. Access Link meldet den
+Normalmodus.</li>
+<li>Navigieren Sie mit <code>h</code> und <code>l</code> zeichenweise
+sowie mit <code>j</code> und <code>k</code> zeilenweise. Neovim bewegt
+den Cursor; Access Link spricht die semantische Position und spielt
+konfigurierte Grenzklänge.</li>
+<li>Halten Sie die NVDA-Taste und drücken Sie <code>h</code> oder
+<code>l</code>. Access Link liest Zeichen, ohne den echten Neovim-Cursor
+zu bewegen. Beim Loslassen der NVDA-Taste kehrt die Ausgabe zum echten
+Cursor zurück.</li>
+</ol>
+<p>Die letzten beiden Schritte zeigen den Unterschied der Eingabeebenen:
+<code>h</code>, <code>j</code>, <code>k</code> und <code>l</code> ohne
+NVDA-Taste sind normale Neovim-Befehle. Access Link macht ihre Wirkung
+zugänglich. <code>NVDA+h</code>, <code>NVDA+j</code>,
+<code>NVDA+k</code> und <code>NVDA+l</code> sind kontextbezogene
+NVDA-Befehle für die Sprachexploration.</p>
+</section>
+<section id="8-tabs-und-panes-prüfen" class="level3">
+<h3>8. Tabs und Panes prüfen</h3>
+<p>Ein Windows-Terminal-Tab enthält ein Terminal. Ein geteilter Tab
+enthält mehrere Panes und damit mehrere getrennte Terminals.</p>
+<ol type="1">
+<li>Wechseln Sie in ein anderes Pane mit einer normalen Shell. NVDA
+verwendet dort seine normale Terminalausgabe; Access Link übernimmt
+keine Neovim-Tastenkombinationen.</li>
+<li>Wechseln Sie zurück zur verbundenen Neovim-Pane. Access Link stellt
+nach der bestätigten Fokusantwort die strukturierte Ausgabe wieder
+her.</li>
+<li>Starten Sie bei Bedarf Neovim in einem weiteren Tab oder Pane und
+drücken Sie dort F12. Die erste Zuordnung bleibt bestehen.</li>
+</ol>
+</section>
+<section id="9-wenn-keine-verbindung-entsteht" class="level3">
+<h3>9. Wenn keine Verbindung entsteht</h3>
+<p>Prüfen Sie in dieser Reihenfolge:</p>
+<ol type="1">
+<li>Läuft Neovim in Windows Terminal?</li>
+<li>Ist die Aktivierungsgeste zugewiesen und wurde sie vor F12
+gedrückt?</li>
+<li>Wurde Neovim nach der Komponenteninstallation vollständig neu
+gestartet?</li>
+<li>Lädt die Neovim-Konfiguration das installierte
+Access-Link-Plugin?</li>
+<li>Funktioniert bei Linux die normale SSH-Anmeldung außerhalb des
+Add-ons?</li>
+</ol>
+<p>Prüfen Sie das Plugin in Neovim:</p>
+<pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
+<p>Die Ausgabe <code>2</code> bestätigt, dass Neovim das Plugin geladen
+hat. Bei einer anderen Ausgabe schließen Sie alle betroffenen
+Neovim-Instanzen, aktualisieren die Komponenten und prüfen die
+Plugin-Manager-Konfiguration.</p>
+<p><code>NVDA+Alt+D</code> kopiert den redigierten Diagnosebericht.
+Prüfen Sie ihn vor dem Weitergeben trotzdem auf lokale Pfade,
+Profilnamen und SSH-Ziele.</p>
+<p>Die erste Verbindung ist damit eingerichtet. Das <a href="readme.html">Handbuch</a> erklärt
+Neovim-Grundlagen, tägliche Bedienung, Braille, Completion, Diagnosen,
+Dateiverwaltung und sämtliche Einstellungen.</p>
+</section>
+</section>
+</body>
+</html>

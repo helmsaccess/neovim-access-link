@@ -45,7 +45,9 @@ add-on are supported.
 3. Restart NVDA.
 
 After the restart, `NVDA menu > Preferences > Settings...` contains the
-`Neovim Access Link` category.
+`Neovim Access Link` category. The top-level NVDA menu also contains a
+`Neovim Access Link` submenu for settings, component management, and the
+installed documentation.
 
 ## 3. Assign the activation gesture
 
@@ -67,8 +69,7 @@ Neovim session exactly.
 
 Close all affected Neovim instances before installation or update.
 
-1. Open `NVDA menu > Tools > Neovim Access Link: Install or update
-   components...`.
+1. Open `NVDA menu > Neovim Access Link > Install or update components...`.
 2. Select `This computer - local Neovim` for local Windows Neovim.
 3. Select saved Linux connections for remote sessions.
 4. Confirm with `OK`.

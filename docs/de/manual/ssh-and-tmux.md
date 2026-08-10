@@ -23,8 +23,8 @@ noch `sshd_config` auf dem Linux-Ziel.
 3. Tragen Sie SSH-Ziel, Konto, Port und Anmeldemethode ein.
 4. Bestätigen Sie den Einstellungsdialog.
 5. Schließen Sie laufendes Neovim auf diesem Ziel.
-6. Öffnen Sie `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten
-   installieren oder aktualisieren...`.
+6. Öffnen Sie `NVDA-Menü → Neovim Access Link → Komponenten installieren oder
+   aktualisieren...`.
 7. Markieren Sie die gespeicherte Verbindung und prüfen Sie das Ergebnis.
 
 Die Installation legt Plugin und Bridge im Home-Verzeichnis des Linux-Kontos

@@ -121,7 +121,7 @@ Sandbox-Grenzen und den nachgewiesenen Eigenschaften stehen in
 | lokale Windows-Sitzung | `session.lua`, `local_sessions.py`, `local_client.py` | lokale Lua-, Protokoll- und Add-on-Tests |
 | Fokus, WT-Zuordnung oder Unterdrückung | `appModules/windowsterminal.py`, `gate.py`, Global Plugin | Gate-, Isolation-, Paket- und praktische WT-Negativtests |
 | Sprache, Braille oder Klänge | `speech.py`, `braille.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py` | Planer-, Unicode-, Paket- und praktische NVDA-Tests |
-| Einstellungen oder Werkzeugdialoge | `globalPlugins/NeovimAccessLink/nvda_ui.py` und `settings-reference.md` | Einstellungs-, Lokalisierungs- und Pakettests |
+| Einstellungen, Add-on-Menü oder Dialoge | `globalPlugins/NeovimAccessLink/nvda_ui.py` und `settings-reference.md` | Einstellungs-, Lokalisierungs- und Pakettests |
 | Installation oder Build | `tools/`, `packaging/`, Installerklassen | gebautes Add-on, Installations- und Archivtests |
 
 Die vollständige Zuordnung steht ebenfalls in [testing.md](testing.md). Ein

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+from pathlib import Path
 
 
 product_version = "0.98.0"
@@ -21,9 +22,13 @@ addon_info = {
     ),
     "author": "Emanuel Helms <emanuel@helmsaccess.de>",
     "url": "https://github.com/helmsaccess/neovim-access-link",
+    "docFileName": "readme.html",
     "minimumNVDAVersion": "2026.1",
     "lastTestedNVDAVersion": "2026.1.1",
 }
+
+_ROOT = Path(__file__).resolve().parent
+_CHANGELOG_HEADINGS = {"de": "Unveröffentlicht", "en": "Unreleased"}
 
 
 def store_version() -> str:
@@ -73,6 +78,37 @@ def product_slug() -> str:
     return "-".join(word.lower() for word in words)
 
 
+def changelog(language: str = "en") -> str:
+    """Return the current localized changelog section for the add-on manifest."""
+    if language not in _CHANGELOG_HEADINGS:
+        raise ValueError(f"unsupported changelog language: {language}")
+    heading = (
+        _CHANGELOG_HEADINGS[language]
+        if development_build is not None
+        else product_version
+    )
+    path = _ROOT / "docs" / language / "development" / "changelog.md"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = next(
+        (
+            index + 1
+            for index, line in enumerate(lines)
+            if re.fullmatch(rf"##\s+{re.escape(heading)}(?:\s+\([^)]*\))?\s*", line)
+        ),
+        None,
+    )
+    if start is None:
+        raise ValueError(f"missing {heading!r} section in {path}")
+    end = next(
+        (index for index in range(start, len(lines)) if lines[index].startswith("## ")),
+        len(lines),
+    )
+    value = "\n".join(lines[start:end]).strip()
+    if not value:
+        raise ValueError(f"empty {heading!r} section in {path}")
+    return value
+
+
 def manifest() -> dict[str, str]:
     """Return all scalar fields required by an NVDA add-on manifest."""
-    return {**addon_info, "version": store_version()}
+    return {**addon_info, "version": store_version(), "changelog": changelog()}

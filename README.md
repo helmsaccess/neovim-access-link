@@ -101,8 +101,8 @@ add-on does not guess from window titles, prompts, accounts, or terminal text.
 
 Install the current `.nvda-addon`, assign an activation gesture while Windows
 Terminal is focused, and install or update the bundled Neovim components from
-NVDA's Tools menu. Start Neovim, enable the service, and press F12 once in each
-Neovim terminal area you want to use.
+the top-level `Neovim Access Link` menu in NVDA. Start Neovim, enable the
+service, and press F12 once in each Neovim terminal area you want to use.
 
 Follow the [English Quick Guide](docs/en/manual/quick-guide.md) or
 [German Quick Guide](docs/de/manual/quick-guide.md) for the exact accessible

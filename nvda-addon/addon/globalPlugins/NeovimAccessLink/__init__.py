@@ -468,6 +468,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			askpass_path=self._askpassPath,
 			product_name=_PRODUCT_NAME,
 			package_dir=_PACKAGE_DIR,
+			code_addon=_CODE_ADDON,
 			feedback_defaults=_FEEDBACK_DEFAULTS,
 			navigation_details_defaults=_NAVIGATION_DETAILS_DEFAULTS,
 			focus_announcement_default=_FOCUS_ANNOUNCEMENT_DEFAULT,

@@ -42,6 +42,7 @@ class NvdaUiManager:
 		askpass_path,
 		product_name,
 		package_dir,
+		code_addon,
 		feedback_defaults,
 		navigation_details_defaults,
 		focus_announcement_default,
@@ -52,10 +53,14 @@ class NvdaUiManager:
 		self._askpassPath = askpass_path
 		self._productName = product_name
 		self._packageDir = package_dir
+		self._codeAddon = code_addon
 		self._feedbackDefaults = feedback_defaults
 		self._navigationDetailsDefaults = navigation_details_defaults
 		self._focusAnnouncementDefault = focus_announcement_default
 		self._menuItems = []
+		self._topLevelMenuItem = None
+		self._topLevelMenu = None
+		self._menuTray = None
 		self._settingsPanelClass = None
 		self._registered = False
 
@@ -674,8 +679,9 @@ class NvdaUiManager:
 							connections_page,
 							label=_(
 								"To install or update components, use the add-on command "
-								"in NVDA's Tools menu and select this computer or saved Linux connections."
-							),
+								"in NVDA's {name} menu and select this computer "
+								"or saved Linux connections."
+							).format(name=product_name),
 						)
 					)
 					self._updateConnectionButtons()
@@ -793,22 +799,46 @@ class NvdaUiManager:
 			import wx
 
 			tray = gui.mainFrame.sysTrayIcon
-			menu = tray.toolsMenu
-			install_handler = self._onInstallServer
-			install_item = menu.Append(
-				wx.ID_ANY,
-				self._productName + _(": Install or update components..."),
+			menu = wx.Menu()
+			self._menuTray = tray
+			self._topLevelMenu = menu
+
+			def append(label, handler):
+				item = menu.Append(wx.ID_ANY, label)
+				tray.Bind(wx.EVT_MENU, handler, item)
+				self._menuItems.append((item, handler, wx))
+
+			# Translators: Opens the add-on settings category.
+			append(_("&Settings..."), self._onOpenSettings)
+			# Translators: Opens component installation and update choices.
+			append(_("&Install or update components..."), self._onInstallServer)
+			# Translators: Opens component removal choices.
+			append(_("&Remove components..."), self._onRemoveComponents)
+			menu.AppendSeparator()
+			# Translators: Opens the installed quick guide in a web browser.
+			append(_("&Quick Guide"), self._documentationHandler("quick-guide.html"))
+			# Translators: Opens the installed user manual in a web browser.
+			append(_("User &Manual"), self._documentationHandler("readme.html"))
+			# Translators: Opens the installed developer documentation in a web browser.
+			append(
+				_("&Developer Documentation"),
+				self._documentationHandler("developer-documentation.html"),
 			)
-			tray.Bind(wx.EVT_MENU, install_handler, install_item)
-			self._menuItems.append((tray, menu, install_item, install_handler, wx))
-			remove_handler = self._onRemoveComponents
-			remove_item = menu.Append(
-				wx.ID_ANY,
-				self._productName + _(": Remove components..."),
+			# Translators: Opens the installed guided practical tests in a web browser.
+			append(
+				_("Guided &Practical Tests"),
+				self._documentationHandler("human-testing.html"),
 			)
-			tray.Bind(wx.EVT_MENU, remove_handler, remove_item)
-			self._menuItems.append((tray, menu, remove_item, remove_handler, wx))
+			main_menu = tray.menu
+			position = min(2, main_menu.GetMenuItemCount())
+			self._topLevelMenuItem = main_menu.Insert(
+				position,
+				wx.ID_ANY,
+				self._productName,
+				menu,
+			)
 		except Exception as error:
+			self._removeMenus()
 			self._recordDiagnostic(
 				"menuUnavailable",
 				errorType=type(error).__name__,
@@ -816,16 +846,59 @@ class NvdaUiManager:
 			)
 
 	def _removeMenus(self):
-		for tray, menu, item, handler, wx in self._menuItems:
+		tray = self._menuTray
+		for item, handler, wx in self._menuItems:
 			try:
-				tray.Unbind(wx.EVT_MENU, item)
+				tray.Unbind(wx.EVT_MENU, handler=handler, source=item)
 			except Exception:
 				pass
+		if self._topLevelMenuItem is not None and tray is not None:
 			try:
-				menu.Remove(item.GetId())
+				tray.menu.Remove(self._topLevelMenuItem.GetId())
 			except Exception:
 				pass
 		self._menuItems = []
+		self._topLevelMenuItem = None
+		self._topLevelMenu = None
+		self._menuTray = None
+
+	def _onOpenSettings(self, _event):
+		if self._settingsPanelClass is None:
+			ui.message(_("{name} settings are unavailable").format(name=self._productName))
+			return
+		try:
+			import gui
+			from gui.settingsDialogs import NVDASettingsDialog
+
+			gui.mainFrame.popupSettingsDialog(NVDASettingsDialog, self._settingsPanelClass)
+		except Exception as error:
+			self._recordDiagnostic(
+				"settingsOpenError",
+				errorType=type(error).__name__,
+				error=str(error),
+			)
+			ui.message(_("Could not open {name} settings").format(name=self._productName))
+
+	def _documentationHandler(self, file_name):
+		def open_documentation(_event):
+			self._openDocumentation(file_name)
+
+		return open_documentation
+
+	def _openDocumentation(self, file_name):
+		try:
+			path = self._codeAddon.getDocFilePath(file_name)
+			if not path:
+				raise FileNotFoundError(file_name)
+			os.startfile(path)
+		except Exception as error:
+			self._recordDiagnostic(
+				"documentationOpenError",
+				fileName=file_name,
+				errorType=type(error).__name__,
+				error=str(error),
+			)
+			ui.message(_("Could not open the installed documentation"))
 
 	@staticmethod
 	def _installProfileLabel(profile):

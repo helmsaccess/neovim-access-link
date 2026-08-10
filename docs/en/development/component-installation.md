@@ -77,7 +77,7 @@ Connections are managed under “NVDA menu → Preferences → Settings… → N
 Access Link → Connections.” “Add connection…” records name, host or OpenSSH
 alias, Linux user, port, optional key file, and authentication method.
 
-“NVDA menu → Tools → Neovim Access Link: Install or update components…” offers
+“NVDA menu → Neovim Access Link → Install or update components...” offers
 “This computer” and every saved Linux connection as an initially clear
 multi-selection. Selected targets run in the background; a results summary
 reports every success and failure. Locally, the plugin is replaced atomically
@@ -86,7 +86,7 @@ must be restarted after installation or update.
 
 ## Removal
 
-“NVDA menu → Tools → Neovim Access Link: Remove components…” uses the same
+“NVDA menu → Neovim Access Link → Remove components...” uses the same
 multi-selection. Neovim must be closed on the selected targets; the add-on does
 not stop a Neovim or tmux session.
 

@@ -81,8 +81,8 @@ Access Link → Verbindungen“ verwaltet. „Verbindung hinzufügen…“ erfas
 Host oder OpenSSH-Alias, Linux-Benutzer, Port, optionale Schlüsseldatei und
 Anmeldeart.
 
-„NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten installieren oder
-aktualisieren…“ bietet „Dieser Computer“ und alle gespeicherten
+„NVDA-Menü → Neovim Access Link → Komponenten installieren oder
+aktualisieren...“ bietet „Dieser Computer“ und alle gespeicherten
 Linux-Verbindungen als zunächst leere Mehrfachauswahl an. Ausgewählte Ziele
 werden im Hintergrund bearbeitet; eine Ergebnisübersicht meldet jeden Erfolg
 und Fehler. Lokal wird das Plugin atomar unter
@@ -91,7 +91,7 @@ Neovim muss nach einer Installation oder Aktualisierung neu gestartet werden.
 
 ## Entfernung
 
-„NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten entfernen…“ verwendet
+„NVDA-Menü → Neovim Access Link → Komponenten entfernen...“ verwendet
 dieselbe Mehrfachauswahl. Neovim muss auf den gewählten Zielen beendet sein;
 das Add-on beendet keine Neovim- oder tmux-Sitzung.
 

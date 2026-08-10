@@ -6,6 +6,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
+  Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
+  Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.
+- Ergänzt im Manifest Standardhilfedatei und das aus dem aktuellen deutschen
+  beziehungsweise englischen Changelogabschnitt erzeugte Änderungsprotokoll.
 - Beginnt die Entwicklungslinie 0.98.0 nach dem Pre-Release 0.97.0.
 
 ## 0.97.0

@@ -47,18 +47,20 @@ checking the Windows Terminal AppModule, process, and allowed UIA class.
 - Replacement: prefer a future public, stable terminal-control identifier and
   remove the runtime-ID dependency.
 
-## Exception 3: NVDA Settings and Tools integration
+## Exception 3: NVDA Settings and main-menu integration
 
-Registration through `NVDASettingsDialog.categoryClasses`, access to the Tools
-menu, and `gui.runScriptModalDialog` are common NVDA add-on practice, but are
-not promised as independent long-term stable extension interfaces.
+Registration through `NVDASettingsDialog.categoryClasses`, insertion of a
+top-level submenu through `gui.mainFrame.sysTrayIcon.menu`, and
+`gui.runScriptModalDialog` are common NVDA add-on practice, but are not
+promised as independent long-term stable extension interfaces. Installed help
+is resolved by NVDA's public localized `Addon.getDocFilePath()`.
 
 - Risk: menu or dialog structure can change between NVDA major versions,
   making the feature unavailable.
 - Containment: registration and removal are symmetric and exception-safe.
   Network and installation work never runs in a dialog or NVDA main thread. A
   GUI failure must not suppress terminal output.
-- Replacement: adopt official registrable Settings and Tools extension points
+- Replacement: adopt official registrable Settings and menu extension points
   when available; until then, test each target version with real NVDA and the
   extracted built add-on.
 

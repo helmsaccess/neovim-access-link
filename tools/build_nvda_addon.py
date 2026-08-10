@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 import buildVars
 from tools.gettext_catalog import compile_catalogs
+from tools.sync_installed_documentation import validate_documents
 
 PROTOCOL_MODULES = (
     "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
@@ -63,14 +64,24 @@ def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathl
     return existing[0]
 
 
-def write_manifest(path: pathlib.Path) -> None:
-    """Generate the NVDA manifest from the central product metadata."""
-    manifest = buildVars.manifest()
+def _manifest_text(manifest: dict[str, str]) -> str:
+    lines = []
+    for key, value in manifest.items():
+        if "\n" in value:
+            if '"""' in value:
+                raise RuntimeError(f"manifest field {key} contains an unsupported triple quote")
+            rendered = f'"""{value}"""'
+        else:
+            rendered = json.dumps(value, ensure_ascii=False)
+        lines.append(f"{key} = {rendered}\n")
+    return "".join(lines)
+
+
+def write_manifest(path: pathlib.Path, manifest: dict[str, str] | None = None) -> None:
+    """Generate one NVDA manifest from central or localized product metadata."""
+    value = buildVars.manifest() if manifest is None else manifest
     path.write_text(
-        "".join(
-            f"{key} = {json.dumps(value, ensure_ascii=False)}\n"
-            for key, value in manifest.items()
-        ),
+        _manifest_text(value),
         encoding="utf-8",
     )
 
@@ -79,7 +90,8 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
     manifest = ConfigObj(str(path), encoding="utf-8", list_values=True)
     required = (
         "name", "summary", "description", "author", "version",
-        "url", "minimumNVDAVersion", "lastTestedNVDAVersion",
+        "changelog", "url", "docFileName",
+        "minimumNVDAVersion", "lastTestedNVDAVersion",
     )
     for field in required:
         value = manifest.get(field)
@@ -92,6 +104,10 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
         raise RuntimeError(f"invalid Add-on Store version: {manifest['version']!r}")
     if not manifest["url"].startswith("https://"):
         raise RuntimeError("manifest url must use HTTPS")
+    if pathlib.PurePath(manifest["docFileName"]).name != manifest["docFileName"]:
+        raise RuntimeError("manifest docFileName must be one portable file name")
+    if pathlib.PurePath(manifest["docFileName"]).suffix.casefold() != ".html":
+        raise RuntimeError("manifest docFileName must name an HTML document")
     def api_tuple(value: str) -> tuple[int, int, int]:
         parts = [int(part) for part in value.split(".")]
         return tuple((parts + [0])[:3])
@@ -129,12 +145,18 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
         shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
+        validate_documents(stage / "doc")
         compile_catalogs(stage / "locale")
         for translated_manifest in sorted((ROOT / "nvda-addon" / "locale").glob("*/manifest.ini")):
             language = translated_manifest.parent.name
             destination = stage / "locale" / language / "manifest.ini"
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(translated_manifest, destination)
+            localized = ConfigObj(str(translated_manifest), encoding="utf-8", list_values=True)
+            localized["changelog"] = buildVars.changelog(language)
+            write_manifest(destination, dict(localized))
+            staged_localized = ConfigObj(str(destination), encoding="utf-8", list_values=True)
+            if staged_localized.get("changelog") != buildVars.changelog(language):
+                raise RuntimeError(f"localized changelog differs from {language} source")
         plugin = stage / "globalPlugins" / metadata["name"]
         (plugin / "build_info.py").write_text(
             f"ARTIFACT_VERSION = {artifact_version!r}\n",

@@ -46,7 +46,9 @@ angeforderte Passwortanmeldung sind unterstützt.
 3. Starten Sie NVDA neu.
 
 Nach dem Neustart enthält `NVDA-Menü → Optionen → Einstellungen…` die Kategorie
-`Neovim Access Link`.
+`Neovim Access Link`. Das NVDA-Hauptmenü enthält außerdem das Untermenü
+`Neovim Access Link` mit Einstellungen, Komponentenverwaltung und der
+installierten Dokumentation.
 
 ## 3. Aktivierungsgeste zuweisen
 
@@ -69,8 +71,8 @@ um die fokussierte Neovim-Sitzung eindeutig auszuwählen.
 Schließen Sie vor einer Installation oder Aktualisierung alle betroffenen
 Neovim-Instanzen.
 
-1. Öffnen Sie `NVDA-Menü → Werkzeuge → Neovim Access Link: Komponenten
-   installieren oder aktualisieren...`.
+1. Öffnen Sie `NVDA-Menü → Neovim Access Link → Komponenten installieren oder
+   aktualisieren...`.
 2. Markieren Sie `Dieser Computer – lokales Neovim` für lokales
    Windows-Neovim.
 3. Markieren Sie gespeicherte Linux-Verbindungen für entfernte Sitzungen.

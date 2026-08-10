@@ -67,6 +67,8 @@ jobs:
           sudo apt-get install --yes --no-install-recommends pandoc
       - name: Build and validate all documentation artifacts
         run: bash tools/build_documentation.sh
+      - name: Confirm installed documentation is current
+        run: git diff --exit-code -- nvda-addon/addon/doc
 
   human-test-runner-windows:
     name: Guided human-test runner on Windows PowerShell

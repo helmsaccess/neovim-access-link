@@ -127,8 +127,9 @@ python3 tools/build_nvda_addon.py
 ```
 
 Package tests open the actual `.nvda-addon` and inspect its manifest,
-resources, bundled Linux components, licenses, translation catalog, and
-forbidden files. An earlier archive is not evidence for later source changes.
+resources, all eight localized installed HTML documents, bundled Linux
+components, licenses, translation catalog, and forbidden files. An earlier
+archive is not evidence for later source changes.
 
 After documentation changes, rebuild documentation:
 
@@ -139,7 +140,8 @@ tools/build_documentation.sh
 The build checks the canonical Lua example, German and English source files
 and heading structures, local Markdown links, generated HTML targets,
 language, title, and description metadata, and the eight expected files in the
-ZIP. Historical archives explicitly excluded from current documentation are
+ZIP. The same results are synchronized for installed help; CI rejects stale
+copies. Historical archives explicitly excluded from current documentation are
 validated but not included in HTML.
 
 When work changes both installable code and documentation, build both

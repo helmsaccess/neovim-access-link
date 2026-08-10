@@ -1,0 +1,3185 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="description" content="User manual for Neovim Access Link covering installation, operation, settings, and troubleshooting." />
+  <title>Neovim Access Link – User Manual</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">:root {
+color-scheme: light dark;
+font-family: system-ui, sans-serif;
+line-height: 1.55;
+}
+body {
+margin: 0 auto;
+max-width: 78rem;
+padding: 1rem 2rem 4rem;
+}
+a { text-decoration-thickness: 0.12em; }
+a:focus-visible { outline: 0.2rem solid currentColor; outline-offset: 0.2rem; }
+nav#TOC { border: 0.1rem solid currentColor; padding: 0.5rem 1.5rem; }
+h1 { font-size: 2rem; }
+h2 { border-top: 0.15rem solid currentColor; margin-top: 3rem; padding-top: 1rem; }
+h3 { margin-top: 2rem; }
+code, pre { font-family: ui-monospace, monospace; }
+pre { border: 0.1rem solid currentColor; overflow-x: auto; padding: 0.8rem; white-space: pre-wrap; }
+table { border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; }
+th, td { border: 0.1rem solid currentColor; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+img, svg { max-width: 100%; }
+@media print {
+:root { color-scheme: light; }
+body { max-width: none; padding: 0; }
+h2 { break-before: page; }
+a { color: inherit; }
+pre, table { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Neovim Access Link – User Manual</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#docs__en__manual__readmemd__neovim-access-link--user-manual" id="toc-docs__en__manual__readmemd__neovim-access-link--user-manual">Neovim
+Access Link — User Manual</a>
+<ul>
+<li><a href="#docs__en__manual__readmemd__supported-workflow" id="toc-docs__en__manual__readmemd__supported-workflow">Supported
+workflow</a></li>
+<li><a href="#docs__en__manual__readmemd__maturity" id="toc-docs__en__manual__readmemd__maturity">Maturity</a></li>
+<li><a href="#docs__en__manual__readmemd__how-access-link-works" id="toc-docs__en__manual__readmemd__how-access-link-works">How Access
+Link works</a></li>
+<li><a href="#docs__en__manual__readmemd__two-kinds-of-keyboard-input" id="toc-docs__en__manual__readmemd__two-kinds-of-keyboard-input">Two
+kinds of keyboard input</a></li>
+<li><a href="#docs__en__manual__readmemd__recommended-reading-order" id="toc-docs__en__manual__readmemd__recommended-reading-order">Recommended
+reading order</a>
+<ul>
+<li><a href="#docs__en__manual__readmemd__tasks" id="toc-docs__en__manual__readmemd__tasks">Tasks</a></li>
+<li><a href="#docs__en__manual__readmemd__reference-and-help" id="toc-docs__en__manual__readmemd__reference-and-help">Reference and
+help</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#docs__en__manual__basicsmd__neovim-and-windows-terminal-basics" id="toc-docs__en__manual__basicsmd__neovim-and-windows-terminal-basics">Neovim
+and Windows Terminal basics</a>
+<ul>
+<li><a href="#docs__en__manual__basicsmd__understand-windows-terminal" id="toc-docs__en__manual__basicsmd__understand-windows-terminal">Understand
+Windows Terminal</a></li>
+<li><a href="#docs__en__manual__basicsmd__understand-neovim-content" id="toc-docs__en__manual__basicsmd__understand-neovim-content">Understand
+Neovim content</a></li>
+<li><a href="#docs__en__manual__basicsmd__essential-modes" id="toc-docs__en__manual__basicsmd__essential-modes">Essential
+modes</a></li>
+<li><a href="#docs__en__manual__basicsmd__complete-a-first-safe-edit" id="toc-docs__en__manual__basicsmd__complete-a-first-safe-edit">Complete
+a first safe edit</a></li>
+<li><a href="#docs__en__manual__basicsmd__key-combination-or-key-sequence" id="toc-docs__en__manual__basicsmd__key-combination-or-key-sequence">Key
+combination or key sequence</a></li>
+<li><a href="#docs__en__manual__basicsmd__continue-learning-neovim" id="toc-docs__en__manual__basicsmd__continue-learning-neovim">Continue
+learning Neovim</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__communicationmd__connection-first-editing-session-and-session-switching" id="toc-docs__en__manual__communicationmd__connection-first-editing-session-and-session-switching">Connection,
+first editing session, and session switching</a>
+<ul>
+<li><a href="#docs__en__manual__communicationmd__activation-and-f12" id="toc-docs__en__manual__communicationmd__activation-and-f12">Activation
+and F12</a></li>
+<li><a href="#docs__en__manual__communicationmd__complete-the-first-editing-session" id="toc-docs__en__manual__communicationmd__complete-the-first-editing-session">Complete
+the first editing session</a></li>
+<li><a href="#docs__en__manual__communicationmd__switch-between-tabs-and-panes" id="toc-docs__en__manual__communicationmd__switch-between-tabs-and-panes">Switch
+between tabs and panes</a></li>
+<li><a href="#docs__en__manual__communicationmd__connect-more-sessions" id="toc-docs__en__manual__communicationmd__connect-more-sessions">Connect
+more sessions</a></li>
+<li><a href="#docs__en__manual__communicationmd__remember-or-manually-select-an-association" id="toc-docs__en__manual__communicationmd__remember-or-manually-select-an-association">Remember
+or manually select an association</a></li>
+<li><a href="#docs__en__manual__communicationmd__local-and-remote-connections" id="toc-docs__en__manual__communicationmd__local-and-remote-connections">Local
+and remote connections</a></li>
+<li><a href="#docs__en__manual__communicationmd__disconnection-and-error-behavior" id="toc-docs__en__manual__communicationmd__disconnection-and-error-behavior">Disconnection
+and error behavior</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__speech-explorationmd__speech-exploration-mode" id="toc-docs__en__manual__speech-explorationmd__speech-exploration-mode">Speech
+exploration mode</a>
+<ul>
+<li><a href="#docs__en__manual__speech-explorationmd__operation" id="toc-docs__en__manual__speech-explorationmd__operation">Operation</a></li>
+<li><a href="#docs__en__manual__speech-explorationmd__ending-speech-exploration-mode" id="toc-docs__en__manual__speech-explorationmd__ending-speech-exploration-mode">Ending
+speech exploration mode</a></li>
+<li><a href="#docs__en__manual__speech-explorationmd__optional-braille-display-support" id="toc-docs__en__manual__speech-explorationmd__optional-braille-display-support">Optional
+Braille display support</a></li>
+<li><a href="#docs__en__manual__speech-explorationmd__speech-exploration-mode-and-braille-exploration-mode" id="toc-docs__en__manual__speech-explorationmd__speech-exploration-mode-and-braille-exploration-mode">Speech
+exploration mode and Braille exploration mode</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__braillemd__braille-support" id="toc-docs__en__manual__braillemd__braille-support">Braille
+support</a>
+<ul>
+<li><a href="#docs__en__manual__braillemd__what-appears-on-the-braille-display" id="toc-docs__en__manual__braillemd__what-appears-on-the-braille-display">What
+appears on the Braille display</a></li>
+<li><a href="#docs__en__manual__braillemd__braille-settings-supplied-by-the-add-on" id="toc-docs__en__manual__braillemd__braille-settings-supplied-by-the-add-on">Braille
+settings supplied by the add-on</a></li>
+<li><a href="#docs__en__manual__braillemd__moving-the-cursor-with-routing-keys" id="toc-docs__en__manual__braillemd__moving-the-cursor-with-routing-keys">Moving
+the cursor with routing keys</a></li>
+<li><a href="#docs__en__manual__braillemd__why-the-cursor-moves-left-when-leaving-insert-mode" id="toc-docs__en__manual__braillemd__why-the-cursor-moves-left-when-leaving-insert-mode">Why
+the cursor moves left when leaving Insert mode</a></li>
+<li><a href="#docs__en__manual__braillemd__editing-words-and-line-ranges-with-routing-keys" id="toc-docs__en__manual__braillemd__editing-words-and-line-ranges-with-routing-keys">Editing
+words and line ranges with routing keys</a></li>
+<li><a href="#docs__en__manual__braillemd__navigating-with-the-displays-navigation-controls" id="toc-docs__en__manual__braillemd__navigating-with-the-displays-navigation-controls">Navigating
+with the display&#39;s navigation controls</a>
+<ul>
+<li><a href="#docs__en__manual__braillemd__braille-cursor-mode-move-the-cursor-while-reading" id="toc-docs__en__manual__braillemd__braille-cursor-mode-move-the-cursor-while-reading">Braille
+cursor mode: move the cursor while reading</a></li>
+<li><a href="#docs__en__manual__braillemd__braille-exploration-mode-read-lines-while-leaving-the-cursor-in-place" id="toc-docs__en__manual__braillemd__braille-exploration-mode-read-lines-while-leaving-the-cursor-in-place">Braille
+exploration mode: read lines while leaving the cursor in place</a></li>
+<li><a href="#docs__en__manual__braillemd__speech-exploration-mode-a-speech-feature-with-optional-braille-presentation" id="toc-docs__en__manual__braillemd__speech-exploration-mode-a-speech-feature-with-optional-braille-presentation">Speech
+exploration mode: a speech feature with optional Braille
+presentation</a></li>
+<li><a href="#docs__en__manual__braillemd__which-navigation-should-i-use" id="toc-docs__en__manual__braillemd__which-navigation-should-i-use">Which
+navigation should I use?</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__braillemd__visual-selections" id="toc-docs__en__manual__braillemd__visual-selections">Visual
+selections</a></li>
+<li><a href="#docs__en__manual__braillemd__spelling-suggestions" id="toc-docs__en__manual__braillemd__spelling-suggestions">Spelling
+suggestions</a></li>
+<li><a href="#docs__en__manual__braillemd__embedded-terminals" id="toc-docs__en__manual__braillemd__embedded-terminals">Embedded
+terminals</a></li>
+<li><a href="#docs__en__manual__braillemd__if-the-display-is-incorrect" id="toc-docs__en__manual__braillemd__if-the-display-is-incorrect">If the
+display is incorrect</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__search-replacement-completion-and-diagnostics" id="toc-docs__en__manual__menus-and-completionmd__search-replacement-completion-and-diagnostics">Search,
+replacement, completion, and diagnostics</a>
+<ul>
+<li><a href="#docs__en__manual__menus-and-completionmd__search-and-replace" id="toc-docs__en__manual__menus-and-completionmd__search-and-replace">Search
+and replace</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__completion-menus" id="toc-docs__en__manual__menus-and-completionmd__completion-menus">Completion
+menus</a>
+<ul>
+<li><a href="#docs__en__manual__menus-and-completionmd__operate-a-menu" id="toc-docs__en__manual__menus-and-completionmd__operate-a-menu">Operate
+a menu</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__read-detailed-documentation" id="toc-docs__en__manual__menus-and-completionmd__read-detailed-documentation">Read
+detailed documentation</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__check-lsp-status" id="toc-docs__en__manual__menus-and-completionmd__check-lsp-status">Check
+LSP status</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__rename-symbols-with-lsp" id="toc-docs__en__manual__menus-and-completionmd__rename-symbols-with-lsp">Rename
+symbols with LSP</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__function-parameters-while-typing" id="toc-docs__en__manual__menus-and-completionmd__function-parameters-while-typing">Function
+parameters while typing</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__inspect-signatures-and-parameters-on-demand" id="toc-docs__en__manual__menus-and-completionmd__inspect-signatures-and-parameters-on-demand">Inspect
+signatures and parameters on demand</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__read-diagnostics" id="toc-docs__en__manual__menus-and-completionmd__read-diagnostics">Read
+diagnostics</a>
+<ul>
+<li><a href="#docs__en__manual__menus-and-completionmd__explore-diagnostics-without-moving-the-cursor" id="toc-docs__en__manual__menus-and-completionmd__explore-diagnostics-without-moving-the-cursor">Explore
+diagnostics without moving the cursor</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__neovim-diagnostic-commands" id="toc-docs__en__manual__menus-and-completionmd__neovim-diagnostic-commands">Neovim
+diagnostic commands</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__if-a-menu-or-lsp-remains-silent" id="toc-docs__en__manual__menus-and-completionmd__if-a-menu-or-lsp-remains-silent">If
+a menu or LSP remains silent</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__embedded-terminal-and-file-managers" id="toc-docs__en__manual__terminals-and-file-managersmd__embedded-terminal-and-file-managers">Embedded
+terminal and file managers</a>
+<ul>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__use-an-embedded-terminal" id="toc-docs__en__manual__terminals-and-file-managersmd__use-an-embedded-terminal">Use
+an embedded terminal</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__neovim-command-line-and-messages" id="toc-docs__en__manual__terminals-and-file-managersmd__neovim-command-line-and-messages">Neovim
+command line and messages</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__file-managers-and-test-status" id="toc-docs__en__manual__terminals-and-file-managersmd__file-managers-and-test-status">File
+managers and test status</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__navigate-entries" id="toc-docs__en__manual__terminals-and-file-managersmd__navigate-entries">Navigate
+entries</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__use-oil" id="toc-docs__en__manual__terminals-and-file-managersmd__use-oil">Use
+Oil</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__prompts-in-other-file-managers" id="toc-docs__en__manual__terminals-and-file-managersmd__prompts-in-other-file-managers">Prompts
+in other file managers</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__use-ssh-and-tmux" id="toc-docs__en__manual__ssh-and-tmuxmd__use-ssh-and-tmux">Use SSH and
+tmux</a>
+<ul>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__prerequisites" id="toc-docs__en__manual__ssh-and-tmuxmd__prerequisites">Prerequisites</a></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__configure-a-linux-connection" id="toc-docs__en__manual__ssh-and-tmuxmd__configure-a-linux-connection">Configure
+a Linux connection</a></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__connect-a-remote-session" id="toc-docs__en__manual__ssh-and-tmuxmd__connect-a-remote-session">Connect
+a remote session</a></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__use-tmux" id="toc-docs__en__manual__ssh-and-tmuxmd__use-tmux">Use tmux</a></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__connection-loss" id="toc-docs__en__manual__ssh-and-tmuxmd__connection-loss">Connection
+loss</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters" id="toc-docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Setting
+up LSP, completion, and linters</a>
+<ul>
+<li><a href="#docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers" id="toc-docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers">Access
+Link plugin and plugin managers</a></li>
+<li><a href="#docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" id="toc-docs__en__manual__language-toolsmd__recommended-beginner-path-for-python">Recommended
+beginner path for Python</a>
+<ul>
+<li><a href="#docs__en__manual__language-toolsmd__install-the-tools" id="toc-docs__en__manual__language-toolsmd__install-the-tools">Install
+the tools</a></li>
+<li><a href="#docs__en__manual__language-toolsmd__create-initlua" id="toc-docs__en__manual__language-toolsmd__create-initlua">Create
+init.lua</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__language-toolsmd__verify-the-setup" id="toc-docs__en__manual__language-toolsmd__verify-the-setup">Verify the
+setup</a></li>
+<li><a href="#docs__en__manual__language-toolsmd__use-completion-and-diagnostics" id="toc-docs__en__manual__language-toolsmd__use-completion-and-diagnostics">Use
+completion and diagnostics</a></li>
+<li><a href="#docs__en__manual__language-toolsmd__other-languages-and-existing-plugins" id="toc-docs__en__manual__language-toolsmd__other-languages-and-existing-plugins">Other
+languages and existing plugins</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil" id="toc-docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Small
+Python configuration with Lazy and Oil</a>
+<ul>
+<li><a href="#docs__en__manual__example-configurationmd__installing-prerequisites" id="toc-docs__en__manual__example-configurationmd__installing-prerequisites">Installing
+prerequisites</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__backing-up-an-existing-configuration" id="toc-docs__en__manual__example-configurationmd__backing-up-an-existing-configuration">Backing
+up an existing configuration</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__complete-initlua" id="toc-docs__en__manual__example-configurationmd__complete-initlua">Complete
+init.lua</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__why-access-link-is-explicitly-listed-for-lazy" id="toc-docs__en__manual__example-configurationmd__why-access-link-is-explicitly-listed-for-lazy">Why
+Access Link is explicitly listed for Lazy</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__first-start" id="toc-docs__en__manual__example-configurationmd__first-start">First
+start</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__operation" id="toc-docs__en__manual__example-configurationmd__operation">Operation</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__commandsmd__command-reference" id="toc-docs__en__manual__commandsmd__command-reference">Command
+reference</a>
+<ul>
+<li><a href="#docs__en__manual__commandsmd__nvda-commands-with-fixed-gestures" id="toc-docs__en__manual__commandsmd__nvda-commands-with-fixed-gestures">NVDA
+commands with fixed gestures</a></li>
+<li><a href="#docs__en__manual__commandsmd__assignable-nvda-commands" id="toc-docs__en__manual__commandsmd__assignable-nvda-commands">Assignable
+NVDA commands</a></li>
+<li><a href="#docs__en__manual__commandsmd__f12-association" id="toc-docs__en__manual__commandsmd__f12-association">F12
+association</a></li>
+<li><a href="#docs__en__manual__commandsmd__common-neovim-commands" id="toc-docs__en__manual__commandsmd__common-neovim-commands">Common
+Neovim commands</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__settingsmd__settings-reference" id="toc-docs__en__manual__settingsmd__settings-reference">Settings
+reference</a>
+<ul>
+<li><a href="#docs__en__manual__settingsmd__general" id="toc-docs__en__manual__settingsmd__general">General</a>
+<ul>
+<li><a href="#docs__en__manual__settingsmd__global-action-feedback" id="toc-docs__en__manual__settingsmd__global-action-feedback">Global
+action feedback</a></li>
+<li><a href="#docs__en__manual__settingsmd__session-focus" id="toc-docs__en__manual__settingsmd__session-focus">Session
+focus</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__settingsmd__feedback" id="toc-docs__en__manual__settingsmd__feedback">Feedback</a></li>
+<li><a href="#docs__en__manual__settingsmd__navigation" id="toc-docs__en__manual__settingsmd__navigation">Navigation</a>
+<ul>
+<li><a href="#docs__en__manual__settingsmd__normal-navigation" id="toc-docs__en__manual__settingsmd__normal-navigation">Normal
+navigation</a></li>
+<li><a href="#docs__en__manual__settingsmd__speech-exploration-mode-release" id="toc-docs__en__manual__settingsmd__speech-exploration-mode-release">Speech
+exploration mode release</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__settingsmd__braille" id="toc-docs__en__manual__settingsmd__braille">Braille</a>
+<ul>
+<li><a href="#docs__en__manual__settingsmd__speech-exploration-mode" id="toc-docs__en__manual__settingsmd__speech-exploration-mode">Speech
+exploration mode</a></li>
+<li><a href="#docs__en__manual__settingsmd__routing-keys" id="toc-docs__en__manual__settingsmd__routing-keys">Routing
+keys</a></li>
+<li><a href="#docs__en__manual__settingsmd__spelling-suggestions" id="toc-docs__en__manual__settingsmd__spelling-suggestions">Spelling
+suggestions</a></li>
+<li><a href="#docs__en__manual__settingsmd__developer-information" id="toc-docs__en__manual__settingsmd__developer-information">Developer
+information</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__settingsmd__connections" id="toc-docs__en__manual__settingsmd__connections">Connections</a>
+<ul>
+<li><a href="#docs__en__manual__settingsmd__add-edit-or-remove-a-connection" id="toc-docs__en__manual__settingsmd__add-edit-or-remove-a-connection">Add,
+edit, or remove a connection</a></li>
+<li><a href="#docs__en__manual__settingsmd__linux-connection-fields" id="toc-docs__en__manual__settingsmd__linux-connection-fields">Linux
+connection fields</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__settingsmd__recommended-starting-point" id="toc-docs__en__manual__settingsmd__recommended-starting-point">Recommended
+starting point</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__soundsmd__sounds-and-earcons" id="toc-docs__en__manual__soundsmd__sounds-and-earcons">Sounds and
+earcons</a>
+<ul>
+<li><a href="#docs__en__manual__soundsmd__sound-overview" id="toc-docs__en__manual__soundsmd__sound-overview">Sound
+overview</a></li>
+<li><a href="#docs__en__manual__soundsmd__indentation" id="toc-docs__en__manual__soundsmd__indentation">Indentation</a></li>
+<li><a href="#docs__en__manual__soundsmd__spelling-and-grammar" id="toc-docs__en__manual__soundsmd__spelling-and-grammar">Spelling and
+grammar</a></li>
+<li><a href="#docs__en__manual__soundsmd__diagnostics" id="toc-docs__en__manual__soundsmd__diagnostics">Diagnostics</a></li>
+</ul></li>
+<li><a href="#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports" id="toc-docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports">Troubleshooting
+and diagnostic reports</a>
+<ul>
+<li><a href="#docs__en__manual__troubleshootingmd__copy-a-diagnostic-report" id="toc-docs__en__manual__troubleshootingmd__copy-a-diagnostic-report">Copy
+a diagnostic report</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__the-add-on-does-not-respond" id="toc-docs__en__manual__troubleshootingmd__the-add-on-does-not-respond">The
+add-on does not respond</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__the-neovim-plugin-is-installed-but-not-loaded" id="toc-docs__en__manual__troubleshootingmd__the-neovim-plugin-is-installed-but-not-loaded">The
+Neovim plugin is installed but not loaded</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__f12-does-not-connect" id="toc-docs__en__manual__troubleshootingmd__f12-does-not-connect">F12
+does not connect</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__the-wrong-session-is-connected" id="toc-docs__en__manual__troubleshootingmd__the-wrong-session-is-connected">The
+wrong session is connected</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__ssh-connection-fails" id="toc-docs__en__manual__troubleshootingmd__ssh-connection-fails">SSH
+connection fails</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__access-link-works-but-lsp-or-diagnostics-are-absent" id="toc-docs__en__manual__troubleshootingmd__access-link-works-but-lsp-or-diagnostics-are-absent">Access
+Link works but LSP or diagnostics are absent</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__terminal-fragments-are-spoken" id="toc-docs__en__manual__troubleshootingmd__terminal-fragments-are-spoken">Terminal
+fragments are spoken</a></li>
+<li><a href="#docs__en__manual__troubleshootingmd__nvda-does-not-respond-after-a-dialog" id="toc-docs__en__manual__troubleshootingmd__nvda-does-not-respond-after-a-dialog">NVDA
+does not respond after a dialog</a></li>
+</ul></li>
+</ul>
+</nav>
+<div id="docs__en__manual__readmemd">
+<section id="docs__en__manual__readmemd__neovim-access-link--user-manual" class="level2">
+<h2>Neovim Access Link — User Manual</h2>
+<p>Neovim Access Link connects Neovim in Windows Terminal to NVDA. The
+add-on receives structured information directly from Neovim and presents
+modes, cursor movement, text changes, selections, indentation,
+completion, and diagnostics through speech, sounds, and Braille.</p>
+<p>This manual is for experienced NVDA users who are learning Neovim or
+want to use Access Link productively. Use the <a href="quick-guide.html">Quick Guide</a> for the
+first installation and connection.</p>
+<section id="docs__en__manual__readmemd__supported-workflow" class="level3">
+<h3>Supported workflow</h3>
+<p>Access Link currently supports:</p>
+<ul>
+<li>local <code>nvim.exe</code> in Windows Terminal;</li>
+<li>Neovim on Linux over SSH;</li>
+<li>Normal, Insert, Replace, Visual, Select, Operator-pending, and
+Command-line modes;</li>
+<li>Neovim Terminal-Normal mode and native terminal output during direct
+terminal input;</li>
+<li>multiple Windows Terminal windows, tabs, and split panes;</li>
+<li>parallel local and remote Neovim sessions alongside ordinary shell
+panes;</li>
+<li>tmux inside an SSH session;</li>
+<li>structured speech and Braille, speech exploration, native search and
+replacement, LSP including rename, completion, diagnostics, and Neovim
+spelling suggestions;</li>
+<li>file management with Oil; other file managers have automatically
+tested adapters.</li>
+</ul>
+<p>The practically confirmed reference environment uses Windows 11 25H2,
+NVDA 2026.1.1, Windows Terminal 1.24.x, and local Neovim 0.12.3. The
+remote path is confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux
+10.2. See the <a href="developer-documentation.html#docs__en__development__compatibilitymd__compatibility">compatibility
+overview</a> for the complete evidence and remaining test coverage.</p>
+<p>Other terminal applications, graphical Neovim frontends, portable
+Windows installations, and data directories separated with
+<code>NVIM_APPNAME</code> are not supported.</p>
+</section>
+<section id="docs__en__manual__readmemd__maturity" class="level3">
+<h3>Maturity</h3>
+<p>The add-on is beta. The documented reference workflows have practical
+or automated coverage, but the combinations of NVDA configuration,
+Braille hardware, Neovim versions, and plugins are not exhaustively
+covered. Use normal version control or backups for important files.</p>
+</section>
+<section id="docs__en__manual__readmemd__how-access-link-works" class="level3">
+<h3>How Access Link works</h3>
+<p>The NVDA add-on runs on Windows. A Neovim plugin supplies semantic
+editor state. For a remote session, a small bridge carries that state
+through a separate SSH connection.</p>
+<p>An Access Link session is one running Neovim instance. Access Link
+associates exactly one focused Windows Terminal control with exactly one
+session. A control is the content of a tab or one pane. Connected Neovim
+panes and normal shell panes in the same Windows Terminal window
+therefore remain independent.</p>
+<p>This is a central strength of the add-on: one Windows Terminal tab
+can contain several panes, and each pane behaves like a separate
+terminal. You can switch between local Neovim sessions, remote SSH
+sessions, and ordinary shells. Access Link takes over only the exact
+connected and focused Neovim pane. Every other pane keeps NVDA&#39;s normal
+terminal behavior.</p>
+<p>When support is disabled, the connection ends, data is invalid, or
+the association cannot be confirmed exactly, Access Link does not
+suppress terminal output. NVDA fails open to its normal terminal
+behavior.</p>
+</section>
+<section id="docs__en__manual__readmemd__two-kinds-of-keyboard-input" class="level3">
+<h3>Two kinds of keyboard input</h3>
+<p>This manual distinguishes two separate input layers:</p>
+<ul>
+<li><strong>NVDA key combinations</strong> include the NVDA key, such as
+<code>NVDA+Alt+D</code> or <code>NVDA+h</code>. NVDA resolves these
+combinations. Access Link takes them over only in the documented
+connected Neovim context. Outside that context, NVDA&#39;s normal commands
+apply.</li>
+<li><strong>Neovim commands</strong> do not contain the NVDA key, such
+as <code>i</code>, <code>Escape</code>, <code>w</code>, <code>z=</code>,
+or <code>:w</code>. Neovim executes these inputs. Access Link does not
+replace their function; it makes their result, mode, and cursor movement
+accessible.</li>
+</ul>
+<p>A plus sign means that keys are held together:
+<code>NVDA+Alt+D</code>. A sequence separated by commas means that keys
+are pressed one after another: <code>Space</code>, <code>l</code>,
+<code>s</code>. Neovim&#39;s <code>z=</code> also means two keys pressed in
+sequence.</p>
+</section>
+<section id="docs__en__manual__readmemd__recommended-reading-order" class="level3">
+<h3>Recommended reading order</h3>
+<section id="docs__en__manual__readmemd__tasks" class="level4">
+<h4>Tasks</h4>
+<ol type="1">
+<li><a href="#docs__en__manual__basicsmd__neovim-and-windows-terminal-basics">Neovim
+and Windows Terminal basics</a></li>
+<li><a href="#docs__en__manual__communicationmd__connection-first-editing-session-and-session-switching">Connection,
+first editing session, and session switching</a></li>
+<li><a href="#docs__en__manual__speech-explorationmd__speech-exploration-mode">Speech
+exploration mode</a></li>
+<li><a href="#docs__en__manual__braillemd__braille-support">Braille
+support</a></li>
+<li><a href="#docs__en__manual__menus-and-completionmd__search-replacement-completion-and-diagnostics">Search,
+replacement, completion, and diagnostics</a></li>
+<li><a href="#docs__en__manual__terminals-and-file-managersmd__embedded-terminal-and-file-managers">Embedded
+terminal and file managers</a></li>
+<li><a href="#docs__en__manual__ssh-and-tmuxmd__use-ssh-and-tmux">SSH
+and tmux</a></li>
+<li><a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Set
+up LSP, completion, and linters</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Optional
+example configuration with Lazy and Oil</a></li>
+</ol>
+<p>Task chapters give the required keys where they are needed. Routine
+workflows do not require switching between the instructions and a
+reference.</p>
+</section>
+<section id="docs__en__manual__readmemd__reference-and-help" class="level4">
+<h4>Reference and help</h4>
+<ul>
+<li><a href="#docs__en__manual__commandsmd__command-reference">Command
+reference</a> for NVDA gestures, assignable commands, F12, and common
+Neovim input;</li>
+<li><a href="#docs__en__manual__settingsmd__settings-reference">settings
+reference</a> for all options and connections;</li>
+<li><a href="#docs__en__manual__soundsmd__sounds-and-earcons">sounds and
+earcons</a> for cue meanings;</li>
+<li><a href="#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports">troubleshooting</a>
+for specific failures.</li>
+</ul>
+<p>Learn general Neovim operation with <code>:Tutor</code>. Neovim&#39;s <a href="https://neovim.io/doc/user/">official help</a> also provides
+<code>nvim-intro</code>, its task-oriented user manual, and the complete
+command reference.</p>
+</section>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__basicsmd">
+<section id="docs__en__manual__basicsmd__neovim-and-windows-terminal-basics" class="level2">
+<h2>Neovim and Windows Terminal basics</h2>
+<p>This chapter explains only the terms and Neovim commands required by
+the remaining Access Link workflows. It does not replace a general
+Neovim course.</p>
+<section id="docs__en__manual__basicsmd__understand-windows-terminal" class="level3">
+<h3>Understand Windows Terminal</h3>
+<p>Windows Terminal arranges terminals at three levels:</p>
+<ul>
+<li>A <strong>window</strong> is the complete Windows Terminal
+window.</li>
+<li>A <strong>tab</strong> is a tab inside that window.</li>
+<li>A <strong>pane</strong> is one split area inside a tab. Each pane is
+a separate terminal with its own content and focus.</li>
+</ul>
+<p>An unsplit tab contains one terminal control. A split tab contains
+several terminal controls, one per pane. Access Link stores the Neovim
+association for each control separately. One pane can contain local
+Neovim, another can contain Neovim over SSH, and a third can contain an
+ordinary shell.</p>
+<p>When focus changes, Access Link checks the exact focused control.
+Only a connected Neovim control receives structured output. A shell or
+unconnected pane behaves like Windows Terminal without the add-on.</p>
+</section>
+<section id="docs__en__manual__basicsmd__understand-neovim-content" class="level3">
+<h3>Understand Neovim content</h3>
+<p>Neovim has its own structures inside one terminal control:</p>
+<ul>
+<li>A <strong>buffer</strong> contains text. It can belong to a file or
+have no filename yet.</li>
+<li>A <strong>Neovim window</strong> displays a buffer. Several Neovim
+windows can be visible in the same terminal control.</li>
+<li>A <strong>Neovim tab</strong> groups a layout of Neovim
+windows.</li>
+</ul>
+<p>A Windows Terminal tab and a Neovim tab are therefore different
+things. This manual uses the complete term whenever confusion is
+possible.</p>
+</section>
+<section id="docs__en__manual__basicsmd__essential-modes" class="level3">
+<h3>Essential modes</h3>
+<p>Neovim responds differently according to its current mode:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Purpose</th>
+<th>Enter or return</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Normal mode</td>
+<td>navigate and run commands</td>
+<td>Neovim starts here; <code>Escape</code> returns here</td>
+</tr>
+<tr class="even">
+<td>Insert mode</td>
+<td>enter text</td>
+<td><code>i</code> starts text input</td>
+</tr>
+<tr class="odd">
+<td>Replace mode</td>
+<td>overwrite existing text</td>
+<td><code>R</code> starts replacement</td>
+</tr>
+<tr class="even">
+<td>Visual mode</td>
+<td>select text</td>
+<td><code>v</code> starts a characterwise selection</td>
+</tr>
+<tr class="odd">
+<td>Select mode</td>
+<td>replace a selection with subsequent input</td>
+<td>normally entered by a mapping or plugin</td>
+</tr>
+<tr class="even">
+<td>Command-line mode</td>
+<td>enter Ex commands</td>
+<td><code>:</code> opens the command line</td>
+</tr>
+<tr class="odd">
+<td>Operator-pending mode</td>
+<td>wait for the target of a command</td>
+<td>for example after <code>d</code> or <code>c</code></td>
+</tr>
+<tr class="even">
+<td>Terminal-Normal mode</td>
+<td>navigate a terminal buffer with Neovim</td>
+<td><code>Ctrl+\</code>, then <code>Ctrl+n</code></td>
+</tr>
+</tbody>
+</table>
+<p>Access Link presents supported mode changes semantically. The mode
+commands themselves belong to Neovim.</p>
+</section>
+<section id="docs__en__manual__basicsmd__complete-a-first-safe-edit" class="level3">
+<h3>Complete a first safe edit</h3>
+<p>Start Neovim with an unimportant test file or without a filename:</p>
+<ol type="1">
+<li>Press <code>i</code>. Neovim enters Insert mode.</li>
+<li>Type a short line.</li>
+<li>Press <code>Escape</code>. Neovim returns to Normal mode.</li>
+<li>Navigate by character with <code>h</code> and <code>l</code>, or by
+line with <code>j</code> and <code>k</code>.</li>
+<li>Type <code>:w filename.txt</code> and press <code>Enter</code> to
+save a buffer that has no name.</li>
+<li>Type <code>:q</code> and press <code>Enter</code> to exit
+Neovim.</li>
+</ol>
+<p>For an existing file, <code>:w</code> saves under its current name.
+Neovim prevents <code>:q</code> when unsaved changes remain.</p>
+</section>
+<section id="docs__en__manual__basicsmd__key-combination-or-key-sequence" class="level3">
+<h3>Key combination or key sequence</h3>
+<p>A plus sign means keys held together. <code>NVDA+Alt+D</code> is an
+NVDA command; <code>Ctrl+w</code> is interpreted by Neovim or Windows
+Terminal according to context.</p>
+<p>Commas or a directly written Neovim sequence mean keys pressed one
+after another. <code>z=</code> opens Neovim spelling suggestions.
+<code>Space</code>, <code>l</code>, <code>s</code> requests LSP status
+in the example configuration.</p>
+<p>The NVDA key identifies the screen-reader layer. Without the NVDA
+key, input remains with Neovim or Windows Terminal. Access Link observes
+Neovim&#39;s semantic result and makes it accessible; it does not invent a
+second editor interface.</p>
+</section>
+<section id="docs__en__manual__basicsmd__continue-learning-neovim" class="level3">
+<h3>Continue learning Neovim</h3>
+<p>Type <code>:Tutor</code> and press <code>Enter</code> to start
+Neovim&#39;s interactive course. Use <code>:help nvim-intro</code> for
+Neovim&#39;s introduction. The <a href="https://neovim.io/doc/user/">official online help</a> contains the
+same basics and further chapters.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__communicationmd">
+<section id="docs__en__manual__communicationmd__connection-first-editing-session-and-session-switching" class="level2">
+<h2>Connection, first editing session, and session switching</h2>
+<p>Installation, activation, and connection are separate steps:</p>
+<ol type="1">
+<li>The component command installs the Neovim plugin and, for Linux, the
+bridge.</li>
+<li>Your assigned activation gesture enables the Access Link service and
+finds reachable sessions.</li>
+<li>F12 associates the focused Windows Terminal control with the
+currently focused Neovim session.</li>
+</ol>
+<p>An installed component is therefore not yet a running connection.</p>
+<section id="docs__en__manual__communicationmd__activation-and-f12" class="level3">
+<h3>Activation and F12</h3>
+<p>The activation gesture is an NVDA command and normally contains the
+NVDA key or another combination assigned in NVDA&#39;s Input Gestures
+dialog. NVDA runs it while Windows Terminal is focused.</p>
+<p>F12 belongs to the normal Windows Terminal and Neovim keyboard path.
+Access Link does not block it: Neovim receives the key and briefly marks
+the current session. Access Link then connects exactly that new match to
+the focused control. F12 does not turn the add-on on or off.</p>
+<p>Press F12 once and wait for confirmation. Several rapid presses start
+several separate selection attempts.</p>
+</section>
+<section id="docs__en__manual__communicationmd__complete-the-first-editing-session" class="level3">
+<h3>Complete the first editing session</h3>
+<p>After connection, Neovim supplies the current buffer, mode, cursor,
+and other semantic state. Begin in an unimportant buffer:</p>
+<ol type="1">
+<li>Press <code>i</code>, type text, and press <code>Escape</code>.</li>
+<li>Navigate in Normal mode with <code>h</code>, <code>j</code>,
+<code>k</code>, and <code>l</code>.</li>
+<li>Save with <code>:w</code> or <code>:w filename</code>.</li>
+<li>Test a selection with <code>v</code> and movement commands.</li>
+<li>Switch to another shell pane and back.</li>
+<li>Press the activation gesture again to disable Access Link.</li>
+</ol>
+<p><code>i</code>, <code>Escape</code>, <code>h</code>, <code>j</code>,
+<code>k</code>, <code>l</code>, <code>v</code>, and <code>:w</code> are
+Neovim commands. Neovim changes the mode, cursor, selection, or file.
+Access Link makes those changes accessible.</p>
+<p>Key combinations containing the NVDA key belong to the screen-reader
+layer. Examples are <code>NVDA+h</code> for speech exploration and
+<code>NVDA+Alt+D</code> for the diagnostic report. Access Link takes
+over these commands only in the documented exact connected Neovim
+context.</p>
+</section>
+<section id="docs__en__manual__communicationmd__switch-between-tabs-and-panes" class="level3">
+<h3>Switch between tabs and panes</h3>
+<p>A Windows Terminal pane is a separate terminal control. Access Link
+keeps a separate association for each control:</p>
+<ul>
+<li>A connected Neovim pane receives structured output.</li>
+<li>An unconnected Neovim pane keeps NVDA&#39;s native terminal output until
+you press F12 there.</li>
+<li>A shell pane remains entirely on NVDA&#39;s native terminal output.</li>
+<li>An embedded Neovim terminal buffer also uses native terminal output
+during direct input.</li>
+</ul>
+<p>After focus changes, Access Link restores an existing association
+only after a matching response from its Neovim session. Native terminal
+output remains active until that confirmation. State from the previously
+focused pane is therefore not presented in the new pane.</p>
+</section>
+<section id="docs__en__manual__communicationmd__connect-more-sessions" class="level3">
+<h3>Connect more sessions</h3>
+<p>Start Neovim in another window, tab, or pane and press F12 there.
+Existing connected controls remain active. Local and remote sessions can
+be mixed in the same Windows Terminal window.</p>
+<p>When several sessions have similar names, the manual connection
+dialog shows the connection name, working directory, and existing
+association. For more orientation, set a session name before starting
+Neovim:</p>
+<pre class="text"><code>NVIM_NVDA_SESSION_NAME=Documentation nvim</code></pre>
+<p>In PowerShell:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">NVIM_NVDA_SESSION_NAME</span> <span class="op">=</span> <span class="st">&quot;Documentation&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>nvim<span class="op">.</span><span class="fu">exe</span></span></code></pre></div>
+<p>The name is only an aid for selection and does not change Neovim&#39;s
+working directory.</p>
+</section>
+<section id="docs__en__manual__communicationmd__remember-or-manually-select-an-association" class="level3">
+<h3>Remember or manually select an association</h3>
+<p>After a new F12 association, Access Link asks whether to remember it
+for the Windows Terminal tab until NVDA or Windows Terminal exits. On a
+later tab switch, Access Link restores the matching running session
+after focus is confirmed.</p>
+<p>The following assignable commands are available under
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>:</p>
+<ul>
+<li><code>Choose a server and connect this terminal to a new Neovim session</code>;</li>
+<li><code>Disconnect the selected Neovim connection instance</code>;</li>
+<li><code>Forget the temporary Neovim connection for the focused terminal</code>.</li>
+</ul>
+<p>The first command opens the accessible selection dialog when F12 does
+not produce one exact match. Disconnect ends the selected Access Link
+connection, not Neovim or SSH. Forget removes only the remembered tab
+association for the current NVDA process.</p>
+</section>
+<section id="docs__en__manual__communicationmd__local-and-remote-connections" class="level3">
+<h3>Local and remote connections</h3>
+<p>Local Windows Neovim connects only through the local computer. Remote
+Neovim uses two independent SSH connections:</p>
+<ul>
+<li>The visible Windows Terminal session remains your ordinary shell and
+carries your keyboard input.</li>
+<li>Access Link opens a separate background SSH connection to the
+installed bridge and transfers only bounded accessibility data through
+it.</li>
+</ul>
+<p>The bridge opens no additional network service on Linux. Access Link
+stores no passwords. A password profile keeps the password in memory
+only for the current NVDA process.</p>
+</section>
+<section id="docs__en__manual__communicationmd__disconnection-and-error-behavior" class="level3">
+<h3>Disconnection and error behavior</h3>
+<p>Access Link suppresses native terminal output only for an active,
+authenticated, and focused Neovim association. When support is disabled,
+the transport ends, data is invalid, focus is uncertain, or the control
+is unknown, NVDA&#39;s native terminal output remains or becomes active.</p>
+<p>Suppression never applies to an entire Windows Terminal window. A
+failure in one session does not change any other pane association.</p>
+<p>See <a href="#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports">Troubleshooting</a>
+for symptoms and checks. See the <a href="#docs__en__manual__commandsmd__command-reference">Command
+reference</a> for the complete command list.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__speech-explorationmd">
+<section id="docs__en__manual__speech-explorationmd__speech-exploration-mode" class="level2">
+<h2>Speech exploration mode</h2>
+<p>Speech exploration mode reads characters, words, or lines without
+moving the real Neovim cursor. It is a speech feature of the add-on, not
+a Braille mode. A connected Braille display can optionally present the
+explored position as well.</p>
+<p>The mode is useful, for example, for briefly checking the next word
+or an adjacent line while typing. Releasing the NVDA key lets you
+continue immediately at the unchanged insertion point.</p>
+<section id="docs__en__manual__speech-explorationmd__operation" class="level3">
+<h3>Operation</h3>
+<p>These combinations use the NVDA key and therefore belong to
+screen-reader control. Neovim&#39;s <code>h</code>, <code>j</code>,
+<code>k</code>, and <code>l</code> without the NVDA key move the real
+editor cursor; Access Link presents their result accessibly but does not
+change the Neovim command.</p>
+<p>Keep the NVDA key held during speech exploration mode:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Virtual reading movement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>NVDA+h</code> / <code>NVDA+l</code></td>
+<td>previous / next character</td>
+</tr>
+<tr class="even">
+<td><code>Shift+NVDA+h</code> / <code>Shift+NVDA+l</code></td>
+<td>previous / next word</td>
+</tr>
+<tr class="odd">
+<td><code>NVDA+k</code> / <code>NVDA+j</code></td>
+<td>previous / next line</td>
+</tr>
+</tbody>
+</table>
+<p>The first movement starts at the real Neovim cursor. Further
+movements change only the virtual reading position. Text, selection,
+viewport, and real cursor remain unchanged.</p>
+<p>The commands apply in an exactly connected and focused Neovim pane in
+Normal, Insert, Replace, Visual, and Operator-pending modes, as well as
+on Neovim&#39;s command line, in Terminal-normal mode, and during direct
+Terminal input. The same key combinations retain their normal NVDA
+behavior in a shell, an unbound pane, another tab, or another
+application.</p>
+</section>
+<section id="docs__en__manual__speech-explorationmd__ending-speech-exploration-mode" class="level3">
+<h3>Ending speech exploration mode</h3>
+<p>Releasing the NVDA key ends speech exploration mode and returns
+output to the unchanged real cursor:</p>
+<ul>
+<li>After character speech exploration, the cursor character is
+spoken.</li>
+<li>After word or line speech exploration, the settings under
+<code>Neovim Access Link → Navigation → Speech exploration mode release</code>
+apply.</li>
+</ul>
+<p>Word output can additionally include the cursor character. Line
+output can add the current word, the cursor character, or both. These
+settings affect only the release announcement, not the virtual positions
+read during speech exploration mode.</p>
+<p>A short two-note cue marks a return to the original character, word,
+or line. It follows the configured sound output for line boundaries.</p>
+</section>
+<section id="docs__en__manual__speech-explorationmd__optional-braille-display-support" class="level3">
+<h3>Optional Braille display support</h3>
+<p>Speech exploration mode works without a Braille display. By default,
+however, a connected Braille display also presents the virtual reading
+position temporarily. It returns to the real cursor when the mode
+ends.</p>
+<p>To keep the Braille display at the real cursor during speech
+movements, disable “Braille display follows the speech exploration mode
+position” under
+<code>Neovim Access Link → Braille → Speech exploration mode</code>.</p>
+<p>Pressing one routing key at the temporarily displayed position adopts
+that position as the real Neovim cursor. Double- and triple-press
+routing editing actions are disabled during the read-only speech
+exploration mode.</p>
+<p>The independent <a href="#docs__en__manual__braillemd__braille-support">Braille exploration
+mode</a>, in contrast, belongs to Braille-display navigation. It is
+operated with the display&#39;s navigation controls, remains active after
+being selected, and owns a separate virtual line position. The two modes
+share no speech- or Braille-exploration state.</p>
+</section>
+<section id="docs__en__manual__speech-explorationmd__speech-exploration-mode-and-braille-exploration-mode" class="level3">
+<h3>Speech exploration mode and Braille exploration mode</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Speech exploration mode</th>
+<th>Braille exploration mode</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Primary output</td>
+<td>Speech</td>
+<td>Braille display</td>
+</tr>
+<tr class="even">
+<td>Operation</td>
+<td>NVDA key together with <code>h</code>, <code>j</code>,
+<code>k</code>, or <code>l</code></td>
+<td>Braille display navigation controls</td>
+</tr>
+<tr class="odd">
+<td>Duration</td>
+<td>Only while the NVDA key is held</td>
+<td>Independently in each connected Neovim session until toggled again
+or disconnected</td>
+</tr>
+<tr class="even">
+<td>Virtual movement</td>
+<td>Characters, words, and lines</td>
+<td>Lines and visible segments</td>
+</tr>
+<tr class="odd">
+<td>Real cursor</td>
+<td>Remains in place</td>
+<td>Remains in place for Up and Down; routing can adopt the
+position</td>
+</tr>
+<tr class="even">
+<td>Braille display required</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__braillemd">
+<section id="docs__en__manual__braillemd__braille-support" class="level2">
+<h2>Braille support</h2>
+<p>After connecting, Neovim Access Link presents the current Neovim line
+on the Braille display. Braille translation, the display driver, and
+cursor presentation remain controlled by NVDA.</p>
+<p>The features have been practically tested with a Papenmeier BRAILLEX
+EL 80c with 80 Braille cells. They use NVDA&#39;s standard display-driver
+and navigation commands. Other NVDA-supported displays are not
+practically confirmed with Access Link.</p>
+<p>The display contains only information relevant to working in Neovim.
+Windows Terminal labels such as “Windows PowerShell”, status lines, and
+content from other terminal areas are not placed before the editor
+text.</p>
+<section id="docs__en__manual__braillemd__what-appears-on-the-braille-display" class="level3">
+<h3>What appears on the Braille display</h3>
+<p>In the editor, the Braille display presents:</p>
+<ul>
+<li>the text of the current line,</li>
+<li>the cursor position,</li>
+<li>a Visual selection on the current line,</li>
+<li>tabs expanded into blank cells according to Neovim&#39;s
+<code>tabstop</code> value,</li>
+<li>indentation,</li>
+<li>transient messages such as a spelling suggestion.</li>
+</ul>
+<p>In supported file managers, the current entry&#39;s name, type, and state
+replace the decorated plugin line. See <a href="#docs__en__manual__terminals-and-file-managersmd__embedded-terminal-and-file-managers">Embedded
+terminals and file managers</a> for details.</p>
+<p>For the normal editor display, set NVDA&#39;s Braille mode to “follow
+cursors”. With “display speech output”, the display presents spoken
+output as NVDA defines it instead of remaining on the editor line.</p>
+<p>When the Neovim cursor moves outside the currently visible window,
+NVDA pans the Braille display automatically. This also applies while
+typing a long line in Insert mode and while moving the cursor on
+Neovim&#39;s command line. A window selected with Left or Right remains in
+place while the cursor is still visible within it.</p>
+</section>
+<section id="docs__en__manual__braillemd__braille-settings-supplied-by-the-add-on" class="level3">
+<h3>Braille settings supplied by the add-on</h3>
+<p>Neovim Access Link has its own <code>Braille</code> tab in the
+Settings dialog. It contains only behavior added by this add-on:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Braille display follows the speech exploration mode position</td>
+<td>On</td>
+<td>Temporarily presents the virtual speech position in Braille as
+well.</td>
+</tr>
+<tr class="even">
+<td>Double routing press on a word</td>
+<td>Route only</td>
+<td>Can optionally run <code>cw</code> or <code>dw</code>.</td>
+</tr>
+<tr class="odd">
+<td>Triple routing press on a line</td>
+<td>Route only</td>
+<td>Can optionally run <code>c$</code> or <code>d$</code>.</td>
+</tr>
+<tr class="even">
+<td>Start triple-press line action at</td>
+<td>Routed position</td>
+<td>Starts at the routing key, indentation, or absolute line
+beginning.</td>
+</tr>
+<tr class="odd">
+<td>Start spelling suggestions at Braille cell</td>
+<td>1</td>
+<td>Moves only the transient spelling suggestion.</td>
+</tr>
+<tr class="even">
+<td>Start temporary developer information at Braille cell</td>
+<td>1</td>
+<td>Positions held function parameters and diagnostics.</td>
+</tr>
+</tbody>
+</table>
+<p>Translation table, driver, cursor shape, selection indication, and
+speaking the character reached by routing remain normal NVDA settings.
+See <a href="#docs__en__manual__settingsmd__settings-reference">Add-on
+settings</a> for every choice and its effect.</p>
+</section>
+<section id="docs__en__manual__braillemd__moving-the-cursor-with-routing-keys" class="level3">
+<h3>Moving the cursor with routing keys</h3>
+<p>A routing key above a character moves the Neovim cursor to that
+character. This works in Normal, Insert, and command-line modes.</p>
+<p>When NVDA&#39;s “Speak character when routing cursor in text” option is
+enabled under <code>Preferences → Settings → Braille</code>, NVDA
+announces the reached character.</p>
+<p>The position after the final character depends on the Neovim
+mode:</p>
+<ul>
+<li><strong>Insert mode:</strong> An additional blank Braille cell
+follows the last character. Its routing key places the insertion point
+at the end of the line.</li>
+<li><strong>Command-line mode:</strong> An additional blank cell also
+follows the entered command, allowing the cursor to move after its final
+character.</li>
+<li><strong>Normal mode:</strong> The cursor rests on an existing
+character, so there is no additional routing position after the final
+character.</li>
+<li><strong>Empty line:</strong> A completely empty line contains one
+cursor cell.</li>
+</ul>
+<p>The additional cell in Insert and command-line modes does not insert
+a space. It represents only the position after the end of the text.</p>
+<p>Routing over tabs, accented characters, wide characters, and emoji is
+mapped to the corresponding text position. If displayed information does
+not represent a text position, its routing key has no effect.</p>
+</section>
+<section id="docs__en__manual__braillemd__why-the-cursor-moves-left-when-leaving-insert-mode" class="level3">
+<h3>Why the cursor moves left when leaving Insert mode</h3>
+<p>When switching from Insert to Normal mode, the cursor often appears
+to move one character to the left. This is normal Neovim behavior, not a
+Neovim Access Link defect.</p>
+<p>In Insert mode, the cursor represents an insertion point between
+characters. That position may be immediately after the final
+character:</p>
+<pre class="text"><code>Insert mode: hello|</code></pre>
+<p>In Normal mode, the cursor instead identifies the character on which
+the next command operates:</p>
+<pre class="text"><code>Normal mode:  hell[o]</code></pre>
+<p>Pressing <code>Escape</code> does not change the text. Neovim places
+the Normal-mode cursor on the character to the left of the former
+insertion point. Commands such as <code>x</code> and <code>r</code> can
+then act on the character under the cursor, while <code>i</code> inserts
+before it and <code>a</code> inserts after it.</p>
+<p>The same rule applies in the middle of a line:</p>
+<pre class="text"><code>Insert mode: hel|lo
+Normal mode:  he[l]lo</code></pre>
+<p>Neovim Access Link presents Neovim&#39;s actual position in both modes.
+<code>gi</code> resumes Insert mode at the insertion position that was
+last left.</p>
+<p>See Neovim&#39;s official help for <a href="https://neovim.io/doc/user/insert/">Insert mode</a> and <a href="https://neovim.io/doc/user/motion/">cursor motions</a> for more
+information.</p>
+</section>
+<section id="docs__en__manual__braillemd__editing-words-and-line-ranges-with-routing-keys" class="level3">
+<h3>Editing words and line ranges with routing keys</h3>
+<p>A routing key can optionally trigger a Neovim change or delete
+command when the same key is pressed quickly two or three times. These
+editing actions are disabled by default. A single press therefore always
+moves only the cursor.</p>
+<p>Configure the actions under
+<code>NVDA menu → Preferences → Settings → Neovim Access Link → Braille</code>:</p>
+<ul>
+<li><strong>Double press on a word:</strong> Route only, change word
+(<code>cw</code>), or delete word (<code>dw</code>).</li>
+<li><strong>Triple press on a line:</strong> Route only, change to end
+of line (<code>c$</code>), or delete to end of line
+(<code>d$</code>).</li>
+<li><strong>Start of the line action:</strong> The routed position, the
+first non-blank character, or the absolute beginning of the line.</li>
+</ul>
+<p>“Change word” removes the word and remains in Insert mode so
+replacement text can be entered immediately. “Delete word” uses Neovim&#39;s
+normal <code>dw</code> behavior, which usually also removes the
+following space. Line actions include the character at their starting
+position and continue to the end of the line. Starting at the first
+non-blank character preserves indentation; starting at the beginning
+includes indentation in the action.</p>
+<p>The first press moves the cursor immediately. If a triple-press
+action is enabled, a configured double-press word action waits briefly
+so a third press can still be recognized. The delay is NVDA&#39;s
+<code>Preferences → Settings → Keyboard → Multiple key press timeout</code>.</p>
+<p>Every press must use the same routing key at the same text position.
+A different position, text change, mode change, or expired timeout
+begins a new single cursor movement. Editing actions are available only
+in Normal and Insert modes. On Neovim&#39;s command line and in the
+direct-input mode of an embedded terminal, routing retains its normal
+cursor-positioning behavior.</p>
+</section>
+<section id="docs__en__manual__braillemd__navigating-with-the-displays-navigation-controls" class="level3">
+<h3>Navigating with the display&#39;s navigation controls</h3>
+<p>Neovim Access Link uses the standard navigation commands of the
+Braille display driver selected in NVDA. Their names and physical
+location vary by display. On a Papenmeier BRAILLEX, for example, press
+the navigation bar left, right, up, or down.</p>
+<p>Left and right pan the visible window within a long line. An 80-cell
+display can therefore show successive parts of the line without moving
+the Neovim cursor. Two separate navigation modes control what up and
+down do.</p>
+<p>In accordance with NVDA&#39;s standard Braille behavior, attempting to
+pan again before the start or after the end of a line also moves to the
+previous or next line. Panning left beyond the line start displays the
+end of the previous line. Panning right beyond the line end displays the
+start of the next line. Returning to a long line this way therefore
+starts at its beginning instead of restoring a previously panned
+viewport. Up and down, by contrast, retain the previous column where
+possible.</p>
+<section id="docs__en__manual__braillemd__braille-cursor-mode-move-the-cursor-while-reading" class="level4">
+<h4>Braille cursor mode: move the cursor while reading</h4>
+<p>Braille cursor mode is active after connecting:</p>
+<ul>
+<li>Up and down move the Neovim cursor to the previous or next
+line.</li>
+<li>Neovim Access Link tries to retain the same visual column.</li>
+<li>On a shorter intermediate line the cursor uses the reachable line
+end; on a later longer line it returns to the original column.</li>
+<li>At the start or end of the buffer, the cursor remains on the
+existing line.</li>
+</ul>
+<p>This mode is useful for editing: after pressing Up or Down, the real
+Neovim cursor is already on the line being read. You can immediately
+insert text or use a Normal-mode command there.</p>
+</section>
+<section id="docs__en__manual__braillemd__braille-exploration-mode-read-lines-while-leaving-the-cursor-in-place" class="level4">
+<h4>Braille exploration mode: read lines while leaving the cursor in
+place</h4>
+<p>Braille exploration mode lets you read other lines without moving the
+Neovim cursor:</p>
+<ul>
+<li>Up and down display the previous or next buffer line.</li>
+<li>The same visual column is retained where possible.</li>
+<li>A routing key moves the real Neovim cursor to the selected position
+on the currently displayed line. Braille exploration mode remains
+enabled.</li>
+<li>Real-cursor movements and mode changes do not alter the virtual
+Braille position. Text input and edits on another line also leave the
+explored line and reading column in place.</li>
+<li>When the real cursor is on the currently explored line, changes to
+that line are instead refreshed immediately on the Braille display. This
+includes routing followed by <code>r</code>, insertion, or deletion.
+Only the current viewport changes visibly when the edit affects it. The
+real cursor and changes outside that viewport do not pull the Braille
+output toward them. The virtual line position and selected viewport
+remain in place.</li>
+<li>Routing never uses an older buffer state that is no longer proven
+current. If the buffer changes while the real cursor is on another line,
+the explored display stays in place for uninterrupted reading, but its
+routing keys are temporarily not executed. Use the display navigation
+controls to show another line and then return to the wanted line. It
+then comes from the current buffer state and can be routed again.</li>
+<li>Only the display&#39;s navigation controls move the virtual reading
+position.</li>
+<li>The virtual reading position is not rendered as a Braille cursor.
+The real Neovim cursor appears only when it is actually on the explored
+line and that line&#39;s displayed text still matches. There is therefore
+never a second, apparent cursor.</li>
+<li>A buffer, Neovim window, or Neovim tab change within the same
+session discards the previous virtual position. Switching to another
+Windows Terminal session or another application instead retains the
+virtual line, reading column, and horizontal viewport in the associated
+Neovim session. Returning restores that exact view; the other session
+owns a separate one. The configured focus announcement remains audible
+but creates no transient Braille message that covers that viewport until
+the message timeout. Only disconnect resets the affected session to
+Braille cursor mode.</li>
+</ul>
+<p>No key combination is assigned to the toggle by default. Under
+<code>NVDA menu → Preferences → Input gestures</code>, in the
+<code>Neovim Access Link</code> category, assign a gesture to “Toggle
+Braille navigation between Braille cursor mode and Braille exploration
+mode”. NVDA announces “Braille exploration mode” or “Braille cursor
+mode” when switching.</p>
+<p>For example, use this mode to read several lines above and below the
+current insertion point without having to find that point again before
+continuing to type. To make an explored location the editing location,
+press its routing key once.</p>
+<p>Both Braille navigation modes are available in structured editor
+modes. They are unavailable while Neovim&#39;s command line is active or
+while an embedded terminal is in direct-input mode. Disconnecting resets
+only the affected session to Braille cursor mode. Switching to another
+Windows Terminal tab or pane never carries the previously focused
+session&#39;s mode or viewport with it.</p>
+</section>
+<section id="docs__en__manual__braillemd__speech-exploration-mode-a-speech-feature-with-optional-braille-presentation" class="level4">
+<h4>Speech exploration mode: a speech feature with optional Braille
+presentation</h4>
+<p><a href="#docs__en__manual__speech-explorationmd__speech-exploration-mode">Speech
+exploration mode</a> is not a Braille mode. While the NVDA key is held,
+it reads characters, words, or lines without moving the real Neovim
+cursor. It works fully without a Braille display.</p>
+<p>A Braille display can optionally support this speech feature. By
+default it also presents the virtual speech position temporarily, then
+returns to the real cursor when the NVDA key is released. Disable
+“Braille display follows the speech exploration mode position” under
+<code>NVDA menu → Preferences → Settings → Neovim Access Link → Braille → Speech exploration mode</code>
+if this is not wanted.</p>
+<p>Braille exploration mode is independent. It is operated with the
+display&#39;s navigation controls, remains active after being selected, and
+owns a separate virtual line position. In either mode, one routing key
+can adopt the displayed text position as the real cursor. Double- and
+triple-press routing editing actions are disabled during the read-only
+speech exploration mode.</p>
+</section>
+<section id="docs__en__manual__braillemd__which-navigation-should-i-use" class="level4">
+<h4>Which navigation should I use?</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Goal</th>
+<th>Suitable function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Move the real cursor while reading with Up and Down</td>
+<td>Braille cursor mode</td>
+</tr>
+<tr class="even">
+<td>Read several lines on the Braille display without moving the
+cursor</td>
+<td>Braille exploration mode</td>
+</tr>
+<tr class="odd">
+<td>Briefly inspect a character, word, or line with speech and return
+automatically</td>
+<td>Speech exploration mode while holding NVDA</td>
+</tr>
+<tr class="even">
+<td>Continue working at an explored location</td>
+<td>Press its routing key once</td>
+</tr>
+</tbody>
+</table>
+<p>Braille exploration mode and speech exploration mode have separate
+virtual positions. Toggling Braille navigation does not change speech
+exploration mode. While Braille exploration mode is active, its line
+position takes priority over the optional Braille presentation of speech
+exploration mode.</p>
+</section>
+</section>
+<section id="docs__en__manual__braillemd__visual-selections" class="level3">
+<h3>Visual selections</h3>
+<p>For a Visual selection, NVDA marks the selected part of the current
+line in Braille. For a multi-line selection, the marking changes with
+the displayed line. NVDA uses dots 7 and 8 for this marking. NVDA&#39;s
+Braille settings control whether selections are shown and which shape
+the Braille cursor uses.</p>
+</section>
+<section id="docs__en__manual__braillemd__spelling-suggestions" class="level3">
+<h3>Spelling suggestions</h3>
+<p>Use Neovim&#39;s built-in spelling suggestions as follows:</p>
+<ol type="1">
+<li>Place the cursor on a misspelled word and press
+<code>z=</code>.</li>
+<li>Hold the NVDA key.</li>
+<li>Move through the suggestions with <code>j</code> and
+<code>k</code>.</li>
+<li>Press <code>NVDA+Enter</code> to accept the selected
+suggestion.</li>
+</ol>
+<p>Speech and Braille present only the suggestion without its number.
+Releasing the NVDA key restores the editor line on the Braille display.
+Neovim&#39;s suggestion list remains open and can be closed with
+<code>Escape</code>.</p>
+<p>Under
+<code>NVDA menu → Preferences → Settings → Neovim Access Link → Braille</code>,
+choose the Braille cell at which the suggestion should begin. Counting
+starts at 1. If the selected position or the suggestion does not fit on
+the display, its placement is adjusted automatically. This setting does
+not shift the normal editor line.</p>
+<p>The offset is particularly useful ergonomically when Caps Lock is
+configured as the NVDA key and the left hand remains on it while
+selecting a suggestion. The hand and left arm can obscure the left part
+of the Braille display while the right hand reads the suggestions.
+Starting the suggestion farther to the right keeps it accessible to the
+right hand and makes it considerably more comfortable to read.</p>
+</section>
+<section id="docs__en__manual__braillemd__embedded-terminals" class="level3">
+<h3>Embedded terminals</h3>
+<p>In the direct-input mode of a buffer opened with
+<code>:terminal</code>, NVDA uses its normal Windows Terminal
+presentation. After switching to Terminal-Normal mode, Neovim Access
+Link presents the structured Neovim line again.</p>
+</section>
+<section id="docs__en__manual__braillemd__if-the-display-is-incorrect" class="level3">
+<h3>If the display is incorrect</h3>
+<p>If “Windows PowerShell” remains visible instead of the editor line
+after connecting, no cursor cell is present, or a routing key at a text
+position does not respond:</p>
+<ol type="1">
+<li>Confirm that the correct Windows Terminal tab or pane has
+focus.</li>
+<li>Confirm that the Neovim session was connected with F12.</li>
+<li>Set NVDA&#39;s Braille mode to “follow cursors”.</li>
+<li>Copy a redacted diagnostic report immediately after the
+problem.</li>
+</ol>
+<p>See <a href="#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports">Troubleshooting
+and diagnostic report</a> for further steps.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__menus-and-completionmd">
+<section id="docs__en__manual__menus-and-completionmd__search-replacement-completion-and-diagnostics" class="level2">
+<h2>Search, replacement, completion, and diagnostics</h2>
+<p>Access Link presents Neovim&#39;s search, replacement, and structured
+development information in speech and Braille. Keys without the NVDA key
+remain Neovim or plugin commands. Combinations containing the NVDA key
+open only the documented Access Link views.</p>
+<section id="docs__en__manual__menus-and-completionmd__search-and-replace" class="level3">
+<h3>Search and replace</h3>
+<p>Neovim still executes search and replacement itself. Access Link adds
+accessible feedback:</p>
+<ul>
+<li>With <code>incsearch</code> enabled, <code>/pattern</code> or
+<code>?pattern</code> reports the preview match displayed by Neovim
+while the pattern is being typed. The report includes match position and
+count. It also says when Neovim bounded the count or continued at the
+opposite end of the buffer. After <code>Enter</code>, <code>n</code> and
+<code>N</code> retain their normal Neovim behavior.</li>
+<li>With <code>inccommand</code> enabled, a typed
+<code>:substitute</code> reports Neovim&#39;s previewed line and the number
+of affected lines through speech and Braille. This works with both
+<code>inccommand=nosplit</code> and <code>inccommand=split</code>. Large
+buffers mark the count as incomplete. Neovim provides this live preview
+only for a direct replacement command in the current buffer, not for
+<code>:bufdo</code>, <code>:argdo</code>, or result-list loops.</li>
+<li>After an accepted search, Access Link reports active search
+highlighting. <code>:nohlsearch</code> or <code>:set nohlsearch</code>
+reports that it has been cleared.</li>
+<li>A confirmed replacement such as <code>:%s/old/new/gc</code> includes
+the affected line and position in every native <code>y/n/a/q/l</code>
+question. Only Neovim processes the answer.</li>
+<li>After a replacement, Access Link uses Neovim&#39;s own result message.
+When Neovim&#39;s <code>report</code> setting provides no count, the report
+instead includes the observed number of changed lines. This is not a
+separately calculated count of individual substitutions.</li>
+<li><code>:vimgrep</code> and <code>:grep</code>, including their
+<code>add</code> variants, report the size of their Quickfix list;
+<code>:lvimgrep</code> and <code>:lgrep</code> do the same for the
+location list. Navigation in an open result window includes the current
+result position.</li>
+<li>Replacements through <code>:cdo</code>, <code>:cfdo</code>,
+<code>:ldo</code>, <code>:lfdo</code>, <code>:argdo</code>, or
+<code>:bufdo</code> receive one aggregate completion report. It names
+observed changed and unsaved buffers instead of every intermediate edit.
+Buffers visited internally by Neovim are not presented as focus changes.
+Neovim still decides which Quickfix files, arguments, or listed buffers
+each command visits.</li>
+</ul>
+<p>This support applies to native Neovim commands. A plugin-specific
+search UI needs public structured state or a dedicated adapter.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__completion-menus" class="level3">
+<h3>Completion menus</h3>
+<p>Supported sources are:</p>
+<ul>
+<li>Neovim&#39;s built-in popup menu with <code>complete()</code>,
+<code>completefunc</code>, <code>omnifunc</code>, and LSP
+completion;</li>
+<li><code>nvim-cmp</code> through its public selection API;</li>
+<li><code>blink.cmp</code> through public APIs.</li>
+</ul>
+<p>The exact automated coverage by plugin and Neovim version is listed
+in the <a href="developer-documentation.html#docs__en__development__compatibilitymd__compatibility">compatibility
+overview</a>.</p>
+<p>Freely drawn floating windows and ghost text without a visible
+selection menu are not automatically accessible menus.</p>
+<section id="docs__en__manual__menus-and-completionmd__operate-a-menu" class="level4">
+<h4>Operate a menu</h4>
+<p>Neovim or the completion plugin processes the menu keys. For Neovim&#39;s
+standard completion, common keys are:</p>
+<ul>
+<li><code>Ctrl+n</code>: next item;</li>
+<li><code>Ctrl+p</code>: previous item;</li>
+<li><code>Ctrl+y</code>: accept the selection;</li>
+<li><code>Escape</code>: close the menu or leave Insert mode.</li>
+</ul>
+<p>Access Link does not replace these keys. It presents the item
+selected by Neovim, its position, type, source, signature, and short
+description when the completion system supplies those fields. Speech and
+Braille use the same selection.</p>
+<p>After the last item, Neovim&#39;s built-in menu has a state with no
+selected suggestion. The originally typed text remains;
+<code>Ctrl+n</code> then selects the first item again. Access Link
+reports this state explicitly.</p>
+<p>NVDA&#39;s setting for automatic suggestion sounds controls the menu
+opening and closing sounds.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__read-detailed-documentation" class="level4">
+<h4>Read detailed documentation</h4>
+<p>Under
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>,
+assign a gesture to
+<code>Read documentation for the selected Neovim completion item or LSP hover</code>.</p>
+<p>The command reads longer documentation while the selected item or
+current LSP hover provides content. A missing description is not
+automatically an Access Link error: not every completion system exposes
+documentation through its public interface.</p>
+</section>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__check-lsp-status" class="level3">
+<h3>Check LSP status</h3>
+<p>Enter this Neovim command:</p>
+<pre class="vim"><code>:NvimNvdaLspStatus</code></pre>
+<p>It names the LSP clients attached to the current buffer or reports
+that no client is attached. It is a Neovim command and does not contain
+the NVDA key.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__rename-symbols-with-lsp" class="level3">
+<h3>Rename symbols with LSP</h3>
+<p>Use Neovim&#39;s existing LSP rename command or your own mapping; Neovim
+0.12 maps <code>grn</code> by default. The attached language server must
+support <code>textDocument/rename</code>.</p>
+<p>Access Link replaces neither the rename prompt nor the LSP handler.
+It observes Neovim&#39;s public <code>LspRequest</code> events and the
+buffers which actually changed. After completion it reports the observed
+number of changed and unsaved buffers without presenting internal text,
+cursor, or focus changes individually. It does not claim success when no
+edit was observed.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__function-parameters-while-typing" class="level3">
+<h3>Function parameters while typing</h3>
+<p>When an LSP server supplies signature help, Access Link speaks the
+active parameter in Insert mode on entering a function call and on
+changing the argument. Movement within the same argument remains silent.
+For nested calls, the innermost call applies.</p>
+<p>Automatic output is speech only. Disable it under
+<code>General &gt; Automatically speak the active function parameter while typing</code>
+when you do not need this feedback.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__inspect-signatures-and-parameters-on-demand" class="level3">
+<h3>Inspect signatures and parameters on demand</h3>
+<p>Place the cursor on a function name or its associated opening or
+closing parenthesis:</p>
+<ol type="1">
+<li>Press <code>NVDA+Space</code>.</li>
+<li>Release only Space and continue holding the NVDA key.</li>
+<li>Use <code>NVDA+h</code> and <code>NVDA+l</code> for parameters.</li>
+<li>Use <code>NVDA+k</code> and <code>NVDA+j</code> for multiple
+signatures.</li>
+<li>Use Braille navigation controls to read long content.</li>
+<li>Release the NVDA key to return to the editor line.</li>
+</ol>
+<p>The first parameter movement after opening or changing a signature
+shows parameter 1. The real Neovim cursor does not move. Speech uses
+complete labels; Braille shortens only structural prefixes, such as
+<code>S 1 of 2</code>, <code>P 1 of 3</code>, and <code>D:</code>.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__read-diagnostics" class="level3">
+<h3>Read diagnostics</h3>
+<p>Access Link consumes diagnostics from Neovim&#39;s public
+<code>vim.diagnostic</code> API. LSP, <code>nvim-lint</code>, ALE,
+<code>none-ls.nvim</code>, or another provider can supply the data.
+Access Link does not install or start linters itself.</p>
+<p>On a diagnostic jump, Access Link presents source, severity, optional
+code, message, and position. Background updates and typing remain
+silent. Errors and warnings can play a configured sound during
+deliberate navigation; information and hints remain silent.</p>
+<section id="docs__en__manual__menus-and-completionmd__explore-diagnostics-without-moving-the-cursor" class="level4">
+<h4>Explore diagnostics without moving the cursor</h4>
+<ol type="1">
+<li>Press <code>NVDA+Shift+Space</code>.</li>
+<li>Release only Space and continue holding the NVDA key.</li>
+<li>Use <code>NVDA+k</code> and <code>NVDA+j</code> to move through
+diagnostics under the cursor and on the current line.</li>
+<li>Release the NVDA key to return to the editor line.</li>
+</ol>
+<p>With no result, Access Link reports <code>no diagnostic</code> and
+plays the configured neutral confirmation sound. The real Neovim cursor
+remains in place.</p>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__neovim-diagnostic-commands" class="level4">
+<h4>Neovim diagnostic commands</h4>
+<p>The following commands are available for custom Neovim mappings:</p>
+<ul>
+<li><code>:NvimNvdaDiagnosticPrevious</code>;</li>
+<li><code>:NvimNvdaDiagnosticNext</code>;</li>
+<li><code>:NvimNvdaDiagnosticFirst</code>;</li>
+<li><code>:NvimNvdaDiagnosticLast</code>;</li>
+<li><code>:NvimNvdaDiagnosticCurrent</code>.</li>
+</ul>
+<p>These commands do not change existing mappings. Several diagnostics
+at one position remain individually reachable; navigation wraps from the
+last item to the first and vice versa.</p>
+</section>
+</section>
+<section id="docs__en__manual__menus-and-completionmd__if-a-menu-or-lsp-remains-silent" class="level3">
+<h3>If a menu or LSP remains silent</h3>
+<ol type="1">
+<li>Check the Access Link connection.</li>
+<li>Use <code>:NvimNvdaLspStatus</code> to check whether the current
+buffer has an LSP client.</li>
+<li>Test Neovim&#39;s built-in completion menu to isolate a
+completion-plugin problem.</li>
+<li>Check whether the menu actually has a selected item.</li>
+<li>Copy the diagnostic report while the affected menu is open.</li>
+</ol>
+<p>See <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Set
+up LSP, completion, and linters</a> for server and linter setup.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__terminals-and-file-managersmd">
+<section id="docs__en__manual__terminals-and-file-managersmd__embedded-terminal-and-file-managers" class="level2">
+<h2>Embedded terminal and file managers</h2>
+<section id="docs__en__manual__terminals-and-file-managersmd__use-an-embedded-terminal" class="level3">
+<h3>Use an embedded terminal</h3>
+<p><code>:terminal</code> opens a Neovim terminal buffer. During direct
+input, Access Link releases NVDA&#39;s native Windows Terminal output.
+Shells and TUI applications running inside them therefore remain usable
+through NVDA&#39;s normal terminal support. The Access Link session and its
+association remain active.</p>
+<p>Starting direct terminal input uses the Insert-mode sound. Leave
+direct input with <code>Ctrl+\</code>, then <code>Ctrl+n</code>. Neovim
+enters Terminal-Normal mode, Access Link resumes structured navigation,
+and the Normal-mode sound plays.</p>
+<p>If that sequence is difficult on your keyboard layout, assign an NVDA
+gesture to <code>Leave direct input in the active Neovim terminal</code>
+under
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>.
+This NVDA command works only in the connected and focused terminal
+buffer.</p>
+<p><code>i</code> without the NVDA key is then a Neovim command again
+and starts direct terminal input. Access Link ends neither the shell nor
+the terminal buffer.</p>
+<p>A running terminal job prevents ordinary <code>:bd</code>; Neovim
+reports <code>E89</code>. <code>:bd!</code> explicitly ends the job.
+Open a terminal with <code>:new | terminal</code> when the previous
+editor buffer needs to remain visible.</p>
+</section>
+<section id="docs__en__manual__terminals-and-file-managersmd__neovim-command-line-and-messages" class="level3">
+<h3>Neovim command line and messages</h3>
+<p><code>:</code> opens Neovim&#39;s command line. Access Link presents
+Command-line mode, input, errors, and the structured result message.
+After execution, the setting under
+<code>General &gt; Session focus</code> applies:</p>
+<ul>
+<li><code>No announcement</code> leaves only the message.</li>
+<li><code>Current line</code> adds the cursor line.</li>
+<li><code>Current context, mode and connection name</code> adds the
+destination context.</li>
+</ul>
+<p>When a command produces only a message and returns to the same mode,
+Access Link still plays the matching return sound. A later asynchronous
+message is not attributed to that command.</p>
+</section>
+<section id="docs__en__manual__terminals-and-file-managersmd__file-managers-and-test-status" class="level3">
+<h3>File managers and test status</h3>
+<p>Access Link does not perform file operations itself. The file manager
+opens, creates, renames, copies, moves, or deletes files. Access Link
+makes the selected entry, type, state, and confirmation prompt
+accessible.</p>
+<table>
+<thead>
+<tr class="header">
+<th>File manager</th>
+<th>Access Link status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Oil</td>
+<td>practically confirmed on Windows with NVDA and Neovim 0.12</td>
+</tr>
+<tr class="even">
+<td>netrw</td>
+<td>adapter automatically tested with Neovim 0.10.1 and 0.12.3</td>
+</tr>
+<tr class="odd">
+<td>nvim-tree</td>
+<td>adapter automatically tested against its public plugin API</td>
+</tr>
+<tr class="even">
+<td>Neo-tree</td>
+<td>adapter automatically tested against its public plugin API</td>
+</tr>
+<tr class="odd">
+<td>mini.files</td>
+<td>adapter automatically tested against its public plugin API</td>
+</tr>
+</tbody>
+</table>
+<p>Oil is therefore the only file manager with practical confirmation
+from the current Windows/NVDA testing. The other adapters remain
+available, but their complete workflows are not practically
+confirmed.</p>
+</section>
+<section id="docs__en__manual__terminals-and-file-managersmd__navigate-entries" class="level3">
+<h3>Navigate entries</h3>
+<p>For a recognized file-manager entry, Access Link presents the full
+name and semantic type. Types include file, directory, symbolic link,
+socket, pipe, and device file. Available state such as selection or
+expanded tree node is also presented in speech and Braille.</p>
+<p>Names with spaces, Unicode, and punctuation remain complete. In a
+file manager, the persistent Braille line shows name, type, and state
+instead of decorative icons and extra columns. Routing within the real
+name moves the Neovim cursor; synthetic type and state text has no
+routing position.</p>
+<p>When a file opens, <code>General &gt; Session focus</code> applies.
+Access Link does not repeat the following automatic cursor event as one
+character.</p>
+</section>
+<section id="docs__en__manual__terminals-and-file-managersmd__use-oil" class="level3">
+<h3>Use Oil</h3>
+<p>The <a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Optional
+example configuration with Lazy and Oil</a> provides a directly usable
+setup.</p>
+<p>Oil represents a directory as an editable buffer. A name first
+changes only in that buffer. Example rename workflow:</p>
+<ol type="1">
+<li>Navigate to the entry.</li>
+<li>Press <code>0</code>, then <code>c$</code>.</li>
+<li>Type the new name and press <code>Escape</code>.</li>
+<li>Check the new draft name through speech or Braille.</li>
+<li>Save with <code>:w</code>.</li>
+<li>Confirm or reject Oil&#39;s prompt.</li>
+</ol>
+<p>Access Link shows the edited name before <code>:w</code>, but reports
+an executed file operation only after Oil supplies its result.</p>
+<p>Set <code>skip_confirm_for_simple_edits = false</code> in Oil. Oil
+then prompts before simple renames and duplicates as well. Deletions and
+complex actions have a confirmation independently of this setting.</p>
+<p>For an Oil confirmation, Access Link presents the action, count, and
+Y/N, but not complete paths. <code>y</code> and <code>n</code> without
+the NVDA key are input to Oil. Access Link never answers the prompt
+automatically. After <code>y</code>, Oil&#39;s result reports success or
+failure; <code>n</code> is presented as cancellation.</p>
+</section>
+<section id="docs__en__manual__terminals-and-file-managersmd__prompts-in-other-file-managers" class="level3">
+<h3>Prompts in other file managers</h3>
+<p>For structured selection and input prompts, use
+<code>select_prompts = true</code> in nvim-tree and
+<code>use_popups_for_input = false</code> in Neo-tree. These options
+route prompts through Neovim&#39;s central selection or input API. Access
+Link does not change plugin options.</p>
+<p>mini.files uses an accessible yes/no/cancel prompt for grouped
+changes. When a file manager supplies no semantic result, its own
+message remains authoritative; Access Link does not announce invented
+success.</p>
+<p>Other file managers retain normal Neovim navigation. Semantic file
+type, selection, and tree state are not promised without a dedicated
+adapter.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__ssh-and-tmuxmd">
+<section id="docs__en__manual__ssh-and-tmuxmd__use-ssh-and-tmux" class="level2">
+<h2>Use SSH and tmux</h2>
+<p>The remote Access Link path connects Windows Terminal to Neovim on a
+Linux target. The practically confirmed target is Rocky Linux 10.2 with
+Python 3 and OpenSSH.</p>
+<section id="docs__en__manual__ssh-and-tmuxmd__prerequisites" class="level3">
+<h3>Prerequisites</h3>
+<p>First test a normal login in Windows Terminal:</p>
+<pre class="text"><code>ssh user@example.invalid</code></pre>
+<p>Confirm host keys and configure keys, <code>ssh-agent</code>, OpenSSH
+configuration, or permitted password login before enabling Access Link.
+The add-on changes neither Windows OpenSSH configuration nor
+<code>sshd_config</code> on the Linux target.</p>
+</section>
+<section id="docs__en__manual__ssh-and-tmuxmd__configure-a-linux-connection" class="level3">
+<h3>Configure a Linux connection</h3>
+<ol type="1">
+<li>Open
+<code>NVDA menu &gt; Preferences &gt; Settings... &gt; Neovim Access Link</code>.</li>
+<li>Open <code>Connections</code> and select
+<code>Add connection...</code>.</li>
+<li>Enter the SSH target, account, port, and sign-in method.</li>
+<li>Confirm the settings dialog.</li>
+<li>Close running Neovim instances on that target.</li>
+<li>Open
+<code>NVDA menu &gt; Neovim Access Link &gt; Install or update components...</code>.</li>
+<li>Select the saved connection and check the result.</li>
+</ol>
+<p>Installation places the plugin and bridge in the Linux account&#39;s home
+directory and requires no root privileges.</p>
+</section>
+<section id="docs__en__manual__ssh-and-tmuxmd__connect-a-remote-session" class="level3">
+<h3>Connect a remote session</h3>
+<ol type="1">
+<li>Sign in over SSH in the intended Windows Terminal tab or pane.</li>
+<li>Start <code>nvim</code> on the Linux target.</li>
+<li>Press the assigned Access Link activation gesture.</li>
+<li>Wait for the ready message.</li>
+<li>Focus Neovim and press F12 once.</li>
+<li>Wait for connection confirmation.</li>
+</ol>
+<p>The visible SSH session carries your shell and keyboard input.
+Separately, Access Link opens its own SSH connection to the bridge for
+accessibility data. The Linux computer opens no additional network port
+for this connection.</p>
+</section>
+<section id="docs__en__manual__ssh-and-tmuxmd__use-tmux" class="level3">
+<h3>Use tmux</h3>
+<p>Start tmux in the visible SSH session and then start Neovim:</p>
+<pre class="text"><code>tmux new -s work
+nvim</code></pre>
+<p>Access Link associates the concrete Neovim instance, not the tmux
+window. A Neovim session inside tmux remains active when the visible SSH
+session ends. After attaching again, focus its pane; Access Link
+restores a remembered association after focus is confirmed. Press F12
+again when no remembered association exists.</p>
+<p>Several Neovim instances inside tmux are separate Access Link
+sessions. Use descriptive session names for similar working
+directories:</p>
+<pre class="text"><code>NVIM_NVDA_SESSION_NAME=Backend nvim
+NVIM_NVDA_SESSION_NAME=Documentation nvim</code></pre>
+</section>
+<section id="docs__en__manual__ssh-and-tmuxmd__connection-loss" class="level3">
+<h3>Connection loss</h3>
+<p>When the background connection ends, Access Link releases native
+Windows Terminal output. The visible SSH session and Neovim in tmux do
+not end as a result.</p>
+<p>Restore normal SSH access first. Then enable Access Link again and
+press F12 in the intended Neovim pane. See <a href="#docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports">Troubleshooting</a>
+for more checks.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__language-toolsmd">
+<section id="docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters" class="level2">
+<h2>Setting up LSP, completion, and linters</h2>
+<p>Neovim Access Link makes information accessible that Neovim already
+receives from language servers and linters. The add-on does not install
+these tools.</p>
+<ul>
+<li>A <strong>language server (LSP)</strong> provides completion,
+function signatures, hover text, definitions, and diagnostics.</li>
+<li>A <strong>linter</strong> reports additional errors, warnings, or
+style problems. It is optional when the language server&#39;s diagnostics
+are sufficient.</li>
+<li>The <strong>Neovim configuration</strong> starts the tools. Access
+Link reads their results through Neovim&#39;s public LSP and diagnostic
+APIs.</li>
+</ul>
+<p>Language servers and linters run on the same computer as Neovim:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Neovim runs</th>
+<th>Install the tools on</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>locally as <code>nvim.exe</code> in Windows Terminal</td>
+<td>Windows</td>
+</tr>
+<tr class="even">
+<td>after an SSH login</td>
+<td>the Linux target</td>
+</tr>
+<tr class="odd">
+<td>in tmux on the Linux target</td>
+<td>the Linux target</td>
+</tr>
+</tbody>
+</table>
+<p>Pyright installed on Windows is not available to a remote Linux
+Neovim. Reopen the terminal after installation so a changed
+<code>PATH</code> takes effect.</p>
+<section id="docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers" class="level3">
+<h3>Access Link plugin and plugin managers</h3>
+<p>The add-on&#39;s component command already installs the Access Link
+plugin. Do not install a second copy from a plugin repository or load it
+again with <code>require()</code>.</p>
+<p>An unchanged or simple Neovim configuration loads the installed copy
+as a start package. A plugin manager that replaces <code>packpath</code>
+or start-package loading must instead register this exact local copy. <a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Small
+Python configuration with Lazy and Oil</a> demonstrates this special
+case for <code>lazy.nvim</code>.</p>
+<p>After restarting Neovim, confirm that the plugin is loaded:</p>
+<pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
+<p>The result <code>2</code> confirms that the command is available.</p>
+</section>
+<section id="docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" class="level3">
+<h3>Recommended beginner path for Python</h3>
+<p>The following example uses Neovim 0.12, Git, Pyright, and Ruff.
+Access Link supports Neovim 0.10.1 and later, but the short
+configuration with <code>vim.pack</code> and <code>vim.lsp.enable</code>
+requires the newer Neovim API.</p>
+<p>Check first:</p>
+<pre class="text"><code>nvim --version
+git --version</code></pre>
+<section id="docs__en__manual__language-toolsmd__install-the-tools" class="level4">
+<h4>Install the tools</h4>
+<p>On Windows with PowerShell and WinGet:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">--</span>id Neovim<span class="op">.</span><span class="fu">Neovim</span> <span class="op">-</span>e</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">--</span>id Git<span class="op">.</span><span class="fu">Git</span> <span class="op">-</span>e</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">--</span>id OpenJS<span class="op">.</span><span class="fu">NodeJS</span><span class="op">.</span><span class="fu">LTS</span> <span class="op">-</span>e</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>npm install <span class="op">--</span>global pyright</span></code></pre></div>
+<p>Install Ruff by following its <a href="https://docs.astral.sh/ruff/installation/">official installation
+guide</a>, for example with <code>pipx install ruff</code> when
+<code>pipx</code> is configured.</p>
+<p>On Debian or Ubuntu:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt update</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install neovim git nodejs npm pipx</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install <span class="at">--global</span> pyright</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">pipx</span> install ruff</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pipx</span> ensurepath</span></code></pre></div>
+<p>On Fedora:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install neovim git nodejs npm pipx</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install <span class="at">--global</span> pyright</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pipx</span> install ruff</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ex">pipx</span> ensurepath</span></code></pre></div>
+<p>Distribution packages sometimes contain an older Neovim version.
+Check <code>nvim --version</code> and use Neovim 0.12 for this example.
+Then check in the same terminal:</p>
+<pre class="text"><code>pyright --version
+ruff --version</code></pre>
+<p>PowerShell shows the resolved server with
+<code>Get-Command pyright-langserver</code>. On Linux, use
+<code>command -v pyright-langserver</code>.</p>
+</section>
+<section id="docs__en__manual__language-toolsmd__create-initlua" class="level4">
+<h4>Create init.lua</h4>
+<p>Neovim&#39;s main configuration is normally stored here:</p>
+<table>
+<thead>
+<tr class="header">
+<th>System</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Windows</td>
+<td><code>%LOCALAPPDATA%\nvim\init.lua</code></td>
+</tr>
+<tr class="even">
+<td>Linux, including SSH</td>
+<td><code>~/.config/nvim/init.lua</code></td>
+</tr>
+</tbody>
+</table>
+<p>Back up an existing configuration. If a plugin manager or LSP setup
+already exists, copy only the required parts and do not start the same
+language server twice.</p>
+<p>The following minimal <code>init.lua</code> installs
+<code>nvim-lspconfig</code> and <code>nvim-lint</code>, starts Pyright,
+enables Neovim&#39;s built-in completion, and runs Ruff after a Python file
+is saved:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">g</span><span class="op">.</span><span class="va">mapleader</span> <span class="op">=</span> <span class="st">&quot; &quot;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">completeopt</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;menu&quot;</span><span class="op">,</span> <span class="st">&quot;menuone&quot;</span><span class="op">,</span> <span class="st">&quot;noselect&quot;</span><span class="op">,</span> <span class="st">&quot;popup&quot;</span> <span class="op">}</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">diagnostic</span><span class="op">.</span>config<span class="op">({</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">signs</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">underline</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="va">virtual_text</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="va">severity_sort</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="va">update_in_insert</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">pack</span><span class="op">.</span>add<span class="op">({</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">src</span> <span class="op">=</span> <span class="st">&quot;https://github.com/neovim/nvim-lspconfig&quot;</span> <span class="op">},</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">src</span> <span class="op">=</span> <span class="st">&quot;https://github.com/mfussenegger/nvim-lint&quot;</span> <span class="op">},</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span>enable<span class="op">(</span><span class="st">&quot;pyright&quot;</span><span class="op">)</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">api</span><span class="op">.</span>nvim_create_autocmd<span class="op">(</span><span class="st">&quot;LspAttach&quot;</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="va">callback</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">event</span><span class="op">)</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> <span class="va">client</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span>get_client_by_id<span class="op">(</span><span class="va">event</span><span class="op">.</span><span class="va">data</span><span class="op">.</span><span class="va">client_id</span><span class="op">)</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> <span class="va">options</span> <span class="op">=</span> <span class="op">{</span> <span class="va">buffer</span> <span class="op">=</span> <span class="va">event</span><span class="op">.</span><span class="va">buf</span><span class="op">,</span> <span class="va">silent</span> <span class="op">=</span> <span class="kw">true</span> <span class="op">}</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;K&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">buf</span><span class="op">.</span><span class="va">hover</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;gd&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">buf</span><span class="op">.</span><span class="va">definition</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">client</span> <span class="kw">and</span> <span class="va">client</span><span class="op">:</span>supports_method<span class="op">(</span><span class="st">&quot;textDocument/completion&quot;</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">completion</span><span class="op">.</span>enable<span class="op">(</span><span class="kw">true</span><span class="op">,</span> <span class="va">client</span><span class="op">.</span><span class="va">id</span><span class="op">,</span> <span class="va">event</span><span class="op">.</span><span class="va">buf</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>        <span class="va">autotrigger</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>      <span class="op">})</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;i&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;C-Space&gt;&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">completion</span><span class="op">.</span><span class="va">get</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>  <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">lint</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;lint&quot;</span><span class="op">)</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a><span class="va">lint</span><span class="op">.</span><span class="va">linters_by_ft</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>  <span class="va">python</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;ruff&quot;</span> <span class="op">},</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">api</span><span class="op">.</span>nvim_create_autocmd<span class="op">(</span><span class="st">&quot;BufWritePost&quot;</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>  <span class="va">callback</span> <span class="op">=</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    <span class="va">lint</span><span class="op">.</span>try_lint<span class="op">()</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>  <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;ll&quot;</span><span class="op">,</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>  <span class="va">lint</span><span class="op">.</span>try_lint<span class="op">()</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span><span class="op">,</span> <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Run the linter now&quot;</span> <span class="op">})</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[d&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticPrevious&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Previous diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]d&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticNext&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Next diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[D&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticFirst&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;First diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]D&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticLast&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Last diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;dd&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticCurrent&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Diagnostic at the current position&quot;</span> <span class="op">})</span></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;ls&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaLspStatus&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Report LSP status with Access Link&quot;</span> <span class="op">})</span></span></code></pre></div>
+<p><code>vim.pack.add</code> downloads the two missing plugins on the
+first start. After saving, exit Neovim completely, restart it, and open
+a Python file in the root directory of a small project.</p>
+<p>Automatic linting runs tools with your user permissions. Use it only
+in trusted projects. Some linters deliberately prefer an executable from
+the current project.</p>
+</section>
+</section>
+<section id="docs__en__manual__language-toolsmd__verify-the-setup" class="level3">
+<h3>Verify the setup</h3>
+<p>The example maps the sequence <code>Space</code>, <code>l</code>,
+<code>s</code> to the LSP status. Press the three keys in order. NVDA
+names the active client, for example Pyright.</p>
+<p>This sequence is a <strong>Neovim command without the NVDA
+key</strong>: Neovim executes it, and Access Link makes the result
+accessible. Combinations with the NVDA key belong to screen-reader
+control and are handled by Access Link only in the appropriate connected
+Neovim context.</p>
+<p>If no client is active, check:</p>
+<ol type="1">
+<li><code>pyright-langserver</code> is found on the computer where
+Neovim runs.</li>
+<li>The open file has the <code>python</code> file type.</li>
+<li>Neovim was restarted after installation.</li>
+<li>Neovim was opened in the project directory.</li>
+<li>An existing configuration does not start a second conflicting
+client.</li>
+</ol>
+<p>For technical details, <code>:checkhealth vim.lsp</code> shows
+Neovim&#39;s own LSP status.</p>
+</section>
+<section id="docs__en__manual__language-toolsmd__use-completion-and-diagnostics" class="level3">
+<h3>Use completion and diagnostics</h3>
+<p>The example uses these Neovim keys without the NVDA key:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Key or sequence</th>
+<th>Task</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Ctrl+Space</code></td>
+<td>request completion in Insert mode</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+N</code> / <code>Ctrl+P</code></td>
+<td>select the next / previous item</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Y</code> / <code>Ctrl+E</code></td>
+<td>accept the selection / close the menu</td>
+</tr>
+<tr class="even">
+<td><code>[d</code> / <code>]d</code></td>
+<td>previous / next diagnostic</td>
+</tr>
+<tr class="odd">
+<td><code>[D</code> / <code>]D</code></td>
+<td>first / last diagnostic</td>
+</tr>
+<tr class="even">
+<td><code>Space</code>, <code>d</code>, <code>d</code></td>
+<td>report the diagnostic at the current position</td>
+</tr>
+<tr class="odd">
+<td><code>Space</code>, <code>l</code>, <code>l</code></td>
+<td>run Ruff immediately</td>
+</tr>
+</tbody>
+</table>
+<p>Access Link speaks and displays on Braille the information supplied
+by Neovim. The complete operation of completion, function signatures,
+and diagnostics is documented in <a href="#docs__en__manual__menus-and-completionmd__search-replacement-completion-and-diagnostics">Search,
+replacement, completion, and diagnostics</a>.</p>
+</section>
+<section id="docs__en__manual__language-toolsmd__other-languages-and-existing-plugins" class="level3">
+<h3>Other languages and existing plugins</h3>
+<p>Access Link processes valid completion, LSP, and
+<code>vim.diagnostic</code> data provided by Neovim. For another
+language, install its server using the server&#39;s official instructions
+and enable the appropriate <code>nvim-lspconfig</code> name. For
+example:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span>enable<span class="op">({</span> <span class="st">&quot;pyright&quot;</span><span class="op">,</span> <span class="st">&quot;bashls&quot;</span><span class="op">,</span> <span class="st">&quot;gopls&quot;</span><span class="op">,</span> <span class="st">&quot;rust_analyzer&quot;</span> <span class="op">})</span></span></code></pre></div>
+<p>Pyright and Ruff are among the practically tested combinations. Other
+real or isolated automated checks cover C/C++, Markdown, shell, Go,
+Rust, Ruby, Lua, PHP, JavaScript/TypeScript, and Java. This is not a
+guarantee for every tool version and project configuration. The current
+test status is listed in the <a href="developer-documentation.html#docs__en__development__compatibilitymd__compatibility">compatibility
+overview</a>.</p>
+<p>Existing setups with <code>nvim-cmp</code>, <code>blink.cmp</code>,
+ALE, or <code>none-ls.nvim</code> can remain in use when they publish
+results through the Neovim interfaces supported by Access Link. Use only
+one completion system for a buffer and do not start the same language
+server more than once.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__example-configurationmd">
+<section id="docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil" class="level2">
+<h2>Small Python configuration with Lazy and Oil</h2>
+<p>This chapter provides a complete <code>init.lua</code> that can be
+copied directly. It is intended for users without an extensive existing
+Neovim configuration and includes:</p>
+<ul>
+<li><code>lazy.nvim</code> as the plugin manager;</li>
+<li>Oil as a simple accessible file manager;</li>
+<li>Pyright as the Python language server;</li>
+<li>Neovim&#39;s native LSP auto-completion;</li>
+<li>Ruff through <code>nvim-lint</code>;</li>
+<li>practical LSP, linter, and Access Link mappings.</li>
+</ul>
+<p>The preceding chapter, <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Setting
+up LSP, completion, and linters</a>, explains the general behavior,
+additional languages, and the alternative <code>vim.pack</code>
+setup.</p>
+<section id="docs__en__manual__example-configurationmd__installing-prerequisites" class="level3">
+<h3>Installing prerequisites</h3>
+<p>This configuration needs Neovim 0.12 or newer, Git, Node.js with npm,
+Pyright, Ruff, and the Access Link components installed through the NVDA
+add-on. Lazy downloads Oil, <code>nvim-lspconfig</code>, and
+<code>nvim-lint</code> itself on the first start. No additional Python
+provider for Neovim or icon plugin is required.</p>
+<p>The complete WinGet, apt, and dnf instructions are in the preceding
+chapter. Before configuring Neovim, these checks must work in the same
+terminal in which Neovim will run:</p>
+<pre class="text"><code>nvim --version
+git --version
+pyright --version
+ruff --version</code></pre>
+<p>When using Neovim through SSH or in tmux, install the Linux packages
+on the Linux target. A Windows installation of Pyright or Ruff is not
+visible to the remote Neovim process.</p>
+</section>
+<section id="docs__en__manual__example-configurationmd__backing-up-an-existing-configuration" class="level3">
+<h3>Backing up an existing configuration</h3>
+<p>Neovim&#39;s configuration file is
+<code>%LOCALAPPDATA%\nvim\init.lua</code> on Windows and
+<code>~/.config/nvim/init.lua</code> on Linux. Back up an existing file
+first. This example replaces an existing <code>init.lua</code>; do not
+paste it alongside a configuration already managed by LazyVim or another
+plugin manager.</p>
+<p>On Windows, create and open the file with:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Force <span class="st">&quot;</span><span class="va">$env</span><span class="op">:</span><span class="va">LOCALAPPDATA</span><span class="st">\nvim&quot;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>nvim <span class="st">&quot;</span><span class="va">$env</span><span class="op">:</span><span class="va">LOCALAPPDATA</span><span class="st">\nvim\init.lua&quot;</span></span></code></pre></div>
+<p>On Linux:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/.config/nvim</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">nvim</span> ~/.config/nvim/init.lua</span></code></pre></div>
+</section>
+<section id="docs__en__manual__example-configurationmd__complete-initlua" class="level3">
+<h3>Complete init.lua</h3>
+<p>Copy all of the following content and save it. The same tested file
+is available in the <a href="https://github.com/helmsaccess/neovim-access-link/blob/main/examples/neovim-lazy-python/init.lua">GitHub
+repository</a>. This code block is generated from that real Lua file, so
+the GitHub view and the built manual remain identical to the executable
+source.</p>
+<!-- BEGIN lazy-python-example -->
+
+<div class="sourceCode" id="cb21"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">g</span><span class="op">.</span><span class="va">mapleader</span> <span class="op">=</span> <span class="st">&quot; &quot;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">g</span><span class="op">.</span><span class="va">maplocalleader</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\\</span><span class="st">&quot;</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">completeopt</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;menu&quot;</span><span class="op">,</span> <span class="st">&quot;menuone&quot;</span><span class="op">,</span> <span class="st">&quot;noselect&quot;</span><span class="op">,</span> <span class="st">&quot;popup&quot;</span> <span class="op">}</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">number</span> <span class="op">=</span> <span class="kw">true</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">signcolumn</span> <span class="op">=</span> <span class="st">&quot;yes&quot;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">updatetime</span> <span class="op">=</span> <span class="dv">300</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">diagnostic</span><span class="op">.</span>config<span class="op">({</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">signs</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="va">underline</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="va">virtual_text</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="va">severity_sort</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="va">update_in_insert</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">uv</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">uv</span> <span class="kw">or</span> <span class="va">vim</span><span class="op">.</span><span class="va">loop</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">data_path</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">fn</span><span class="op">.</span>stdpath<span class="op">(</span><span class="st">&quot;data&quot;</span><span class="op">)</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">lazy_path</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">fs</span><span class="op">.</span>joinpath<span class="op">(</span><span class="va">data_path</span><span class="op">,</span> <span class="st">&quot;lazy&quot;</span><span class="op">,</span> <span class="st">&quot;lazy.nvim&quot;</span><span class="op">)</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> <span class="va">uv</span><span class="op">.</span>fs_stat<span class="op">(</span><span class="va">lazy_path</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">local</span> <span class="va">output</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">fn</span><span class="op">.</span>system<span class="op">({</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;git&quot;</span><span class="op">,</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;clone&quot;</span><span class="op">,</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;--filter=blob:none&quot;</span><span class="op">,</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;--branch=stable&quot;</span><span class="op">,</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;https://github.com/folke/lazy.nvim.git&quot;</span><span class="op">,</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="va">lazy_path</span><span class="op">,</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  <span class="op">})</span></span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="va">vim</span><span class="op">.</span><span class="va">v</span><span class="op">.</span><span class="va">shell_error</span> <span class="op">~=</span> <span class="dv">0</span> <span class="cf">then</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">error</span><span class="op">(</span><span class="st">&quot;Could not install lazy.nvim:</span><span class="sc">\n</span><span class="st">&quot;</span> <span class="op">..</span> <span class="va">output</span><span class="op">)</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">opt</span><span class="op">.</span><span class="va">rtp</span><span class="op">:</span>prepend<span class="op">(</span><span class="va">lazy_path</span><span class="op">)</span></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">plugins</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;stevearc/oil.nvim&quot;</span><span class="op">,</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>    <span class="va">lazy</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>    <span class="va">opts</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>      <span class="va">columns</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;type&quot;</span><span class="op">,</span> <span class="st">&quot;size&quot;</span> <span class="op">},</span></span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>      <span class="va">delete_to_trash</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>      <span class="va">skip_confirm_for_simple_edits</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>    <span class="va">keys</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>      <span class="op">{</span> <span class="st">&quot;-&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;Oil&lt;CR&gt;&quot;</span><span class="op">,</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Open parent directory&quot;</span> <span class="op">},</span></span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;neovim/nvim-lspconfig&quot;</span><span class="op">,</span></span>
+<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a>    <span class="va">lazy</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-53"><a href="#cb21-53" aria-hidden="true" tabindex="-1"></a>    <span class="va">config</span> <span class="op">=</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb21-54"><a href="#cb21-54" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span>enable<span class="op">(</span><span class="st">&quot;pyright&quot;</span><span class="op">)</span></span>
+<span id="cb21-55"><a href="#cb21-55" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb21-56"><a href="#cb21-56" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb21-57"><a href="#cb21-57" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb21-58"><a href="#cb21-58" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;mfussenegger/nvim-lint&quot;</span><span class="op">,</span></span>
+<span id="cb21-59"><a href="#cb21-59" aria-hidden="true" tabindex="-1"></a>    <span class="va">lazy</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-60"><a href="#cb21-60" aria-hidden="true" tabindex="-1"></a>    <span class="va">config</span> <span class="op">=</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb21-61"><a href="#cb21-61" aria-hidden="true" tabindex="-1"></a>      <span class="kw">local</span> <span class="va">lint</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;lint&quot;</span><span class="op">)</span></span>
+<span id="cb21-62"><a href="#cb21-62" aria-hidden="true" tabindex="-1"></a>      <span class="va">lint</span><span class="op">.</span><span class="va">linters_by_ft</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb21-63"><a href="#cb21-63" aria-hidden="true" tabindex="-1"></a>        <span class="va">python</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;ruff&quot;</span> <span class="op">},</span></span>
+<span id="cb21-64"><a href="#cb21-64" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb21-65"><a href="#cb21-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-66"><a href="#cb21-66" aria-hidden="true" tabindex="-1"></a>      <span class="kw">local</span> <span class="va">group</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">api</span><span class="op">.</span>nvim_create_augroup<span class="op">(</span><span class="st">&quot;example_python_lint&quot;</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb21-67"><a href="#cb21-67" aria-hidden="true" tabindex="-1"></a>        <span class="va">clear</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-68"><a href="#cb21-68" aria-hidden="true" tabindex="-1"></a>      <span class="op">})</span></span>
+<span id="cb21-69"><a href="#cb21-69" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">api</span><span class="op">.</span>nvim_create_autocmd<span class="op">({</span> <span class="st">&quot;BufReadPost&quot;</span><span class="op">,</span> <span class="st">&quot;BufWritePost&quot;</span> <span class="op">},</span> <span class="op">{</span></span>
+<span id="cb21-70"><a href="#cb21-70" aria-hidden="true" tabindex="-1"></a>        <span class="va">group</span> <span class="op">=</span> <span class="va">group</span><span class="op">,</span></span>
+<span id="cb21-71"><a href="#cb21-71" aria-hidden="true" tabindex="-1"></a>        <span class="va">pattern</span> <span class="op">=</span> <span class="st">&quot;*.py&quot;</span><span class="op">,</span></span>
+<span id="cb21-72"><a href="#cb21-72" aria-hidden="true" tabindex="-1"></a>        <span class="va">callback</span> <span class="op">=</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb21-73"><a href="#cb21-73" aria-hidden="true" tabindex="-1"></a>          <span class="va">lint</span><span class="op">.</span>try_lint<span class="op">()</span></span>
+<span id="cb21-74"><a href="#cb21-74" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb21-75"><a href="#cb21-75" aria-hidden="true" tabindex="-1"></a>      <span class="op">})</span></span>
+<span id="cb21-76"><a href="#cb21-76" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb21-77"><a href="#cb21-77" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb21-78"><a href="#cb21-78" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb21-79"><a href="#cb21-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-80"><a href="#cb21-80" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">access_link_path</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">fs</span><span class="op">.</span>joinpath<span class="op">(</span></span>
+<span id="cb21-81"><a href="#cb21-81" aria-hidden="true" tabindex="-1"></a>  <span class="va">data_path</span><span class="op">,</span></span>
+<span id="cb21-82"><a href="#cb21-82" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;site&quot;</span><span class="op">,</span></span>
+<span id="cb21-83"><a href="#cb21-83" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;pack&quot;</span><span class="op">,</span></span>
+<span id="cb21-84"><a href="#cb21-84" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;nvim-nvda&quot;</span><span class="op">,</span></span>
+<span id="cb21-85"><a href="#cb21-85" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;start&quot;</span><span class="op">,</span></span>
+<span id="cb21-86"><a href="#cb21-86" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;nvim-nvda&quot;</span></span>
+<span id="cb21-87"><a href="#cb21-87" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb21-88"><a href="#cb21-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-89"><a href="#cb21-89" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">uv</span><span class="op">.</span>fs_stat<span class="op">(</span><span class="va">access_link_path</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb21-90"><a href="#cb21-90" aria-hidden="true" tabindex="-1"></a>  <span class="fu">table.insert</span><span class="op">(</span><span class="va">plugins</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb21-91"><a href="#cb21-91" aria-hidden="true" tabindex="-1"></a>    <span class="va">dir</span> <span class="op">=</span> <span class="va">access_link_path</span><span class="op">,</span></span>
+<span id="cb21-92"><a href="#cb21-92" aria-hidden="true" tabindex="-1"></a>    <span class="va">name</span> <span class="op">=</span> <span class="st">&quot;nvim-nvda&quot;</span><span class="op">,</span></span>
+<span id="cb21-93"><a href="#cb21-93" aria-hidden="true" tabindex="-1"></a>    <span class="va">lazy</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb21-94"><a href="#cb21-94" aria-hidden="true" tabindex="-1"></a>    <span class="va">priority</span> <span class="op">=</span> <span class="dv">1000</span><span class="op">,</span></span>
+<span id="cb21-95"><a href="#cb21-95" aria-hidden="true" tabindex="-1"></a>  <span class="op">})</span></span>
+<span id="cb21-96"><a href="#cb21-96" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb21-97"><a href="#cb21-97" aria-hidden="true" tabindex="-1"></a>  <span class="va">vim</span><span class="op">.</span>schedule<span class="op">(</span><span class="kw">function</span><span class="op">()</span></span>
+<span id="cb21-98"><a href="#cb21-98" aria-hidden="true" tabindex="-1"></a>    <span class="va">vim</span><span class="op">.</span>notify<span class="op">(</span></span>
+<span id="cb21-99"><a href="#cb21-99" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Neovim Access Link plugin not found; install the add-on components first&quot;</span><span class="op">,</span></span>
+<span id="cb21-100"><a href="#cb21-100" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">log</span><span class="op">.</span><span class="va">levels</span><span class="op">.</span><span class="cn">WARN</span></span>
+<span id="cb21-101"><a href="#cb21-101" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb21-102"><a href="#cb21-102" aria-hidden="true" tabindex="-1"></a>  <span class="kw">end</span><span class="op">)</span></span>
+<span id="cb21-103"><a href="#cb21-103" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb21-104"><a href="#cb21-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-105"><a href="#cb21-105" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;lazy&quot;</span><span class="op">).</span>setup<span class="op">(</span><span class="va">plugins</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb21-106"><a href="#cb21-106" aria-hidden="true" tabindex="-1"></a>  <span class="va">defaults</span> <span class="op">=</span> <span class="op">{</span> <span class="va">lazy</span> <span class="op">=</span> <span class="kw">false</span> <span class="op">},</span></span>
+<span id="cb21-107"><a href="#cb21-107" aria-hidden="true" tabindex="-1"></a>  <span class="va">install</span> <span class="op">=</span> <span class="op">{</span> <span class="va">colorscheme</span> <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;habamax&quot;</span> <span class="op">}</span> <span class="op">},</span></span>
+<span id="cb21-108"><a href="#cb21-108" aria-hidden="true" tabindex="-1"></a>  <span class="va">checker</span> <span class="op">=</span> <span class="op">{</span> <span class="va">enabled</span> <span class="op">=</span> <span class="kw">false</span> <span class="op">},</span></span>
+<span id="cb21-109"><a href="#cb21-109" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb21-110"><a href="#cb21-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-111"><a href="#cb21-111" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">api</span><span class="op">.</span>nvim_create_autocmd<span class="op">(</span><span class="st">&quot;LspAttach&quot;</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb21-112"><a href="#cb21-112" aria-hidden="true" tabindex="-1"></a>  <span class="va">callback</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">event</span><span class="op">)</span></span>
+<span id="cb21-113"><a href="#cb21-113" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> <span class="va">client</span> <span class="op">=</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span>get_client_by_id<span class="op">(</span><span class="va">event</span><span class="op">.</span><span class="va">data</span><span class="op">.</span><span class="va">client_id</span><span class="op">)</span></span>
+<span id="cb21-114"><a href="#cb21-114" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> <span class="va">options</span> <span class="op">=</span> <span class="op">{</span> <span class="va">buffer</span> <span class="op">=</span> <span class="va">event</span><span class="op">.</span><span class="va">buf</span><span class="op">,</span> <span class="va">silent</span> <span class="op">=</span> <span class="kw">true</span> <span class="op">}</span></span>
+<span id="cb21-115"><a href="#cb21-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-116"><a href="#cb21-116" aria-hidden="true" tabindex="-1"></a>    <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;K&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">buf</span><span class="op">.</span><span class="va">hover</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb21-117"><a href="#cb21-117" aria-hidden="true" tabindex="-1"></a>    <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;gd&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">buf</span><span class="op">.</span><span class="va">definition</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb21-118"><a href="#cb21-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-119"><a href="#cb21-119" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="va">client</span> <span class="kw">and</span> <span class="va">client</span><span class="op">:</span>supports_method<span class="op">(</span><span class="st">&quot;textDocument/completion&quot;</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb21-120"><a href="#cb21-120" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">completion</span><span class="op">.</span>enable<span class="op">(</span><span class="kw">true</span><span class="op">,</span> <span class="va">client</span><span class="op">.</span><span class="va">id</span><span class="op">,</span> <span class="va">event</span><span class="op">.</span><span class="va">buf</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb21-121"><a href="#cb21-121" aria-hidden="true" tabindex="-1"></a>        <span class="va">autotrigger</span> <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb21-122"><a href="#cb21-122" aria-hidden="true" tabindex="-1"></a>      <span class="op">})</span></span>
+<span id="cb21-123"><a href="#cb21-123" aria-hidden="true" tabindex="-1"></a>      <span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;i&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;C-Space&gt;&quot;</span><span class="op">,</span> <span class="va">vim</span><span class="op">.</span><span class="va">lsp</span><span class="op">.</span><span class="va">completion</span><span class="op">.</span><span class="va">get</span><span class="op">,</span> <span class="va">options</span><span class="op">)</span></span>
+<span id="cb21-124"><a href="#cb21-124" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb21-125"><a href="#cb21-125" aria-hidden="true" tabindex="-1"></a>  <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb21-126"><a href="#cb21-126" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb21-127"><a href="#cb21-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-128"><a href="#cb21-128" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;ll&quot;</span><span class="op">,</span> <span class="kw">function</span><span class="op">()</span></span>
+<span id="cb21-129"><a href="#cb21-129" aria-hidden="true" tabindex="-1"></a>  <span class="fu">require</span><span class="op">(</span><span class="st">&quot;lint&quot;</span><span class="op">).</span>try_lint<span class="op">()</span></span>
+<span id="cb21-130"><a href="#cb21-130" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span><span class="op">,</span> <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Run Python linter&quot;</span> <span class="op">})</span></span>
+<span id="cb21-131"><a href="#cb21-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-132"><a href="#cb21-132" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[d&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticPrevious&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-133"><a href="#cb21-133" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Previous diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb21-134"><a href="#cb21-134" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]d&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticNext&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-135"><a href="#cb21-135" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Next diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb21-136"><a href="#cb21-136" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[D&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticFirst&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-137"><a href="#cb21-137" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;First diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb21-138"><a href="#cb21-138" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]D&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticLast&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-139"><a href="#cb21-139" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Last diagnostic&quot;</span> <span class="op">})</span></span>
+<span id="cb21-140"><a href="#cb21-140" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;dd&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaDiagnosticCurrent&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-141"><a href="#cb21-141" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Read diagnostic at cursor&quot;</span> <span class="op">})</span></span>
+<span id="cb21-142"><a href="#cb21-142" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;ls&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;Cmd&gt;NvimNvdaLspStatus&lt;CR&gt;&quot;</span><span class="op">,</span></span>
+<span id="cb21-143"><a href="#cb21-143" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">desc</span> <span class="op">=</span> <span class="st">&quot;Read LSP status&quot;</span> <span class="op">})</span></span></code></pre></div>
+<!-- END lazy-python-example -->
+
+</section>
+<section id="docs__en__manual__example-configurationmd__why-access-link-is-explicitly-listed-for-lazy" class="level3">
+<h3>Why Access Link is explicitly listed for Lazy</h3>
+<p>By default, <code>lazy.nvim</code> resets Neovim&#39;s
+<code>packpath</code> and <code>runtimepath</code> and disables normal
+start-plugin loading. The add-on installs its Neovim plugin in Neovim&#39;s
+standard
+<code>stdpath(&quot;data&quot;)/site/pack/nvim-nvda/start/nvim-nvda</code>
+location.</p>
+<p>The example checks that path and passes it to Lazy as a local plugin
+with <code>dir = access_link_path</code>. Lazy therefore loads the copy
+already installed by the add-on even though normal package discovery is
+disabled. Do not remove these lines or install another copy of the
+plugin from GitHub.</p>
+<p>If the directory is missing, a warning is shown. Run the add-on&#39;s
+component installation command from the NVDA menu first and restart
+Neovim. Building the path from <code>stdpath(&quot;data&quot;)</code> works both
+for local Windows Neovim and for a component installed on a Linux
+target.</p>
+</section>
+<section id="docs__en__manual__example-configurationmd__first-start" class="level3">
+<h3>First start</h3>
+<p>Exit Neovim completely after saving and start it again. Lazy
+downloads its three internet plugins on the first start, which can take
+a little time. Use these checks afterwards:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Check</th>
+<th>Expected result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>:checkhealth lazy</code></td>
+<td>Lazy reports no fundamental installation error</td>
+</tr>
+<tr class="even">
+<td><code>:checkhealth vim.lsp</code></td>
+<td>the Pyright configuration is enabled</td>
+</tr>
+<tr class="odd">
+<td><code>Space</code>, <code>l</code>, <code>s</code></td>
+<td>Access Link names Pyright after the server attaches to a Python
+file</td>
+</tr>
+<tr class="even">
+<td><code>:Lazy</code></td>
+<td>Oil, <code>nvim-lspconfig</code>, and <code>nvim-lint</code> are
+shown as loaded</td>
+</tr>
+</tbody>
+</table>
+<p>In this variant, update plugins with <code>:Lazy update</code>, not
+<code>:packupdate</code>. The generated <code>lazy-lock.json</code>
+records the plugin versions that were actually used. Keep it together
+with a backed-up configuration.</p>
+</section>
+<section id="docs__en__manual__example-configurationmd__operation" class="level3">
+<h3>Operation</h3>
+<p>The keys in the following table are Neovim keys without the NVDA key.
+Neovim executes the mapped actions; Access Link makes their results
+accessible through speech and Braille.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-</code> in Normal mode</td>
+<td>open the current file&#39;s directory through Oil</td>
+</tr>
+<tr class="even">
+<td><code>Enter</code> in Oil</td>
+<td>open a file or subdirectory</td>
+</tr>
+<tr class="odd">
+<td><code>-</code> in Oil</td>
+<td>move to the parent directory</td>
+</tr>
+<tr class="even">
+<td><code>:write</code> in Oil</td>
+<td>apply renamed, moved, or deleted entries after confirmation</td>
+</tr>
+<tr class="odd">
+<td><code>K</code></td>
+<td>request LSP hover text</td>
+</tr>
+<tr class="even">
+<td><code>g</code>, then <code>d</code></td>
+<td>jump to the definition</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Space</code> in Insert mode</td>
+<td>open native LSP completion</td>
+</tr>
+<tr class="even">
+<td><code>Space</code>, <code>l</code>, <code>l</code></td>
+<td>run Ruff immediately</td>
+</tr>
+<tr class="odd">
+<td><code>[d</code> / <code>]d</code></td>
+<td>announce the previous / next diagnostic</td>
+</tr>
+<tr class="even">
+<td><code>[D</code> / <code>]D</code></td>
+<td>announce the first / last diagnostic</td>
+</tr>
+<tr class="odd">
+<td><code>Space</code>, <code>d</code>, <code>d</code></td>
+<td>repeat the diagnostic at the cursor position</td>
+</tr>
+</tbody>
+</table>
+<p>Oil is deliberately not lazy-loaded, as recommended by its upstream
+instructions. Deletions do not automatically go to the trash in this
+small, portable configuration; Oil continues to show its confirmations,
+which Access Link makes accessible.</p>
+<p>The contextual NVDA gestures <code>NVDA+Space</code> for function
+signatures and <code>NVDA+Shift+Space</code> for diagnostics are already
+built in. Access Link takes them over only in the exact active connected
+Neovim pane; NVDA&#39;s standard function remains available elsewhere. They
+are not reassigned in this <code>init.lua</code> or in NVDA. Only
+detailed completion documentation may receive an NVDA input gesture, as
+described in the preceding chapter.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__commandsmd">
+<section id="docs__en__manual__commandsmd__command-reference" class="level2">
+<h2>Command reference</h2>
+<p>This reference separates NVDA commands from Neovim commands. For
+assignable NVDA commands, first focus Windows Terminal and then open
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>.</p>
+<section id="docs__en__manual__commandsmd__nvda-commands-with-fixed-gestures" class="level3">
+<h3>NVDA commands with fixed gestures</h3>
+<p>These combinations contain the NVDA key. Access Link takes them over
+only in the stated connected Neovim context. In other applications,
+shells, and unconnected panes, NVDA&#39;s normal commands apply.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Gesture</th>
+<th>Context</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>NVDA+Alt+D</code></td>
+<td>Windows Terminal</td>
+<td>copy the redacted diagnostic report</td>
+</tr>
+<tr class="even">
+<td><code>NVDA+h</code> / <code>NVDA+l</code></td>
+<td>connected Neovim pane</td>
+<td>explore previous / next character</td>
+</tr>
+<tr class="odd">
+<td><code>Shift+NVDA+h</code> / <code>Shift+NVDA+l</code></td>
+<td>connected Neovim pane</td>
+<td>explore previous / next word</td>
+</tr>
+<tr class="even">
+<td><code>NVDA+k</code> / <code>NVDA+j</code></td>
+<td>connected Neovim pane</td>
+<td>explore previous / next line</td>
+</tr>
+<tr class="odd">
+<td><code>NVDA+Space</code>, continue holding NVDA</td>
+<td>position with signature help</td>
+<td>show signatures and parameters</td>
+</tr>
+<tr class="even">
+<td><code>NVDA+Shift+Space</code>, continue holding NVDA</td>
+<td>position or line with diagnostics</td>
+<td>show diagnostics</td>
+</tr>
+<tr class="odd">
+<td><code>NVDA+j</code> / <code>NVDA+k</code> while a <code>z=</code>
+list is open</td>
+<td>spelling suggestions</td>
+<td>show next / previous suggestion</td>
+</tr>
+<tr class="even">
+<td><code>NVDA+Enter</code> with a selected suggestion</td>
+<td>spelling suggestions</td>
+<td>accept the suggestion</td>
+</tr>
+</tbody>
+</table>
+<p>In a held signature view, <code>NVDA+h</code> and <code>NVDA+l</code>
+move between parameters, while <code>NVDA+k</code> and
+<code>NVDA+j</code> move between signatures. In a held diagnostic view,
+<code>NVDA+k</code> and <code>NVDA+j</code> move between diagnostics.
+Releasing the NVDA key closes the temporary view.</p>
+</section>
+<section id="docs__en__manual__commandsmd__assignable-nvda-commands" class="level3">
+<h3>Assignable NVDA commands</h3>
+<p>These commands have no default gesture:</p>
+<table>
+<thead>
+<tr class="header">
+<th>UI name</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Turn Neovim accessibility on or off and discover configured connections</code></td>
+<td>enable or disable the service</td>
+</tr>
+<tr class="even">
+<td><code>Toggle Braille navigation between Braille cursor mode and Braille exploration mode</code></td>
+<td>change the Braille mode for the current session</td>
+</tr>
+<tr class="odd">
+<td><code>Read documentation for the selected Neovim completion item or LSP hover</code></td>
+<td>present available completion or hover documentation</td>
+</tr>
+<tr class="even">
+<td><code>Copy the active Neovim Visual selection to the Windows clipboard</code></td>
+<td>copy the current Visual selection</td>
+</tr>
+<tr class="odd">
+<td><code>Copy Neovim&#39;s last yank to the Windows clipboard</code></td>
+<td>copy Neovim register 0</td>
+</tr>
+<tr class="even">
+<td><code>Paste Windows clipboard text into the active Neovim buffer</code></td>
+<td>insert text at the Neovim position</td>
+</tr>
+<tr class="odd">
+<td><code>Store Windows clipboard text in Neovim&#39;s unnamed register</code></td>
+<td>make text available to Neovim&#39;s <code>p</code> command</td>
+</tr>
+<tr class="even">
+<td><code>Leave direct input in the active Neovim terminal</code></td>
+<td>change from direct terminal input to Terminal-Normal mode</td>
+</tr>
+<tr class="odd">
+<td><code>Choose a server and connect this terminal to a new Neovim session</code></td>
+<td>open the accessible session dialog</td>
+</tr>
+<tr class="even">
+<td><code>Disconnect the selected Neovim connection instance</code></td>
+<td>end the Access Link connection</td>
+</tr>
+<tr class="odd">
+<td><code>Forget the temporary Neovim connection for the focused terminal</code></td>
+<td>remove the remembered tab association</td>
+</tr>
+</tbody>
+</table>
+<p>Before every execution, Access Link checks an assignable command
+against the focused Windows Terminal application, exact control, and
+active Neovim association.</p>
+</section>
+<section id="docs__en__manual__commandsmd__f12-association" class="level3">
+<h3>F12 association</h3>
+<p>F12 is not an NVDA command and is not the activation gesture. Windows
+Terminal and Neovim receive the key normally. The Neovim plugin marks
+the current session; the enabled Access Link service then uses this
+fresh match for the association.</p>
+</section>
+<section id="docs__en__manual__commandsmd__common-neovim-commands" class="level3">
+<h3>Common Neovim commands</h3>
+<p>These inputs do not contain the NVDA key. Neovim executes them;
+Access Link presents their semantic effect.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Input</th>
+<th>Neovim function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>i</code></td>
+<td>enter Insert mode</td>
+</tr>
+<tr class="even">
+<td><code>Escape</code></td>
+<td>return to Normal mode or cancel a Neovim prompt</td>
+</tr>
+<tr class="odd">
+<td><code>h</code>, <code>j</code>, <code>k</code>, <code>l</code></td>
+<td>move left, down, up, right</td>
+</tr>
+<tr class="even">
+<td><code>w</code> / <code>b</code></td>
+<td>move to the next / previous word</td>
+</tr>
+<tr class="odd">
+<td><code>0</code> / <code>$</code></td>
+<td>move to the beginning / end of the line</td>
+</tr>
+<tr class="even">
+<td><code>gg</code> / <code>G</code></td>
+<td>move to the beginning / end of the file</td>
+</tr>
+<tr class="odd">
+<td><code>v</code></td>
+<td>begin a Visual selection</td>
+</tr>
+<tr class="even">
+<td><code>y</code></td>
+<td>yank a selection in Neovim</td>
+</tr>
+<tr class="odd">
+<td><code>p</code></td>
+<td>paste a Neovim register</td>
+</tr>
+<tr class="even">
+<td><code>/pattern</code> / <code>?pattern</code></td>
+<td>search forward / backward</td>
+</tr>
+<tr class="odd">
+<td><code>:%s/old/new/gc</code></td>
+<td>replace matches in the current buffer with confirmation</td>
+</tr>
+<tr class="even">
+<td><code>z=</code></td>
+<td>open spelling suggestions for the current word</td>
+</tr>
+<tr class="odd">
+<td><code>:w</code></td>
+<td>save the buffer</td>
+</tr>
+<tr class="even">
+<td><code>:q</code></td>
+<td>close the Neovim window when no unsaved changes remain</td>
+</tr>
+<tr class="odd">
+<td><code>:terminal</code></td>
+<td>open a terminal buffer</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+\</code>, then <code>Ctrl+n</code></td>
+<td>leave direct terminal input</td>
+</tr>
+</tbody>
+</table>
+<p>See <code>:Tutor</code>, <code>:help quickref</code>, and the <a href="https://neovim.io/doc/user/">official Neovim help</a> for more
+Neovim commands.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__settingsmd">
+<section id="docs__en__manual__settingsmd__settings-reference" class="level2">
+<h2>Settings reference</h2>
+<p>Open
+<code>NVDA menu &gt; Preferences &gt; Settings... &gt; Neovim Access Link</code>.
+The dialog contains the <code>General</code>, <code>Feedback</code>,
+<code>Navigation</code>, <code>Braille</code>, and
+<code>Connections</code> tabs.</p>
+<p>Settings belong to the active NVDA configuration profile.
+<code>Apply</code> saves changes and keeps the dialog open;
+<code>OK</code> saves and closes it. <code>Cancel</code> discards
+changes that have not been applied.</p>
+<section id="docs__en__manual__settingsmd__general" class="level3">
+<h3>General</h3>
+<section id="docs__en__manual__settingsmd__global-action-feedback" class="level4">
+<h4>Global action feedback</h4>
+<p><code>Global action feedback</code> controls general messages such as
+activation, connection, disconnection, and errors.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Choice</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Off</code></td>
+<td>no speech or sound</td>
+</tr>
+<tr class="even">
+<td><code>Speech</code></td>
+<td>spoken message only</td>
+</tr>
+<tr class="odd">
+<td><code>Tones</code></td>
+<td>sound only</td>
+</tr>
+<tr class="even">
+<td><code>Both Speech and Tones</code></td>
+<td>message and sound; default</td>
+</tr>
+</tbody>
+</table>
+<p>Individual actions on the <code>Feedback</code> tab have their own
+values and are not replaced by this choice.</p>
+</section>
+<section id="docs__en__manual__settingsmd__session-focus" class="level4">
+<h4>Session focus</h4>
+<p><code>When focusing or changing buffers in a Neovim session</code>
+controls output after a confirmed focus or buffer change.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Choice</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>No announcement</code></td>
+<td>no additional focus announcement</td>
+</tr>
+<tr class="even">
+<td><code>Current line</code></td>
+<td>structured cursor line</td>
+</tr>
+<tr class="odd">
+<td><code>Current context, mode and connection name</code></td>
+<td>file or special context, mode, and connection; default</td>
+</tr>
+</tbody>
+</table>
+<p>The choice also applies when returning from Neovim&#39;s command line and
+when leaving an embedded terminal for an editor buffer.</p>
+<p><code>Automatically speak the active function parameter while typing</code>
+is enabled by default. When LSP signature help is available, Access Link
+speaks the active parameter on entering or changing an argument.
+Movement within the same argument remains silent. This feature uses
+speech; Braille remains on source text.</p>
+</section>
+</section>
+<section id="docs__en__manual__settingsmd__feedback" class="level3">
+<h3>Feedback</h3>
+<p>Most entries offer <code>Off</code>, <code>Speech</code>,
+<code>Tones</code>, and <code>Both Speech and Tones</code>. Diagnostic
+entries offer only <code>Off</code> and <code>Tones</code>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>UI entry</th>
+<th>Default</th>
+<th>Event controlled</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Insert and normal mode changes</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>Insert, Normal, Terminal, and Command-line modes</td>
+</tr>
+<tr class="even">
+<td><code>Deleting text</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>character and text deletion</td>
+</tr>
+<tr class="odd">
+<td><code>Replacing text</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>text replacement</td>
+</tr>
+<tr class="even">
+<td><code>Copy and paste</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>Access Link clipboard commands</td>
+</tr>
+<tr class="odd">
+<td><code>Line boundaries</code></td>
+<td><code>Tones</code></td>
+<td>beginning and end of line, and speech-exploration origin</td>
+</tr>
+<tr class="even">
+<td><code>File boundaries</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>beginning and end of file</td>
+</tr>
+<tr class="odd">
+<td><code>Crossing into another line</code></td>
+<td><code>Tones</code></td>
+<td>horizontal movement across a line boundary</td>
+</tr>
+<tr class="even">
+<td><code>Missing matching bracket</code></td>
+<td><code>Both Speech and Tones</code></td>
+<td>missing bracket pair</td>
+</tr>
+<tr class="odd">
+<td><code>Diagnostics when entering a line</code></td>
+<td><code>Tones</code></td>
+<td>entering a diagnostic line</td>
+</tr>
+<tr class="even">
+<td><code>Diagnostics at the cursor position</code></td>
+<td><code>Tones</code></td>
+<td>cursor inside a diagnostic or an explicit empty query</td>
+</tr>
+</tbody>
+</table>
+<p>Typing echo, indentation, suggestions, spelling, and grammar follow
+the corresponding NVDA settings. Access Link does not add a second
+configuration for them.</p>
+</section>
+<section id="docs__en__manual__settingsmd__navigation" class="level3">
+<h3>Navigation</h3>
+<p>This tab controls additional speech after normal Neovim navigation
+and after releasing the NVDA key in speech exploration mode.</p>
+<section id="docs__en__manual__settingsmd__normal-navigation" class="level4">
+<h4>Normal navigation</h4>
+<table>
+<thead>
+<tr class="header">
+<th>UI entry</th>
+<th>Choices</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Word navigation</code></td>
+<td><code>Word only</code>; <code>Word and cursor character</code></td>
+<td><code>Word and cursor character</code></td>
+</tr>
+<tr class="even">
+<td><code>Line navigation</code></td>
+<td><code>Line only</code>; <code>Line and current word</code>;
+<code>Line and cursor character</code>;
+<code>Line, current word and cursor character</code></td>
+<td><code>Line and cursor character</code></td>
+</tr>
+</tbody>
+</table>
+<p>Neovim&#39;s <code>w</code>, <code>b</code>, <code>j</code>,
+<code>k</code>, and other movement commands continue to move the real
+cursor. These settings change only the resulting output.</p>
+</section>
+<section id="docs__en__manual__settingsmd__speech-exploration-mode-release" class="level4">
+<h4>Speech exploration mode release</h4>
+<table>
+<thead>
+<tr class="header">
+<th>UI entry</th>
+<th>Choices</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>After word exploration in speech exploration mode</code></td>
+<td><code>Word only</code>; <code>Word and cursor character</code></td>
+<td><code>Word and cursor character</code></td>
+</tr>
+<tr class="even">
+<td><code>After line exploration in speech exploration mode</code></td>
+<td>the same four line choices as above</td>
+<td><code>Line and cursor character</code></td>
+</tr>
+</tbody>
+</table>
+<p>The virtual position spoken during exploration is independent of
+these choices. See <a href="#docs__en__manual__speech-explorationmd__speech-exploration-mode">Speech
+exploration mode</a>.</p>
+</section>
+</section>
+<section id="docs__en__manual__settingsmd__braille" class="level3">
+<h3>Braille</h3>
+<section id="docs__en__manual__settingsmd__speech-exploration-mode" class="level4">
+<h4>Speech exploration mode</h4>
+<p><code>Braille display follows the speech exploration mode position</code>
+is enabled by default. During <code>NVDA+h</code>, <code>NVDA+j</code>,
+<code>NVDA+k</code>, <code>NVDA+l</code>, and the word variants, the
+display shows the virtual reading position. Releasing the NVDA key
+returns it to the real cursor. Disable the option to keep Braille at the
+real cursor during speech exploration.</p>
+</section>
+<section id="docs__en__manual__settingsmd__routing-keys" class="level4">
+<h4>Routing keys</h4>
+<p><code>Double routing press on a word</code> offers:</p>
+<ul>
+<li><code>Route only</code> (default),</li>
+<li><code>Change word (cw)</code>,</li>
+<li><code>Delete word (dw)</code>.</li>
+</ul>
+<p><code>Triple routing press on a line</code> offers:</p>
+<ul>
+<li><code>Route only</code> (default),</li>
+<li><code>Change to end of line (c$)</code>,</li>
+<li><code>Delete to end of line (d$)</code>.</li>
+</ul>
+<p><code>Start triple-press line action at</code> offers:</p>
+<ul>
+<li><code>Routed position</code> (default),</li>
+<li><code>First non-blank character</code>,</li>
+<li><code>Beginning of line</code>.</li>
+</ul>
+<p>Repeat detection uses NVDA&#39;s multiple key press timeout from the
+Keyboard settings.</p>
+</section>
+<section id="docs__en__manual__settingsmd__spelling-suggestions" class="level4">
+<h4>Spelling suggestions</h4>
+<p><code>Start spelling suggestions at Braille cell</code> uses a
+one-based cell number. The default is 1. When the complete suggestion
+does not fit to the right, Access Link moves it left and aligns it as
+close to the right edge as possible. A position beyond the connected
+display uses cell 1.</p>
+</section>
+<section id="docs__en__manual__settingsmd__developer-information" class="level4">
+<h4>Developer information</h4>
+<p><code>Start temporary developer information at Braille cell</code>
+controls the position of held signature, parameter, and diagnostic
+views. The default is 1. The same safe alignment as spelling suggestions
+applies to insufficient space and an invalid position.</p>
+<p>See <a href="#docs__en__manual__braillemd__braille-support">Braille
+support</a> for complete operation.</p>
+</section>
+</section>
+<section id="docs__en__manual__settingsmd__connections" class="level3">
+<h3>Connections</h3>
+<p>This tab contains saved SSH targets. Local Windows Neovim needs no
+connection entry.</p>
+<p><code>Saved connections</code> shows the chosen name, SSH target, and
+a port that differs from the default 22. There is no default
+connection.</p>
+<section id="docs__en__manual__settingsmd__add-edit-or-remove-a-connection" class="level4">
+<h4>Add, edit, or remove a connection</h4>
+<ul>
+<li><code>Add connection...</code> opens an empty Linux connection
+form.</li>
+<li><code>Edit connection...</code> opens the selected entry.</li>
+<li><code>Remove connection</code> deletes the entry from the current
+NVDA profile after <code>Apply</code> or <code>OK</code>.</li>
+</ul>
+<p>Removing a profile does not uninstall components, delete keys, or
+change OpenSSH configuration.</p>
+</section>
+<section id="docs__en__manual__settingsmd__linux-connection-fields" class="level4">
+<h4>Linux connection fields</h4>
+<table>
+<thead>
+<tr class="header">
+<th>UI field</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Connection name</code></td>
+<td>freely chosen unique label</td>
+</tr>
+<tr class="even">
+<td><code>Server name, address or SSH alias</code></td>
+<td>DNS name, IP address, or OpenSSH alias</td>
+</tr>
+<tr class="odd">
+<td><code>Linux username (optional when defined by SSH config)</code></td>
+<td>account running Neovim and the bridge</td>
+</tr>
+<tr class="even">
+<td><code>SSH port</code></td>
+<td>number from 1 through 65535; default 22</td>
+</tr>
+<tr class="odd">
+<td><code>Private key file (optional)</code></td>
+<td>key file for OpenSSH; empty uses configuration, default keys, or
+<code>ssh-agent</code></td>
+</tr>
+<tr class="even">
+<td><code>Sign-in method</code></td>
+<td>OpenSSH setup or password prompt</td>
+</tr>
+</tbody>
+</table>
+<p><code>Use OpenSSH setup (recommended: keys, ssh-agent or SSH config)</code>
+uses normal Windows OpenSSH configuration.</p>
+<p><code>Ask for the SSH password when connecting (password is not saved)</code>
+prompts accessibly for the Linux password when needed. The password
+remains in memory only for the current NVDA process. The SSH server must
+allow password login for that account.</p>
+<p>Install or remove components under
+<code>NVDA menu &gt; Neovim Access Link</code>. This submenu also opens
+the settings and the four installed documents. The <a href="quick-guide.html">Quick Guide</a> describes
+the setup procedure.</p>
+</section>
+</section>
+<section id="docs__en__manual__settingsmd__recommended-starting-point" class="level3">
+<h3>Recommended starting point</h3>
+<p>The defaults provide a directly usable starting point:</p>
+<ul>
+<li>general actions, modes, editing, file boundaries, bracket errors,
+and clipboard actions use speech and sounds;</li>
+<li>line boundaries, line changes, and diagnostics use short
+sounds;</li>
+<li>focus announces context, mode, and connection name;</li>
+<li>word and line navigation include the cursor character;</li>
+<li>repeated Braille routing performs no editing action;</li>
+<li>Braille follows speech exploration.</li>
+</ul>
+<p>Begin by changing only feedback that is concretely too frequent or
+too brief in your NVDA configuration.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__soundsmd">
+<section id="docs__en__manual__soundsmd__sounds-and-earcons" class="level2">
+<h2>Sounds and earcons</h2>
+<p>Access Link uses short sounds so that frequent editor states do not
+always need speech. The <code>Feedback</code> tab controls speech and
+sounds separately for each event. Typing echo, indentation, spelling,
+and grammar follow NVDA&#39;s own settings.</p>
+<section id="docs__en__manual__soundsmd__sound-overview" class="level3">
+<h3>Sound overview</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Event</th>
+<th>Sound</th>
+<th>Setting</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>connection established</td>
+<td>NVDA&#39;s <code>connected.wav</code></td>
+<td><code>Global action feedback</code></td>
+</tr>
+<tr class="even">
+<td>active connection disconnected</td>
+<td>NVDA&#39;s <code>disconnected.wav</code></td>
+<td><code>Global action feedback</code></td>
+</tr>
+<tr class="odd">
+<td>Insert mode or direct terminal input</td>
+<td>NVDA&#39;s focus-mode sound</td>
+<td><code>Insert and normal mode changes</code></td>
+</tr>
+<tr class="even">
+<td>Normal or Terminal-Normal mode</td>
+<td>NVDA&#39;s browse-mode sound</td>
+<td><code>Insert and normal mode changes</code></td>
+</tr>
+<tr class="odd">
+<td>Neovim command line</td>
+<td>short middle tone</td>
+<td><code>Insert and normal mode changes</code></td>
+</tr>
+<tr class="even">
+<td>text deletion</td>
+<td>short deletion sound</td>
+<td><code>Deleting text</code></td>
+</tr>
+<tr class="odd">
+<td>text replacement</td>
+<td>short replacement sound</td>
+<td><code>Replacing text</code></td>
+</tr>
+<tr class="even">
+<td>beginning or end of line</td>
+<td>distinct boundary sounds</td>
+<td><code>Line boundaries</code></td>
+</tr>
+<tr class="odd">
+<td>beginning or end of file</td>
+<td>distinct boundary sounds</td>
+<td><code>File boundaries</code></td>
+</tr>
+<tr class="even">
+<td>horizontal movement into another line</td>
+<td>short transition sound</td>
+<td><code>Crossing into another line</code></td>
+</tr>
+<tr class="odd">
+<td>missing bracket pair</td>
+<td>NVDA&#39;s error sound</td>
+<td><code>Missing matching bracket</code></td>
+</tr>
+<tr class="even">
+<td>suggestion menu opened or closed</td>
+<td>NVDA&#39;s suggestion sounds</td>
+<td>NVDA suggestion setting</td>
+</tr>
+<tr class="odd">
+<td>spelling or grammar error</td>
+<td>NVDA&#39;s text-error sound</td>
+<td>NVDA Document Formatting</td>
+</tr>
+<tr class="even">
+<td>diagnostic line or position</td>
+<td>short error or warning sound</td>
+<td>corresponding diagnostic setting</td>
+</tr>
+<tr class="odd">
+<td>explicit diagnostic query with no result</td>
+<td>short neutral confirmation sound</td>
+<td>corresponding diagnostic setting</td>
+</tr>
+</tbody>
+</table>
+<p>A connection or mode sound plays only for the corresponding confirmed
+state transition. Resynchronizing the same state does not repeat it.</p>
+</section>
+<section id="docs__en__manual__soundsmd__indentation" class="level3">
+<h3>Indentation</h3>
+<p>Indentation follows NVDA&#39;s setting under
+<code>Document Formatting</code>. Access Link uses NVDA&#39;s tone pitch and
+duration and produces an indentation tone only when indentation
+changes.</p>
+</section>
+<section id="docs__en__manual__soundsmd__spelling-and-grammar" class="level3">
+<h3>Spelling and grammar</h3>
+<p>NVDA Document Formatting controls speech, sounds, and Braille marking
+independently:</p>
+<ul>
+<li><code>Speech</code> controls the localized spelling- or
+grammar-error announcement.</li>
+<li><code>Sound</code> controls the text-error sound.</li>
+<li><code>Braille</code> controls marking on the Braille display.</li>
+</ul>
+<p>The same setting applies after completing a misspelled word, during
+normal word navigation, and during word exploration. The reached word is
+still spoken independently of error feedback.</p>
+</section>
+<section id="docs__en__manual__soundsmd__diagnostics" class="level3">
+<h3>Diagnostics</h3>
+<p>Errors and warnings have distinct short sounds. Access Link plays
+them during deliberate navigation into a diagnostic line or diagnostic
+position. Typing and background updates remain silent. Information and
+hint diagnostics produce no diagnostic sound.</p>
+<p>An explicit diagnostic query with no result uses a separate neutral
+sound and the message <code>no diagnostic</code>. Ordinary navigation
+over text without diagnostics remains silent.</p>
+<p>Sources and licenses for bundled audio files are in
+<code>resources/sounds/LICENSE.txt</code> in the installed add-on and in
+the developer documentation.</p>
+</section>
+</section>
+</div>
+<div id="docs__en__manual__troubleshootingmd">
+<section id="docs__en__manual__troubleshootingmd__troubleshooting-and-diagnostic-reports" class="level2">
+<h2>Troubleshooting and diagnostic reports</h2>
+<p>Start with the first missing step: add-on active, plugin loaded,
+session found, connection established, and optional tool configured.</p>
+<section id="docs__en__manual__troubleshootingmd__copy-a-diagnostic-report" class="level3">
+<h3>Copy a diagnostic report</h3>
+<p>Focus Windows Terminal and press <code>NVDA+Alt+D</code>. The same
+command appears under
+<code>NVDA menu → Preferences → Input gestures... → Neovim Access Link</code>.
+The report is copied to the Windows clipboard.</p>
+<p>Editor text, selections, registers, passwords, and tokens are
+replaced with placeholders. Installation messages can still contain
+local paths, profile names, or SSH targets. Review the report before
+sharing it.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__the-add-on-does-not-respond" class="level3">
+<h3>The add-on does not respond</h3>
+<ol type="1">
+<li>Focus Windows Terminal. Access Link does not intervene in other
+applications.</li>
+<li>Confirm that Neovim Access Link is enabled in NVDA&#39;s installed
+add-ons.</li>
+<li>With Windows Terminal focused, open Input gestures and assign a
+gesture to the activation command.</li>
+<li>Restart NVDA after an installation or update.</li>
+</ol>
+<p>If the category is absent from Input gestures, close the dialog,
+focus Windows Terminal, and open it again.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__the-neovim-plugin-is-installed-but-not-loaded" class="level3">
+<h3>The Neovim plugin is installed but not loaded</h3>
+<p>Close every affected Neovim instance, update components for the
+correct target, and restart Neovim. Then check:</p>
+<pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
+<p>The expected result is <code>2</code>. A plugin manager that replaces
+<code>packpath</code> or start-package loading must register the local
+copy installed by the add-on. Do not install a second copy. See <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Setting
+up LSP, completion, and linters</a> for details and a
+<code>lazy.nvim</code> example.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__f12-does-not-connect" class="level3">
+<h3>F12 does not connect</h3>
+<ol type="1">
+<li>Activate Access Link and wait for the inventory-ready message.</li>
+<li>Focus the intended Neovim pane.</li>
+<li>Press F12 exactly once and wait up to two seconds.</li>
+<li>As a comparison, use the assignable “Choose a server and connect
+this terminal to a new Neovim session” command.</li>
+</ol>
+<p>Rapid repeated F12 presses each start another binding check. Copy the
+diagnostic report directly in the affected pane if the connection
+remains absent.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__the-wrong-session-is-connected" class="level3">
+<h3>The wrong session is connected</h3>
+<ol type="1">
+<li>Focus the affected Windows Terminal pane.</li>
+<li>Disconnect it or forget its temporary binding.</li>
+<li>Focus the intended Neovim and press F12 once.</li>
+</ol>
+<p>When several sessions look alike, an optional name makes selection
+clearer, for example on Linux:</p>
+<pre class="text"><code>NVIM_NVDA_SESSION_NAME=Documentation nvim</code></pre>
+</section>
+<section id="docs__en__manual__troubleshootingmd__ssh-connection-fails" class="level3">
+<h3>SSH connection fails</h3>
+<p>Test the same target outside the add-on in Windows Terminal
+first:</p>
+<pre class="text"><code>ssh user@example.invalid</code></pre>
+<p>Confirm the host key there and resolve key files, passphrases,
+<code>ssh-agent</code>, or server-side password authentication. Access
+Link changes neither the Windows SSH configuration nor the server&#39;s
+<code>sshd_config</code>. Then update the Linux components and restart
+Neovim.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__access-link-works-but-lsp-or-diagnostics-are-absent" class="level3">
+<h3>Access Link works but LSP or diagnostics are absent</h3>
+<p>Press the LSP status sequence defined by your Neovim configuration or
+run <code>:NvimNvdaLspStatus</code>. If Access Link reports no active
+client, use <code>:checkhealth vim.lsp</code> to inspect the Neovim
+configuration and confirm that the language server is found on the
+computer where Neovim runs.</p>
+<p>Diagnostics appear only after a language server or linter publishes
+them through Neovim&#39;s diagnostic API. Check the tool command in the same
+terminal and run a manually mapped linter action. The <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">setup
+guide</a> contains a complete Python test path.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__terminal-fragments-are-spoken" class="level3">
+<h3>Terminal fragments are spoken</h3>
+<p>A connected and safely associated Neovim session uses structured
+output. Native terminal output remains active in an unconnected pane,
+during direct input in <code>:terminal</code>, after disconnecting, and
+whenever Access Link cannot safely confirm the association.</p>
+<p>If unexpected fragments occur after switching windows, tabs, or
+panes, copy the diagnostic report immediately in the affected pane.
+Deactivate Access Link as a safety check; complete native terminal
+output must return.</p>
+</section>
+<section id="docs__en__manual__troubleshootingmd__nvda-does-not-respond-after-a-dialog" class="level3">
+<h3>NVDA does not respond after a dialog</h3>
+<p>Use <code>Alt+Tab</code> to locate an open result, confirmation, or
+password dialog and close or cancel it. Restart NVDA if it no longer
+responds. Then preserve the diagnostic report and the preceding NVDA
+log. Review both for confidential information before sharing them.</p>
+</section>
+</section>
+</div>
+</body>
+</html>

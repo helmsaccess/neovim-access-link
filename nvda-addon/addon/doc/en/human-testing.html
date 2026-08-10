@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="description" content="Guided practical tests for Neovim Access Link with NVDA, Windows Terminal, speech, and Braille." />
+  <title>Neovim Access Link – Guided Practical Tests with NVDA</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">:root {
+color-scheme: light dark;
+font-family: system-ui, sans-serif;
+line-height: 1.55;
+}
+body {
+margin: 0 auto;
+max-width: 78rem;
+padding: 1rem 2rem 4rem;
+}
+a { text-decoration-thickness: 0.12em; }
+a:focus-visible { outline: 0.2rem solid currentColor; outline-offset: 0.2rem; }
+nav#TOC { border: 0.1rem solid currentColor; padding: 0.5rem 1.5rem; }
+h1 { font-size: 2rem; }
+h2 { border-top: 0.15rem solid currentColor; margin-top: 3rem; padding-top: 1rem; }
+h3 { margin-top: 2rem; }
+code, pre { font-family: ui-monospace, monospace; }
+pre { border: 0.1rem solid currentColor; overflow-x: auto; padding: 0.8rem; white-space: pre-wrap; }
+table { border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; }
+th, td { border: 0.1rem solid currentColor; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+img, svg { max-width: 100%; }
+@media print {
+:root { color-scheme: light; }
+body { max-width: none; padding: 0; }
+h2 { break-before: page; }
+a { color: inherit; }
+pre, table { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Neovim Access Link – Guided Practical Tests with
+NVDA</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#guided-practical-tests-with-nvda" id="toc-guided-practical-tests-with-nvda">Guided practical tests with
+NVDA</a>
+<ul>
+<li><a href="#purpose-and-scope" id="toc-purpose-and-scope">Purpose and
+scope</a></li>
+<li><a href="#which-suite-should-be-used" id="toc-which-suite-should-be-used">Which suite should be used?</a>
+<ul>
+<li><a href="#stable-test-ids" id="toc-stable-test-ids">Stable test
+IDs</a></li>
+</ul></li>
+<li><a href="#two-views-in-the-same-terminal-tab" id="toc-two-views-in-the-same-terminal-tab">Two views in the same
+terminal tab</a></li>
+<li><a href="#prerequisites" id="toc-prerequisites">Prerequisites</a></li>
+<li><a href="#beginner-friendly-start" id="toc-beginner-friendly-start">Beginner-friendly start</a>
+<ul>
+<li><a href="#1-open-powershell-in-the-correct-directory" id="toc-1-open-powershell-in-the-correct-directory">1. Open PowerShell
+in the correct directory</a></li>
+<li><a href="#2-start-the-runner" id="toc-2-start-the-runner">2. Start
+the runner</a></li>
+<li><a href="#3-declare-available-equipment" id="toc-3-declare-available-equipment">3. Declare available
+equipment</a></li>
+<li><a href="#4-perform-one-task" id="toc-4-perform-one-task">4. Perform
+one task</a></li>
+</ul></li>
+<li><a href="#keys-used-by-the-runner" id="toc-keys-used-by-the-runner">Keys used by the runner</a></li>
+<li><a href="#what-happens-automatically-before-the-first-test" id="toc-what-happens-automatically-before-the-first-test">What happens
+automatically before the first test</a></li>
+<li><a href="#outcome-choices" id="toc-outcome-choices">Outcome
+choices</a></li>
+<li><a href="#interrupt-and-resume-easily" id="toc-interrupt-and-resume-easily">Interrupt and resume
+easily</a></li>
+<li><a href="#json-results-and-machine-assessment" id="toc-json-results-and-machine-assessment">JSON results and machine
+assessment</a></li>
+<li><a href="#optional-compatibility-and-individual-tests" id="toc-optional-compatibility-and-individual-tests">Optional
+compatibility and individual tests</a></li>
+<li><a href="#cleanup-and-common-problems" id="toc-cleanup-and-common-problems">Cleanup and common
+problems</a></li>
+<li><a href="#maintaining-the-framework" id="toc-maintaining-the-framework">Maintaining the framework</a></li>
+</ul></li>
+</ul>
+</nav>
+<section id="guided-practical-tests-with-nvda" class="level2">
+<h2>Guided practical tests with NVDA</h2>
+<section id="purpose-and-scope" class="level3">
+<h3>Purpose and scope</h3>
+<p>These practical tests check a finished Neovim Access Link build only
+where an automated test cannot decide reliably: real NVDA speech,
+audible sounds, a physical Braille display, held NVDA gestures, and
+actual focus in Windows Terminal. One task combines related perceptions
+of the same interaction, so Neovim does not have to start twice with the
+same fixture merely to separate speech from sounds. LSP responses,
+diagnostic ranges, jump targets, adapter state, and file formats remain
+the responsibility of automated tests.</p>
+<p>The automatic-parameter task therefore assesses only whether real
+Pyright transitions are spoken clearly without disruptive delay and
+whether Braille stays on source text. Resolver behavior, nesting,
+overloads, returning to an already filled parameter, deduplication,
+bounds, and stale replies have separate automated regressions.</p>
+<p>The fixtures nevertheless provide deliberate real choices: at least
+three completion candidates, two function signatures with three
+parameters each, and two diagnostics on the first diagnostic line. Thus,
+an instruction to cycle always causes a visible content change. The
+smoke suite&#39;s audio portions cover all five distinct sounds in this
+area: completion menu opened, completion menu closed, diagnostic
+warning, diagnostic error, and confirmation of an explicit diagnostic
+query with no match. Information and hint diagnostics intentionally have
+no dedicated diagnostic sound and are therefore not presented as
+additional sound types.</p>
+<p>The runner is intended even for testers with little Neovim
+experience. Before every task, it structures the instruction as
+follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Display</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Purpose of this test</strong></td>
+<td>feature being checked and why it matters</td>
+</tr>
+<tr class="even">
+<td><strong>Keys and steps</strong></td>
+<td>short numbered sequence with the effect of each key</td>
+</tr>
+<tr class="odd">
+<td><strong>Pass when</strong></td>
+<td>expected perceptible output</td>
+</tr>
+<tr class="even">
+<td><code>Escape</code>, then <code>F2</code></td>
+<td>display and report the test ID, purpose, steps, and pass condition
+again in Neovim</td>
+</tr>
+<tr class="odd">
+<td><code>Escape</code>, then <code>F10</code></td>
+<td>safely close test Neovim and return to runner PowerShell</td>
+</tr>
+</tbody>
+</table>
+<p>Hard line breaks separate numbered steps only. Windows Terminal wraps
+longer lines to its current width, so a maximized window uses the
+available space. Longer native workflows are assigned to the function
+keys named by the task; testers do not have to enter colon commands. The
+personal <code>init.lua</code>, Lazy configuration, and Neovim data
+directories are not changed.</p>
+</section>
+<section id="which-suite-should-be-used" class="level3">
+<h3>Which suite should be used?</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Suite</th>
+<th>Contents</th>
+<th>When to run it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>smoke</code></td>
+<td>native LSP, search, replacement, and completion, Ruff diagnostics,
+focus isolation, and fail-open behavior</td>
+<td>normal practical check; recommended, about 20 to 30 minutes</td>
+</tr>
+<tr class="even">
+<td><code>compatibility</code></td>
+<td>nvim-cmp and blink.cmp completion menus plus one C/Clang-Tidy and
+one Markdown/markdownlint diagnostic</td>
+<td>after changes to adapters, linter integration, or dependencies</td>
+</tr>
+<tr class="odd">
+<td><code>all</code></td>
+<td>both suites in one result</td>
+<td>only when both areas are affected</td>
+</tr>
+<tr class="even">
+<td>individual selection</td>
+<td>individual tasks grouped by category in the menu</td>
+<td>targeted recheck of an affected area; saves time and unnecessary
+downloads</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Individual-selection category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LSP and language intelligence</td>
+<td>LSP status, automatic active parameters, held function signatures,
+native search/replacement, and LSP rename</td>
+</tr>
+<tr class="even">
+<td>Completion</td>
+<td>native completion, nvim-cmp, and blink.cmp</td>
+</tr>
+<tr class="odd">
+<td>Diagnostics and linters</td>
+<td>Ruff, Clang-Tidy, and markdownlint</td>
+</tr>
+<tr class="even">
+<td>Session and terminal integration</td>
+<td>focus isolation and fail-open behavior</td>
+</tr>
+</tbody>
+</table>
+<section id="stable-test-ids" class="level4">
+<h4>Stable test IDs</h4>
+<p>Every task has a unique two-character ID. The first letter identifies
+its category (<code>L</code> for LSP/language intelligence,
+<code>C</code> for completion, <code>D</code> for diagnostics, and
+<code>S</code> for session integration); the second character
+distinguishes tasks. IDs are never renumbered or reused. They appear in
+the selection menu, before every task, in the JSON result, and when
+<code>F2</code> is pressed in test Neovim. Thus, “failure in D3” is an
+unambiguous reference.</p>
+<table>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Task</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>L1</code></td>
+<td>LSP status</td>
+</tr>
+<tr class="even">
+<td><code>L2</code></td>
+<td>automatic active parameters</td>
+</tr>
+<tr class="odd">
+<td><code>L3</code></td>
+<td>held function signatures and parameters</td>
+</tr>
+<tr class="even">
+<td><code>L4</code></td>
+<td>native search, Quickfix, and project-wide replacement</td>
+</tr>
+<tr class="odd">
+<td><code>L5</code></td>
+<td>native LSP rename across files</td>
+</tr>
+<tr class="even">
+<td><code>L6</code></td>
+<td>native replacement across listed buffers</td>
+</tr>
+<tr class="odd">
+<td><code>C1</code></td>
+<td>native completion</td>
+</tr>
+<tr class="even">
+<td><code>C2</code></td>
+<td>nvim-cmp</td>
+</tr>
+<tr class="odd">
+<td><code>C3</code></td>
+<td>blink.cmp</td>
+</tr>
+<tr class="even">
+<td><code>D1</code></td>
+<td>Python/Ruff diagnostics</td>
+</tr>
+<tr class="odd">
+<td><code>D2</code></td>
+<td>held diagnostics</td>
+</tr>
+<tr class="even">
+<td><code>D3</code></td>
+<td>C/Clang-Tidy diagnostics</td>
+</tr>
+<tr class="odd">
+<td><code>D4</code></td>
+<td>Markdown/markdownlint diagnostics</td>
+</tr>
+<tr class="even">
+<td><code>S1</code></td>
+<td>focus isolation and disconnect</td>
+</tr>
+</tbody>
+</table>
+<p>Standard tasks always run in this order: native LSP, diagnostics,
+then focus isolation. Missing audio or a missing Braille display does
+not prevent the other tasks. Without audio, explicitly conditional sound
+portions are not assessed and the JSON environment records that fact.
+Tasks requiring physical Braille hardware are marked
+<code>notApplicable</code> automatically.</p>
+</section>
+</section>
+<section id="two-views-in-the-same-terminal-tab" class="level3">
+<h3>Two views in the same terminal tab</h3>
+<p>This distinction is important:</p>
+<table>
+<thead>
+<tr class="header">
+<th>View</th>
+<th>What happens there</th>
+<th>How to leave it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Runner PowerShell</strong></td>
+<td>start <code>run.ps1</code>, read the instruction, and select the
+outcome after the task</td>
+<td>Enter starts the announced task in test Neovim</td>
+</tr>
+<tr class="even">
+<td><strong>Test Neovim</strong></td>
+<td>perform exactly the one announced task</td>
+<td><code>Escape</code>, then <code>F10</code> closes only test Neovim;
+the same runner PowerShell reappears</td>
+</tr>
+</tbody>
+</table>
+<p>Only the focus task requires a second Windows Terminal tab. The
+runner says exactly when to open and leave it. All other work stays in
+the original tab.</p>
+</section>
+<section id="prerequisites" class="level3">
+<h3>Prerequisites</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Prerequisite</th>
+<th>What it is needed for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Windows 11, Windows Terminal, and NVDA with the build under
+test</td>
+<td>the practical test itself</td>
+</tr>
+<tr class="even">
+<td>current local Neovim components installed through the NVDA menu</td>
+<td>the connection between Neovim and Access Link</td>
+</tr>
+<tr class="odd">
+<td>Neovim 0.12.x, Git for Windows, Node.js LTS, and Python 3.12</td>
+<td>isolated test environment, LSP, linters, and completion plugins</td>
+</tr>
+<tr class="even">
+<td>internet access during initial setup</td>
+<td>downloading pinned test dependencies</td>
+</tr>
+<tr class="odd">
+<td>audio output</td>
+<td>sound portions of completion and diagnostic workflows; without audio
+only speech and usability are assessed</td>
+</tr>
+<tr class="even">
+<td>physical Braille display</td>
+<td>Braille tasks only; without one they are marked
+<code>notApplicable</code></td>
+</tr>
+</tbody>
+</table>
+<p>The runner compares the runtime code of the installed Neovim plugin
+with the current repository. If they differ, reinstall local components
+from the NVDA menu first. This prevents an old plugin revision from
+being assessed by mistake.</p>
+</section>
+<section id="beginner-friendly-start" class="level3">
+<h3>Beginner-friendly start</h3>
+<section id="1-open-powershell-in-the-correct-directory" class="level4">
+<h4>1. Open PowerShell in the correct directory</h4>
+<p>Open an ordinary PowerShell in Windows Terminal. Change to the
+repository root: the directory containing <code>tests</code>,
+<code>docs</code>, <code>neovim-plugin</code>, and
+<code>nvda-addon</code>, among other entries. For example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Set-Location</span> <span class="st">&quot;C:\path\to\the\repository&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-ChildItem</span> tests\human\framework\run<span class="op">.</span><span class="fu">ps1</span></span></code></pre></div>
+<p>The second command must display <code>run.ps1</code>. If it does not,
+PowerShell is still in the wrong directory.</p>
+</section>
+<section id="2-start-the-runner" class="level4">
+<h4>2. Start the runner</h4>
+<div class="sourceCode" id="cb2"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\tests\human\framework\run<span class="op">.</span><span class="fu">ps1</span></span></code></pre></div>
+<p>If the local execution policy blocks direct startup:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>powershell<span class="op">.</span><span class="fu">exe</span> <span class="op">-</span>NoProfile <span class="op">-</span>ExecutionPolicy Bypass `</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>File <span class="op">.</span>\tests\human\framework\run<span class="op">.</span><span class="fu">ps1</span></span></code></pre></div>
+<p>Select <strong>Start a new short standard test</strong>. This menu
+item deliberately starts a new JSON file; after an interruption, select
+<strong>Resume an incomplete run</strong> instead. An invalid entry
+leaves the menu open and requests a valid number again. For a targeted
+recheck, select <strong>Select individual test tasks by
+category</strong> instead. A number toggles its task; <code>S</code>
+starts only the marked tasks.</p>
+</section>
+<section id="3-declare-available-equipment" class="level4">
+<h4>3. Declare available equipment</h4>
+<p>Answer the audio and physical Braille questions accurately. Enter
+accepts the displayed default. Not having a Braille display is not a
+failure; applicable tasks are omitted.</p>
+</section>
+<section id="4-perform-one-task" class="level4">
+<h4>4. Perform one task</h4>
+<p>Every task is one small, complete cycle:</p>
+<pre class="text"><code>Read one instruction in PowerShell
+-&gt; press Enter
+-&gt; perform only that task in test Neovim
+-&gt; press Escape, then F10
+-&gt; select only that outcome back in PowerShell</code></pre>
+<p>Before startup, the runner states <strong>Purpose of this
+test</strong>, <strong>Keys and steps</strong>, and <strong>Pass
+when</strong>. Only then press Enter.</p>
+<p>When test Neovim appears:</p>
+<ol type="1">
+<li>Press <code>Escape</code> once. This ensures Neovim Normal mode is
+active, preventing accidental text insertion.</li>
+<li>Enable Access Link from the NVDA menu if needed.</li>
+<li>Focus the original Windows Terminal tab, press <code>F12</code>
+exactly once, and wait briefly for the connection.</li>
+<li>Perform only the displayed task.</li>
+<li>If uncertain, press <code>Escape</code>, then <code>F2</code>. The
+test ID, purpose, numbered steps, and pass condition are displayed again
+as a Neovim notification and reported by Access Link.</li>
+<li>After observing the result, press <code>Escape</code>, then
+<code>F10</code>. The runner PowerShell is now visible again in the
+original tab.</li>
+<li>Assess only the task just performed as pass, fail, blocked, or
+skipped.</li>
+</ol>
+<p>A fresh test Neovim starts for the next task. Nobody has to remember
+several checks or reset a fixture manually.</p>
+</section>
+</section>
+<section id="keys-used-by-the-runner" class="level3">
+<h3>Keys used by the runner</h3>
+<p>Each task names only the keys it needs. This table is a
+reference:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Meaning in test Neovim</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Escape</code>, then <code>F2</code></td>
+<td>repeat the ID, purpose, steps, and pass condition at any time</td>
+</tr>
+<tr class="even">
+<td><code>F3</code> in L1</td>
+<td>report the active LSP status through Access Link</td>
+</tr>
+<tr class="odd">
+<td><code>F3</code> in insertion and completion tasks</td>
+<td>open the prepared insertion location and enter Insert mode
+automatically; in a completion task, press <code>F5</code> next</td>
+</tr>
+<tr class="even">
+<td><code>F3</code>, <code>F4</code>, <code>F5</code> in L4</td>
+<td>run the native project search and open its Quickfix list, then
+select the next and previous result within the list</td>
+</tr>
+<tr class="odd">
+<td><code>F6</code> in L4</td>
+<td>start native project-wide replacement with Neovim&#39;s confirmation
+prompts</td>
+</tr>
+<tr class="even">
+<td><code>F3</code>, <code>F4</code> in L5</td>
+<td>open an empty name field, pass its input to Neovim&#39;s native LSP
+rename, and then report both renamed reference rows in sequence</td>
+</tr>
+<tr class="odd">
+<td><code>F3</code>, <code>F4</code> in L6</td>
+<td>run the prepared <code>bufdo</code> replacement and then report both
+files that actually changed</td>
+</tr>
+<tr class="even">
+<td><code>F5</code> in the diagnostic profile</td>
+<td>move to a prepared clean position and explicitly query its current
+diagnostic</td>
+</tr>
+<tr class="odd">
+<td><code>F6</code></td>
+<td>run the selected linter, wait for readiness, and place the cursor on
+the first expected test diagnostic</td>
+</tr>
+<tr class="even">
+<td><code>F7</code></td>
+<td>report the diagnostic at the current position</td>
+</tr>
+<tr class="odd">
+<td><code>F8</code> / <code>F9</code></td>
+<td>jump to the previous or next diagnostic</td>
+</tr>
+<tr class="even">
+<td><code>Escape</code>, then <code>F10</code></td>
+<td>close test Neovim without saving and return to PowerShell</td>
+</tr>
+</tbody>
+</table>
+<p>Completion is navigated with <code>Ctrl+N</code> and
+<code>Ctrl+P</code>, accepted with <code>Ctrl+Y</code>, and closed with
+<code>Ctrl+E</code>. Braille tasks spell out the required held NVDA
+gesture. L4 deliberately uses the short slash search; testers do not
+have to type longer colon commands because task-specific function keys
+execute the prepared native commands directly. Neovim retains execution
+and every confirmation prompt; generated command characters are not
+presented as typed input. In L4, <code>F3</code> reports the result
+count and <code>F4</code> or <code>F5</code> reports the complete result
+row and position. Repeated selection remains in the open Quickfix
+window; source files and windows are not announced as focus changes.
+Another press at the first or last result reports the reached boundary;
+neither an isolated character nor Neovim&#39;s “No more items” message may
+be presented. <code>F6</code> presents every native confirmation prompt
+before an answer is required, followed by exactly one aggregate summary;
+internally visited files or windows must not appear as focus changes.
+<code>F1</code> and <code>F11</code> are deliberately unused: F1 opens
+Neovim help, while F11 toggles Windows Terminal full-screen mode by
+default.</p>
+<p>In L5, the known reference file is already loaded before interaction.
+<code>F3</code> therefore accepts only the new name; Neovim, Pyright,
+and Neovim&#39;s normal <code>WorkspaceEdit</code> handler continue to own
+the rename. Each press of <code>F4</code> reports the next reference row
+that was actually changed without switching the current buffer. An
+automated TUI/RPC test drives those physical function keys with a
+deterministic test language server and excludes additional text, cursor,
+and context reports. The guided test is left to assess only speech and
+perceived latency under Windows/NVDA.</p>
+<p>L6 complements L4 with Neovim&#39;s buffer list. The second file is
+loaded and explicitly listed before interaction; <code>F3</code> lets
+Neovim run <code>bufdo</code> across both files. Access Link should
+provide only one aggregate result. Two presses of <code>F4</code> then
+verify the actual buffer contents without changing the current buffer.
+An automated real TUI/RPC test drives the same function keys and
+excludes additional text, cursor, and context reports.</p>
+</section>
+<section id="what-happens-automatically-before-the-first-test" class="level3">
+<h3>What happens automatically before the first test</h3>
+<p>The runner first validates plans, German and English text, and every
+referenced file. On the first run, it creates an isolated environment
+below <code>tmp/human-test-state/</code> containing:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>pinned versions of Pyright, Ruff, Clang-Tidy, and
+markdownlint-cli2</td>
+<td>reproducible LSP and diagnostic responses; only tools required by
+the selection are installed</td>
+</tr>
+<tr class="even">
+<td>pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, and
+blink.cmp</td>
+<td>reproducible provider and completion compatibility</td>
+</tr>
+<tr class="odd">
+<td>separate Neovim configuration, data, state, and cache
+directories</td>
+<td>complete isolation from the personal Neovim environment</td>
+</tr>
+</tbody>
+</table>
+<p>Pyright is provided as a pinned npm package archive and verified with
+SHA-512 before extraction. This avoids the <code>npm install</code> path
+that can stall in mounted directories on Windows.</p>
+<p>Later runs compare a separate environment fingerprint, the tool
+versions required by the selection, and all four plugin revisions.
+Changes only to task wording, translations, or result logic therefore do
+not trigger setup again. If the required tools and plugins already
+match, they are reused without package installation. Clang-Tidy and
+markdownlint are not installed preemptively for a normal smoke run. Only
+the technical preflight for actually selected profiles is repeated after
+a relevant runtime change.</p>
+<p>A direct probe first checks the real output of every required linter
+against its pinned fixture. A technical preflight then starts every
+selected test profile. For LSP tasks, it waits for an attached Pyright
+client. The rename task requires its native rename capability. In
+completion profiles the preflight requests the three named candidates;
+signature tasks additionally require at least two signatures with three
+parameters each. In the Python diagnostic profile, it requires two real
+Ruff F401 warnings on the first line and at least one Ruff F821 error.
+The C and Markdown profiles require a real Clang-Tidy error and
+markdownlint MD025 warning, respectively. If one profile fails, the
+runner still checks the remaining selected profiles and then summarizes
+every failure. A human tester only sees a perception task after these
+machine-decidable foundations work.</p>
+<p><strong>Set up or repair test dependencies</strong> is the explicit
+repair operation: it reinstalls managed plugin revisions and repeats
+this preflight. The normal standard test does not perform this forced
+reinstall. The personal Neovim environment remains untouched. Only the
+test Neovim process uses a temporary global Git configuration that marks
+the managed plugin directories below <code>tmp/human-test-state/</code>
+as safe. The personal global Git configuration is not modified.</p>
+</section>
+<section id="outcome-choices" class="level3">
+<h3>Outcome choices</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Choice</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>pass</strong></td>
+<td>The observed output matched the expectation.</td>
+</tr>
+<tr class="even">
+<td><strong>fail</strong></td>
+<td>The task could be performed but behaved incorrectly. A complete
+result has state <code>fail</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>blocked</strong></td>
+<td>An external prerequisite or technical problem prevented observation.
+The run remains incomplete.</td>
+</tr>
+<tr class="even">
+<td><strong>skipped</strong></td>
+<td>An applicable task was deliberately not checked. The run remains
+incomplete.</td>
+</tr>
+<tr class="odd">
+<td><code>notApplicable</code></td>
+<td>Set automatically when a task strictly needs unavailable hardware,
+currently the Braille tasks.</td>
+</tr>
+<tr class="even">
+<td><code>pending</code></td>
+<td>The task has not been assessed yet.</td>
+</tr>
+</tbody>
+</table>
+<p>Only <strong>pass</strong> is positive human evidence. All other
+manually selected states require a short reason. Do not enter private
+paths, account names, keys, or other secrets there.</p>
+</section>
+<section id="interrupt-and-resume-easily" class="level3">
+<h3>Interrupt and resume easily</h3>
+<p>Progress is saved after every task. After an interruption, start the
+runner again without parameters and select <strong>Resume an incomplete
+run</strong>. If several incomplete files exist, the runner lists the
+newest names for selection.</p>
+<p>Tasks already passed or failed remain unchanged. The runner asks
+whether blocked or skipped tasks should be reopened. This is explicit; a
+result is never rewritten silently.</p>
+<p>A file can also be supplied directly:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\tests\human\framework\run<span class="op">.</span><span class="fu">ps1</span> run `</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ResultPath <span class="op">.</span>\tmp\human-test-results\EXAMPLE<span class="op">.</span><span class="fu">json</span></span></code></pre></div>
+<p>A run can resume only with exactly the same test definition. The
+validator compares a SHA-256 fingerprint covering plans, translations,
+fixtures, dependencies, runner, validator, and the test Neovim
+configuration.</p>
+</section>
+<section id="json-results-and-machine-assessment" class="level3">
+<h3>JSON results and machine assessment</h3>
+<p>New files are stored below <code>tmp/human-test-results/</code>. The
+filename contains a timestamp, suite, and short random component, so
+rapidly started runs do not collide. Every selection atomically replaces
+the file.</p>
+<p>The JSON records:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Area</th>
+<th>Recorded data</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Run</td>
+<td>run ID, creation time, and completion time</td>
+</tr>
+<tr class="even">
+<td>Selection</td>
+<td>suite, exact two-character test IDs, language, and declared
+audio/Braille equipment</td>
+</tr>
+<tr class="odd">
+<td>Source state</td>
+<td>repository Git commit and dirty state</td>
+</tr>
+<tr class="even">
+<td>Runtime versions</td>
+<td>Neovim, installed add-on, and running NVDA versions when
+discoverable</td>
+</tr>
+<tr class="odd">
+<td>Consistency</td>
+<td>fingerprints of the test definition and installed Neovim plugin</td>
+</tr>
+<tr class="even">
+<td>Results</td>
+<td>two-character test ID, technical task key, status, and entered
+reason</td>
+</tr>
+</tbody>
+</table>
+<p>Editor content, host names, and credentials are not collected
+automatically. Files in ignored <code>tmp/</code> are not committed,
+uploaded, or collected by CI.</p>
+<p>Use <strong>Verify an existing JSON result file</strong> from the
+menu, or run:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\tests\human\framework\run<span class="op">.</span><span class="fu">ps1</span> verify `</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ResultPath <span class="op">.</span>\tmp\human-test-results\EXAMPLE<span class="op">.</span><span class="fu">json</span></span></code></pre></div>
+<p>The validator is also platform-independent:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tests/human/framework/validate.py result tmp/human-test-results/EXAMPLE.json</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Exit code</th>
+<th>Overall state</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>0</code></td>
+<td>complete; every applicable task passed</td>
+</tr>
+<tr class="even">
+<td><code>1</code></td>
+<td>structurally invalid or incompatible with current definitions</td>
+</tr>
+<tr class="odd">
+<td><code>2</code></td>
+<td>complete, but at least one task failed</td>
+</tr>
+<tr class="even">
+<td><code>3</code></td>
+<td>pending, blocked, or skipped and therefore incomplete</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="optional-compatibility-and-individual-tests" class="level3">
+<h3>Optional compatibility and individual tests</h3>
+<p>After changes to nvim-cmp, blink.cmp, linter integration, or Access
+Link adapters, select <strong>Run optional compatibility tests
+(completion, C, and Markdown)</strong>. It also contains one small C and
+one Markdown reality check. Each task starts separately. The most useful
+direct invocations are:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Goal</th>
+<th>PowerShell invocation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>run standard and compatibility tasks together</td>
+<td><code>.\tests\human\framework\run.ps1 run -Suite all</code></td>
+</tr>
+<tr class="even">
+<td>run exactly the C diagnostic test</td>
+<td><code>.\tests\human\framework\run.ps1 run -Suite custom -TestId D3</code></td>
+</tr>
+<tr class="odd">
+<td>run two specific tasks</td>
+<td><code>.\tests\human\framework\run.ps1 run -Suite custom -TestId L1,D4</code></td>
+</tr>
+<tr class="even">
+<td>explicitly use the German interface</td>
+<td><code>.\tests\human\framework\run.ps1 -Language de</code></td>
+</tr>
+<tr class="odd">
+<td>explicitly use the English interface</td>
+<td><code>.\tests\human\framework\run.ps1 -Language en</code></td>
+</tr>
+</tbody>
+</table>
+<p>Older technical long forms such as
+<code>c-diagnostics.clang-tidy-presentation</code> remain valid
+compatibility aliases. Use the short test ID for all new reports and
+invocations.</p>
+</section>
+<section id="cleanup-and-common-problems" class="level3">
+<h3>Cleanup and common problems</h3>
+<p><strong>Remove downloaded test dependencies</strong> deletes only
+<code>tmp/human-test-state/</code>. JSON results remain.</p>
+<p>If Access Link does not connect:</p>
+<ol type="1">
+<li>verify that the current add-on build is installed and enabled in
+NVDA;</li>
+<li>install or update local Neovim components from the NVDA menu;</li>
+<li>ensure the original tab containing test Neovim is focused;</li>
+<li>press <code>F12</code> exactly once there and wait briefly;</li>
+<li>press <code>Escape</code>, <code>F2</code> to check whether the test
+ID, purpose, steps, and pass condition are reported.</li>
+</ol>
+<p>If Pyright, a linter, or a completion plugin is unavailable, select
+<strong>Set up or repair test dependencies</strong>. A failed technical
+preflight is a setup problem, not a human test failure.</p>
+</section>
+<section id="maintaining-the-framework" class="level3">
+<h3>Maintaining the framework</h3>
+<p>The compact implementation lives below <code>tests/human/</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>plans/</code></td>
+<td>declarative task cards only</td>
+</tr>
+<tr class="even">
+<td><code>locales/</code></td>
+<td>synchronized German and English text</td>
+</tr>
+<tr class="odd">
+<td><code>fixtures/</code></td>
+<td>small, controlled test files</td>
+</tr>
+<tr class="even">
+<td><code>dependencies.json</code></td>
+<td>pinned third-party versions and revisions</td>
+</tr>
+<tr class="odd">
+<td><code>framework/</code></td>
+<td>runner, validator, and isolated Neovim configuration</td>
+</tr>
+</tbody>
+</table>
+<p>A new human task receives one of the four fixed categories and needs
+a reason that cannot be automated reliably and a link to related
+automated evidence. If code can decide the result unambiguously, the
+case belongs in an automated test. Validate definitions with:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tests/human/framework/validate.py plans</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py quick</span></code></pre></div>
+<p>GitHub Actions also executes the PowerShell runner on Windows. This
+finds PowerShell-specific parser and runtime errors, but never declares
+speech, sounds, Braille, or focus as having passed a human check.</p>
+</section>
+</section>
+</body>
+</html>

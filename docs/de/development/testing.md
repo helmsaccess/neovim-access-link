@@ -130,8 +130,9 @@ python3 tools/build_nvda_addon.py
 ```
 
 Pakettests öffnen das tatsächliche `.nvda-addon` und prüfen Manifest,
-Ressourcen, gebündelte Linux-Komponenten, Lizenzen, Übersetzungskatalog und
-verbotene Dateien. Ein vorher gebautes Archiv ist kein Nachweis für spätere
+Ressourcen, alle acht lokalisierten installierten HTML-Dokumente, gebündelte
+Linux-Komponenten, Lizenzen, Übersetzungskatalog und verbotene Dateien. Ein
+vorher gebautes Archiv ist kein Nachweis für spätere
 Quelländerungen.
 
 Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:
@@ -143,7 +144,9 @@ tools/build_documentation.sh
 Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche und
 englische Quelldateien und Überschriftenstrukturen, lokale Markdownlinks,
 generierte HTML-Ziele, Sprach-, Titel- und Beschreibungsmetadaten sowie die
-acht erwarteten Dokumente im ZIP. Historische Archive, die ausdrücklich nicht
+acht erwarteten Dokumente im ZIP. Dieselben Ergebnisse werden für die
+installierte Hilfe synchronisiert; CI weist veraltete Kopien zurück.
+Historische Archive, die ausdrücklich nicht
 zur aktuellen Dokumentation gehören, werden validiert, aber nicht in das HTML
 aufgenommen.
 

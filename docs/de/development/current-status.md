@@ -27,10 +27,11 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 ### Installation, Verbindung und Besitzgrenzen
 
 - Das `.nvda-addon` enthält NVDA-Integration, Neovim-Plugin und ein rootloses
-  Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Der Werkzeugdialog
-  installiert, aktualisiert oder entfernt lokale und gespeicherte SSH-Ziele.
-- Das Manifest nennt die HTTPS-Projektadresse für weitere Informationen und
-  Aktualisierungen.
+  Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Das oberste
+  `Neovim Access Link`-Menü öffnet Einstellungen, Komponentenverwaltung und
+  vier lokalisierte installierte HTML-Dokumente.
+- Das Manifest nennt Projektadresse, Standardhilfedatei und das aus der
+  deutschen beziehungsweise englischen Versionssektion erzeugte Changelog.
 - Lokale Sitzungen verwenden dynamisches, nur an `127.0.0.1` gebundenes TCP;
   entfernte Sitzungen verwenden SSH-stdin/stdout und einen privaten
   Unix-RPC-Socket. Sitzungen werden aus kurzlebigen JSON-Dateien erkannt, nicht

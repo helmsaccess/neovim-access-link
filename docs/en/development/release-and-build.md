@@ -8,13 +8,16 @@ version data. It contains:
 - internal add-on identifier and visible product name;
 - author, numeric product version, and release channel;
 - branch-local development build number;
-- minimum and last-tested NVDA versions.
+- minimum and last-tested NVDA versions;
+- project URL, default help file, and English manifest changelog.
 
 `store_version()` returns only `MAJOR.MINOR.PATCH` for the manifest and NVDA
 Add-on Store. For development states, `artifact_version()` adds `-dev.N` and,
 when available, branch and commit metadata for filenames, diagnostic reports,
 and bundled components. The installed manifest is generated from these values
-during the build and is not maintained separately.
+and the matching changelog section during the build and is not maintained
+separately. The German localization manifest receives the same section from
+the German changelog.
 
 ## Development states
 
@@ -42,10 +45,13 @@ permit listeners and disposable Neovim processes. In restricted environments,
 run `all-safe`, `ssh`, and `socket` separately as described by the [test
 strategy](testing.md).
 
-The add-on build validates the manifest, bundled components, dependencies, and
-archive contents. The documentation build synchronizes executable examples,
+The add-on build validates the manifest, eight installed localized HTML
+documents, bundled components, dependencies, and archive contents. The
+documentation build synchronizes executable examples,
 checks Markdown and HTML links, German/English structure, and each output's
 language, title, and description, and creates eight HTML documents.
+It copies the same results under neutral names in
+`nvda-addon/addon/doc/de` and `doc/en`; CI rejects stale copies.
 
 `build.cmd` is an additional parameterless convenience path for Windows users
 who want to build the current development state from a source download. It
@@ -60,7 +66,8 @@ An approved version requires one coherent state containing:
 
 1. product version, channel, and `development_build = None` in `buildVars.py`;
 2. current release and changelog links in `README.md` plus German and English
-   changelog sections;
+   version sections containing every change since the immediately preceding
+   published release;
 3. current status, compatible metadata, and complete German/English
    documentation;
 4. successful full tests and freshly built artifacts;

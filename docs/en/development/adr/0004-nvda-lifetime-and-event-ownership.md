@@ -7,9 +7,10 @@ Accepted and implemented.
 ## Context
 
 NVDA loads the Global Plugin once per NVDA process and creates one Windows
-Terminal AppModule per application process. Settings, tools, and shared local
-and SSH connections need one lifetime with orderly shutdown. Windows Terminal
-events, overlay selection, and `nextHandler` belong to the AppModule.
+Terminal AppModule per application process. Settings, the top-level add-on
+menu, and shared local and SSH connections need one lifetime with orderly
+shutdown. Windows Terminal events, overlay selection, and `nextHandler` belong
+to the AppModule.
 
 NVDA extension points invoked process-wide may still be necessary. They must
 not widen application scope: an operation is allowed only when the current
@@ -19,10 +20,10 @@ confirmed connection state all match.
 ## Decision
 
 The Global Plugin is the process-wide composition and lifetime root. It
-registers settings and tools, constructs shared services, publishes them only
-after complete initialization, and shuts them down in a defined order. Domain
-connection, assignment, gate, protocol, and presentation state resides in
-ordinary services that do not inherit from `GlobalPlugin`.
+registers settings and the top-level add-on menu, constructs shared services,
+publishes them only after complete initialization, and shuts them down in a
+defined order. Domain connection, assignment, gate, protocol, and presentation
+state resides in ordinary services that do not inherit from `GlobalPlugin`.
 
 The Windows Terminal AppModule owns:
 

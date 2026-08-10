@@ -17,6 +17,8 @@ import wave
 from unittest import mock
 import zipfile
 
+from configobj import ConfigObj
+
 from tools.build_nvda_addon import build, find_msgpack_license, validate_manifest
 from tools import build_user_package
 import buildVars
@@ -92,7 +94,10 @@ class BuiltAddonTests(unittest.TestCase):
         self.menuLabels: list[str] = []
         self.preferencesMenuLabels: list[str] = []
         self.toolsMenuLabels: list[str] = []
-        self.toolsMenuHandlers: list[object] = []
+        self.addonMenuLabels: list[str] = []
+        self.addonMenuHandlers: dict[str, object] = {}
+        self.unboundMenuLabels: list[str] = []
+        self.topLevelMenuLabels: list[str] = []
         self.focus = types.SimpleNamespace(
             processID=100, windowHandle=200, role=3, parent=None,
             appModule=types.SimpleNamespace(appName="windowsterminal"),
@@ -189,7 +194,13 @@ class BuiltAddonTests(unittest.TestCase):
     def _install_mocks(self) -> None:
         addon_handler = types.ModuleType("addonHandler")
         addon_handler.initTranslation = lambda: None
-        addon_handler.getCodeAddon = lambda: types.SimpleNamespace(manifest=buildVars.manifest())
+        self.documentationRequests = []
+        addon_handler.getCodeAddon = lambda: types.SimpleNamespace(
+            manifest=buildVars.manifest(),
+            getDocFilePath=lambda name=None: (
+                str(self.extract_path / "doc" / "en" / (name or "readme.html"))
+            ),
+        )
         sys.modules["addonHandler"] = addon_handler
 
         api = types.ModuleType("api")
@@ -618,27 +629,55 @@ class BuiltAddonTests(unittest.TestCase):
         sys.modules["wx"] = wx
 
         class MenuItem:
-            def __init__(self, identifier): self.identifier = identifier
+            def __init__(self, identifier, label="", submenu=None):
+                self.identifier = identifier
+                self.label = label
+                self.submenu = submenu
             def GetId(self): return self.identifier
 
         class Menu:
-            def __init__(inner_self, labels): inner_self.next_id = 1; inner_self.labels = labels
+            def __init__(inner_self, labels=None):
+                inner_self.next_id = 1
+                inner_self.labels = self.addonMenuLabels if labels is None else labels
+                inner_self.items = []
             def Append(inner_self, _identifier, label):
                 self.menuLabels.append(label)
                 inner_self.labels.append(label)
-                item = MenuItem(inner_self.next_id)
+                item = MenuItem(inner_self.next_id, label)
                 inner_self.next_id += 1
+                inner_self.items.append(item)
                 return item
-            def Remove(inner_self, _identifier): pass
+            def AppendSeparator(inner_self): inner_self.items.append(None)
+            def GetMenuItemCount(inner_self): return len(inner_self.items)
+            def Insert(inner_self, position, _identifier, label, submenu):
+                inner_self.labels.insert(position, label)
+                item = MenuItem(inner_self.next_id, label, submenu)
+                inner_self.next_id += 1
+                inner_self.items.insert(position, item)
+                return item
+            def Remove(inner_self, identifier):
+                for index, item in enumerate(inner_self.items):
+                    if item is not None and item.GetId() == identifier:
+                        inner_self.items.pop(index)
+                        inner_self.labels.remove(item.label)
+                        return item
+                return None
 
         class Tray:
             def __init__(inner_self):
+                inner_self.menu = Menu(self.topLevelMenuLabels)
                 inner_self.preferencesMenu = Menu(self.preferencesMenuLabels)
                 inner_self.toolsMenu = Menu(self.toolsMenuLabels)
-            def Bind(inner_self, _event, handler, _item):
-                self.toolsMenuHandlers.append(handler)
-            def Unbind(inner_self, *_args, **_kwargs): return True
+            def Bind(inner_self, _event, handler, item):
+                self.addonMenuHandlers[item.label] = handler
+            def Unbind(inner_self, _event, *, handler, source):
+                if self.addonMenuHandlers.get(source.label) is not handler:
+                    return False
+                self.unboundMenuLabels.append(source.label)
+                del self.addonMenuHandlers[source.label]
+                return True
 
+        wx.Menu = Menu
         gui = types.ModuleType("gui")
         gui.__path__ = []
         gui.MessageDialog = MessageDialogControl
@@ -701,11 +740,43 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(buildVars.manifest(), dict(manifest))
         self.assertEqual("NeovimAccessLink", manifest["name"])
         self.assertEqual(buildVars.store_version(), manifest["version"])
+        self.assertEqual("readme.html", manifest["docFileName"])
+        self.assertEqual(buildVars.changelog(), manifest["changelog"])
         self.assertEqual(
             "https://github.com/helmsaccess/neovim-access-link",
             manifest["url"],
         )
         self.assertNotIn("dev", manifest["version"])
+
+    def test_manifest_changelog_selects_development_or_published_version_section(self) -> None:
+        self.assertEqual(buildVars.changelog(), buildVars.manifest()["changelog"])
+        self.assertIn(f"{buildVars.store_version()} development line", buildVars.changelog())
+        with (
+            mock.patch.object(buildVars, "development_build", None),
+            mock.patch.object(buildVars, "product_version", "0.97.0"),
+        ):
+            self.assertIn("HTTPS project URL", buildVars.changelog())
+            self.assertIn("HTTPS-Projektadresse", buildVars.changelog("de"))
+
+    def test_built_addon_contains_all_localized_installed_documentation(self) -> None:
+        expected = {
+            f"doc/{language}/{name}"
+            for language in ("de", "en")
+            for name in (
+                "readme.html", "quick-guide.html",
+                "developer-documentation.html", "human-testing.html",
+            )
+        }
+        with zipfile.ZipFile(self.archive_path) as archive:
+            names = set(archive.namelist())
+        self.assertTrue(expected <= names)
+
+        german_manifest = ConfigObj(
+            str(self.extract_path / "locale" / "de" / "manifest.ini"),
+            encoding="utf-8",
+            list_values=True,
+        )
+        self.assertEqual(buildVars.changelog("de"), german_manifest["changelog"])
 
     def test_archive_contains_only_the_new_addon_identity(self) -> None:
         with zipfile.ZipFile(self.archive_path) as archive:
@@ -2025,6 +2096,7 @@ class BuiltAddonTests(unittest.TestCase):
             askpass_path=askpass,
             product_name=buildVars.manifest()["summary"],
             package_dir="package",
+            code_addon=types.SimpleNamespace(getDocFilePath=lambda name: name),
             feedback_defaults={"global": 3},
             navigation_details_defaults={
                 "navigationWord": 1, "navigationLine": 2,
@@ -2040,7 +2112,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         manager.register()
         manager.register()
-        self.assertEqual(2, len(manager._menuItems))
+        self.assertEqual(7, len(manager._menuItems))
         self.assertEqual(1, len(self.settingsCategoryClasses))
         manager.unregister()
         manager.unregister()
@@ -2185,7 +2257,7 @@ class BuiltAddonTests(unittest.TestCase):
         def publish(service):
             observed.append({
                 "service": service,
-                "menus": len(self.toolsMenuLabels),
+                "menus": len(self.addonMenuLabels),
                 "settingsPanels": len(self.settingsCategoryClasses),
                 "profileHandlers": len(config.post_configProfileSwitch.handlers),
             })
@@ -2197,7 +2269,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, len(observed))
         self.assertIs(plugin._terminalIntegrationService, observed[0]["service"])
         self.assertIsNot(plugin, observed[0]["service"])
-        self.assertEqual(2, observed[0]["menus"])
+        self.assertEqual(7, observed[0]["menus"])
         self.assertEqual(1, observed[0]["settingsPanels"])
         self.assertEqual(1, observed[0]["profileHandlers"])
         plugin.terminate()
@@ -9174,19 +9246,39 @@ class BuiltAddonTests(unittest.TestCase):
         plugin.terminate()
         self.assertEqual([1, 1], [client.stops for client in clients])
 
-    def test_tools_menu_exposes_component_install_and_removal_and_settings_remain_native(self) -> None:
+    def test_top_level_menu_groups_settings_components_and_installed_documentation(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
+        import globalPlugins.NeovimAccessLink.nvda_ui as nvda_ui
 
         plugin = GlobalPlugin()
         self.assertFalse(any("Neovim" in label for label in self.preferencesMenuLabels))
-        addon_tools = [label for label in self.toolsMenuLabels if label.startswith(
-            buildVars.addon_info["summary"] + ":"
-        )]
-        self.assertEqual(2, len(addon_tools))
-        self.assertTrue(any("Install or update components" in label for label in addon_tools))
-        self.assertTrue(any("Remove components" in label for label in addon_tools))
+        self.assertEqual([], self.toolsMenuLabels)
+        self.assertIn(buildVars.addon_info["summary"], self.topLevelMenuLabels)
+        self.assertEqual([
+            "&Settings...",
+            "&Install or update components...",
+            "&Remove components...",
+            "&Quick Guide",
+            "User &Manual",
+            "&Developer Documentation",
+            "Guided &Practical Tests",
+        ], self.addonMenuLabels)
         self.assertFalse(any("SSH target" in label for label in self.menuLabels))
         self.assertEqual(1, len(self.settingsCategoryClasses))
+        self.addonMenuHandlers["&Settings..."](None)
+        self.assertEqual(1, len(self.settingsDialogsOpened))
+        opened = []
+        with mock.patch.object(nvda_ui.os, "startfile", side_effect=opened.append, create=True):
+            self.addonMenuHandlers["&Quick Guide"](None)
+            self.addonMenuHandlers["User &Manual"](None)
+            self.addonMenuHandlers["&Developer Documentation"](None)
+            self.addonMenuHandlers["Guided &Practical Tests"](None)
+        self.assertEqual([
+            str(self.extract_path / "doc" / "en" / "quick-guide.html"),
+            str(self.extract_path / "doc" / "en" / "readme.html"),
+            str(self.extract_path / "doc" / "en" / "developer-documentation.html"),
+            str(self.extract_path / "doc" / "en" / "human-testing.html"),
+        ], opened)
         panel = self.settingsCategoryClasses[0]()
         panel.makeSettings(object())
         self.assertEqual(
@@ -9261,8 +9353,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("NeovimAccessLink", __import__("config").conf.spec)
         self.assertFalse((self.config_path / "NeovimAccessLink.json").exists())
         plugin.terminate()
+        self.assertEqual([], self.topLevelMenuLabels)
+        self.assertEqual({}, self.addonMenuHandlers)
+        self.assertEqual(self.addonMenuLabels, self.unboundMenuLabels)
 
-    def test_ui_keeps_tools_when_settings_registration_fails_and_cleanup_is_idempotent(self) -> None:
+    def test_ui_keeps_menu_when_settings_registration_fails_and_cleanup_is_idempotent(self) -> None:
         from gui.settingsDialogs import NVDASettingsDialog
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
@@ -9274,7 +9369,7 @@ class BuiltAddonTests(unittest.TestCase):
         NVDASettingsDialog.categoryClasses = RejectingCategories()
         try:
             plugin = GlobalPlugin()
-            self.assertEqual(2, len(plugin._nvdaUi._menuItems))
+            self.assertEqual(7, len(plugin._nvdaUi._menuItems))
             self.assertIsNone(plugin._nvdaUi._settingsPanelClass)
             self.assertIn("settingsPanelUnavailable", plugin._diagnostics.report())
 
@@ -9286,7 +9381,7 @@ class BuiltAddonTests(unittest.TestCase):
         finally:
             NVDASettingsDialog.categoryClasses = original_categories
 
-    def test_german_tools_menu_is_distinct_and_both_handlers_open_their_forms(self) -> None:
+    def test_german_top_level_menu_is_distinct_and_component_handlers_open_their_forms(self) -> None:
         mo_path = self.extract_path / "locale" / "de" / "LC_MESSAGES" / "nvda.mo"
         with mo_path.open("rb") as stream:
             translations = gettext.GNUTranslations(stream)
@@ -9295,13 +9390,21 @@ class BuiltAddonTests(unittest.TestCase):
 
         plugin = GlobalPlugin()
         product = buildVars.addon_info["summary"]
+        self.assertEqual([product], self.topLevelMenuLabels)
         self.assertEqual([
-            product + ": Komponenten installieren oder aktualisieren...",
-            product + ": Komponenten entfernen...",
-        ], self.toolsMenuLabels)
-        self.assertEqual(2, len(self.toolsMenuHandlers))
-        for handler in self.toolsMenuHandlers:
-            handler(None)
+            "&Einstellungen...",
+            "Komponenten &installieren oder aktualisieren...",
+            "Komponenten &entfernen...",
+            "&Kurzanleitung",
+            "Benutzer&handbuch",
+            "&Entwicklerdokumentation",
+            "Geführte &Praxistests",
+        ], self.addonMenuLabels)
+        for label in (
+            "Komponenten &installieren oder aktualisieren...",
+            "Komponenten &entfernen...",
+        ):
+            self.addonMenuHandlers[label](None)
         self.assertEqual([
             "Neovim-Komponenten installieren oder aktualisieren",
             "Neovim-Komponenten entfernen",

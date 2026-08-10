@@ -23,8 +23,7 @@ neither Windows OpenSSH configuration nor `sshd_config` on the Linux target.
 3. Enter the SSH target, account, port, and sign-in method.
 4. Confirm the settings dialog.
 5. Close running Neovim instances on that target.
-6. Open `NVDA menu > Tools > Neovim Access Link: Install or update
-   components...`.
+6. Open `NVDA menu > Neovim Access Link > Install or update components...`.
 7. Select the saved connection and check the result.
 
 Installation places the plugin and bridge in the Linux account's home

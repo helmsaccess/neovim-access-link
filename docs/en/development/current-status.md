@@ -24,10 +24,11 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 ### Installation, connections, and ownership boundaries
 
 - The `.nvda-addon` contains the NVDA integration, Neovim plugin, and a
-  rootless Linux user package with bridge, protocol, and installer. The Tools
-  dialog installs, updates, or removes local and saved SSH targets.
-- The manifest provides the HTTPS project URL for further information and
-  updates.
+  rootless Linux user package with bridge, protocol, and installer. The
+  top-level `Neovim Access Link` menu opens settings, component management,
+  and four localized installed HTML documents.
+- The manifest provides the project URL, default help file, and the changelog
+  generated from the matching German or English version section.
 - Local sessions use dynamic TCP bound only to `127.0.0.1`; remote sessions use
   SSH stdin/stdout and a private Unix RPC socket. Short-lived JSON files, not
   the Windows Registry, provide session discovery.

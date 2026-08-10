@@ -178,9 +178,9 @@ accessibly for the Linux password when needed. The password remains in memory
 only for the current NVDA process. The SSH server must allow password login for
 that account.
 
-Install or remove components through the two `Neovim Access Link: ...` entries
-in NVDA's `Tools` menu. The [Quick Guide](quick-guide.md) describes the
-procedure.
+Install or remove components under `NVDA menu > Neovim Access Link`. This
+submenu also opens the settings and the four installed documents. The
+[Quick Guide](quick-guide.md) describes the setup procedure.
 
 ## Recommended starting point
 

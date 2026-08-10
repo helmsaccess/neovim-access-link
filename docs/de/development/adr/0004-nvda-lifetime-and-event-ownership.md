@@ -7,10 +7,10 @@ Akzeptiert und umgesetzt.
 ## Kontext
 
 NVDA lädt das Global Plugin einmal pro NVDA-Prozess und erzeugt ein
-Windows-Terminal-AppModule pro Anwendungsprozess. Einstellungen, Werkzeuge und
-gemeinsam genutzte lokale sowie SSH-Verbindungen benötigen eine einmalige,
-geordnet beendete Lebensdauer. Windows-Terminal-Ereignisse, Overlayauswahl und
-`nextHandler` gehören dagegen zum AppModule.
+Windows-Terminal-AppModule pro Anwendungsprozess. Einstellungen, das oberste
+Add-on-Menü und gemeinsam genutzte lokale sowie SSH-Verbindungen benötigen
+eine einmalige, geordnet beendete Lebensdauer. Windows-Terminal-Ereignisse,
+Overlayauswahl und `nextHandler` gehören dagegen zum AppModule.
 
 Prozessweit aufgerufene NVDA-Erweiterungspunkte können trotzdem nötig sein.
 Sie dürfen den Anwendungsscope nicht erweitern: Ein Vorgang ist nur zulässig,
@@ -20,10 +20,10 @@ Terminal-Control und der bestätigte Verbindungszustand zusammenpassen.
 ## Entscheidung
 
 Das Global Plugin ist die prozessweite Kompositions- und Lebenszykluswurzel.
-Es registriert Einstellungen und Werkzeuge, baut gemeinsame Dienste auf,
-veröffentlicht sie erst nach vollständiger Initialisierung und beendet sie in
-festgelegter Reihenfolge. Fachlicher Verbindungs-, Zuordnungs-, Gate-,
-Protokoll- und Präsentationszustand liegt in gewöhnlichen Diensten ohne
+Es registriert Einstellungen und das oberste Add-on-Menü, baut gemeinsame
+Dienste auf, veröffentlicht sie erst nach vollständiger Initialisierung und
+beendet sie in festgelegter Reihenfolge. Fachlicher Verbindungs-, Zuordnungs-,
+Gate-, Protokoll- und Präsentationszustand liegt in gewöhnlichen Diensten ohne
 Vererbung von `GlobalPlugin`.
 
 Das Windows-Terminal-AppModule besitzt:

@@ -181,9 +181,10 @@ fragt bei Bedarf zugänglich nach dem Linux-Passwort. Das Passwort bleibt nur im
 Arbeitsspeicher der aktuellen NVDA-Laufzeit. Der SSH-Server muss
 Passwortanmeldung für dieses Konto erlauben.
 
-Installieren oder entfernen Sie Komponenten anschließend über die beiden
-Einträge `Neovim Access Link: …` im NVDA-Menü `Werkzeuge`. Der
-[Quick Guide](quick-guide.md) beschreibt den Ablauf.
+Installieren oder entfernen Sie Komponenten anschließend unter `NVDA-Menü →
+Neovim Access Link`. Dieses Untermenü öffnet außerdem die Einstellungen und
+die vier installierten Dokumente. Der [Quick Guide](quick-guide.md) beschreibt
+den Einrichtungsablauf.
 
 ## Empfohlener Ausgangspunkt
 

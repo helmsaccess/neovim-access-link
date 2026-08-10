@@ -6,6 +6,11 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Integrates all eight German and English HTML documents into the add-on. A
+  top-level `Neovim Access Link` menu opens settings, component management,
+  and installed help selected for NVDA's language.
+- Adds the default help file and a change log generated from the current
+  German or English changelog section to the manifest.
 - Starts the 0.98.0 development line after the 0.97.0 pre-release.
 
 ## 0.97.0
