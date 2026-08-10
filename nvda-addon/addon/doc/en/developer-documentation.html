@@ -2576,9 +2576,9 @@ plugin, and a rootless Linux user package with bridge, protocol, and
 installer. The top-level <code>Neovim Access Link</code> menu opens
 settings, component management, and four localized installed HTML
 documents.</li>
-<li>The manifest provides the project URL, default help file, and the
-changelog generated from the matching German or English version
-section.</li>
+<li>The manifest provides the project URL and default help file.
+Development builds use the matching German or English unreleased
+changelog section; releases use their version section.</li>
 <li>Local sessions use dynamic TCP bound only to <code>127.0.0.1</code>;
 remote sessions use SSH stdin/stdout and a private Unix RPC socket.
 Short-lived JSON files, not the Windows Registry, provide session
@@ -5067,6 +5067,14 @@ manifest is generated from these values and the matching changelog
 section during the build and is not maintained separately. The German
 localization manifest receives the same section from the German
 changelog.</p>
+<p>Development states collect completed changes under
+<code>Unveröffentlicht</code> and <code>Unreleased</code>; their
+manifests use that section. When a release is set, those entries are
+curated into the new German and English version sections. Each section
+describes only changes since the immediately preceding published
+version, after which the unreleased sections remain empty for the next
+development line. The build selects the section but never edits a
+changelog source.</p>
 </section>
 <section id="docs__en__development__release-and-buildmd__development-states" class="level3">
 <h3>Development states</h3>
@@ -5112,8 +5120,9 @@ and CI process above.</p>
 <li>product version, channel, and <code>development_build = None</code>
 in <code>buildVars.py</code>;</li>
 <li>current release and changelog links in <code>README.md</code> plus
-German and English version sections containing every change since the
-immediately preceding published release;</li>
+German and English version sections curated from the unreleased entries
+and containing every change since the immediately preceding published
+release;</li>
 <li>current status, compatible metadata, and complete German/English
 documentation;</li>
 <li>successful full tests and freshly built artifacts;</li>
@@ -5550,7 +5559,9 @@ add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s
 language.</li>
 <li>Adds the default help file and a change log generated from the
-current German or English changelog section to the manifest.</li>
+current German or English changelog section to the manifest. Development
+builds use the unreleased section; releases curate it into the version
+section and then reset it.</li>
 <li>Starts the 0.98.0 development line after the 0.97.0
 pre-release.</li>
 </ul>

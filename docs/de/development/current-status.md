@@ -30,8 +30,9 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Das oberste
   `Neovim Access Link`-Menü öffnet Einstellungen, Komponentenverwaltung und
   vier lokalisierte installierte HTML-Dokumente.
-- Das Manifest nennt Projektadresse, Standardhilfedatei und das aus der
-  deutschen beziehungsweise englischen Versionssektion erzeugte Changelog.
+- Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
+  verwenden den deutschen beziehungsweise englischen unveröffentlichten
+  Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.
 - Lokale Sitzungen verwenden dynamisches, nur an `127.0.0.1` gebundenes TCP;
   entfernte Sitzungen verwenden SSH-stdin/stdout und einen privaten
   Unix-RPC-Socket. Sitzungen werden aus kurzlebigen JSON-Dateien erkannt, nicht

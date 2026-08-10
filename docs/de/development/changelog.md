@@ -11,6 +11,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.
 - Ergänzt im Manifest Standardhilfedatei und das aus dem aktuellen deutschen
   beziehungsweise englischen Changelogabschnitt erzeugte Änderungsprotokoll.
+  Entwicklungsbuilds verwenden den unveröffentlichten Abschnitt; bei Releases
+  wird er redaktionell in die Version überführt und anschließend zurückgesetzt.
 - Beginnt die Entwicklungslinie 0.98.0 nach dem Pre-Release 0.97.0.
 
 ## 0.97.0

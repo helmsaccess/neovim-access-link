@@ -19,6 +19,14 @@ and the matching changelog section during the build and is not maintained
 separately. The German localization manifest receives the same section from
 the German changelog.
 
+Development states collect completed changes under `Unveröffentlicht` and
+`Unreleased`; their manifests use that section. When a release is set, those
+entries are curated into the new German and English version sections. Each
+section describes only changes since the immediately preceding published
+version, after which the unreleased sections remain empty for the next
+development line. The build selects the section but never edits a changelog
+source.
+
 ## Development states
 
 `development_build` is a positive integer on feature branches. The first
@@ -66,8 +74,8 @@ An approved version requires one coherent state containing:
 
 1. product version, channel, and `development_build = None` in `buildVars.py`;
 2. current release and changelog links in `README.md` plus German and English
-   version sections containing every change since the immediately preceding
-   published release;
+   version sections curated from the unreleased entries and containing every
+   change since the immediately preceding published release;
 3. current status, compatible metadata, and complete German/English
    documentation;
 4. successful full tests and freshly built artifacts;

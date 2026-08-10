@@ -97,8 +97,9 @@ take precedence.
   changed installable states on that branch; an unchanged reproducible rebuild may reuse it.
 - Keep version metadata in `buildVars.py`. A release-version change also updates README release
   and German/English changelog links in the same change.
-- Every regular or prerelease build (`development_build = None`) updates the German and English
-  versioned changelog entry with changes since the immediately preceding published release.
+- Record development changes under German `Unveröffentlicht` and English `Unreleased`. When
+  `development_build` becomes `None`, curate them into the matching version section with only
+  changes since the preceding published release, then reset the unreleased section.
 - GitHub releases contain the `.nvda-addon` plus one ZIP with all eight German and English
   quick-guide, handbook, developer-documentation, and guided-human-testing HTML files.
 

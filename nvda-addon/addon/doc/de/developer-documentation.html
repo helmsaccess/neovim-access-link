@@ -2668,9 +2668,10 @@ und ein rootloses Linux-Benutzerpaket mit Bridge, Protokoll und
 Installer. Das oberste <code>Neovim Access Link</code>-Menü öffnet
 Einstellungen, Komponentenverwaltung und vier lokalisierte installierte
 HTML-Dokumente.</li>
-<li>Das Manifest nennt Projektadresse, Standardhilfedatei und das aus
-der deutschen beziehungsweise englischen Versionssektion erzeugte
-Changelog.</li>
+<li>Das Manifest nennt Projektadresse und Standardhilfedatei.
+Entwicklungsbuilds verwenden den deutschen beziehungsweise englischen
+unveröffentlichten Changelogabschnitt; Releases verwenden ihren
+Versionsabschnitt.</li>
 <li>Lokale Sitzungen verwenden dynamisches, nur an
 <code>127.0.0.1</code> gebundenes TCP; entfernte Sitzungen verwenden
 SSH-stdin/stdout und einen privaten Unix-RPC-Socket. Sitzungen werden
@@ -5401,6 +5402,15 @@ installierte Manifest wird beim Build aus diesen Werten und dem
 passenden Changelogabschnitt erzeugt und nicht separat gepflegt. Das
 deutsche Lokalisierungsmanifest erhält denselben Abschnitt aus dem
 deutschen Changelog.</p>
+<p>Entwicklungsstände sammeln abgeschlossene Änderungen unter
+<code>Unveröffentlicht</code> beziehungsweise <code>Unreleased</code>;
+ihre Manifeste verwenden diesen Abschnitt. Bei der Release-Festlegung
+werden die Einträge redaktionell in den neuen deutschen und englischen
+Versionsabschnitt übernommen. Dieser beschreibt nur Änderungen seit der
+unmittelbar vorherigen veröffentlichten Version; anschließend bleiben
+die unveröffentlichten Abschnitte für die nächste Entwicklungslinie
+leer. Der Build wählt den Abschnitt aus, verändert aber keine
+Changelog-Quelle.</p>
 </section>
 <section id="docs__de__development__release-and-buildmd__entwicklungsstände" class="level3">
 <h3>Entwicklungsstände</h3>
@@ -5451,8 +5461,9 @@ nachvollziehbaren Stand:</p>
 <li>Produktversion, Kanal und <code>development_build = None</code> in
 <code>buildVars.py</code>;</li>
 <li>aktuellen Release- und Changeloglink in <code>README.md</code> sowie
-einen deutschen und englischen Versionsabschnitt mit allen Änderungen
-seit der unmittelbar vorherigen veröffentlichten Version;</li>
+einen aus den unveröffentlichten Einträgen redaktionell erstellten
+deutschen und englischen Versionsabschnitt mit allen Änderungen seit der
+unmittelbar vorherigen veröffentlichten Version;</li>
 <li>aktuellen Status, kompatible Metadaten und vollständige
 Deutsch/Englisch- Dokumentation;</li>
 <li>erfolgreiche vollständige Tests und frisch gebaute Artefakte;</li>
@@ -5928,7 +5939,9 @@ Einstellungen, Komponentenverwaltung und die zur NVDA-Sprache passende
 installierte Hilfe.</li>
 <li>Ergänzt im Manifest Standardhilfedatei und das aus dem aktuellen
 deutschen beziehungsweise englischen Changelogabschnitt erzeugte
-Änderungsprotokoll.</li>
+Änderungsprotokoll. Entwicklungsbuilds verwenden den unveröffentlichten
+Abschnitt; bei Releases wird er redaktionell in die Version überführt
+und anschließend zurückgesetzt.</li>
 <li>Beginnt die Entwicklungslinie 0.98.0 nach dem Pre-Release
 0.97.0.</li>
 </ul>

@@ -19,6 +19,14 @@ beim Build aus diesen Werten und dem passenden Changelogabschnitt erzeugt und
 nicht separat gepflegt. Das deutsche Lokalisierungsmanifest erhält denselben
 Abschnitt aus dem deutschen Changelog.
 
+Entwicklungsstände sammeln abgeschlossene Änderungen unter `Unveröffentlicht`
+beziehungsweise `Unreleased`; ihre Manifeste verwenden diesen Abschnitt. Bei
+der Release-Festlegung werden die Einträge redaktionell in den neuen deutschen
+und englischen Versionsabschnitt übernommen. Dieser beschreibt nur Änderungen
+seit der unmittelbar vorherigen veröffentlichten Version; anschließend bleiben
+die unveröffentlichten Abschnitte für die nächste Entwicklungslinie leer. Der
+Build wählt den Abschnitt aus, verändert aber keine Changelog-Quelle.
+
 ## Entwicklungsstände
 
 `development_build` ist auf Featurebranches eine positive Ganzzahl. Der erste
@@ -66,8 +74,9 @@ Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
 Stand:
 
 1. Produktversion, Kanal und `development_build = None` in `buildVars.py`;
-2. aktuellen Release- und Changeloglink in `README.md` sowie einen deutschen
-   und englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar
+2. aktuellen Release- und Changeloglink in `README.md` sowie einen aus den
+   unveröffentlichten Einträgen redaktionell erstellten deutschen und
+   englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar
    vorherigen veröffentlichten Version;
 3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
    Dokumentation;
