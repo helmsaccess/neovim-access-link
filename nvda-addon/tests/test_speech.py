@@ -630,6 +630,38 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertNotIn("success", finished.text)
         self.assertEqual(finished.text, finished.braille_message)
 
+    def test_plugin_manager_details_use_tree_state_language(self) -> None:
+        planner = SpeechPlanner(translate=lambda value: {
+            "expanded": "ausgeklappt",
+            "collapsed": "eingeklappt",
+            "lazy.nvim plugin manager": "lazy.nvim plugin manager",
+        }.get(value, value))
+        base = {
+            "pluginManagerKind": "lazyNvim",
+            "buftype": "nofile",
+            "filetype": "lazy",
+        }
+        expanded = planner.plan({"type": "pluginManagerDetailsChanged", "payload": {
+            **base,
+            "pluginManagerDetailsExpanded": True,
+        }})[0]
+        collapsed = planner.plan({"type": "pluginManagerDetailsChanged", "payload": {
+            **base,
+            "pluginManagerDetailsExpanded": False,
+        }})[0]
+        self.assertEqual("ausgeklappt", expanded.text)
+        self.assertEqual(expanded.text, expanded.braille_message)
+        self.assertEqual("eingeklappt", collapsed.text)
+        self.assertEqual(collapsed.text, collapsed.braille_message)
+        for invalid in (
+            {**base, "pluginManagerDetailsExpanded": 1},
+            {**base, "pluginManagerKind": "other", "pluginManagerDetailsExpanded": True},
+        ):
+            self.assertEqual([], planner.plan({
+                "type": "pluginManagerDetailsChanged",
+                "payload": invalid,
+            }))
+
     def test_invalid_plugin_manager_data_fails_open(self) -> None:
         planner = SpeechPlanner()
         for payload in (

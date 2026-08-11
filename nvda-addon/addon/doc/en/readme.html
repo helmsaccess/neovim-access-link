@@ -1816,20 +1816,23 @@ buffer line is empty for layout; when the window opens, Access Link
 reads the following command bar instead. Ordinary Neovim navigation
 reads the window&#39;s real text lines without announcing visual-only edge
 or padding spaces. <code>j</code> and <code>k</code> move by line as
-usual, <code>Enter</code> opens details for the current plugin,
-<code>?</code> toggles Lazy&#39;s help, and <code>q</code> closes the
-window.</p>
+usual, <code>Enter</code> opens details for the current plugin and
+closes them when pressed again. When Lazy identifies that state
+unambiguously in its buffer, Access Link reports <code>expanded</code>
+or <code>collapsed</code> through speech and Braille. <code>?</code>
+toggles Lazy&#39;s help, and <code>q</code> closes the window.</p>
 <p>Use <code>:Lazy update</code> for a complete update.
 <code>:Lazy sync</code> installs missing plugins, removes plugins which
 are no longer needed, and updates existing plugins. Access Link reports
 the start and end of these operations through speech and Braille. The
 completion report deliberately does not claim success: check Lazy&#39;s
 window afterwards for errors and the actual result.</p>
-<p>Access Link does not semantically interpret Lazy&#39;s drawn icons and
-virtual progress, plugin rows, counts, or error text. It also replaces
-no Lazy key and confirms no deletion. When a view remains unclear, use
-Lazy&#39;s documented commands and read the real buffer lines; Access Link
-falls back to that normal buffer support.</p>
+<p>Apart from the open or closed details state, Access Link does not
+semantically interpret Lazy&#39;s drawn icons and virtual progress, plugin
+rows, counts, or error text. It also replaces no Lazy key and confirms
+no deletion. When a view remains unclear, use Lazy&#39;s documented commands
+and read the real buffer lines; Access Link falls back to that normal
+buffer support.</p>
 </section>
 </section>
 <section id="docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" class="level3">

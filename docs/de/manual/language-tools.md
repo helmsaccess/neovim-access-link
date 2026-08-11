@@ -51,7 +51,10 @@ Layoutgründen leer; Access Link liest beim Öffnen stattdessen die folgende
 Bedienleiste. Die normale Neovim-Navigation liest die echten Textzeilen des
 Fensters, ohne rein visuelle Rand- und Auffüll-Leerzeichen anzusagen. `j` und
 `k` wechseln wie gewohnt die Zeile, `Eingabetaste` öffnet Details zum aktuellen
-Plugin, `?` schaltet Lazys Hilfe um und `q` schließt das Fenster.
+Plugin und schließt sie beim nächsten Drücken wieder. Wenn Lazy diesen Zustand
+eindeutig im Puffer kennzeichnet, meldet Access Link `ausgeklappt` oder
+`eingeklappt` über Sprache und Braille. `?` schaltet Lazys Hilfe um und `q`
+schließt das Fenster.
 
 Für eine vollständige Aktualisierung ist `:Lazy update` der direkte Weg.
 `:Lazy sync` installiert fehlende Plugins, entfernt nicht mehr benötigte
@@ -60,9 +63,10 @@ dieser Vorgänge über Sprache und Braille. Die Abschlussmeldung behauptet
 bewusst keinen Erfolg: Prüfen Sie danach Lazys Fenster auf Fehler und das
 tatsächliche Ergebnis.
 
-Access Link wertet weder Lazys gezeichnete Symbole und virtuellen Fortschritt
-noch Pluginzeilen, Zähler oder Fehlertexte semantisch aus. Es ersetzt auch
-keine Lazy-Taste und bestätigt keine Löschaktion. Bleibt eine Ansicht
+Abgesehen vom geöffneten oder geschlossenen Detailzustand wertet Access Link
+weder Lazys gezeichnete Symbole und virtuellen Fortschritt noch Pluginzeilen,
+Zähler oder Fehlertexte semantisch aus. Es ersetzt auch keine Lazy-Taste und
+bestätigt keine Löschaktion. Bleibt eine Ansicht
 unverständlich, verwenden Sie Lazys dokumentierte Befehle und lesen Sie die
 echten Pufferzeilen; Access Link fällt auf diese normale Bufferunterstützung
 zurück.

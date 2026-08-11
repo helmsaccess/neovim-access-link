@@ -1,4 +1,4 @@
-"""Strict validation for semantic plugin-manager lifecycle events."""
+"""Strict validation for bounded semantic plugin-manager state and events."""
 
 from __future__ import annotations
 
@@ -21,6 +21,17 @@ def valid_plugin_manager_operation(payload: Any) -> bool:
 	)
 
 
+def valid_plugin_manager_details_changed(payload: Any) -> bool:
+	"""Accept one state-only Lazy detail expansion transition."""
+	return (
+		isinstance(payload, Mapping)
+		and payload.get("pluginManagerKind") == "lazyNvim"
+		and payload.get("buftype") == "nofile"
+		and payload.get("filetype") == "lazy"
+		and isinstance(payload.get("pluginManagerDetailsExpanded"), bool)
+	)
+
+
 def plugin_manager_operation_state(payload: Mapping[str, Any]) -> dict[str, Any]:
 	"""Remove one-shot lifecycle fields before updating canonical state."""
 	return {
@@ -29,21 +40,27 @@ def plugin_manager_operation_state(payload: Mapping[str, Any]) -> dict[str, Any]
 	}
 
 
-def plugin_manager_overview_state(payload: Mapping[str, Any]) -> dict[str, Any]:
-	"""Keep a bounded Lazy overview only on the exact public Lazy buffer identity."""
+def plugin_manager_details_state(payload: Mapping[str, Any]) -> dict[str, Any]:
+	"""Remove the one-shot manager discriminator while retaining expansion state."""
+	return {key: value for key, value in payload.items() if key != "pluginManagerKind"}
+
+
+def plugin_manager_public_state(payload: Mapping[str, Any]) -> dict[str, Any]:
+	"""Keep public Lazy state only on the exact public Lazy buffer identity."""
 	state = dict(payload)
+	is_lazy = state.get("buftype") == "nofile" and state.get("filetype") == "lazy"
 	overview = state.get("pluginManagerOverview")
-	if overview is None:
-		return state
-	try:
-		overview_bytes = len(overview.encode("utf-8")) if isinstance(overview, str) else 0
-	except UnicodeEncodeError:
-		overview_bytes = 0
-	if not (
-		state.get("buftype") == "nofile"
-		and state.get("filetype") == "lazy"
-		and isinstance(overview, str)
-		and 0 < overview_bytes <= MAX_PLUGIN_MANAGER_OVERVIEW_BYTES
-	):
-		state.pop("pluginManagerOverview", None)
+	if overview is not None:
+		try:
+			overview_bytes = len(overview.encode("utf-8")) if isinstance(overview, str) else 0
+		except UnicodeEncodeError:
+			overview_bytes = 0
+		if not (
+			is_lazy
+			and isinstance(overview, str)
+			and 0 < overview_bytes <= MAX_PLUGIN_MANAGER_OVERVIEW_BYTES
+		):
+			state.pop("pluginManagerOverview", None)
+	if not (is_lazy and isinstance(state.get("pluginManagerDetailsExpanded"), bool)):
+		state.pop("pluginManagerDetailsExpanded", None)
 	return state

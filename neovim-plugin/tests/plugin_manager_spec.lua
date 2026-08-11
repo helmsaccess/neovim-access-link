@@ -88,10 +88,57 @@ equal(
   require("nvim_nvda.state").snapshot("lazyOverviewTest").pluginManagerOverview,
   "canonical state carries the bounded Lazy overview"
 )
+equal(false, plugin_manager.details_expanded(lazy_buffer), "closed details have semantic state")
+vim.api.nvim_exec_autocmds("BufEnter", { buffer = lazy_buffer, modeline = false })
+vim.wait(50)
+events = {}
+vim.api.nvim_buf_set_lines(lazy_buffer, 5, 5, false, { "      dir /tmp/example" })
+local lazy_namespace = vim.api.nvim_create_namespace("NvimNvdaLazyPublicDetailTest")
+vim.api.nvim_buf_set_extmark(lazy_buffer, lazy_namespace, 5, 6, {
+  end_col = 9,
+  hl_group = "LazyProp",
+})
+equal(true, plugin_manager.details_expanded(lazy_buffer), "documented LazyProp dir opens details")
+equal(
+  true,
+  require("nvim_nvda.state").snapshot("lazyDetailsTest").pluginManagerDetailsExpanded,
+  "canonical state carries semantic Lazy details"
+)
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = lazy_buffer, modeline = false })
+equal(true, vim.wait(100, function() return #events == 1 end), "expanded transition emitted")
+equal({ "pluginManagerDetailsChanged", "lazyNvim", true }, {
+  events[1].type,
+  events[1].payload.pluginManagerKind,
+  events[1].payload.pluginManagerDetailsExpanded,
+}, "expanded transition is fixed semantic state")
+
+events = {}
+vim.api.nvim_buf_clear_namespace(lazy_buffer, lazy_namespace, 0, -1)
+vim.api.nvim_buf_set_lines(lazy_buffer, 5, 6, false, {})
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = lazy_buffer, modeline = false })
+equal(true, vim.wait(100, function() return #events == 1 end), "collapsed transition emitted")
+equal(false, events[1].payload.pluginManagerDetailsExpanded, "collapsed transition is semantic")
+
+vim.api.nvim_buf_set_lines(lazy_buffer, 5, 5, false, { "      dir /tmp/plain-text" })
+equal(false, plugin_manager.details_expanded(lazy_buffer), "unhighlighted dir text is not semantic")
+vim.api.nvim_buf_set_lines(lazy_buffer, 5, 6, false, {
+  "      dir /tmp/one",
+  "      dir /tmp/two",
+})
+vim.api.nvim_buf_set_extmark(lazy_buffer, lazy_namespace, 5, 6, {
+  end_col = 9,
+  hl_group = "LazyProp",
+})
+vim.api.nvim_buf_set_extmark(lazy_buffer, lazy_namespace, 6, 6, {
+  end_col = 9,
+  hl_group = "LazyProp",
+})
+equal(nil, plugin_manager.details_expanded(lazy_buffer), "ambiguous details fail open")
 
 local ordinary_buffer = vim.api.nvim_create_buf(false, true)
 vim.api.nvim_buf_set_lines(ordinary_buffer, 0, -1, false, { "lazy.nvim Install (I)" })
 equal(nil, plugin_manager.overview(ordinary_buffer), "ordinary buffers are not interpreted")
+equal(nil, plugin_manager.details_expanded(ordinary_buffer), "ordinary details are not interpreted")
 vim.api.nvim_buf_delete(lazy_buffer, { force = true })
 vim.api.nvim_buf_delete(ordinary_buffer, { force = true })
 

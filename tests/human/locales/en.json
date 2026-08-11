@@ -174,7 +174,7 @@
   "plan.lazy.description": "Checks the lazy.nvim window plus install, update, and sync with fully isolated local test plugins.",
   "plan.lazy.window.title": "Read and operate the lazy.nvim window",
   "plan.lazy.window.purpose": "Checks whether Access Link recognizes lazy.nvim as a plugin manager and makes its line-oriented interface understandable.",
-  "plan.lazy.window.action": "1. F3: open lazy.nvim. Use j and k to read several plugin lines.\n2. Enter: open details for the current line; press Enter again to close them.\n3. ?: open lazy.nvim help; press ? again to return to the plugin list.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
+  "plan.lazy.window.action": "1. F3: open lazy.nvim. Use j and k to read several plugin lines.\n2. Enter: open details for the current line; expect expanded through speech and Braille. Press Enter again to close them; expect collapsed.\n3. ?: open lazy.nvim help; press ? again to return to the plugin list.\n4. q: close lazy.nvim. Then F10: end the test without saving.",
   "plan.lazy.window.expected": "NVDA reads complete, useful lines with plugin names and status. Details and help are understandable to navigate; opening and closing produce no stale, duplicate, or unrelated file and focus announcements.",
   "plan.lazy.install.title": "Install a test plugin",
   "plan.lazy.install.purpose": "Checks clear feedback for a real lazy.nvim install from an isolated local Git repository.",

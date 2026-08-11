@@ -157,7 +157,11 @@ documented in [guided practical tests](human-testing.md).
 For a real Lazy buffer the plugin also carries the first contiguous text block,
 bounded to 2,048 UTF-8 bytes. Access Link therefore speaks the complete command
 bar despite the initial layout-only blank line and width-dependent wrapping;
-line navigation suppresses visual-only edge and padding spaces.
+line navigation suppresses visual-only edge and padding spaces. An open detail
+block is detected only from the exact buffer identity, its `dir` property, and
+the documented `LazyProp` extmark. Only an unambiguous transition produces the
+localized `expanded` or `collapsed` report through speech and Braille; Access
+Link remains silent for unknown or ambiguous rendering.
 
 Practical confirmation includes:
 

@@ -69,6 +69,11 @@ transport message such as a heartbeat.
 the buffer's first contiguous text block. The local and SSH clients remove the
 optional field before it reaches NVDA when the identity or type is wrong or
 the content is empty or oversized.
+`pluginManagerDetailsExpanded` is a Boolean under the same exact buffer
+identity. The plugin sets it only when the bounded buffer contains exactly one
+`dir` property carrying Lazy's documented `LazyProp` extmark. Oversized or
+ambiguous views provide no state. The local client, SSH client, and bridge
+remove the field when its identity or type is wrong.
 
 ## Session start, ordering, and resync
 
@@ -175,7 +180,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
-`pluginManagerOperation`,
+`pluginManagerOperation`, `pluginManagerDetailsChanged`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
 `numberedChoiceClosed`, `callableContextResult`,
@@ -338,7 +343,14 @@ failure or cancellation events are not reconstructed from rendering or text.
 
 The existing canonical `buftype` and `filetype` fields identify the Lazy
 window only when they are exactly `nofile` and `lazy`. No additional manager
-state or rendered UI text is needed. The transient `pluginManagerOperation`
+state or rendered UI text is needed. The transient
+`pluginManagerDetailsChanged` event contains only the exact buffer identity,
+`pluginManagerKind=lazyNvim`, and the Boolean
+`pluginManagerDetailsExpanded`. It is produced only for an observed transition
+between unambiguously detected states; the manager discriminator is not kept
+in canonical state.
+
+The transient `pluginManagerOperation`
 event carries `pluginManagerKind=lazyNvim`, exactly
 one fixed operation, `install`, `update`, `clean`, `check`, `log`, or `sync`,
 and one phase, `started` or `finished`. It carries no event data, plugin rows,

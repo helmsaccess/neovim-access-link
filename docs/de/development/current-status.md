@@ -168,7 +168,11 @@ Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048 UTF-8-Byte
 begrenzten ersten zusammenhängenden Textblock. Dadurch spricht Access Link die
 Bedienleiste trotz anfänglicher Layout-Leerzeile und fensterbreitenabhängigem
 Umbruch vollständig; zeilenweise Navigation unterdrückt rein visuelle
-Rand- und Auffüll-Leerzeichen.
+Rand- und Auffüll-Leerzeichen. Ein geöffneter Detailblock wird ausschließlich
+aus exakter Bufferkennung, seiner `dir`-Eigenschaft und der dokumentierten
+`LazyProp`-Extmark erkannt. Nur ein eindeutiger Wechsel erzeugt die
+lokalisierte Meldung `ausgeklappt` oder `eingeklappt` über Sprache und Braille;
+bei unbekannter oder mehrdeutiger Darstellung bleibt Access Link still.
 
 Praktisch bestätigt wurden insbesondere:
 

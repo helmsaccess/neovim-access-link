@@ -12,7 +12,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Umbruch. Rein visuelle Rand- und Auffüll-Leerzeichen bleiben bei
   Zeilennavigation von der Sprachausgabe ausgenommen. Ausschließlich dokumentierte
   Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
-  Braille. Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
+  Braille. Eindeutig im öffentlichen Puffer und über `LazyProp`-Extmarks
+  erkannte Detailblöcke melden beim Öffnen und Schließen `ausgeklappt` oder
+  `eingeklappt`; unklare Darstellungen bleiben still. Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
   Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.
 - Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
   Installation, Aktualisierung und Synchronisierung. Isolierte lokale

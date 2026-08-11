@@ -2722,7 +2722,12 @@ tests</a>. For a real Lazy buffer the plugin also carries the first
 contiguous text block, bounded to 2,048 UTF-8 bytes. Access Link
 therefore speaks the complete command bar despite the initial
 layout-only blank line and width-dependent wrapping; line navigation
-suppresses visual-only edge and padding spaces.</p>
+suppresses visual-only edge and padding spaces. An open detail block is
+detected only from the exact buffer identity, its <code>dir</code>
+property, and the documented <code>LazyProp</code> extmark. Only an
+unambiguous transition produces the localized <code>expanded</code> or
+<code>collapsed</code> report through speech and Braille; Access Link
+remains silent for unknown or ambiguous rendering.</p>
 <p>Practical confirmation includes:</p>
 <ul>
 <li>local and remote component installation and updates;</li>
@@ -2875,13 +2880,14 @@ provider-neutral diagnostics through <code>vim.diagnostic</code>;</li>
 </ul>
 <p>The public contract of <code>lazy.nvim</code> 11.17.5 was checked
 directly. Automated tests cover the exact
-<code>nofile</code>/<code>lazy</code> buffer values and documented
-lifecycle events in a real Neovim TUI. Pinned headless tests also run
+<code>nofile</code>/<code>lazy</code> buffer values, the detail marker
+formed by <code>dir</code> plus the documented <code>LazyProp</code>
+extmark, and documented lifecycle events. Pinned headless tests also run
 the public install, update, and sync commands against isolated local Git
 repositories and verify their actual end states. Access Link itself
 still does not infer success from Lazy&#39;s virtual progress, rendered
-plugin rows, or error symbols. Practical Windows/NVDA acceptance remains
-open.</p>
+plugin rows, or error symbols. Practical Windows/NVDA acceptance of the
+detail state remains open.</p>
 <p>The Windows job checks the guided-test runner with Neovim 0.12.3, but
 does not perform practical NVDA acceptance.</p>
 <p>The checkouts, language runtimes, and tools are test dependencies and
@@ -3803,7 +3809,13 @@ buffer identity <code>buftype=nofile</code> and
 <code>filetype=lazy</code>. It contains at most 2,048 UTF-8 bytes from
 the buffer&#39;s first contiguous text block. The local and SSH clients
 remove the optional field before it reaches NVDA when the identity or
-type is wrong or the content is empty or oversized.</p>
+type is wrong or the content is empty or oversized.
+<code>pluginManagerDetailsExpanded</code> is a Boolean under the same
+exact buffer identity. The plugin sets it only when the bounded buffer
+contains exactly one <code>dir</code> property carrying Lazy&#39;s
+documented <code>LazyProp</code> extmark. Oversized or ambiguous views
+provide no state. The local client, SSH client, and bridge remove the
+field when its identity or type is wrong.</p>
 </section>
 <section id="docs__en__development__protocolmd__session-start-ordering-and-resync" class="level3">
 <h3>Session start, ordering, and resync</h3>
@@ -3917,6 +3929,7 @@ while no stdio client exists.</p>
 <code>errorReceived</code>, <code>fileManagerEntryChanged</code>,
 <code>fileManagerActionResult</code>,
 <code>pluginManagerOperation</code>,
+<code>pluginManagerDetailsChanged</code>,
 <code>leaveTerminalInputResult</code>, <code>exploreTextResult</code>,
 <code>brailleExploreLineResult</code>,
 <code>numberedChoiceOpened</code>, <code>numberedChoiceClosed</code>,
@@ -4099,7 +4112,12 @@ from rendering or text.</p>
 fields identify the Lazy window only when they are exactly
 <code>nofile</code> and <code>lazy</code>. No additional manager state
 or rendered UI text is needed. The transient
-<code>pluginManagerOperation</code> event carries
+<code>pluginManagerDetailsChanged</code> event contains only the exact
+buffer identity, <code>pluginManagerKind=lazyNvim</code>, and the
+Boolean <code>pluginManagerDetailsExpanded</code>. It is produced only
+for an observed transition between unambiguously detected states; the
+manager discriminator is not kept in canonical state.</p>
+<p>The transient <code>pluginManagerOperation</code> event carries
 <code>pluginManagerKind=lazyNvim</code>, exactly one fixed operation,
 <code>install</code>, <code>update</code>, <code>clean</code>,
 <code>check</code>, <code>log</code>, or <code>sync</code>, and one
@@ -4971,10 +4989,12 @@ prompt, selection, and completion semantically.</td>
 </tr>
 <tr class="odd">
 <td>lazy.nvim</td>
-<td>Public buffer options identify the Lazy window. Documented
-<code>User</code> events neutrally report the start and end of
-installation, update, cleanup, checking, log display, and
-synchronization; Lazy retains result and success state.</td>
+<td>Public buffer options identify the Lazy window. Public buffer text
+and <code>LazyProp</code> extmarks provide its open or closed detail
+state when detection is unambiguous. Documented <code>User</code> events
+neutrally report the start and end of installation, update, cleanup,
+checking, log display, and synchronization; Lazy retains result and
+success state.</td>
 <td>Isolated Lua, protocol, bridge, presentation, and real TUI tests;
 practical NVDA acceptance remains open.</td>
 </tr>
@@ -5621,9 +5641,12 @@ gives the real Lazy buffer an unambiguous context name and speaks the
 complete command bar regardless of its initial blank line or
 width-dependent wrapping. Line navigation omits visual-only edge and
 padding spaces. Only documented lifecycle events produce neutral
-start/end reports through speech and Braille. Synchronization collapses
-child operations without guessing progress, result, or success from
-Lazy&#39;s rendering.</li>
+start/end reports through speech and Braille. Detail blocks identified
+unambiguously through the public buffer and <code>LazyProp</code>
+extmarks report <code>expanded</code> or <code>collapsed</code> when
+opened or closed; unclear rendering remains silent. Synchronization
+collapses child operations without guessing progress, result, or success
+from Lazy&#39;s rendering.</li>
 <li>Adds four guided lazy.nvim practical tests for window operation,
 install, update, and synchronization. Isolated local Git fixtures and
 pinned headless contract tests verify actual end states without changing

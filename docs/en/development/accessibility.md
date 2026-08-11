@@ -31,7 +31,7 @@ output.
 | Diagnostics | `vim.diagnostic` is the provider-neutral boundary for message, range, severity, and navigation. Deliberate entry into an error or warning may play a cue. | Automated contracts with LSP, `nvim-lint`, ALE, and `none-ls.nvim`; practical Windows/NVDA breadth remains limited. |
 | Spelling | Neovim `spell` and the native `z=` list provide error state and numbered suggestions. The add-on removes numbers from output, navigates contextually, and accepts only a validated index. | Parser, protocol, RPC, AppModule, and Braille tests; `z=` practically tested with one physical Braille display. |
 | `vim.ui` choices | `vim.ui.select()` and `vim.ui.input()` provide prompt, selection, and completion semantically. | Real TUI tests. |
-| lazy.nvim | Public buffer options identify the Lazy window. Documented `User` events neutrally report the start and end of installation, update, cleanup, checking, log display, and synchronization; Lazy retains result and success state. | Isolated Lua, protocol, bridge, presentation, and real TUI tests; practical NVDA acceptance remains open. |
+| lazy.nvim | Public buffer options identify the Lazy window. Public buffer text and `LazyProp` extmarks provide its open or closed detail state when detection is unambiguous. Documented `User` events neutrally report the start and end of installation, update, cleanup, checking, log display, and synchronization; Lazy retains result and success state. | Isolated Lua, protocol, bridge, presentation, and real TUI tests; practical NVDA acceptance remains open. |
 
 Background diagnostic refresh does not automatically speak every result.
 Explicit commands read the current, previous, next, first, or last diagnostic.

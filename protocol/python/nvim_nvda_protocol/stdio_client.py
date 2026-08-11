@@ -10,7 +10,7 @@ from typing import Any
 
 from .codec import FrameDecoder, ProtocolError, encode_frame
 from .messages import MessageFactory
-from .plugin_manager import plugin_manager_overview_state
+from .plugin_manager import plugin_manager_public_state
 from .reconnect import ExponentialBackoff
 from .session import SessionTracker
 
@@ -185,7 +185,7 @@ class SshStdioClient:
                         authenticated = True
                         self.on_connection_state("connected")
                     if event["type"] != "heartbeat":
-                        event["payload"] = plugin_manager_overview_state(event["payload"])
+                        event["payload"] = plugin_manager_public_state(event["payload"])
                         self.on_event(event)
                 elif disposition == "resyncRequired":
                     self.send_control("requestFullState", {})

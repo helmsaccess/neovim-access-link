@@ -692,6 +692,10 @@ class SpeechPlanner:
             action = self._plugin_manager_operation(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "pluginManagerDetailsChanged":
+            action = self._plugin_manager_details(state)
+            if action is not None:
+                actions.append(action)
         elif kind == "spellingErrorTyped":
             error = state.get("spellingError")
             if isinstance(error, dict):
@@ -1477,6 +1481,21 @@ class SpeechPlanner:
             text = self._translate(
                 "{manager}: {operation} finished; check the plugin manager for results"
             ).format(manager=manager, operation=operation_text)
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _plugin_manager_details(self, state: dict[str, Any]) -> SpeechAction | None:
+        if (
+            state.get("pluginManagerKind") != "lazyNvim"
+            or self._plugin_manager_name(state) is None
+        ):
+            return None
+        expanded = state.get("pluginManagerDetailsExpanded")
+        if not isinstance(expanded, bool):
+            return None
+        text = self._translate("expanded" if expanded else "collapsed")
+        # NVDA uses '-' and '+' inside persistent tree-view Braille regions.
+        # This is a transient status message, where the localized word remains
+        # understandable without the surrounding tree item.
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
 
     def _context_focus_change(
