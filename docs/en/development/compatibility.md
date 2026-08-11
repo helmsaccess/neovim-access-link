@@ -61,8 +61,10 @@ documented `LazyProp` extmark, and documented lifecycle events.
 Pinned headless tests also run the public install,
 update, and sync commands against isolated local Git repositories and verify
 their actual end states. Access Link itself still does not infer success from
-Lazy's virtual progress or error symbols. Practical Windows/NVDA acceptance of
-the row state remains open.
+Lazy's virtual progress or error symbols. Guided P1 through P4 practically
+confirmed the window and line navigation, speech exploration, Braille markers,
+and the three isolated management workflows in the Windows/NVDA reference
+path.
 
 The Windows job checks the guided-test runner with Neovim 0.12.3, but does not
 perform practical NVDA acceptance.

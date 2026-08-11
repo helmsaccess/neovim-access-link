@@ -2752,8 +2752,9 @@ Leerzeichen am Zeilenende gesprochen. Dokumentierte
 Lebenszyklusereignisse melden Beginn und Ende von Installation,
 Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
 Synchronisierung neutral über Sprache und Braille. Pluginzeilen,
-virtueller Fortschritt und Erfolg werden nicht abgeleitet; die
-praktische NVDA-Abnahme steht aus.</li>
+virtueller Fortschritt und Erfolg werden nicht abgeleitet. Die geführten
+P1- bis P4-Abläufe wurden im Windows-/NVDA-Referenzpfad praktisch
+bestätigt.</li>
 <li>Native LSP-Umbenennung bleibt vollständig bei Neovim und dem
 Sprachserver. Access Link beobachtet <code>LspRequest</code> und
 tatsächliche Bufferänderungen und fasst interne Text-, Cursor- und
@@ -2858,6 +2859,9 @@ Shell-Controls;</li>
 Terminalwechsel;</li>
 <li>Braille-Routing, beide Braillemodi und Rechtschreibvorschläge mit
 einer Papenmeier BRAILLEX EL 80c;</li>
+<li>lazy.nvim-Fenster, Sprachexploration, Braillemarker sowie
+Installation, Aktualisierung und Synchronisierung mit isolierten lokalen
+Test-Plugins;</li>
 <li>alle vier Zwischenablagepfade lokal und über SSH sowie
 Oil-Navigation, Umbenennung und Bestätigungen.</li>
 </ul>
@@ -3011,8 +3015,10 @@ führen außerdem die öffentlichen Befehle für Installation,
 Aktualisierung und Synchronisierung mit isolierten lokalen
 Git-Repositories aus und prüfen deren tatsächlichen Endzustand. Access
 Link selbst leitet aus Lazys virtuellem Fortschritt oder Fehlersymbolen
-weiterhin keinen Erfolg ab. Eine praktische Windows-/NVDA-Abnahme des
-Zeilenzustands steht aus.</p>
+weiterhin keinen Erfolg ab. Die geführten P1- bis P4-Abläufe bestätigten
+im Windows-/NVDA-Referenzpfad Fenster und Zeilennavigation,
+Sprachexploration, Braillemarker sowie die drei isolierten
+Verwaltungsabläufe praktisch.</p>
 <p>Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3,
 führt aber keine praktische NVDA-Abnahme aus.</p>
 <p>Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten
@@ -5351,7 +5357,8 @@ neutral Beginn und Ende von Installation, Aktualisierung, Bereinigung,
 Prüfung, Protokollansicht und Synchronisierung; Ergebnis und Erfolg
 bleiben bei Lazy.</td>
 <td>Isolierte Lua-, Protokoll-, Bridge-, Präsentations- und echte
-TUI-Tests; praktische NVDA-Abnahme steht aus.</td>
+TUI-Tests; geführte P1- bis P4-Abläufe praktisch im
+Windows-/NVDA-Referenzpfad bestätigt.</td>
 </tr>
 </tbody>
 </table>
@@ -6071,7 +6078,9 @@ Fixture-Repositories laufen ohne Zeilenendenkonvertierung und störende
 Git-Fortschrittsausgaben. Die F5-Endprüfung behandelt eine leere
 optionale Pfadliste plattformübergreifend als Array statt als
 Lua-<code>vim.NIL</code> und nennt die tatsächlich bestätigten
-Revisionen und Entfernungen.</li>
+Revisionen und Entfernungen. Alle vier geführten Abläufe wurden im
+Windows-/NVDA-Referenzpfad praktisch bestätigt; ihre Abschlussmeldungen
+bleiben ausdrücklich neutral, bis F5 den Git-Endzustand belegt.</li>
 <li>Integriert alle acht deutschen und englischen HTML-Dokumente in das
 Add-on. Ein oberstes <code>Neovim Access Link</code>-Menü öffnet
 Einstellungen, Komponentenverwaltung und die zur NVDA-Sprache passende

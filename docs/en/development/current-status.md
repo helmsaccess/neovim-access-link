@@ -94,8 +94,9 @@ tab changes, plus structured Neovim messages.
   navigation omits visual-only trailing spaces from speech. Documented
   lifecycle events neutrally report the start and end of install,
   update, cleanup, checking, log display, and synchronization through speech
-  and Braille. Plugin rows, virtual progress, and success are not inferred;
-  practical NVDA acceptance remains open.
+  and Braille. Plugin rows, virtual progress, and success are not inferred.
+  Guided P1 through P4 were practically confirmed in the Windows/NVDA
+  reference path.
 - Native LSP rename remains entirely owned by Neovim and the language server.
   Access Link observes `LspRequest` and actual buffer changes, then reports one
   evidence-based completion instead of internal text, cursor, and context
@@ -183,6 +184,8 @@ Practical confirmation includes:
 - navigation, speech exploration, mode, buffer, and terminal transitions;
 - Braille routing, both Braille modes, and spelling suggestions with a
   Papenmeier BRAILLEX EL 80c;
+- the lazy.nvim window, speech exploration, Braille markers, and install,
+  update, and synchronization with isolated local test plugins;
 - all four clipboard paths locally and over SSH, plus Oil navigation, rename,
   and confirmation workflows.
 

@@ -2654,8 +2654,8 @@ when the window opens; line navigation omits visual-only trailing spaces
 from speech. Documented lifecycle events neutrally report the start and
 end of install, update, cleanup, checking, log display, and
 synchronization through speech and Braille. Plugin rows, virtual
-progress, and success are not inferred; practical NVDA acceptance
-remains open.</li>
+progress, and success are not inferred. Guided P1 through P4 were
+practically confirmed in the Windows/NVDA reference path.</li>
 <li>Native LSP rename remains entirely owned by Neovim and the language
 server. Access Link observes <code>LspRequest</code> and actual buffer
 changes, then reports one evidence-based completion instead of internal
@@ -2753,6 +2753,9 @@ controls;</li>
 transitions;</li>
 <li>Braille routing, both Braille modes, and spelling suggestions with a
 Papenmeier BRAILLEX EL 80c;</li>
+<li>the lazy.nvim window, speech exploration, Braille markers, and
+install, update, and synchronization with isolated local test
+plugins;</li>
 <li>all four clipboard paths locally and over SSH, plus Oil navigation,
 rename, and confirmation workflows.</li>
 </ul>
@@ -2901,8 +2904,9 @@ documented lifecycle events. Pinned headless tests also run the public
 install, update, and sync commands against isolated local Git
 repositories and verify their actual end states. Access Link itself
 still does not infer success from Lazy&#39;s virtual progress or error
-symbols. Practical Windows/NVDA acceptance of the row state remains
-open.</p>
+symbols. Guided P1 through P4 practically confirmed the window and line
+navigation, speech exploration, Braille markers, and the three isolated
+management workflows in the Windows/NVDA reference path.</p>
 <p>The Windows job checks the guided-test runner with Neovim 0.12.3, but
 does not perform practical NVDA acceptance.</p>
 <p>The checkouts, language runtimes, and tools are test dependencies and
@@ -5012,7 +5016,8 @@ neutrally report the start and end of installation, update, cleanup,
 checking, log display, and synchronization; Lazy retains result and
 success state.</td>
 <td>Isolated Lua, protocol, bridge, presentation, and real TUI tests;
-practical NVDA acceptance remains open.</td>
+guided P1 through P4 practically confirmed in the Windows/NVDA reference
+path.</td>
 </tr>
 </tbody>
 </table>
@@ -5677,7 +5682,10 @@ Lazy deliberately not opening its UI in headless mode; local fixture
 repositories run without line-ending conversion or distracting Git
 progress output. The F5 final-state check treats an empty optional path
 list consistently as an array instead of Lua <code>vim.NIL</code> and
-names the revisions and removals it actually confirmed.</li>
+names the revisions and removals it actually confirmed. All four guided
+workflows were practically confirmed in the Windows/NVDA reference path;
+their completion reports remain explicitly neutral until F5 proves the
+Git end state.</li>
 <li>Integrates all eight German and English HTML documents into the
 add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s

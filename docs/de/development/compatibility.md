@@ -66,7 +66,9 @@ Headless-Tests führen außerdem die öffentlichen Befehle für Installation,
 Aktualisierung und Synchronisierung mit isolierten lokalen Git-Repositories
 aus und prüfen deren tatsächlichen Endzustand. Access Link selbst leitet aus
 Lazys virtuellem Fortschritt oder Fehlersymbolen weiterhin keinen Erfolg ab.
-Eine praktische Windows-/NVDA-Abnahme des Zeilenzustands steht aus.
+Die geführten P1- bis P4-Abläufe bestätigten im Windows-/NVDA-Referenzpfad
+Fenster und Zeilennavigation, Sprachexploration, Braillemarker sowie die drei
+isolierten Verwaltungsabläufe praktisch.
 
 Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3, führt
 aber keine praktische NVDA-Abnahme aus.

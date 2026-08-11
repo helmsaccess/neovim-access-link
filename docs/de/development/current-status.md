@@ -102,8 +102,8 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   gesprochen. Dokumentierte Lebenszyklusereignisse melden Beginn und Ende
   von Installation, Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
   Synchronisierung neutral über Sprache und Braille. Pluginzeilen, virtueller
-  Fortschritt und Erfolg werden nicht abgeleitet; die praktische NVDA-Abnahme
-  steht aus.
+  Fortschritt und Erfolg werden nicht abgeleitet. Die geführten P1- bis
+  P4-Abläufe wurden im Windows-/NVDA-Referenzpfad praktisch bestätigt.
 - Native LSP-Umbenennung bleibt vollständig bei Neovim und dem Sprachserver.
   Access Link beobachtet `LspRequest` und tatsächliche Bufferänderungen und
   fasst interne Text-, Cursor- und Kontextänderungen zu einem belegbaren
@@ -196,6 +196,8 @@ Praktisch bestätigt wurden insbesondere:
 - Navigation, Sprachexploration, Modus-, Buffer- und Terminalwechsel;
 - Braille-Routing, beide Braillemodi und Rechtschreibvorschläge mit einer
   Papenmeier BRAILLEX EL 80c;
+- lazy.nvim-Fenster, Sprachexploration, Braillemarker sowie Installation,
+  Aktualisierung und Synchronisierung mit isolierten lokalen Test-Plugins;
 - alle vier Zwischenablagepfade lokal und über SSH sowie Oil-Navigation,
   Umbenennung und Bestätigungen.
 
