@@ -798,7 +798,8 @@ function Select-CustomTests {
         "language-intelligence",
         "completion",
         "diagnostics",
-        "session-integration"
+        "session-integration",
+        "plugin-management"
     )
     $allTasks = @(
         foreach ($plan in Get-AllPlans) {

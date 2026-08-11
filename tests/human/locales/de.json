@@ -2,7 +2,7 @@
   "runner.title": "Neovim Access Link – geführte Praxistests",
   "runner.menu.prompt": "Nummer eingeben und Eingabetaste drücken",
   "runner.menu.smoke": "Neuen kurzen Standardtest starten (empfohlen, etwa 10–15 Minuten)",
-  "runner.menu.compatibility": "Optionale Kompatibilitätstests starten (Completion, C und Markdown)",
+  "runner.menu.compatibility": "Optionale Kompatibilitätstests starten (Completion, Linter und Plugin-Verwaltung)",
   "runner.menu.all": "Standard- und Kompatibilitätstests starten",
   "runner.menu.custom": "Einzelne Testaufgaben nach Kategorie auswählen",
   "runner.menu.resume": "Unvollständigen Lauf fortsetzen",

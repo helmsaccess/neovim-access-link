@@ -14,7 +14,8 @@ test-build entries through August 5, 2026.
 - Adds four guided lazy.nvim practical tests for window operation, install,
   update, and synchronization. Isolated local Git fixtures and pinned headless
   contract tests verify actual end states without changing user configuration
-  or installed plugins.
+  or installed plugins. The individual selector lists these tasks under
+  plugin management.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.

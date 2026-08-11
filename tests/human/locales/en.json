@@ -2,7 +2,7 @@
   "runner.title": "Neovim Access Link guided practical tests",
   "runner.menu.prompt": "Enter a number and press Enter",
   "runner.menu.smoke": "Start a new short standard test (recommended, about 10–15 minutes)",
-  "runner.menu.compatibility": "Run optional compatibility tests (completion, C, and Markdown)",
+  "runner.menu.compatibility": "Run optional compatibility tests (completion, linters, and plugin management)",
   "runner.menu.all": "Run standard and compatibility tests",
   "runner.menu.custom": "Select individual test tasks by category",
   "runner.menu.resume": "Resume an incomplete run",

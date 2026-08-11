@@ -155,7 +155,8 @@ Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
 Tastensteuerung. Die Kompatibilitätssuite enthält zusätzlich vier lazy.nvim-
 Aufgaben mit vollständig lokalen Git-Fixtures für Fenster, Installation,
-Aktualisierung und Synchronisierung; Aufbau und sichere Tastenbelegung stehen in
+Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
+Plugin-Verwaltung. Aufbau und sichere Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 
 Praktisch bestätigt wurden insbesondere:

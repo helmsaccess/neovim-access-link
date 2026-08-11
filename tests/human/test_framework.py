@@ -234,6 +234,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('[string[]]$TestId = @()', runner)
 		self.assertIn('selectedTests = @(', runner)
 		self.assertIn('function Select-CustomTests', runner)
+		selector = runner[
+			runner.index("function Select-CustomTests") : runner.index("function Show-Menu")
+		]
+		for category in validator.ALLOWED_CATEGORIES:
+			self.assertIn(f'"{category}"', selector)
 		self.assertIn('$needsClangTidy = $profiles -contains "c-diagnostics"', runner)
 		self.assertIn('$needsMarkdownlint = $profiles -contains "markdown-diagnostics"', runner)
 		self.assertIn('"clang-tidy==$($dependencies.tools.clangTidy)"', runner)
