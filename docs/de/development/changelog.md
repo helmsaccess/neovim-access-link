@@ -31,6 +31,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
   technische Vorprüfung berücksichtigt, dass Lazy seine Oberfläche im
   Headless-Modus absichtlich nicht öffnet; lokale Fixture-Repositories laufen
   ohne Zeilenendenkonvertierung und störende Git-Fortschrittsausgaben.
+  Die F5-Endprüfung behandelt eine leere optionale Pfadliste
+  plattformübergreifend als Array statt als Lua-`vim.NIL`.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.

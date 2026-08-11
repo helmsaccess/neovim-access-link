@@ -611,17 +611,19 @@ function Initialize-LazyFixture {
             }
         }
     )
+    [object[]]$absentDirectories = @()
+    if ($operation -eq "sync") {
+        $absentDirectories = @(
+            (Join-Path $pluginRoot "access-link-stale-target")
+        )
+    }
     $fixture = [PSCustomObject]@{
         schemaVersion = 1
         operation = $operation
         root = $pluginRoot
         lockfile = Join-Path $sandbox "lazy-lock.json"
         plugins = $plugins
-        absent = if ($operation -eq "sync") {
-            @(Join-Path $pluginRoot "access-link-stale-target")
-        } else {
-            @()
-        }
+        absent = $absentDirectories
     }
     $fixturePath = Join-Path $sandbox "fixture.json"
     Write-JsonFile -Value $fixture -Path $fixturePath

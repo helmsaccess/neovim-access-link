@@ -20,6 +20,7 @@ local configuration_source = assert(debug.getinfo(1, "S").source)
 assert(configuration_source:sub(1, 1) == "@", "human-test init path is unavailable")
 local framework_root = vim.fs.dirname(configuration_source:sub(2))
 local linter_readiness = dofile(vim.fs.joinpath(framework_root, "linter_readiness.lua"))
+local lazy_fixture_support = dofile(vim.fs.joinpath(framework_root, "lazy_fixture.lua"))
 local completion_parentheses = dofile(vim.fs.joinpath(
   framework_root, "completion_parentheses.lua"))
 local human_messages = language == "de" and {
@@ -187,6 +188,7 @@ if not dry_run and profile == "lazy" then
   assert(type(lazy_fixture.lockfile) == "string" and lazy_fixture.lockfile ~= "",
     "Lazy fixture lockfile is missing")
   assert(type(lazy_fixture.plugins) == "table", "Lazy fixture plugins are missing")
+  lazy_fixture_support.normalize(lazy_fixture)
   local specifications = {}
   for _, plugin in ipairs(lazy_fixture.plugins) do
     assert(type(plugin.name) == "string" and plugin.name:match("^access%-link%-%l+%-target$"),
@@ -523,26 +525,7 @@ local function verify_lazy_fixture()
       vim.log.levels.ERROR)
     return
   end
-  local git = vim.fn.exepath("git")
-  local problems = {}
-  for _, plugin in ipairs(lazy_fixture.plugins) do
-    local directory = vim.fs.joinpath(lazy_fixture.root, plugin.name)
-    if not vim.uv.fs_stat(directory) then
-      problems[#problems + 1] = plugin.name .. " missing"
-    else
-      local result = vim.system({ git, "-C", directory, "rev-parse", "HEAD" },
-        { text = true }):wait(3000)
-      local revision = type(result.stdout) == "string" and vim.trim(result.stdout) or ""
-      if result.code ~= 0 or revision ~= plugin.expectedRevision then
-        problems[#problems + 1] = plugin.name .. " revision mismatch"
-      end
-    end
-  end
-  for _, directory in ipairs(lazy_fixture.absent or {}) do
-    if vim.uv.fs_stat(directory) then
-      problems[#problems + 1] = vim.fs.basename(directory) .. " still present"
-    end
-  end
+  local problems = lazy_fixture_support.problems(lazy_fixture)
   if #problems == 0 then
     vim.notify(human_messages.lazy_verified)
   else

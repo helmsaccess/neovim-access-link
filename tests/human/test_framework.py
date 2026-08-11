@@ -292,6 +292,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		readiness = (HUMAN_ROOT / "framework" / "linter_readiness.lua").read_text(
 			encoding="utf-8"
 		)
+		lazy_fixture = (HUMAN_ROOT / "framework" / "lazy_fixture.lua").read_text(
+			encoding="utf-8"
+		)
 		self.assertIn('vim.keymap.set({ "n", "i" }, "<F2>"', configuration)
 		self.assertNotIn('"<F1>"', configuration)
 		self.assertIn("ACCESS_LINK_HUMAN_PURPOSE", configuration)
@@ -396,7 +399,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('vim.fn.exists(":Lazy") == 2', configuration)
 		self.assertIn('lazy.nvim deliberately suppresses its floating UI', configuration)
 		self.assertNotIn('vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy"', configuration)
-		self.assertIn('vim.system({ git, "-C", directory, "rev-parse", "HEAD" }', configuration)
+		self.assertIn("lazy_fixture_support.problems(lazy_fixture)", configuration)
+		self.assertIn('vim.system({ git, "-C", directory, "rev-parse", "HEAD" }', lazy_fixture)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
 		self.assertIn('step_id == "menu-presentation"', configuration)
@@ -519,6 +523,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('.\\tests\\human\\framework\\run.ps1 list -Language en', workflow)
 		self.assertIn('-TestId "D3"', workflow)
 		self.assertIn("63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad", workflow)
+
+	def test_lazy_fixture_writer_preserves_an_empty_absence_array(self) -> None:
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn("[object[]]$absentDirectories = @()", runner)
+		self.assertIn("absent = $absentDirectories", runner)
 
 	def test_definition_fingerprint_changes_with_human_test_inputs(self) -> None:
 		fingerprint = validator.definition_fingerprint()

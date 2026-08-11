@@ -123,4 +123,24 @@ assert(semantic[1].event_type == "pluginManagerOperation"
     and semantic[1].operation == mode and semantic[1].phase == "started")
 assert(semantic[2].event_type == "pluginManagerOperation"
     and semantic[2].operation == mode and semantic[2].phase == "finished")
+local expected_plugins = {}
+for _, specification in ipairs(specifications) do
+  expected_plugins[#expected_plugins + 1] = {
+    name = specification.name,
+    expectedRevision = revision_b,
+  }
+end
+local fixture = {
+  root = plugins,
+  plugins = expected_plugins,
+  absent = mode == "sync" and {
+    vim.fs.joinpath(plugins, "access-link-stale-target"),
+  } or vim.NIL,
+}
+local fixture_support = dofile(vim.fs.joinpath(
+  vim.fs.dirname(plugin_root), "tests", "human", "framework", "lazy_fixture.lua"))
+fixture_support.normalize(fixture)
+local verification_problems = fixture_support.problems(fixture)
+assert(#verification_problems == 0,
+  "F5 fixture verification failed: " .. table.concat(verification_problems, ", "))
 print(string.format("Lazy %s probe passed", mode))

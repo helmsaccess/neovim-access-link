@@ -164,6 +164,9 @@ isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
 Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
+Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die
+Lua-Verifikation normalisiert zusätzlich älteres oder fremdes JSON-`null`,
+bevor F5 die tatsächlichen Git-Zustände prüft.
 Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048 UTF-8-Byte
 begrenzten ersten zusammenhängenden Textblock. Er erscheint beim Rendern erst
 nach dem anfänglichen Kontextwechsel; Access Link spricht ihn dann genau einmal

@@ -2820,11 +2820,14 @@ Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
 Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
 Tastenbelegung stehen in <a href="human-testing.html">Geführte
-Praxistests</a>. Im echten Lazy-Puffer überträgt das Plugin außerdem den
-auf 2048 UTF-8-Byte begrenzten ersten zusammenhängenden Textblock. Er
-erscheint beim Rendern erst nach dem anfänglichen Kontextwechsel; Access
-Link spricht ihn dann genau einmal als vollständige Bedienleiste, trotz
-Layout-Leerzeile und fensterbreitenabhängigem Umbruch. Zeilenweise
+Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
+echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
+oder fremdes JSON-<code>null</code>, bevor F5 die tatsächlichen
+Git-Zustände prüft. Im echten Lazy-Puffer überträgt das Plugin außerdem
+den auf 2048 UTF-8-Byte begrenzten ersten zusammenhängenden Textblock.
+Er erscheint beim Rendern erst nach dem anfänglichen Kontextwechsel;
+Access Link spricht ihn dann genau einmal als vollständige Bedienleiste,
+trotz Layout-Leerzeile und fensterbreitenabhängigem Umbruch. Zeilenweise
 Navigation unterdrückt rein visuelle Rand- und Auffüll-Leerzeichen. In
 einem exakt als <code>nofile</code>/<code>lazy</code> erkannten Puffer
 entfernt die Sprachplanung private Unicode-Zeichen aus allen
@@ -6063,7 +6066,9 @@ Endzustände, ohne Benutzerkonfiguration oder installierte Plugins zu
 auf. Die technische Vorprüfung berücksichtigt, dass Lazy seine
 Oberfläche im Headless-Modus absichtlich nicht öffnet; lokale
 Fixture-Repositories laufen ohne Zeilenendenkonvertierung und störende
-Git-Fortschrittsausgaben.</li>
+Git-Fortschrittsausgaben. Die F5-Endprüfung behandelt eine leere
+optionale Pfadliste plattformübergreifend als Array statt als
+Lua-<code>vim.NIL</code>.</li>
 <li>Integriert alle acht deutschen und englischen HTML-Dokumente in das
 Add-on. Ein oberstes <code>Neovim Access Link</code>-Menü öffnet
 Einstellungen, Komponentenverwaltung und die zur NVDA-Sprache passende
