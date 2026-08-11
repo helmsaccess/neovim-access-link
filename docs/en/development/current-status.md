@@ -1,7 +1,7 @@
 # Current status
 
-Status date: August 10, 2026. The source tree belongs to the 0.98.0 development
-line; `buildVars.py` generates development build 1 with Git metadata and sets
+Status date: August 11, 2026. The source tree belongs to the 0.98.0 development
+line; `buildVars.py` generates development build 4 with Git metadata and sets
 the release channel to beta. The current published pre-release is 0.97.0. The
 project does not infer a higher stability classification from test coverage or
 feature count.
@@ -147,7 +147,10 @@ Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility
 suite also includes four lazy.nvim tasks with fully local Git fixtures for its
 window, installation, update, and synchronization; the individual selector
-groups them under plugin management. Structure and safe key choices are
+groups them under plugin management. The headless preflight does not require
+Lazy's deliberately suppressed UI; it verifies the public command and
+isolated fixture configuration. Fixture repositories disable line-ending
+conversion and irrelevant Git output. Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 
 Practical confirmation includes:

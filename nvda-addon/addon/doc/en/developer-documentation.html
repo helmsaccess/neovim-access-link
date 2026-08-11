@@ -2546,9 +2546,9 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 10, 2026. The source tree belongs to the 0.98.0
+<p>Status date: August 11, 2026. The source tree belongs to the 0.98.0
 development line; <code>buildVars.py</code> generates development build
-1 with Git metadata and sets the release channel to beta. The current
+4 with Git metadata and sets the release channel to beta. The current
 published pre-release is 0.97.0. The project does not infer a higher
 stability classification from test coverage or feature count.</p>
 <p>This page is the compact snapshot of implemented and verified
@@ -2711,8 +2711,11 @@ response time. Their technical preflight confirms real provider data and
 task-specific isolated key control. The compatibility suite also
 includes four lazy.nvim tasks with fully local Git fixtures for its
 window, installation, update, and synchronization; the individual
-selector groups them under plugin management. Structure and safe key
-choices are documented in <a href="human-testing.html">guided practical
+selector groups them under plugin management. The headless preflight
+does not require Lazy&#39;s deliberately suppressed UI; it verifies the
+public command and isolated fixture configuration. Fixture repositories
+disable line-ending conversion and irrelevant Git output. Structure and
+safe key choices are documented in <a href="human-testing.html">guided practical
 tests</a>.</p>
 <p>Practical confirmation includes:</p>
 <ul>
@@ -5610,7 +5613,10 @@ progress, result, or success from Lazy&#39;s rendering.</li>
 install, update, and synchronization. Isolated local Git fixtures and
 pinned headless contract tests verify actual end states without changing
 user configuration or installed plugins. The individual selector lists
-these tasks under plugin management.</li>
+these tasks under plugin management. Technical preflight accounts for
+Lazy deliberately not opening its UI in headless mode; local fixture
+repositories run without line-ending conversion or distracting Git
+progress output.</li>
 <li>Integrates all eight German and English HTML documents into the
 add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s

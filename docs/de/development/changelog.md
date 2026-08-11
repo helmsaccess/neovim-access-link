@@ -15,7 +15,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Installation, Aktualisierung und Synchronisierung. Isolierte lokale
   Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten
   Endzustände, ohne Benutzerkonfiguration oder installierte Plugins zu ändern.
-  Die Einzelauswahl führt diese Aufgaben unter Plugin-Verwaltung auf.
+  Die Einzelauswahl führt diese Aufgaben unter Plugin-Verwaltung auf. Die
+  technische Vorprüfung berücksichtigt, dass Lazy seine Oberfläche im
+  Headless-Modus absichtlich nicht öffnet; lokale Fixture-Repositories laufen
+  ohne Zeilenendenkonvertierung und störende Git-Fortschrittsausgaben.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.

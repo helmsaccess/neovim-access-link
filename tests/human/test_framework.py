@@ -393,7 +393,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotIn('"<F11>"', configuration)
 		self.assertIn('profile == "lazy"', configuration)
 		self.assertIn('vim.cmd("Lazy " .. action)', configuration)
-		self.assertIn('vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy"', configuration)
+		self.assertIn('vim.fn.exists(":Lazy") == 2', configuration)
+		self.assertIn('lazy.nvim deliberately suppresses its floating UI', configuration)
+		self.assertNotIn('vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy"', configuration)
 		self.assertIn('vim.system({ git, "-C", directory, "rev-parse", "HEAD" }', configuration)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
@@ -405,6 +407,14 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
 			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
 		)
+
+	def test_lazy_fixture_git_is_quiet_and_line_ending_neutral(self) -> None:
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn('"`tautocrlf = false"', runner)
+		self.assertIn('"`tsafecrlf = false"', runner)
+		self.assertIn('"clone", "--quiet", "--bare"', runner)
+		self.assertIn('"clone", "--quiet", [string]$remotePaths[$Name]', runner)
+		self.assertIn('"checkout", "--quiet", "--detach"', runner)
 
 	def test_completion_profiles_require_f5_and_do_not_fall_back_to_other_completion(self) -> None:
 		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")

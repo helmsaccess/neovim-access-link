@@ -15,7 +15,9 @@ test-build entries through August 5, 2026.
   update, and synchronization. Isolated local Git fixtures and pinned headless
   contract tests verify actual end states without changing user configuration
   or installed plugins. The individual selector lists these tasks under
-  plugin management.
+  plugin management. Technical preflight accounts for Lazy deliberately not
+  opening its UI in headless mode; local fixture repositories run without
+  line-ending conversion or distracting Git progress output.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.

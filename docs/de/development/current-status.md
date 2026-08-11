@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 10. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
-`buildVars.py` erzeugt Entwicklungsbuild 1 mit Git-Metadaten und setzt den
+Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
+`buildVars.py` erzeugt Entwicklungsbuild 4 mit Git-Metadaten und setzt den
 Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
@@ -156,7 +156,11 @@ bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
 Tastensteuerung. Die Kompatibilitätssuite enthält zusätzlich vier lazy.nvim-
 Aufgaben mit vollständig lokalen Git-Fixtures für Fenster, Installation,
 Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
-Plugin-Verwaltung. Aufbau und sichere Tastenbelegung stehen in
+Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort absichtlich
+unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
+isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
+Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 
 Praktisch bestätigt wurden insbesondere:

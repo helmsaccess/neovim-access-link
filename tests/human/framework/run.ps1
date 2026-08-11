@@ -458,6 +458,16 @@ function Initialize-TestGitConfig {
         }
         $lines += "`tdirectory = `"$safeDirectory`""
     }
+    # The generated repositories contain byte-for-byte Lua fixtures.  Keep
+    # Git from applying a machine-wide Windows line-ending policy or emitting
+    # advice that is irrelevant to the guided test.
+    $lines += @(
+        "[core]",
+        "`tautocrlf = false",
+        "`tsafecrlf = false",
+        "[advice]",
+        "`tdetachedHead = false"
+    )
     $utf8 = New-Object Text.UTF8Encoding($false)
     $content = ($lines -join [Environment]::NewLine) + [Environment]::NewLine
     [IO.File]::WriteAllText($TestGitConfig, $content, $utf8)
@@ -502,7 +512,7 @@ function Initialize-LazyFixture {
 
     $git = Get-RequiredCommand "git" (Get-Message "runner.installGit")
     $null = Invoke-External -Command $git -Arguments @(
-        "init", "--initial-branch=main", $work
+        "init", "--quiet", "--initial-branch=main", $work
     )
     $pluginDirectory = Join-Path $work "plugin"
     New-Item -ItemType Directory -Path $pluginDirectory -Force | Out-Null
@@ -515,7 +525,7 @@ function Initialize-LazyFixture {
     )
     $null = Invoke-External -Command $git -Arguments @(
         "-C", $work, "-c", "user.name=Access Link Test",
-        "-c", "user.email=human-test.invalid", "commit", "-m", "Fixture A"
+        "-c", "user.email=human-test.invalid", "commit", "--quiet", "-m", "Fixture A"
     )
     $revisionA = Invoke-ExternalText -Command $git -Arguments @(
         "-C", $work, "rev-parse", "HEAD"
@@ -529,7 +539,7 @@ function Initialize-LazyFixture {
     )
     $null = Invoke-External -Command $git -Arguments @(
         "-C", $work, "-c", "user.name=Access Link Test",
-        "-c", "user.email=human-test.invalid", "commit", "-m", "Fixture B"
+        "-c", "user.email=human-test.invalid", "commit", "--quiet", "-m", "Fixture B"
     )
     $revisionB = Invoke-ExternalText -Command $git -Arguments @(
         "-C", $work, "rev-parse", "HEAD"
@@ -548,7 +558,7 @@ function Initialize-LazyFixture {
     foreach ($name in $remoteNames) {
         $remote = Join-Path $origins "$name.git"
         $null = Invoke-External -Command $git -Arguments @(
-            "clone", "--bare", $work, $remote
+            "clone", "--quiet", "--bare", $work, $remote
         )
         $remotePaths[$name] = $remote
     }
@@ -560,11 +570,11 @@ function Initialize-LazyFixture {
         )
         $destination = Join-Path $pluginRoot $Name
         $null = Invoke-External -Command $git -Arguments @(
-            "clone", [string]$remotePaths[$Name], $destination
+            "clone", "--quiet", [string]$remotePaths[$Name], $destination
         )
         if ($Revision -ne $revisionB.Text) {
             $null = Invoke-External -Command $git -Arguments @(
-                "-C", $destination, "checkout", "--detach", $Revision
+                "-C", $destination, "checkout", "--quiet", "--detach", $Revision
             )
         }
     }
