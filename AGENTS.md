@@ -104,7 +104,7 @@ take precedence.
 - Before an authorized merge, review the branch history and squash fixup or noisy intermediate
   commits when that produces coherent, traceable units. Never rewrite already shared history
   without explicit authorization.
-- The user owns `MAJOR.MINOR.PATCH`, release channel, stability, tags, and prerelease status.
+- The user owns `MAJOR.MINOR.PATCH`, release channel, stability, tags, and publication approval.
 - On every new non-release branch, the first changed installable state uses
   `development_build = 1`, regardless of inherited or other branch values. Increment only for
   changed installable states on that branch; an unchanged reproducible rebuild may reuse it.
@@ -115,6 +115,30 @@ take precedence.
   changes since the preceding published release, then reset the unreleased section.
 - GitHub releases contain the `.nvda-addon` plus one ZIP with all eight German and English
   quick-guide, handbook, developer-documentation, and guided-human-testing HTML files.
+
+### GitHub release contract
+
+- Release only from an explicitly approved, clean `main`: push the release commit and its existing
+  `v<VERSION>` tag first, and require `gh release create --verify-tag` rather than allowing GitHub
+  to create a tag implicitly.
+- Use title `Neovim Access Link <VERSION>`. Versions below `1.0.0` are published with
+  `--prerelease --latest=false`; versions from `1.0.0` onward are regular releases with `--latest`.
+- Attach exactly `dist/NeovimAccessLink-<VERSION>.nvda-addon` and
+  `dist/neovim-access-link-<VERSION>-documentation.zip`. Do not attach the standalone server
+  package; it is embedded in the add-on.
+- Write curated English notes to a temporary file under `/nfs/src/nal-tmp/`. Summarize changes
+  since the immediately preceding published version, relevant compatibility or test boundaries,
+  tag-pinned documentation links, and the purpose of both assets.
+- Use this non-interactive command shape, substituting the placeholders and status flags above:
+
+  ```bash
+  gh release create "v{VERSION}" "dist/NeovimAccessLink-{VERSION}.nvda-addon" \
+    "dist/neovim-access-link-{VERSION}-documentation.zip" \
+    --repo helmsaccess/neovim-access-link --verify-tag --fail-on-no-commits \
+    --title "Neovim Access Link {VERSION}" --notes-file "{RELEASE_NOTES_FILE}" {STATUS_FLAGS}
+  ```
+- After publication, verify the tag target, title, draft/pre-release/latest state, notes, exact two
+  asset names, and successful downloads. Do not replace a published tag or asset silently.
 
 ## Documentation and publication
 
