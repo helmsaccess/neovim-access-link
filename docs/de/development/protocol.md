@@ -66,6 +66,19 @@ Eine andere Protokollversion, fehlende Pflichtfelder, ungültige Typen,
 beschädigtes MessagePack und übergroße Frames beenden die betreffende
 Transportinstanz. Unbekannte optionale Payloadfelder dürfen ignoriert werden.
 
+`pluginManagerOverview` ist ausschließlich bei der öffentlichen Bufferkennung
+`buftype=nofile` und `filetype=lazy` gültig. Es enthält höchstens 2048
+UTF-8-Byte aus dem ersten zusammenhängenden Textblock des Puffers. Lokaler und
+SSH-Client entfernen das optionale Feld bei falscher Kennung, falschem Typ,
+leerem oder übergroßem Inhalt, bevor der Zustand NVDA erreicht.
+`pluginManagerEntryExpanded` ist unter derselben exakten Bufferkennung ein
+Boolean. Das Plugin setzt ihn nur für die aktuelle, anhand einer dokumentierten
+Lazy-Icon-Hervorhebung eindeutig erkannte Pluginzeile. Eine unmittelbar folgende
+`dir`-Eigenschaft mit genau einer dokumentierten `LazyProp`-Extmark bedeutet
+`true`; ohne diese Eigenschaft ist die erkannte Zeile eingeklappt. Andere oder
+mehrdeutige Zeilen liefern keinen Zustand. Lokaler Client, SSH-Client und Bridge
+entfernen das Feld bei falscher Kennung oder falschem Typ.
+
 Dateimanagerzustand enthält nur begrenzte semantische Werte. Eintragsnamen sind
 auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte sowie Typ- und
 Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin validiert vollständige
@@ -126,6 +139,24 @@ eines Schedulerzyklus zusammengefasst. Ein Identitäts- oder Managerwechsel vor
 der Ausgabe verwirft sie. Das Ereignis bestätigt nur, was die öffentliche
 Plugin-API als Abschluss meldet; fehlende Fehler- oder Abbruchereignisse werden
 nicht aus Meldungstext oder Renderzustand rekonstruiert.
+
+Die vorhandenen kanonischen Felder `buftype` und `filetype` kennzeichnen das
+Lazy-Fenster nur bei den exakten Werten `nofile` und `lazy`. Zusätzlicher
+Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich. Der
+optionale kanonische Boolean `pluginManagerEntryExpanded` beschreibt nur die
+aktuelle erkannte Pluginzeile. Gewöhnliche Neovim-Zustandsereignisse übertragen
+Änderungen; ein separates Lazy-Ereignis oder eine private Lazy-API ist dafür
+nicht erforderlich.
+
+Das flüchtige Ereignis `pluginManagerOperation` enthält
+`pluginManagerKind=lazyNvim`, genau eine feste Operation `install`, `update`,
+`clean`, `check`, `log` oder `sync` und eine Phase `started` oder `finished`.
+Es übernimmt keine Eventdaten, Pluginzeilen, Zähler, Pfade oder Erfolgsaussage.
+Bridge und lokaler Client validieren den Vertrag vor Veröffentlichung und
+übernehmen die drei Operationsfelder nicht in den kanonischen Zustand. Während
+`sync` werden dessen dokumentierte
+untergeordnete Installations-, Bereinigungs- und Aktualisierungsereignisse zu
+einem Start-/Endpaar zusammengefasst; ungepaarte Endereignisse bleiben still.
 
 ## Sitzungsbeginn, Sequenzierung und Resync
 
@@ -254,6 +285,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
+`pluginManagerOperation`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult` und
 `numberedChoiceOpened`, `numberedChoiceClosed`,

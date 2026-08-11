@@ -215,7 +215,7 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 
 | Schicht | Besitzt | Besitzt ausdrücklich nicht |
 |---|---|---|
-| Neovim-Plugin | Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten, Menüs, Meldungen, Dateimanagerzustand und flüchtige rein lesende Explorationsposition | Windows-Fokus, Sprache, SSH-Lebenszyklus oder Bewegung des echten Cursors für Exploration |
+| Neovim-Plugin | Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten, Menüs, Meldungen, Dateimanagerzustand, Plugin-Manager-Lebenszyklus und flüchtige rein lesende Explorationsposition | Windows-Fokus, Sprache, SSH-Lebenszyklus oder Bewegung des echten Cursors für Exploration |
 | Bridge | Unix-RPC-Verbindung, stdio-Framing, begrenzte Weiterleitung | freie RPC- oder Befehlsausführung, Präsentation |
 | Protokollclient | Größen-, Typ-, Sitzungs-, Sequenz-, Heartbeat- und Resyncprüfung | Entscheidung über Sprache oder Terminalfokus |
 | `ConnectionInstanceManager` | Instanzen und Bindung von `TerminalIdentity` zu Instanz | Erraten einer Bindung aus Titel oder Terminaltext |

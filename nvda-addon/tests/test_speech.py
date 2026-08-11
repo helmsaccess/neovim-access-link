@@ -549,6 +549,216 @@ class SpeechPlannerTests(unittest.TestCase):
             quickfix.text,
         )
 
+    def test_lazy_plugin_manager_context_uses_semantic_identity(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", bufferId=1, windowId=10, tabpageId=20,
+            bufferName="/tmp/example.lua", mode="normal", modeRaw="n",
+        ))
+        changed = planner.plan(event(
+            "contextChanged", bufferId=2, windowId=10, tabpageId=20,
+            bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
+        ))[0]
+        focused = SpeechPlanner().plan(event(
+            "focusContext", bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
+        ))[0]
+        expected = "lazy.nvim plugin manager, Install (I) Sync (S) Update (U), normal mode"
+        self.assertEqual(expected, changed.text)
+        self.assertEqual(expected, focused.text)
+        self.assertEqual(focused.text, focused.braille_message)
+        focused_line = SpeechPlanner().plan(event(
+            "focusContext", bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
+        ), focus_announcement="line")[0]
+        self.assertEqual("Install (I) Sync (S) Update (U)", focused_line.text)
+
+        for buftype, filetype in (("", "lazy"), ("nofile", "lazy-lookalike")):
+            with self.subTest(buftype=buftype, filetype=filetype):
+                ordinary = SpeechPlanner().plan(event(
+                    "focusContext", bufferName="", buftype=buftype, filetype=filetype,
+                    mode="normal", modeRaw="n",
+                ))[0]
+                self.assertEqual("unnamed buffer, normal mode", ordinary.text)
+
+    def test_lazy_line_navigation_ignores_trailing_visual_padding(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", line="first", bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        moved = planner.plan(event(
+            "lineChanged", line="  access-link-update-target   ", row=2,
+            byte_column=0, character=" ", word="", bufferId=2, windowId=10,
+            tabpageId=20, buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n",
+        ))[0]
+        self.assertEqual("access-link-update-target", moved.text)
+        self.assertIsNone(moved.character_suffix)
+
+        ordinary = SpeechPlanner()
+        ordinary.plan(event("fullState", line="first", bufferId=3, windowId=11))
+        unchanged = ordinary.plan(event(
+            "lineChanged", line="source line ", row=2, byte_column=11,
+            character=" ", word="", bufferId=3, windowId=11,
+        ))[0]
+        self.assertEqual("source line ", unchanged.text)
+        self.assertEqual(" ", unchanged.character_suffix)
+
+    def test_lazy_speech_filters_private_use_icons_at_any_position(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", line="heading", bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        moved = planner.plan(event(
+            "lineChanged", line="  \U000f04b2 Install \ue000 Update   ", row=2,
+            byte_column=2, character="\U000f04b2", word="\U000f04b2",
+            bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))[0]
+        self.assertEqual("Install   Update", moved.text)
+        self.assertIsNone(moved.character_suffix)
+
+        ordinary = SpeechPlanner()
+        ordinary.plan(event("fullState", line="heading", bufferId=3, windowId=11))
+        unchanged = ordinary.plan(event(
+            "lineChanged", line="\U000f04b2 ordinary", row=2, byte_column=0,
+            character="\U000f04b2", word="\U000f04b2", bufferId=3, windowId=11,
+        ))[0]
+        self.assertEqual("\U000f04b2 ordinary", unchanged.text)
+        self.assertEqual("\U000f04b2", unchanged.character_suffix)
+
+    def test_lazy_plugin_rows_announce_nvda_tree_state(self) -> None:
+        translations = {"collapsed": "eingeklappt", "expanded": "ausgeklappt"}
+        planner = SpeechPlanner(translate=lambda value: translations.get(value, value))
+        planner.plan(event(
+            "fullState", line="heading", row=4, bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        collapsed = planner.plan(event(
+            "lineChanged", line="    ○ plugin-name   ", row=5, byte_column=0,
+            bufferId=2, windowId=10, tabpageId=20, buftype="nofile", filetype="lazy",
+            pluginManagerEntryExpanded=False,
+        ))[0]
+        self.assertEqual("○ plugin-name, eingeklappt", collapsed.text)
+
+        expanded = planner.plan(event(
+            "lineChanged", line="    ○ plugin-name   ", row=6, byte_column=0,
+            bufferId=2, windowId=10, tabpageId=20, buftype="nofile", filetype="lazy",
+            pluginManagerEntryExpanded=True,
+        ))[0]
+        self.assertEqual("○ plugin-name, ausgeklappt", expanded.text)
+
+    def test_lazy_overview_is_not_interrupted_by_following_context_cursor(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", line="source", row=1, bufferId=1, windowId=10, tabpageId=20,
+        ))
+        state = dict(
+            line="", row=1, bufferId=2, windowId=11, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+            pluginManagerOverview="lazy.nvim Install (I) Update (U) Sync (S)",
+        )
+        changed = planner.plan(event("contextChanged", **state))[0]
+        self.assertIn("Install (I) Update (U) Sync (S)", changed.text)
+        self.assertEqual([], planner.plan(event("cursorMoved", **state)))
+
+        late = SpeechPlanner()
+        late.plan(event(
+            "contextChanged", line="", row=1, bufferId=3, windowId=12, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        rendered = late.plan(event(
+            "diagnosticChanged", line="", row=1, bufferId=3, windowId=12, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+            pluginManagerOverview="lazy.nvim Install (I) Update (U) Sync (S)",
+        ))[0]
+        self.assertEqual("Install (I) Update (U) Sync (S)", rendered.text)
+        self.assertEqual([], late.plan(event(
+            "textChanged", line="", row=1, bufferId=3, windowId=12, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+            pluginManagerOverview="lazy.nvim Install (I) Update (U) Sync (S)",
+        )))
+
+    def test_plugin_manager_lifecycle_is_neutral_and_brailled(self) -> None:
+        planner = SpeechPlanner()
+        started = planner.plan({"type": "pluginManagerOperation", "payload": {
+            "pluginManagerKind": "lazyNvim",
+            "pluginManagerOperation": "update",
+            "pluginManagerPhase": "started",
+        }})[0]
+        finished = planner.plan({"type": "pluginManagerOperation", "payload": {
+            "pluginManagerKind": "lazyNvim",
+            "pluginManagerOperation": "update",
+            "pluginManagerPhase": "finished",
+        }})[0]
+        self.assertEqual("lazy.nvim plugin manager: update started", started.text)
+        self.assertEqual(started.text, started.braille_message)
+        self.assertEqual(
+            "lazy.nvim plugin manager: update finished; check the plugin manager for results",
+            finished.text,
+        )
+        self.assertNotIn("success", finished.text)
+        self.assertEqual(finished.text, finished.braille_message)
+
+    def test_plugin_manager_entry_transition_uses_tree_state_language(self) -> None:
+        planner = SpeechPlanner(translate=lambda value: {
+            "expanded": "ausgeklappt",
+            "collapsed": "eingeklappt",
+            "lazy.nvim plugin manager": "lazy.nvim plugin manager",
+        }.get(value, value))
+        base = {
+            "buftype": "nofile",
+            "filetype": "lazy",
+            "bufferId": 2,
+            "windowId": 10,
+            "tabpageId": 20,
+            "lineText": "    ○ plugin-name ",
+            "cursor": {"line": 5, "byteColumn": 0},
+        }
+        planner.plan({"type": "fullState", "payload": {
+            **base,
+            "pluginManagerEntryExpanded": False,
+        }})
+        expanded = planner.plan({"type": "diagnosticChanged", "payload": {
+            **base,
+            "pluginManagerEntryExpanded": True,
+        }})[0]
+        collapsed = planner.plan({"type": "textChanged", "payload": {
+            **base,
+            "pluginManagerEntryExpanded": False,
+        }})[0]
+        self.assertEqual("ausgeklappt", expanded.text)
+        self.assertIsNone(expanded.braille_message)
+        self.assertEqual("eingeklappt", collapsed.text)
+        self.assertIsNone(collapsed.braille_message)
+
+    def test_invalid_plugin_manager_data_fails_open(self) -> None:
+        planner = SpeechPlanner()
+        for payload in (
+            {
+                "pluginManagerKind": "other",
+                "pluginManagerOperation": "update", "pluginManagerPhase": "started",
+            },
+            {
+                "pluginManagerKind": "lazyNvim",
+                "pluginManagerOperation": "arbitrary", "pluginManagerPhase": "started",
+            },
+            {
+                "pluginManagerKind": "lazyNvim",
+                "pluginManagerOperation": "update", "pluginManagerPhase": "successful",
+            },
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual([], planner.plan({
+                    "type": "pluginManagerOperation", "payload": payload,
+                }))
+
     def test_context_choice_coalesces_window_mode_file_flags_and_connection(self) -> None:
         planner = SpeechPlanner()
         text_window = {
@@ -1821,6 +2031,25 @@ class BraillePlannerTests(unittest.TestCase):
         self.assertEqual(2, plan.cursor)
         self.assertEqual((6, 7, 8, 9), plan.routing_byte_columns[:4])
         self.assertIsNone(plan.routing_byte_columns[len("café")])
+
+    def test_lazy_plugin_rows_use_nvda_tree_markers(self) -> None:
+        collapsed = plan_braille({
+            "buftype": "nofile", "filetype": "lazy",
+            "lineText": "    ○ plugin-name   ",
+            "cursor": {"byteColumn": 0},
+            "pluginManagerEntryExpanded": False,
+        })
+        self.assertEqual("    ○ plugin-name +", collapsed.text)
+        self.assertEqual(0, collapsed.cursor)
+        self.assertEqual((None, None), collapsed.routing_byte_columns[-2:])
+
+        expanded = plan_braille({
+            "buftype": "nofile", "filetype": "lazy",
+            "lineText": "    ○ plugin-name   ",
+            "cursor": {"byteColumn": 8},
+            "pluginManagerEntryExpanded": True,
+        })
+        self.assertEqual("    ○ plugin-name -", expanded.text)
 
     def test_file_manager_braille_localizes_semantic_type_and_state(self) -> None:
         translations = {

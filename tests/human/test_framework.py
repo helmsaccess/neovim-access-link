@@ -100,6 +100,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 				"c-diagnostics",
 				"diagnostics",
 				"focus-isolation",
+				"lazy-nvim",
 				"lsp-native",
 				"markdown-diagnostics",
 				"nvim-cmp",
@@ -161,7 +162,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			{plan["profile"] for plan in plans.values()},
 		)
 		self.assertEqual(
-			{"L1", "L2", "L3", "L4", "L5", "L6", "C1", "C2", "C3", "D1", "D2", "D3", "D4", "S1"},
+			{
+				"L1", "L2", "L3", "L4", "L5", "L6",
+				"C1", "C2", "C3", "D1", "D2", "D3", "D4",
+				"S1", "P1", "P2", "P3", "P4",
+			},
 			{step["testId"] for plan in plans.values() for step in plan["steps"]},
 		)
 
@@ -214,6 +219,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('$env:ACCESS_LINK_HUMAN_TEST_ID = $HumanTestId', runner)
 		self.assertIn('"ACCESS_LINK_HUMAN_STEP_ID"', runner)
 		self.assertIn('$env:ACCESS_LINK_HUMAN_STEP_ID = $StepId', runner)
+		self.assertIn('"ACCESS_LINK_HUMAN_LAZY_FIXTURE"', runner)
+		self.assertIn("function Assert-LazySandboxPath", runner)
+		self.assertIn("function Initialize-LazyFixture", runner)
+		self.assertIn('"access-link-stale-target"', runner)
+		self.assertIn('Remove-Item -LiteralPath $sandbox -Recurse -Force', runner)
 		self.assertNotIn('"install", "--prefix", $NodeRoot', runner)
 		self.assertIn('"pack", "--pack-destination", $PackageRoot, "--ignore-scripts"', runner)
 		self.assertIn("Get-FileHash -LiteralPath $archive -Algorithm SHA512", runner)
@@ -224,6 +234,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('[string[]]$TestId = @()', runner)
 		self.assertIn('selectedTests = @(', runner)
 		self.assertIn('function Select-CustomTests', runner)
+		selector = runner[
+			runner.index("function Select-CustomTests") : runner.index("function Show-Menu")
+		]
+		for category in validator.ALLOWED_CATEGORIES:
+			self.assertIn(f'"{category}"', selector)
 		self.assertIn('$needsClangTidy = $profiles -contains "c-diagnostics"', runner)
 		self.assertIn('$needsMarkdownlint = $profiles -contains "markdown-diagnostics"', runner)
 		self.assertIn('"clang-tidy==$($dependencies.tools.clangTidy)"', runner)
@@ -275,6 +290,9 @@ class HumanTestFrameworkTests(unittest.TestCase):
 	def test_test_neovim_repeats_one_task_and_starts_diagnostics_on_error(self) -> None:
 		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
 		readiness = (HUMAN_ROOT / "framework" / "linter_readiness.lua").read_text(
+			encoding="utf-8"
+		)
+		lazy_fixture = (HUMAN_ROOT / "framework" / "lazy_fixture.lua").read_text(
 			encoding="utf-8"
 		)
 		self.assertIn('vim.keymap.set({ "n", "i" }, "<F2>"', configuration)
@@ -376,6 +394,15 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		)
 		self.assertIn('"<F4>", report_buffer_replacement', configuration)
 		self.assertNotIn('"<F11>"', configuration)
+		self.assertIn('profile == "lazy"', configuration)
+		self.assertIn('vim.cmd("Lazy " .. action)', configuration)
+		self.assertIn('vim.fn.exists(":Lazy") == 2', configuration)
+		self.assertIn('lazy.nvim deliberately suppresses its floating UI', configuration)
+		self.assertNotIn('vim.bo.buftype == "nofile" and vim.bo.filetype == "lazy"', configuration)
+		self.assertIn("lazy_fixture_support.verify(lazy_fixture)", configuration)
+		self.assertIn('vim.system({ git, "-C", directory, "rev-parse", "HEAD" }', lazy_fixture)
+		self.assertIn("Installed at the expected Git revision: %s.", configuration)
+		self.assertIn("Expected removal confirmed: %s.", configuration)
 		self.assertIn('step_id == "automatic-parameters"', configuration)
 		self.assertIn('step_id == "completion-presentation"', configuration)
 		self.assertIn('step_id == "menu-presentation"', configuration)
@@ -386,6 +413,14 @@ class HumanTestFrameworkTests(unittest.TestCase):
 			configuration.index('if profile == "cmp" then', configuration.index("local function assert_completion_profile_ready")),
 			configuration.index('vim.fn.maparg("<F5>"', configuration.index("local function assert_completion_profile_ready")),
 		)
+
+	def test_lazy_fixture_git_is_quiet_and_line_ending_neutral(self) -> None:
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn('"`tautocrlf = false"', runner)
+		self.assertIn('"`tsafecrlf = false"', runner)
+		self.assertIn('"clone", "--quiet", "--bare"', runner)
+		self.assertIn('"clone", "--quiet", [string]$remotePaths[$Name]', runner)
+		self.assertIn('"checkout", "--quiet", "--detach"', runner)
 
 	def test_completion_profiles_require_f5_and_do_not_fall_back_to_other_completion(self) -> None:
 		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
@@ -490,6 +525,11 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('.\\tests\\human\\framework\\run.ps1 list -Language en', workflow)
 		self.assertIn('-TestId "D3"', workflow)
 		self.assertIn("63daa0a0374f2255d2fb4c0867fcacc64a09c8d7ec1c349f781aff1b8350a8ad", workflow)
+
+	def test_lazy_fixture_writer_preserves_an_empty_absence_array(self) -> None:
+		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
+		self.assertIn("[object[]]$absentDirectories = @()", runner)
+		self.assertIn("absent = $absentDirectories", runner)
 
 	def test_definition_fingerprint_changes_with_human_test_inputs(self) -> None:
 		fingerprint = validator.definition_fingerprint()

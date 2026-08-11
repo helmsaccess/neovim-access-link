@@ -41,6 +41,38 @@ After restarting Neovim, confirm that the plugin is loaded:
 
 The result `2` confirms that the command is available.
 
+### Update plugins with lazy.nvim
+
+Open Lazy with `:Lazy`. Access Link identifies the buffer as the `lazy.nvim
+plugin manager` and speaks the complete command bar even when Lazy wraps it
+across several lines. Lazy's first buffer line is empty for layout; when the
+window opens, Access Link reads the following command bar instead. Ordinary
+Neovim navigation reads the window's real text lines without announcing
+visual-only edge or padding spaces or Lazy's graphical font icons. The Braille
+display retains the original text, including its icons and cursor position. To
+read the command bar again, hold the NVDA key and explore its lines with `k` and
+`j`; the Neovim cursor remains on the plugin. Without NVDA, `j` and `k` move
+between plugin rows as usual. On an unambiguously recognized plugin row, Access
+Link also reports `collapsed` or `expanded`. As in NVDA tree views, Braille
+shows `+` or `-` after that row.
+`Enter` opens the current plugin's details and closes them when pressed again;
+Access Link speaks the new state. On Braille, the immediate change of the
+persistent marker is sufficient. `?` toggles Lazy's help, and `q` closes the
+window.
+
+Use `:Lazy update` for a complete update. `:Lazy sync` installs missing
+plugins, removes plugins which are no longer needed, and updates existing
+plugins. Access Link reports the start and end of these operations through
+speech and Braille. The completion report deliberately does not claim success:
+check Lazy's window afterwards for errors and the actual result.
+
+Apart from recognizing a plugin row and its details state, Access Link does not
+semantically interpret Lazy's drawn icons and virtual progress, counts, or
+error text. It also replaces no Lazy key and confirms no deletion. When a view
+remains unclear, use Lazy's documented
+commands and read the real buffer lines; Access Link falls back to that normal
+buffer support.
+
 ## Recommended beginner path for Python
 
 The following example uses Neovim 0.12, Git, Pyright, and Ruff. Access Link

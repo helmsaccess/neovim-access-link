@@ -53,7 +53,7 @@ Neovim-Datenverzeichnisse werden nicht verändert.
 | Suite | Inhalt | Wann ausführen? |
 | --- | --- | --- |
 | `smoke` | nativer LSP, Suche, Ersetzung und Completion, Ruff-Diagnosen, Fokusisolation und Fail-open | üblicher Praxistest; empfohlen, etwa 20 bis 30 Minuten |
-| `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp sowie je eine C-/Clang-Tidy- und Markdown-/markdownlint-Diagnose | nach Änderungen an Adaptern, Linterintegration oder Abhängigkeiten |
+| `compatibility` | Completion-Menüs von nvim-cmp und blink.cmp, C-/Clang-Tidy- und Markdown-/markdownlint-Diagnosen sowie lazy.nvim-Pluginverwaltung | nach Änderungen an Adaptern, Linterintegration, Pluginverwaltung oder Abhängigkeiten |
 | `all` | beide Suiten in einem Ergebnis | nur wenn beide Bereiche betroffen sind |
 | individuelle Auswahl | einzelne Aufgaben, im Menü nach Kategorien gruppiert | gezielte Nachprüfung eines betroffenen Bereichs; spart Zeit und unnötige Downloads |
 
@@ -63,12 +63,13 @@ Neovim-Datenverzeichnisse werden nicht verändert.
 | Vervollständigung | native Completion, nvim-cmp und blink.cmp |
 | Diagnosen und Linter | Ruff, Clang-Tidy und markdownlint |
 | Sitzung und Terminalintegration | Fokusisolation und Fail-open |
+| Plugin-Verwaltung | lazy.nvim-Fenster, Installation, Aktualisierung und Synchronisierung |
 
 ### Stabile Test-IDs
 
 Jede Aufgabe besitzt eine eindeutige zweistellige ID. Der erste Buchstabe
 bezeichnet die Kategorie (`L` LSP/Sprachintelligenz, `C` Completion, `D`
-Diagnosen, `S` Sitzung); das zweite Zeichen unterscheidet die Aufgaben. Diese
+Diagnosen, `S` Sitzung, `P` Plugin-Verwaltung); das zweite Zeichen unterscheidet die Aufgaben. Diese
 IDs werden nie umnummeriert oder erneut vergeben. Sie erscheinen im
 Auswahlmenü, vor jeder Aufgabe, in der JSON-Ergebnisdatei und bei `F2` in
 Test-Neovim. Damit genügt beispielsweise „Fehler in D3“ als eindeutige
@@ -90,6 +91,10 @@ Referenz.
 | `D3` | C-/Clang-Tidy-Diagnosen |
 | `D4` | Markdown-/markdownlint-Diagnosen |
 | `S1` | Fokusisolation und Verbindungsabbruch |
+| `P1` | lazy.nvim-Fenster und Navigation |
+| `P2` | Installation eines isolierten Test-Plugins |
+| `P3` | Aktualisierung eines isolierten Test-Plugins |
+| `P4` | Synchronisierung mit Installation, Aktualisierung und Bereinigung |
 
 Die Standardaufgaben laufen immer in dieser Reihenfolge: nativer LSP,
 Diagnosen, danach Fokusisolation. Fehlende Audioausgabe oder eine fehlende
@@ -223,6 +228,7 @@ Die jeweilige Aufgabe nennt nur die tatsächlich benötigten Tasten. Diese
 | `F6` | den ausgewählten Linter ausführen, auf dessen Bereitschaft warten und den Cursor auf die erste erwartete Testdiagnose setzen |
 | `F7` | Diagnose an der aktuellen Position ausgeben |
 | `F8` / `F9` | zur vorherigen beziehungsweise nächsten Diagnose springen |
+| `F3`, `F4`, `F5` bei P1 bis P4 | lazy.nvim öffnen, die vorbereitete öffentliche Verwaltungsaktion starten und den tatsächlichen isolierten Git-Endzustand prüfen; P1 benötigt nur F3 und Lazys normale Tasten |
 | `Escape`, dann `F10` | Test-Neovim ohne Speichern schließen und zu PowerShell zurückkehren |
 
 Completion wird mit `Strg+N` und `Strg+P` durchlaufen, mit `Strg+Y`

@@ -37,6 +37,27 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_plugin_manager_lifecycle_is_validated_before_publication(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {}
+		bridge._active_numbered_choice = None
+		bridge.transport = transport
+		payload = {
+			"pluginManagerKind": "lazyNvim",
+			"pluginManagerOperation": "update",
+			"pluginManagerPhase": "started",
+		}
+		bridge._on_nvim_event("pluginManagerOperation", payload)
+		self.assertEqual("pluginManagerOperation", transport.events[-1]["type"])
+		bridge._on_nvim_event(
+			"pluginManagerOperation", {**payload, "pluginManagerOperation": "arbitrary"},
+		)
+		self.assertEqual(1, len(transport.events))
+		self.assertNotIn("pluginManagerKind", bridge.full_state())
+		self.assertNotIn("pluginManagerOperation", bridge.full_state())
+
 	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -540,7 +561,11 @@ class NvimBridgeTests(unittest.TestCase):
 					"--listen",
 					nvim_socket,
 				],
-				env={**os.environ, "TERM": "xterm-256color", "XDG_RUNTIME_DIR": runtime},
+				env={
+					**os.environ,
+					"TERM": "xterm-256color",
+					"XDG_RUNTIME_DIR": runtime,
+				},
 				encoding=None,
 				timeout=3,
 			)
@@ -608,6 +633,152 @@ class NvimBridgeTests(unittest.TestCase):
 				).stdout.strip()
 				self.assertEqual("i:x", output)
 			finally:
+				process.terminate(force=True)
+
+	def test_real_tui_lazy_context_and_lifecycle_are_semantic(self) -> None:
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			runtime = os.path.join(directory, "runtime")
+			os.mkdir(runtime)
+			environment = {
+				**os.environ,
+				"TERM": "xterm-256color",
+				"XDG_RUNTIME_DIR": runtime,
+				"XDG_DATA_HOME": os.path.join(directory, "data"),
+				"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+				"XDG_STATE_HOME": os.path.join(directory, "state"),
+				"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+			}
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n", "-u", "NONE", "-i", "NONE",
+					"--cmd", "set packpath=",
+					"--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
+					"--cmd", "runtime plugin/nvim_nvda.lua",
+					"--listen", nvim_socket,
+				],
+				env=environment,
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+				start = len(events)
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.cmd('enew'); vim.bo.buftype='nofile'; vim.bo.filetype='lazy'; "
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,"
+					"{'lazy.nvim','','  Not Loaded (1)','    ○ access-link-test '}); "
+					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
+					"vim.api.nvim_buf_set_extmark(0,ns,3,2,"
+					"{end_col=8,hl_group='LazyLocal'}); "
+					"vim.api.nvim_win_set_cursor(0,{4,0}); "
+					"require('nvim_nvda')._test_emit('contextChanged')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "contextChanged"
+						and event["payload"].get("buftype") == "nofile"
+						and event["payload"].get("filetype") == "lazy"
+						and event["payload"].get("pluginManagerEntryExpanded") is False
+						for event in events[start:]
+					),
+				)
+				time.sleep(0.05)
+				start = len(events)
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
+					"vim.api.nvim_buf_set_lines(0,-1,-1,true,{'        dir /tmp/example'}); "
+					"local row=vim.api.nvim_buf_line_count(0)-1; "
+					"vim.api.nvim_buf_set_extmark(0,ns,row,2,{end_col=11,hl_group='LazyProp'}); "
+					"require('nvim_nvda')._test_emit('textChanged')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "textChanged"
+						and event["payload"].get("pluginManagerEntryExpanded") is True
+						for event in events[start:]
+					),
+				)
+				start = len(events)
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"vim.api.nvim_buf_clear_namespace(0,"
+					"vim.api.nvim_create_namespace('access-link-lazy-detail-test'),0,-1); "
+					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
+					"vim.api.nvim_buf_set_extmark(0,ns,3,2,"
+					"{end_col=8,hl_group='LazyLocal'}); "
+					"vim.api.nvim_buf_set_lines(0,-2,-1,true,{}); "
+					"require('nvim_nvda')._test_emit('textChanged')",
+					[],
+				)
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "textChanged"
+						and event["payload"].get("pluginManagerEntryExpanded") is False
+						for event in events[start:]
+					),
+				)
+				registered = subprocess.run(
+					[
+						"nvim", "--server", nvim_socket, "--remote-expr",
+						"luaeval(\"#vim.api.nvim_get_autocmds({event='User',pattern='LazySyncPre'})\")",
+					],
+					check=True,
+					capture_output=True,
+					text=True,
+				).stdout.strip()
+				source = subprocess.run(
+					[
+						"nvim", "--server", nvim_socket, "--remote-expr",
+						"luaeval(\"debug.getinfo(require('nvim_nvda').setup).source\")",
+					],
+					check=True,
+					capture_output=True,
+					text=True,
+				).stdout.strip()
+				self.assertEqual(f"@{root / 'neovim-plugin/lua/nvim_nvda/init.lua'}", source)
+				self.assertEqual("1", registered)
+
+				start = len(events)
+				for pattern in (
+					"LazySyncPre", "LazyInstallPre", "LazyInstall", "LazyUpdatePre", "LazyUpdate",
+					"LazySync",
+				):
+					process.send(f":doautocmd User {pattern}\r".encode())
+				self._wait(
+					condition,
+					lambda: len([
+						event for event in events[start:]
+						if event["type"] == "pluginManagerOperation"
+					]) >= 2,
+					timeout=10.0,
+				)
+				lifecycle = [
+					event["payload"] for event in events[start:]
+					if event["type"] == "pluginManagerOperation"
+				]
+				self.assertEqual(2, len(lifecycle))
+				self.assertEqual(
+					[("sync", "started"), ("sync", "finished")],
+					[(item["pluginManagerOperation"], item["pluginManagerPhase"]) for item in lifecycle],
+				)
+				self.assertTrue(all(item["pluginManagerKind"] == "lazyNvim" for item in lifecycle))
+			finally:
+				bridge.stop()
 				process.terminate(force=True)
 
 	def test_local_windows_loopback_client_receives_semantic_results(self) -> None:

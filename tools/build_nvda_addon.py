@@ -27,7 +27,7 @@ PROTOCOL_MODULES = (
     "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
     "clipboard.py", "codec.py",
     "cursor_routing.py", "developer_context.py", "exploration.py",
-    "local_client.py", "messages.py",
+    "local_client.py", "messages.py", "plugin_manager.py",
     "numbered_choice.py", "nvim_rpc.py", "reconnect.py", "session.py", "stdio_client.py",
     "signature_help.py", "terminal_control.py", "text.py",
 )

@@ -284,7 +284,11 @@ loss</a></li>
 up LSP, completion, and linters</a>
 <ul>
 <li><a href="#docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers" id="toc-docs__en__manual__language-toolsmd__access-link-plugin-and-plugin-managers">Access
-Link plugin and plugin managers</a></li>
+Link plugin and plugin managers</a>
+<ul>
+<li><a href="#docs__en__manual__language-toolsmd__update-plugins-with-lazynvim" id="toc-docs__en__manual__language-toolsmd__update-plugins-with-lazynvim">Update
+plugins with lazy.nvim</a></li>
+</ul></li>
 <li><a href="#docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" id="toc-docs__en__manual__language-toolsmd__recommended-beginner-path-for-python">Recommended
 beginner path for Python</a>
 <ul>
@@ -1803,6 +1807,40 @@ case for <code>lazy.nvim</code>.</p>
 <p>After restarting Neovim, confirm that the plugin is loaded:</p>
 <pre class="vim"><code>:echo exists(&#39;:NvimNvdaSessionName&#39;)</code></pre>
 <p>The result <code>2</code> confirms that the command is available.</p>
+<section id="docs__en__manual__language-toolsmd__update-plugins-with-lazynvim" class="level4">
+<h4>Update plugins with lazy.nvim</h4>
+<p>Open Lazy with <code>:Lazy</code>. Access Link identifies the buffer
+as the <code>lazy.nvim plugin manager</code> and speaks the complete
+command bar even when Lazy wraps it across several lines. Lazy&#39;s first
+buffer line is empty for layout; when the window opens, Access Link
+reads the following command bar instead. Ordinary Neovim navigation
+reads the window&#39;s real text lines without announcing visual-only edge
+or padding spaces or Lazy&#39;s graphical font icons. The Braille display
+retains the original text, including its icons and cursor position. To
+read the command bar again, hold the NVDA key and explore its lines with
+<code>k</code> and <code>j</code>; the Neovim cursor remains on the
+plugin. Without NVDA, <code>j</code> and <code>k</code> move between
+plugin rows as usual. On an unambiguously recognized plugin row, Access
+Link also reports <code>collapsed</code> or <code>expanded</code>. As in
+NVDA tree views, Braille shows <code>+</code> or <code>-</code> after
+that row. <code>Enter</code> opens the current plugin&#39;s details and
+closes them when pressed again; Access Link speaks the new state. On
+Braille, the immediate change of the persistent marker is sufficient.
+<code>?</code> toggles Lazy&#39;s help, and <code>q</code> closes the
+window.</p>
+<p>Use <code>:Lazy update</code> for a complete update.
+<code>:Lazy sync</code> installs missing plugins, removes plugins which
+are no longer needed, and updates existing plugins. Access Link reports
+the start and end of these operations through speech and Braille. The
+completion report deliberately does not claim success: check Lazy&#39;s
+window afterwards for errors and the actual result.</p>
+<p>Apart from recognizing a plugin row and its details state, Access
+Link does not semantically interpret Lazy&#39;s drawn icons and virtual
+progress, counts, or error text. It also replaces no Lazy key and
+confirms no deletion. When a view remains unclear, use Lazy&#39;s documented
+commands and read the real buffer lines; Access Link falls back to that
+normal buffer support.</p>
+</section>
 </section>
 <section id="docs__en__manual__language-toolsmd__recommended-beginner-path-for-python" class="level3">
 <h3>Recommended beginner path for Python</h3>

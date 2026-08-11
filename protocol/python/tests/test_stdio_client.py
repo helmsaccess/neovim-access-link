@@ -40,6 +40,32 @@ class SshStdioClientTests(unittest.TestCase):
         self.assertEqual(["connected"], states)
         self.assertEqual("hello", events[0]["payload"]["lineText"])
 
+    def test_sanitizes_plugin_manager_overview_before_publication(self) -> None:
+        events: list[dict] = []
+        full_state = MessageFactory().create("fullState", {
+            "buftype": "nofile",
+            "filetype": "not-lazy",
+            "pluginManagerOverview": "untrusted",
+        })
+        process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
+        client = SshStdioClient("example-host", events.append, lambda _state: None)
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+        self.assertNotIn("pluginManagerOverview", events[0]["payload"])
+
+    def test_sanitizes_plugin_manager_entry_before_publication(self) -> None:
+        events: list[dict] = []
+        full_state = MessageFactory().create("fullState", {
+            "buftype": "nofile",
+            "filetype": "not-lazy",
+            "pluginManagerEntryExpanded": True,
+        })
+        process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
+        client = SshStdioClient("example-host", events.append, lambda _state: None)
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+        self.assertNotIn("pluginManagerEntryExpanded", events[0]["payload"])
+
     def test_stdio_v1_marker_is_not_accepted(self) -> None:
         client = SshStdioClient("example-host", lambda _event: None, lambda _state: None)
         process = FakeProcess(b"NVIM-NVDA-STDIO/1\n")

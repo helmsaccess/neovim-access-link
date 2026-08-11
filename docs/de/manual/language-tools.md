@@ -42,6 +42,41 @@ Prüfen Sie nach einem Neovim-Neustart, ob das Plugin geladen ist:
 
 Die Ausgabe `2` bestätigt den geladenen Befehl.
 
+### Plugins mit lazy.nvim aktualisieren
+
+Öffnen Sie Lazy mit `:Lazy`. Access Link nennt den Puffer als
+`lazy.nvim-Plugin-Manager` und spricht die Bedienleiste auch dann vollständig,
+wenn Lazy sie auf mehrere Zeilen umbricht. Lazys erste Pufferzeile ist aus
+Layoutgründen leer; Access Link liest beim Öffnen stattdessen die folgende
+Bedienleiste. Die normale Neovim-Navigation liest die echten Textzeilen des
+Fensters, ohne rein visuelle Rand- und Auffüll-Leerzeichen oder Lazys grafische
+Schriftartsymbole anzusagen. Die Braillezeile behält den ursprünglichen Text
+einschließlich seiner Symbole und Cursorposition. Zum erneuten Lesen der
+Bedienleiste halten Sie die NVDA-Taste und erkunden ihre Zeilen mit `k` und `j`;
+der Neovim-Cursor bleibt dabei auf dem Plugin. Ohne NVDA-Taste wechseln `j` und
+`k` wie gewohnt die Pluginzeile. Auf eindeutig erkannten Pluginzeilen meldet
+Access Link zusätzlich `eingeklappt` oder `ausgeklappt`. Auf der Braillezeile
+steht dafür wie bei NVDAs Baumansichten `+` beziehungsweise `-` hinter der
+Pluginzeile. `Eingabetaste` öffnet die Details des aktuellen Plugins und
+schließt sie beim nächsten Drücken wieder; Access Link spricht den neuen
+Zustand. Auf Braille genügt die unmittelbare Änderung des dauerhaften Markers.
+`?` schaltet Lazys Hilfe um und `q` schließt das Fenster.
+
+Für eine vollständige Aktualisierung ist `:Lazy update` der direkte Weg.
+`:Lazy sync` installiert fehlende Plugins, entfernt nicht mehr benötigte
+Plugins und aktualisiert vorhandene Plugins. Access Link meldet Beginn und Ende
+dieser Vorgänge über Sprache und Braille. Die Abschlussmeldung behauptet
+bewusst keinen Erfolg: Prüfen Sie danach Lazys Fenster auf Fehler und das
+tatsächliche Ergebnis.
+
+Abgesehen von der Erkennung einer Pluginzeile und ihres Detailzustands wertet
+Access Link weder Lazys gezeichnete Symbole und virtuellen Fortschritt noch
+Zähler oder Fehlertexte semantisch aus. Es ersetzt auch keine Lazy-Taste und
+bestätigt keine Löschaktion. Bleibt eine Ansicht
+unverständlich, verwenden Sie Lazys dokumentierte Befehle und lesen Sie die
+echten Pufferzeilen; Access Link fällt auf diese normale Bufferunterstützung
+zurück.
+
 ## Empfohlener Einsteigerweg für Python
 
 Das folgende Beispiel verwendet Neovim 0.12, Git, Pyright und Ruff. Access Link

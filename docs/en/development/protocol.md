@@ -64,6 +64,19 @@ payload fields may be ignored. State fields such as mode, buffer, cursor, and
 changed tick belong to semantic event payloads; they are not present on every
 transport message such as a heartbeat.
 
+`pluginManagerOverview` is valid only with the public buffer identity
+`buftype=nofile` and `filetype=lazy`. It contains at most 2,048 UTF-8 bytes from
+the buffer's first contiguous text block. The local and SSH clients remove the
+optional field before it reaches NVDA when the identity or type is wrong or
+the content is empty or oversized.
+`pluginManagerEntryExpanded` is a Boolean under the same exact buffer identity.
+The plugin sets it only for the current plugin row identified unambiguously by
+a documented Lazy icon highlight. An immediately following `dir` property with
+exactly one documented `LazyProp` extmark means `true`; its absence means that
+the recognized row is collapsed. Other or ambiguous rows provide no state. The
+local client, SSH client, and bridge remove the field when its identity or type
+is wrong.
+
 ## Session start, ordering, and resync
 
 The first accepted message in each transport session is `fullState` with
@@ -169,6 +182,7 @@ Important types include `fullState`, `modeChanged`, `characterMoved`,
 `diagnosticChanged`, `diagnosticMoved`, `foldChanged`, `commandLineChanged`,
 `messageReceived`,
 `errorReceived`, `fileManagerEntryChanged`, `fileManagerActionResult`,
+`pluginManagerOperation`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult`, `numberedChoiceOpened`,
 `numberedChoiceClosed`, `callableContextResult`,
@@ -328,6 +342,22 @@ Complete source and destination paths are removed before sending. Synchronous
 results in the same active buffer/window/tab may be combined within one
 scheduler cycle. A changed identity or manager drops the output. Missing
 failure or cancellation events are not reconstructed from rendering or text.
+
+The existing canonical `buftype` and `filetype` fields identify the Lazy
+window only when they are exactly `nofile` and `lazy`. No additional manager
+state or rendered UI text is needed. The optional canonical Boolean
+`pluginManagerEntryExpanded` describes only the current recognized plugin row.
+Ordinary Neovim state events carry changes; this needs neither a separate Lazy
+event nor a private Lazy API.
+
+The transient `pluginManagerOperation`
+event carries `pluginManagerKind=lazyNvim`, exactly
+one fixed operation, `install`, `update`, `clean`, `check`, `log`, or `sync`,
+and one phase, `started` or `finished`. It carries no event data, plugin rows,
+counts, paths, or success claim. The bridge and local client validate this
+contract before publication and do not copy its three operation fields into
+canonical state. During `sync`, its documented child install, clean, and update
+events collapse into one start/end pair; unpaired finish events remain silent.
 
 `promptOpened` carries a deliberate user-facing prompt at most 2048 bytes and
 a fixed prompt kind. `promptClosed` distinguishes acceptance and cancellation

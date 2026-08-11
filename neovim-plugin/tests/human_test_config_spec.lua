@@ -20,6 +20,13 @@ local function truthy(value, label)
   assert(value, label)
 end
 
+local lazy_fixture_support = dofile(root .. "/tests/human/framework/lazy_fixture.lua")
+local optional_null = vim.json.decode('{"value":null}').value
+truthy(#lazy_fixture_support.normalize({ absent = optional_null }).absent == 0,
+  "JSON null normalizes to an empty optional array")
+local invalid_array_ok = pcall(lazy_fixture_support.normalize, { absent = "not an array" })
+truthy(not invalid_array_ok, "invalid optional arrays remain rejected")
+
 truthy(vim.fn.exists(":AccessLinkHumanTestInfo") == 2,
   "human-test info command is available")
 local notification = nil

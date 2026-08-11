@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 10. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
-`buildVars.py` erzeugt Entwicklungsbuild 1 mit Git-Metadaten und setzt den
+Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
+`buildVars.py` erzeugt Entwicklungsbuilds mit Git-Metadaten und setzt den
 Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
@@ -96,6 +96,14 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   bestehen für native LSP-Completion, `nvim-cmp`, `blink.cmp`, `nvim-lint`,
   ALE und `none-ls.nvim`; Benutzer installieren die jeweiligen externen
   Sprachserver und Linter selbst.
+- Lazys öffentlicher `nofile`-/`lazy`-Puffer erhält einen eindeutigen
+  Fokuskontext. Beim Öffnen werden die aktuelle Bedienzeile und bei der
+  Zeilennavigation der Inhalt ohne rein visuelle Leerzeichen am Zeilenende
+  gesprochen. Dokumentierte Lebenszyklusereignisse melden Beginn und Ende
+  von Installation, Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
+  Synchronisierung neutral über Sprache und Braille. Pluginzeilen, virtueller
+  Fortschritt und Erfolg werden nicht abgeleitet. Die geführten P1- bis
+  P4-Abläufe wurden im Windows-/NVDA-Referenzpfad praktisch bestätigt.
 - Native LSP-Umbenennung bleibt vollständig bei Neovim und dem Sprachserver.
   Access Link beobachtet `LspRequest` und tatsächliche Bufferänderungen und
   fasst interne Text-, Cursor- und Kontextänderungen zu einem belegbaren
@@ -147,8 +155,38 @@ Befehle stehen in [Teststrategie](testing.md).
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
-Tastensteuerung; Aufbau und sichere Tastenbelegung stehen in
+Tastensteuerung. Die Kompatibilitätssuite enthält zusätzlich vier lazy.nvim-
+Aufgaben mit vollständig lokalen Git-Fixtures für Fenster, Installation,
+Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
+Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort absichtlich
+unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
+isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
+Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
+Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die
+Lua-Verifikation normalisiert zusätzlich älteres oder fremdes JSON-`null`,
+bevor F5 die tatsächlichen Git-Zustände prüft. Die Bestätigung nennt nur die
+belegten Ziele mit erwarteter Revision sowie gegebenenfalls das nachweislich
+entfernte Ziel.
+Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048 UTF-8-Byte
+begrenzten ersten zusammenhängenden Textblock. Er erscheint beim Rendern erst
+nach dem anfänglichen Kontextwechsel; Access Link spricht ihn dann genau einmal
+als vollständige Bedienleiste, trotz Layout-Leerzeile und
+fensterbreitenabhängigem Umbruch. Zeilenweise Navigation unterdrückt rein
+visuelle Rand- und Auffüll-Leerzeichen. In einem exakt als `nofile`/`lazy`
+erkannten Puffer entfernt die Sprachplanung private Unicode-Zeichen aus allen
+Sprachanteilen; Sprachexploration ist darin eingeschlossen. Der unveränderte
+Quelltext bleibt Grundlage für Braille, Cursor und Routing. Die aktuelle
+Pluginzeile wird nur aus Lazys dokumentierten Icon-Hervorhebungen erkannt. Eine
+unmittelbar folgende `dir`-Eigenschaft mit dokumentierter `LazyProp`-Extmark
+kennzeichnet sie als ausgeklappt. Sprache verwendet NVDAs lokalisierte Zustände
+`eingeklappt` und `ausgeklappt`; Braille hängt wie NVDAs Baumansichten `+` oder
+`-` an die Zeile.
+Ein Zustandswechsel erzeugt keine vorübergehende Braillemeldung und verdeckt
+damit den aktualisierten Marker nicht. Die Bedienleiste lässt sich nach der
+Öffnung mit der vorhandenen NVDA-Zeilenexploration erneut lesen. Bei unbekannter
+oder mehrdeutiger Darstellung bleibt Access Link still.
 
 Praktisch bestätigt wurden insbesondere:
 
@@ -158,6 +196,8 @@ Praktisch bestätigt wurden insbesondere:
 - Navigation, Sprachexploration, Modus-, Buffer- und Terminalwechsel;
 - Braille-Routing, beide Braillemodi und Rechtschreibvorschläge mit einer
   Papenmeier BRAILLEX EL 80c;
+- lazy.nvim-Fenster, Sprachexploration, Braillemarker sowie Installation,
+  Aktualisierung und Synchronisierung mit isolierten lokalen Test-Plugins;
 - alle vier Zwischenablagepfade lokal und über SSH sowie Oil-Navigation,
   Umbenennung und Bestätigungen.
 

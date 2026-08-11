@@ -6,6 +6,32 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Adds robust baseline support for `lazy.nvim`: Access Link gives the real
+  Lazy buffer an unambiguous context name and speaks the complete command bar
+  regardless of its initial blank line or width-dependent wrapping. Line
+  navigation omits visual-only edge and padding spaces. Graphical private-use
+  Unicode characters remain silent throughout the Lazy buffer, including
+  speech exploration, while Braille retains the unmodified text. Only documented
+  lifecycle events produce neutral start/end reports through speech and
+  Braille. Plugin rows identified unambiguously through public icon highlights
+  report NVDA's localized `collapsed` or `expanded` state when entered or
+  toggled; Braille shows the corresponding tree-view markers `+` and `-`.
+  Toggling does not obscure them with a transient Braille message, and existing
+  NVDA line exploration reads the command bar again when needed. Unclear
+  rendering remains silent. Synchronization collapses child operations
+  without guessing progress, result, or success from Lazy's rendering.
+- Adds four guided lazy.nvim practical tests for window operation, install,
+  update, and synchronization. Isolated local Git fixtures and pinned headless
+  contract tests verify actual end states without changing user configuration
+  or installed plugins. The individual selector lists these tasks under
+  plugin management. Technical preflight accounts for Lazy deliberately not
+  opening its UI in headless mode; local fixture repositories run without
+  line-ending conversion or distracting Git progress output.
+  The F5 final-state check treats an empty optional path list consistently as
+  an array instead of Lua `vim.NIL` and names the revisions and removals it
+  actually confirmed. All four guided workflows were practically confirmed in
+  the Windows/NVDA reference path; their completion reports remain explicitly
+  neutral until F5 proves the Git end state.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.

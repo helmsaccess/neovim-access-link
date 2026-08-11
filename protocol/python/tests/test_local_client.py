@@ -101,6 +101,40 @@ class LocalTcpClientTests(unittest.TestCase):
 		source.on_event("activeParameterChanged", payload)
 		self.assertEqual("localEventRejected", diagnostics[-1][0])
 
+	def test_plugin_manager_lifecycle_is_validated_before_publication(self) -> None:
+		_client, source, events, _states, diagnostics = self.make_client()
+		source.on_event("fullState", {"mode": "normal"})
+		payload = {
+			"pluginManagerKind": "lazyNvim",
+			"pluginManagerOperation": "sync",
+			"pluginManagerPhase": "finished",
+		}
+		source.on_event("pluginManagerOperation", payload)
+		self.assertEqual("pluginManagerOperation", events[-1]["type"])
+		source.on_event("pluginManagerOperation", {**payload, "pluginManagerPhase": "successful"})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		self.assertEqual(2, len(events))
+		self.assertNotIn("pluginManagerKind", _client._state)
+		self.assertNotIn("pluginManagerOperation", _client._state)
+		self.assertNotIn("pluginManagerPhase", _client._state)
+
+	def test_plugin_manager_overview_is_sanitized_before_publication(self) -> None:
+		_client, source, events, _states, _diagnostics = self.make_client()
+		source.on_event("fullState", {
+			"buftype": "nofile",
+			"filetype": "lazy",
+			"pluginManagerOverview": "lazy.nvim Install (I)",
+			"pluginManagerEntryExpanded": False,
+		})
+		self.assertEqual("lazy.nvim Install (I)", events[-1]["payload"]["pluginManagerOverview"])
+		self.assertIs(events[-1]["payload"]["pluginManagerEntryExpanded"], False)
+		source.on_event("fullState", {
+			"buftype": "",
+			"filetype": "lazy",
+			"pluginManagerOverview": "untrusted",
+		})
+		self.assertNotIn("pluginManagerOverview", events[-1]["payload"])
+
 	def test_invalid_full_state_neither_authenticates_nor_enters_cache(self) -> None:
 		client, source, events, states, diagnostics = self.make_client()
 		source.on_event("fullState", {"mode": object()})

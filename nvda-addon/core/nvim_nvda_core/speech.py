@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from enum import IntEnum
 from typing import Any, Callable
@@ -20,6 +21,22 @@ def translatable(message: str) -> str:
 
 def _identity(message: str) -> str:
     return message
+
+
+def speech_text_for_state(text: str, state: Mapping[str, Any] | None) -> str:
+    """Remove graphical private-use glyphs from speech in exact Lazy buffers."""
+    if not isinstance(text, str):
+        return ""
+    if (
+        not isinstance(state, Mapping)
+        or state.get("buftype") != "nofile"
+        or state.get("filetype") != "lazy"
+    ):
+        return text
+    return "".join(
+        " " if unicodedata.category(character) == "Co" else character
+        for character in text
+    ).strip()
 
 
 # Translators: Spoken labels for standardized LSP completion item kinds.
@@ -49,6 +66,16 @@ COMPLETION_KIND_LABELS = {
     "event": translatable("event"),
     "operator": translatable("operator"),
     "type parameter": translatable("type parameter"),
+}
+
+# Translators: Neutral operation names reported by a Neovim plugin manager.
+PLUGIN_MANAGER_OPERATION_LABELS = {
+    "install": translatable("installation"),
+    "update": translatable("update"),
+    "clean": translatable("cleanup"),
+    "check": translatable("update check"),
+    "log": translatable("log refresh"),
+    "sync": translatable("synchronization"),
 }
 
 
@@ -221,6 +248,12 @@ class SpeechPlanner:
         kind = event["type"]
         state = event.get("payload", {})
         actions: list[SpeechAction] = []
+        plugin_manager_overview = self._plugin_manager_overview_transition(state)
+        if plugin_manager_overview is not None:
+            actions.append(plugin_manager_overview)
+        plugin_manager_transition = self._plugin_manager_entry_transition(state)
+        if plugin_manager_transition is not None:
+            actions.append(plugin_manager_transition)
         if self._command_return_pending and kind != "messageReceived":
             # The pending flag suppresses only the immediate spoken return
             # mode. It must never leak into a later, unrelated mode change.
@@ -372,6 +405,14 @@ class SpeechPlanner:
         ):
             pass
         elif kind == "cursorMoved" and self._consume_context_cursor(state):
+            pass
+        elif (
+            kind == "cursorMoved"
+            and self._plugin_manager_name(state) is not None
+            and state.get("cursor") == (self._previous or {}).get("cursor")
+        ):
+            # Lazy redraws can publish a cursor event without moving the
+            # cursor. The preceding semantic state transition is authoritative.
             pass
         elif kind in {
             "cursorMoved", "characterMoved", "wordMoved", "lineChanged",
@@ -678,6 +719,10 @@ class SpeechPlanner:
             action = self._lsp_rename_completed(state)
             if action is not None:
                 actions.append(action)
+        elif kind == "pluginManagerOperation":
+            action = self._plugin_manager_operation(state)
+            if action is not None:
+                actions.append(action)
         elif kind == "spellingErrorTyped":
             error = state.get("spellingError")
             if isinstance(error, dict):
@@ -798,6 +843,24 @@ class SpeechPlanner:
             else action
             for action in actions
         ]
+        if self._plugin_manager_name(state) is not None:
+            actions = [
+                replace(
+                    action,
+                    text=speech_text_for_state(action.text, state),
+                    character_suffix=(
+                        speech_text_for_state(action.character_suffix, state) or None
+                        if isinstance(action.character_suffix, str)
+                        else action.character_suffix
+                    ),
+                    word_suffix=(
+                        speech_text_for_state(action.word_suffix, state) or None
+                        if isinstance(action.word_suffix, str)
+                        else action.word_suffix
+                    ),
+                )
+                for action in actions
+            ]
         actions = self._suppress_unchanged_indentation(actions)
         if state and kind != "connectionStateChanged":
             self._previous = state
@@ -1319,14 +1382,20 @@ class SpeechPlanner:
             return None
         buftype = state.get("buftype")
         filetype = state.get("filetype")
-        if buftype == "help" or filetype == "help":
+        plugin_manager_name = self._plugin_manager_name(state)
+        if plugin_manager_name is not None:
+            parts.append(plugin_manager_name)
+            overview = self._plugin_manager_overview(state)
+            if overview:
+                parts.append(overview)
+        elif buftype == "help" or filetype == "help":
             parts.append(self._translate("help"))
         elif buftype == "terminal":
             parts.append(self._translate("terminal"))
         name = state.get("bufferName")
         if isinstance(name, str) and name:
             parts.append(name.replace("\\", "/").rsplit("/", 1)[-1])
-        else:
+        elif plugin_manager_name is None:
             parts.append(self._translate("unnamed buffer"))
         if state.get("modified"):
             parts.append(self._translate("modified"))
@@ -1357,6 +1426,7 @@ class SpeechPlanner:
             window_type = state.get("windowType")
             buftype = state.get("buftype")
             filetype = state.get("filetype")
+            plugin_manager_name = self._plugin_manager_name(state)
             if window_type in {"quickfix", "locationList"}:
                 label = (
                     translatable("location list")
@@ -1364,6 +1434,15 @@ class SpeechPlanner:
                     else translatable("quickfix")
                 )
                 parts.append(self._translate(label))
+            elif plugin_manager_name is not None:
+                parts.append(plugin_manager_name)
+                overview = self._plugin_manager_overview(state)
+                if overview:
+                    parts.append(overview)
+                else:
+                    line = self._line_for_speech(state)
+                    if line:
+                        parts.append(line)
             elif buftype == "terminal" and canonical not in {"terminal", "terminalNormal"}:
                 parts.append(self._translate("terminal"))
             elif buftype == "help" or filetype == "help":
@@ -1394,6 +1473,107 @@ class SpeechPlanner:
             Priority.STATUS,
             interrupt=True,
             braille_message=None if isinstance(manager, dict) else text,
+        )
+
+    def _plugin_manager_name(self, state: dict[str, Any]) -> str | None:
+        if state.get("buftype") != "nofile" or state.get("filetype") != "lazy":
+            return None
+        # Translators: Context label for the lazy.nvim plugin-manager window.
+        return self._translate("lazy.nvim plugin manager")
+
+    def _line_for_speech(self, state: dict[str, Any]) -> str:
+        line = state.get("lineText")
+        if not isinstance(line, str):
+            return ""
+        # Lazy renders visual padding as real trailing buffer spaces. Preserve
+        # source text everywhere else, but do not speak this UI-only padding or
+        # graphical private-use glyphs from icon fonts.
+        return speech_text_for_state(line, state)
+
+    def _plugin_manager_overview(self, state: dict[str, Any]) -> str:
+        if self._plugin_manager_name(state) is None:
+            return ""
+        overview = state.get("pluginManagerOverview")
+        if not isinstance(overview, str):
+            return ""
+        parts = speech_text_for_state(overview, state).split()
+        if parts and parts[0] == "lazy.nvim":
+            parts.pop(0)
+        return " ".join(parts)
+
+    def _plugin_manager_entry_line(self, state: dict[str, Any], line: str) -> str:
+        expanded = state.get("pluginManagerEntryExpanded")
+        if self._plugin_manager_name(state) is None or not isinstance(expanded, bool):
+            return line
+        status = self._translate("expanded" if expanded else "collapsed")
+        return f"{line}, {status}" if line else status
+
+    def _plugin_manager_operation(self, state: dict[str, Any]) -> SpeechAction | None:
+        # Translators: Context label for the lazy.nvim plugin manager producing this operation.
+        manager = (
+            self._translate("lazy.nvim plugin manager")
+            if state.get("pluginManagerKind") == "lazyNvim"
+            else None
+        )
+        operation = state.get("pluginManagerOperation")
+        phase = state.get("pluginManagerPhase")
+        label = PLUGIN_MANAGER_OPERATION_LABELS.get(operation)
+        if manager is None or label is None or phase not in {"started", "finished"}:
+            return None
+        operation_text = self._translate(label)
+        if phase == "started":
+            # Translators: A plugin-manager operation has begun; both placeholders are localized.
+            text = self._translate("{manager}: {operation} started").format(
+                manager=manager,
+                operation=operation_text,
+            )
+        else:
+            # Translators: Completion is neutral; the manager window contains the actual result.
+            text = self._translate(
+                "{manager}: {operation} finished; check the plugin manager for results"
+            ).format(manager=manager, operation=operation_text)
+        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _plugin_manager_entry_transition(
+        self, state: dict[str, Any],
+    ) -> SpeechAction | None:
+        previous = self._previous or {}
+        current_expanded = state.get("pluginManagerEntryExpanded")
+        previous_expanded = previous.get("pluginManagerEntryExpanded")
+        current_cursor = state.get("cursor")
+        previous_cursor = previous.get("cursor")
+        if (
+            self._plugin_manager_name(state) is None
+            or self._plugin_manager_name(previous) is None
+            or not isinstance(current_expanded, bool)
+            or not isinstance(previous_expanded, bool)
+            or current_expanded == previous_expanded
+            or self._context_identity(state) != self._context_identity(previous)
+            or not isinstance(current_cursor, dict)
+            or not isinstance(previous_cursor, dict)
+            or current_cursor.get("line") != previous_cursor.get("line")
+        ):
+            return None
+        text = self._translate("expanded" if current_expanded else "collapsed")
+        # The persistent Braille row already changes between NVDA's '-' and
+        # '+' tree markers. A transient message would hide that useful state.
+        return SpeechAction(text, Priority.STATUS, interrupt=True)
+
+    def _plugin_manager_overview_transition(
+        self, state: dict[str, Any],
+    ) -> SpeechAction | None:
+        previous = self._previous or {}
+        overview = self._plugin_manager_overview(state)
+        previous_overview = self._plugin_manager_overview(previous)
+        if (
+            not overview
+            or previous_overview
+            or self._plugin_manager_name(previous) is None
+            or self._context_identity(state) != self._context_identity(previous)
+        ):
+            return None
+        return SpeechAction(
+            overview, Priority.STATUS, interrupt=True, braille_message=overview,
         )
 
     def _context_focus_change(
@@ -1430,10 +1610,11 @@ class SpeechPlanner:
         )
 
     def _focus_line(self, state: dict[str, Any]) -> SpeechAction | None:
-        line = state.get("lineText")
-        if not isinstance(line, str):
+        if not isinstance(state.get("lineText"), str):
             return None
-        text = line if line else self._translate("blank")
+        line = self._line_for_speech(state)
+        overview = self._plugin_manager_overview(state)
+        text = overview or self._plugin_manager_entry_line(state, line) or self._translate("blank")
         return SpeechAction(
             text, Priority.STATUS, interrupt=True,
             indentation_tones=indentation_quarter_tones(line),
@@ -1658,14 +1839,16 @@ class SpeechPlanner:
         )
 
     def _navigation(self, state: dict[str, Any], announce_full: bool) -> SpeechAction | None:
-        line = state.get("lineText")
+        source_line = state.get("lineText")
         cursor = state.get("cursor")
-        if not isinstance(line, str) or not isinstance(cursor, dict):
+        if not isinstance(source_line, str) or not isinstance(cursor, dict):
             return None
+        line = self._line_for_speech(state)
         previous_cursor = (self._previous or {}).get("cursor", {})
         line_changed = previous_cursor.get("line") != cursor.get("line")
         if announce_full or line_changed:
             text = line if line else self._translate("blank")
+            text = self._plugin_manager_entry_line(state, text)
             if state.get("windowType") in {"quickfix", "locationList"}:
                 position = self._result_position(state)
                 if position:
@@ -1679,7 +1862,7 @@ class SpeechPlanner:
         if not isinstance(byte_column, int):
             return None
         try:
-            character = cursor_text(line, byte_column).character
+            character = cursor_text(source_line, byte_column).character
         except InvalidByteColumn:
             return SpeechAction(
                 self._translate("invalid cursor position"),
@@ -1708,6 +1891,8 @@ class SpeechPlanner:
         line_character: bool,
     ) -> SpeechAction:
         line = state.get("lineText", "")
+        spoken_line = self._line_for_speech(state)
+        semantic_line = self._plugin_manager_entry_line(state, spoken_line)
         cursor = state.get("cursor", {})
         character = state.get("character", "")
         if not character and isinstance(line, str) and isinstance(cursor, dict):
@@ -1718,6 +1903,16 @@ class SpeechPlanner:
                 except InvalidByteColumn:
                     character = ""
         spoken_character = character if character else ""
+        byte_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
+        if self._plugin_manager_name(state) is not None and spoken_character.isspace() and (
+            kind == "lineChanged"
+            or (
+                isinstance(byte_column, int)
+                and isinstance(line, str)
+                and byte_column >= len(line.rstrip().encode("utf-8"))
+            )
+        ):
+            spoken_character = ""
         if kind == "characterMoved":
             sound = "lineCrossed" if spoken_character and self._line_changed(state) else None
             indentation = indentation_quarter_tones(line) if sound else None
@@ -1755,7 +1950,7 @@ class SpeechPlanner:
             return SpeechAction(
                 self._translate("{boundary}, {line}").format(
                     boundary=self._translate(boundary),
-                    line=line if line else self._translate("blank"),
+                    line=semantic_line if semantic_line else self._translate("blank"),
                 ),
                 Priority.NAVIGATION, True, sound,
                 character_suffix=spoken_character or None,
@@ -1771,7 +1966,7 @@ class SpeechPlanner:
                 sound = "lineEnd"
             return navigation_speech_action(
                 "line",
-                line=line,
+                line=semantic_line,
                 word=state.get("word", ""),
                 character=spoken_character,
                 translate=self._translate,

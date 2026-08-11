@@ -6,6 +6,37 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Ergänzt robuste Grundunterstützung für `lazy.nvim`: Access Link gibt dem
+  echten Lazy-Puffer einen eindeutigen Kontextnamen und spricht beim Öffnen die
+  vollständige Bedienleiste unabhängig von Leerzeile und fensterbreitenbedingtem
+  Umbruch. Rein visuelle Rand- und Auffüll-Leerzeichen bleiben bei
+  Zeilennavigation von der Sprachausgabe ausgenommen. Grafische Zeichen aus
+  privaten Unicode-Bereichen bleiben im gesamten Lazy-Puffer einschließlich
+  Sprachexploration stumm, während Braille den unveränderten Text behält.
+  Ausschließlich dokumentierte
+  Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
+  Braille. Eindeutig über öffentliche Icon-Hervorhebungen erkannte Pluginzeilen
+  melden beim Betreten und Umschalten NVDAs lokalisierte Zustände `eingeklappt`
+  oder `ausgeklappt`; Braille zeigt die zugehörigen Baumansichtsmarker `+` und
+  `-`, ohne sie beim Umschalten durch eine vorübergehende Meldung zu verdecken.
+  Die vorhandene NVDA-Zeilenexploration liest die Bedienleiste bei Bedarf
+  erneut. Unklare Darstellungen bleiben still. Synchronisierung fasst
+  untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg aus
+  Lazys Darstellung zu erraten.
+- Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
+  Installation, Aktualisierung und Synchronisierung. Isolierte lokale
+  Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten
+  Endzustände, ohne Benutzerkonfiguration oder installierte Plugins zu ändern.
+  Die Einzelauswahl führt diese Aufgaben unter Plugin-Verwaltung auf. Die
+  technische Vorprüfung berücksichtigt, dass Lazy seine Oberfläche im
+  Headless-Modus absichtlich nicht öffnet; lokale Fixture-Repositories laufen
+  ohne Zeilenendenkonvertierung und störende Git-Fortschrittsausgaben.
+  Die F5-Endprüfung behandelt eine leere optionale Pfadliste
+  plattformübergreifend als Array statt als Lua-`vim.NIL` und nennt die
+  tatsächlich bestätigten Revisionen und Entfernungen. Alle vier geführten
+  Abläufe wurden im Windows-/NVDA-Referenzpfad praktisch bestätigt; ihre
+  Abschlussmeldungen bleiben ausdrücklich neutral, bis F5 den Git-Endzustand
+  belegt.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.

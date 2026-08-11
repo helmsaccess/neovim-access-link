@@ -49,7 +49,7 @@ configuration, and Neovim data directories are not changed.
 | Suite | Contents | When to run it |
 | --- | --- | --- |
 | `smoke` | native LSP, search, replacement, and completion, Ruff diagnostics, focus isolation, and fail-open behavior | normal practical check; recommended, about 20 to 30 minutes |
-| `compatibility` | nvim-cmp and blink.cmp completion menus plus one C/Clang-Tidy and one Markdown/markdownlint diagnostic | after changes to adapters, linter integration, or dependencies |
+| `compatibility` | nvim-cmp and blink.cmp completion menus, C/Clang-Tidy and Markdown/markdownlint diagnostics, and lazy.nvim plugin management | after changes to adapters, linter integration, plugin management, or dependencies |
 | `all` | both suites in one result | only when both areas are affected |
 | individual selection | individual tasks grouped by category in the menu | targeted recheck of an affected area; saves time and unnecessary downloads |
 
@@ -59,12 +59,13 @@ configuration, and Neovim data directories are not changed.
 | Completion | native completion, nvim-cmp, and blink.cmp |
 | Diagnostics and linters | Ruff, Clang-Tidy, and markdownlint |
 | Session and terminal integration | focus isolation and fail-open behavior |
+| Plugin management | lazy.nvim window, installation, update, and synchronization |
 
 ### Stable test IDs
 
 Every task has a unique two-character ID. The first letter identifies its
 category (`L` for LSP/language intelligence, `C` for completion, `D` for
-diagnostics, and `S` for session integration); the second character
+diagnostics, `S` for session integration, and `P` for plugin management); the second character
 distinguishes tasks. IDs are never renumbered or reused. They appear in the
 selection menu, before every task, in the JSON result, and when `F2` is pressed
 in test Neovim. Thus, “failure in D3” is an unambiguous reference.
@@ -85,6 +86,10 @@ in test Neovim. Thus, “failure in D3” is an unambiguous reference.
 | `D3` | C/Clang-Tidy diagnostics |
 | `D4` | Markdown/markdownlint diagnostics |
 | `S1` | focus isolation and disconnect |
+| `P1` | lazy.nvim window and navigation |
+| `P2` | installation of an isolated test plugin |
+| `P3` | update of an isolated test plugin |
+| `P4` | synchronization with install, update, and cleanup |
 
 Standard tasks always run in this order: native LSP, diagnostics, then focus
 isolation. Missing audio or a missing Braille display does not prevent the
@@ -212,6 +217,7 @@ Each task names only the keys it needs. This table is a reference:
 | `F6` | run the selected linter, wait for readiness, and place the cursor on the first expected test diagnostic |
 | `F7` | report the diagnostic at the current position |
 | `F8` / `F9` | jump to the previous or next diagnostic |
+| `F3`, `F4`, `F5` in P1 through P4 | open lazy.nvim, start the prepared public management action, and verify the actual isolated Git end state; P1 uses only F3 and Lazy's normal keys |
 | `Escape`, then `F10` | close test Neovim without saving and return to PowerShell |
 
 Completion is navigated with `Ctrl+N` and `Ctrl+P`, accepted with `Ctrl+Y`,

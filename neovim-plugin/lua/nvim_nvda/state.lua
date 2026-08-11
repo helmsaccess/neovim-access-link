@@ -3,6 +3,7 @@ local spelling = require("nvim_nvda.spelling")
 local file_manager = require("nvim_nvda.file_manager")
 local text = require("nvim_nvda.text")
 local diagnostics = require("nvim_nvda.diagnostics")
+local plugin_manager = require("nvim_nvda.plugin_manager")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
@@ -168,6 +169,8 @@ function M.snapshot(reason)
     lineCount = vim.api.nvim_buf_line_count(buf),
     selection = nil,
     fileManager = file_manager.current(),
+    pluginManagerOverview = plugin_manager.overview(buf),
+    pluginManagerEntryExpanded = plugin_manager.entry_expanded(buf, cursor[1]),
   }
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
   result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])

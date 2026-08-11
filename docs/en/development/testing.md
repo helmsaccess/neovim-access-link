@@ -94,6 +94,8 @@ Additional scripts exercise real public plugin and tool contracts:
 - `tools/test_completion_plugins.sh` for `nvim-cmp` and `blink.cmp`;
 - `tools/test_linter_plugins.sh` for `nvim-lint`, ALE, and real linters;
 - `tools/test_none_ls.sh` for the `none-ls.nvim` LSP bridge;
+- `tools/test_lazy_plugin.sh PATH_TO_LAZY_NVIM` for public lazy.nvim commands,
+  lifecycle events, and local Git end states;
 - `tools/test_neovim_plugin.sh` for the serial complete Lua compatibility run.
   It also includes session specifications with local listeners and therefore
   needs an environment that permits them.
@@ -110,6 +112,7 @@ Jobs are deliberately separated into:
 - safe unit, package, and listener-free Lua tests;
 - the PowerShell runner for guided practical tests;
 - completion-plugin contracts;
+- public lazy.nvim contracts with real install, update, and sync operations;
 - diagnostic providers and real linters;
 - mocked SSH and Askpass paths;
 - real TUI, TCP, and Unix-socket cases;

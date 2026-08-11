@@ -1419,8 +1419,8 @@ Zustands erneut schließen.</p>
 <tr class="odd">
 <td>Neovim-Plugin</td>
 <td>Editorsemantik, Buffer-/Fenster-/Tabidentität, UTF-8-Bytespalten,
-Menüs, Meldungen, Dateimanagerzustand und flüchtige rein lesende
-Explorationsposition</td>
+Menüs, Meldungen, Dateimanagerzustand, Plugin-Manager-Lebenszyklus und
+flüchtige rein lesende Explorationsposition</td>
 <td>Windows-Fokus, Sprache, SSH-Lebenszyklus oder Bewegung des echten
 Cursors für Exploration</td>
 </tr>
@@ -2637,8 +2637,8 @@ Tests.</p>
 <div id="docs__de__development__current-statusmd">
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
-<p>Stand: 10. August 2026. Der Quellstand gehört zur Entwicklungslinie
-0.98.0; <code>buildVars.py</code> erzeugt Entwicklungsbuild 1 mit
+<p>Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie
+0.98.0; <code>buildVars.py</code> erzeugt Entwicklungsbuilds mit
 Git-Metadaten und setzt den Release-Kanal auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.97.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung
@@ -2745,6 +2745,16 @@ Verträge bestehen für native LSP-Completion, <code>nvim-cmp</code>,
 <code>blink.cmp</code>, <code>nvim-lint</code>, ALE und
 <code>none-ls.nvim</code>; Benutzer installieren die jeweiligen externen
 Sprachserver und Linter selbst.</li>
+<li>Lazys öffentlicher <code>nofile</code>-/<code>lazy</code>-Puffer
+erhält einen eindeutigen Fokuskontext. Beim Öffnen werden die aktuelle
+Bedienzeile und bei der Zeilennavigation der Inhalt ohne rein visuelle
+Leerzeichen am Zeilenende gesprochen. Dokumentierte
+Lebenszyklusereignisse melden Beginn und Ende von Installation,
+Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
+Synchronisierung neutral über Sprache und Braille. Pluginzeilen,
+virtueller Fortschritt und Erfolg werden nicht abgeleitet. Die geführten
+P1- bis P4-Abläufe wurden im Windows-/NVDA-Referenzpfad praktisch
+bestätigt.</li>
 <li>Native LSP-Umbenennung bleibt vollständig bei Neovim und dem
 Sprachserver. Access Link beobachtet <code>LspRequest</code> und
 tatsächliche Bufferänderungen und fasst interne Text-, Cursor- und
@@ -2802,9 +2812,41 @@ Sockettests laufen getrennt. Einzelheiten und Befehle stehen in <a href="#docs__
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische
 Vorprüfung bestätigt reale Providerdaten und die für die jeweilige
-Aufgabe isolierte Tastensteuerung; Aufbau und sichere Tastenbelegung
-stehen in <a href="human-testing.html">Geführte
-Praxistests</a>.</p>
+Aufgabe isolierte Tastensteuerung. Die Kompatibilitätssuite enthält
+zusätzlich vier lazy.nvim- Aufgaben mit vollständig lokalen Git-Fixtures
+für Fenster, Installation, Aktualisierung und Synchronisierung; die
+Einzelauswahl gruppiert sie unter Plugin-Verwaltung. Die
+Headless-Vorprüfung verlangt keine dort absichtlich unterdrückte
+Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
+Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
+Tastenbelegung stehen in <a href="human-testing.html">Geführte
+Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
+echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
+oder fremdes JSON-<code>null</code>, bevor F5 die tatsächlichen
+Git-Zustände prüft. Die Bestätigung nennt nur die belegten Ziele mit
+erwarteter Revision sowie gegebenenfalls das nachweislich entfernte
+Ziel. Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048
+UTF-8-Byte begrenzten ersten zusammenhängenden Textblock. Er erscheint
+beim Rendern erst nach dem anfänglichen Kontextwechsel; Access Link
+spricht ihn dann genau einmal als vollständige Bedienleiste, trotz
+Layout-Leerzeile und fensterbreitenabhängigem Umbruch. Zeilenweise
+Navigation unterdrückt rein visuelle Rand- und Auffüll-Leerzeichen. In
+einem exakt als <code>nofile</code>/<code>lazy</code> erkannten Puffer
+entfernt die Sprachplanung private Unicode-Zeichen aus allen
+Sprachanteilen; Sprachexploration ist darin eingeschlossen. Der
+unveränderte Quelltext bleibt Grundlage für Braille, Cursor und Routing.
+Die aktuelle Pluginzeile wird nur aus Lazys dokumentierten
+Icon-Hervorhebungen erkannt. Eine unmittelbar folgende
+<code>dir</code>-Eigenschaft mit dokumentierter
+<code>LazyProp</code>-Extmark kennzeichnet sie als ausgeklappt. Sprache
+verwendet NVDAs lokalisierte Zustände <code>eingeklappt</code> und
+<code>ausgeklappt</code>; Braille hängt wie NVDAs Baumansichten
+<code>+</code> oder <code>-</code> an die Zeile. Ein Zustandswechsel
+erzeugt keine vorübergehende Braillemeldung und verdeckt damit den
+aktualisierten Marker nicht. Die Bedienleiste lässt sich nach der
+Öffnung mit der vorhandenen NVDA-Zeilenexploration erneut lesen. Bei
+unbekannter oder mehrdeutiger Darstellung bleibt Access Link still.</p>
 <p>Praktisch bestätigt wurden insbesondere:</p>
 <ul>
 <li>Installation und Aktualisierung lokaler und entfernter
@@ -2817,6 +2859,9 @@ Shell-Controls;</li>
 Terminalwechsel;</li>
 <li>Braille-Routing, beide Braillemodi und Rechtschreibvorschläge mit
 einer Papenmeier BRAILLEX EL 80c;</li>
+<li>lazy.nvim-Fenster, Sprachexploration, Braillemarker sowie
+Installation, Aktualisierung und Synchronisierung mit isolierten lokalen
+Test-Plugins;</li>
 <li>alle vier Zwischenablagepfade lokal und über SSH sowie
 Oil-Navigation, Umbenennung und Bestätigungen.</li>
 </ul>
@@ -2960,6 +3005,20 @@ providerneutrale Diagnosen über <code>vim.diagnostic</code>;</li>
 <li>Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop und
 <code>markdownlint-cli2</code> als reale Linterprozesse.</li>
 </ul>
+<p>Der öffentliche Vertrag von <code>lazy.nvim</code> 11.17.5 wurde
+direkt geprüft. Automatisierte Tests decken die exakten
+<code>nofile</code>-/<code>lazy</code>-Pufferwerte, dokumentierte
+Icon-Hervorhebungen der aktuellen Pluginzeile, den Detailmarker aus
+<code>dir</code> und dokumentierter <code>LazyProp</code>-Extmark sowie
+die dokumentierten Lebenszyklusereignisse ab. Gepinnte Headless-Tests
+führen außerdem die öffentlichen Befehle für Installation,
+Aktualisierung und Synchronisierung mit isolierten lokalen
+Git-Repositories aus und prüfen deren tatsächlichen Endzustand. Access
+Link selbst leitet aus Lazys virtuellem Fortschritt oder Fehlersymbolen
+weiterhin keinen Erfolg ab. Die geführten P1- bis P4-Abläufe bestätigten
+im Windows-/NVDA-Referenzpfad Fenster und Zeilennavigation,
+Sprachexploration, Braillemarker sowie die drei isolierten
+Verwaltungsabläufe praktisch.</p>
 <p>Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3,
 führt aber keine praktische NVDA-Abnahme aus.</p>
 <p>Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten
@@ -3946,6 +4005,21 @@ payload               Map</code></pre>
 Typen, beschädigtes MessagePack und übergroße Frames beenden die
 betreffende Transportinstanz. Unbekannte optionale Payloadfelder dürfen
 ignoriert werden.</p>
+<p><code>pluginManagerOverview</code> ist ausschließlich bei der
+öffentlichen Bufferkennung <code>buftype=nofile</code> und
+<code>filetype=lazy</code> gültig. Es enthält höchstens 2048 UTF-8-Byte
+aus dem ersten zusammenhängenden Textblock des Puffers. Lokaler und
+SSH-Client entfernen das optionale Feld bei falscher Kennung, falschem
+Typ, leerem oder übergroßem Inhalt, bevor der Zustand NVDA erreicht.
+<code>pluginManagerEntryExpanded</code> ist unter derselben exakten
+Bufferkennung ein Boolean. Das Plugin setzt ihn nur für die aktuelle,
+anhand einer dokumentierten Lazy-Icon-Hervorhebung eindeutig erkannte
+Pluginzeile. Eine unmittelbar folgende <code>dir</code>-Eigenschaft mit
+genau einer dokumentierten <code>LazyProp</code>-Extmark bedeutet
+<code>true</code>; ohne diese Eigenschaft ist die erkannte Zeile
+eingeklappt. Andere oder mehrdeutige Zeilen liefern keinen Zustand.
+Lokaler Client, SSH-Client und Bridge entfernen das Feld bei falscher
+Kennung oder falschem Typ.</p>
 <p>Dateimanagerzustand enthält nur begrenzte semantische Werte.
 Eintragsnamen sind auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte
 sowie Typ- und Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin
@@ -4011,6 +4085,27 @@ zusammengefasst. Ein Identitäts- oder Managerwechsel vor der Ausgabe
 verwirft sie. Das Ereignis bestätigt nur, was die öffentliche Plugin-API
 als Abschluss meldet; fehlende Fehler- oder Abbruchereignisse werden
 nicht aus Meldungstext oder Renderzustand rekonstruiert.</p>
+<p>Die vorhandenen kanonischen Felder <code>buftype</code> und
+<code>filetype</code> kennzeichnen das Lazy-Fenster nur bei den exakten
+Werten <code>nofile</code> und <code>lazy</code>. Zusätzlicher
+Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich.
+Der optionale kanonische Boolean <code>pluginManagerEntryExpanded</code>
+beschreibt nur die aktuelle erkannte Pluginzeile. Gewöhnliche
+Neovim-Zustandsereignisse übertragen Änderungen; ein separates
+Lazy-Ereignis oder eine private Lazy-API ist dafür nicht
+erforderlich.</p>
+<p>Das flüchtige Ereignis <code>pluginManagerOperation</code> enthält
+<code>pluginManagerKind=lazyNvim</code>, genau eine feste Operation
+<code>install</code>, <code>update</code>, <code>clean</code>,
+<code>check</code>, <code>log</code> oder <code>sync</code> und eine
+Phase <code>started</code> oder <code>finished</code>. Es übernimmt
+keine Eventdaten, Pluginzeilen, Zähler, Pfade oder Erfolgsaussage.
+Bridge und lokaler Client validieren den Vertrag vor Veröffentlichung
+und übernehmen die drei Operationsfelder nicht in den kanonischen
+Zustand. Während <code>sync</code> werden dessen dokumentierte
+untergeordnete Installations-, Bereinigungs- und
+Aktualisierungsereignisse zu einem Start-/Endpaar zusammengefasst;
+ungepaarte Endereignisse bleiben still.</p>
 </section>
 <section id="docs__de__development__protocolmd__sitzungsbeginn-sequenzierung-und-resync" class="level3">
 <h3>Sitzungsbeginn, Sequenzierung und Resync</h3>
@@ -4148,6 +4243,7 @@ Wiedergabe.</p>
 <code>commandLineChanged</code>, <code>messageReceived</code>,
 <code>errorReceived</code>, <code>fileManagerEntryChanged</code>,
 <code>fileManagerActionResult</code>,
+<code>pluginManagerOperation</code>,
 <code>leaveTerminalInputResult</code>, <code>exploreTextResult</code>,
 <code>brailleExploreLineResult</code> und
 <code>numberedChoiceOpened</code>, <code>numberedChoiceClosed</code>,
@@ -5017,6 +5113,9 @@ Werkzeugverträge:</p>
 <code>nvim-lint</code>, ALE und reale Linter;</li>
 <li><code>tools/test_none_ls.sh</code> für die
 <code>none-ls.nvim</code>-LSP-Brücke;</li>
+<li><code>tools/test_lazy_plugin.sh PATH_ZU_LAZY_NVIM</code> für
+öffentliche lazy.nvim- Befehle, Lebenszyklusereignisse und lokale
+Git-Endzustände;</li>
 <li><code>tools/test_neovim_plugin.sh</code> für den seriellen
 vollständigen Lua-Kompatibilitätslauf. Er enthält auch
 Session-Spezifikationen mit lokalen Listenern und benötigt deshalb eine
@@ -5034,6 +5133,8 @@ und Pull Requests. Die Jobs sind bewusst getrennt:</p>
 <li>sichere Unit-, Paket- und listenerfreie Lua-Tests;</li>
 <li>der PowerShell-Runner für geführte Praxistests;</li>
 <li>Completion-Plugin-Verträge;</li>
+<li>öffentliche lazy.nvim-Verträge mit echten Installations-,
+Aktualisierungs- und Synchronisierungsvorgängen;</li>
 <li>Diagnoseprovider und reale Linter;</li>
 <li>simulierte SSH-/Askpass-Pfade;</li>
 <li>echte TUI-, TCP- und Unix-Socket-Fälle;</li>
@@ -5243,6 +5344,21 @@ geprüft.</td>
 <td><code>vim.ui.select()</code> und <code>vim.ui.input()</code> liefern
 Prompt, Auswahl und Abschluss semantisch.</td>
 <td>Echte TUI-Tests.</td>
+</tr>
+<tr class="odd">
+<td>lazy.nvim</td>
+<td>Öffentliche Bufferoptionen kennzeichnen das Lazy-Fenster.
+Öffentliche Buffertexte liefern die Bedienleiste; dokumentierte
+Icon-Hervorhebungen und <code>LazyProp</code>-Extmarks liefern bei
+eindeutiger Erkennung den Zustand der aktuellen Pluginzeile. Sprache
+verwendet NVDAs lokalisierte Zustände, Braille dessen
+Baumansichtsmarker. Dokumentierte <code>User</code>-Ereignisse melden
+neutral Beginn und Ende von Installation, Aktualisierung, Bereinigung,
+Prüfung, Protokollansicht und Synchronisierung; Ergebnis und Erfolg
+bleiben bei Lazy.</td>
+<td>Isolierte Lua-, Protokoll-, Bridge-, Präsentations- und echte
+TUI-Tests; geführte P1- bis P4-Abläufe praktisch im
+Windows-/NVDA-Referenzpfad bestätigt.</td>
 </tr>
 </tbody>
 </table>
@@ -5933,6 +6049,38 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
+<li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>:
+Access Link gibt dem echten Lazy-Puffer einen eindeutigen Kontextnamen
+und spricht beim Öffnen die vollständige Bedienleiste unabhängig von
+Leerzeile und fensterbreitenbedingtem Umbruch. Rein visuelle Rand- und
+Auffüll-Leerzeichen bleiben bei Zeilennavigation von der Sprachausgabe
+ausgenommen. Grafische Zeichen aus privaten Unicode-Bereichen bleiben im
+gesamten Lazy-Puffer einschließlich Sprachexploration stumm, während
+Braille den unveränderten Text behält. Ausschließlich dokumentierte
+Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache
+und Braille. Eindeutig über öffentliche Icon-Hervorhebungen erkannte
+Pluginzeilen melden beim Betreten und Umschalten NVDAs lokalisierte
+Zustände <code>eingeklappt</code> oder <code>ausgeklappt</code>; Braille
+zeigt die zugehörigen Baumansichtsmarker <code>+</code> und
+<code>-</code>, ohne sie beim Umschalten durch eine vorübergehende
+Meldung zu verdecken. Die vorhandene NVDA-Zeilenexploration liest die
+Bedienleiste bei Bedarf erneut. Unklare Darstellungen bleiben still.
+Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
+Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.</li>
+<li>Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
+Installation, Aktualisierung und Synchronisierung. Isolierte lokale
+Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten
+Endzustände, ohne Benutzerkonfiguration oder installierte Plugins zu
+ändern. Die Einzelauswahl führt diese Aufgaben unter Plugin-Verwaltung
+auf. Die technische Vorprüfung berücksichtigt, dass Lazy seine
+Oberfläche im Headless-Modus absichtlich nicht öffnet; lokale
+Fixture-Repositories laufen ohne Zeilenendenkonvertierung und störende
+Git-Fortschrittsausgaben. Die F5-Endprüfung behandelt eine leere
+optionale Pfadliste plattformübergreifend als Array statt als
+Lua-<code>vim.NIL</code> und nennt die tatsächlich bestätigten
+Revisionen und Entfernungen. Alle vier geführten Abläufe wurden im
+Windows-/NVDA-Referenzpfad praktisch bestätigt; ihre Abschlussmeldungen
+bleiben ausdrücklich neutral, bis F5 den Git-Endzustand belegt.</li>
 <li>Integriert alle acht deutschen und englischen HTML-Dokumente in das
 Add-on. Ein oberstes <code>Neovim Access Link</code>-Menü öffnet
 Einstellungen, Komponentenverwaltung und die zur NVDA-Sprache passende

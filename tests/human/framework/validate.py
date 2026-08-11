@@ -65,12 +65,14 @@ ALLOWED_PROFILES = {
 	"cmp",
 	"blink",
 	"focus",
+	"lazy",
 }
 ALLOWED_CATEGORIES = {
 	"language-intelligence",
 	"completion",
 	"diagnostics",
 	"session-integration",
+	"plugin-management",
 }
 ALLOWED_REASONS = {
 	"physicalNvdaKey",
@@ -199,7 +201,7 @@ def validate_dependencies() -> dict[str, Any]:
 	if dependencies["schemaVersion"] != 1:
 		raise ValidationError("dependencies has unsupported schemaVersion")
 	plugins = _object(dependencies["plugins"], "dependencies plugins")
-	expected_plugins = {"nvimCmp", "cmpNvimLsp", "blinkCmp", "nvimLint"}
+	expected_plugins = {"nvimCmp", "cmpNvimLsp", "blinkCmp", "nvimLint", "lazyNvim"}
 	if set(plugins) != expected_plugins:
 		raise ValidationError(
 			"dependency plugins differ; "
@@ -292,6 +294,7 @@ def load_plans() -> dict[str, dict[str, Any]]:
 		"completion": "C",
 		"diagnostics": "D",
 		"session-integration": "S",
+		"plugin-management": "P",
 	}
 	files = sorted(PLANS_ROOT.glob("*.json"))
 	if not files:
