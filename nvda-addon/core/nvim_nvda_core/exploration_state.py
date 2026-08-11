@@ -15,6 +15,7 @@ from .speech import (
 	SpeechAction,
 	indentation_quarter_tones,
 	navigation_speech_action,
+	speech_text_for_state,
 )
 
 
@@ -388,6 +389,7 @@ class ExplorationController:
 				pending,
 				text,
 				result_code,
+				state=state,
 				format_error=format_error,
 				returned_to_origin=returned_to_origin,
 			),
@@ -546,6 +548,7 @@ class ExplorationController:
 		text: str,
 		result_code: str,
 		*,
+		state: Mapping[str, Any] | None = None,
 		format_error: str | None = None,
 		returned_to_origin: bool = False,
 	) -> SpeechAction:
@@ -559,7 +562,7 @@ class ExplorationController:
 				ExplorationAction.WORD_PREVIOUS: "fileStart",
 				ExplorationAction.WORD_NEXT: "fileEnd",
 			}[pending.action]
-		spoken = text
+		spoken = speech_text_for_state(text, state)
 		if pending.unit == ExplorationUnit.LINE and not spoken:
 			spoken = self._translate("blank")
 		return SpeechAction(
@@ -584,11 +587,14 @@ class ExplorationController:
 		line = state.get("lineText")
 		if unit == ExplorationUnit.LINE and not isinstance(line, str):
 			return None
-		line = line if isinstance(line, str) else ""
+		line = speech_text_for_state(line if isinstance(line, str) else "", state)
 		character = state.get("character")
-		character = character if isinstance(character, str) else ""
+		character = speech_text_for_state(
+			character if isinstance(character, str) else "",
+			state,
+		)
 		word = state.get("word")
-		word = word if isinstance(word, str) else ""
+		word = speech_text_for_state(word if isinstance(word, str) else "", state)
 		return navigation_speech_action(
 			unit.value,
 			line=line,

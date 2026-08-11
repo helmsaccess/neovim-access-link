@@ -9,7 +9,9 @@ test-build entries through August 5, 2026.
 - Adds robust baseline support for `lazy.nvim`: Access Link gives the real
   Lazy buffer an unambiguous context name and speaks the complete command bar
   regardless of its initial blank line or width-dependent wrapping. Line
-  navigation omits visual-only edge and padding spaces. Only documented
+  navigation omits visual-only edge and padding spaces. Graphical private-use
+  Unicode characters remain silent throughout the Lazy buffer, including
+  speech exploration, while Braille retains the unmodified text. Only documented
   lifecycle events produce neutral start/end reports through speech and
   Braille. Plugin rows identified unambiguously through public icon highlights
   report NVDA's localized `collapsed` or `expanded` state when entered or

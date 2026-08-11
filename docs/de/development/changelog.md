@@ -10,7 +10,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
   echten Lazy-Puffer einen eindeutigen Kontextnamen und spricht beim Öffnen die
   vollständige Bedienleiste unabhängig von Leerzeile und fensterbreitenbedingtem
   Umbruch. Rein visuelle Rand- und Auffüll-Leerzeichen bleiben bei
-  Zeilennavigation von der Sprachausgabe ausgenommen. Ausschließlich dokumentierte
+  Zeilennavigation von der Sprachausgabe ausgenommen. Grafische Zeichen aus
+  privaten Unicode-Bereichen bleiben im gesamten Lazy-Puffer einschließlich
+  Sprachexploration stumm, während Braille den unveränderten Text behält.
+  Ausschließlich dokumentierte
   Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
   Braille. Eindeutig über öffentliche Icon-Hervorhebungen erkannte Pluginzeilen
   melden beim Betreten und Umschalten NVDAs lokalisierte Zustände `eingeklappt`

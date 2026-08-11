@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from enum import IntEnum
 from typing import Any, Callable
@@ -20,6 +21,22 @@ def translatable(message: str) -> str:
 
 def _identity(message: str) -> str:
     return message
+
+
+def speech_text_for_state(text: str, state: Mapping[str, Any] | None) -> str:
+    """Remove graphical private-use glyphs from speech in exact Lazy buffers."""
+    if not isinstance(text, str):
+        return ""
+    if (
+        not isinstance(state, Mapping)
+        or state.get("buftype") != "nofile"
+        or state.get("filetype") != "lazy"
+    ):
+        return text
+    return "".join(
+        " " if unicodedata.category(character) == "Co" else character
+        for character in text
+    ).strip()
 
 
 # Translators: Spoken labels for standardized LSP completion item kinds.
@@ -826,6 +843,24 @@ class SpeechPlanner:
             else action
             for action in actions
         ]
+        if self._plugin_manager_name(state) is not None:
+            actions = [
+                replace(
+                    action,
+                    text=speech_text_for_state(action.text, state),
+                    character_suffix=(
+                        speech_text_for_state(action.character_suffix, state) or None
+                        if isinstance(action.character_suffix, str)
+                        else action.character_suffix
+                    ),
+                    word_suffix=(
+                        speech_text_for_state(action.word_suffix, state) or None
+                        if isinstance(action.word_suffix, str)
+                        else action.word_suffix
+                    ),
+                )
+                for action in actions
+            ]
         actions = self._suppress_unchanged_indentation(actions)
         if state and kind != "connectionStateChanged":
             self._previous = state
@@ -1451,8 +1486,9 @@ class SpeechPlanner:
         if not isinstance(line, str):
             return ""
         # Lazy renders visual padding as real trailing buffer spaces. Preserve
-        # source text everywhere else, but do not speak this UI-only padding.
-        return line.strip() if self._plugin_manager_name(state) is not None else line
+        # source text everywhere else, but do not speak this UI-only padding or
+        # graphical private-use glyphs from icon fonts.
+        return speech_text_for_state(line, state)
 
     def _plugin_manager_overview(self, state: dict[str, Any]) -> str:
         if self._plugin_manager_name(state) is None:
@@ -1460,10 +1496,8 @@ class SpeechPlanner:
         overview = state.get("pluginManagerOverview")
         if not isinstance(overview, str):
             return ""
-        parts = overview.split()
+        parts = speech_text_for_state(overview, state).split()
         if parts and parts[0] == "lazy.nvim":
-            parts.pop(0)
-        while parts and all(unicodedata.category(character) == "Co" for character in parts[0]):
             parts.pop(0)
         return " ".join(parts)
 
@@ -1874,7 +1908,8 @@ class SpeechPlanner:
             kind == "lineChanged"
             or (
                 isinstance(byte_column, int)
-                and byte_column >= len(spoken_line.encode("utf-8"))
+                and isinstance(line, str)
+                and byte_column >= len(line.rstrip().encode("utf-8"))
             )
         ):
             spoken_character = ""

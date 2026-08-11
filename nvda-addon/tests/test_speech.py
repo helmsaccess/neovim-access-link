@@ -609,6 +609,30 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("source line ", unchanged.text)
         self.assertEqual(" ", unchanged.character_suffix)
 
+    def test_lazy_speech_filters_private_use_icons_at_any_position(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", line="heading", bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        moved = planner.plan(event(
+            "lineChanged", line="  \U000f04b2 Install \ue000 Update   ", row=2,
+            byte_column=2, character="\U000f04b2", word="\U000f04b2",
+            bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))[0]
+        self.assertEqual("Install   Update", moved.text)
+        self.assertIsNone(moved.character_suffix)
+
+        ordinary = SpeechPlanner()
+        ordinary.plan(event("fullState", line="heading", bufferId=3, windowId=11))
+        unchanged = ordinary.plan(event(
+            "lineChanged", line="\U000f04b2 ordinary", row=2, byte_column=0,
+            character="\U000f04b2", word="\U000f04b2", bufferId=3, windowId=11,
+        ))[0]
+        self.assertEqual("\U000f04b2 ordinary", unchanged.text)
+        self.assertEqual("\U000f04b2", unchanged.character_suffix)
+
     def test_lazy_plugin_rows_announce_nvda_tree_state(self) -> None:
         translations = {"collapsed": "eingeklappt", "expanded": "ausgeklappt"}
         planner = SpeechPlanner(translate=lambda value: translations.get(value, value))

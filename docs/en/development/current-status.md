@@ -158,11 +158,15 @@ For a real Lazy buffer the plugin also carries the first contiguous text block,
 bounded to 2,048 UTF-8 bytes. Rendering makes it available only after the
 initial context transition; Access Link then speaks it exactly once as the
 complete command bar despite the layout-only blank line and width-dependent
-wrapping. Line navigation suppresses visual-only edge and padding spaces. The
-current plugin row is recognized only from Lazy's documented icon highlights.
-An immediately following `dir` property with the documented `LazyProp` extmark
-marks it as expanded. Speech uses NVDA's localized `collapsed` and `expanded`
-states; Braille appends `+` or `-` as NVDA tree views do. A state change sends
+wrapping. Line navigation suppresses visual-only edge and padding spaces. In a
+buffer identified exactly as `nofile`/`lazy`, speech planning removes
+private-use Unicode characters from every spoken part, including speech
+exploration. Unmodified source text remains the basis for Braille, the cursor,
+and routing. The current plugin row is recognized only from Lazy's documented
+icon highlights. An immediately following `dir` property with the documented
+`LazyProp` extmark marks it as expanded. Speech uses NVDA's localized
+`collapsed` and `expanded` states; Braille appends `+` or `-` as NVDA tree views
+do. A state change sends
 no transient Braille message, so it cannot obscure the updated marker. The
 existing NVDA line exploration can read the command bar again after opening.
 Access Link remains silent for unknown or ambiguous rendering.

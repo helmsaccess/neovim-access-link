@@ -169,11 +169,15 @@ begrenzten ersten zusammenhängenden Textblock. Er erscheint beim Rendern erst
 nach dem anfänglichen Kontextwechsel; Access Link spricht ihn dann genau einmal
 als vollständige Bedienleiste, trotz Layout-Leerzeile und
 fensterbreitenabhängigem Umbruch. Zeilenweise Navigation unterdrückt rein
-visuelle Rand- und Auffüll-Leerzeichen. Die aktuelle Pluginzeile wird nur aus
-Lazys dokumentierten Icon-Hervorhebungen erkannt. Eine unmittelbar folgende
-`dir`-Eigenschaft mit dokumentierter `LazyProp`-Extmark kennzeichnet sie als
-ausgeklappt. Sprache verwendet NVDAs lokalisierte Zustände `eingeklappt` und
-`ausgeklappt`; Braille hängt wie NVDAs Baumansichten `+` oder `-` an die Zeile.
+visuelle Rand- und Auffüll-Leerzeichen. In einem exakt als `nofile`/`lazy`
+erkannten Puffer entfernt die Sprachplanung private Unicode-Zeichen aus allen
+Sprachanteilen; Sprachexploration ist darin eingeschlossen. Der unveränderte
+Quelltext bleibt Grundlage für Braille, Cursor und Routing. Die aktuelle
+Pluginzeile wird nur aus Lazys dokumentierten Icon-Hervorhebungen erkannt. Eine
+unmittelbar folgende `dir`-Eigenschaft mit dokumentierter `LazyProp`-Extmark
+kennzeichnet sie als ausgeklappt. Sprache verwendet NVDAs lokalisierte Zustände
+`eingeklappt` und `ausgeklappt`; Braille hängt wie NVDAs Baumansichten `+` oder
+`-` an die Zeile.
 Ein Zustandswechsel erzeugt keine vorübergehende Braillemeldung und verdeckt
 damit den aktualisierten Marker nicht. Die Bedienleiste lässt sich nach der
 Öffnung mit der vorhandenen NVDA-Zeilenexploration erneut lesen. Bei unbekannter

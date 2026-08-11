@@ -49,11 +49,12 @@ Die Ausgabe `2` bestätigt den geladenen Befehl.
 wenn Lazy sie auf mehrere Zeilen umbricht. Lazys erste Pufferzeile ist aus
 Layoutgründen leer; Access Link liest beim Öffnen stattdessen die folgende
 Bedienleiste. Die normale Neovim-Navigation liest die echten Textzeilen des
-Fensters, ohne rein visuelle Rand- und Auffüll-Leerzeichen anzusagen. Zum
-erneuten Lesen der Bedienleiste halten Sie die NVDA-Taste und erkunden ihre
-Zeilen mit `k` und `j`; der Neovim-Cursor bleibt dabei auf dem Plugin. Ohne
-NVDA-Taste wechseln `j` und `k` wie gewohnt die Pluginzeile. Auf eindeutig
-erkannten Pluginzeilen meldet
+Fensters, ohne rein visuelle Rand- und Auffüll-Leerzeichen oder Lazys grafische
+Schriftartsymbole anzusagen. Die Braillezeile behält den ursprünglichen Text
+einschließlich seiner Symbole und Cursorposition. Zum erneuten Lesen der
+Bedienleiste halten Sie die NVDA-Taste und erkunden ihre Zeilen mit `k` und `j`;
+der Neovim-Cursor bleibt dabei auf dem Plugin. Ohne NVDA-Taste wechseln `j` und
+`k` wie gewohnt die Pluginzeile. Auf eindeutig erkannten Pluginzeilen meldet
 Access Link zusätzlich `eingeklappt` oder `ausgeklappt`. Auf der Braillezeile
 steht dafür wie bei NVDAs Baumansichten `+` beziehungsweise `-` hinter der
 Pluginzeile. `Eingabetaste` öffnet die Details des aktuellen Plugins und

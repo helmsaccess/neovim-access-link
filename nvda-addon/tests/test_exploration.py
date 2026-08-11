@@ -111,6 +111,35 @@ class ExplorationControllerTests(unittest.TestCase):
 		self.controller.invalidate()
 		self.assertEqual(editor_state(), self.controller.display_state(editor_state()))
 
+	def test_lazy_speech_filters_icons_without_changing_braille_line(self) -> None:
+		state = editor_state(
+			buftype="nofile",
+			filetype="lazy",
+			lineText="\U000f04b2 Install (I)",
+		)
+		plan = self.controller.plan_step(
+			self.context,
+			state,
+			ExplorationAction.LINE_DOWN,
+			capabilities={"exploration"},
+		)
+		result = self.controller.consume_result(
+			self.context,
+			{
+				"type": "exploreTextResult",
+				"payload": self.result_payload(
+					plan,
+					text="\U000f04b2 Install (I)",
+					explorationLineText="\U000f04b2 Install (I)",
+					line=6,
+				),
+			},
+			state=state,
+		)
+		self.assertEqual("Install (I)", result.speech_action.text)
+		display = self.controller.display_state(state)
+		self.assertEqual("\U000f04b2 Install (I)", display["lineText"])
+
 	def test_invalid_or_unavailable_exploration_line_never_moves_braille(self) -> None:
 		plan = self.controller.plan_step(
 			self.context,

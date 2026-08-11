@@ -2825,8 +2825,12 @@ auf 2048 UTF-8-Byte begrenzten ersten zusammenhängenden Textblock. Er
 erscheint beim Rendern erst nach dem anfänglichen Kontextwechsel; Access
 Link spricht ihn dann genau einmal als vollständige Bedienleiste, trotz
 Layout-Leerzeile und fensterbreitenabhängigem Umbruch. Zeilenweise
-Navigation unterdrückt rein visuelle Rand- und Auffüll-Leerzeichen. Die
-aktuelle Pluginzeile wird nur aus Lazys dokumentierten
+Navigation unterdrückt rein visuelle Rand- und Auffüll-Leerzeichen. In
+einem exakt als <code>nofile</code>/<code>lazy</code> erkannten Puffer
+entfernt die Sprachplanung private Unicode-Zeichen aus allen
+Sprachanteilen; Sprachexploration ist darin eingeschlossen. Der
+unveränderte Quelltext bleibt Grundlage für Braille, Cursor und Routing.
+Die aktuelle Pluginzeile wird nur aus Lazys dokumentierten
 Icon-Hervorhebungen erkannt. Eine unmittelbar folgende
 <code>dir</code>-Eigenschaft mit dokumentierter
 <code>LazyProp</code>-Extmark kennzeichnet sie als ausgeklappt. Sprache
@@ -6038,17 +6042,19 @@ Access Link gibt dem echten Lazy-Puffer einen eindeutigen Kontextnamen
 und spricht beim Öffnen die vollständige Bedienleiste unabhängig von
 Leerzeile und fensterbreitenbedingtem Umbruch. Rein visuelle Rand- und
 Auffüll-Leerzeichen bleiben bei Zeilennavigation von der Sprachausgabe
-ausgenommen. Ausschließlich dokumentierte Lebenszyklusereignisse liefern
-neutrale Start-/Endmeldungen über Sprache und Braille. Eindeutig über
-öffentliche Icon-Hervorhebungen erkannte Pluginzeilen melden beim
-Betreten und Umschalten NVDAs lokalisierte Zustände
-<code>eingeklappt</code> oder <code>ausgeklappt</code>; Braille zeigt
-die zugehörigen Baumansichtsmarker <code>+</code> und <code>-</code>,
-ohne sie beim Umschalten durch eine vorübergehende Meldung zu verdecken.
-Die vorhandene NVDA-Zeilenexploration liest die Bedienleiste bei Bedarf
-erneut. Unklare Darstellungen bleiben still. Synchronisierung fasst
-untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg
-aus Lazys Darstellung zu erraten.</li>
+ausgenommen. Grafische Zeichen aus privaten Unicode-Bereichen bleiben im
+gesamten Lazy-Puffer einschließlich Sprachexploration stumm, während
+Braille den unveränderten Text behält. Ausschließlich dokumentierte
+Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache
+und Braille. Eindeutig über öffentliche Icon-Hervorhebungen erkannte
+Pluginzeilen melden beim Betreten und Umschalten NVDAs lokalisierte
+Zustände <code>eingeklappt</code> oder <code>ausgeklappt</code>; Braille
+zeigt die zugehörigen Baumansichtsmarker <code>+</code> und
+<code>-</code>, ohne sie beim Umschalten durch eine vorübergehende
+Meldung zu verdecken. Die vorhandene NVDA-Zeilenexploration liest die
+Bedienleiste bei Bedarf erneut. Unklare Darstellungen bleiben still.
+Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
+Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.</li>
 <li>Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
 Installation, Aktualisierung und Synchronisierung. Isolierte lokale
 Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten
