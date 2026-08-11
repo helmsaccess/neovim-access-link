@@ -72,8 +72,9 @@ Close all affected Neovim instances before installation or update.
 1. Open `NVDA menu > Neovim Access Link > Install or update components...`.
 2. Select `This computer - local Neovim` for local Windows Neovim.
 3. Select saved Linux connections for remote sessions.
-4. If you do not already use your own Neovim configuration, select `Install
-   the basic Neovim configuration with lazy.nvim and Oil`.
+4. Under `Neovim configuration`, choose whether configuration remains
+   unchanged, the basic configuration is installed, or the local Windows
+   configuration is copied to selected Linux connections.
 5. Confirm with `OK`.
 6. Check every selected target in the result dialog.
 
@@ -81,6 +82,14 @@ The optional basic configuration sets up Lazy, Oil, and a few practical
 Neovim settings. An existing `init.lua` or `init.vim` is backed up before it
 is replaced; the result dialog gives the backup path. On the first Neovim
 start, Lazy and Oil need Git and access to GitHub.
+
+Copy mode transfers the complete local `%LOCALAPPDATA%\nvim` directory only
+to selected Linux connections and backs up an existing configuration there in
+full. You must adjust Windows-specific paths and directly executed scripts on
+Linux and make those scripts executable when required. With Lazy, the
+configuration must explicitly load the Access Link copy installed by the
+add-on as a local plugin. Review the local configuration for credentials
+before copying it.
 
 Access Link installs its bundled plugin copy in Neovim's standard data
 directory. A simple Neovim configuration loads this start plugin on the next

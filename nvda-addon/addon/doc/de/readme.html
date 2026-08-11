@@ -300,8 +300,14 @@ Sprachen und vorhandene Plugins</a></li>
 <li><a href="#docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil" id="toc-docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil">Kleine
 Python-Konfiguration mit Lazy und Oil</a>
 <ul>
-<li><a href="#docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren" id="toc-docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren">Kleinere
-Grundkonfiguration automatisch installieren</a></li>
+<li><a href="#docs__de__manual__example-configurationmd__konfiguration-über-den-komponenten-dialog-einrichten" id="toc-docs__de__manual__example-configurationmd__konfiguration-über-den-komponenten-dialog-einrichten">Konfiguration
+über den Komponenten-Dialog einrichten</a>
+<ul>
+<li><a href="#docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-installieren" id="toc-docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-installieren">Kleinere
+Grundkonfiguration installieren</a></li>
+<li><a href="#docs__de__manual__example-configurationmd__lokale-windows-konfiguration-auf-linux-übernehmen" id="toc-docs__de__manual__example-configurationmd__lokale-windows-konfiguration-auf-linux-übernehmen">Lokale
+Windows-Konfiguration auf Linux übernehmen</a></li>
+</ul></li>
 <li><a href="#docs__de__manual__example-configurationmd__voraussetzungen-installieren" id="toc-docs__de__manual__example-configurationmd__voraussetzungen-installieren">Voraussetzungen
 installieren</a></li>
 <li><a href="#docs__de__manual__example-configurationmd__vorhandene-konfiguration-sichern" id="toc-docs__de__manual__example-configurationmd__vorhandene-konfiguration-sichern">Vorhandene
@@ -2170,14 +2176,18 @@ vorhandene Neovim-Konfiguration und enthält:</p>
 Einrichtung mit <code>vim.pack</code> beschreibt das vorherige Kapitel
 <a href="#docs__de__manual__language-toolsmd__lsp-autovervollständigung-und-linter-einrichten">LSP,
 Autovervollständigung und Linter einrichten</a>.</p>
-<section id="docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren" class="level3">
-<h3>Kleinere Grundkonfiguration automatisch installieren</h3>
+<section id="docs__de__manual__example-configurationmd__konfiguration-über-den-komponenten-dialog-einrichten" class="level3">
+<h3>Konfiguration über den Komponenten-Dialog einrichten</h3>
 <p>Der Dialog
 <code>NVDA-Menü → Neovim Access Link → Komponenten installieren oder aktualisieren...</code>
-bietet die standardmäßig ausgeschaltete Option
-<code>Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren</code>.
-Sie richtet eine kleinere <code>init.lua</code> mit Lazy, Oil, der
-bereits mitgelieferten Access-Link-Kopie sowie Zeilennummern, stabiler
+bietet unter <code>Neovim-Konfiguration</code> drei Möglichkeiten. Die
+Voreinstellung <code>Neovim-Konfiguration nicht ändern</code> ändert nur
+die Access-Link-Komponenten.</p>
+<section id="docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-installieren" class="level4">
+<h4>Kleinere Grundkonfiguration installieren</h4>
+<p><code>Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren</code>
+richtet eine kleinere <code>init.lua</code> mit Lazy, Oil, der bereits
+mitgelieferten Access-Link-Kopie sowie Zeilennummern, stabiler
 Zeichenspalte, intelligenter Groß-/Kleinschreibung und einer üblichen
 Anordnung neuer Splits ein. LSP, Sprachserver und Linter gehören nicht
 zu dieser Grundkonfiguration.</p>
@@ -2197,6 +2207,37 @@ Sicherungen.</p>
 umfangreichere Alternative. Verwenden Sie sie, wenn zusätzlich Pyright,
 Ruff und die dokumentierten LSP- und Lintertasten eingerichtet werden
 sollen.</p>
+</section>
+<section id="docs__de__manual__example-configurationmd__lokale-windows-konfiguration-auf-linux-übernehmen" class="level4">
+<h4>Lokale Windows-Konfiguration auf Linux übernehmen</h4>
+<p><code>Neovim-Konfiguration dieses Computers auf ausgewählte Linux-Verbindungen kopieren</code>
+überträgt den vollständigen Inhalt von <code>%LOCALAPPDATA%\nvim</code>
+auf alle im Dialog ausgewählten Linux-Verbindungen. Der lokale
+Windows-Eintrag kann gleichzeitig seine Access-Link-Komponenten
+erhalten; seine Konfiguration bleibt die Quelle und wird nicht
+ersetzt.</p>
+<p>Auf jedem Linux-Ziel wird eine vorhandene Neovim-Konfiguration zuerst
+als vollständiges, eindeutig benanntes Verzeichnis gesichert. Erst nach
+der Prüfung aller übertragenen Dateien ersetzt die neue Konfiguration
+das Ziel. Links und ungewöhnliche Dateitypen werden nicht übertragen.
+Die Komponentenentfernung löscht weder die importierte Konfiguration
+noch ihre Sicherung.</p>
+<p>Neovim liest Lua- und Vimscript-Dateien ohne Ausführbarkeitsrecht.
+Windows liefert jedoch keine verlässlichen Linux-Ausführbarkeitsrechte
+für eigene Hilfsskripte; direkt gestartete Skripte müssen Sie auf dem
+Linux-Ziel bei Bedarf ausführbar machen. Passen Sie außerdem
+Windows-spezifische absolute Pfade, Programme und Shell-Befehle selbst
+an. Das Add-on verändert den Inhalt der Benutzerkonfiguration nicht.
+Prüfen Sie das lokale Verzeichnis vor dem Kopieren auf Zugangsdaten und
+andere nicht für das Linux-Ziel bestimmte Inhalte.</p>
+<p>Verwendet die übernommene Konfiguration Lazy, muss sie die
+installierte Access-Link-Kopie ausdrücklich mit
+<code>dir = access_link_path</code> als lokales Plugin aufführen. Die
+Konfiguration weiter unten bildet <code>access_link_path</code> portabel
+aus <code>stdpath(&quot;data&quot;)</code>; damit findet derselbe Code die
+jeweilige installierte Kopie unter Windows und Linux. Das Add-on ergänzt
+diese Lua-Anweisung nicht automatisch.</p>
+</section>
 </section>
 <section id="docs__de__manual__example-configurationmd__voraussetzungen-installieren" class="level3">
 <h3>Voraussetzungen installieren</h3>

@@ -15,11 +15,16 @@ The preceding chapter,
 [Setting up LSP, completion, and linters](language-tools.md), explains the
 general behavior, additional languages, and the alternative `vim.pack` setup.
 
-## Install a smaller basic configuration automatically
+## Set up configuration through the component dialog
 
 The `NVDA menu → Neovim Access Link → Install or update components...` dialog
-offers the initially clear option `Install the basic Neovim configuration with
-lazy.nvim and Oil`. It creates a smaller `init.lua` with Lazy, Oil, the bundled
+offers three choices under `Neovim configuration`. The default `Do not change
+Neovim configuration` changes only the Access Link components.
+
+### Install a smaller basic configuration
+
+`Install the basic Neovim configuration with lazy.nvim and Oil` creates a
+smaller `init.lua` with Lazy, Oil, the bundled
 Access Link copy, line numbers, a stable sign column, smart case-sensitive
 searching, and a conventional direction for new splits. LSP, language servers,
 and linters are not part of this basic configuration.
@@ -38,6 +43,34 @@ generated configuration nor its backups.
 The complete Python configuration below is a more extensive alternative. Use
 it when Pyright, Ruff, and the documented LSP and linter keys should also be
 configured.
+
+### Copy the local Windows configuration to Linux
+
+`Copy this computer's Neovim configuration to selected Linux connections`
+transfers the complete contents of `%LOCALAPPDATA%\nvim` to every Linux
+connection selected in the dialog. The local Windows entry can receive its
+Access Link components at the same time; its configuration remains the source
+and is not replaced.
+
+On every Linux target, an existing Neovim configuration is first backed up as
+a complete, uniquely named directory. The transferred configuration replaces
+the target only after every file has been validated. Links and unusual file
+types are not transferred. Component removal deletes neither the imported
+configuration nor its backup.
+
+Neovim reads Lua and Vimscript files without execute permission. Windows does
+not provide reliable Linux execute permissions for custom helper scripts;
+make directly invoked scripts executable on the Linux target when required.
+You must also adjust Windows-specific absolute paths, programs, and shell
+commands. The add-on does not rewrite user configuration.
+Review the local directory for credentials and other content not intended for
+the Linux target before copying it.
+
+When the copied configuration uses Lazy, it must explicitly list the
+installed Access Link copy as a local plugin with `dir = access_link_path`.
+The configuration below builds `access_link_path` portably from
+`stdpath("data")`, so the same code finds the installed copy on Windows and
+Linux. The add-on does not insert this Lua statement automatically.
 
 ## Installing prerequisites
 

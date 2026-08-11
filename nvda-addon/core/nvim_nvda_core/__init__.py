@@ -22,6 +22,11 @@ from .connection_targets import (
     LOCAL_WINDOWS_TARGET_ID, LOCAL_WINDOWS_TCP, REMOTE_SSH,
     ConnectionTarget, local_windows_target, remote_ssh_target,
 )
+from .config_transfer import (
+    CONFIGURATION_COPY_LOCAL, CONFIGURATION_MODES, CONFIGURATION_STARTER,
+    CONFIGURATION_UNCHANGED, ConfigArchiveResult, ImportedConfigInstaller,
+    ImportedConfigResult, LocalConfigArchiveBuilder,
+)
 from .diagnostics import DiagnosticBuffer
 from .frontend_policy import AVAILABLE_ADAPTERS, FrontendDescriptor, FrontendPolicy
 from .exploration_state import (
@@ -56,6 +61,9 @@ __all__ = [
     "BrailleRoutingRepeatController",
     "ConnectionCoordinator", "ConnectionInstance", "ConnectionInstanceManager",
     "ConnectionTarget", "LOCAL_WINDOWS_TARGET_ID", "LOCAL_WINDOWS_TCP", "REMOTE_SSH",
+    "CONFIGURATION_COPY_LOCAL", "CONFIGURATION_MODES", "CONFIGURATION_STARTER",
+    "CONFIGURATION_UNCHANGED", "ConfigArchiveResult", "ImportedConfigInstaller",
+    "ImportedConfigResult", "LocalConfigArchiveBuilder",
     "AVAILABLE_ADAPTERS", "DiagnosticBuffer", "ExplorationAction", "ExplorationContext",
     "ExplorationController", "ExplorationRejection", "ExplorationReleasePlan",
     "ExplorationRequestPlan", "ExplorationResultPlan", "ExplorationUnit",

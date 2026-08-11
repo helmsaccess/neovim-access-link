@@ -76,8 +76,10 @@ Neovim-Instanzen.
 2. Markieren Sie `Dieser Computer – lokales Neovim` für lokales
    Windows-Neovim.
 3. Markieren Sie gespeicherte Linux-Verbindungen für entfernte Sitzungen.
-4. Wenn Sie noch keine eigene Neovim-Konfiguration verwenden, markieren Sie
-   `Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren`.
+4. Wählen Sie unter `Neovim-Konfiguration` aus, ob die Konfiguration
+   unverändert bleiben, die Grundkonfiguration installiert oder die lokale
+   Windows-Konfiguration auf ausgewählte Linux-Verbindungen kopiert werden
+   soll.
 5. Bestätigen Sie mit `OK`.
 6. Prüfen Sie im Ergebnisdialog jedes ausgewählte Ziel.
 
@@ -85,6 +87,14 @@ Die optionale Grundkonfiguration richtet Lazy, Oil und wenige sinnvolle
 Neovim-Einstellungen ein. Eine vorhandene `init.lua` oder `init.vim` wird vor
 dem Ersetzen gesichert; der Ergebnisdialog nennt den Sicherungspfad. Beim
 ersten Neovim-Start benötigen Lazy und Oil Git und Zugriff auf GitHub.
+
+Der Kopiermodus überträgt das vollständige lokale Verzeichnis
+`%LOCALAPPDATA%\nvim` nur auf ausgewählte Linux-Verbindungen und sichert dort
+eine vorhandene Konfiguration vollständig. Windows-spezifische Pfade und
+direkt ausgeführte Skripte müssen Sie unter Linux selbst anpassen und dort bei
+Bedarf ausführbar machen. Verwendet die Konfiguration Lazy, muss sie die vom
+Add-on installierte Access-Link-Kopie ausdrücklich als lokales Plugin laden.
+Prüfen Sie die lokale Konfiguration vor dem Kopieren auf Zugangsdaten.
 
 Access Link installiert seine mitgelieferte Plugin-Kopie in Neovims
 Standarddatenverzeichnis. Eine einfache Neovim-Konfiguration lädt dieses

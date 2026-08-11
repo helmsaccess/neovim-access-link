@@ -8,6 +8,14 @@ import subprocess
 from dataclasses import dataclass
 from typing import Callable
 
+from .config_transfer import (
+    CONFIGURATION_COPY_LOCAL,
+    CONFIGURATION_MODES,
+    CONFIGURATION_STARTER,
+    CONFIGURATION_UNCHANGED,
+    MAX_CONFIG_ARCHIVE_BYTES,
+)
+
 
 @dataclass(frozen=True)
 class InstallResult:
@@ -16,6 +24,7 @@ class InstallResult:
     diagnostics: str = ""
     configuration_path: str = ""
     configuration_backups: tuple[str, ...] = ()
+    configuration_kind: str = ""
 
 
 class SshUserInstaller:
@@ -30,11 +39,20 @@ class SshUserInstaller:
         identity_file: str = "",
         password: str = "",
         askpass_path: str = "",
-        install_starter_config: bool = False,
+        configuration_mode: str = CONFIGURATION_UNCHANGED,
+        imported_config: bytes = b"",
     ) -> InstallResult:
         validation = self._validate(ssh_target, ssh_port, identity_file, password, askpass_path)
         if validation is not None:
             return validation
+        if configuration_mode not in CONFIGURATION_MODES:
+            return InstallResult(False, "invalid Neovim configuration mode")
+        if configuration_mode == CONFIGURATION_COPY_LOCAL and not imported_config:
+            return InstallResult(False, "local Neovim configuration archive is unavailable")
+        if len(imported_config) > MAX_CONFIG_ARCHIVE_BYTES:
+            return InstallResult(False, "local Neovim configuration archive is too large")
+        if configuration_mode != CONFIGURATION_COPY_LOCAL and imported_config:
+            return InstallResult(False, "unexpected local Neovim configuration archive")
         try:
             payload = package_path.read_bytes()
         except OSError as error:
@@ -64,15 +82,45 @@ class SshUserInstaller:
             return InstallResult(False, "SSH package upload timed out", str(error))
         if upload.returncode != 0:
             return InstallResult(False, "SSH package upload failed", self._diagnostics(upload))
-        install_option = " --install-starter-config" if install_starter_config else ""
+        if configuration_mode == CONFIGURATION_COPY_LOCAL:
+            config_upload_command = (
+                'umask 077; d="$HOME/.cache/nvim-nvda-install"; '
+                'mkdir -p "$d" && f="$d/windows-config.tar.gz.new" && '
+                'trap \'rm -f "$f"\' 0 && cat > "$f" && '
+                'mv "$f" "$d/windows-config.tar.gz"'
+            )
+            try:
+                config_upload = self._runner(
+                    [*base, config_upload_command],
+                    input=imported_config,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    env=environment,
+                    timeout=60,
+                )
+            except subprocess.TimeoutExpired as error:
+                return InstallResult(False, "SSH configuration upload timed out", str(error))
+            if config_upload.returncode != 0:
+                return InstallResult(
+                    False,
+                    "SSH configuration upload failed",
+                    self._diagnostics(config_upload),
+                )
+        if configuration_mode == CONFIGURATION_STARTER:
+            install_option = " --install-starter-config"
+        elif configuration_mode == CONFIGURATION_COPY_LOCAL:
+            install_option = ' --import-config-archive "$d/windows-config.tar.gz"'
+        else:
+            install_option = ""
         install_command = (
             'set -e; d="$HOME/.cache/nvim-nvda-install"; '
+            'trap \'rm -rf "$d/unpacked" "$d/package.tar.gz" "$d/windows-config.tar.gz"\' 0; '
             'rm -rf "$d/unpacked"; mkdir -p "$d/unpacked"; '
             'python3 -c \'import os,tarfile; d=os.path.join(os.environ["HOME"],".cache","nvim-nvda-install"); '
             'tarfile.open(os.path.join(d,"package.tar.gz")).extractall(os.path.join(d,"unpacked"),filter="data")\'; '
             f'python3 "$d"/unpacked/server-components-*/install.py{install_option}; '
-            '"$HOME/.local/bin/nvim-nvda-bridge" --help >/dev/null; '
-            'rm -rf "$d/unpacked" "$d/package.tar.gz"'
+            '"$HOME/.local/bin/nvim-nvda-bridge" --help >/dev/null'
         )
         try:
             installed = self._runner(
@@ -88,23 +136,25 @@ class SshUserInstaller:
         if installed.returncode != 0:
             return InstallResult(False, "remote user installation failed", self._diagnostics(installed))
         configuration_path, configuration_backups = self._configuration_details(installed)
-        if install_starter_config and not configuration_path:
+        if configuration_mode != CONFIGURATION_UNCHANGED and not configuration_path:
             return InstallResult(
                 False,
-                "remote starter configuration result was missing",
+                "remote Neovim configuration result was missing",
                 self._diagnostics(installed),
             )
-        message = (
-            "Neovim server components and starter configuration installed"
-            if configuration_path
-            else "Neovim server components installed"
-        )
+        if configuration_mode == CONFIGURATION_STARTER:
+            message = "Neovim server components and starter configuration installed"
+        elif configuration_mode == CONFIGURATION_COPY_LOCAL:
+            message = "Neovim server components and local Windows configuration installed"
+        else:
+            message = "Neovim server components installed"
         return InstallResult(
             True,
             message,
             self._diagnostics(installed),
             configuration_path,
             configuration_backups,
+            configuration_mode if configuration_path else "",
         )
 
     def uninstall(
@@ -233,6 +283,8 @@ class SshUserInstaller:
         for line in stdout.splitlines():
             if line.startswith("installed starter configuration: "):
                 configuration_path = line.removeprefix("installed starter configuration: ")
+            elif line.startswith("imported Windows Neovim configuration: "):
+                configuration_path = line.removeprefix("imported Windows Neovim configuration: ")
             elif line.startswith("backed up Neovim configuration: "):
                 backups.append(line.removeprefix("backed up Neovim configuration: "))
         return configuration_path, tuple(backups)

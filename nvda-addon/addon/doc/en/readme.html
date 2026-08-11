@@ -307,8 +307,14 @@ languages and existing plugins</a></li>
 <li><a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil" id="toc-docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Small
 Python configuration with Lazy and Oil</a>
 <ul>
-<li><a href="#docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically" id="toc-docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically">Install
-a smaller basic configuration automatically</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__set-up-configuration-through-the-component-dialog" id="toc-docs__en__manual__example-configurationmd__set-up-configuration-through-the-component-dialog">Set
+up configuration through the component dialog</a>
+<ul>
+<li><a href="#docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration" id="toc-docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration">Install
+a smaller basic configuration</a></li>
+<li><a href="#docs__en__manual__example-configurationmd__copy-the-local-windows-configuration-to-linux" id="toc-docs__en__manual__example-configurationmd__copy-the-local-windows-configuration-to-linux">Copy
+the local Windows configuration to Linux</a></li>
+</ul></li>
 <li><a href="#docs__en__manual__example-configurationmd__installing-prerequisites" id="toc-docs__en__manual__example-configurationmd__installing-prerequisites">Installing
 prerequisites</a></li>
 <li><a href="#docs__en__manual__example-configurationmd__backing-up-an-existing-configuration" id="toc-docs__en__manual__example-configurationmd__backing-up-an-existing-configuration">Backing
@@ -2090,13 +2096,17 @@ Neovim configuration and includes:</p>
 up LSP, completion, and linters</a>, explains the general behavior,
 additional languages, and the alternative <code>vim.pack</code>
 setup.</p>
-<section id="docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically" class="level3">
-<h3>Install a smaller basic configuration automatically</h3>
+<section id="docs__en__manual__example-configurationmd__set-up-configuration-through-the-component-dialog" class="level3">
+<h3>Set up configuration through the component dialog</h3>
 <p>The
 <code>NVDA menu → Neovim Access Link → Install or update components...</code>
-dialog offers the initially clear option
-<code>Install the basic Neovim configuration with lazy.nvim and Oil</code>.
-It creates a smaller <code>init.lua</code> with Lazy, Oil, the bundled
+dialog offers three choices under <code>Neovim configuration</code>. The
+default <code>Do not change Neovim configuration</code> changes only the
+Access Link components.</p>
+<section id="docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration" class="level4">
+<h4>Install a smaller basic configuration</h4>
+<p><code>Install the basic Neovim configuration with lazy.nvim and Oil</code>
+creates a smaller <code>init.lua</code> with Lazy, Oil, the bundled
 Access Link copy, line numbers, a stable sign column, smart
 case-sensitive searching, and a conventional direction for new splits.
 LSP, language servers, and linters are not part of this basic
@@ -2114,6 +2124,34 @@ neither the generated configuration nor its backups.</p>
 <p>The complete Python configuration below is a more extensive
 alternative. Use it when Pyright, Ruff, and the documented LSP and
 linter keys should also be configured.</p>
+</section>
+<section id="docs__en__manual__example-configurationmd__copy-the-local-windows-configuration-to-linux" class="level4">
+<h4>Copy the local Windows configuration to Linux</h4>
+<p><code>Copy this computer&#39;s Neovim configuration to selected Linux connections</code>
+transfers the complete contents of <code>%LOCALAPPDATA%\nvim</code> to
+every Linux connection selected in the dialog. The local Windows entry
+can receive its Access Link components at the same time; its
+configuration remains the source and is not replaced.</p>
+<p>On every Linux target, an existing Neovim configuration is first
+backed up as a complete, uniquely named directory. The transferred
+configuration replaces the target only after every file has been
+validated. Links and unusual file types are not transferred. Component
+removal deletes neither the imported configuration nor its backup.</p>
+<p>Neovim reads Lua and Vimscript files without execute permission.
+Windows does not provide reliable Linux execute permissions for custom
+helper scripts; make directly invoked scripts executable on the Linux
+target when required. You must also adjust Windows-specific absolute
+paths, programs, and shell commands. The add-on does not rewrite user
+configuration. Review the local directory for credentials and other
+content not intended for the Linux target before copying it.</p>
+<p>When the copied configuration uses Lazy, it must explicitly list the
+installed Access Link copy as a local plugin with
+<code>dir = access_link_path</code>. The configuration below builds
+<code>access_link_path</code> portably from
+<code>stdpath(&quot;data&quot;)</code>, so the same code finds the installed copy
+on Windows and Linux. The add-on does not insert this Lua statement
+automatically.</p>
+</section>
 </section>
 <section id="docs__en__manual__example-configurationmd__installing-prerequisites" class="level3">
 <h3>Installing prerequisites</h3>

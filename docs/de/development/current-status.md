@@ -30,13 +30,19 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Das oberste
   `Neovim Access Link`-Menü öffnet Einstellungen, Komponentenverwaltung und
   vier lokalisierte installierte HTML-Dokumente.
-- Die Komponenteninstallation kann auf ausdrückliche, standardmäßig
-  ausgeschaltete Auswahl eine kleine Grundkonfiguration mit Lazy und Oil
+- Die Komponenteninstallation kann über eine standardmäßig unveränderte
+  Konfigurationsauswahl eine kleine Grundkonfiguration mit Lazy und Oil
   installieren. Vorhandene reguläre `init.lua` und `init.vim` werden zuerst in
   eindeutige Sicherungspfade verschoben; der Ergebnisdialog nennt Installation
-  und Sicherungen. Ungewöhnliche Dateitypen bleiben unverändert. Automatisierte
-  Tests decken lokale und rootlose Linux-Paketpfade einschließlich Rollback ab;
-  eine praktische Windows-/SSH-Abnahme steht noch aus.
+  und Sicherungen. Alternativ kopiert sie die vollständige lokale
+  Windows-Konfiguration auf ausgewählte Linux-Verbindungen, nachdem Links,
+  Dateitypen, Pfade und Größen begrenzt und geprüft wurden. Eine vorhandene
+  Linux-Konfiguration wird als vollständiges Verzeichnis atomar gesichert.
+  Windows-spezifischen Inhalt verändert das Add-on nicht; Lazy muss die
+  installierte Access-Link-Kopie ausdrücklich als lokales Plugin laden.
+  Automatisierte Tests decken Archivierung, lokale und rootlose
+  Linux-Paketpfade, SSH-Übertragung und Rollback ab; eine praktische
+  Windows-/SSH-Abnahme steht noch aus.
 - Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
   verwenden den deutschen beziehungsweise englischen unveröffentlichten
   Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.

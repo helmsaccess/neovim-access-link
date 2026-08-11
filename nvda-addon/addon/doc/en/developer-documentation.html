@@ -2577,12 +2577,17 @@ installer. The top-level <code>Neovim Access Link</code> menu opens
 settings, component management, and four localized installed HTML
 documents.</li>
 <li>Component installation can install a small basic configuration with
-Lazy and Oil after an explicit, initially clear choice. Existing regular
-<code>init.lua</code> and <code>init.vim</code> files are first moved to
-unique backup paths; the results dialog names the installation and
-backups. Unusual file types remain unchanged. Automated tests cover
-local and rootless Linux package paths, including rollback; practical
-Windows and SSH acceptance remains pending.</li>
+Lazy and Oil through a choice that remains unchanged by default.
+Existing regular <code>init.lua</code> and <code>init.vim</code> files
+are first moved to unique backup paths; the results dialog names the
+installation and backups. Alternatively, it copies the complete local
+Windows configuration to selected Linux connections after bounding and
+validating links, file types, paths, and sizes. An existing Linux
+configuration is atomically backed up as a complete directory. The
+add-on does not rewrite Windows-specific content; Lazy must explicitly
+load the installed Access Link copy as a local plugin. Automated tests
+cover archiving, local and rootless Linux package paths, SSH transfer,
+and rollback; practical Windows and SSH acceptance remains pending.</li>
 <li>The manifest provides the project URL and default help file.
 Development builds use the matching German or English unreleased
 changelog section; releases use their version section.</li>
@@ -4540,7 +4545,8 @@ config/linux-components.json
 config/starter-init.lua
 share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
 install.py
-starter_config.py</code></pre>
+starter_config.py
+config_transfer.py</code></pre>
 <p>The bridge is a Python zipapp with the protocol codec and portable
 MessagePack. The archive is stored in the add-on as
 <code>globalPlugins/NeovimAccessLink/resources/server-user.tar.gz</code>.
@@ -4598,9 +4604,10 @@ summary reports every success and failure. Locally, the plugin is
 replaced atomically under
 <code>%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda</code>.
 Neovim must be restarted after installation or update.</p>
-<p>An additional initially clear choice installs a tested basic
-configuration with Lazy, Oil, and a few Neovim defaults on every
-selected target. The shared <code>StarterConfigInstaller</code> detects
+<p>The configuration choice leaves configuration unchanged by default,
+installs a tested basic configuration on every selected target, or
+copies the complete local Windows configuration only to selected Linux
+connections. The shared <code>StarterConfigInstaller</code> detects
 <code>init.lua</code> and <code>init.vim</code>, rejects symbolic links
 and other unusual targets, and moves existing regular files to unique
 backup paths before the atomic replacement. On failure it attempts to
@@ -4610,6 +4617,27 @@ restore the originals from the retained backups. Locally it uses
 results dialog names the configuration and backup paths. Installation
 and backup run with the other component work outside NVDA&#39;s main
 thread.</p>
+<p>For copy mode, <code>LocalConfigArchiveBuilder</code> creates one
+bounded snapshot of <code>%LOCALAPPDATA%\nvim</code> per operation. It
+contains regular files and directories, including modular
+<code>lua</code>, <code>after</code>, or <code>ftplugin</code> trees and
+<code>lazy-lock.json</code>, but does not follow links. It accepts at
+most 4096 files, 8192 entries, and 32 MiB of uncompressed content.
+Windows execute permissions are not guessed; files receive private data
+permissions on Linux.</p>
+<p>The add-on transfers this snapshot separately from the immutable
+component package over SSH stdin. <code>ImportedConfigInstaller</code>
+validates archive type, paths, entries, and limits again, extracts into
+a private temporary directory, and moves an existing complete Linux
+configuration to a unique backup path. Only then does an atomic
+directory replacement install it under
+<code>$XDG_CONFIG_HOME/nvim</code> or <code>~/.config/nvim</code>. A
+failed replacement moves the retained original back. The add-on does not
+execute the transferred configuration during installation and does not
+rewrite its Lua or Vimscript content. Lazy configurations must
+themselves explicitly list the copy placed by the component installer
+under <code>stdpath(&quot;data&quot;)/site/pack/nvim-nvda/start/nvim-nvda</code>
+as a local plugin.</p>
 </section>
 <section id="docs__en__development__component-installationmd__removal" class="level3">
 <h3>Removal</h3>
@@ -4623,9 +4651,9 @@ one time-bounded user command removes only:</p>
 ~/.local/share/nvim-nvda
 ~/.cache/nvim-nvda-install</code></pre>
 <p>Removal is idempotent. Saved connections, SSH and Neovim
-configuration, including the optionally generated <code>init.lua</code>
-and its backups, unrelated plugins, and runtime session data remain
-intact.</p>
+configuration, including the optionally generated <code>init.lua</code>,
+imported configurations, and their backups, unrelated plugins, and
+runtime session data remain intact.</p>
 </section>
 <section id="docs__en__development__component-installationmd__owning-code-and-tests" class="level3">
 <h3>Owning code and tests</h3>
@@ -5679,14 +5707,22 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
 <ul>
-<li>Adds an initially clear component-dialog choice for a basic
-configuration with Lazy, Oil, the bundled Access Link copy, and a few
-Neovim defaults. Existing regular <code>init.lua</code> and
-<code>init.vim</code> files move to unique backup paths named in the
-results dialog before atomic replacement; failures restore the originals
-from the retained backups. Symbolic links and unusual targets remain
-unchanged, and component removal deletes neither configuration nor
-backups.</li>
+<li>Adds a component-dialog configuration choice that remains unchanged
+by default and can install a basic configuration with Lazy, Oil, the
+bundled Access Link copy, and a few Neovim defaults. Existing regular
+<code>init.lua</code> and <code>init.vim</code> files move to unique
+backup paths named in the results dialog before atomic replacement;
+failures restore the originals from the retained backups. Symbolic links
+and unusual targets remain unchanged, and component removal deletes
+neither configuration nor backups.</li>
+<li>Adds a second configuration path that safely copies the complete
+local Windows configuration directory to selected Linux connections. A
+bounded, link-free snapshot is transferred separately from the component
+package over SSH and validated again on the target; existing
+configurations are backed up as complete directories before atomic
+replacement. Windows-specific content and execute permissions are
+neither guessed nor rewritten. Lazy must still list the installed Access
+Link copy explicitly as a local plugin.</li>
 <li>Adds robust baseline support for <code>lazy.nvim</code>: Access Link
 gives the real Lazy buffer an unambiguous context name and speaks the
 complete command bar regardless of its initial blank line or

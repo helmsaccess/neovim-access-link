@@ -155,8 +155,10 @@ update.</p>
 <li>Select <code>This computer - local Neovim</code> for local Windows
 Neovim.</li>
 <li>Select saved Linux connections for remote sessions.</li>
-<li>If you do not already use your own Neovim configuration, select
-<code>Install the basic Neovim configuration with lazy.nvim and Oil</code>.</li>
+<li>Under <code>Neovim configuration</code>, choose whether
+configuration remains unchanged, the basic configuration is installed,
+or the local Windows configuration is copied to selected Linux
+connections.</li>
 <li>Confirm with <code>OK</code>.</li>
 <li>Check every selected target in the result dialog.</li>
 </ol>
@@ -165,6 +167,14 @@ practical Neovim settings. An existing <code>init.lua</code> or
 <code>init.vim</code> is backed up before it is replaced; the result
 dialog gives the backup path. On the first Neovim start, Lazy and Oil
 need Git and access to GitHub.</p>
+<p>Copy mode transfers the complete local
+<code>%LOCALAPPDATA%\nvim</code> directory only to selected Linux
+connections and backs up an existing configuration there in full. You
+must adjust Windows-specific paths and directly executed scripts on
+Linux and make those scripts executable when required. With Lazy, the
+configuration must explicitly load the Access Link copy installed by the
+add-on as a local plugin. Review the local configuration for credentials
+before copying it.</p>
 <p>Access Link installs its bundled plugin copy in Neovim&#39;s standard
 data directory. A simple Neovim configuration loads this start plugin on
 the next Neovim start. A plugin manager that replaces Neovim&#39;s

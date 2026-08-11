@@ -30,6 +30,7 @@ config/starter-init.lua
 share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
 install.py
 starter_config.py
+config_transfer.py
 ```
 
 Die Bridge ist eine Python-Zipapp mit Protokollcodec und portablem
@@ -91,9 +92,10 @@ und Fehler. Lokal wird das Plugin atomar unter
 `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda` ersetzt.
 Neovim muss nach einer Installation oder Aktualisierung neu gestartet werden.
 
-Die zusätzliche, standardmäßig ausgeschaltete Auswahl installiert auf allen
-gewählten Zielen eine geprüfte Grundkonfiguration mit Lazy, Oil und wenigen
-Neovim-Grundeinstellungen. Der gemeinsame `StarterConfigInstaller` erkennt
+Die Konfigurationsauswahl bleibt standardmäßig unverändert, installiert auf
+allen gewählten Zielen eine geprüfte Grundkonfiguration oder kopiert die
+vollständige lokale Windows-Konfiguration ausschließlich auf gewählte
+Linux-Verbindungen. Der gemeinsame `StarterConfigInstaller` erkennt
 `init.lua` und `init.vim`, lehnt Symlinks und andere ungewöhnliche Ziele ab und
 verschiebt vorhandene reguläre Dateien vor dem atomaren Austausch in
 eindeutige Sicherungspfade. Bei einem Fehler versucht er, die Originale aus
@@ -102,6 +104,26 @@ den erhaltenen Sicherungen wiederherzustellen. Lokal verwendet er
 `$XDG_CONFIG_HOME/nvim` oder `~/.config/nvim`. Der Ergebnisdialog nennt
 Konfigurations- und Sicherungspfade. Installation und Sicherung laufen mit der
 übrigen Komponentenarbeit außerhalb von NVDAs Hauptthread.
+
+Für den Kopiermodus erzeugt `LocalConfigArchiveBuilder` einmal pro Vorgang eine
+begrenzte Momentaufnahme von `%LOCALAPPDATA%\nvim`. Sie enthält normale Dateien
+und Verzeichnisse einschließlich modularer `lua`-, `after`- oder
+`ftplugin`-Bäume und `lazy-lock.json`, folgt aber keinen Links. Höchstens 4096
+Dateien, 8192 Einträge und 32 MiB unkomprimierter Inhalt werden akzeptiert.
+Windows-Ausführbarkeitsrechte werden nicht geraten; Dateien erhalten auf Linux
+private Datenrechte.
+
+Das Add-on überträgt diese Momentaufnahme getrennt vom unveränderlichen
+Komponentenpaket über SSH-stdin. `ImportedConfigInstaller` prüft Archivtyp,
+Pfade, Einträge und Grenzen erneut, entpackt in ein privates temporäres
+Verzeichnis und verschiebt eine vorhandene vollständige Linux-Konfiguration in
+einen eindeutigen Sicherungspfad. Erst danach ersetzt ein atomarer
+Verzeichniswechsel `$XDG_CONFIG_HOME/nvim` oder `~/.config/nvim`. Scheitert der
+Wechsel, wird das erhaltene Original zurückverschoben. Das Add-on führt die
+übertragene Konfiguration während der Installation nicht aus und verändert
+ihren Lua- oder Vimscript-Inhalt nicht. Lazy-Konfigurationen müssen die vom
+Komponenteninstaller unter `stdpath("data")/site/pack/nvim-nvda/start/nvim-nvda`
+abgelegte Kopie selbst ausdrücklich als lokales Plugin aufführen.
 
 ## Entfernung
 
@@ -120,8 +142,9 @@ ein zeitlich begrenzter Benutzerbefehl ausschließlich:
 ```
 
 Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
-Neovim-Konfiguration einschließlich der optional erzeugten `init.lua` und
-ihrer Sicherungen, andere Plugins und Laufzeit-Sitzungsdaten bleiben erhalten.
+Neovim-Konfiguration einschließlich der optional erzeugten `init.lua`,
+importierter Konfigurationen und ihrer Sicherungen, andere Plugins und
+Laufzeit-Sitzungsdaten bleiben erhalten.
 
 ## Zuständiger Code und Tests
 

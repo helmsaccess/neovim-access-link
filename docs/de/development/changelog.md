@@ -6,14 +6,24 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-- Ergänzt im Komponenten-Dialog eine standardmäßig ausgeschaltete
-  Grundkonfiguration mit Lazy, Oil, der gebündelten Access-Link-Kopie und
+- Ergänzt im Komponenten-Dialog eine standardmäßig unveränderte
+  Konfigurationsauswahl mit einer Grundkonfiguration aus Lazy, Oil, der
+  gebündelten Access-Link-Kopie und
   wenigen Neovim-Grundeinstellungen. Vorhandene reguläre `init.lua` und
   `init.vim` werden vor dem atomaren Austausch in eindeutige Sicherungspfade
   verschoben und im Ergebnisdialog genannt; Fehler stellen die Originale aus
   den erhaltenen Sicherungen wieder her. Symlinks und ungewöhnliche Ziele
   bleiben unverändert, und die Komponentenentfernung löscht weder Konfiguration
   noch Sicherungen.
+- Ergänzt als zweiten Konfigurationsweg die sichere Übernahme des vollständigen
+  lokalen Windows-Konfigurationsverzeichnisses auf ausgewählte
+  Linux-Verbindungen. Eine begrenzte, linkfreie Momentaufnahme wird getrennt
+  vom Komponentenpaket über SSH übertragen und auf dem Ziel erneut geprüft;
+  vorhandene Konfigurationen werden als vollständige Verzeichnisse vor dem
+  atomaren Austausch gesichert. Windows-spezifische Inhalte und
+  Ausführbarkeitsrechte werden nicht geraten oder umgeschrieben. Lazy muss die
+  installierte Access-Link-Kopie weiterhin ausdrücklich als lokales Plugin
+  laden.
 - Ergänzt robuste Grundunterstützung für `lazy.nvim`: Access Link gibt dem
   echten Lazy-Puffer einen eindeutigen Kontextnamen und spricht beim Öffnen die
   vollständige Bedienleiste unabhängig von Leerzeile und fensterbreitenbedingtem

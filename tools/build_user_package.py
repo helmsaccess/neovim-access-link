@@ -134,6 +134,10 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "starter_config.py",
             package / "starter_config.py",
         )
+        shutil.copy2(
+            ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "config_transfer.py",
+            package / "config_transfer.py",
+        )
         shutil.copy2(ROOT / "LICENSE", package / "LICENSE")
         (package / "install.py").chmod(0o755)
         staged_output = temporary / output.name

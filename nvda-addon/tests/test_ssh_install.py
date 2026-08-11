@@ -5,7 +5,11 @@ import subprocess
 import tempfile
 import unittest
 
-from nvim_nvda_core import SshUserInstaller
+from nvim_nvda_core import (
+    CONFIGURATION_COPY_LOCAL,
+    CONFIGURATION_STARTER,
+    SshUserInstaller,
+)
 
 
 class SshUserInstallerTests(unittest.TestCase):
@@ -38,6 +42,7 @@ class SshUserInstallerTests(unittest.TestCase):
         )
         self.assertEqual("server-user@example-host", calls[0][0][-2])
         self.assertIn("install.py", calls[1][0][-1])
+        self.assertIn("trap 'rm -rf", calls[1][0][-1])
         self.assertIn('os.environ["HOME"]', calls[1][0][-1])
         self.assertIn("python3 -c '", calls[1][0][-1])
         self.assertIn('filter="data"', calls[1][0][-1])
@@ -110,7 +115,7 @@ class SshUserInstallerTests(unittest.TestCase):
             result = SshUserInstaller(runner).install(
                 "editor@example-host",
                 package,
-                install_starter_config=True,
+                configuration_mode=CONFIGURATION_STARTER,
             )
 
         self.assertTrue(result.success)
@@ -131,11 +136,68 @@ class SshUserInstallerTests(unittest.TestCase):
             result = SshUserInstaller(runner).install(
                 "editor@example-host",
                 package,
-                install_starter_config=True,
+                configuration_mode=CONFIGURATION_STARTER,
             )
 
         self.assertFalse(result.success)
-        self.assertEqual("remote starter configuration result was missing", result.message)
+        self.assertEqual("remote Neovim configuration result was missing", result.message)
+
+    def test_complete_local_configuration_is_uploaded_separately_and_reported(self) -> None:
+        calls = []
+
+        def runner(command, **kwargs):
+            calls.append((command, kwargs.get("input")))
+            stdout = b"ok"
+            if len(calls) == 3:
+                stdout = (
+                    b"imported Windows Neovim configuration: /home/editor/.config/nvim\n"
+                    b"backed up Neovim configuration: "
+                    b"/home/editor/.config/nvim.neovim-access-link-backup-example\n"
+                )
+            return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
+
+        with tempfile.TemporaryDirectory() as directory:
+            package = pathlib.Path(directory) / "package.tar.gz"
+            package.write_bytes(b"component payload")
+            result = SshUserInstaller(runner).install(
+                "editor@example-host",
+                package,
+                configuration_mode=CONFIGURATION_COPY_LOCAL,
+                imported_config=b"configuration payload",
+            )
+
+        self.assertTrue(result.success)
+        self.assertEqual(3, len(calls))
+        self.assertEqual(b"component payload", calls[0][1])
+        self.assertEqual(b"configuration payload", calls[1][1])
+        self.assertIn("windows-config.tar.gz", calls[1][0][-1])
+        self.assertIn("windows-config.tar.gz.new", calls[1][0][-1])
+        self.assertIn("trap 'rm -f", calls[1][0][-1])
+        self.assertIn('--import-config-archive "$d/windows-config.tar.gz"', calls[2][0][-1])
+        self.assertEqual("/home/editor/.config/nvim", result.configuration_path)
+        self.assertEqual(CONFIGURATION_COPY_LOCAL, result.configuration_kind)
+        self.assertEqual(
+            ("/home/editor/.config/nvim.neovim-access-link-backup-example",),
+            result.configuration_backups,
+        )
+
+    def test_configuration_archive_is_required_only_for_copy_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            package = pathlib.Path(directory) / "package.tar.gz"
+            package.write_bytes(b"payload")
+            missing = SshUserInstaller().install(
+                "editor@example-host",
+                package,
+                configuration_mode=CONFIGURATION_COPY_LOCAL,
+            )
+            unexpected = SshUserInstaller().install(
+                "editor@example-host",
+                package,
+                imported_config=b"unexpected",
+            )
+
+        self.assertFalse(missing.success)
+        self.assertFalse(unexpected.success)
 
     def test_uninstall_removes_only_project_owned_remote_paths(self) -> None:
         calls = []

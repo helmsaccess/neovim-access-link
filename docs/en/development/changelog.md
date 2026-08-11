@@ -6,13 +6,21 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-- Adds an initially clear component-dialog choice for a basic configuration
-  with Lazy, Oil, the bundled Access Link copy, and a few Neovim defaults.
+- Adds a component-dialog configuration choice that remains unchanged by
+  default and can install a basic configuration with Lazy, Oil, the bundled
+  Access Link copy, and a few Neovim defaults.
   Existing regular `init.lua` and `init.vim` files move to unique backup paths
   named in the results dialog before atomic replacement; failures restore the
   originals from the retained backups. Symbolic links and unusual targets
   remain unchanged, and component removal deletes neither configuration nor
   backups.
+- Adds a second configuration path that safely copies the complete local
+  Windows configuration directory to selected Linux connections. A bounded,
+  link-free snapshot is transferred separately from the component package over
+  SSH and validated again on the target; existing configurations are backed up
+  as complete directories before atomic replacement. Windows-specific content
+  and execute permissions are neither guessed nor rewritten. Lazy must still
+  list the installed Access Link copy explicitly as a local plugin.
 - Adds robust baseline support for `lazy.nvim`: Access Link gives the real
   Lazy buffer an unambiguous context name and speaks the complete command bar
   regardless of its initial blank line or width-dependent wrapping. Line

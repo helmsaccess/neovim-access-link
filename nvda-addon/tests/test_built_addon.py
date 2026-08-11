@@ -531,7 +531,17 @@ class BuiltAddonTests(unittest.TestCase):
             self.staticBoxLabels.append(kwargs.get("label", ""))
             return object()
         wx.StaticBoxSizer = static_box_sizer
-        wx.Choice = object
+        self.choiceControls = []
+        class WxChoiceControl:
+            def __init__(inner_self, *_args, **kwargs):
+                inner_self.items = list(kwargs.get("choices", []))
+                inner_self.selection = 0
+                inner_self.name = ""
+                self.choiceControls.append(inner_self)
+            def SetSelection(inner_self, value): inner_self.selection = value
+            def GetSelection(inner_self): return inner_self.selection
+            def SetName(inner_self, value): inner_self.name = value
+        wx.Choice = WxChoiceControl
         class CheckBoxControl:
             def __init__(inner_self, *_args, **kwargs):
                 inner_self.checked = False
@@ -4088,6 +4098,7 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertTrue(any(name.endswith("/bin/nvim-nvda-bridge") for name in names))
             self.assertTrue(any(name.endswith("/install.py") for name in names))
             self.assertTrue(any(name.endswith("/starter_config.py") for name in names))
+            self.assertTrue(any(name.endswith("/config_transfer.py") for name in names))
             self.assertTrue(any(name.endswith("/config/starter-init.lua") for name in names))
             self.assertTrue(any(name.endswith("/plugin/nvim_nvda.lua") for name in names))
             self.assertTrue(any(name.endswith("/LICENSE") for name in names))
@@ -4147,6 +4158,34 @@ class BuiltAddonTests(unittest.TestCase):
         backups = list(nvim_config.glob("init.vim.neovim-access-link-backup-*"))
         self.assertEqual(1, len(backups))
         self.assertEqual("old remote config", backups[0].read_text(encoding="utf-8"))
+        windows_config = pathlib.Path(self.temporary.name) / "windows-config"
+        (windows_config / "lua").mkdir(parents=True)
+        (windows_config / "init.lua").write_text("vim.opt.number = true\n", encoding="utf-8")
+        (windows_config / "lua" / "settings.lua").write_text("return {}\n", encoding="utf-8")
+        imported_archive = pathlib.Path(self.temporary.name) / "windows-config.tar.gz"
+        with tarfile.open(imported_archive, "w:gz") as archive:
+            archive.add(windows_config / "init.lua", arcname="init.lua")
+            archive.add(windows_config / "lua", arcname="lua")
+        imported = subprocess.run(
+            [
+                sys.executable,
+                str(source / "install.py"),
+                "--prefix",
+                str(prefix),
+                "--import-config-archive",
+                str(imported_archive),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+        self.assertIn(f"imported Windows Neovim configuration: {nvim_config}", imported.stdout)
+        directory_backups = list(config_home.glob("nvim.neovim-access-link-backup-*"))
+        self.assertEqual(1, len(directory_backups))
+        self.assertTrue((directory_backups[0] / "init.lua").is_file())
+        self.assertEqual("vim.opt.number = true\n", (nvim_config / "init.lua").read_text())
+        self.assertEqual("return {}\n", (nvim_config / "lua" / "settings.lua").read_text())
 
     def test_addon_frontend_policy_enables_only_windows_terminal(self) -> None:
         policy_path = (
@@ -9447,8 +9486,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([
             "Wählen Sie ein oder mehrere Ziele aus. Administratorrechte sind nicht erforderlich.",
             "Zu aktualisierende Verbindungen:",
-            "Wenn ausgewählt, wird eine vorhandene init.lua oder init.vim gesichert, bevor sie "
-            "ersetzt wird. Der Ergebnisdialog zeigt jeden Sicherungspfad.",
+            "Neovim-Konfiguration:",
+            "Die Grundkonfiguration gilt für alle ausgewählten Ziele. Beim Kopieren wird die "
+            "vollständige lokale Windows-Konfiguration nur auf ausgewählte Linux-Verbindungen "
+            "übertragen. Eine vorhandene Konfiguration auf dem Ziel wird vorher gesichert. "
+            "Windows-spezifische Pfade und direkt ausgeführte Skripte müssen unter Linux "
+            "möglicherweise angepasst werden. Bei lazy.nvim muss die installierte Access-Link-"
+            "Kopie ausdrücklich als lokales Plugin aufgeführt sein. Prüfen Sie die lokale "
+            "Konfiguration vor dem Kopieren auf Zugangsdaten.",
             "Schließen Sie Neovim auf den ausgewählten Zielen und wählen Sie dann aus, wo die "
             "Komponenten entfernt werden sollen. Andere Neovim-Plugins und Konfigurationen "
             "bleiben erhalten.",
@@ -9457,10 +9502,17 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(
             [
                 "Alle Verbindungen auswählen",
-                "Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren",
                 "Alle Verbindungen auswählen",
             ],
             [control.label for control in self.checkBoxControls],
+        )
+        self.assertEqual(
+            [
+                "Neovim-Konfiguration nicht ändern",
+                "Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren",
+                "Neovim-Konfiguration dieses Computers auf ausgewählte Linux-Verbindungen kopieren",
+            ],
+            self.choiceControls[0].items,
         )
         self.assertEqual(
             ["Zu aktualisierende Verbindungen", "Verbindungen, von denen Komponenten entfernt werden"],
@@ -10073,9 +10125,9 @@ class BuiltAddonTests(unittest.TestCase):
         })
         self.checkListSelections.append([1, 2])
         self.modalDialogResults.append(sys.modules["wx"].ID_OK)
-        selected, install_starter_config = plugin._nvdaUi._chooseInstallProfiles()
+        selected, configuration_mode = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual(["key", "pw"], [profile.identifier for profile in selected])
-        self.assertFalse(install_starter_config)
+        self.assertEqual("unchanged", configuration_mode)
         connection_list = self.checkListBoxes[-1]
         self.assertEqual("Connections to update", connection_list.name)
         self.assertIn("This computer: local Windows Neovim plugin", connection_list.choices[0])
@@ -10085,15 +10137,16 @@ class BuiltAddonTests(unittest.TestCase):
         select_all = next(control for control in self.checkBoxControls if control.label == "Select all connections")
         self.assertTrue(select_all.focused)
         self.assertFalse(select_all.IsChecked())
-        starter_config = next(
-            control for control in self.checkBoxControls
-            if control.label == "Install the basic Neovim configuration with lazy.nvim and Oil"
-        )
-        self.assertFalse(starter_config.IsChecked())
-        self.assertTrue(any("existing init.lua or init.vim is backed up" in label for label in self.staticTexts))
+        configuration = next(control for control in self.choiceControls if control.name == "Neovim configuration")
+        self.assertEqual(0, configuration.GetSelection())
+        self.assertEqual("Do not change Neovim configuration", configuration.items[0])
+        self.assertIn("basic Neovim configuration", configuration.items[1])
+        self.assertIn("selected Linux connections", configuration.items[2])
+        self.assertTrue(any("complete local Windows configuration" in label for label in self.staticTexts))
+        self.assertTrue(any("listed explicitly as a local plugin" in label for label in self.staticTexts))
 
         calls = []
-        plugin._nvdaUi._chooseInstallProfiles = lambda: (selected, False)
+        plugin._nvdaUi._chooseInstallProfiles = lambda: (selected, "unchanged")
         plugin._nvdaUi._passwordForProfile = (
             lambda profile: "temporary password" if profile.identifier == "pw" else ""
         )
@@ -10104,12 +10157,12 @@ class BuiltAddonTests(unittest.TestCase):
             def start(inner_self): inner_self.target(*inner_self.args)
         with mock.patch("threading.Thread", ImmediateThread):
             plugin._nvdaUi._onInstallServer(None)
-        jobs, package, immediate_results, local_plugin, install_starter_config, starter_config = calls[0]
+        jobs, package, immediate_results, local_plugin, configuration_mode, starter_config = calls[0]
         self.assertEqual(["key", "pw"], [profile.identifier for profile, _password in jobs])
         self.assertEqual(["", "temporary password"], [password for _profile, password in jobs])
         self.assertTrue(package.endswith("server-user.tar.gz"))
         self.assertTrue(local_plugin.endswith("neovim-plugin"))
-        self.assertFalse(install_starter_config)
+        self.assertEqual("unchanged", configuration_mode)
         self.assertTrue(starter_config.endswith("starter-init.lua"))
         self.assertEqual([], immediate_results)
         self.assertIn("Updating Neovim components on 2 targets", self.messages[-1])
@@ -10133,9 +10186,9 @@ class BuiltAddonTests(unittest.TestCase):
             select_all.handlers[sys.modules["wx"].EVT_CHECKBOX](None)
             return original_show(dialog)
         with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", select_all_then_show):
-            selected, install_starter_config = plugin._nvdaUi._chooseInstallProfiles()
+            selected, configuration_mode = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
-        self.assertFalse(install_starter_config)
+        self.assertEqual("unchanged", configuration_mode)
         plugin.terminate()
 
     def test_component_installation_returns_explicit_starter_configuration_choice(self) -> None:
@@ -10147,18 +10200,47 @@ class BuiltAddonTests(unittest.TestCase):
         original_show = sys.modules["wx"].Dialog.ShowModal
 
         def enable_starter_configuration(dialog):
-            starter = next(
-                control for control in self.checkBoxControls
-                if control.label == "Install the basic Neovim configuration with lazy.nvim and Oil"
+            configuration = next(
+                control for control in self.choiceControls if control.name == "Neovim configuration"
             )
-            starter.SetValue(True)
+            configuration.SetSelection(1)
             return original_show(dialog)
 
         with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", enable_starter_configuration):
-            selected, install_starter_config = plugin._nvdaUi._chooseInstallProfiles()
+            selected, configuration_mode = plugin._nvdaUi._chooseInstallProfiles()
 
         self.assertEqual(["local-windows"], [target.identifier for target in selected])
-        self.assertTrue(install_starter_config)
+        self.assertEqual("starter", configuration_mode)
+        plugin.terminate()
+
+    def test_copy_local_configuration_requires_and_accepts_a_linux_connection(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        plugin = GlobalPlugin()
+        self._updateSettings(plugin, {"connections": [{
+            "id": "remote", "name": "Remote", "host": "remote", "user": "editor", "port": 22,
+            "identityFile": "", "authentication": "openSsh",
+        }]})
+        original_show = sys.modules["wx"].Dialog.ShowModal
+
+        def enable_copy_configuration(dialog):
+            configuration = self.choiceControls[-1]
+            self.assertEqual("Neovim configuration", configuration.name)
+            configuration.SetSelection(2)
+            return original_show(dialog)
+
+        self.checkListSelections.append([0])
+        self.modalDialogResults.extend((sys.modules["wx"].ID_OK, sys.modules["wx"].ID_CANCEL))
+        with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", enable_copy_configuration):
+            self.assertIsNone(plugin._nvdaUi._chooseInstallProfiles())
+        self.assertIn("saved Linux connection", self.messageBoxes[-1][0][0])
+
+        self.checkListSelections.append([0, 1])
+        self.modalDialogResults.append(sys.modules["wx"].ID_OK)
+        with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", enable_copy_configuration):
+            selected, configuration_mode = plugin._nvdaUi._chooseInstallProfiles()
+        self.assertEqual(["local-windows", "remote"], [target.identifier for target in selected])
+        self.assertEqual("copyLocal", configuration_mode)
         plugin.terminate()
 
     def test_linux_installation_manual_checks_synchronize_select_all(self) -> None:
@@ -10193,10 +10275,10 @@ class BuiltAddonTests(unittest.TestCase):
             connection_list.Check(0, True)
             return original_show(dialog)
         with mock.patch.object(sys.modules["wx"].Dialog, "ShowModal", manually_check_then_show):
-            selected, install_starter_config = plugin._nvdaUi._chooseInstallProfiles()
+            selected, configuration_mode = plugin._nvdaUi._chooseInstallProfiles()
         self.assertEqual([False, False, True, False], synchronized)
         self.assertEqual(["local-windows", "one", "two"], [profile.identifier for profile in selected])
-        self.assertFalse(install_starter_config)
+        self.assertEqual("unchanged", configuration_mode)
         plugin.terminate()
 
     def test_linux_installation_requires_an_explicit_selection(self) -> None:
@@ -10319,7 +10401,7 @@ class BuiltAddonTests(unittest.TestCase):
                 [(target, "")],
                 "/tmp/server-user.tar.gz",
                 local_plugin="/tmp/neovim-plugin",
-                install_starter_config=True,
+                configuration_mode="starter",
                 starter_config="/tmp/starter-init.lua",
             )
 
@@ -10331,6 +10413,78 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(result.configuration_path.endswith(r"nvim\init.lua"))
         summary = plugin._nvdaUi._installResultSummary(finished)
         self.assertIn("basic configuration", summary)
+        self.assertIn("Existing configuration backup", summary)
+        plugin.terminate()
+
+    def test_remote_installation_copies_one_complete_local_configuration_snapshot(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.config_transfer import ConfigArchiveResult
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        profiles = parse_profiles([
+            {
+                "id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+                "identityFile": "", "authentication": "openSsh",
+            },
+            {
+                "id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
+                "identityFile": "", "authentication": "openSsh",
+            },
+        ])
+        builder = mock.Mock()
+        builder.build.return_value = ConfigArchiveResult(
+            True,
+            "archived",
+            b"complete configuration snapshot",
+            r"C:\Users\Example\AppData\Local\nvim",
+            12,
+            4000,
+        )
+        installer = mock.Mock()
+        installer.install.side_effect = (
+            InstallResult(
+                True,
+                "imported",
+                configuration_path="/home/alice/.config/nvim",
+                configuration_backups=("/home/alice/.config/nvim.neovim-access-link-backup-example",),
+                configuration_kind="copyLocal",
+            ),
+            InstallResult(
+                True,
+                "imported",
+                configuration_path="/home/bob/.config/nvim",
+                configuration_kind="copyLocal",
+            ),
+        )
+        finished = []
+        plugin._nvdaUi._finishServerInstalls = finished.extend
+
+        with mock.patch(
+            "globalPlugins.NeovimAccessLink.nvda_ui.LocalConfigArchiveBuilder",
+            return_value=builder,
+        ), mock.patch(
+            "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
+            return_value=installer,
+        ), mock.patch(
+            "globalPlugins.NeovimAccessLink.nvda_ui.default_local_config_directory",
+            return_value=pathlib.Path(r"C:\Users\Example\AppData\Local\nvim"),
+        ):
+            plugin._nvdaUi._runServerInstalls(
+                [(profiles[0], ""), (profiles[1], "")],
+                "/tmp/server-user.tar.gz",
+                configuration_mode="copyLocal",
+            )
+
+        builder.build.assert_called_once()
+        self.assertEqual(2, installer.install.call_count)
+        for call in installer.install.call_args_list:
+            self.assertEqual("copyLocal", call.args[-2])
+            self.assertEqual(b"complete configuration snapshot", call.args[-1])
+        self.assertEqual(2, len(finished))
+        summary = plugin._nvdaUi._installResultSummary(finished)
+        self.assertIn("imported configuration", summary)
         self.assertIn("Existing configuration backup", summary)
         plugin.terminate()
 

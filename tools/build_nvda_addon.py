@@ -35,7 +35,7 @@ CORE_MODULES = (
     "__init__.py", "braille.py", "braille_exploration_state.py",
     "braille_routing_repeats.py", "connection_coordinator.py",
     "connection_instances.py",
-    "connection_profiles.py",
+    "connection_profiles.py", "config_transfer.py",
     "connection_targets.py", "diagnostics.py", "exploration_state.py", "held_context_state.py",
     "numbered_choice_state.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",

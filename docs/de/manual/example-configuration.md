@@ -15,11 +15,16 @@ Die allgemeine Funktionsweise, weitere Sprachen und alternative Einrichtung
 mit `vim.pack` beschreibt das vorherige Kapitel
 [LSP, Autovervollständigung und Linter einrichten](language-tools.md).
 
-## Kleinere Grundkonfiguration automatisch installieren
+## Konfiguration über den Komponenten-Dialog einrichten
 
 Der Dialog `NVDA-Menü → Neovim Access Link → Komponenten installieren oder
-aktualisieren...` bietet die standardmäßig ausgeschaltete Option
-`Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren`. Sie richtet
+aktualisieren...` bietet unter `Neovim-Konfiguration` drei Möglichkeiten. Die
+Voreinstellung `Neovim-Konfiguration nicht ändern` ändert nur die
+Access-Link-Komponenten.
+
+### Kleinere Grundkonfiguration installieren
+
+`Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren` richtet
 eine kleinere `init.lua` mit Lazy, Oil, der bereits mitgelieferten
 Access-Link-Kopie sowie Zeilennummern, stabiler Zeichenspalte, intelligenter
 Groß-/Kleinschreibung und einer üblichen Anordnung neuer Splits ein. LSP,
@@ -40,6 +45,37 @@ weder die erzeugte Konfiguration noch ihre Sicherungen.
 Die nachfolgende vollständige Python-Konfiguration ist eine umfangreichere
 Alternative. Verwenden Sie sie, wenn zusätzlich Pyright, Ruff und die
 dokumentierten LSP- und Lintertasten eingerichtet werden sollen.
+
+### Lokale Windows-Konfiguration auf Linux übernehmen
+
+`Neovim-Konfiguration dieses Computers auf ausgewählte Linux-Verbindungen
+kopieren` überträgt den vollständigen Inhalt von `%LOCALAPPDATA%\nvim` auf
+alle im Dialog ausgewählten Linux-Verbindungen. Der lokale Windows-Eintrag
+kann gleichzeitig seine Access-Link-Komponenten erhalten; seine Konfiguration
+bleibt die Quelle und wird nicht ersetzt.
+
+Auf jedem Linux-Ziel wird eine vorhandene Neovim-Konfiguration zuerst als
+vollständiges, eindeutig benanntes Verzeichnis gesichert. Erst nach der
+Prüfung aller übertragenen Dateien ersetzt die neue Konfiguration das Ziel.
+Links und ungewöhnliche Dateitypen werden nicht übertragen. Die
+Komponentenentfernung löscht weder die importierte Konfiguration noch ihre
+Sicherung.
+
+Neovim liest Lua- und Vimscript-Dateien ohne Ausführbarkeitsrecht. Windows
+liefert jedoch keine verlässlichen Linux-Ausführbarkeitsrechte für eigene
+Hilfsskripte; direkt gestartete Skripte müssen Sie auf dem Linux-Ziel bei
+Bedarf ausführbar machen. Passen Sie außerdem Windows-spezifische absolute
+Pfade, Programme und Shell-Befehle selbst an. Das Add-on verändert den Inhalt
+der Benutzerkonfiguration nicht. Prüfen Sie das lokale Verzeichnis vor dem
+Kopieren auf Zugangsdaten und andere nicht für das Linux-Ziel bestimmte
+Inhalte.
+
+Verwendet die übernommene Konfiguration Lazy, muss sie die installierte
+Access-Link-Kopie ausdrücklich mit `dir = access_link_path` als lokales Plugin
+aufführen. Die Konfiguration weiter unten bildet `access_link_path` portabel
+aus `stdpath("data")`; damit findet derselbe Code die jeweilige installierte
+Kopie unter Windows und Linux. Das Add-on ergänzt diese Lua-Anweisung nicht
+automatisch.
 
 ## Voraussetzungen installieren
 

@@ -1,6 +1,7 @@
 """NVDA settings, menu, and component-management integration."""
 
 import os
+import pathlib
 import threading
 
 import addonHandler
@@ -15,9 +16,15 @@ from .core.connection_profiles import (
 	unique_profile_id,
 )
 from .core.connection_targets import ConnectionTarget, LOCAL_WINDOWS_TCP, local_windows_target
+from .core.config_transfer import (
+	CONFIGURATION_COPY_LOCAL,
+	CONFIGURATION_STARTER,
+	CONFIGURATION_UNCHANGED,
+	LocalConfigArchiveBuilder,
+)
 from .core.local_install import LocalPluginInstaller
 from .core.ssh_install import InstallResult, SshUserInstaller
-from .core.starter_config import StarterConfigInstaller
+from .core.starter_config import StarterConfigInstaller, default_local_config_directory
 from .settings_service import (
 	AUTOMATIC_PARAMETER_HINTS_DEFAULT,
 	BRAILLE_DEVELOPER_START_DEFAULT,
@@ -970,24 +977,44 @@ class NvdaUiManager:
 			_("Connections to remove components from") if remove else _("Connections to update")
 		)
 		outer_sizer.Add(connection_list, 1, wx.ALL | wx.EXPAND, 12)
-		starter_config = None
+		configuration_choice = None
 		if not remove:
-			# Translators: Optional component installer choice that creates a basic Neovim configuration.
-			starter_config = wx.CheckBox(
-				dialog,
-				label=_("Install the basic Neovim configuration with lazy.nvim and Oil"),
+			# Translators: Label for choosing whether the installer changes Neovim configuration.
+			configuration_label = wx.StaticText(dialog, label=_("Neovim configuration:"))
+			outer_sizer.Add(configuration_label, 0, wx.LEFT | wx.RIGHT, 12)
+			configuration_modes = (
+				CONFIGURATION_UNCHANGED,
+				CONFIGURATION_STARTER,
+				CONFIGURATION_COPY_LOCAL,
 			)
-			outer_sizer.Add(starter_config, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
-			# Translators: Explains how an existing Neovim configuration is protected.
-			starter_config_note = wx.StaticText(
+			configuration_choice = wx.Choice(
 				dialog,
-				label=_(
-					"If selected, an existing init.lua or init.vim is backed up before it is replaced. "
-					"The result dialog shows every backup path."
+				choices=(
+					# Translators: Component installer option that leaves all Neovim configuration unchanged.
+					_("Do not change Neovim configuration"),
+					# Translators: Component installer option that creates a basic Neovim configuration.
+					_("Install the basic Neovim configuration with lazy.nvim and Oil"),
+					# Translators: Copies this computer's complete Neovim configuration to Linux targets.
+					_("Copy this computer's Neovim configuration to selected Linux connections"),
 				),
 			)
-			starter_config_note.Wrap(620)
-			outer_sizer.Add(starter_config_note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+			configuration_choice.SetSelection(0)
+			configuration_choice.SetName(_("Neovim configuration"))
+			outer_sizer.Add(configuration_choice, 0, wx.ALL | wx.EXPAND, 12)
+			# Translators: Explains the two optional configuration installation modes and their limits.
+			configuration_note = wx.StaticText(
+				dialog,
+				label=_(
+					"The basic configuration applies to every selected target. Copying transfers the complete "
+					"local Windows configuration only to selected Linux connections. Existing target "
+					"configuration is backed up first. Windows-specific paths and directly executed scripts "
+					"may need adjustment on Linux. With lazy.nvim, the installed Access Link copy must be "
+					"listed explicitly as a local plugin. Review the local configuration for secrets before "
+					"copying it."
+				),
+			)
+			configuration_note.Wrap(620)
+			outer_sizer.Add(configuration_note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
 		def on_select_all(_event):
 			checked = select_all.IsChecked()
@@ -1007,13 +1034,28 @@ class NvdaUiManager:
 			12,
 		)
 		dialog.SetSizerAndFit(outer_sizer)
-		dialog.SetMinSize((680, 440 if not remove else 360))
+		dialog.SetMinSize((720, 500 if not remove else 360))
 		select_all.SetFocus()
 		try:
 			while dialog.ShowModal() == wx.ID_OK:
 				selected = [targets[index] for index in connection_list.GetCheckedItems()]
 				if selected:
-					return selected if remove else (selected, starter_config.IsChecked())
+					if remove:
+						return selected
+					configuration_mode = configuration_modes[configuration_choice.GetSelection()]
+					if configuration_mode == CONFIGURATION_COPY_LOCAL and not any(
+						not isinstance(target, ConnectionTarget) or target.kind != LOCAL_WINDOWS_TCP
+						for target in selected
+					):
+						wx.MessageBox(
+							_("Select at least one saved Linux connection to copy the local configuration."),
+							_("No Linux connection selected"),
+							wx.OK | wx.ICON_WARNING,
+							dialog,
+						)
+						select_all.SetFocus()
+						continue
+					return selected, configuration_mode
 				wx.MessageBox(
 					_("Select at least one target to remove components from.")
 					if remove
@@ -1037,7 +1079,7 @@ class NvdaUiManager:
 		selection = self._chooseInstallProfiles()
 		if selection is None:
 			return
-		targets, install_starter_config = selection
+		targets, configuration_mode = selection
 		jobs = []
 		immediate_results = []
 		for profile in targets:
@@ -1068,7 +1110,7 @@ class NvdaUiManager:
 				package,
 				immediate_results,
 				local_plugin,
-				install_starter_config,
+				configuration_mode,
 				starter_config,
 			),
 			daemon=True,
@@ -1080,23 +1122,60 @@ class NvdaUiManager:
 		package,
 		initial_results=None,
 		local_plugin="",
-		install_starter_config=False,
+		configuration_mode=CONFIGURATION_UNCHANGED,
 		starter_config="",
 	):
 		results = list(initial_results or [])
 		installer = SshUserInstaller()
 		local_installer = LocalPluginInstaller()
-		package_path = __import__("pathlib").Path(package)
+		package_path = pathlib.Path(package)
 		total = len(jobs) + len(results)
 		completed = len(results)
+		imported_config = b""
+		if configuration_mode == CONFIGURATION_COPY_LOCAL:
+			try:
+				archive = LocalConfigArchiveBuilder().build(default_local_config_directory())
+				diagnostics = archive.diagnostics
+			except (OSError, ValueError) as error:
+				archive = None
+				diagnostics = str(error)
+			if archive is None or not archive.success:
+				failure = InstallResult(
+					False,
+					_("The local Windows Neovim configuration could not be prepared"),
+					diagnostics,
+				)
+				for profile, _password in jobs:
+					results.append((profile, failure))
+					self._recordDiagnostic(
+						"componentInstall",
+						targetId=profile.identifier,
+						targetKind=(profile.kind if isinstance(profile, ConnectionTarget) else "remoteSsh"),
+						success=False,
+						message=failure.message,
+						diagnostics=failure.diagnostics,
+						configurationInstalled=False,
+						configurationMode=configuration_mode,
+						configurationBackups=0,
+					)
+					completed += 1
+					queueHandler.queueFunction(
+						queueHandler.eventQueue,
+						self._reportServerInstallProgress,
+						profile,
+						failure,
+						completed,
+						total,
+					)
+				queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
+				return
+			imported_config = archive.payload
 		for profile, password in jobs:
 			try:
 				if isinstance(profile, ConnectionTarget) and profile.kind == LOCAL_WINDOWS_TCP:
-					result = local_installer.install(__import__("pathlib").Path(local_plugin))
-					if result.success and install_starter_config:
-						configuration = StarterConfigInstaller().install(
-							__import__("pathlib").Path(starter_config)
-						)
+					result = local_installer.install(pathlib.Path(local_plugin))
+					if result.success and configuration_mode == CONFIGURATION_STARTER:
+						configuration = StarterConfigInstaller().install(pathlib.Path(starter_config))
 						if configuration.success:
 							result = InstallResult(
 								True,
@@ -1104,6 +1183,7 @@ class NvdaUiManager:
 								"\n".join(filter(None, (result.diagnostics, configuration.diagnostics))),
 								configuration.configuration_path,
 								configuration.backup_paths,
+								CONFIGURATION_STARTER,
 							)
 						else:
 							# Translators: A requested basic init.lua could not be installed safely.
@@ -1121,7 +1201,8 @@ class NvdaUiManager:
 						profile.identity_file,
 						password,
 						self._askpassPath(),
-						install_starter_config,
+						configuration_mode,
+						imported_config,
 					)
 			except Exception as error:
 				result = InstallResult(
@@ -1138,6 +1219,7 @@ class NvdaUiManager:
 				message=result.message,
 				diagnostics=result.diagnostics,
 				configurationInstalled=bool(result.configuration_path),
+				configurationMode=result.configuration_kind,
 				configurationBackups=len(result.configuration_backups),
 			)
 			completed += 1
@@ -1187,13 +1269,22 @@ class NvdaUiManager:
 			if not result.configuration_path:
 				continue
 			name = NvdaUiManager._installTargetSummary(profile)[0]
-			# Translators: Reports where the optional basic Neovim configuration was installed.
-			lines.append(
-				_("  {name} basic configuration: {path}").format(
-					name=name,
-					path=result.configuration_path,
+			if result.configuration_kind == CONFIGURATION_COPY_LOCAL:
+				# Translators: Reports where the local Windows Neovim configuration was copied.
+				lines.append(
+					_("  {name} imported configuration: {path}").format(
+						name=name,
+						path=result.configuration_path,
+					)
 				)
-			)
+			else:
+				# Translators: Reports where the optional basic Neovim configuration was installed.
+				lines.append(
+					_("  {name} basic configuration: {path}").format(
+						name=name,
+						path=result.configuration_path,
+					)
+				)
 			for backup in result.configuration_backups:
 				# Translators: Reports a backup created before replacing an existing Neovim configuration.
 				lines.append(_("  Existing configuration backup: {path}").format(path=backup))

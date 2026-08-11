@@ -28,11 +28,16 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   top-level `Neovim Access Link` menu opens settings, component management,
   and four localized installed HTML documents.
 - Component installation can install a small basic configuration with Lazy
-  and Oil after an explicit, initially clear choice. Existing regular
+  and Oil through a choice that remains unchanged by default. Existing regular
   `init.lua` and `init.vim` files are first moved to unique backup paths; the
-  results dialog names the installation and backups. Unusual file types remain
-  unchanged. Automated tests cover local and rootless Linux package paths,
-  including rollback; practical Windows and SSH acceptance remains pending.
+  results dialog names the installation and backups. Alternatively, it copies
+  the complete local Windows configuration to selected Linux connections after
+  bounding and validating links, file types, paths, and sizes. An existing
+  Linux configuration is atomically backed up as a complete directory. The
+  add-on does not rewrite Windows-specific content; Lazy must explicitly load
+  the installed Access Link copy as a local plugin. Automated tests cover
+  archiving, local and rootless Linux package paths, SSH transfer, and rollback;
+  practical Windows and SSH acceptance remains pending.
 - The manifest provides the project URL and default help file. Development
   builds use the matching German or English unreleased changelog section;
   releases use their version section.
