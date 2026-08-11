@@ -58,29 +58,6 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertNotIn("pluginManagerKind", bridge.full_state())
 		self.assertNotIn("pluginManagerOperation", bridge.full_state())
 
-	def test_plugin_manager_details_transition_is_validated_before_publication(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge._active_numbered_choice = None
-		bridge.transport = transport
-		payload = {
-			"pluginManagerKind": "lazyNvim",
-			"buftype": "nofile",
-			"filetype": "lazy",
-			"pluginManagerDetailsExpanded": True,
-		}
-		bridge._on_nvim_event("pluginManagerDetailsChanged", payload)
-		self.assertEqual("pluginManagerDetailsChanged", transport.events[-1]["type"])
-		self.assertIs(bridge.full_state()["pluginManagerDetailsExpanded"], True)
-		self.assertNotIn("pluginManagerKind", bridge.full_state())
-		bridge._on_nvim_event(
-			"pluginManagerDetailsChanged",
-			{**payload, "pluginManagerDetailsExpanded": "true"},
-		)
-		self.assertEqual(1, len(transport.events))
-
 	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -697,7 +674,12 @@ class NvimBridgeTests(unittest.TestCase):
 				bridge.nvim.notify(
 					"nvim_exec_lua",
 					"vim.cmd('enew'); vim.bo.buftype='nofile'; vim.bo.filetype='lazy'; "
-					"vim.api.nvim_buf_set_lines(0,0,-1,true,{'lazy.nvim'}); "
+					"vim.api.nvim_buf_set_lines(0,0,-1,true,"
+					"{'lazy.nvim','','  Not Loaded (1)','    ○ access-link-test '}); "
+					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
+					"vim.api.nvim_buf_set_extmark(0,ns,3,2,"
+					"{end_col=8,hl_group='LazyLocal'}); "
+					"vim.api.nvim_win_set_cursor(0,{4,0}); "
 					"require('nvim_nvda')._test_emit('contextChanged')",
 					[],
 				)
@@ -707,6 +689,7 @@ class NvimBridgeTests(unittest.TestCase):
 						event["type"] == "contextChanged"
 						and event["payload"].get("buftype") == "nofile"
 						and event["payload"].get("filetype") == "lazy"
+						and event["payload"].get("pluginManagerEntryExpanded") is False
 						for event in events[start:]
 					),
 				)
@@ -715,17 +698,17 @@ class NvimBridgeTests(unittest.TestCase):
 				bridge.nvim.notify(
 					"nvim_exec_lua",
 					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
-					"vim.api.nvim_buf_set_lines(0,-1,-1,true,{'      dir /tmp/example'}); "
+					"vim.api.nvim_buf_set_lines(0,-1,-1,true,{'        dir /tmp/example'}); "
 					"local row=vim.api.nvim_buf_line_count(0)-1; "
-					"vim.api.nvim_buf_set_extmark(0,ns,row,6,{end_col=9,hl_group='LazyProp'}); "
-					"vim.api.nvim_exec_autocmds('TextChanged',{buffer=0,modeline=false})",
+					"vim.api.nvim_buf_set_extmark(0,ns,row,2,{end_col=11,hl_group='LazyProp'}); "
+					"require('nvim_nvda')._test_emit('textChanged')",
 					[],
 				)
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "pluginManagerDetailsChanged"
-						and event["payload"].get("pluginManagerDetailsExpanded") is True
+						event["type"] == "textChanged"
+						and event["payload"].get("pluginManagerEntryExpanded") is True
 						for event in events[start:]
 					),
 				)
@@ -734,15 +717,18 @@ class NvimBridgeTests(unittest.TestCase):
 					"nvim_exec_lua",
 					"vim.api.nvim_buf_clear_namespace(0,"
 					"vim.api.nvim_create_namespace('access-link-lazy-detail-test'),0,-1); "
+					"local ns=vim.api.nvim_create_namespace('access-link-lazy-detail-test'); "
+					"vim.api.nvim_buf_set_extmark(0,ns,3,2,"
+					"{end_col=8,hl_group='LazyLocal'}); "
 					"vim.api.nvim_buf_set_lines(0,-2,-1,true,{}); "
-					"vim.api.nvim_exec_autocmds('TextChanged',{buffer=0,modeline=false})",
+					"require('nvim_nvda')._test_emit('textChanged')",
 					[],
 				)
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "pluginManagerDetailsChanged"
-						and event["payload"].get("pluginManagerDetailsExpanded") is False
+						event["type"] == "textChanged"
+						and event["payload"].get("pluginManagerEntryExpanded") is False
 						for event in events[start:]
 					),
 				)

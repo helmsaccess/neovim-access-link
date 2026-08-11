@@ -51,7 +51,6 @@ REAL_BRIDGE_TESTS = (
 )
 MOCK_BRIDGE_TESTS = (
     "test_active_parameter_transition_is_validated_before_publication",
-    "test_plugin_manager_details_transition_is_validated_before_publication",
     "test_plugin_manager_lifecycle_is_validated_before_publication",
     "test_bridge_accepts_only_the_exact_active_numbered_choice",
     "test_braille_exploration_uses_separate_fixed_capability_gated_entry_points",

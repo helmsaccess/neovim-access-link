@@ -11,10 +11,11 @@ test-build entries through August 5, 2026.
   regardless of its initial blank line or width-dependent wrapping. Line
   navigation omits visual-only edge and padding spaces. Only documented
   lifecycle events produce neutral start/end reports through speech and
-  Braille. Detail blocks identified unambiguously through the public buffer
-  and `LazyProp` extmarks report `expanded` or `collapsed` when opened or
-  closed; unclear rendering remains silent. Synchronization collapses child operations without guessing
-  progress, result, or success from Lazy's rendering.
+  Braille. Plugin rows identified unambiguously through public icon highlights
+  report NVDA's localized `collapsed` or `expanded` state when entered or
+  toggled; Braille shows the corresponding tree-view markers `+` and `-`.
+  Unclear rendering remains silent. Synchronization collapses child operations
+  without guessing progress, result, or success from Lazy's rendering.
 - Adds four guided lazy.nvim practical tests for window operation, install,
   update, and synchronization. Isolated local Git fixtures and pinned headless
   contract tests verify actual end states without changing user configuration

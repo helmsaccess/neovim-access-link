@@ -55,13 +55,14 @@ Separate matrices exercise the following on both 0.10.1 and 0.12.3:
   `markdownlint-cli2` as real linter processes.
 
 The public contract of `lazy.nvim` 11.17.5 was checked directly. Automated
-tests cover the exact `nofile`/`lazy` buffer values, the detail marker formed by
-`dir` plus the documented `LazyProp` extmark, and documented lifecycle events.
+tests cover the exact `nofile`/`lazy` buffer values, documented icon highlights
+for the current plugin row, the detail marker formed by `dir` plus the
+documented `LazyProp` extmark, and documented lifecycle events.
 Pinned headless tests also run the public install,
 update, and sync commands against isolated local Git repositories and verify
 their actual end states. Access Link itself still does not infer success from
-Lazy's virtual progress, rendered plugin rows, or error symbols. Practical
-Windows/NVDA acceptance of the detail state remains open.
+Lazy's virtual progress or error symbols. Practical Windows/NVDA acceptance of
+the row state remains open.
 
 The Windows job checks the guided-test runner with Neovim 0.12.3, but does not
 perform practical NVDA acceptance.

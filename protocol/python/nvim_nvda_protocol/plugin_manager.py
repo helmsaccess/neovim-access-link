@@ -21,28 +21,12 @@ def valid_plugin_manager_operation(payload: Any) -> bool:
 	)
 
 
-def valid_plugin_manager_details_changed(payload: Any) -> bool:
-	"""Accept one state-only Lazy detail expansion transition."""
-	return (
-		isinstance(payload, Mapping)
-		and payload.get("pluginManagerKind") == "lazyNvim"
-		and payload.get("buftype") == "nofile"
-		and payload.get("filetype") == "lazy"
-		and isinstance(payload.get("pluginManagerDetailsExpanded"), bool)
-	)
-
-
 def plugin_manager_operation_state(payload: Mapping[str, Any]) -> dict[str, Any]:
 	"""Remove one-shot lifecycle fields before updating canonical state."""
 	return {
 		key: value for key, value in payload.items()
 		if key not in {"pluginManagerKind", "pluginManagerOperation", "pluginManagerPhase"}
 	}
-
-
-def plugin_manager_details_state(payload: Mapping[str, Any]) -> dict[str, Any]:
-	"""Remove the one-shot manager discriminator while retaining expansion state."""
-	return {key: value for key, value in payload.items() if key != "pluginManagerKind"}
 
 
 def plugin_manager_public_state(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -61,6 +45,6 @@ def plugin_manager_public_state(payload: Mapping[str, Any]) -> dict[str, Any]:
 			and 0 < overview_bytes <= MAX_PLUGIN_MANAGER_OVERVIEW_BYTES
 		):
 			state.pop("pluginManagerOverview", None)
-	if not (is_lazy and isinstance(state.get("pluginManagerDetailsExpanded"), bool)):
-		state.pop("pluginManagerDetailsExpanded", None)
+	if not (is_lazy and isinstance(state.get("pluginManagerEntryExpanded"), bool)):
+		state.pop("pluginManagerEntryExpanded", None)
 	return state

@@ -71,11 +71,13 @@ Transportinstanz. Unbekannte optionale Payloadfelder dürfen ignoriert werden.
 UTF-8-Byte aus dem ersten zusammenhängenden Textblock des Puffers. Lokaler und
 SSH-Client entfernen das optionale Feld bei falscher Kennung, falschem Typ,
 leerem oder übergroßem Inhalt, bevor der Zustand NVDA erreicht.
-`pluginManagerDetailsExpanded` ist unter derselben exakten Bufferkennung ein
-Boolean. Das Plugin setzt ihn nur, wenn genau eine `dir`-Eigenschaft mit Lazys
-dokumentierter `LazyProp`-Extmark im begrenzten Puffer gefunden wird. Zu große
-oder mehrdeutige Ansichten liefern keinen Zustand. Lokaler Client, SSH-Client
-und Bridge entfernen das Feld bei falscher Kennung oder falschem Typ.
+`pluginManagerEntryExpanded` ist unter derselben exakten Bufferkennung ein
+Boolean. Das Plugin setzt ihn nur für die aktuelle, anhand einer dokumentierten
+Lazy-Icon-Hervorhebung eindeutig erkannte Pluginzeile. Eine unmittelbar folgende
+`dir`-Eigenschaft mit genau einer dokumentierten `LazyProp`-Extmark bedeutet
+`true`; ohne diese Eigenschaft ist die erkannte Zeile eingeklappt. Andere oder
+mehrdeutige Zeilen liefern keinen Zustand. Lokaler Client, SSH-Client und Bridge
+entfernen das Feld bei falscher Kennung oder falschem Typ.
 
 Dateimanagerzustand enthält nur begrenzte semantische Werte. Eintragsnamen sind
 auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte sowie Typ- und
@@ -140,12 +142,11 @@ nicht aus Meldungstext oder Renderzustand rekonstruiert.
 
 Die vorhandenen kanonischen Felder `buftype` und `filetype` kennzeichnen das
 Lazy-Fenster nur bei den exakten Werten `nofile` und `lazy`. Zusätzlicher
-Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich. Das
-flüchtige Ereignis `pluginManagerDetailsChanged` enthält zusätzlich zur
-exakten Bufferkennung ausschließlich `pluginManagerKind=lazyNvim` und den
-Boolean `pluginManagerDetailsExpanded`. Es entsteht nur bei einem beobachteten
-Wechsel zwischen eindeutig erkannten Zuständen; die Managerkennung wird nicht
-in den kanonischen Zustand übernommen.
+Managerzustand oder gerenderter UI-Text ist dafür nicht erforderlich. Der
+optionale kanonische Boolean `pluginManagerEntryExpanded` beschreibt nur die
+aktuelle erkannte Pluginzeile. Gewöhnliche Neovim-Zustandsereignisse übertragen
+Änderungen; ein separates Lazy-Ereignis oder eine private Lazy-API ist dafür
+nicht erforderlich.
 
 Das flüchtige Ereignis `pluginManagerOperation` enthält
 `pluginManagerKind=lazyNvim`, genau eine feste Operation `install`, `update`,
@@ -284,7 +285,7 @@ Wichtige Typen sind `fullState`, `modeChanged`, `characterMoved`, `wordMoved`,
 `diagnosticMoved`, `foldChanged`,
 `commandLineChanged`, `messageReceived`, `errorReceived`,
 `fileManagerEntryChanged`, `fileManagerActionResult`,
-`pluginManagerOperation`, `pluginManagerDetailsChanged`,
+`pluginManagerOperation`,
 `leaveTerminalInputResult`, `exploreTextResult`,
 `brailleExploreLineResult` und
 `numberedChoiceOpened`, `numberedChoiceClosed`,

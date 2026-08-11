@@ -147,6 +147,52 @@ def _expand_tabs(text: str, tabstop: int) -> tuple[str, list[int]]:
     return "".join(output), offsets
 
 
+def _plugin_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
+    if state.get("buftype") != "nofile" or state.get("filetype") != "lazy":
+        return None
+    entry_expanded = state.get("pluginManagerEntryExpanded")
+    if not isinstance(entry_expanded, bool):
+        return None
+    line = state.get("lineText")
+    if not isinstance(line, str):
+        return None
+    # Lazy pads UI rows with real spaces. Retain meaningful indentation and
+    # icon cells, but put NVDA's tree-view state marker directly after the
+    # visible row and keep that status cell non-routable.
+    line = line.rstrip()
+    tabstop = state.get("tabstop", 8)
+    if not isinstance(tabstop, int) or not 1 <= tabstop <= 64:
+        tabstop = 8
+    expanded, offsets = _expand_tabs(line, tabstop)
+    marker = "-" if entry_expanded else "+"
+    text = f"{expanded} {marker}" if expanded else marker
+
+    cursor_data = state.get("cursor")
+    byte_column = cursor_data.get("byteColumn", 0) if isinstance(cursor_data, dict) else 0
+    try:
+        character_column = cursor_text(line, byte_column).character_column
+    except (InvalidByteColumn, TypeError):
+        character_column = 0
+    character_column = max(0, min(character_column, len(line)))
+    cursor = offsets[character_column]
+    if state.get("brailleCursorVisible") is False:
+        cursor = None
+
+    routing: list[int | None] = []
+    byte_offset = 0
+    column = 0
+    for character in line:
+        width = tabstop - (column % tabstop) if character == "\t" else 1
+        routing.extend([byte_offset] * width)
+        column += width
+        byte_offset += len(character.encode("utf-8"))
+    if expanded:
+        routing.extend((None, None))
+    else:
+        routing.append(None)
+    return BraillePlan(text, cursor, None, None, tuple(offsets), tuple(routing))
+
+
 def plan_braille(
     state: dict[str, Any],
     *,
@@ -156,6 +202,9 @@ def plan_braille(
     file_manager_plan = _file_manager_plan(state, translate)
     if file_manager_plan is not None:
         return file_manager_plan
+    plugin_manager_plan = _plugin_manager_plan(state)
+    if plugin_manager_plan is not None:
+        return plugin_manager_plan
     line = state.get("lineText", "")
     if not isinstance(line, str):
         line = ""

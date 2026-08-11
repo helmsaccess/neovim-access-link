@@ -170,7 +170,7 @@ function M.snapshot(reason)
     selection = nil,
     fileManager = file_manager.current(),
     pluginManagerOverview = plugin_manager.overview(buf),
-    pluginManagerDetailsExpanded = plugin_manager.details_expanded(buf),
+    pluginManagerEntryExpanded = plugin_manager.entry_expanded(buf, cursor[1]),
   }
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
   result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])

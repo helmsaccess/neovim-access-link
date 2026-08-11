@@ -58,15 +58,15 @@ Getrennte Matrizen prüfen auf 0.10.1 und 0.12.3:
   `markdownlint-cli2` als reale Linterprozesse.
 
 Der öffentliche Vertrag von `lazy.nvim` 11.17.5 wurde direkt geprüft.
-Automatisierte Tests decken die exakten `nofile`-/`lazy`-Pufferwerte, den
-Detailmarker aus `dir` und dokumentierter `LazyProp`-Extmark sowie die
-dokumentierten Lebenszyklusereignisse ab. Gepinnte
+Automatisierte Tests decken die exakten `nofile`-/`lazy`-Pufferwerte,
+dokumentierte Icon-Hervorhebungen der aktuellen Pluginzeile, den Detailmarker
+aus `dir` und dokumentierter `LazyProp`-Extmark sowie die dokumentierten
+Lebenszyklusereignisse ab. Gepinnte
 Headless-Tests führen außerdem die öffentlichen Befehle für Installation,
 Aktualisierung und Synchronisierung mit isolierten lokalen Git-Repositories
 aus und prüfen deren tatsächlichen Endzustand. Access Link selbst leitet aus
-Lazys virtuellem Fortschritt, gerenderten Pluginzeilen oder Fehlersymbolen
-weiterhin keinen Erfolg ab. Eine praktische Windows-/NVDA-Abnahme des
-Detailzustands steht aus.
+Lazys virtuellem Fortschritt oder Fehlersymbolen weiterhin keinen Erfolg ab.
+Eine praktische Windows-/NVDA-Abnahme des Zeilenzustands steht aus.
 
 Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3, führt
 aber keine praktische NVDA-Abnahme aus.

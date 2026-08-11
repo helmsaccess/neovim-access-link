@@ -174,7 +174,7 @@
   "plan.lazy.description": "Prüft das lazy.nvim-Fenster sowie Installation, Aktualisierung und Synchronisierung mit vollständig isolierten lokalen Test-Plugins.",
   "plan.lazy.window.title": "lazy.nvim-Fenster lesen und bedienen",
   "plan.lazy.window.purpose": "Prüft, ob Access Link lazy.nvim als Plugin-Manager erkennt und seine zeilenorientierte Oberfläche verständlich zugänglich macht.",
-  "plan.lazy.window.action": "1. F3: lazy.nvim öffnen. Mit j und k mehrere Pluginzeilen lesen.\n2. Enter: Details der aktuellen Zeile öffnen; erwartet wird ausgeklappt über Sprache und Braille. Erneut Enter: Details schließen; erwartet wird eingeklappt.\n3. ?: lazy.nvim-Hilfe öffnen; erneut ?: zur Pluginliste zurückkehren.\n4. q: lazy.nvim schließen. Danach F10: Test ohne Speichern beenden.",
+  "plan.lazy.window.action": "1. F3: lazy.nvim öffnen. Die vollständige Bedienleiste muss gesprochen werden. Mit j und k mehrere Pluginzeilen lesen; Sprache meldet eingeklappt, Braille zeigt +.\n2. Enter: Details der aktuellen Zeile öffnen; Sprache meldet ausgeklappt, Braille zeigt -. Erneut Enter: Details schließen; Sprache meldet eingeklappt, Braille zeigt +.\n3. ?: lazy.nvim-Hilfe öffnen; erneut ?: zur Pluginliste zurückkehren.\n4. q: lazy.nvim schließen. Danach F10: Test ohne Speichern beenden.",
   "plan.lazy.window.expected": "NVDA liest vollständige, nützliche Zeilen mit Pluginname und Status. Details und Hilfe sind verständlich navigierbar; Öffnen und Schließen erzeugen keine veralteten, doppelten oder fremden Datei- und Fokusmeldungen.",
   "plan.lazy.install.title": "Ein Test-Plugin installieren",
   "plan.lazy.install.purpose": "Prüft die verständliche Rückmeldung für eine echte lazy.nvim-Installation aus einem isolierten lokalen Git-Repository.",

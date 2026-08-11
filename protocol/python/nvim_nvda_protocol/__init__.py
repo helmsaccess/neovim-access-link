@@ -64,10 +64,8 @@ from .plugin_manager import (
     MAX_PLUGIN_MANAGER_OVERVIEW_BYTES,
     PLUGIN_MANAGER_OPERATIONS,
     PLUGIN_MANAGER_PHASES,
-    plugin_manager_details_state,
     plugin_manager_operation_state,
     plugin_manager_public_state,
-    valid_plugin_manager_details_changed,
     valid_plugin_manager_operation,
 )
 from .local_client import LocalTcpClient
@@ -106,7 +104,6 @@ __all__ = [
     "PLUGIN_MANAGER_OPERATIONS",
     "PLUGIN_MANAGER_PHASES",
     "plugin_manager_operation_state",
-    "plugin_manager_details_state",
     "plugin_manager_public_state",
     "LocalTcpClient",
     "LINE_ACTIONS",
@@ -126,7 +123,6 @@ __all__ = [
     "utf16_column",
     "terminal_control_result_state",
     "valid_clipboard_text",
-    "valid_plugin_manager_details_changed",
     "valid_copy_text_request",
     "valid_callable_context_result",
     "valid_context_request",

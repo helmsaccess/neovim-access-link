@@ -155,13 +155,15 @@ isolated fixture configuration. Fixture repositories disable line-ending
 conversion and irrelevant Git output. Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 For a real Lazy buffer the plugin also carries the first contiguous text block,
-bounded to 2,048 UTF-8 bytes. Access Link therefore speaks the complete command
-bar despite the initial layout-only blank line and width-dependent wrapping;
-line navigation suppresses visual-only edge and padding spaces. An open detail
-block is detected only from the exact buffer identity, its `dir` property, and
-the documented `LazyProp` extmark. Only an unambiguous transition produces the
-localized `expanded` or `collapsed` report through speech and Braille; Access
-Link remains silent for unknown or ambiguous rendering.
+bounded to 2,048 UTF-8 bytes. Rendering makes it available only after the
+initial context transition; Access Link then speaks it exactly once as the
+complete command bar despite the layout-only blank line and width-dependent
+wrapping. Line navigation suppresses visual-only edge and padding spaces. The
+current plugin row is recognized only from Lazy's documented icon highlights.
+An immediately following `dir` property with the documented `LazyProp` extmark
+marks it as expanded. Speech uses NVDA's localized `collapsed` and `expanded`
+states; Braille appends `+` or `-` as NVDA tree views do. Access Link remains
+silent for unknown or ambiguous rendering.
 
 Practical confirmation includes:
 

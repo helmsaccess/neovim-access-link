@@ -4,9 +4,7 @@ import unittest
 
 from nvim_nvda_protocol import (
 	MAX_PLUGIN_MANAGER_OVERVIEW_BYTES,
-	plugin_manager_details_state,
 	plugin_manager_public_state,
-	valid_plugin_manager_details_changed,
 	valid_plugin_manager_operation,
 )
 
@@ -46,32 +44,25 @@ class PluginManagerValidationTests(unittest.TestCase):
 				cleaned = plugin_manager_public_state({**payload, **replacement})
 				self.assertNotIn("pluginManagerOverview", cleaned)
 
-	def test_details_state_is_boolean_and_tied_to_public_lazy_identity(self) -> None:
+	def test_current_entry_state_is_boolean_and_tied_to_public_lazy_identity(self) -> None:
 		payload = {
-			"pluginManagerKind": "lazyNvim",
 			"buftype": "nofile",
 			"filetype": "lazy",
-			"pluginManagerDetailsExpanded": True,
+			"pluginManagerEntryExpanded": False,
 		}
-		self.assertTrue(valid_plugin_manager_details_changed(payload))
-		cleaned = plugin_manager_details_state(payload)
-		self.assertNotIn("pluginManagerKind", cleaned)
-		self.assertIs(cleaned["pluginManagerDetailsExpanded"], True)
+		self.assertIs(
+			plugin_manager_public_state(payload)["pluginManagerEntryExpanded"],
+			False,
+		)
 		for replacement in (
-			{"pluginManagerKind": "other"},
 			{"buftype": ""},
 			{"filetype": "lazy-lookalike"},
-			{"pluginManagerDetailsExpanded": 1},
-			{"pluginManagerDetailsExpanded": "true"},
+			{"pluginManagerEntryExpanded": 0},
+			{"pluginManagerEntryExpanded": "false"},
 		):
 			with self.subTest(replacement=replacement):
-				candidate = {**payload, **replacement}
-				self.assertFalse(valid_plugin_manager_details_changed(candidate))
-				cleaned = plugin_manager_public_state(candidate)
-				if not isinstance(candidate["pluginManagerDetailsExpanded"], bool) or (
-					candidate.get("buftype") != "nofile" or candidate.get("filetype") != "lazy"
-				):
-					self.assertNotIn("pluginManagerDetailsExpanded", cleaned)
+				cleaned = plugin_manager_public_state({**payload, **replacement})
+				self.assertNotIn("pluginManagerEntryExpanded", cleaned)
 
 
 if __name__ == "__main__":

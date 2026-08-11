@@ -48,11 +48,12 @@ plugin manager` and speaks the complete command bar even when Lazy wraps it
 across several lines. Lazy's first buffer line is empty for layout; when the
 window opens, Access Link reads the following command bar instead. Ordinary
 Neovim navigation reads the window's real text lines without announcing
-visual-only edge or padding spaces. `j` and `k` move by line as usual, `Enter`
-opens details for the current plugin and closes them when pressed again. When
-Lazy identifies that state unambiguously in its buffer, Access Link reports
-`expanded` or `collapsed` through speech and Braille. `?` toggles Lazy's help,
-and `q` closes the window.
+visual-only edge or padding spaces. `j` and `k` move by line as usual. On an
+unambiguously recognized plugin row, Access Link also reports `collapsed` or
+`expanded`. As in NVDA tree views, Braille shows `+` or `-` after that row.
+`Enter` opens the current plugin's details and closes them when pressed again;
+Access Link reports the new state. `?` toggles Lazy's help, and `q` closes the
+window.
 
 Use `:Lazy update` for a complete update. `:Lazy sync` installs missing
 plugins, removes plugins which are no longer needed, and updates existing
@@ -60,8 +61,8 @@ plugins. Access Link reports the start and end of these operations through
 speech and Braille. The completion report deliberately does not claim success:
 check Lazy's window afterwards for errors and the actual result.
 
-Apart from the open or closed details state, Access Link does not semantically
-interpret Lazy's drawn icons and virtual progress, plugin rows, counts, or
+Apart from recognizing a plugin row and its details state, Access Link does not
+semantically interpret Lazy's drawn icons and virtual progress, counts, or
 error text. It also replaces no Lazy key and confirms no deletion. When a view
 remains unclear, use Lazy's documented
 commands and read the real buffer lines; Access Link falls back to that normal

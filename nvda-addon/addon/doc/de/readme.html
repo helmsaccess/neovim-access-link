@@ -1888,12 +1888,14 @@ erste Pufferzeile ist aus Layoutgründen leer; Access Link liest beim
 Öffnen stattdessen die folgende Bedienleiste. Die normale
 Neovim-Navigation liest die echten Textzeilen des Fensters, ohne rein
 visuelle Rand- und Auffüll-Leerzeichen anzusagen. <code>j</code> und
-<code>k</code> wechseln wie gewohnt die Zeile, <code>Eingabetaste</code>
-öffnet Details zum aktuellen Plugin und schließt sie beim nächsten
-Drücken wieder. Wenn Lazy diesen Zustand eindeutig im Puffer
-kennzeichnet, meldet Access Link <code>ausgeklappt</code> oder
-<code>eingeklappt</code> über Sprache und Braille. <code>?</code>
-schaltet Lazys Hilfe um und <code>q</code> schließt das Fenster.</p>
+<code>k</code> wechseln wie gewohnt die Zeile. Auf eindeutig erkannten
+Pluginzeilen meldet Access Link zusätzlich <code>eingeklappt</code> oder
+<code>ausgeklappt</code>. Auf der Braillezeile steht dafür wie bei NVDAs
+Baumansichten <code>+</code> beziehungsweise <code>-</code> hinter der
+Pluginzeile. <code>Eingabetaste</code> öffnet die Details des aktuellen
+Plugins und schließt sie beim nächsten Drücken wieder; Access Link
+meldet den neuen Zustand. <code>?</code> schaltet Lazys Hilfe um und
+<code>q</code> schließt das Fenster.</p>
 <p>Für eine vollständige Aktualisierung ist <code>:Lazy update</code>
 der direkte Weg. <code>:Lazy sync</code> installiert fehlende Plugins,
 entfernt nicht mehr benötigte Plugins und aktualisiert vorhandene
@@ -1901,13 +1903,13 @@ Plugins. Access Link meldet Beginn und Ende dieser Vorgänge über Sprache
 und Braille. Die Abschlussmeldung behauptet bewusst keinen Erfolg:
 Prüfen Sie danach Lazys Fenster auf Fehler und das tatsächliche
 Ergebnis.</p>
-<p>Abgesehen vom geöffneten oder geschlossenen Detailzustand wertet
-Access Link weder Lazys gezeichnete Symbole und virtuellen Fortschritt
-noch Pluginzeilen, Zähler oder Fehlertexte semantisch aus. Es ersetzt
-auch keine Lazy-Taste und bestätigt keine Löschaktion. Bleibt eine
-Ansicht unverständlich, verwenden Sie Lazys dokumentierte Befehle und
-lesen Sie die echten Pufferzeilen; Access Link fällt auf diese normale
-Bufferunterstützung zurück.</p>
+<p>Abgesehen von der Erkennung einer Pluginzeile und ihres
+Detailzustands wertet Access Link weder Lazys gezeichnete Symbole und
+virtuellen Fortschritt noch Zähler oder Fehlertexte semantisch aus. Es
+ersetzt auch keine Lazy-Taste und bestätigt keine Löschaktion. Bleibt
+eine Ansicht unverständlich, verwenden Sie Lazys dokumentierte Befehle
+und lesen Sie die echten Pufferzeilen; Access Link fällt auf diese
+normale Bufferunterstützung zurück.</p>
 </section>
 </section>
 <section id="docs__de__manual__language-toolsmd__empfohlener-einsteigerweg-für-python" class="level3">
