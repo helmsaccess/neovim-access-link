@@ -6,11 +6,12 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-- Adds robust baseline support for `lazy.nvim`: the real Lazy buffer receives
-  an unambiguous context name, while only documented lifecycle events produce
-  neutral start/end reports through speech and Braille. Synchronization
-  collapses child operations without guessing progress, result, or success
-  from Lazy's rendering.
+- Adds robust baseline support for `lazy.nvim`: Access Link gives the real
+  Lazy buffer an unambiguous context name and speaks the current command row
+  when it opens. Speech omits visual-only trailing spaces. Only documented
+  lifecycle events produce neutral start/end reports through speech and
+  Braille. Synchronization collapses child operations without guessing
+  progress, result, or success from Lazy's rendering.
 - Adds four guided lazy.nvim practical tests for window operation, install,
   update, and synchronization. Isolated local Git fixtures and pinned headless
   contract tests verify actual end states without changing user configuration

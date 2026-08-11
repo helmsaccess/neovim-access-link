@@ -44,8 +44,9 @@ The result `2` confirms that the command is available.
 ### Update plugins with lazy.nvim
 
 Open Lazy with `:Lazy`. Access Link identifies the buffer as the `lazy.nvim
-plugin manager`; ordinary Neovim navigation reads the window's real text
-lines. `j` and `k` move by line as usual, `Enter` opens details for the current
+plugin manager` and speaks the current command row. Ordinary Neovim navigation
+reads the window's real text lines without announcing visual-only trailing
+spaces. `j` and `k` move by line as usual, `Enter` opens details for the current
 plugin, `?` toggles Lazy's help, and `q` closes the window.
 
 Use `:Lazy update` for a complete update. `:Lazy sync` installs missing

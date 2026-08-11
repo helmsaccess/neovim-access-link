@@ -1810,11 +1810,12 @@ case for <code>lazy.nvim</code>.</p>
 <section id="docs__en__manual__language-toolsmd__update-plugins-with-lazynvim" class="level4">
 <h4>Update plugins with lazy.nvim</h4>
 <p>Open Lazy with <code>:Lazy</code>. Access Link identifies the buffer
-as the <code>lazy.nvim plugin manager</code>; ordinary Neovim navigation
-reads the window&#39;s real text lines. <code>j</code> and <code>k</code>
-move by line as usual, <code>Enter</code> opens details for the current
-plugin, <code>?</code> toggles Lazy&#39;s help, and <code>q</code> closes
-the window.</p>
+as the <code>lazy.nvim plugin manager</code> and speaks the current
+command row. Ordinary Neovim navigation reads the window&#39;s real text
+lines without announcing visual-only trailing spaces. <code>j</code> and
+<code>k</code> move by line as usual, <code>Enter</code> opens details
+for the current plugin, <code>?</code> toggles Lazy&#39;s help, and
+<code>q</code> closes the window.</p>
 <p>Use <code>:Lazy update</code> for a complete update.
 <code>:Lazy sync</code> installs missing plugins, removes plugins which
 are no longer needed, and updates existing plugins. Access Link reports

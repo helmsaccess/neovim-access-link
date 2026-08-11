@@ -558,14 +558,15 @@ class SpeechPlannerTests(unittest.TestCase):
         changed = planner.plan(event(
             "contextChanged", bufferId=2, windowId=10, tabpageId=20,
             bufferName="", buftype="nofile", filetype="lazy",
-            mode="normal", modeRaw="n",
+            mode="normal", modeRaw="n", line="  Sync (S) Update (U)  ",
         ))[0]
         focused = SpeechPlanner().plan(event(
             "focusContext", bufferName="", buftype="nofile", filetype="lazy",
-            mode="normal", modeRaw="n",
+            mode="normal", modeRaw="n", line="  Sync (S) Update (U)  ",
         ))[0]
-        self.assertEqual("lazy.nvim plugin manager, normal mode", changed.text)
-        self.assertEqual("lazy.nvim plugin manager, normal mode", focused.text)
+        expected = "lazy.nvim plugin manager, Sync (S) Update (U), normal mode"
+        self.assertEqual(expected, changed.text)
+        self.assertEqual(expected, focused.text)
         self.assertEqual(focused.text, focused.braille_message)
 
         for buftype, filetype in (("", "lazy"), ("nofile", "lazy-lookalike")):
@@ -575,6 +576,30 @@ class SpeechPlannerTests(unittest.TestCase):
                     mode="normal", modeRaw="n",
                 ))[0]
                 self.assertEqual("unnamed buffer, normal mode", ordinary.text)
+
+    def test_lazy_line_navigation_ignores_trailing_visual_padding(self) -> None:
+        planner = SpeechPlanner()
+        planner.plan(event(
+            "fullState", line="first", bufferId=2, windowId=10, tabpageId=20,
+            buftype="nofile", filetype="lazy", mode="normal", modeRaw="n",
+        ))
+        moved = planner.plan(event(
+            "lineChanged", line="  access-link-update-target   ", row=2,
+            byte_column=29, character=" ", word="", bufferId=2, windowId=10,
+            tabpageId=20, buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n",
+        ))[0]
+        self.assertEqual("  access-link-update-target", moved.text)
+        self.assertIsNone(moved.character_suffix)
+
+        ordinary = SpeechPlanner()
+        ordinary.plan(event("fullState", line="first", bufferId=3, windowId=11))
+        unchanged = ordinary.plan(event(
+            "lineChanged", line="source line ", row=2, byte_column=11,
+            character=" ", word="", bufferId=3, windowId=11,
+        ))[0]
+        self.assertEqual("source line ", unchanged.text)
+        self.assertEqual(" ", unchanged.character_suffix)
 
     def test_plugin_manager_lifecycle_is_neutral_and_brailled(self) -> None:
         planner = SpeechPlanner()

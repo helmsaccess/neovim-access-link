@@ -1384,6 +1384,9 @@ class SpeechPlanner:
                 parts.append(self._translate(label))
             elif plugin_manager_name is not None:
                 parts.append(plugin_manager_name)
+                line = self._line_for_speech(state).strip()
+                if line:
+                    parts.append(line)
             elif buftype == "terminal" and canonical not in {"terminal", "terminalNormal"}:
                 parts.append(self._translate("terminal"))
             elif buftype == "help" or filetype == "help":
@@ -1421,6 +1424,14 @@ class SpeechPlanner:
             return None
         # Translators: Context label for the lazy.nvim plugin-manager window.
         return self._translate("lazy.nvim plugin manager")
+
+    def _line_for_speech(self, state: dict[str, Any]) -> str:
+        line = state.get("lineText")
+        if not isinstance(line, str):
+            return ""
+        # Lazy renders visual padding as real trailing buffer spaces. Preserve
+        # source text everywhere else, but do not speak this UI-only padding.
+        return line.rstrip() if self._plugin_manager_name(state) is not None else line
 
     def _plugin_manager_operation(self, state: dict[str, Any]) -> SpeechAction | None:
         # Translators: Context label for the lazy.nvim plugin manager producing this operation.
@@ -1482,9 +1493,9 @@ class SpeechPlanner:
         )
 
     def _focus_line(self, state: dict[str, Any]) -> SpeechAction | None:
-        line = state.get("lineText")
-        if not isinstance(line, str):
+        if not isinstance(state.get("lineText"), str):
             return None
+        line = self._line_for_speech(state)
         text = line if line else self._translate("blank")
         return SpeechAction(
             text, Priority.STATUS, interrupt=True,
@@ -1710,10 +1721,11 @@ class SpeechPlanner:
         )
 
     def _navigation(self, state: dict[str, Any], announce_full: bool) -> SpeechAction | None:
-        line = state.get("lineText")
+        source_line = state.get("lineText")
         cursor = state.get("cursor")
-        if not isinstance(line, str) or not isinstance(cursor, dict):
+        if not isinstance(source_line, str) or not isinstance(cursor, dict):
             return None
+        line = self._line_for_speech(state)
         previous_cursor = (self._previous or {}).get("cursor", {})
         line_changed = previous_cursor.get("line") != cursor.get("line")
         if announce_full or line_changed:
@@ -1731,7 +1743,7 @@ class SpeechPlanner:
         if not isinstance(byte_column, int):
             return None
         try:
-            character = cursor_text(line, byte_column).character
+            character = cursor_text(source_line, byte_column).character
         except InvalidByteColumn:
             return SpeechAction(
                 self._translate("invalid cursor position"),
@@ -1760,6 +1772,7 @@ class SpeechPlanner:
         line_character: bool,
     ) -> SpeechAction:
         line = state.get("lineText", "")
+        spoken_line = self._line_for_speech(state)
         cursor = state.get("cursor", {})
         character = state.get("character", "")
         if not character and isinstance(line, str) and isinstance(cursor, dict):
@@ -1770,6 +1783,14 @@ class SpeechPlanner:
                 except InvalidByteColumn:
                     character = ""
         spoken_character = character if character else ""
+        byte_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
+        if (
+            self._plugin_manager_name(state) is not None
+            and spoken_character.isspace()
+            and isinstance(byte_column, int)
+            and byte_column >= len(spoken_line.encode("utf-8"))
+        ):
+            spoken_character = ""
         if kind == "characterMoved":
             sound = "lineCrossed" if spoken_character and self._line_changed(state) else None
             indentation = indentation_quarter_tones(line) if sound else None
@@ -1807,7 +1828,7 @@ class SpeechPlanner:
             return SpeechAction(
                 self._translate("{boundary}, {line}").format(
                     boundary=self._translate(boundary),
-                    line=line if line else self._translate("blank"),
+                    line=spoken_line if spoken_line else self._translate("blank"),
                 ),
                 Priority.NAVIGATION, True, sound,
                 character_suffix=spoken_character or None,
@@ -1823,7 +1844,7 @@ class SpeechPlanner:
                 sound = "lineEnd"
             return navigation_speech_action(
                 "line",
-                line=line,
+                line=spoken_line,
                 word=state.get("word", ""),
                 character=spoken_character,
                 translate=self._translate,

@@ -2638,7 +2638,7 @@ Tests.</p>
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
 <p>Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie
-0.98.0; <code>buildVars.py</code> erzeugt Entwicklungsbuild 4 mit
+0.98.0; <code>buildVars.py</code> erzeugt Entwicklungsbuilds mit
 Git-Metadaten und setzt den Release-Kanal auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.97.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung
@@ -2746,7 +2746,9 @@ Verträge bestehen für native LSP-Completion, <code>nvim-cmp</code>,
 <code>none-ls.nvim</code>; Benutzer installieren die jeweiligen externen
 Sprachserver und Linter selbst.</li>
 <li>Lazys öffentlicher <code>nofile</code>-/<code>lazy</code>-Puffer
-erhält einen eindeutigen Fokuskontext. Dokumentierte
+erhält einen eindeutigen Fokuskontext. Beim Öffnen werden die aktuelle
+Bedienzeile und bei der Zeilennavigation der Inhalt ohne rein visuelle
+Leerzeichen am Zeilenende gesprochen. Dokumentierte
 Lebenszyklusereignisse melden Beginn und Ende von Installation,
 Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
 Synchronisierung neutral über Sprache und Braille. Pluginzeilen,
@@ -5989,9 +5991,11 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
-<li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>: Der
-echte Lazy-Puffer erhält einen eindeutigen Kontextnamen; ausschließlich
-dokumentierte Lebenszyklusereignisse liefern neutrale
+<li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>:
+Access Link gibt dem echten Lazy-Puffer einen eindeutigen Kontextnamen
+und spricht beim Öffnen die aktuelle Bedienzeile. Rein visuelle
+Leerzeichen am Zeilenende bleiben von der Sprachausgabe ausgenommen.
+Ausschließlich dokumentierte Lebenszyklusereignisse liefern neutrale
 Start-/Endmeldungen über Sprache und Braille. Synchronisierung fasst
 untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg
 aus Lazys Darstellung zu erraten.</li>

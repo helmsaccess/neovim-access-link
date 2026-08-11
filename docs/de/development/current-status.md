@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
-`buildVars.py` erzeugt Entwicklungsbuild 4 mit Git-Metadaten und setzt den
+`buildVars.py` erzeugt Entwicklungsbuilds mit Git-Metadaten und setzt den
 Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
@@ -97,7 +97,9 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   ALE und `none-ls.nvim`; Benutzer installieren die jeweiligen externen
   Sprachserver und Linter selbst.
 - Lazys öffentlicher `nofile`-/`lazy`-Puffer erhält einen eindeutigen
-  Fokuskontext. Dokumentierte Lebenszyklusereignisse melden Beginn und Ende
+  Fokuskontext. Beim Öffnen werden die aktuelle Bedienzeile und bei der
+  Zeilennavigation der Inhalt ohne rein visuelle Leerzeichen am Zeilenende
+  gesprochen. Dokumentierte Lebenszyklusereignisse melden Beginn und Ende
   von Installation, Aktualisierung, Bereinigung, Prüfung, Protokollansicht und
   Synchronisierung neutral über Sprache und Braille. Pluginzeilen, virtueller
   Fortschritt und Erfolg werden nicht abgeleitet; die praktische NVDA-Abnahme

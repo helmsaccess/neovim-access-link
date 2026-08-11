@@ -1,7 +1,7 @@
 # Current status
 
 Status date: August 11, 2026. The source tree belongs to the 0.98.0 development
-line; `buildVars.py` generates development build 4 with Git metadata and sets
+line; `buildVars.py` generates development builds with Git metadata and sets
 the release channel to beta. The current published pre-release is 0.97.0. The
 project does not infer a higher stability classification from test coverage or
 feature count.
@@ -90,7 +90,9 @@ tab changes, plus structured Neovim messages.
   `none-ls.nvim`; users install the applicable external language servers and
   linters themselves.
 - Lazy's public `nofile`/`lazy` buffer receives an unambiguous focus context.
-  Documented lifecycle events neutrally report the start and end of install,
+  Access Link speaks the current command row when the window opens; line
+  navigation omits visual-only trailing spaces from speech. Documented
+  lifecycle events neutrally report the start and end of install,
   update, cleanup, checking, log display, and synchronization through speech
   and Braille. Plugin rows, virtual progress, and success are not inferred;
   practical NVDA acceptance remains open.
