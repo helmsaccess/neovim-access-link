@@ -15,7 +15,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Braille. Eindeutig über öffentliche Icon-Hervorhebungen erkannte Pluginzeilen
   melden beim Betreten und Umschalten NVDAs lokalisierte Zustände `eingeklappt`
   oder `ausgeklappt`; Braille zeigt die zugehörigen Baumansichtsmarker `+` und
-  `-`. Unklare Darstellungen bleiben still. Synchronisierung fasst
+  `-`, ohne sie beim Umschalten durch eine vorübergehende Meldung zu verdecken.
+  Die vorhandene NVDA-Zeilenexploration liest die Bedienleiste bei Bedarf
+  erneut. Unklare Darstellungen bleiben still. Synchronisierung fasst
   untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg aus
   Lazys Darstellung zu erraten.
 - Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,

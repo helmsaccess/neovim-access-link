@@ -2729,7 +2729,10 @@ immediately following <code>dir</code> property with the documented
 <code>LazyProp</code> extmark marks it as expanded. Speech uses NVDA&#39;s
 localized <code>collapsed</code> and <code>expanded</code> states;
 Braille appends <code>+</code> or <code>-</code> as NVDA tree views do.
-Access Link remains silent for unknown or ambiguous rendering.</p>
+A state change sends no transient Braille message, so it cannot obscure
+the updated marker. The existing NVDA line exploration can read the
+command bar again after opening. Access Link remains silent for unknown
+or ambiguous rendering.</p>
 <p>Practical confirmation includes:</p>
 <ul>
 <li>local and remote component installation and updates;</li>
@@ -5649,7 +5652,9 @@ start/end reports through speech and Braille. Plugin rows identified
 unambiguously through public icon highlights report NVDA&#39;s localized
 <code>collapsed</code> or <code>expanded</code> state when entered or
 toggled; Braille shows the corresponding tree-view markers
-<code>+</code> and <code>-</code>. Unclear rendering remains silent.
+<code>+</code> and <code>-</code>. Toggling does not obscure them with a
+transient Braille message, and existing NVDA line exploration reads the
+command bar again when needed. Unclear rendering remains silent.
 Synchronization collapses child operations without guessing progress,
 result, or success from Lazy&#39;s rendering.</li>
 <li>Adds four guided lazy.nvim practical tests for window operation,

@@ -710,9 +710,9 @@ class SpeechPlannerTests(unittest.TestCase):
             "pluginManagerEntryExpanded": False,
         }})[0]
         self.assertEqual("ausgeklappt", expanded.text)
-        self.assertEqual(expanded.text, expanded.braille_message)
+        self.assertIsNone(expanded.braille_message)
         self.assertEqual("eingeklappt", collapsed.text)
-        self.assertEqual(collapsed.text, collapsed.braille_message)
+        self.assertIsNone(collapsed.braille_message)
 
     def test_invalid_plugin_manager_data_fails_open(self) -> None:
         planner = SpeechPlanner()

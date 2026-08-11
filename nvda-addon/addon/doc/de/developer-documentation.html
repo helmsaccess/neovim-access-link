@@ -2832,8 +2832,11 @@ Icon-Hervorhebungen erkannt. Eine unmittelbar folgende
 <code>LazyProp</code>-Extmark kennzeichnet sie als ausgeklappt. Sprache
 verwendet NVDAs lokalisierte Zustände <code>eingeklappt</code> und
 <code>ausgeklappt</code>; Braille hängt wie NVDAs Baumansichten
-<code>+</code> oder <code>-</code> an die Zeile. Bei unbekannter oder
-mehrdeutiger Darstellung bleibt Access Link still.</p>
+<code>+</code> oder <code>-</code> an die Zeile. Ein Zustandswechsel
+erzeugt keine vorübergehende Braillemeldung und verdeckt damit den
+aktualisierten Marker nicht. Die Bedienleiste lässt sich nach der
+Öffnung mit der vorhandenen NVDA-Zeilenexploration erneut lesen. Bei
+unbekannter oder mehrdeutiger Darstellung bleibt Access Link still.</p>
 <p>Praktisch bestätigt wurden insbesondere:</p>
 <ul>
 <li>Installation und Aktualisierung lokaler und entfernter
@@ -6040,8 +6043,10 @@ neutrale Start-/Endmeldungen über Sprache und Braille. Eindeutig über
 öffentliche Icon-Hervorhebungen erkannte Pluginzeilen melden beim
 Betreten und Umschalten NVDAs lokalisierte Zustände
 <code>eingeklappt</code> oder <code>ausgeklappt</code>; Braille zeigt
-die zugehörigen Baumansichtsmarker <code>+</code> und <code>-</code>.
-Unklare Darstellungen bleiben still. Synchronisierung fasst
+die zugehörigen Baumansichtsmarker <code>+</code> und <code>-</code>,
+ohne sie beim Umschalten durch eine vorübergehende Meldung zu verdecken.
+Die vorhandene NVDA-Zeilenexploration liest die Bedienleiste bei Bedarf
+erneut. Unklare Darstellungen bleiben still. Synchronisierung fasst
 untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg
 aus Lazys Darstellung zu erraten.</li>
 <li>Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,

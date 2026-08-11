@@ -162,8 +162,10 @@ wrapping. Line navigation suppresses visual-only edge and padding spaces. The
 current plugin row is recognized only from Lazy's documented icon highlights.
 An immediately following `dir` property with the documented `LazyProp` extmark
 marks it as expanded. Speech uses NVDA's localized `collapsed` and `expanded`
-states; Braille appends `+` or `-` as NVDA tree views do. Access Link remains
-silent for unknown or ambiguous rendering.
+states; Braille appends `+` or `-` as NVDA tree views do. A state change sends
+no transient Braille message, so it cannot obscure the updated marker. The
+existing NVDA line exploration can read the command bar again after opening.
+Access Link remains silent for unknown or ambiguous rendering.
 
 Practical confirmation includes:
 

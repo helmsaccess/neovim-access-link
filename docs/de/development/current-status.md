@@ -174,7 +174,10 @@ Lazys dokumentierten Icon-Hervorhebungen erkannt. Eine unmittelbar folgende
 `dir`-Eigenschaft mit dokumentierter `LazyProp`-Extmark kennzeichnet sie als
 ausgeklappt. Sprache verwendet NVDAs lokalisierte Zustände `eingeklappt` und
 `ausgeklappt`; Braille hängt wie NVDAs Baumansichten `+` oder `-` an die Zeile.
-Bei unbekannter oder mehrdeutiger Darstellung bleibt Access Link still.
+Ein Zustandswechsel erzeugt keine vorübergehende Braillemeldung und verdeckt
+damit den aktualisierten Marker nicht. Die Bedienleiste lässt sich nach der
+Öffnung mit der vorhandenen NVDA-Zeilenexploration erneut lesen. Bei unbekannter
+oder mehrdeutiger Darstellung bleibt Access Link still.
 
 Praktisch bestätigt wurden insbesondere:
 

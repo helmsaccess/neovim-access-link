@@ -1815,13 +1815,17 @@ command bar even when Lazy wraps it across several lines. Lazy&#39;s first
 buffer line is empty for layout; when the window opens, Access Link
 reads the following command bar instead. Ordinary Neovim navigation
 reads the window&#39;s real text lines without announcing visual-only edge
-or padding spaces. <code>j</code> and <code>k</code> move by line as
-usual. On an unambiguously recognized plugin row, Access Link also
-reports <code>collapsed</code> or <code>expanded</code>. As in NVDA tree
-views, Braille shows <code>+</code> or <code>-</code> after that row.
-<code>Enter</code> opens the current plugin&#39;s details and closes them
-when pressed again; Access Link reports the new state. <code>?</code>
-toggles Lazy&#39;s help, and <code>q</code> closes the window.</p>
+or padding spaces. To read the command bar again, hold the NVDA key and
+explore its lines with <code>k</code> and <code>j</code>; the Neovim
+cursor remains on the plugin. Without NVDA, <code>j</code> and
+<code>k</code> move between plugin rows as usual. On an unambiguously
+recognized plugin row, Access Link also reports <code>collapsed</code>
+or <code>expanded</code>. As in NVDA tree views, Braille shows
+<code>+</code> or <code>-</code> after that row. <code>Enter</code>
+opens the current plugin&#39;s details and closes them when pressed again;
+Access Link speaks the new state. On Braille, the immediate change of
+the persistent marker is sufficient. <code>?</code> toggles Lazy&#39;s help,
+and <code>q</code> closes the window.</p>
 <p>Use <code>:Lazy update</code> for a complete update.
 <code>:Lazy sync</code> installs missing plugins, removes plugins which
 are no longer needed, and updates existing plugins. Access Link reports

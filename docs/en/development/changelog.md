@@ -14,7 +14,9 @@ test-build entries through August 5, 2026.
   Braille. Plugin rows identified unambiguously through public icon highlights
   report NVDA's localized `collapsed` or `expanded` state when entered or
   toggled; Braille shows the corresponding tree-view markers `+` and `-`.
-  Unclear rendering remains silent. Synchronization collapses child operations
+  Toggling does not obscure them with a transient Braille message, and existing
+  NVDA line exploration reads the command bar again when needed. Unclear
+  rendering remains silent. Synchronization collapses child operations
   without guessing progress, result, or success from Lazy's rendering.
 - Adds four guided lazy.nvim practical tests for window operation, install,
   update, and synchronization. Isolated local Git fixtures and pinned headless

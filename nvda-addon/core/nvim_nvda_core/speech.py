@@ -1521,7 +1521,9 @@ class SpeechPlanner:
         ):
             return None
         text = self._translate("expanded" if current_expanded else "collapsed")
-        return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+        # The persistent Braille row already changes between NVDA's '-' and
+        # '+' tree markers. A transient message would hide that useful state.
+        return SpeechAction(text, Priority.STATUS, interrupt=True)
 
     def _plugin_manager_overview_transition(
         self, state: dict[str, Any],
