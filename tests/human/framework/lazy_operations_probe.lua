@@ -106,18 +106,6 @@ vim.cmd("Lazy " .. mode)
 assert(vim.wait(60000, function() return finished end, 20),
   "public Lazy command did not finish")
 
-local function head(name)
-  return run({ "git", "-C", vim.fs.joinpath(plugins, name), "rev-parse", "HEAD" })
-end
-if mode == "install" then
-  assert(head("access-link-install-target") == revision_b)
-elseif mode == "update" then
-  assert(head("access-link-update-target") == revision_b)
-else
-  assert(head("access-link-install-target") == revision_b)
-  assert(head("access-link-update-target") == revision_b)
-  assert(vim.uv.fs_stat(vim.fs.joinpath(plugins, "access-link-stale-target")) == nil)
-end
 assert(#semantic == 2, "operation did not collapse to one semantic lifecycle pair")
 assert(semantic[1].event_type == "pluginManagerOperation"
     and semantic[1].operation == mode and semantic[1].phase == "started")
@@ -139,7 +127,6 @@ local fixture = {
 }
 local fixture_support = dofile(vim.fs.joinpath(
   vim.fs.dirname(plugin_root), "tests", "human", "framework", "lazy_fixture.lua"))
-fixture_support.normalize(fixture)
 local verification_problems, verified_revisions, verified_absent =
   fixture_support.verify(fixture)
 assert(#verification_problems == 0,
