@@ -2588,6 +2588,11 @@ add-on does not rewrite Windows-specific content; Lazy must explicitly
 load the installed Access Link copy as a local plugin. Automated tests
 cover archiving, local and rootless Linux package paths, SSH transfer,
 and rollback; practical Windows and SSH acceptance remains pending.</li>
+<li>Component removal requires explicit, default-declined confirmation
+after target selection. It removes only the installed plugin locally and
+also the bridge and related component paths on Linux. Neovim
+configuration and backups remain unchanged; explicit plugin load entries
+remain owned by user configuration.</li>
 <li>The manifest provides the project URL and default help file.
 Development builds use the matching German or English unreleased
 changelog section; releases use their version section.</li>
@@ -4644,6 +4649,12 @@ as a local plugin.</p>
 <p>“NVDA menu → Neovim Access Link → Remove components...” uses the same
 multi-selection. Neovim must be closed on the selected targets; the
 add-on does not stop a Neovim or tmux session.</p>
+<p>After target selection, a warning that defaults to declining requires
+explicit confirmation. It states the ownership boundary before any
+change: local removal deletes the installed plugin, while Linux removal
+also deletes the bridge; Neovim configuration and backups remain
+unchanged. An explicit Lazy or other Access Link load entry is not
+rewritten and must be removed or disabled manually when appropriate.</p>
 <p>Local removal deletes only the installed plugin directory. Over SSH,
 one time-bounded user command removes only:</p>
 <pre class="text"><code>~/.local/bin/nvim-nvda-bridge
@@ -4653,7 +4664,9 @@ one time-bounded user command removes only:</p>
 <p>Removal is idempotent. Saved connections, SSH and Neovim
 configuration, including the optionally generated <code>init.lua</code>,
 imported configurations, and their backups, unrelated plugins, and
-runtime session data remain intact.</p>
+runtime session data remain intact. The results dialog repeats the
+configuration boundary and the note about explicit plugin load
+entries.</p>
 </section>
 <section id="docs__en__development__component-installationmd__owning-code-and-tests" class="level3">
 <h3>Owning code and tests</h3>
@@ -5723,6 +5736,11 @@ configurations are backed up as complete directories before atomic
 replacement. Windows-specific content and execute permissions are
 neither guessed nor rewritten. Lazy must still list the installed Access
 Link copy explicitly as a local plugin.</li>
+<li>Hardens component removal with an explicit warning that defaults to
+declining and a repeated results notice. The plugin and Linux bridge are
+removed; Neovim configuration and backups remain unchanged, including
+any explicit plugin load instruction that the user must remove when
+appropriate.</li>
 <li>Adds robust baseline support for <code>lazy.nvim</code>: Access Link
 gives the real Lazy buffer an unambiguous context name and speaks the
 complete command bar regardless of its initial blank line or

@@ -22,6 +22,11 @@ aktualisieren...` bietet unter `Neovim-Konfiguration` drei Möglichkeiten. Die
 Voreinstellung `Neovim-Konfiguration nicht ändern` ändert nur die
 Access-Link-Komponenten.
 
+Die Komponentenentfernung ändert diese Konfiguration und ihre Sicherungen
+nicht. Lädt die Konfiguration Access Link ausdrücklich als lokales Plugin,
+müssen Sie diesen Eintrag nach der Komponentenentfernung selbst entfernen oder
+deaktivieren.
+
 ### Kleinere Grundkonfiguration installieren
 
 `Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren` richtet
@@ -39,8 +44,7 @@ nicht sicher abgeschlossen werden, meldet das Ziel einen Fehler. Symlinks und
 ungewöhnliche Dateitypen werden nicht ersetzt.
 
 Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und Zugriff auf
-GitHub, um Lazy und Oil herunterzuladen. Die Komponentenentfernung löscht
-weder die erzeugte Konfiguration noch ihre Sicherungen.
+GitHub, um Lazy und Oil herunterzuladen.
 
 Die nachfolgende vollständige Python-Konfiguration ist eine umfangreichere
 Alternative. Verwenden Sie sie, wenn zusätzlich Pyright, Ruff und die
@@ -58,8 +62,7 @@ Auf jedem Linux-Ziel wird eine vorhandene Neovim-Konfiguration zuerst als
 vollständiges, eindeutig benanntes Verzeichnis gesichert. Erst nach der
 Prüfung aller übertragenen Dateien ersetzt die neue Konfiguration das Ziel.
 Links und ungewöhnliche Dateitypen werden nicht übertragen. Die
-Komponentenentfernung löscht weder die importierte Konfiguration noch ihre
-Sicherung.
+importierte Konfiguration und ihre Sicherung bleiben erhalten.
 
 Neovim liest Lua- und Vimscript-Dateien ohne Ausführbarkeitsrecht. Windows
 liefert jedoch keine verlässlichen Linux-Ausführbarkeitsrechte für eigene

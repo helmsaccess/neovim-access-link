@@ -38,6 +38,11 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   the installed Access Link copy as a local plugin. Automated tests cover
   archiving, local and rootless Linux package paths, SSH transfer, and rollback;
   practical Windows and SSH acceptance remains pending.
+- Component removal requires explicit, default-declined confirmation after
+  target selection. It removes only the installed plugin locally and also the
+  bridge and related component paths on Linux. Neovim configuration and backups
+  remain unchanged; explicit plugin load entries remain owned by user
+  configuration.
 - The manifest provides the project URL and default help file. Development
   builds use the matching German or English unreleased changelog section;
   releases use their version section.

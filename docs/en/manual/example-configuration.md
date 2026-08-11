@@ -21,6 +21,10 @@ The `NVDA menu → Neovim Access Link → Install or update components...` dialo
 offers three choices under `Neovim configuration`. The default `Do not change
 Neovim configuration` changes only the Access Link components.
 
+Component removal does not change this configuration or its backups. If the
+configuration explicitly loads Access Link as a local plugin, remove or
+disable that entry yourself after removing the components.
+
 ### Install a smaller basic configuration
 
 `Install the basic Neovim configuration with lazy.nvim and Oil` creates a
@@ -37,8 +41,7 @@ backup or atomic replacement cannot finish safely, that target reports a
 failure. Symbolic links and unusual file types are not replaced.
 
 On its first Neovim start, the basic configuration needs Git and access to
-GitHub to download Lazy and Oil. Component removal deletes neither the
-generated configuration nor its backups.
+GitHub to download Lazy and Oil.
 
 The complete Python configuration below is a more extensive alternative. Use
 it when Pyright, Ruff, and the documented LSP and linter keys should also be

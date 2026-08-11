@@ -131,6 +131,13 @@ abgelegte Kopie selbst ausdrücklich als lokales Plugin aufführen.
 dieselbe Mehrfachauswahl. Neovim muss auf den gewählten Zielen beendet sein;
 das Add-on beendet keine Neovim- oder tmux-Sitzung.
 
+Nach der Zielauswahl verlangt ein standardmäßig ablehnender Warnhinweis eine
+ausdrückliche Bestätigung. Er nennt die Besitzgrenze vor der Änderung: Lokal
+wird das installierte Plugin entfernt, auf Linux zusätzlich die Bridge;
+Neovim-Konfigurationen und Sicherungen bleiben unverändert. Ein ausdrücklicher
+Lazy- oder anderer Ladeeintrag für Access Link wird nicht umgeschrieben und
+muss bei Bedarf manuell entfernt oder deaktiviert werden.
+
 Lokal wird nur das installierte Pluginverzeichnis entfernt. Über SSH entfernt
 ein zeitlich begrenzter Benutzerbefehl ausschließlich:
 
@@ -144,7 +151,8 @@ ein zeitlich begrenzter Benutzerbefehl ausschließlich:
 Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
 Neovim-Konfiguration einschließlich der optional erzeugten `init.lua`,
 importierter Konfigurationen und ihrer Sicherungen, andere Plugins und
-Laufzeit-Sitzungsdaten bleiben erhalten.
+Laufzeit-Sitzungsdaten bleiben erhalten. Der Ergebnisdialog wiederholt die
+Konfigurationsgrenze und den Hinweis auf ausdrückliche Plugin-Ladeeinträge.
 
 ## Zuständiger Code und Tests
 

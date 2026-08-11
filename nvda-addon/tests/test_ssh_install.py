@@ -222,7 +222,10 @@ class SshUserInstallerTests(unittest.TestCase):
         self.assertIn('"$p/share/nvim-nvda"', script)
         self.assertIn('"$HOME/.cache/nvim-nvda-install"', script)
         self.assertNotIn(".ssh", script)
+        self.assertNotIn(".config", script)
+        self.assertNotIn("XDG_CONFIG_HOME", script)
         self.assertNotIn("init.lua", script)
+        self.assertNotIn("backup", script)
         self.assertEqual(30, options["timeout"])
 
     def test_uninstall_uses_password_askpass_without_exposing_secret(self) -> None:

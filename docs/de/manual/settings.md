@@ -186,6 +186,13 @@ Neovim Access Link`. Dieses Untermenü öffnet außerdem die Einstellungen und
 die vier installierten Dokumente. Der [Quick Guide](quick-guide.md) beschreibt
 den Einrichtungsablauf.
 
+Vor der Komponentenentfernung müssen Sie einen Hinweis bestätigen. Lokal wird
+das installierte Neovim-Plugin entfernt; auf Linux-Zielen werden Plugin und
+Bridge entfernt. Neovim-Konfigurationen und ihre Sicherungen bleiben
+unverändert. Lädt eine Konfiguration Access Link ausdrücklich, beispielsweise
+als lokales Lazy-Plugin, entfernen oder deaktivieren Sie diesen Eintrag danach
+selbst.
+
 ## Empfohlener Ausgangspunkt
 
 Die Standardwerte ergeben einen direkt nutzbaren Ausgangspunkt:

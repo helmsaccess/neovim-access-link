@@ -494,7 +494,9 @@ class BuiltAddonTests(unittest.TestCase):
         wx.ID_OK = 1
         wx.ID_CANCEL = 0
         wx.YES = 2
+        wx.NO = 3
         wx.YES_NO = 4
+        wx.NO_DEFAULT = 16384
         wx.ICON_QUESTION = 8
         wx.OK = 16
         wx.CANCEL = 32
@@ -10536,6 +10538,10 @@ class BuiltAddonTests(unittest.TestCase):
             def start(inner_self): inner_self.target(*inner_self.args)
         with mock.patch("threading.Thread", ImmediateThread):
             plugin._nvdaUi._onRemoveComponents(None)
+        self.assertIn("Neovim configuration and configuration backups will not be changed", self.messageBoxes[-1][0][0])
+        self.assertIn("lazy.nvim", self.messageBoxes[-1][0][0])
+        self.assertEqual("Confirm Neovim component removal", self.messageBoxes[-1][0][1])
+        self.assertTrue(self.messageBoxes[-1][0][2] & sys.modules["wx"].NO_DEFAULT)
         self.assertEqual(["local-windows", "remote"], [target.identifier for target, _password in calls[0][0]])
         self.assertEqual(["", "temporary password"], [password for _target, password in calls[0][0]])
         self.assertIn("Removing Neovim components from 2 targets", self.messages[-1])
@@ -10564,6 +10570,81 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["componentRemoval", "componentRemoval"], [call.args[0] for call in record.call_args_list])
         plugin.terminate()
 
+    def test_component_removal_decline_stops_before_credentials_and_jobs(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+
+        plugin = GlobalPlugin()
+        remote = parse_profiles([{
+            "id": "remote", "name": "Remote", "host": "host", "user": "user", "port": 22,
+            "identityFile": "", "authentication": "password",
+        }])[0]
+        plugin._nvdaUi._chooseUninstallProfiles = lambda: [remote]
+        password_prompts = []
+        plugin._nvdaUi._passwordForProfile = lambda profile: password_prompts.append(profile) or "secret"
+        removal_calls = []
+        plugin._nvdaUi._runComponentRemovals = lambda *args: removal_calls.append(args)
+        self.messageBoxAnswers.append(sys.modules["wx"].NO)
+
+        plugin._nvdaUi._onRemoveComponents(None)
+
+        self.assertEqual([], password_prompts)
+        self.assertEqual([], removal_calls)
+        self.assertIn("Selected targets: 1", self.messageBoxes[-1][0][0])
+        plugin.terminate()
+
+    def test_component_removal_cancelled_password_finishes_without_worker(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+
+        plugin = GlobalPlugin()
+        remote = parse_profiles([{
+            "id": "remote", "name": "Remote", "host": "host", "user": "user", "port": 22,
+            "identityFile": "", "authentication": "password",
+        }])[0]
+        plugin._nvdaUi._chooseUninstallProfiles = lambda: [remote]
+        plugin._nvdaUi._passwordForProfile = lambda _profile: None
+        finished = []
+        plugin._nvdaUi._finishComponentRemovals = finished.extend
+        removal_calls = []
+        plugin._nvdaUi._runComponentRemovals = lambda *args: removal_calls.append(args)
+
+        plugin._nvdaUi._onRemoveComponents(None)
+
+        self.assertEqual([], removal_calls)
+        self.assertEqual(1, len(finished))
+        self.assertFalse(finished[0][1].success)
+        self.assertEqual("SSH password entry cancelled", finished[0][1].message)
+        plugin.terminate()
+
+    def test_component_removal_continues_after_one_target_raises(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+        from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
+        from globalPlugins.NeovimAccessLink.core.ssh_install import InstallResult
+
+        plugin = GlobalPlugin()
+        profiles = parse_profiles([
+            {"id": "one", "name": "One", "host": "one", "user": "alice", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+            {"id": "two", "name": "Two", "host": "two", "user": "bob", "port": 22,
+             "identityFile": "", "authentication": "openSsh"},
+        ])
+        installer = mock.Mock()
+        installer.uninstall.side_effect = (OSError("SSH unavailable"), InstallResult(True, "removed"))
+        finished = []
+        plugin._nvdaUi._finishComponentRemovals = finished.extend
+        with mock.patch(
+            "globalPlugins.NeovimAccessLink.nvda_ui.SshUserInstaller",
+            return_value=installer,
+        ):
+            plugin._nvdaUi._runComponentRemovals([(profiles[0], ""), (profiles[1], "")])
+
+        self.assertEqual(2, installer.uninstall.call_count)
+        self.assertEqual([False, True], [result.success for _profile, result in finished])
+        self.assertEqual("Unexpected removal error", finished[0][1].message)
+        self.assertIn("OSError: SSH unavailable", finished[0][1].diagnostics)
+        plugin.terminate()
+
     def test_component_removal_summary_reports_every_target_without_changing_settings(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.connection_profiles import parse_profiles
@@ -10589,6 +10670,8 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("Documentation (editor@example)", summary)
         self.assertIn("Failed: 1", summary)
         self.assertIn("Production (admin@prod): permission denied", summary)
+        self.assertIn("configuration backups were not changed", summary)
+        self.assertIn("explicit Access Link plugin entry", summary)
         self.assertEqual("Neovim component removal results", self.messageDialogs[-1].title)
         self.assertTrue(self.messageDialogs[-1].shown)
         self.assertEqual(before, self._settingsSnapshot(plugin)["connections"])

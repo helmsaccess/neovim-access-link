@@ -1324,6 +1324,8 @@ class NvdaUiManager:
 		targets = self._chooseUninstallProfiles()
 		if targets is None:
 			return
+		if not self._confirmComponentRemoval(targets):
+			return
 		jobs = []
 		immediate_results = []
 		for profile in targets:
@@ -1349,6 +1351,29 @@ class NvdaUiManager:
 			args=(jobs, immediate_results),
 			daemon=True,
 		).start()
+
+	@staticmethod
+	def _confirmComponentRemoval(targets):
+		import gui
+		import wx
+
+		# Translators: Confirmation shown after selecting targets for component removal.
+		message = _(
+			"Access Link will remove its installed Neovim plugin and, on Linux targets, its bridge.\n\n"
+			"Neovim configuration and configuration backups will not be changed. If a configuration "
+			"explicitly loads Access Link, for example through lazy.nvim, remove or disable that entry "
+			"manually.\n\nSelected targets: {count}. Continue?"
+		).format(count=len(targets))
+		return (
+			wx.MessageBox(
+				message,
+				# Translators: Title of the destructive component-removal confirmation.
+				_("Confirm Neovim component removal"),
+				wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+				gui.mainFrame,
+			)
+			== wx.YES
+		)
 
 	def _runComponentRemovals(self, jobs, initial_results=None):
 		results = list(initial_results or [])
@@ -1435,7 +1460,17 @@ class NvdaUiManager:
 			)
 			for profile, result in failed
 		)
-		lines.extend(("", _("Saved connection settings were preserved.")))
+		lines.extend(
+			(
+				"",
+				_("Saved connection settings were preserved."),
+				# Translators: Explains what removal deliberately leaves for the user to maintain.
+				_(
+					"Neovim configuration and configuration backups were not changed. Remove or disable "
+					"any explicit Access Link plugin entry there if it is no longer needed."
+				),
+			)
+		)
 		return "\n".join(lines)
 
 	def _finishComponentRemovals(self, results):

@@ -2183,6 +2183,10 @@ Autovervollständigung und Linter einrichten</a>.</p>
 bietet unter <code>Neovim-Konfiguration</code> drei Möglichkeiten. Die
 Voreinstellung <code>Neovim-Konfiguration nicht ändern</code> ändert nur
 die Access-Link-Komponenten.</p>
+<p>Die Komponentenentfernung ändert diese Konfiguration und ihre
+Sicherungen nicht. Lädt die Konfiguration Access Link ausdrücklich als
+lokales Plugin, müssen Sie diesen Eintrag nach der Komponentenentfernung
+selbst entfernen oder deaktivieren.</p>
 <section id="docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-installieren" class="level4">
 <h4>Kleinere Grundkonfiguration installieren</h4>
 <p><code>Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren</code>
@@ -2200,9 +2204,7 @@ Sicherungspfad. Kann die Sicherung oder der atomare Austausch nicht
 sicher abgeschlossen werden, meldet das Ziel einen Fehler. Symlinks und
 ungewöhnliche Dateitypen werden nicht ersetzt.</p>
 <p>Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und
-Zugriff auf GitHub, um Lazy und Oil herunterzuladen. Die
-Komponentenentfernung löscht weder die erzeugte Konfiguration noch ihre
-Sicherungen.</p>
+Zugriff auf GitHub, um Lazy und Oil herunterzuladen.</p>
 <p>Die nachfolgende vollständige Python-Konfiguration ist eine
 umfangreichere Alternative. Verwenden Sie sie, wenn zusätzlich Pyright,
 Ruff und die dokumentierten LSP- und Lintertasten eingerichtet werden
@@ -2220,8 +2222,7 @@ ersetzt.</p>
 als vollständiges, eindeutig benanntes Verzeichnis gesichert. Erst nach
 der Prüfung aller übertragenen Dateien ersetzt die neue Konfiguration
 das Ziel. Links und ungewöhnliche Dateitypen werden nicht übertragen.
-Die Komponentenentfernung löscht weder die importierte Konfiguration
-noch ihre Sicherung.</p>
+Die importierte Konfiguration und ihre Sicherung bleiben erhalten.</p>
 <p>Neovim liest Lua- und Vimscript-Dateien ohne Ausführbarkeitsrecht.
 Windows liefert jedoch keine verlässlichen Linux-Ausführbarkeitsrechte
 für eigene Hilfsskripte; direkt gestartete Skripte müssen Sie auf dem
@@ -3125,6 +3126,12 @@ Passwortanmeldung für dieses Konto erlauben.</p>
 <code>NVDA-Menü → Neovim Access Link</code>. Dieses Untermenü öffnet
 außerdem die Einstellungen und die vier installierten Dokumente. Der <a href="quick-guide.html">Quick Guide</a> beschreibt
 den Einrichtungsablauf.</p>
+<p>Vor der Komponentenentfernung müssen Sie einen Hinweis bestätigen.
+Lokal wird das installierte Neovim-Plugin entfernt; auf Linux-Zielen
+werden Plugin und Bridge entfernt. Neovim-Konfigurationen und ihre
+Sicherungen bleiben unverändert. Lädt eine Konfiguration Access Link
+ausdrücklich, beispielsweise als lokales Lazy-Plugin, entfernen oder
+deaktivieren Sie diesen Eintrag danach selbst.</p>
 </section>
 </section>
 <section id="docs__de__manual__settingsmd__empfohlener-ausgangspunkt" class="level3">

@@ -24,6 +24,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Ausführbarkeitsrechte werden nicht geraten oder umgeschrieben. Lazy muss die
   installierte Access-Link-Kopie weiterhin ausdrücklich als lokales Plugin
   laden.
+- Härtet die Komponentenentfernung mit einer ausdrücklich zu bestätigenden,
+  standardmäßig ablehnenden Warnung und einem wiederholten Ergebnishinweis.
+  Plugin und Linux-Bridge werden entfernt; Neovim-Konfigurationen und
+  Sicherungen bleiben unverändert, einschließlich ausdrücklich eingetragener
+  Plugin-Ladeanweisungen, die der Nutzer bei Bedarf selbst entfernt.
 - Ergänzt robuste Grundunterstützung für `lazy.nvim`: Access Link gibt dem
   echten Lazy-Puffer einen eindeutigen Kontextnamen und spricht beim Öffnen die
   vollständige Bedienleiste unabhängig von Leerzeile und fensterbreitenbedingtem

@@ -69,11 +69,8 @@ class LocalConfigArchiveBuilder:
                 "local Neovim configuration is not a normal directory",
                 source_path=str(source),
             )
-        entries: list[tuple[pathlib.Path, pathlib.PurePosixPath, os.stat_result]] = []
         try:
-            self._collect(source, pathlib.PurePosixPath(), entries)
-            if len(entries) > MAX_CONFIG_ENTRIES:
-                raise ValueError(f"configuration contains more than {MAX_CONFIG_ENTRIES} entries")
+            entries = self._collect(source)
             names = {relative.as_posix() for _path, relative, value in entries if stat.S_ISREG(value.st_mode)}
             if not names.intersection(("init.lua", "init.vim")):
                 return ConfigArchiveResult(
@@ -106,26 +103,40 @@ class LocalConfigArchiveBuilder:
                 diagnostics=str(error),
             )
 
+    @staticmethod
     def _collect(
-        self,
-        directory: pathlib.Path,
-        relative_directory: pathlib.PurePosixPath,
-        entries: list[tuple[pathlib.Path, pathlib.PurePosixPath, os.stat_result]],
-    ) -> None:
-        with os.scandir(directory) as scanned:
-            children = sorted(scanned, key=lambda entry: entry.name.casefold())
-        for child in children:
-            relative = relative_directory / child.name
-            value = child.stat(follow_symlinks=False)
-            if child.is_symlink() or _is_reparse_point(value):
-                raise ValueError(f"configuration contains a link or reparse point: {relative}")
-            if stat.S_ISDIR(value.st_mode):
-                entries.append((pathlib.Path(child.path), relative, value))
-                self._collect(pathlib.Path(child.path), relative, entries)
-            elif stat.S_ISREG(value.st_mode):
-                entries.append((pathlib.Path(child.path), relative, value))
-            else:
-                raise ValueError(f"configuration contains an unsupported file type: {relative}")
+        source: pathlib.Path,
+    ) -> list[tuple[pathlib.Path, pathlib.PurePosixPath, os.stat_result]]:
+        entries: list[tuple[pathlib.Path, pathlib.PurePosixPath, os.stat_result]] = []
+        pending = [(source, pathlib.PurePosixPath())]
+        while pending:
+            directory, relative_directory = pending.pop()
+            if not _is_normal_directory(directory):
+                raise ValueError(
+                    f"configuration directory changed while it was archived: {relative_directory}"
+                )
+            children = []
+            with os.scandir(directory) as scanned:
+                for child in scanned:
+                    children.append(child)
+                    if len(entries) + len(children) > MAX_CONFIG_ENTRIES:
+                        raise ValueError(f"configuration contains more than {MAX_CONFIG_ENTRIES} entries")
+            directories = []
+            for child in sorted(children, key=lambda entry: entry.name.casefold()):
+                relative = relative_directory / child.name
+                value = child.stat(follow_symlinks=False)
+                if child.is_symlink() or _is_reparse_point(value):
+                    raise ValueError(f"configuration contains a link or reparse point: {relative}")
+                path = pathlib.Path(child.path)
+                if stat.S_ISDIR(value.st_mode):
+                    entries.append((path, relative, value))
+                    directories.append((path, relative))
+                elif stat.S_ISREG(value.st_mode):
+                    entries.append((path, relative, value))
+                else:
+                    raise ValueError(f"configuration contains an unsupported file type: {relative}")
+            pending.extend(reversed(directories))
+        return entries
 
     @staticmethod
     def _archive(
@@ -237,6 +248,8 @@ class ImportedConfigInstaller:
                     continue
                 if not member.isfile():
                     raise ValueError(f"unsupported configuration archive entry: {normalized}")
+                if member.size < 0:
+                    raise ValueError(f"invalid configuration archive size: {normalized}")
                 files += 1
                 total_bytes += member.size
                 if files > MAX_CONFIG_FILES or total_bytes > MAX_CONFIG_BYTES:

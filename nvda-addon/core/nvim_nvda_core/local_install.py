@@ -5,9 +5,21 @@ from __future__ import annotations
 import os
 import pathlib
 import shutil
+import stat
 import uuid
 
 from .ssh_install import InstallResult
+
+
+def _is_normal_directory(path: pathlib.Path) -> bool:
+    try:
+        value = path.lstat()
+    except OSError:
+        return False
+    reparse_attribute = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    return stat.S_ISDIR(value.st_mode) and not bool(
+        getattr(value, "st_file_attributes", 0) & reparse_attribute
+    )
 
 
 def default_local_plugin_directory(environment: dict[str, str] | None = None) -> pathlib.Path:
@@ -31,7 +43,7 @@ class LocalPluginInstaller:
         destination = pathlib.Path(destination)
         if not self._valid_source(source):
             return InstallResult(False, "bundled local Neovim plugin is unavailable")
-        if destination.exists() and not destination.is_dir():
+        if os.path.lexists(destination) and not _is_normal_directory(destination):
             return InstallResult(False, "local Neovim plugin target is not a directory")
         parent = destination.parent
         temporary = parent / f".{destination.name}.new-{uuid.uuid4().hex}"
@@ -40,7 +52,7 @@ class LocalPluginInstaller:
         try:
             parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(source, temporary, symlinks=False)
-            if destination.exists():
+            if os.path.lexists(destination):
                 os.replace(destination, backup)
                 moved_existing = True
             os.replace(temporary, destination)
@@ -52,14 +64,14 @@ class LocalPluginInstaller:
             )
         except OSError as error:
             try:
-                if moved_existing and backup.exists() and not destination.exists():
+                if moved_existing and os.path.lexists(backup) and not os.path.lexists(destination):
                     os.replace(backup, destination)
             except OSError:
                 pass
             return InstallResult(False, "local Neovim plugin installation failed", str(error))
         finally:
             shutil.rmtree(temporary, ignore_errors=True)
-            if destination.exists():
+            if os.path.lexists(destination):
                 shutil.rmtree(backup, ignore_errors=True)
 
     def uninstall(self, destination: pathlib.Path | None = None) -> InstallResult:
@@ -68,10 +80,10 @@ class LocalPluginInstaller:
         except ValueError as error:
             return InstallResult(False, "local Neovim data directory is unavailable", str(error))
         destination = pathlib.Path(destination)
-        if destination.exists() and not destination.is_dir():
+        if os.path.lexists(destination) and not _is_normal_directory(destination):
             return InstallResult(False, "local Neovim plugin target is not a directory")
         try:
-            if destination.exists():
+            if os.path.lexists(destination):
                 shutil.rmtree(destination)
             # The installer owns these two package directories, but remove them
             # only while empty so unrelated files are never lost.

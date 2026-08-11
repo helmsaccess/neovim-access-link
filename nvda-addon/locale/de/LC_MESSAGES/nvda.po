@@ -79,12 +79,12 @@ msgstr "Zeilenaktion bei Dreifachbetätigung &beginnen an:"
 msgid "&Word navigation:"
 msgstr "&Wortnavigation:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1262 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1423
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1262 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1448
 #, python-brace-format
 msgid "- {name} ({target})"
 msgstr "- {name} ({target})"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1293 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1431
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1293 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1456
 #, python-brace-format
 msgid "- {name} ({target}): {reason}"
 msgstr "- {name} ({target}): {reason}"
@@ -104,6 +104,11 @@ msgstr "1 Zeile betroffen"
 #: nvda-addon/core/nvim_nvda_core/speech.py:702
 msgid "1 line changed"
 msgstr "1 Zeile geändert"
+
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1361
+#, python-brace-format
+msgid "Access Link will remove its installed Neovim plugin and, on Linux targets, its bridge.\n\nNeovim configuration and configuration backups will not be changed. If a configuration explicitly loads Access Link, for example through lazy.nvim, remove or disable that entry manually.\n\nSelected targets: {count}. Continue?"
+msgstr "Access Link entfernt sein installiertes Neovim-Plugin und auf Linux-Zielen zusätzlich die Bridge.\n\nNeovim-Konfiguration und Konfigurationssicherungen werden nicht verändert. Lädt eine Konfiguration Access Link ausdrücklich, zum Beispiel über lazy.nvim, entfernen oder deaktivieren Sie diesen Eintrag manuell.\n\nAusgewählte Ziele: {count}. Fortfahren?"
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1173
 msgid "Activate Neovim accessibility before connecting a terminal"
@@ -261,6 +266,10 @@ msgstr "Befehlszeilenmodus"
 #, python-brace-format
 msgid "Configure a Neovim connection before using {key} pairing"
 msgstr "Konfigurieren Sie eine Neovim-Verbindung, bevor Sie die Zuordnung mit {key} verwenden"
+
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1371
+msgid "Confirm Neovim component removal"
+msgstr "Entfernen der Neovim-Komponenten bestätigen"
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/__init__.py:1181
 msgid "Connect terminal to Neovim"
@@ -532,7 +541,7 @@ msgstr "ausgeklappt"
 msgid "failed"
 msgstr "fehlgeschlagen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1291 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1429
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1291 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1454
 #, python-brace-format
 msgid "Failed: {count}"
 msgstr "Fehlgeschlagen: {count}"
@@ -892,16 +901,16 @@ msgstr "Neovim hat sich geändert, bevor die Terminaleingabe verlassen werden ko
 msgid "Neovim changed before the copy or paste completed; try again"
 msgstr "Neovim hat sich geändert, bevor das Kopieren oder Einfügen abgeschlossen war; versuchen Sie es erneut"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1420
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1445
 msgid "Neovim component removal completed."
 msgstr "Entfernen der Neovim-Komponenten abgeschlossen."
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1447
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1482
 #, python-brace-format
 msgid "Neovim component removal completed: {successful} successful, {failed} failed"
 msgstr "Entfernen der Neovim-Komponenten abgeschlossen: {successful} erfolgreich, {failed} fehlgeschlagen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1454
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1489
 msgid "Neovim component removal results"
 msgstr "Ergebnisse der Entfernung von Neovim-Komponenten"
 
@@ -921,6 +930,10 @@ msgstr "Ergebnisse der Aktualisierung von Neovim-Komponenten"
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1002
 msgid "Neovim configuration"
 msgstr "Neovim-Konfiguration"
+
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1468
+msgid "Neovim configuration and configuration backups were not changed. Remove or disable any explicit Access Link plugin entry there if it is no longer needed."
+msgstr "Neovim-Konfiguration und Konfigurationssicherungen wurden nicht verändert. Entfernen oder deaktivieren Sie dort einen ausdrücklichen Access-Link-Plugin-Eintrag, wenn er nicht mehr benötigt wird."
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:983
 msgid "Neovim configuration:"
@@ -1241,7 +1254,7 @@ msgstr "Diese Verbindung für diesen Windows-Terminal-Tab merken, bis NVDA oder 
 msgid "Remove Neovim components"
 msgstr "Neovim-Komponenten entfernen"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1346
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1348
 #, python-brace-format
 msgid "Removing Neovim components from {count} targets"
 msgstr "Neovim-Komponenten werden von {count} Zielen entfernt"
@@ -1331,7 +1344,7 @@ msgstr "Speichern Sie das für Neovim verwendete Linux-Konto. Dieselbe Verbindun
 msgid "Saved &connections:"
 msgstr "Gespeicherte &Verbindungen:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1438
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1466
 msgid "Saved connection settings were preserved."
 msgstr "Gespeicherte Verbindungseinstellungen wurden beibehalten."
 
@@ -1481,7 +1494,7 @@ msgstr "Rechtschreibvorschläge"
 msgid "Spelling suggestions available"
 msgstr "Rechtschreibvorschläge verfügbar"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1094 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1338
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1094 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1340
 msgid "SSH password entry cancelled"
 msgstr "SSH-Passworteingabe abgebrochen"
 
@@ -1517,7 +1530,7 @@ msgstr "Windows-Zwischenablage im unbenannten Neovim-Register gespeichert"
 msgid "struct"
 msgstr "Struktur"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1260 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1421
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1260 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1446
 #, python-brace-format
 msgid "Successful: {count}"
 msgstr "Erfolgreich: {count}"
@@ -1701,7 +1714,7 @@ msgstr "Tastaturecho, Einrückung, Vorschläge, Rechtschreibung und Grammatik ve
 msgid "Unexpected installation error"
 msgstr "Unerwarteter Installationsfehler"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1374
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1399
 msgid "Unexpected removal error"
 msgstr "Unerwarteter Fehler beim Entfernen"
 
@@ -1902,12 +1915,12 @@ msgstr "{manager}: {operation} gestartet"
 msgid "{message}; {detail}"
 msgstr "{message}; {detail}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1248 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1409
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1248 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1434
 #, python-brace-format
 msgid "{name} failed, {completed} of {total}"
 msgstr "{name} fehlgeschlagen, {completed} von {total}"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1401
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1426
 #, python-brace-format
 msgid "{name} removed, {completed} of {total}"
 msgstr "{name} entfernt, {completed} von {total}"

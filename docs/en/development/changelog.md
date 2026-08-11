@@ -21,6 +21,10 @@ test-build entries through August 5, 2026.
   as complete directories before atomic replacement. Windows-specific content
   and execute permissions are neither guessed nor rewritten. Lazy must still
   list the installed Access Link copy explicitly as a local plugin.
+- Hardens component removal with an explicit warning that defaults to
+  declining and a repeated results notice. The plugin and Linux bridge are
+  removed; Neovim configuration and backups remain unchanged, including any
+  explicit plugin load instruction that the user must remove when appropriate.
 - Adds robust baseline support for `lazy.nvim`: Access Link gives the real
   Lazy buffer an unambiguous context name and speaks the complete command bar
   regardless of its initial blank line or width-dependent wrapping. Line

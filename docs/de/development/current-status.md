@@ -43,6 +43,11 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Automatisierte Tests decken Archivierung, lokale und rootlose
   Linux-Paketpfade, SSH-Übertragung und Rollback ab; eine praktische
   Windows-/SSH-Abnahme steht noch aus.
+- Die Komponentenentfernung verlangt nach der Zielauswahl eine ausdrückliche,
+  standardmäßig abgelehnte Bestätigung. Sie entfernt lokal nur das installierte
+  Plugin und auf Linux zusätzlich Bridge und zugehörige Komponentenpfade.
+  Neovim-Konfigurationen und Sicherungen bleiben unverändert; ausdrückliche
+  Plugin-Ladeeinträge bleiben der Benutzerkonfiguration überlassen.
 - Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
   verwenden den deutschen beziehungsweise englischen unveröffentlichten
   Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.

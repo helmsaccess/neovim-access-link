@@ -84,6 +84,19 @@ class GettextCatalogTests(unittest.TestCase):
                 documentation="Calculate the total.",
             ),
         )
+        self.assertEqual(
+            "Entfernen der Neovim-Komponenten bestätigen",
+            translations.gettext("Confirm Neovim component removal"),
+        )
+        self.assertIn(
+            "Neovim-Konfiguration und Konfigurationssicherungen werden nicht verändert",
+            translations.gettext(
+                "Access Link will remove its installed Neovim plugin and, on Linux targets, "
+                "its bridge.\n\nNeovim configuration and configuration backups will not be changed. "
+                "If a configuration explicitly loads Access Link, for example through lazy.nvim, "
+                "remove or disable that entry manually.\n\nSelected targets: {count}. Continue?"
+            ),
+        )
 
     def test_nvda_modules_initialize_their_gettext_builtins(self) -> None:
         for path in NVDA_TRANSLATION_MODULES:

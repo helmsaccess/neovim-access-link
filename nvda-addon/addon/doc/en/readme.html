@@ -2103,6 +2103,9 @@ setup.</p>
 dialog offers three choices under <code>Neovim configuration</code>. The
 default <code>Do not change Neovim configuration</code> changes only the
 Access Link components.</p>
+<p>Component removal does not change this configuration or its backups.
+If the configuration explicitly loads Access Link as a local plugin,
+remove or disable that entry yourself after removing the components.</p>
 <section id="docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration" class="level4">
 <h4>Install a smaller basic configuration</h4>
 <p><code>Install the basic Neovim configuration with lazy.nvim and Oil</code>
@@ -2119,8 +2122,7 @@ The results dialog names the new file and every backup path. If the
 backup or atomic replacement cannot finish safely, that target reports a
 failure. Symbolic links and unusual file types are not replaced.</p>
 <p>On its first Neovim start, the basic configuration needs Git and
-access to GitHub to download Lazy and Oil. Component removal deletes
-neither the generated configuration nor its backups.</p>
+access to GitHub to download Lazy and Oil.</p>
 <p>The complete Python configuration below is a more extensive
 alternative. Use it when Pyright, Ruff, and the documented LSP and
 linter keys should also be configured.</p>
@@ -3022,6 +3024,12 @@ allow password login for that account.</p>
 <code>NVDA menu &gt; Neovim Access Link</code>. This submenu also opens
 the settings and the four installed documents. The <a href="quick-guide.html">Quick Guide</a> describes
 the setup procedure.</p>
+<p>You must confirm an explanatory warning before component removal.
+Local removal deletes the installed Neovim plugin; on Linux targets it
+deletes the plugin and bridge. Neovim configuration and its backups
+remain unchanged. If a configuration explicitly loads Access Link, for
+example as a local Lazy plugin, remove or disable that entry yourself
+afterwards.</p>
 </section>
 </section>
 <section id="docs__en__manual__settingsmd__recommended-starting-point" class="level3">

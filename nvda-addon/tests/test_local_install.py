@@ -77,6 +77,48 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertTrue(result.success)
             self.assertEqual("user file", marker.read_text(encoding="utf-8"))
 
+    def test_uninstall_preserves_configuration_and_backups(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = pathlib.Path(directory_name)
+            destination = root / "data" / "site" / "pack" / "nvim-nvda" / "start" / "nvim-nvda"
+            configuration = root / "config" / "nvim"
+            configuration.mkdir(parents=True)
+            init = configuration / "init.lua"
+            init.write_text("load access link explicitly\n", encoding="utf-8")
+            backup = root / "config" / "nvim.neovim-access-link-backup-example"
+            backup.mkdir()
+            (backup / "init.lua").write_text("previous config\n", encoding="utf-8")
+            installer = LocalPluginInstaller()
+            self.assertTrue(installer.install(self.make_plugin(root, "installed"), destination).success)
+
+            result = installer.uninstall(destination)
+
+            self.assertTrue(result.success)
+            self.assertEqual("load access link explicitly\n", init.read_text(encoding="utf-8"))
+            self.assertEqual("previous config\n", (backup / "init.lua").read_text(encoding="utf-8"))
+
+    def test_install_and_uninstall_reject_non_directory_or_link_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            root = pathlib.Path(directory_name)
+            installer = LocalPluginInstaller()
+            file_target = root / "plugin-file"
+            file_target.write_text("keep", encoding="utf-8")
+
+            self.assertFalse(installer.install(self.make_plugin(root, "source"), file_target).success)
+            self.assertFalse(installer.uninstall(file_target).success)
+            self.assertEqual("keep", file_target.read_text(encoding="utf-8"))
+
+            actual_directory = root / "actual-plugin"
+            actual_directory.mkdir()
+            link_target = root / "plugin-link"
+            try:
+                link_target.symlink_to(actual_directory, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory links unavailable: {error}")
+            self.assertFalse(installer.install(self.make_plugin(root, "linked-source"), link_target).success)
+            self.assertFalse(installer.uninstall(link_target).success)
+            self.assertTrue(link_target.is_symlink())
+
 
 if __name__ == "__main__":
     unittest.main()

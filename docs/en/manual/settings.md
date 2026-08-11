@@ -182,6 +182,12 @@ Install or remove components under `NVDA menu > Neovim Access Link`. This
 submenu also opens the settings and the four installed documents. The
 [Quick Guide](quick-guide.md) describes the setup procedure.
 
+You must confirm an explanatory warning before component removal. Local
+removal deletes the installed Neovim plugin; on Linux targets it deletes the
+plugin and bridge. Neovim configuration and its backups remain unchanged. If
+a configuration explicitly loads Access Link, for example as a local Lazy
+plugin, remove or disable that entry yourself afterwards.
+
 ## Recommended starting point
 
 The defaults provide a directly usable starting point:

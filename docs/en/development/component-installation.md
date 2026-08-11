@@ -124,6 +124,13 @@ by the component installer under
 multi-selection. Neovim must be closed on the selected targets; the add-on does
 not stop a Neovim or tmux session.
 
+After target selection, a warning that defaults to declining requires explicit
+confirmation. It states the ownership boundary before any change: local
+removal deletes the installed plugin, while Linux removal also deletes the
+bridge; Neovim configuration and backups remain unchanged. An explicit Lazy
+or other Access Link load entry is not rewritten and must be removed or
+disabled manually when appropriate.
+
 Local removal deletes only the installed plugin directory. Over SSH, one
 time-bounded user command removes only:
 
@@ -137,6 +144,8 @@ time-bounded user command removes only:
 Removal is idempotent. Saved connections, SSH and Neovim configuration,
 including the optionally generated `init.lua`, imported configurations, and
 their backups, unrelated plugins, and runtime session data remain intact.
+The results dialog repeats the configuration boundary and the note about
+explicit plugin load entries.
 
 ## Owning code and tests
 

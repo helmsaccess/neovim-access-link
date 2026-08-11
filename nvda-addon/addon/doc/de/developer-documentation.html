@@ -2682,6 +2682,12 @@ installierte Access-Link-Kopie ausdrücklich als lokales Plugin laden.
 Automatisierte Tests decken Archivierung, lokale und rootlose
 Linux-Paketpfade, SSH-Übertragung und Rollback ab; eine praktische
 Windows-/SSH-Abnahme steht noch aus.</li>
+<li>Die Komponentenentfernung verlangt nach der Zielauswahl eine
+ausdrückliche, standardmäßig abgelehnte Bestätigung. Sie entfernt lokal
+nur das installierte Plugin und auf Linux zusätzlich Bridge und
+zugehörige Komponentenpfade. Neovim-Konfigurationen und Sicherungen
+bleiben unverändert; ausdrückliche Plugin-Ladeeinträge bleiben der
+Benutzerkonfiguration überlassen.</li>
 <li>Das Manifest nennt Projektadresse und Standardhilfedatei.
 Entwicklungsbuilds verwenden den deutschen beziehungsweise englischen
 unveröffentlichten Changelogabschnitt; Releases verwenden ihren
@@ -4976,6 +4982,13 @@ abgelegte Kopie selbst ausdrücklich als lokales Plugin aufführen.</p>
 <p>„NVDA-Menü → Neovim Access Link → Komponenten entfernen...“ verwendet
 dieselbe Mehrfachauswahl. Neovim muss auf den gewählten Zielen beendet
 sein; das Add-on beendet keine Neovim- oder tmux-Sitzung.</p>
+<p>Nach der Zielauswahl verlangt ein standardmäßig ablehnender
+Warnhinweis eine ausdrückliche Bestätigung. Er nennt die Besitzgrenze
+vor der Änderung: Lokal wird das installierte Plugin entfernt, auf Linux
+zusätzlich die Bridge; Neovim-Konfigurationen und Sicherungen bleiben
+unverändert. Ein ausdrücklicher Lazy- oder anderer Ladeeintrag für
+Access Link wird nicht umgeschrieben und muss bei Bedarf manuell
+entfernt oder deaktiviert werden.</p>
 <p>Lokal wird nur das installierte Pluginverzeichnis entfernt. Über SSH
 entfernt ein zeitlich begrenzter Benutzerbefehl ausschließlich:</p>
 <pre class="text"><code>~/.local/bin/nvim-nvda-bridge
@@ -4985,8 +4998,9 @@ entfernt ein zeitlich begrenzter Benutzerbefehl ausschließlich:</p>
 <p>Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
 Neovim-Konfiguration einschließlich der optional erzeugten
 <code>init.lua</code>, importierter Konfigurationen und ihrer
-Sicherungen, andere Plugins und Laufzeit-Sitzungsdaten bleiben
-erhalten.</p>
+Sicherungen, andere Plugins und Laufzeit-Sitzungsdaten bleiben erhalten.
+Der Ergebnisdialog wiederholt die Konfigurationsgrenze und den Hinweis
+auf ausdrückliche Plugin-Ladeeinträge.</p>
 </section>
 <section id="docs__de__development__component-installationmd__zuständiger-code-und-tests" class="level3">
 <h3>Zuständiger Code und Tests</h3>
@@ -6123,6 +6137,12 @@ Verzeichnisse vor dem atomaren Austausch gesichert. Windows-spezifische
 Inhalte und Ausführbarkeitsrechte werden nicht geraten oder
 umgeschrieben. Lazy muss die installierte Access-Link-Kopie weiterhin
 ausdrücklich als lokales Plugin laden.</li>
+<li>Härtet die Komponentenentfernung mit einer ausdrücklich zu
+bestätigenden, standardmäßig ablehnenden Warnung und einem wiederholten
+Ergebnishinweis. Plugin und Linux-Bridge werden entfernt;
+Neovim-Konfigurationen und Sicherungen bleiben unverändert,
+einschließlich ausdrücklich eingetragener Plugin-Ladeanweisungen, die
+der Nutzer bei Bedarf selbst entfernt.</li>
 <li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>:
 Access Link gibt dem echten Lazy-Puffer einen eindeutigen Kontextnamen
 und spricht beim Öffnen die vollständige Bedienleiste unabhängig von
