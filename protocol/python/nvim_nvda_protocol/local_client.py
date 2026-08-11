@@ -40,7 +40,11 @@ from .numbered_choice import (
 	valid_numbered_choice_closed,
 	valid_numbered_choice_opened,
 )
-from .plugin_manager import plugin_manager_operation_state, valid_plugin_manager_operation
+from .plugin_manager import (
+	plugin_manager_operation_state,
+	plugin_manager_overview_state,
+	valid_plugin_manager_operation,
+)
 from .nvim_rpc import NvimRpcEndpoint, NvimRpcSource
 from .terminal_control import (
 	terminal_control_result_state,
@@ -268,6 +272,7 @@ class LocalTcpClient:
 		return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
 	def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
+		payload = plugin_manager_overview_state(payload)
 		if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
 			self.on_diagnostic(
 				"localEventRejected",

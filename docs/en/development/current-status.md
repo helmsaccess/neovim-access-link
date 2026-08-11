@@ -154,6 +154,10 @@ Lazy's deliberately suppressed UI; it verifies the public command and
 isolated fixture configuration. Fixture repositories disable line-ending
 conversion and irrelevant Git output. Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
+For a real Lazy buffer the plugin also carries the first contiguous text block,
+bounded to 2,048 UTF-8 bytes. Access Link therefore speaks the complete command
+bar despite the initial layout-only blank line and width-dependent wrapping;
+line navigation suppresses visual-only edge and padding spaces.
 
 Practical confirmation includes:
 

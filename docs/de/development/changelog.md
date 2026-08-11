@@ -8,8 +8,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 - Ergänzt robuste Grundunterstützung für `lazy.nvim`: Access Link gibt dem
   echten Lazy-Puffer einen eindeutigen Kontextnamen und spricht beim Öffnen die
-  aktuelle Bedienzeile. Rein visuelle Leerzeichen am Zeilenende bleiben von der
-  Sprachausgabe ausgenommen. Ausschließlich dokumentierte
+  vollständige Bedienleiste unabhängig von Leerzeile und fensterbreitenbedingtem
+  Umbruch. Rein visuelle Rand- und Auffüll-Leerzeichen bleiben bei
+  Zeilennavigation von der Sprachausgabe ausgenommen. Ausschließlich dokumentierte
   Lebenszyklusereignisse liefern neutrale Start-/Endmeldungen über Sprache und
   Braille. Synchronisierung fasst untergeordnete Vorgänge zusammen, ohne
   Fortschritt, Ergebnis oder Erfolg aus Lazys Darstellung zu erraten.

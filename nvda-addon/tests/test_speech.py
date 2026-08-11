@@ -558,16 +558,24 @@ class SpeechPlannerTests(unittest.TestCase):
         changed = planner.plan(event(
             "contextChanged", bufferId=2, windowId=10, tabpageId=20,
             bufferName="", buftype="nofile", filetype="lazy",
-            mode="normal", modeRaw="n", line="  Sync (S) Update (U)  ",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
         ))[0]
         focused = SpeechPlanner().plan(event(
             "focusContext", bufferName="", buftype="nofile", filetype="lazy",
-            mode="normal", modeRaw="n", line="  Sync (S) Update (U)  ",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
         ))[0]
-        expected = "lazy.nvim plugin manager, Sync (S) Update (U), normal mode"
+        expected = "lazy.nvim plugin manager, Install (I) Sync (S) Update (U), normal mode"
         self.assertEqual(expected, changed.text)
         self.assertEqual(expected, focused.text)
         self.assertEqual(focused.text, focused.braille_message)
+        focused_line = SpeechPlanner().plan(event(
+            "focusContext", bufferName="", buftype="nofile", filetype="lazy",
+            mode="normal", modeRaw="n", line="",
+            pluginManagerOverview="lazy.nvim \uf472 Install (I) Sync (S) Update (U)",
+        ), focus_announcement="line")[0]
+        self.assertEqual("Install (I) Sync (S) Update (U)", focused_line.text)
 
         for buftype, filetype in (("", "lazy"), ("nofile", "lazy-lookalike")):
             with self.subTest(buftype=buftype, filetype=filetype):
@@ -585,11 +593,11 @@ class SpeechPlannerTests(unittest.TestCase):
         ))
         moved = planner.plan(event(
             "lineChanged", line="  access-link-update-target   ", row=2,
-            byte_column=29, character=" ", word="", bufferId=2, windowId=10,
+            byte_column=0, character=" ", word="", bufferId=2, windowId=10,
             tabpageId=20, buftype="nofile", filetype="lazy",
             mode="normal", modeRaw="n",
         ))[0]
-        self.assertEqual("  access-link-update-target", moved.text)
+        self.assertEqual("access-link-update-target", moved.text)
         self.assertIsNone(moved.character_suffix)
 
         ordinary = SpeechPlanner()

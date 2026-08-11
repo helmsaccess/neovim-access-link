@@ -118,6 +118,21 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertNotIn("pluginManagerOperation", _client._state)
 		self.assertNotIn("pluginManagerPhase", _client._state)
 
+	def test_plugin_manager_overview_is_sanitized_before_publication(self) -> None:
+		_client, source, events, _states, _diagnostics = self.make_client()
+		source.on_event("fullState", {
+			"buftype": "nofile",
+			"filetype": "lazy",
+			"pluginManagerOverview": "lazy.nvim Install (I)",
+		})
+		self.assertEqual("lazy.nvim Install (I)", events[-1]["payload"]["pluginManagerOverview"])
+		source.on_event("fullState", {
+			"buftype": "",
+			"filetype": "lazy",
+			"pluginManagerOverview": "untrusted",
+		})
+		self.assertNotIn("pluginManagerOverview", events[-1]["payload"])
+
 	def test_invalid_full_state_neither_authenticates_nor_enters_cache(self) -> None:
 		client, source, events, states, diagnostics = self.make_client()
 		source.on_event("fullState", {"mode": object()})

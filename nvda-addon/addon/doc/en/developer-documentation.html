@@ -2718,7 +2718,11 @@ does not require Lazy&#39;s deliberately suppressed UI; it verifies the
 public command and isolated fixture configuration. Fixture repositories
 disable line-ending conversion and irrelevant Git output. Structure and
 safe key choices are documented in <a href="human-testing.html">guided practical
-tests</a>.</p>
+tests</a>. For a real Lazy buffer the plugin also carries the first
+contiguous text block, bounded to 2,048 UTF-8 bytes. Access Link
+therefore speaks the complete command bar despite the initial
+layout-only blank line and width-dependent wrapping; line navigation
+suppresses visual-only edge and padding spaces.</p>
 <p>Practical confirmation includes:</p>
 <ul>
 <li>local and remote component installation and updates;</li>
@@ -3794,6 +3798,12 @@ and oversized frames terminate the affected transport instance. Unknown
 optional payload fields may be ignored. State fields such as mode,
 buffer, cursor, and changed tick belong to semantic event payloads; they
 are not present on every transport message such as a heartbeat.</p>
+<p><code>pluginManagerOverview</code> is valid only with the public
+buffer identity <code>buftype=nofile</code> and
+<code>filetype=lazy</code>. It contains at most 2,048 UTF-8 bytes from
+the buffer&#39;s first contiguous text block. The local and SSH clients
+remove the optional field before it reaches NVDA when the identity or
+type is wrong or the content is empty or oversized.</p>
 </section>
 <section id="docs__en__development__protocolmd__session-start-ordering-and-resync" class="level3">
 <h3>Session start, ordering, and resync</h3>
@@ -5608,11 +5618,12 @@ August 5, 2026.</p>
 <ul>
 <li>Adds robust baseline support for <code>lazy.nvim</code>: Access Link
 gives the real Lazy buffer an unambiguous context name and speaks the
-current command row when it opens. Speech omits visual-only trailing
-spaces. Only documented lifecycle events produce neutral start/end
-reports through speech and Braille. Synchronization collapses child
-operations without guessing progress, result, or success from Lazy&#39;s
-rendering.</li>
+complete command bar regardless of its initial blank line or
+width-dependent wrapping. Line navigation omits visual-only edge and
+padding spaces. Only documented lifecycle events produce neutral
+start/end reports through speech and Braille. Synchronization collapses
+child operations without guessing progress, result, or success from
+Lazy&#39;s rendering.</li>
 <li>Adds four guided lazy.nvim practical tests for window operation,
 install, update, and synchronization. Isolated local Git fixtures and
 pinned headless contract tests verify actual end states without changing

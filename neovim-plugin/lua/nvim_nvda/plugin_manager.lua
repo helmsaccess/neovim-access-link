@@ -2,6 +2,9 @@ local M = {}
 
 local MANAGER_KIND = "lazyNvim"
 local MAX_NESTING = 16
+local MAX_OVERVIEW_LINES = 8
+local MAX_OVERVIEW_BYTES = 2048
+local text = require("nvim_nvda.text")
 
 local lifecycle_events = {
   LazyInstallPre = { operation = "install", phase = "started" },
@@ -71,6 +74,31 @@ function M.setup(emit, group)
     pattern = patterns,
     callback = function(event) handle(event.match) end,
   })
+end
+
+-- Lazy exposes its window as an ordinary nofile buffer. Read only the first
+-- contiguous text block so a wrapped command row remains independent of the
+-- terminal width without depending on Lazy internals or terminal scraping.
+function M.overview(buf)
+  if not vim.api.nvim_buf_is_valid(buf)
+    or vim.bo[buf].buftype ~= "nofile"
+    or vim.bo[buf].filetype ~= "lazy" then
+    return nil
+  end
+  local stop = math.min(vim.api.nvim_buf_line_count(buf), MAX_OVERVIEW_LINES)
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, stop, true)
+  local parts, started = {}, false
+  for _, line in ipairs(lines) do
+    local value = vim.trim(line)
+    if value == "" then
+      if started then break end
+    else
+      started = true
+      parts[#parts + 1] = value
+    end
+  end
+  local value = text.bounded(table.concat(parts, " "), MAX_OVERVIEW_BYTES)
+  return value ~= "" and value or nil
 end
 
 return M

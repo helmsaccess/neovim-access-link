@@ -164,6 +164,11 @@ isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
 Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
+Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048 UTF-8-Byte
+begrenzten ersten zusammenhängenden Textblock. Dadurch spricht Access Link die
+Bedienleiste trotz anfänglicher Layout-Leerzeile und fensterbreitenabhängigem
+Umbruch vollständig; zeilenweise Navigation unterdrückt rein visuelle
+Rand- und Auffüll-Leerzeichen.
 
 Praktisch bestätigt wurden insbesondere:
 

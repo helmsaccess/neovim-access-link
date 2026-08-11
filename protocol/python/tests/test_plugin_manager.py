@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import unittest
 
-from nvim_nvda_protocol import valid_plugin_manager_operation
+from nvim_nvda_protocol import (
+	MAX_PLUGIN_MANAGER_OVERVIEW_BYTES,
+	plugin_manager_overview_state,
+	valid_plugin_manager_operation,
+)
 
 
 class PluginManagerValidationTests(unittest.TestCase):
@@ -20,6 +24,25 @@ class PluginManagerValidationTests(unittest.TestCase):
 		):
 			with self.subTest(replacement=replacement):
 				self.assertFalse(valid_plugin_manager_operation({**payload, **replacement}))
+
+	def test_overview_is_bounded_and_tied_to_public_lazy_identity(self) -> None:
+		payload = {
+			"buftype": "nofile",
+			"filetype": "lazy",
+			"pluginManagerOverview": "lazy.nvim Install (I)",
+		}
+		self.assertEqual(payload, plugin_manager_overview_state(payload))
+		for replacement in (
+			{"buftype": ""},
+			{"filetype": "lazy-lookalike"},
+			{"pluginManagerOverview": ""},
+			{"pluginManagerOverview": "x" * (MAX_PLUGIN_MANAGER_OVERVIEW_BYTES + 1)},
+			{"pluginManagerOverview": "\ud800"},
+			{"pluginManagerOverview": object()},
+		):
+			with self.subTest(replacement=replacement):
+				cleaned = plugin_manager_overview_state({**payload, **replacement})
+				self.assertNotIn("pluginManagerOverview", cleaned)
 
 
 if __name__ == "__main__":

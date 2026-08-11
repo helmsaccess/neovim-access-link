@@ -65,5 +65,35 @@ equal(1, #events, "nested duplicate start is announced once")
 user("LazyLog")
 equal(2, #events, "nested duplicate finish is announced once")
 
+local lazy_buffer = vim.api.nvim_create_buf(false, true)
+vim.bo[lazy_buffer].buftype = "nofile"
+vim.bo[lazy_buffer].filetype = "lazy"
+vim.api.nvim_buf_set_lines(lazy_buffer, 0, -1, false, {
+  "",
+  "   lazy.nvim 󰒲   Install (I)   Update (U)   Sync (S)  ",
+  "   Clean (X)   Check (C)   Log (L)   Restore (R)   Profile (P)  ",
+  "   Debug (D)   Help (?) ",
+  "",
+  "  Total: 1 plugins",
+})
+equal(
+  "lazy.nvim 󰒲   Install (I)   Update (U)   Sync (S) Clean (X)   Check (C)   "
+    .. "Log (L)   Restore (R)   Profile (P) Debug (D)   Help (?)",
+  plugin_manager.overview(lazy_buffer),
+  "public Lazy header is joined across display-width wrapping"
+)
+vim.api.nvim_set_current_buf(lazy_buffer)
+equal(
+  plugin_manager.overview(lazy_buffer),
+  require("nvim_nvda.state").snapshot("lazyOverviewTest").pluginManagerOverview,
+  "canonical state carries the bounded Lazy overview"
+)
+
+local ordinary_buffer = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_lines(ordinary_buffer, 0, -1, false, { "lazy.nvim Install (I)" })
+equal(nil, plugin_manager.overview(ordinary_buffer), "ordinary buffers are not interpreted")
+vim.api.nvim_buf_delete(lazy_buffer, { force = true })
+vim.api.nvim_buf_delete(ordinary_buffer, { force = true })
+
 print(string.format("Plugin manager tests: %d assertions passed", assertions))
 vim.cmd("qa!")

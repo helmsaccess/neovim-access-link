@@ -64,6 +64,12 @@ payload fields may be ignored. State fields such as mode, buffer, cursor, and
 changed tick belong to semantic event payloads; they are not present on every
 transport message such as a heartbeat.
 
+`pluginManagerOverview` is valid only with the public buffer identity
+`buftype=nofile` and `filetype=lazy`. It contains at most 2,048 UTF-8 bytes from
+the buffer's first contiguous text block. The local and SSH clients remove the
+optional field before it reaches NVDA when the identity or type is wrong or
+the content is empty or oversized.
+
 ## Session start, ordering, and resync
 
 The first accepted message in each transport session is `fullState` with

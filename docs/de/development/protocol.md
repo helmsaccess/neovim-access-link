@@ -66,6 +66,12 @@ Eine andere Protokollversion, fehlende Pflichtfelder, ungültige Typen,
 beschädigtes MessagePack und übergroße Frames beenden die betreffende
 Transportinstanz. Unbekannte optionale Payloadfelder dürfen ignoriert werden.
 
+`pluginManagerOverview` ist ausschließlich bei der öffentlichen Bufferkennung
+`buftype=nofile` und `filetype=lazy` gültig. Es enthält höchstens 2048
+UTF-8-Byte aus dem ersten zusammenhängenden Textblock des Puffers. Lokaler und
+SSH-Client entfernen das optionale Feld bei falscher Kennung, falschem Typ,
+leerem oder übergroßem Inhalt, bevor der Zustand NVDA erreicht.
+
 Dateimanagerzustand enthält nur begrenzte semantische Werte. Eintragsnamen sind
 auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte sowie Typ- und
 Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin validiert vollständige

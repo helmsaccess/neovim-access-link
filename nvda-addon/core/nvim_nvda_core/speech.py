@@ -1336,6 +1336,9 @@ class SpeechPlanner:
         plugin_manager_name = self._plugin_manager_name(state)
         if plugin_manager_name is not None:
             parts.append(plugin_manager_name)
+            overview = self._plugin_manager_overview(state)
+            if overview:
+                parts.append(overview)
         elif buftype == "help" or filetype == "help":
             parts.append(self._translate("help"))
         elif buftype == "terminal":
@@ -1384,9 +1387,13 @@ class SpeechPlanner:
                 parts.append(self._translate(label))
             elif plugin_manager_name is not None:
                 parts.append(plugin_manager_name)
-                line = self._line_for_speech(state).strip()
-                if line:
-                    parts.append(line)
+                overview = self._plugin_manager_overview(state)
+                if overview:
+                    parts.append(overview)
+                else:
+                    line = self._line_for_speech(state)
+                    if line:
+                        parts.append(line)
             elif buftype == "terminal" and canonical not in {"terminal", "terminalNormal"}:
                 parts.append(self._translate("terminal"))
             elif buftype == "help" or filetype == "help":
@@ -1431,7 +1438,20 @@ class SpeechPlanner:
             return ""
         # Lazy renders visual padding as real trailing buffer spaces. Preserve
         # source text everywhere else, but do not speak this UI-only padding.
-        return line.rstrip() if self._plugin_manager_name(state) is not None else line
+        return line.strip() if self._plugin_manager_name(state) is not None else line
+
+    def _plugin_manager_overview(self, state: dict[str, Any]) -> str:
+        if self._plugin_manager_name(state) is None:
+            return ""
+        overview = state.get("pluginManagerOverview")
+        if not isinstance(overview, str):
+            return ""
+        parts = overview.split()
+        if parts and parts[0] == "lazy.nvim":
+            parts.pop(0)
+        while parts and all(unicodedata.category(character) == "Co" for character in parts[0]):
+            parts.pop(0)
+        return " ".join(parts)
 
     def _plugin_manager_operation(self, state: dict[str, Any]) -> SpeechAction | None:
         # Translators: Context label for the lazy.nvim plugin manager producing this operation.
@@ -1496,7 +1516,8 @@ class SpeechPlanner:
         if not isinstance(state.get("lineText"), str):
             return None
         line = self._line_for_speech(state)
-        text = line if line else self._translate("blank")
+        overview = self._plugin_manager_overview(state)
+        text = overview or line or self._translate("blank")
         return SpeechAction(
             text, Priority.STATUS, interrupt=True,
             indentation_tones=indentation_quarter_tones(line),
@@ -1784,11 +1805,12 @@ class SpeechPlanner:
                     character = ""
         spoken_character = character if character else ""
         byte_column = cursor.get("byteColumn") if isinstance(cursor, dict) else None
-        if (
-            self._plugin_manager_name(state) is not None
-            and spoken_character.isspace()
-            and isinstance(byte_column, int)
-            and byte_column >= len(spoken_line.encode("utf-8"))
+        if self._plugin_manager_name(state) is not None and spoken_character.isspace() and (
+            kind == "lineChanged"
+            or (
+                isinstance(byte_column, int)
+                and byte_column >= len(spoken_line.encode("utf-8"))
+            )
         ):
             spoken_character = ""
         if kind == "characterMoved":

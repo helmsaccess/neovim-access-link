@@ -61,9 +61,11 @@ from .numbered_choice import (
     valid_numbered_choice_opened,
 )
 from .plugin_manager import (
+    MAX_PLUGIN_MANAGER_OVERVIEW_BYTES,
     PLUGIN_MANAGER_OPERATIONS,
     PLUGIN_MANAGER_PHASES,
     plugin_manager_operation_state,
+    plugin_manager_overview_state,
     valid_plugin_manager_operation,
 )
 from .local_client import LocalTcpClient
@@ -95,12 +97,14 @@ __all__ = [
     "MAX_EXPLORATION_TEXT_BYTES",
     "MAX_NUMBERED_CHOICE_ITEM_BYTES",
     "MAX_NUMBERED_CHOICE_ITEMS",
+    "MAX_PLUGIN_MANAGER_OVERVIEW_BYTES",
     "MAX_MODE_RAW_BYTES",
     "MAX_VIRTUAL_COLUMN",
     "NUMBERED_CHOICE_KINDS",
     "PLUGIN_MANAGER_OPERATIONS",
     "PLUGIN_MANAGER_PHASES",
     "plugin_manager_operation_state",
+    "plugin_manager_overview_state",
     "LocalTcpClient",
     "LINE_ACTIONS",
     "LINE_STARTS",

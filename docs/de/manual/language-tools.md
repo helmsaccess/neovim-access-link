@@ -45,11 +45,13 @@ Die Ausgabe `2` bestätigt den geladenen Befehl.
 ### Plugins mit lazy.nvim aktualisieren
 
 Öffnen Sie Lazy mit `:Lazy`. Access Link nennt den Puffer als
-`lazy.nvim-Plugin-Manager` und spricht die aktuelle Bedienzeile. Die normale
-Neovim-Navigation liest die echten Textzeilen des Fensters, ohne rein visuelle
-Leerzeichen am Zeilenende anzusagen. `j` und `k` wechseln wie gewohnt die Zeile,
-`Eingabetaste` öffnet Details zum aktuellen Plugin, `?` schaltet Lazys Hilfe um
-und `q` schließt das Fenster.
+`lazy.nvim-Plugin-Manager` und spricht die Bedienleiste auch dann vollständig,
+wenn Lazy sie auf mehrere Zeilen umbricht. Lazys erste Pufferzeile ist aus
+Layoutgründen leer; Access Link liest beim Öffnen stattdessen die folgende
+Bedienleiste. Die normale Neovim-Navigation liest die echten Textzeilen des
+Fensters, ohne rein visuelle Rand- und Auffüll-Leerzeichen anzusagen. `j` und
+`k` wechseln wie gewohnt die Zeile, `Eingabetaste` öffnet Details zum aktuellen
+Plugin, `?` schaltet Lazys Hilfe um und `q` schließt das Fenster.
 
 Für eine vollständige Aktualisierung ist `:Lazy update` der direkte Weg.
 `:Lazy sync` installiert fehlende Plugins, entfernt nicht mehr benötigte

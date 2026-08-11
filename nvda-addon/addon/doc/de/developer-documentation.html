@@ -2820,7 +2820,12 @@ Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
 Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
 Tastenbelegung stehen in <a href="human-testing.html">Geführte
-Praxistests</a>.</p>
+Praxistests</a>. Im echten Lazy-Puffer überträgt das Plugin außerdem den
+auf 2048 UTF-8-Byte begrenzten ersten zusammenhängenden Textblock.
+Dadurch spricht Access Link die Bedienleiste trotz anfänglicher
+Layout-Leerzeile und fensterbreitenabhängigem Umbruch vollständig;
+zeilenweise Navigation unterdrückt rein visuelle Rand- und
+Auffüll-Leerzeichen.</p>
 <p>Praktisch bestätigt wurden insbesondere:</p>
 <ul>
 <li>Installation und Aktualisierung lokaler und entfernter
@@ -3972,6 +3977,12 @@ payload               Map</code></pre>
 Typen, beschädigtes MessagePack und übergroße Frames beenden die
 betreffende Transportinstanz. Unbekannte optionale Payloadfelder dürfen
 ignoriert werden.</p>
+<p><code>pluginManagerOverview</code> ist ausschließlich bei der
+öffentlichen Bufferkennung <code>buftype=nofile</code> und
+<code>filetype=lazy</code> gültig. Es enthält höchstens 2048 UTF-8-Byte
+aus dem ersten zusammenhängenden Textblock des Puffers. Lokaler und
+SSH-Client entfernen das optionale Feld bei falscher Kennung, falschem
+Typ, leerem oder übergroßem Inhalt, bevor der Zustand NVDA erreicht.</p>
 <p>Dateimanagerzustand enthält nur begrenzte semantische Werte.
 Eintragsnamen sind auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte
 sowie Typ- und Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin
@@ -5993,12 +6004,13 @@ zum 5. August 2026.</p>
 <ul>
 <li>Ergänzt robuste Grundunterstützung für <code>lazy.nvim</code>:
 Access Link gibt dem echten Lazy-Puffer einen eindeutigen Kontextnamen
-und spricht beim Öffnen die aktuelle Bedienzeile. Rein visuelle
-Leerzeichen am Zeilenende bleiben von der Sprachausgabe ausgenommen.
-Ausschließlich dokumentierte Lebenszyklusereignisse liefern neutrale
-Start-/Endmeldungen über Sprache und Braille. Synchronisierung fasst
-untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder Erfolg
-aus Lazys Darstellung zu erraten.</li>
+und spricht beim Öffnen die vollständige Bedienleiste unabhängig von
+Leerzeile und fensterbreitenbedingtem Umbruch. Rein visuelle Rand- und
+Auffüll-Leerzeichen bleiben bei Zeilennavigation von der Sprachausgabe
+ausgenommen. Ausschließlich dokumentierte Lebenszyklusereignisse liefern
+neutrale Start-/Endmeldungen über Sprache und Braille. Synchronisierung
+fasst untergeordnete Vorgänge zusammen, ohne Fortschritt, Ergebnis oder
+Erfolg aus Lazys Darstellung zu erraten.</li>
 <li>Ergänzt vier geführte lazy.nvim-Praxistests für Fensterbedienung,
 Installation, Aktualisierung und Synchronisierung. Isolierte lokale
 Git-Fixtures und gepinnte Headless-Vertragstests prüfen die echten

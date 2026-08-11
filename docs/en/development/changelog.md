@@ -7,8 +7,9 @@ test-build entries through August 5, 2026.
 ## Unreleased
 
 - Adds robust baseline support for `lazy.nvim`: Access Link gives the real
-  Lazy buffer an unambiguous context name and speaks the current command row
-  when it opens. Speech omits visual-only trailing spaces. Only documented
+  Lazy buffer an unambiguous context name and speaks the complete command bar
+  regardless of its initial blank line or width-dependent wrapping. Line
+  navigation omits visual-only edge and padding spaces. Only documented
   lifecycle events produce neutral start/end reports through speech and
   Braille. Synchronization collapses child operations without guessing
   progress, result, or success from Lazy's rendering.
