@@ -40,6 +40,9 @@ from .held_context_state import (
 from .gate import SessionGate, TerminalIdentity
 from .local_sessions import LocalSessionLister, LocalWindowsSession, local_registry_directory
 from .local_install import LocalPluginInstaller, default_local_plugin_directory
+from .starter_config import (
+    StarterConfigInstaller, StarterConfigResult, default_local_config_directory,
+)
 from .service_registrar import ServiceRegistrar
 from .speech import Priority, SpeechAction, SpeechPlanner
 from .ssh_install import InstallResult, SshUserInstaller
@@ -64,7 +67,8 @@ __all__ = [
     "LocalPluginInstaller", "LocalSessionLister", "LocalWindowsSession", "PendingControlRequest",
     "PendingFocusContext", "Priority", "SessionGate",
     "ServiceRegistrar", "SpeechAction", "SpeechPlanner",
-    "TerminalIdentity", "InstallResult", "RemoteSession", "SshSessionLister", "SshUserInstaller",
+    "StarterConfigInstaller", "StarterConfigResult", "TerminalIdentity", "InstallResult",
+    "RemoteSession", "SshSessionLister", "SshUserInstaller", "default_local_config_directory",
     "default_local_plugin_directory", "local_registry_directory", "local_windows_target",
     "parse_profile", "parse_profiles",
     "remote_ssh_target",

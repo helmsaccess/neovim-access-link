@@ -2576,6 +2576,13 @@ plugin, and a rootless Linux user package with bridge, protocol, and
 installer. The top-level <code>Neovim Access Link</code> menu opens
 settings, component management, and four localized installed HTML
 documents.</li>
+<li>Component installation can install a small basic configuration with
+Lazy and Oil after an explicit, initially clear choice. Existing regular
+<code>init.lua</code> and <code>init.vim</code> files are first moved to
+unique backup paths; the results dialog names the installation and
+backups. Unusual file types remain unchanged. Automated tests cover
+local and rootless Linux package paths, including rollback; practical
+Windows and SSH acceptance remains pending.</li>
 <li>The manifest provides the project URL and default help file.
 Development builds use the matching German or English unreleased
 changelog section; releases use their version section.</li>
@@ -4530,8 +4537,10 @@ no port forward, fixed port, or shared application token.</p>
 sources with:</p>
 <pre class="text"><code>bin/nvim-nvda-bridge
 config/linux-components.json
+config/starter-init.lua
 share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
-install.py</code></pre>
+install.py
+starter_config.py</code></pre>
 <p>The bridge is a Python zipapp with the protocol codec and portable
 MessagePack. The archive is stored in the add-on as
 <code>globalPlugins/NeovimAccessLink/resources/server-user.tar.gz</code>.
@@ -4589,6 +4598,18 @@ summary reports every success and failure. Locally, the plugin is
 replaced atomically under
 <code>%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda</code>.
 Neovim must be restarted after installation or update.</p>
+<p>An additional initially clear choice installs a tested basic
+configuration with Lazy, Oil, and a few Neovim defaults on every
+selected target. The shared <code>StarterConfigInstaller</code> detects
+<code>init.lua</code> and <code>init.vim</code>, rejects symbolic links
+and other unusual targets, and moves existing regular files to unique
+backup paths before the atomic replacement. On failure it attempts to
+restore the originals from the retained backups. Locally it uses
+<code>%LOCALAPPDATA%\nvim</code>; the rootless Linux package uses
+<code>$XDG_CONFIG_HOME/nvim</code> or <code>~/.config/nvim</code>. The
+results dialog names the configuration and backup paths. Installation
+and backup run with the other component work outside NVDA&#39;s main
+thread.</p>
 </section>
 <section id="docs__en__development__component-installationmd__removal" class="level3">
 <h3>Removal</h3>
@@ -4602,7 +4623,8 @@ one time-bounded user command removes only:</p>
 ~/.local/share/nvim-nvda
 ~/.cache/nvim-nvda-install</code></pre>
 <p>Removal is idempotent. Saved connections, SSH and Neovim
-configuration, unrelated plugins, and runtime session data remain
+configuration, including the optionally generated <code>init.lua</code>
+and its backups, unrelated plugins, and runtime session data remain
 intact.</p>
 </section>
 <section id="docs__en__development__component-installationmd__owning-code-and-tests" class="level3">
@@ -5657,6 +5679,14 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
 <ul>
+<li>Adds an initially clear component-dialog choice for a basic
+configuration with Lazy, Oil, the bundled Access Link copy, and a few
+Neovim defaults. Existing regular <code>init.lua</code> and
+<code>init.vim</code> files move to unique backup paths named in the
+results dialog before atomic replacement; failures restore the originals
+from the retained backups. Symbolic links and unusual targets remain
+unchanged, and component removal deletes neither configuration nor
+backups.</li>
 <li>Adds robust baseline support for <code>lazy.nvim</code>: Access Link
 gives the real Lazy buffer an unambiguous context name and speaks the
 complete command bar regardless of its initial blank line or

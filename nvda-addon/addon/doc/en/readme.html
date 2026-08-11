@@ -307,6 +307,8 @@ languages and existing plugins</a></li>
 <li><a href="#docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil" id="toc-docs__en__manual__example-configurationmd__small-python-configuration-with-lazy-and-oil">Small
 Python configuration with Lazy and Oil</a>
 <ul>
+<li><a href="#docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically" id="toc-docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically">Install
+a smaller basic configuration automatically</a></li>
 <li><a href="#docs__en__manual__example-configurationmd__installing-prerequisites" id="toc-docs__en__manual__example-configurationmd__installing-prerequisites">Installing
 prerequisites</a></li>
 <li><a href="#docs__en__manual__example-configurationmd__backing-up-an-existing-configuration" id="toc-docs__en__manual__example-configurationmd__backing-up-an-existing-configuration">Backing
@@ -2088,6 +2090,31 @@ Neovim configuration and includes:</p>
 up LSP, completion, and linters</a>, explains the general behavior,
 additional languages, and the alternative <code>vim.pack</code>
 setup.</p>
+<section id="docs__en__manual__example-configurationmd__install-a-smaller-basic-configuration-automatically" class="level3">
+<h3>Install a smaller basic configuration automatically</h3>
+<p>The
+<code>NVDA menu → Neovim Access Link → Install or update components...</code>
+dialog offers the initially clear option
+<code>Install the basic Neovim configuration with lazy.nvim and Oil</code>.
+It creates a smaller <code>init.lua</code> with Lazy, Oil, the bundled
+Access Link copy, line numbers, a stable sign column, smart
+case-sensitive searching, and a conventional direction for new splits.
+LSP, language servers, and linters are not part of this basic
+configuration.</p>
+<p>The option applies to every target selected in the same dialog. If
+the add-on finds an <code>init.lua</code> or <code>init.vim</code>
+there, it first moves every existing file to a uniquely named backup in
+the same directory and only then installs the new <code>init.lua</code>.
+The results dialog names the new file and every backup path. If the
+backup or atomic replacement cannot finish safely, that target reports a
+failure. Symbolic links and unusual file types are not replaced.</p>
+<p>On its first Neovim start, the basic configuration needs Git and
+access to GitHub to download Lazy and Oil. Component removal deletes
+neither the generated configuration nor its backups.</p>
+<p>The complete Python configuration below is a more extensive
+alternative. Use it when Pyright, Ruff, and the documented LSP and
+linter keys should also be configured.</p>
+</section>
 <section id="docs__en__manual__example-configurationmd__installing-prerequisites" class="level3">
 <h3>Installing prerequisites</h3>
 <p>This configuration needs Neovim 0.12 or newer, Git, Node.js with npm,

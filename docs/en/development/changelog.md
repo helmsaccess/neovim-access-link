@@ -6,6 +6,13 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Adds an initially clear component-dialog choice for a basic configuration
+  with Lazy, Oil, the bundled Access Link copy, and a few Neovim defaults.
+  Existing regular `init.lua` and `init.vim` files move to unique backup paths
+  named in the results dialog before atomic replacement; failures restore the
+  originals from the retained backups. Symbolic links and unusual targets
+  remain unchanged, and component removal deletes neither configuration nor
+  backups.
 - Adds robust baseline support for `lazy.nvim`: Access Link gives the real
   Lazy buffer an unambiguous context name and speaks the complete command bar
   regardless of its initial blank line or width-dependent wrapping. Line

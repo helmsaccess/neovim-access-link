@@ -39,6 +39,7 @@ CORE_MODULES = (
     "connection_targets.py", "diagnostics.py", "exploration_state.py", "held_context_state.py",
     "numbered_choice_state.py",
     "frontend_policy.py", "gate.py", "local_install.py", "local_sessions.py", "speech.py",
+    "starter_config.py",
     "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )
 API_VERSION = re.compile(r"^(0|\d{4})\.\d(?:\.\d)?$")
@@ -182,6 +183,10 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         shutil.copytree(
             ROOT / "neovim-plugin", resources / "neovim-plugin",
             ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc"),
+        )
+        shutil.copy2(
+            ROOT / "examples" / "neovim-starter" / "init.lua",
+            resources / "starter-init.lua",
         )
         vendor = plugin / "vendor" / "msgpack"
         vendor.mkdir(parents=True)

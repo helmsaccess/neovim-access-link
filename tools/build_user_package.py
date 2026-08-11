@@ -128,7 +128,12 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         config = package / "config"
         config.mkdir()
         shutil.copy2(COMPONENT_CONFIG, config / COMPONENT_CONFIG.name)
+        shutil.copy2(ROOT / "examples" / "neovim-starter" / "init.lua", config / "starter-init.lua")
         shutil.copy2(ROOT / "packaging" / "install_user.py", package / "install.py")
+        shutil.copy2(
+            ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "starter_config.py",
+            package / "starter_config.py",
+        )
         shutil.copy2(ROOT / "LICENSE", package / "LICENSE")
         (package / "install.py").chmod(0o755)
         staged_output = temporary / output.name

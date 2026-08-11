@@ -15,6 +15,32 @@ Die allgemeine Funktionsweise, weitere Sprachen und alternative Einrichtung
 mit `vim.pack` beschreibt das vorherige Kapitel
 [LSP, Autovervollständigung und Linter einrichten](language-tools.md).
 
+## Kleinere Grundkonfiguration automatisch installieren
+
+Der Dialog `NVDA-Menü → Neovim Access Link → Komponenten installieren oder
+aktualisieren...` bietet die standardmäßig ausgeschaltete Option
+`Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren`. Sie richtet
+eine kleinere `init.lua` mit Lazy, Oil, der bereits mitgelieferten
+Access-Link-Kopie sowie Zeilennummern, stabiler Zeichenspalte, intelligenter
+Groß-/Kleinschreibung und einer üblichen Anordnung neuer Splits ein. LSP,
+Sprachserver und Linter gehören nicht zu dieser Grundkonfiguration.
+
+Die Option gilt für alle im selben Dialog ausgewählten Ziele. Findet das
+Add-on dort eine `init.lua` oder `init.vim`, verschiebt es jede vorhandene
+Datei zuerst in eine eindeutig benannte Sicherung im selben Verzeichnis und
+installiert erst danach die neue `init.lua`. Der Ergebnisdialog nennt die neue
+Datei und jeden Sicherungspfad. Kann die Sicherung oder der atomare Austausch
+nicht sicher abgeschlossen werden, meldet das Ziel einen Fehler. Symlinks und
+ungewöhnliche Dateitypen werden nicht ersetzt.
+
+Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und Zugriff auf
+GitHub, um Lazy und Oil herunterzuladen. Die Komponentenentfernung löscht
+weder die erzeugte Konfiguration noch ihre Sicherungen.
+
+Die nachfolgende vollständige Python-Konfiguration ist eine umfangreichere
+Alternative. Verwenden Sie sie, wenn zusätzlich Pyright, Ruff und die
+dokumentierten LSP- und Lintertasten eingerichtet werden sollen.
+
 ## Voraussetzungen installieren
 
 Benötigt werden Neovim 0.12 oder neuer, Git, Node.js mit npm, Pyright, Ruff und

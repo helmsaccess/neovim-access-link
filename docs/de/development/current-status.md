@@ -30,6 +30,13 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Linux-Benutzerpaket mit Bridge, Protokoll und Installer. Das oberste
   `Neovim Access Link`-Menü öffnet Einstellungen, Komponentenverwaltung und
   vier lokalisierte installierte HTML-Dokumente.
+- Die Komponenteninstallation kann auf ausdrückliche, standardmäßig
+  ausgeschaltete Auswahl eine kleine Grundkonfiguration mit Lazy und Oil
+  installieren. Vorhandene reguläre `init.lua` und `init.vim` werden zuerst in
+  eindeutige Sicherungspfade verschoben; der Ergebnisdialog nennt Installation
+  und Sicherungen. Ungewöhnliche Dateitypen bleiben unverändert. Automatisierte
+  Tests decken lokale und rootlose Linux-Paketpfade einschließlich Rollback ab;
+  eine praktische Windows-/SSH-Abnahme steht noch aus.
 - Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
   verwenden den deutschen beziehungsweise englischen unveröffentlichten
   Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.

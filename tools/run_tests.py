@@ -252,6 +252,7 @@ def jobs() -> tuple[Job, ...]:
         "test_repository_policy.py",
         "test_service_registrar.py",
         "test_speech.py",
+        "test_starter_config.py",
     ):
         result.append(python_file("unit", "addon", f"nvda-addon/tests/{file_name}"))
     result.extend(
@@ -276,6 +277,7 @@ def jobs() -> tuple[Job, ...]:
         "developer_context_lsp_integration_spec.lua",
         "exploration_spec.lua",
         "example_lazy_python_config_spec.lua",
+        "example_starter_config_spec.lua",
         "file_manager_navigation_spec.lua",
         "file_manager_spec.lua",
         "file_manager_workflows_spec.lua",

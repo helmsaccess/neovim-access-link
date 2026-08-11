@@ -27,6 +27,12 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   rootless Linux user package with bridge, protocol, and installer. The
   top-level `Neovim Access Link` menu opens settings, component management,
   and four localized installed HTML documents.
+- Component installation can install a small basic configuration with Lazy
+  and Oil after an explicit, initially clear choice. Existing regular
+  `init.lua` and `init.vim` files are first moved to unique backup paths; the
+  results dialog names the installation and backups. Unusual file types remain
+  unchanged. Automated tests cover local and rootless Linux package paths,
+  including rollback; practical Windows and SSH acceptance remains pending.
 - The manifest provides the project URL and default help file. Development
   builds use the matching German or English unreleased changelog section;
   releases use their version section.

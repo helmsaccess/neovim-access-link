@@ -25,8 +25,10 @@ protocol, and plugin sources with:
 ```text
 bin/nvim-nvda-bridge
 config/linux-components.json
+config/starter-init.lua
 share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
 install.py
+starter_config.py
 ```
 
 The bridge is a Python zipapp with the protocol codec and portable MessagePack.
@@ -84,6 +86,17 @@ reports every success and failure. Locally, the plugin is replaced atomically
 under `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda`. Neovim
 must be restarted after installation or update.
 
+An additional initially clear choice installs a tested basic configuration
+with Lazy, Oil, and a few Neovim defaults on every selected target. The shared
+`StarterConfigInstaller` detects `init.lua` and `init.vim`, rejects symbolic
+links and other unusual targets, and moves existing regular files to unique
+backup paths before the atomic replacement. On failure it attempts to restore
+the originals from the retained backups. Locally it uses
+`%LOCALAPPDATA%\nvim`; the rootless Linux package uses
+`$XDG_CONFIG_HOME/nvim` or `~/.config/nvim`. The results dialog names the
+configuration and backup paths. Installation and backup run with the other
+component work outside NVDA's main thread.
+
 ## Removal
 
 “NVDA menu → Neovim Access Link → Remove components...” uses the same
@@ -101,7 +114,8 @@ time-bounded user command removes only:
 ```
 
 Removal is idempotent. Saved connections, SSH and Neovim configuration,
-unrelated plugins, and runtime session data remain intact.
+including the optionally generated `init.lua` and its backups, unrelated
+plugins, and runtime session data remain intact.
 
 ## Owning code and tests
 

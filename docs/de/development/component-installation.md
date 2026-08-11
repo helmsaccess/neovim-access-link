@@ -26,8 +26,10 @@ und Pluginquellen ein `tar.gz` mit:
 ```text
 bin/nvim-nvda-bridge
 config/linux-components.json
+config/starter-init.lua
 share/nvim/site/pack/nvim-nvda/start/nvim-nvda/
 install.py
+starter_config.py
 ```
 
 Die Bridge ist eine Python-Zipapp mit Protokollcodec und portablem
@@ -89,6 +91,18 @@ und Fehler. Lokal wird das Plugin atomar unter
 `%LOCALAPPDATA%\nvim-data\site\pack\nvim-nvda\start\nvim-nvda` ersetzt.
 Neovim muss nach einer Installation oder Aktualisierung neu gestartet werden.
 
+Die zusätzliche, standardmäßig ausgeschaltete Auswahl installiert auf allen
+gewählten Zielen eine geprüfte Grundkonfiguration mit Lazy, Oil und wenigen
+Neovim-Grundeinstellungen. Der gemeinsame `StarterConfigInstaller` erkennt
+`init.lua` und `init.vim`, lehnt Symlinks und andere ungewöhnliche Ziele ab und
+verschiebt vorhandene reguläre Dateien vor dem atomaren Austausch in
+eindeutige Sicherungspfade. Bei einem Fehler versucht er, die Originale aus
+den erhaltenen Sicherungen wiederherzustellen. Lokal verwendet er
+`%LOCALAPPDATA%\nvim`; das rootlose Linux-Paket verwendet
+`$XDG_CONFIG_HOME/nvim` oder `~/.config/nvim`. Der Ergebnisdialog nennt
+Konfigurations- und Sicherungspfade. Installation und Sicherung laufen mit der
+übrigen Komponentenarbeit außerhalb von NVDAs Hauptthread.
+
 ## Entfernung
 
 „NVDA-Menü → Neovim Access Link → Komponenten entfernen...“ verwendet
@@ -106,8 +120,8 @@ ein zeitlich begrenzter Benutzerbefehl ausschließlich:
 ```
 
 Der Ablauf ist idempotent. Gespeicherte Verbindungen, SSH- und
-Neovim-Konfiguration, andere Plugins und Laufzeit-Sitzungsdaten bleiben
-erhalten.
+Neovim-Konfiguration einschließlich der optional erzeugten `init.lua` und
+ihrer Sicherungen, andere Plugins und Laufzeit-Sitzungsdaten bleiben erhalten.
 
 ## Zuständiger Code und Tests
 

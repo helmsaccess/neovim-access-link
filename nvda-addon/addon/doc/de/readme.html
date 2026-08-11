@@ -300,6 +300,8 @@ Sprachen und vorhandene Plugins</a></li>
 <li><a href="#docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil" id="toc-docs__de__manual__example-configurationmd__kleine-python-konfiguration-mit-lazy-und-oil">Kleine
 Python-Konfiguration mit Lazy und Oil</a>
 <ul>
+<li><a href="#docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren" id="toc-docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren">Kleinere
+Grundkonfiguration automatisch installieren</a></li>
 <li><a href="#docs__de__manual__example-configurationmd__voraussetzungen-installieren" id="toc-docs__de__manual__example-configurationmd__voraussetzungen-installieren">Voraussetzungen
 installieren</a></li>
 <li><a href="#docs__de__manual__example-configurationmd__vorhandene-konfiguration-sichern" id="toc-docs__de__manual__example-configurationmd__vorhandene-konfiguration-sichern">Vorhandene
@@ -2168,6 +2170,34 @@ vorhandene Neovim-Konfiguration und enthält:</p>
 Einrichtung mit <code>vim.pack</code> beschreibt das vorherige Kapitel
 <a href="#docs__de__manual__language-toolsmd__lsp-autovervollständigung-und-linter-einrichten">LSP,
 Autovervollständigung und Linter einrichten</a>.</p>
+<section id="docs__de__manual__example-configurationmd__kleinere-grundkonfiguration-automatisch-installieren" class="level3">
+<h3>Kleinere Grundkonfiguration automatisch installieren</h3>
+<p>Der Dialog
+<code>NVDA-Menü → Neovim Access Link → Komponenten installieren oder aktualisieren...</code>
+bietet die standardmäßig ausgeschaltete Option
+<code>Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren</code>.
+Sie richtet eine kleinere <code>init.lua</code> mit Lazy, Oil, der
+bereits mitgelieferten Access-Link-Kopie sowie Zeilennummern, stabiler
+Zeichenspalte, intelligenter Groß-/Kleinschreibung und einer üblichen
+Anordnung neuer Splits ein. LSP, Sprachserver und Linter gehören nicht
+zu dieser Grundkonfiguration.</p>
+<p>Die Option gilt für alle im selben Dialog ausgewählten Ziele. Findet
+das Add-on dort eine <code>init.lua</code> oder <code>init.vim</code>,
+verschiebt es jede vorhandene Datei zuerst in eine eindeutig benannte
+Sicherung im selben Verzeichnis und installiert erst danach die neue
+<code>init.lua</code>. Der Ergebnisdialog nennt die neue Datei und jeden
+Sicherungspfad. Kann die Sicherung oder der atomare Austausch nicht
+sicher abgeschlossen werden, meldet das Ziel einen Fehler. Symlinks und
+ungewöhnliche Dateitypen werden nicht ersetzt.</p>
+<p>Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und
+Zugriff auf GitHub, um Lazy und Oil herunterzuladen. Die
+Komponentenentfernung löscht weder die erzeugte Konfiguration noch ihre
+Sicherungen.</p>
+<p>Die nachfolgende vollständige Python-Konfiguration ist eine
+umfangreichere Alternative. Verwenden Sie sie, wenn zusätzlich Pyright,
+Ruff und die dokumentierten LSP- und Lintertasten eingerichtet werden
+sollen.</p>
+</section>
 <section id="docs__de__manual__example-configurationmd__voraussetzungen-installieren" class="level3">
 <h3>Voraussetzungen installieren</h3>
 <p>Benötigt werden Neovim 0.12 oder neuer, Git, Node.js mit npm,

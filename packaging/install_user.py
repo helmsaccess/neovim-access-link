@@ -9,7 +9,17 @@ import pathlib
 import shutil
 
 
-def install(source: pathlib.Path, prefix: pathlib.Path) -> None:
+def _starter_config_directory() -> pathlib.Path:
+    configured = os.environ.get("XDG_CONFIG_HOME", "")
+    if "\0" in configured:
+        raise ValueError("XDG_CONFIG_HOME contains a null byte")
+    root = pathlib.Path(configured).expanduser() if configured else pathlib.Path("~/.config").expanduser()
+    if not root.is_absolute():
+        raise ValueError("XDG_CONFIG_HOME must be an absolute path")
+    return root / "nvim"
+
+
+def install(source: pathlib.Path, prefix: pathlib.Path, install_starter_config: bool = False) -> None:
     prefix = prefix.expanduser().resolve()
     bridge_source = source / "bin" / "nvim-nvda-bridge"
     bridge_target = prefix / "bin" / "nvim-nvda-bridge"
@@ -31,13 +41,26 @@ def install(source: pathlib.Path, prefix: pathlib.Path) -> None:
     print(f"installed bridge: {bridge_target}")
     print(f"installed Neovim plugin: {plugin_target}")
     print(f"installed component configuration: {config_target}")
+    if install_starter_config:
+        from starter_config import StarterConfigInstaller
+
+        starter_result = StarterConfigInstaller().install(
+            source / "config" / "starter-init.lua",
+            _starter_config_directory(),
+        )
+        if not starter_result.success:
+            raise RuntimeError(f"{starter_result.message}: {starter_result.diagnostics}")
+        print(f"installed starter configuration: {starter_result.configuration_path}")
+        for backup in starter_result.backup_paths:
+            print(f"backed up Neovim configuration: {backup}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install the bundled Neovim accessibility components")
     parser.add_argument("--prefix", type=pathlib.Path, default=pathlib.Path("~/.local"))
+    parser.add_argument("--install-starter-config", action="store_true")
     args = parser.parse_args()
-    install(pathlib.Path(__file__).resolve().parent, args.prefix)
+    install(pathlib.Path(__file__).resolve().parent, args.prefix, args.install_starter_config)
     return 0
 
 
