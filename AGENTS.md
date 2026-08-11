@@ -82,6 +82,19 @@ take precedence.
   both areas changed, rebuild both. Do not rebuild an unaffected artifact merely to refresh it.
 - Full prerequisites and build checks are documented in `docs/de/development/testing.md`.
 
+## Artifact builds
+
+- Use the developer scripts under `tools/`; do not invoke root-level `build.py` or `build.cmd`,
+  which are parameterless convenience entry points for end users building on Windows.
+- Run `tools/build_documentation.sh [HTML_OUTPUT_DIR] [ARCHIVE_OUTPUT_DIR]` to generate all eight
+  localized HTML files, synchronize the installed copies, and create the documentation ZIP.
+  The optional directories default to `build/docs` and `dist`.
+- Run `python3 tools/build_nvda_addon.py` without arguments to create the `.nvda-addon` in `dist`.
+  It also builds and embeds the server-component package. When documentation and add-on content
+  both changed, build documentation first so the add-on contains the final HTML.
+- `python3 tools/build_user_package.py` takes no arguments and creates the standalone server-
+  component archive in `dist`; normally let the add-on builder invoke it.
+
 ## Git, versioning, and releases
 
 - Never use destructive Git operations. Do not push, merge, tag, release, or otherwise publish
