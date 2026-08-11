@@ -9,13 +9,15 @@ function M.normalize(fixture)
   return fixture
 end
 
-function M.problems(fixture)
+function M.verify(fixture)
   fixture = M.normalize(fixture)
   local git = vim.fn.exepath("git")
   if git == "" then
-    return { "git unavailable" }
+    return { "git unavailable" }, {}, {}
   end
   local problems = {}
+  local verified_revisions = {}
+  local verified_absent = {}
   for _, plugin in ipairs(fixture.plugins) do
     local directory = vim.fs.joinpath(fixture.root, plugin.name)
     if not vim.uv.fs_stat(directory) then
@@ -26,15 +28,19 @@ function M.problems(fixture)
       local revision = type(result.stdout) == "string" and vim.trim(result.stdout) or ""
       if result.code ~= 0 or revision ~= plugin.expectedRevision then
         problems[#problems + 1] = plugin.name .. " revision mismatch"
+      else
+        verified_revisions[#verified_revisions + 1] = plugin.name
       end
     end
   end
   for _, directory in ipairs(fixture.absent) do
     if vim.uv.fs_stat(directory) then
       problems[#problems + 1] = vim.fs.basename(directory) .. " still present"
+    else
+      verified_absent[#verified_absent + 1] = vim.fs.basename(directory)
     end
   end
-  return problems
+  return problems, verified_revisions, verified_absent
 end
 
 return M

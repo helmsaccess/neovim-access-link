@@ -47,7 +47,8 @@ local human_messages = language == "de" and {
   quickfix_first = "Bereits beim ersten Quickfix-Treffer.",
   quickfix_last = "Bereits beim letzten Quickfix-Treffer.",
   lazy_action_unavailable = "Diese Lazy-Aufgabe hat keine vorbereitete Verwaltungsaktion.",
-  lazy_verified = "Lazy-Testzustand vollständig geprüft.",
+  lazy_verified_revisions = "Installiert und auf erwarteter Git-Revision: %s.",
+  lazy_verified_absent = "Erwartete Entfernung bestätigt: %s.",
   lazy_not_ready = "Lazy-Testzustand ist noch nicht vollständig erreicht: %s",
 } or {
   test_id = "Test ID %s.",
@@ -73,7 +74,8 @@ local human_messages = language == "de" and {
   quickfix_first = "Already at the first Quickfix result.",
   quickfix_last = "Already at the last Quickfix result.",
   lazy_action_unavailable = "This Lazy task has no prepared management action.",
-  lazy_verified = "Lazy test state fully verified.",
+  lazy_verified_revisions = "Installed at the expected Git revision: %s.",
+  lazy_verified_absent = "Expected removal confirmed: %s.",
   lazy_not_ready = "Lazy test state is not complete yet: %s",
 }
 local valid_profiles = {
@@ -525,9 +527,18 @@ local function verify_lazy_fixture()
       vim.log.levels.ERROR)
     return
   end
-  local problems = lazy_fixture_support.problems(lazy_fixture)
+  local problems, verified_revisions, verified_absent =
+    lazy_fixture_support.verify(lazy_fixture)
   if #problems == 0 then
-    vim.notify(human_messages.lazy_verified)
+    local facts = {
+      string.format(human_messages.lazy_verified_revisions,
+        table.concat(verified_revisions, ", ")),
+    }
+    if #verified_absent > 0 then
+      facts[#facts + 1] = string.format(human_messages.lazy_verified_absent,
+        table.concat(verified_absent, ", "))
+    end
+    vim.notify(table.concat(facts, " "))
   else
     vim.notify(string.format(human_messages.lazy_not_ready,
       table.concat(problems, ", ")), vim.log.levels.ERROR)

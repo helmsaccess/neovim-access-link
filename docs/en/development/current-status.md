@@ -156,7 +156,8 @@ conversion and irrelevant Git output. Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 Optional empty path lists remain real JSON arrays in the PowerShell runner;
 the Lua verifier additionally normalizes older or external JSON `null` before
-F5 checks the actual Git states.
+F5 checks the actual Git states. Its confirmation names only targets proven to
+be at the expected revision and, where applicable, the target proven absent.
 For a real Lazy buffer the plugin also carries the first contiguous text block,
 bounded to 2,048 UTF-8 bytes. Rendering makes it available only after the
 initial context transition; Access Link then speaks it exactly once as the

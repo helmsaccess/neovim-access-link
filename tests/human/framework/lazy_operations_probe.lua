@@ -140,7 +140,12 @@ local fixture = {
 local fixture_support = dofile(vim.fs.joinpath(
   vim.fs.dirname(plugin_root), "tests", "human", "framework", "lazy_fixture.lua"))
 fixture_support.normalize(fixture)
-local verification_problems = fixture_support.problems(fixture)
+local verification_problems, verified_revisions, verified_absent =
+  fixture_support.verify(fixture)
 assert(#verification_problems == 0,
   "F5 fixture verification failed: " .. table.concat(verification_problems, ", "))
+assert(#verified_revisions == #specifications,
+  "F5 fixture verification omitted an expected Git revision")
+assert(#verified_absent == (mode == "sync" and 1 or 0),
+  "F5 fixture verification omitted an expected removal")
 print(string.format("Lazy %s probe passed", mode))

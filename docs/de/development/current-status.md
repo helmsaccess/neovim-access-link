@@ -166,7 +166,9 @@ Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die
 Lua-Verifikation normalisiert zusätzlich älteres oder fremdes JSON-`null`,
-bevor F5 die tatsächlichen Git-Zustände prüft.
+bevor F5 die tatsächlichen Git-Zustände prüft. Die Bestätigung nennt nur die
+belegten Ziele mit erwarteter Revision sowie gegebenenfalls das nachweislich
+entfernte Ziel.
 Im echten Lazy-Puffer überträgt das Plugin außerdem den auf 2048 UTF-8-Byte
 begrenzten ersten zusammenhängenden Textblock. Er erscheint beim Rendern erst
 nach dem anfänglichen Kontextwechsel; Access Link spricht ihn dann genau einmal

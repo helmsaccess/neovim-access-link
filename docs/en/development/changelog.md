@@ -28,7 +28,8 @@ test-build entries through August 5, 2026.
   opening its UI in headless mode; local fixture repositories run without
   line-ending conversion or distracting Git progress output.
   The F5 final-state check treats an empty optional path list consistently as
-  an array instead of Lua `vim.NIL`.
+  an array instead of Lua `vim.NIL` and names the revisions and removals it
+  actually confirmed.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.
