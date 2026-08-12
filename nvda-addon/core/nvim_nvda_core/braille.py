@@ -195,7 +195,11 @@ def _plugin_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
 
 def _append_tutor_status(plan: BraillePlan, state: dict[str, Any], line: str) -> BraillePlan:
     status = state.get("tutorExerciseStatus")
-    if state.get("filetype") != "tutor" or status not in {"correct", "incorrect"}:
+    if (
+        state.get("filetype") != "tutor"
+        or not isinstance(status, str)
+        or status not in {"correct", "incorrect"}
+    ):
         return plan
     marker = "✓" if status == "correct" else "✗"
     routing = plan.routing_byte_columns

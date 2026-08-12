@@ -79,7 +79,8 @@ jobs:
           echo "$PWD/$TUTOR_NEOVIM_DIRECTORY/bin" >> "$GITHUB_PATH"
       - name: Test native Tutor marks and the real TUI event path
         run: |
-          nvim --headless -n -u NONE -i NONE --cmd "luafile neovim-plugin/tests/tutor_spec.lua"
+          nvim --headless -n -u NONE -i NONE --cmd "set packpath=" \
+            -l neovim-plugin/tests/tutor_spec.lua
           PYTHONDONTWRITEBYTECODE=1 \
             PYTHONPATH=protocol/python:bridge/python:nvda-addon/core \
             python3 -m unittest -v \

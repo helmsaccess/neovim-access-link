@@ -73,8 +73,9 @@ end
 
 local function check_changed(event)
   local buf = event.buf
-  if not tutor_buffer(buf) then return end
-  local line = vim.api.nvim_win_get_cursor(0)[1]
+  if not tutor_buffer(buf) or vim.api.nvim_get_current_buf() ~= buf then return end
+  local win = vim.api.nvim_get_current_win()
+  local line = vim.api.nvim_win_get_cursor(win)[1]
   local before = observed[buf] and observed[buf][line] or nil
   pending[buf] = pending[buf] or {}
   local generation = (pending[buf][line] or 0) + 1
@@ -90,7 +91,8 @@ local function check_changed(event)
     observed[buf][line] = after
     if before and after and after ~= before
       and vim.api.nvim_get_current_buf() == buf
-      and vim.api.nvim_win_get_cursor(0)[1] == line then
+      and vim.api.nvim_get_current_win() == win
+      and vim.api.nvim_win_get_cursor(win)[1] == line then
       emit_event("tutorExerciseChanged", event.event, { tutorExerciseStatus = after })
     end
   end)

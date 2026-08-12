@@ -130,6 +130,9 @@ class SshStdioClientTests(unittest.TestCase):
             factory.create("tutorExerciseChanged", {
                 "filetype": "tutor", "tutorExerciseStatus": "unknown",
             }),
+            factory.create("tutorExerciseChanged", {
+                "filetype": "tutor", "tutorExerciseStatus": {},
+            }),
         ))
         process = FakeProcess(STDIO_MARKER + stream)
         client = SshStdioClient(

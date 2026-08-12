@@ -67,6 +67,11 @@ class SpeechPlannerTests(unittest.TestCase):
             filetype="lua",
             tutorExerciseStatus="correct",
         )))
+        self.assertEqual([], planner.plan(event(
+            "tutorExerciseChanged",
+            filetype="tutor",
+            tutorExerciseStatus=[],
+        )))
         line = SpeechPlanner(translate=lambda message: translations.get(message, message)).plan(event(
             "fullState",
             line="The cow jumped",
@@ -93,6 +98,14 @@ class SpeechPlannerTests(unittest.TestCase):
         })
         self.assertEqual("The cow", ordinary.text)
         self.assertIsNone(ordinary.routing_byte_columns)
+        malformed = plan_braille({
+            "lineText": "The cow",
+            "cursor": {"characterColumn": 0},
+            "filetype": "tutor",
+            "tutorExerciseStatus": {},
+        })
+        self.assertEqual("The cow", malformed.text)
+        self.assertIsNone(malformed.routing_byte_columns)
 
     def test_tutor_braille_preserves_complex_source_mapping_and_selection(self) -> None:
         state = {

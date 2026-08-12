@@ -26,6 +26,8 @@ class TutorPublicStateTests(unittest.TestCase):
 			{"filetype": "tutor", "tutorExerciseStatus": "unknown"},
 			{"filetype": "tutor", "tutorExerciseStatus": True},
 			{"filetype": "tutor", "tutorExerciseStatus": None},
+			{"filetype": "tutor", "tutorExerciseStatus": []},
+			{"filetype": "tutor", "tutorExerciseStatus": {}},
 		):
 			with self.subTest(payload=payload):
 				self.assertNotIn("tutorExerciseStatus", tutor_public_state(payload))
@@ -38,6 +40,9 @@ class TutorPublicStateTests(unittest.TestCase):
 			{"filetype": "tutor"},
 			{"filetype": "lua", "tutorExerciseStatus": "correct"},
 			{"filetype": "tutor", "tutorExerciseStatus": "unknown"},
+			{"filetype": "tutor", "tutorExerciseStatus": []},
+			{"filetype": "tutor", "tutorExerciseStatus": {}},
+			[],
 		):
 			with self.subTest(payload=payload):
 				self.assertFalse(valid_tutor_exercise_changed(payload))

@@ -85,7 +85,10 @@ namensgebundenen `nvim.tutor.mark`-Extmarks von Neovim 0.12 mit den exakten
 Tutor-Hervorhebungen und Zeichen `✓`/`✗`. Andere Extmarks, Dateitypen,
 ungültig gewordene oder mehrdeutige Markierungen erzeugen keinen Zustand. Das
 flüchtige Ereignis `tutorExerciseChanged` wird nur nach einem tatsächlich
-beobachteten Wechsel dieses Zustands ausgegeben. Lokaler Client, SSH-Client und
+beobachteten Wechsel dieses Zustands und nur im unveränderten Buffer-, Fenster-
+und Zeilenkontext ausgegeben. Bei einem Kontextwechsel wird nur der gemerkte
+Zustand aktualisiert; die aktuelle Bewertung bleibt beim späteren Lesen
+verfügbar. Lokaler Client, SSH-Client und
 Bridge entfernen ungültige optionale Zustandsfelder und verwerfen ein
 ungültiges Übergangsereignis, bevor es den kanonischen Zustand erreicht. Unter
 Neovim 0.10 registriert das Plugin keine Tutor-Beobachter und sendet kein

@@ -2666,14 +2666,17 @@ speech, Braille, and contextual NVDA commands. Spelling feedback follows
 NVDA&#39;s separate document formatting settings.</li>
 <li>Neovim&#39;s built-in <code>:Tutor</code> remains entirely owned by
 Neovim. Access Link reads only its unambiguous native extmarks in Tutor
-buffers on Neovim 0.12 and later, speaks status transitions and the
+buffers on Neovim 0.12 and later, speaks status transitions only while
+the buffer, window, and line context remain unchanged, includes the
 assessment when the line is read again, and persistently shows a
 non-routable <code>✓</code> or <code>✗</code> after the Braille line
 text. A buffer-local text observer is created only inside a Tutor
-buffer; there is no polling or additional control traffic. On Neovim
-0.10, Tutor remains unchanged with Neovim and Access Link registers no
-Tutor observers. Both boundaries and the 0.12 path have headless
-coverage; the 0.12 path also has an isolated real-TUI test.</li>
+buffer; there is no polling or additional control traffic. Values of
+other types or outside this context are rejected before canonical state.
+On Neovim 0.10, Tutor remains unchanged with Neovim and Access Link
+registers no Tutor observers. Both boundaries and the 0.12 path have
+headless coverage; the 0.12 path also has an isolated real-TUI
+test.</li>
 </ul>
 </section>
 <section id="docs__en__development__current-statusmd__development-tools-terminal-and-files" class="level4">
@@ -3893,11 +3896,13 @@ namespace-bound <code>nvim.tutor.mark</code> extmarks with the exact
 Tutor highlight groups and <code>✓</code>/<code>✗</code> signs. Other
 extmarks, filetypes, invalidated marks, or ambiguous marks produce no
 state. The transient <code>tutorExerciseChanged</code> event is emitted
-only after an actually observed transition of that state. The local
-client, SSH client, and bridge remove invalid optional state fields and
-reject an invalid transition event before it reaches canonical state. On
-Neovim 0.10, the plugin registers no Tutor observers and sends no Tutor
-field.</p>
+only after an actually observed transition of that state and only while
+the buffer, window, and line context remain unchanged. A context change
+updates only the remembered state; the current assessment remains
+available when the line is read later. The local client, SSH client, and
+bridge remove invalid optional state fields and reject an invalid
+transition event before it reaches canonical state. On Neovim 0.10, the
+plugin registers no Tutor observers and sends no Tutor field.</p>
 </section>
 <section id="docs__en__development__protocolmd__session-start-ordering-and-resync" class="level3">
 <h3>Session start, ordering, and resync</h3>
@@ -5791,13 +5796,15 @@ August 5, 2026.</p>
 <ul>
 <li>Makes Neovim&#39;s built-in <code>:Tutor</code> specifically more
 accessible without adding separate tutorial logic. From Neovim 0.12,
-genuine unambiguous Tutor extmarks provide localized announcements when
-an assessment changes, the assessment when its line is read again, and
-persistent non-routable Braille markers. Other buffers and extmarks
-remain untouched. Invalid transitions are rejected before canonical
-state, while existing Braille routing and source mappings are preserved.
-On Neovim 0.10 the Tutor path is fully inactive and registers no
-observers. Isolated headless boundary tests and a real 0.12.3 TUI
+recognized, unambiguous native Tutor extmarks provide localized
+announcements when an assessment changes, the assessment when its line
+is read again, and persistent non-routable Braille markers. Other
+buffers and extmarks remain untouched. Invalid transitions, including
+structurally invalid JSON values, are rejected before canonical state,
+while existing Braille routing and source mappings are preserved. On
+Neovim 0.10 the Tutor path is fully inactive and registers no observers.
+Transition announcements remain bound to the same buffer, window, and
+line context. Isolated headless boundary tests and a real 0.12.3 TUI
 contract test cover the scope.</li>
 <li>Restores NVDA&#39;s normal terminal behavior immediately after a remote
 Neovim instance exits. The SSH client now treats the authenticated

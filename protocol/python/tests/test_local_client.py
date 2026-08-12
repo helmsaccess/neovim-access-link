@@ -127,6 +127,8 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertEqual("incorrect", client._state["tutorExerciseStatus"])
 		source.on_event("tutorExerciseChanged", {**payload, "tutorExerciseStatus": "unknown"})
 		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		source.on_event("tutorExerciseChanged", {**payload, "tutorExerciseStatus": []})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
 		self.assertEqual(2, len(events))
 		self.assertEqual("incorrect", client._state["tutorExerciseStatus"])
 

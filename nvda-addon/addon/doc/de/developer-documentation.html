@@ -2767,14 +2767,17 @@ folgt NVDAs getrennten Dokumentformatierungsoptionen.</li>
 <li>Neovims eingebauter <code>:Tutor</code> bleibt vollständig
 Neovim-eigen. Access Link liest ab Neovim 0.12 ausschließlich dessen
 native, eindeutige Extmarks in Tutor-Puffern, spricht Zustandswechsel
-und die Bewertung beim erneuten Lesen der Zeile und zeigt <code>✓</code>
+nur im unveränderten Buffer-, Fenster- und Zeilenkontext sowie die
+Bewertung beim erneuten Lesen der Zeile und zeigt <code>✓</code>
 beziehungsweise <code>✗</code> dauerhaft, aber nicht routbar, hinter dem
 Braille-Zeilentext. Ein bufferlokaler Textbeobachter entsteht erst im
 Tutor-Puffer; es gibt kein Polling und keine zusätzlichen
-Steuerungsnachrichten. Unter Neovim 0.10 bleibt Tutor unverändert bei
-Neovim, und Access Link registriert dafür keine Beobachter. Beide
-Grenzen sowie der 0.12-Pfad sind headless, der 0.12-Pfad zusätzlich über
-eine isolierte echte TUI automatisiert geprüft.</li>
+Steuerungsnachrichten. Zustandswerte anderer Typen oder außerhalb dieses
+Kontexts werden vor der kanonischen Zustandsübernahme verworfen. Unter
+Neovim 0.10 bleibt Tutor unverändert bei Neovim, und Access Link
+registriert dafür keine Beobachter. Beide Grenzen sowie der 0.12-Pfad
+sind headless, der 0.12-Pfad zusätzlich über eine isolierte echte TUI
+automatisiert geprüft.</li>
 </ul>
 </section>
 <section id="docs__de__development__current-statusmd__entwicklungswerkzeuge-terminal-und-dateien" class="level4">
@@ -4082,11 +4085,14 @@ Tutor-Hervorhebungen und Zeichen <code>✓</code>/<code>✗</code>. Andere
 Extmarks, Dateitypen, ungültig gewordene oder mehrdeutige Markierungen
 erzeugen keinen Zustand. Das flüchtige Ereignis
 <code>tutorExerciseChanged</code> wird nur nach einem tatsächlich
-beobachteten Wechsel dieses Zustands ausgegeben. Lokaler Client,
-SSH-Client und Bridge entfernen ungültige optionale Zustandsfelder und
-verwerfen ein ungültiges Übergangsereignis, bevor es den kanonischen
-Zustand erreicht. Unter Neovim 0.10 registriert das Plugin keine
-Tutor-Beobachter und sendet kein Tutor-Feld.</p>
+beobachteten Wechsel dieses Zustands und nur im unveränderten Buffer-,
+Fenster- und Zeilenkontext ausgegeben. Bei einem Kontextwechsel wird nur
+der gemerkte Zustand aktualisiert; die aktuelle Bewertung bleibt beim
+späteren Lesen verfügbar. Lokaler Client, SSH-Client und Bridge
+entfernen ungültige optionale Zustandsfelder und verwerfen ein
+ungültiges Übergangsereignis, bevor es den kanonischen Zustand erreicht.
+Unter Neovim 0.10 registriert das Plugin keine Tutor-Beobachter und
+sendet kein Tutor-Feld.</p>
 <p>Dateimanagerzustand enthält nur begrenzte semantische Werte.
 Eintragsnamen sind auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte
 sowie Typ- und Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin
@@ -6194,13 +6200,15 @@ zum 5. August 2026.</p>
 <ul>
 <li>Macht Neovims eingebauten <code>:Tutor</code> gezielt zugänglicher,
 ohne eine eigene Tutorial-Logik einzuführen. Ab Neovim 0.12 liefern
-echte, eindeutige Tutor-Extmarks lokalisierte Meldungen bei einer
-geänderten Bewertung, die Bewertung beim erneuten Lesen der Zeile und
-dauerhafte, nicht routbare Braillemarker. Andere Buffer und Extmarks
+eindeutig erkannte native Tutor-Extmarks lokalisierte Meldungen bei
+einer geänderten Bewertung, die Bewertung beim erneuten Lesen der Zeile
+und dauerhafte, nicht routbare Braillemarker. Andere Buffer und Extmarks
 bleiben unberührt. Ungültige Übergänge werden vor dem kanonischen
-Zustand verworfen, und vorhandene Braille-Routing- und Quellzuordnungen
-bleiben erhalten. Unter Neovim 0.10 ist der Tutor-Pfad ohne Beobachter
-vollständig inaktiv. Isolierte Headless-Grenztests und ein echter
+Zustand verworfen; das gilt auch für strukturwidrige JSON-Werte.
+Vorhandene Braille-Routing- und Quellzuordnungen bleiben erhalten. Unter
+Neovim 0.10 ist der Tutor-Pfad ohne Beobachter vollständig inaktiv.
+Übergangsmeldungen bleiben an denselben Buffer-, Fenster- und
+Zeilenkontext gebunden. Isolierte Headless-Grenztests und ein echter
 0.12.3-TUI-Vertragstest decken den Umfang ab.</li>
 <li>Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs
 normales Terminalverhalten sofort wieder her. Der SSH-Client behandelt

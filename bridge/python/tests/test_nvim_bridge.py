@@ -72,6 +72,9 @@ class NvimBridgeTests(unittest.TestCase):
 		bridge._on_nvim_event(
 			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": "arbitrary"},
 		)
+		bridge._on_nvim_event(
+			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": []},
+		)
 		self.assertEqual(1, len(transport.events))
 		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
 

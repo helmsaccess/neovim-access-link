@@ -82,7 +82,10 @@ is wrong.
 namespace-bound `nvim.tutor.mark` extmarks with the exact Tutor highlight
 groups and `✓`/`✗` signs. Other extmarks, filetypes, invalidated marks, or
 ambiguous marks produce no state. The transient `tutorExerciseChanged` event
-is emitted only after an actually observed transition of that state. The local
+is emitted only after an actually observed transition of that state and only
+while the buffer, window, and line context remain unchanged. A context change
+updates only the remembered state; the current assessment remains available
+when the line is read later. The local
 client, SSH client, and bridge remove invalid optional state fields and reject
 an invalid transition event before it reaches canonical state. On Neovim 0.10,
 the plugin registers no Tutor observers and sends no Tutor field.

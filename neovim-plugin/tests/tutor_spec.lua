@@ -18,6 +18,9 @@ local function emit(event_type, reason, payload)
 end
 local enabled = tutor.setup(emit, group)
 local initial_autocmds = vim.api.nvim_get_autocmds({ group = group })
+local ordinary_snapshot = state.snapshot("ordinaryBuffer")
+equal(nil, ordinary_snapshot.tutorExerciseStatus,
+  "ordinary buffer has no Tutor protocol state")
 
 vim.cmd("runtime plugin/tutor.vim")
 vim.cmd("Tutor")
@@ -95,11 +98,32 @@ equal({ "tutorExerciseChanged", "incorrect" }, {
   events[2] and events[2].payload.tutorExerciseStatus,
 }, "correct-to-incorrect transition")
 
+local namespace = vim.api.nvim_get_namespaces()["nvim.tutor.mark"]
+local current_marks = vim.api.nvim_buf_get_extmarks(
+  buf, namespace, { line - 1, 0 }, { line - 1, -1 }, { details = true }
+)
+local current_id = current_marks[1] and current_marks[1][1]
+assert(current_id, "native Tutor extmark is required for disappearance test")
+vim.api.nvim_buf_del_extmark(buf, namespace, current_id)
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
+vim.wait(50)
+equal(nil, tutor.status(buf, line), "disappeared Tutor marker clears current status")
+equal(2, #events, "disappeared Tutor marker emits no assessment")
+vim.api.nvim_buf_set_extmark(buf, namespace, line - 1, 0, {
+  id = current_id,
+  sign_text = "✗ ",
+  sign_hl_group = "tutorX",
+  invalidate = true,
+})
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
+vim.wait(50)
+equal("incorrect", tutor.status(buf, line), "reappeared Tutor marker restores current status")
+equal(2, #events, "reappeared Tutor marker emits no invented transition")
+
 vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
 vim.wait(50)
 equal(2, #events, "unchanged incorrect exercise remains quiet")
 
-local namespace = vim.api.nvim_get_namespaces()["nvim.tutor.mark"]
 local extra = vim.api.nvim_buf_set_extmark(buf, namespace, line - 1, 0, {
   sign_text = "?", sign_hl_group = "TutorExtra",
 })
@@ -131,6 +155,24 @@ vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
 vim.wait(1000, function() return #events == 3 end, 10)
 equal("incorrect", events[3] and events[3].payload.tutorExerciseStatus,
   "next edit compares with the refreshed hidden state")
+
+-- Switching to another window showing the same buffer and line is still a
+-- context change. Keep the new status, but do not announce it in that window.
+vim.api.nvim_buf_set_text(buf, line - 1, #expected, line - 1, #expected + 1, {})
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
+local edit_window = vim.api.nvim_get_current_win()
+vim.cmd("split")
+local other_window = vim.api.nvim_get_current_win()
+assert(other_window ~= edit_window, "Tutor window-switch test requires two windows")
+vim.wait(50)
+equal(3, #events, "window change suppresses the transient assessment")
+equal("correct", tutor.status(buf, line), "window change preserves current assessment")
+vim.api.nvim_win_close(other_window, true)
+vim.api.nvim_buf_set_text(buf, line - 1, #expected, line - 1, #expected, { "x" })
+vim.api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
+vim.wait(1000, function() return #events == 4 end, 10)
+equal("incorrect", events[4] and events[4].payload.tutorExerciseStatus,
+  "next edit compares with the state refreshed across windows")
 
 local native_marks = vim.api.nvim_buf_get_extmarks(
   buf, namespace, { line - 1, 0 }, { line - 1, -1 }, { details = true }

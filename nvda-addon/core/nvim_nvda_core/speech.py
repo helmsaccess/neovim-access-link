@@ -277,7 +277,11 @@ class SpeechPlanner:
             ))
         elif kind == "tutorExerciseChanged":
             status = state.get("tutorExerciseStatus")
-            if state.get("filetype") == "tutor" and status in {"correct", "incorrect"}:
+            if (
+                state.get("filetype") == "tutor"
+                and isinstance(status, str)
+                and status in {"correct", "incorrect"}
+            ):
                 text = self._translate(
                     translatable("exercise correct")
                     if status == "correct"
@@ -875,6 +879,7 @@ class SpeechPlanner:
         tutor_status = state.get("tutorExerciseStatus")
         tutor_line_announcement = (
             state.get("filetype") == "tutor"
+            and isinstance(tutor_status, str)
             and tutor_status in {"correct", "incorrect"}
             and (
                 kind in {"fullState", "focusContext", "contextChanged", "lineChanged"}
