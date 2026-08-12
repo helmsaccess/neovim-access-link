@@ -6,6 +6,12 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs normales
+  Terminalverhalten sofort wieder her. Der SSH-Client behandelt den
+  authentifizierten Bridge-Status `disconnected` jetzt als
+  Verbindungslebenszyklus statt als gewöhnliches Editorereignis, auch wenn SSH
+  und Bridge weiterlaufen. Ungültige Statuswerte werden verworfen und ein
+  späterer Reconnect benötigt erneut ein gültiges `fullState`.
 - Ergänzt im Komponenten-Dialog eine standardmäßig unveränderte
   Konfigurationsauswahl mit einer Grundkonfiguration aus Lazy, Oil, der
   gebündelten Access-Link-Kopie, echten Tabulatorzeichen in einem

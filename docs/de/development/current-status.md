@@ -67,6 +67,9 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.
+  Beim Ende einer entfernten Neovim-Instanz übersetzt der SSH-Client den
+  Bridge-Lebenszyklusstatus unmittelbar in denselben Fail-open-Pfad wie eine
+  lokale RPC-Trennung, auch wenn SSH-Prozess und Bridge weiterlaufen.
 - Windows-Terminal-Ereignisse und `nextHandler` gehören dem AppModule.
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin

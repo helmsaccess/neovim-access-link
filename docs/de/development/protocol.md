@@ -175,6 +175,14 @@ zusätzlich `ServerAliveInterval=5` und `ServerAliveCountMax=2`; dadurch erkennt
 OpenSSH einen abgebrochenen Transport und der Add-on-Client verbindet sich mit
 begrenztem exponentiellem Backoff neu.
 
+Der SSH-Prozess und die Bridge können weiterlaufen, nachdem die ausgewählte
+Neovim-Instanz endet. Die Bridge sendet dann ein sequenziertes
+`connectionStateChanged` mit `connection.neovim=disconnected`. Der SSH-Client
+übersetzt dieses interne Lebenszyklusereignis unmittelbar in seinen bestehenden
+Verbindungsstatus-Callback und gibt die betroffene Terminalzuordnung fail-open
+frei; es wird nicht als Editorereignis ausgegeben. Erst ein anschließendes
+gültiges `fullState` authentifiziert dieselbe Transportinstanz erneut.
+
 Der lokale Client besitzt keinen separaten Heartbeat: Ein geschlossener
 Neovim-RPC-Socket erzeugt `disconnected`; Reconnect verwendet ebenfalls
 begrenzten Backoff. Ein gültiger `fullState` ist auch lokal die erste

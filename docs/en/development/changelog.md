@@ -6,6 +6,11 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Restores NVDA's normal terminal behavior immediately after a remote Neovim
+  instance exits. The SSH client now treats the authenticated bridge
+  `disconnected` state as connection lifecycle rather than an ordinary editor
+  event, even while SSH and the bridge remain alive. Invalid state values are
+  rejected, and a later reconnect again requires a valid `fullState`.
 - Adds a component-dialog configuration choice that remains unchanged by
   default and can install a basic configuration with Lazy, Oil, the bundled
   Access Link copy, actual tab characters on two-column tab stops, disabled

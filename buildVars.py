@@ -9,7 +9,7 @@ from pathlib import Path
 
 product_version = "0.98.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 6
+development_build: int | None = 1
 release_channel = "beta"
 
 addon_info = {

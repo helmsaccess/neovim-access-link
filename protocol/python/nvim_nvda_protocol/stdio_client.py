@@ -179,14 +179,28 @@ class SshStdioClient:
             for event in decoder.feed(data):
                 disposition = tracker.observe(event)
                 if disposition == "accept":
+                    if event["type"] == "connectionStateChanged":
+                        connection = event["payload"].get("connection")
+                        state = connection.get("neovim") if isinstance(connection, dict) else None
+                        if state not in {"connected", "disconnected"}:
+                            raise ProtocolError("invalid Neovim connection state")
+                        if state == "disconnected":
+                            if authenticated:
+                                self.on_connection_state("disconnected")
+                            authenticated = False
+                        # This bridge-internal lifecycle event is translated to
+                        # the existing connection callback. It is not editor
+                        # state and must never reach presentation planning.
+                        continue
+                    if event["type"] == "heartbeat":
+                        continue
                     if not authenticated:
                         if event["type"] != "fullState":
                             raise ProtocolError("first stdio event must be fullState")
                         authenticated = True
                         self.on_connection_state("connected")
-                    if event["type"] != "heartbeat":
-                        event["payload"] = plugin_manager_public_state(event["payload"])
-                        self.on_event(event)
+                    event["payload"] = plugin_manager_public_state(event["payload"])
+                    self.on_event(event)
                 elif disposition == "resyncRequired":
                     self.send_control("requestFullState", {})
 

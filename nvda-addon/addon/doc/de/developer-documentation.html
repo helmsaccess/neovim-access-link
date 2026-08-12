@@ -2710,7 +2710,10 @@ Shell-Sitzungen.</li>
 <li>Authentifizierung, Sequenzen, Heartbeats, Resync und
 Fokuskorrelation begrenzen den dauerhaften Pfad. Trennung, ungültiger
 Zustand oder unsichere Fokusidentität geben NVDAs natives
-Terminalverhalten fail-open frei.</li>
+Terminalverhalten fail-open frei. Beim Ende einer entfernten
+Neovim-Instanz übersetzt der SSH-Client den Bridge-Lebenszyklusstatus
+unmittelbar in denselben Fail-open-Pfad wie eine lokale RPC-Trennung,
+auch wenn SSH-Prozess und Bridge weiterlaufen.</li>
 <li>Windows-Terminal-Ereignisse und <code>nextHandler</code> gehören dem
 AppModule. Getrennte Dienste besitzen Fokus, Sitzungszuordnung,
 Verbindungen, Editorzustand, Einstellungen, Präsentation und Laufzeit.
@@ -4154,6 +4157,15 @@ Der SSH-Prozess nutzt zusätzlich <code>ServerAliveInterval=5</code> und
 <code>ServerAliveCountMax=2</code>; dadurch erkennt OpenSSH einen
 abgebrochenen Transport und der Add-on-Client verbindet sich mit
 begrenztem exponentiellem Backoff neu.</p>
+<p>Der SSH-Prozess und die Bridge können weiterlaufen, nachdem die
+ausgewählte Neovim-Instanz endet. Die Bridge sendet dann ein
+sequenziertes <code>connectionStateChanged</code> mit
+<code>connection.neovim=disconnected</code>. Der SSH-Client übersetzt
+dieses interne Lebenszyklusereignis unmittelbar in seinen bestehenden
+Verbindungsstatus-Callback und gibt die betroffene Terminalzuordnung
+fail-open frei; es wird nicht als Editorereignis ausgegeben. Erst ein
+anschließendes gültiges <code>fullState</code> authentifiziert dieselbe
+Transportinstanz erneut.</p>
 <p>Der lokale Client besitzt keinen separaten Heartbeat: Ein
 geschlossener Neovim-RPC-Socket erzeugt <code>disconnected</code>;
 Reconnect verwendet ebenfalls begrenzten Backoff. Ein gültiger
@@ -6133,6 +6145,13 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
+<li>Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs
+normales Terminalverhalten sofort wieder her. Der SSH-Client behandelt
+den authentifizierten Bridge-Status <code>disconnected</code> jetzt als
+Verbindungslebenszyklus statt als gewöhnliches Editorereignis, auch wenn
+SSH und Bridge weiterlaufen. Ungültige Statuswerte werden verworfen und
+ein späterer Reconnect benötigt erneut ein gültiges
+<code>fullState</code>.</li>
 <li>Ergänzt im Komponenten-Dialog eine standardmäßig unveränderte
 Konfigurationsauswahl mit einer Grundkonfiguration aus Lazy, Oil, der
 gebündelten Access-Link-Kopie, echten Tabulatorzeichen in einem

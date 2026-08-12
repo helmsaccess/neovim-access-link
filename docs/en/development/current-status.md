@@ -61,6 +61,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.
+  When a remote Neovim instance ends, the SSH client immediately translates
+  the bridge lifecycle state to the same fail-open path as a local RPC
+  disconnect, even while the SSH process and bridge remain alive.
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
   presentation, and runtime. The Global Plugin remains the process-wide NVDA

@@ -2611,7 +2611,10 @@ exact focused Windows Terminal control. Multiple windows, tabs, and
 panes retain independent local, remote, or ordinary shell sessions.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
-focus identity restore NVDA&#39;s native terminal behavior fail-open.</li>
+focus identity restore NVDA&#39;s native terminal behavior fail-open. When a
+remote Neovim instance ends, the SSH client immediately translates the
+bridge lifecycle state to the same fail-open path as a local RPC
+disconnect, even while the SSH process and bridge remain alive.</li>
 <li>The AppModule owns Windows Terminal events and
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
@@ -3883,6 +3886,15 @@ OpenSSH also uses <code>ServerAliveInterval=5</code> and
 exponential backoff. The local client has no separate heartbeat: a
 closed RPC socket produces <code>disconnected</code>, followed by
 bounded reconnect.</p>
+<p>The SSH process and bridge can remain alive after the selected Neovim
+instance ends. The bridge then sends a sequenced
+<code>connectionStateChanged</code> with
+<code>connection.neovim=disconnected</code>. The SSH client immediately
+translates this internal lifecycle event to its existing
+connection-state callback and releases the affected terminal association
+fail-open; it is not published as an editor event. Only a subsequent
+valid <code>fullState</code> authenticates the same transport instance
+again.</p>
 <p>For both transports, the first valid <code>fullState</code> is the
 add-on&#39;s accessibility authentication point.</p>
 </section>
@@ -5733,6 +5745,12 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
 <ul>
+<li>Restores NVDA&#39;s normal terminal behavior immediately after a remote
+Neovim instance exits. The SSH client now treats the authenticated
+bridge <code>disconnected</code> state as connection lifecycle rather
+than an ordinary editor event, even while SSH and the bridge remain
+alive. Invalid state values are rejected, and a later reconnect again
+requires a valid <code>fullState</code>.</li>
 <li>Adds a component-dialog configuration choice that remains unchanged
 by default and can install a basic configuration with Lazy, Oil, the
 bundled Access Link copy, actual tab characters on two-column tab stops,

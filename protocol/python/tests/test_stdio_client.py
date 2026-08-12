@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import unittest
 
-from nvim_nvda_protocol import MessageFactory, SshStdioClient, encode_frame
+from nvim_nvda_protocol import MessageFactory, ProtocolError, SshStdioClient, encode_frame
 from nvim_nvda_protocol.stdio_client import STDIO_MARKER
 
 
@@ -39,6 +39,58 @@ class SshStdioClientTests(unittest.TestCase):
             client._receive(process)
         self.assertEqual(["connected"], states)
         self.assertEqual("hello", events[0]["payload"]["lineText"])
+
+    def test_remote_neovim_disconnect_fails_open_before_ssh_closes(self) -> None:
+        events: list[dict] = []
+        states: list[str] = []
+        factory = MessageFactory()
+        stream = b"".join(
+            encode_frame(event)
+            for event in (
+                factory.create("fullState", {"lineText": "first"}),
+                factory.create(
+                    "connectionStateChanged",
+                    {"connection": {"neovim": "disconnected"}},
+                ),
+                factory.create("heartbeat", {}),
+                factory.create(
+                    "connectionStateChanged",
+                    {"connection": {"neovim": "connected"}},
+                ),
+                factory.create("fullState", {"lineText": "second"}),
+            )
+        )
+        process = FakeProcess(STDIO_MARKER + stream)
+        client = SshStdioClient("example-host", events.append, states.append)
+
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+
+        self.assertEqual(["connected", "disconnected", "connected"], states)
+        self.assertEqual(["fullState", "fullState"], [event["type"] for event in events])
+        self.assertEqual(["first", "second"], [event["payload"]["lineText"] for event in events])
+
+    def test_rejects_invalid_remote_neovim_connection_state(self) -> None:
+        factory = MessageFactory()
+        stream = b"".join(
+            encode_frame(event)
+            for event in (
+                factory.create("fullState", {"lineText": "first"}),
+                factory.create(
+                    "connectionStateChanged",
+                    {"connection": {"neovim": "unknown"}},
+                ),
+            )
+        )
+        process = FakeProcess(STDIO_MARKER + stream)
+        client = SshStdioClient(
+            "example-host",
+            lambda _event: None,
+            lambda _state: None,
+        )
+
+        with self.assertRaisesRegex(ProtocolError, "invalid Neovim connection state"):
+            client._receive(process)
 
     def test_sanitizes_plugin_manager_overview_before_publication(self) -> None:
         events: list[dict] = []

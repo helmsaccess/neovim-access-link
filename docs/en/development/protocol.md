@@ -93,6 +93,14 @@ The bridge normally sends one `heartbeat` per second. OpenSSH also uses
 bounded exponential backoff. The local client has no separate heartbeat: a
 closed RPC socket produces `disconnected`, followed by bounded reconnect.
 
+The SSH process and bridge can remain alive after the selected Neovim instance
+ends. The bridge then sends a sequenced `connectionStateChanged` with
+`connection.neovim=disconnected`. The SSH client immediately translates this
+internal lifecycle event to its existing connection-state callback and releases
+the affected terminal association fail-open; it is not published as an editor
+event. Only a subsequent valid `fullState` authenticates the same transport
+instance again.
+
 For both transports, the first valid `fullState` is the add-on's accessibility
 authentication point.
 
