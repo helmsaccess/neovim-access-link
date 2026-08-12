@@ -77,6 +77,15 @@ the recognized row is collapsed. Other or ambiguous rows provide no state. The
 local client, SSH client, and bridge remove the field when its identity or type
 is wrong.
 
+`tutorExerciseStatus` is valid only with `filetype=tutor` and contains exactly
+`correct` or `incorrect`. The Neovim plugin reads only Tutor's native marks:
+`tutorok`/`tutorbad` for the older sign representation, or the namespace-bound
+`nvim.tutor.mark` extmark with Tutor's highlight groups and `✓`/`✗` signs.
+Other signs, extmarks, filetypes, or ambiguous marks produce no state. The
+transient `tutorExerciseChanged` event is emitted only after an actually
+observed transition of that state. The local client, SSH client, and bridge
+remove the field for a wrong buffer identity or unknown value.
+
 ## Session start, ordering, and resync
 
 The first accepted message in each transport session is `fullState` with

@@ -6,6 +6,12 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Makes Neovim's built-in `:Tutor` specifically more accessible without adding
+  separate tutorial logic. Genuine Tutor exercise marks provide localized
+  announcements when an assessment changes, the assessment when its line is
+  read again, and persistent non-routable Braille markers. Other buffers,
+  signs, and extmarks remain untouched. Isolated headless and TUI contract
+  tests cover Neovim 0.10.1 and 0.12.3.
 - Restores NVDA's normal terminal behavior immediately after a remote Neovim
   instance exits. The SSH client now treats the authenticated bridge
   `disconnected` state as connection lifecycle rather than an ordinary editor

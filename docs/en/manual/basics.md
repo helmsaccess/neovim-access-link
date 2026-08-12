@@ -81,6 +81,9 @@ result and makes it accessible; it does not invent a second editor interface.
 ## Continue learning Neovim
 
 Type `:Tutor` and press `Enter` to start Neovim's interactive course. Use
+exercise lines announce `exercise correct` or `exercise incorrect` when
+Neovim changes its assessment. Reading the line again includes the current
+assessment; Braille persistently shows `✓` or `✗` after the line text. Use
 `:help nvim-intro` for Neovim's introduction. The
 [official online help](https://neovim.io/doc/user/) contains the same basics
 and further chapters.

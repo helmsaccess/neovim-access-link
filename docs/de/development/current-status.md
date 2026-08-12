@@ -116,6 +116,13 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
 - Neovims native `z=`-Vorschläge sind mit Sprache, Braille und kontextbezogenen
   NVDA-Befehlen zugänglich. Rechtschreibfeedback folgt NVDAs getrennten
   Dokumentformatierungsoptionen.
+- Neovims eingebauter `:Tutor` bleibt vollständig Neovim-eigen. Access Link
+  liest ausschließlich dessen native Übungsmarkierungen in Tutor-Puffern,
+  spricht Zustandswechsel und die Bewertung beim erneuten Lesen der Zeile und
+  zeigt `✓` beziehungsweise `✗` dauerhaft, aber nicht routbar, hinter dem
+  Braille-Zeilentext. Die Sign-Darstellung aus Neovim 0.10.1 und die
+  Extmark-Darstellung aus 0.12.3 sind headless und über isolierte echte TUIs
+  automatisiert geprüft.
 
 ### Entwicklungswerkzeuge, Terminal und Dateien
 

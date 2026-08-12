@@ -88,6 +88,10 @@ Editorbedienung.
 ## Neovim weiter lernen
 
 Geben Sie `:Tutor` ein und drücken Sie `Eingabe`, um Neovims interaktiven Kurs
-zu starten. Mit `:help nvim-intro` öffnet Neovim seine Einführung. Die
+zu starten. Auf Übungszeilen meldet Access Link `Übung richtig` oder
+`Übung falsch`, wenn Neovim die Bewertung ändert. Beim erneuten Lesen der
+Zeile wird die vorhandene Bewertung mitgesprochen; Braille zeigt dauerhaft
+`✓` oder `✗` hinter dem Zeilentext. Mit `:help nvim-intro` öffnet Neovim seine
+Einführung. Die
 [offizielle Online-Hilfe](https://neovim.io/doc/user/) enthält dieselben
 Grundlagen und weiterführende Kapitel.

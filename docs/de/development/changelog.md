@@ -6,6 +6,12 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Macht Neovims eingebauten `:Tutor` gezielt zugänglicher, ohne eine eigene
+  Tutorial-Logik einzuführen. Echte Tutor-Übungsmarkierungen liefern
+  lokalisierte Meldungen bei einer geänderten Bewertung, die Bewertung beim
+  erneuten Lesen der Zeile und dauerhafte, nicht routbare Braillemarker. Andere
+  Buffer, Signs und Extmarks bleiben unberührt. Isolierte Headless- und
+  TUI-Vertragstests decken Neovim 0.10.1 und 0.12.3 ab.
 - Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs normales
   Terminalverhalten sofort wieder her. Der SSH-Client behandelt den
   authentifizierten Bridge-Status `disconnected` jetzt als

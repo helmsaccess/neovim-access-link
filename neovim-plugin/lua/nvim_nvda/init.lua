@@ -1075,6 +1075,7 @@ function M.setup()
   lsp_status.setup(emit)
   native_operations.setup(emit, group)
   require("nvim_nvda.plugin_manager").setup(emit, group)
+  require("nvim_nvda.tutor").setup(group)
   require("nvim_nvda.diagnostics").setup(emit, group)
   setup_notifications()
   setup_ui_functions()
@@ -1389,6 +1390,7 @@ function M.setup()
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "TextChangedP" }, {
     group = group,
     callback = function(event)
+      require("nvim_nvda.tutor").text_changed(event, emit)
       if emit_oil_confirmation() then return end
       if suppress_next_text_change then
         suppress_next_text_change = false

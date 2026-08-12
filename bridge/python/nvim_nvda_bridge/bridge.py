@@ -28,6 +28,7 @@ from nvim_nvda_protocol import (
     plugin_manager_public_state,
     valid_plugin_manager_operation,
     plugin_manager_operation_state,
+    tutor_public_state,
 )
 
 
@@ -89,6 +90,7 @@ class Bridge:
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
         payload = plugin_manager_public_state(payload)
+        payload = tutor_public_state(payload)
         if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
             return
         if event_type == "activeParameterChanged" and (

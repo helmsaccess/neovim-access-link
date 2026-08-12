@@ -79,6 +79,16 @@ Lazy-Icon-Hervorhebung eindeutig erkannte Pluginzeile. Eine unmittelbar folgende
 mehrdeutige Zeilen liefern keinen Zustand. Lokaler Client, SSH-Client und Bridge
 entfernen das Feld bei falscher Kennung oder falschem Typ.
 
+`tutorExerciseStatus` ist ausschließlich bei `filetype=tutor` gültig und
+enthält genau `correct` oder `incorrect`. Das Neovim-Plugin liest dafür nur die
+nativen Tutor-Markierungen: `tutorok`/`tutorbad` bei der älteren
+Sign-Darstellung oder die namensgebundene `nvim.tutor.mark`-Extmark mit den
+Tutor-Hervorhebungen und Zeichen `✓`/`✗`. Andere Signs, Extmarks, Dateitypen
+oder mehrdeutige Markierungen erzeugen keinen Zustand. Das flüchtige Ereignis
+`tutorExerciseChanged` wird nur nach einem tatsächlich beobachteten Wechsel
+dieses Zustands ausgegeben. Lokaler Client, SSH-Client und Bridge entfernen das
+Feld bei falscher Bufferkennung oder unbekanntem Wert.
+
 Dateimanagerzustand enthält nur begrenzte semantische Werte. Eintragsnamen sind
 auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte sowie Typ- und
 Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin validiert vollständige
