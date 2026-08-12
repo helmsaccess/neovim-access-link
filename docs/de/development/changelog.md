@@ -7,11 +7,15 @@ und Testbuild-Einträge bis zum 5. August 2026.
 ## Unveröffentlicht
 
 - Macht Neovims eingebauten `:Tutor` gezielt zugänglicher, ohne eine eigene
-  Tutorial-Logik einzuführen. Echte Tutor-Übungsmarkierungen liefern
-  lokalisierte Meldungen bei einer geänderten Bewertung, die Bewertung beim
-  erneuten Lesen der Zeile und dauerhafte, nicht routbare Braillemarker. Andere
-  Buffer, Signs und Extmarks bleiben unberührt. Isolierte Headless- und
-  TUI-Vertragstests decken Neovim 0.10.1 und 0.12.3 ab.
+  Tutorial-Logik einzuführen. Ab Neovim 0.12 liefern echte, eindeutige
+  Tutor-Extmarks lokalisierte Meldungen bei einer geänderten Bewertung, die
+  Bewertung beim erneuten Lesen der Zeile und dauerhafte, nicht routbare
+  Braillemarker. Andere
+  Buffer und Extmarks bleiben unberührt. Ungültige Übergänge werden vor dem
+  kanonischen Zustand verworfen, und vorhandene Braille-Routing- und
+  Quellzuordnungen bleiben erhalten. Unter Neovim 0.10 ist der Tutor-Pfad ohne
+  Beobachter vollständig inaktiv. Isolierte Headless-Grenztests und ein echter
+  0.12.3-TUI-Vertragstest decken den Umfang ab.
 - Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs normales
   Terminalverhalten sofort wieder her. Der SSH-Client behandelt den
   authentifizierten Bridge-Status `disconnected` jetzt als

@@ -108,11 +108,14 @@ tab changes, plus structured Neovim messages.
   contextual NVDA commands. Spelling feedback follows NVDA's separate document
   formatting settings.
 - Neovim's built-in `:Tutor` remains entirely owned by Neovim. Access Link
-  reads only its native exercise marks in Tutor buffers, speaks status
-  transitions and the assessment when the line is read again, and persistently
-  shows a non-routable `✓` or `✗` after the Braille line text. The sign
-  representation from Neovim 0.10.1 and the extmark representation from 0.12.3
-  are covered by automated headless and isolated real-TUI tests.
+  reads only its unambiguous native extmarks in Tutor buffers on Neovim 0.12
+  and later, speaks status transitions and the assessment when the line is
+  read again, and persistently shows a non-routable `✓` or `✗` after the
+  Braille line text. A buffer-local text observer is created only inside a
+  Tutor buffer; there is no polling or additional control traffic. On Neovim
+  0.10, Tutor remains unchanged with Neovim and Access Link registers no Tutor
+  observers. Both boundaries and the 0.12 path have headless coverage; the
+  0.12 path also has an isolated real-TUI test.
 
 ### Development tools, terminal, and files
 

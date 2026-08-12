@@ -3975,6 +3975,7 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertTrue(validator.is_file())
         self.assertIn("tutor_public_state", validator.read_text(encoding="utf-8"))
+        self.assertIn("valid_tutor_exercise_changed", validator.read_text(encoding="utf-8"))
 
     def test_product_metadata_drives_archive_name_and_has_one_source_literal(self) -> None:
         archive = self.archive_path

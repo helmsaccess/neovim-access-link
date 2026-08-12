@@ -58,6 +58,23 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertNotIn("pluginManagerKind", bridge.full_state())
 		self.assertNotIn("pluginManagerOperation", bridge.full_state())
 
+	def test_tutor_transition_is_validated_before_publication(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"lineText": "previous"}
+		bridge._active_numbered_choice = None
+		bridge.transport = transport
+		payload = {"filetype": "tutor", "tutorExerciseStatus": "correct"}
+		bridge._on_nvim_event("tutorExerciseChanged", payload)
+		self.assertEqual("tutorExerciseChanged", transport.events[-1]["type"])
+		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
+		bridge._on_nvim_event(
+			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": "arbitrary"},
+		)
+		self.assertEqual(1, len(transport.events))
+		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
+
 	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -782,6 +799,19 @@ class NvimBridgeTests(unittest.TestCase):
 				process.terminate(force=True)
 
 	def test_real_tui_tutor_exercise_status_tracks_native_marks(self) -> None:
+		version = subprocess.run(
+			[
+				"nvim", "--headless", "-n", "-u", "NONE", "-i", "NONE",
+				"--cmd", "lua io.write(vim.version().major .. '.' .. vim.version().minor)",
+				"--cmd", "qa!",
+			],
+			check=True,
+			capture_output=True,
+			text=True,
+		).stdout.strip()
+		major, minor = (int(part) for part in version.split(".", 1))
+		if (major, minor) < (0, 12):
+			self.skipTest("Tutor accessibility is supported from Neovim 0.12")
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
 			nvim_socket = os.path.join(directory, "nvim.sock")
@@ -816,6 +846,8 @@ class NvimBridgeTests(unittest.TestCase):
 			events, condition = transport.events, transport.condition
 			try:
 				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+				initial = next(event for event in events if event["type"] == "fullState")
+				self.assertNotIn("tutorExerciseStatus", initial["payload"])
 				self._drain_tui_output(process)
 				process.send(b"\x1b:Tutor\r")
 				time.sleep(0.2)
@@ -827,17 +859,27 @@ class NvimBridgeTests(unittest.TestCase):
 				self.assertIn(":tutor:2:", tui_state, tui_state)
 				loaded_source = subprocess.run(
 					["nvim", "--server", nvim_socket, "--remote-expr",
-					 "luaeval(\"debug.getinfo(require('nvim_nvda').setup).source .. '|' .. debug.getinfo(require('nvim_nvda.tutor').text_changed).source\")"],
+					 "luaeval(\"debug.getinfo(require('nvim_nvda').setup).source .. '|' .. debug.getinfo(require('nvim_nvda.tutor').status).source\")"],
 					check=True, capture_output=True, text=True,
 				).stdout.strip()
 				self.assertTrue(
 					loaded_source.startswith(f"@{root / 'neovim-plugin/lua/nvim_nvda/init.lua'}|"),
 					loaded_source,
 				)
-				self._wait(
-					condition,
-					lambda: any(event["payload"].get("filetype") == "tutor" for event in events),
-				)
+				deadline = time.monotonic() + 2
+				observer_ready = ""
+				while time.monotonic() < deadline and observer_ready != "1":
+					observer_ready = subprocess.run(
+						[
+							"nvim", "--server", nvim_socket, "--remote-expr",
+							"luaeval(\"(function() for _,item in ipairs(vim.api.nvim_get_autocmds({buffer=0,event='TextChanged'})) do if item.desc and item.desc:match('Tutor exercise changes$') then return 1 end end return 0 end)()\")",
+						],
+						check=True,
+						capture_output=True,
+						text=True,
+					).stdout.strip()
+					time.sleep(0.02)
+				self.assertEqual("1", observer_ready, "Tutor observer was not activated")
 				bridge.nvim.notify(
 					"nvim_exec_lua",
 					"for raw,value in pairs(vim.b.tutor_metadata.expect or {}) do "
@@ -845,7 +887,7 @@ class NvimBridgeTests(unittest.TestCase):
 					"if type(value)=='string' and #value>#current "
 					"and value:sub(1,#current)==current "
 					"and value:sub(#current+1,#current+1):match('%w') "
-					"and require('nvim_nvda.tutor').status(0,line)=='incorrect' then "
+					"and require('nvim_nvda.tutor').status(vim.api.nvim_get_current_buf(),line)=='incorrect' then "
 					"vim.g.nvim_nvda_tutor_suffix=value:sub(#current+1); "
 					"vim.g.nvim_nvda_tutor_expected=value; "
 					"vim.api.nvim_win_set_cursor(0,{line,math.max(0,#current-1)}); break end end; "
@@ -856,7 +898,10 @@ class NvimBridgeTests(unittest.TestCase):
 				suffix = ""
 				while time.monotonic() < deadline and not suffix:
 					suffix = subprocess.run(
-						["nvim", "--server", nvim_socket, "--remote-expr", "g:nvim_nvda_tutor_suffix"],
+						[
+							"nvim", "--server", nvim_socket, "--remote-expr",
+							"get(g:, 'nvim_nvda_tutor_suffix', '')",
+						],
 						check=True,
 						capture_output=True,
 						text=True,

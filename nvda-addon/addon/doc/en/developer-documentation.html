@@ -2665,12 +2665,15 @@ path.</li>
 speech, Braille, and contextual NVDA commands. Spelling feedback follows
 NVDA&#39;s separate document formatting settings.</li>
 <li>Neovim&#39;s built-in <code>:Tutor</code> remains entirely owned by
-Neovim. Access Link reads only its native exercise marks in Tutor
-buffers, speaks status transitions and the assessment when the line is
-read again, and persistently shows a non-routable <code>✓</code> or
-<code>✗</code> after the Braille line text. The sign representation from
-Neovim 0.10.1 and the extmark representation from 0.12.3 are covered by
-automated headless and isolated real-TUI tests.</li>
+Neovim. Access Link reads only its unambiguous native extmarks in Tutor
+buffers on Neovim 0.12 and later, speaks status transitions and the
+assessment when the line is read again, and persistently shows a
+non-routable <code>✓</code> or <code>✗</code> after the Braille line
+text. A buffer-local text observer is created only inside a Tutor
+buffer; there is no polling or additional control traffic. On Neovim
+0.10, Tutor remains unchanged with Neovim and Access Link registers no
+Tutor observers. Both boundaries and the 0.12 path have headless
+coverage; the 0.12 path also has an isolated real-TUI test.</li>
 </ul>
 </section>
 <section id="docs__en__development__current-statusmd__development-tools-terminal-and-files" class="level4">
@@ -2931,6 +2934,13 @@ provider-neutral diagnostics through <code>vim.diagnostic</code>;</li>
 <li>Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop, and
 <code>markdownlint-cli2</code> as real linter processes.</li>
 </ul>
+<p>The additional assessment feedback for Neovim&#39;s built-in
+<code>:Tutor</code> starts with Neovim 0.12 and uses only its
+namespace-bound native extmarks. A focused 0.12.3 CI run exercises those
+extmarks headlessly and through a real TUI. The 0.10.1 baseline checks
+the opposite boundary: no Tutor observers and no added Tutor protocol
+field. General Access Link support from Neovim 0.10.1 remains
+unchanged.</p>
 <p>The public contract of <code>lazy.nvim</code> 11.17.5 was checked
 directly. Automated tests cover the exact
 <code>nofile</code>/<code>lazy</code> buffer values, documented icon
@@ -3653,6 +3663,9 @@ change.</li>
 <li>Spelling selection sends only the internally validated numeric index
 to a still-identical active prompt. Suggestion text is not executed or
 returned.</li>
+<li>Tutor assessments are output-only data with one fixed filetype and
+two allowed states. Invalid transitions are rejected before canonical
+state and never cause a control command.</li>
 <li>Clipboard access starts only from assignable NVDA commands. Sources,
 registers, and target operations are fixed; paste is NUL-free and
 limited to 256 KiB of UTF-8.</li>
@@ -3875,15 +3888,16 @@ rows provide no state. The local client, SSH client, and bridge remove
 the field when its identity or type is wrong.</p>
 <p><code>tutorExerciseStatus</code> is valid only with
 <code>filetype=tutor</code> and contains exactly <code>correct</code> or
-<code>incorrect</code>. The Neovim plugin reads only Tutor&#39;s native
-marks: <code>tutorok</code>/<code>tutorbad</code> for the older sign
-representation, or the namespace-bound <code>nvim.tutor.mark</code>
-extmark with Tutor&#39;s highlight groups and <code>✓</code>/<code>✗</code>
-signs. Other signs, extmarks, filetypes, or ambiguous marks produce no
+<code>incorrect</code>. The Neovim plugin reads only Neovim 0.12&#39;s
+namespace-bound <code>nvim.tutor.mark</code> extmarks with the exact
+Tutor highlight groups and <code>✓</code>/<code>✗</code> signs. Other
+extmarks, filetypes, invalidated marks, or ambiguous marks produce no
 state. The transient <code>tutorExerciseChanged</code> event is emitted
 only after an actually observed transition of that state. The local
-client, SSH client, and bridge remove the field for a wrong buffer
-identity or unknown value.</p>
+client, SSH client, and bridge remove invalid optional state fields and
+reject an invalid transition event before it reaches canonical state. On
+Neovim 0.10, the plugin registers no Tutor observers and sends no Tutor
+field.</p>
 </section>
 <section id="docs__en__development__protocolmd__session-start-ordering-and-resync" class="level3">
 <h3>Session start, ordering, and resync</h3>
@@ -4905,6 +4919,8 @@ dependencies and are not shipped.</p>
 and pull requests. Jobs are deliberately separated into:</p>
 <ul>
 <li>safe unit, package, and listener-free Lua tests;</li>
+<li>a focused Neovim 0.12.3 contract for native Tutor extmarks and the
+real TUI event path;</li>
 <li>the PowerShell runner for guided practical tests;</li>
 <li>completion-plugin contracts;</li>
 <li>public lazy.nvim contracts with real install, update, and sync
@@ -5107,12 +5123,13 @@ practically tested with one physical Braille display.</td>
 </tr>
 <tr class="even">
 <td>Neovim Tutor</td>
-<td>Only <code>filetype=tutor</code> and Tutor&#39;s native signs or
-extmarks provide <code>correct</code>/<code>incorrect</code>. Status
-transitions are spoken; reading again and Braille retain the current
-assessment.</td>
-<td>Isolated headless and real-TUI tests with Neovim 0.10.1 and 0.12.3;
-practical Windows/NVDA acceptance remains open.</td>
+<td>From Neovim 0.12, only <code>filetype=tutor</code> and unambiguous
+native Tutor extmarks provide
+<code>correct</code>/<code>incorrect</code>. Status transitions are
+spoken; reading again and Braille retain the current assessment. The
+added path remains inactive on 0.10.</td>
+<td>Isolated headless boundary tests with 0.10.1 and 0.12.3 plus a real
+0.12.3 TUI test; practical Windows/NVDA acceptance remains open.</td>
 </tr>
 <tr class="odd">
 <td><code>vim.ui</code> choices</td>
@@ -5773,12 +5790,15 @@ August 5, 2026.</p>
 <h3>Unreleased</h3>
 <ul>
 <li>Makes Neovim&#39;s built-in <code>:Tutor</code> specifically more
-accessible without adding separate tutorial logic. Genuine Tutor
-exercise marks provide localized announcements when an assessment
-changes, the assessment when its line is read again, and persistent
-non-routable Braille markers. Other buffers, signs, and extmarks remain
-untouched. Isolated headless and TUI contract tests cover Neovim 0.10.1
-and 0.12.3.</li>
+accessible without adding separate tutorial logic. From Neovim 0.12,
+genuine unambiguous Tutor extmarks provide localized announcements when
+an assessment changes, the assessment when its line is read again, and
+persistent non-routable Braille markers. Other buffers and extmarks
+remain untouched. Invalid transitions are rejected before canonical
+state, while existing Braille routing and source mappings are preserved.
+On Neovim 0.10 the Tutor path is fully inactive and registers no
+observers. Isolated headless boundary tests and a real 0.12.3 TUI
+contract test cover the scope.</li>
 <li>Restores NVDA&#39;s normal terminal behavior immediately after a remote
 Neovim instance exits. The SSH client now treats the authenticated
 bridge <code>disconnected</code> state as connection lifecycle rather

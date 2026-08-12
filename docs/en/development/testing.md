@@ -110,6 +110,8 @@ not shipped.
 Jobs are deliberately separated into:
 
 - safe unit, package, and listener-free Lua tests;
+- a focused Neovim 0.12.3 contract for native Tutor extmarks and the real TUI
+  event path;
 - the PowerShell runner for guided practical tests;
 - completion-plugin contracts;
 - public lazy.nvim contracts with real install, update, and sync operations;

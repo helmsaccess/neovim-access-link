@@ -11,7 +11,7 @@ from typing import Any
 from .codec import FrameDecoder, ProtocolError, encode_frame
 from .messages import MessageFactory
 from .plugin_manager import plugin_manager_public_state
-from .tutor import tutor_public_state
+from .tutor import tutor_public_state, valid_tutor_exercise_changed
 from .reconnect import ExponentialBackoff
 from .session import SessionTracker
 
@@ -201,7 +201,24 @@ class SshStdioClient:
                         authenticated = True
                         self.on_connection_state("connected")
                     event["payload"] = plugin_manager_public_state(event["payload"])
-                    event["payload"] = tutor_public_state(event["payload"])
+                    if (
+                        "tutorExerciseStatus" in event["payload"]
+                        or event["type"] == "tutorExerciseChanged"
+                    ):
+                        event["payload"] = tutor_public_state(event["payload"])
+                    if (
+                        event["type"] == "tutorExerciseChanged"
+                        and not valid_tutor_exercise_changed(event["payload"])
+                    ):
+                        self.on_diagnostic(
+                            "sshEventRejected",
+                            {
+                                "type": event["type"],
+                                "errorType": "ProtocolError",
+                                "error": "invalid Tutor exercise transition",
+                            },
+                        )
+                        continue
                     self.on_event(event)
                 elif disposition == "resyncRequired":
                     self.send_control("requestFullState", {})

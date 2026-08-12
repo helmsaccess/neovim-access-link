@@ -198,17 +198,19 @@ def _append_tutor_status(plan: BraillePlan, state: dict[str, Any], line: str) ->
     if state.get("filetype") != "tutor" or status not in {"correct", "incorrect"}:
         return plan
     marker = "✓" if status == "correct" else "✗"
-    routing = tuple(
-        len(line[:source_offset_for_expanded(plan, index)].encode("utf-8"))
-        for index in range(len(plan.text))
-    ) + (None, None)
+    routing = plan.routing_byte_columns
+    if routing is None:
+        routing = tuple(
+            len(line[:source_offset_for_expanded(plan, index)].encode("utf-8"))
+            for index in range(len(plan.text))
+        )
     return BraillePlan(
         f"{plan.text} {marker}",
         plan.cursor,
         plan.selection_start,
         plan.selection_end,
-        tuple(range(len(plan.text) + 3)),
-        routing,
+        plan.source_offsets,
+        routing + (None, None),
     )
 
 

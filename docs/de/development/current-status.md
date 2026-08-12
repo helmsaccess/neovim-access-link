@@ -117,12 +117,15 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   NVDA-Befehlen zugänglich. Rechtschreibfeedback folgt NVDAs getrennten
   Dokumentformatierungsoptionen.
 - Neovims eingebauter `:Tutor` bleibt vollständig Neovim-eigen. Access Link
-  liest ausschließlich dessen native Übungsmarkierungen in Tutor-Puffern,
-  spricht Zustandswechsel und die Bewertung beim erneuten Lesen der Zeile und
-  zeigt `✓` beziehungsweise `✗` dauerhaft, aber nicht routbar, hinter dem
-  Braille-Zeilentext. Die Sign-Darstellung aus Neovim 0.10.1 und die
-  Extmark-Darstellung aus 0.12.3 sind headless und über isolierte echte TUIs
-  automatisiert geprüft.
+  liest ab Neovim 0.12 ausschließlich dessen native, eindeutige Extmarks in
+  Tutor-Puffern, spricht Zustandswechsel und die Bewertung beim erneuten Lesen
+  der Zeile und zeigt `✓` beziehungsweise `✗` dauerhaft, aber nicht routbar,
+  hinter dem Braille-Zeilentext. Ein bufferlokaler Textbeobachter entsteht erst
+  im Tutor-Puffer; es gibt kein Polling und keine zusätzlichen
+  Steuerungsnachrichten. Unter Neovim 0.10 bleibt Tutor unverändert bei
+  Neovim, und Access Link registriert dafür keine Beobachter. Beide Grenzen
+  sowie der 0.12-Pfad sind headless, der 0.12-Pfad zusätzlich über eine
+  isolierte echte TUI automatisiert geprüft.
 
 ### Entwicklungswerkzeuge, Terminal und Dateien
 

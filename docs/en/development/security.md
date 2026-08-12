@@ -49,6 +49,9 @@ buffer, window, tab, changed tick, mode, cursor, and request ID.
   nor buffer and is discarded on focus or context change.
 - Spelling selection sends only the internally validated numeric index to a
   still-identical active prompt. Suggestion text is not executed or returned.
+- Tutor assessments are output-only data with one fixed filetype and two
+  allowed states. Invalid transitions are rejected before canonical state and
+  never cause a control command.
 - Clipboard access starts only from assignable NVDA commands. Sources,
   registers, and target operations are fixed; paste is NUL-free and limited to
   256 KiB of UTF-8.

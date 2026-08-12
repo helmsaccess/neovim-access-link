@@ -50,7 +50,7 @@ from .terminal_control import (
 	terminal_control_result_state,
 	valid_leave_terminal_input_request,
 )
-from .tutor import tutor_public_state
+from .tutor import tutor_public_state, valid_tutor_exercise_changed
 from .signature_help import valid_active_parameter_changed
 
 
@@ -273,7 +273,8 @@ class LocalTcpClient:
 		return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2_147_483_647
 
 	def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
-		payload = tutor_public_state(payload)
+		if "tutorExerciseStatus" in payload or event_type == "tutorExerciseChanged":
+			payload = tutor_public_state(payload)
 		payload = plugin_manager_public_state(payload)
 		if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
 			self.on_diagnostic(
@@ -282,6 +283,16 @@ class LocalTcpClient:
 					"type": event_type,
 					"errorType": "ProtocolError",
 					"error": "invalid plugin manager operation",
+				},
+			)
+			return
+		if event_type == "tutorExerciseChanged" and not valid_tutor_exercise_changed(payload):
+			self.on_diagnostic(
+				"localEventRejected",
+				{
+					"type": event_type,
+					"errorType": "ProtocolError",
+					"error": "invalid Tutor exercise transition",
 				},
 			)
 			return

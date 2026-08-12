@@ -56,6 +56,13 @@ Separate matrices exercise the following on both 0.10.1 and 0.12.3:
 - Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop, and
   `markdownlint-cli2` as real linter processes.
 
+The additional assessment feedback for Neovim's built-in `:Tutor` starts with
+Neovim 0.12 and uses only its namespace-bound native extmarks. A focused
+0.12.3 CI run exercises those extmarks headlessly and through a real TUI. The
+0.10.1 baseline checks the opposite boundary: no Tutor observers and no added
+Tutor protocol field. General Access Link support from Neovim 0.10.1 remains
+unchanged.
+
 The public contract of `lazy.nvim` 11.17.5 was checked directly. Automated
 tests cover the exact `nofile`/`lazy` buffer values, documented icon highlights
 for the current plugin row, the detail marker formed by `dir` plus the

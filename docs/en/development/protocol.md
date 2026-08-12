@@ -78,13 +78,14 @@ local client, SSH client, and bridge remove the field when its identity or type
 is wrong.
 
 `tutorExerciseStatus` is valid only with `filetype=tutor` and contains exactly
-`correct` or `incorrect`. The Neovim plugin reads only Tutor's native marks:
-`tutorok`/`tutorbad` for the older sign representation, or the namespace-bound
-`nvim.tutor.mark` extmark with Tutor's highlight groups and `✓`/`✗` signs.
-Other signs, extmarks, filetypes, or ambiguous marks produce no state. The
-transient `tutorExerciseChanged` event is emitted only after an actually
-observed transition of that state. The local client, SSH client, and bridge
-remove the field for a wrong buffer identity or unknown value.
+`correct` or `incorrect`. The Neovim plugin reads only Neovim 0.12's
+namespace-bound `nvim.tutor.mark` extmarks with the exact Tutor highlight
+groups and `✓`/`✗` signs. Other extmarks, filetypes, invalidated marks, or
+ambiguous marks produce no state. The transient `tutorExerciseChanged` event
+is emitted only after an actually observed transition of that state. The local
+client, SSH client, and bridge remove invalid optional state fields and reject
+an invalid transition event before it reaches canonical state. On Neovim 0.10,
+the plugin registers no Tutor observers and sends no Tutor field.
 
 ## Session start, ordering, and resync
 

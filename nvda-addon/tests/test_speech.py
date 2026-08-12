@@ -94,6 +94,49 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("The cow", ordinary.text)
         self.assertIsNone(ordinary.routing_byte_columns)
 
+    def test_tutor_braille_preserves_complex_source_mapping_and_selection(self) -> None:
+        state = {
+            "lineText": "\tbad界",
+            "tabstop": 4,
+            "cursor": {"byteColumn": 1},
+            "selection": {"currentLine": {"startByteColumn": 1, "endByteColumn": 4}},
+            "reportSpellingBraille": True,
+            "spellingErrors": [{
+                "kind": "spelling", "startByteColumn": 1, "endByteColumn": 4,
+            }],
+        }
+        ordinary = plan_braille(state)
+        tutor = plan_braille({
+            **state,
+            "filetype": "tutor",
+            "tutorExerciseStatus": "correct",
+        })
+        self.assertEqual(f"{ordinary.text} ✓", tutor.text)
+        self.assertEqual(ordinary.source_offsets, tutor.source_offsets)
+        self.assertEqual(ordinary.selection_start, tutor.selection_start)
+        self.assertEqual(ordinary.selection_end, tutor.selection_end)
+        self.assertEqual((None, None), tutor.routing_byte_columns[-2:])
+        self.assertEqual((0, 0, 0, 0), tutor.routing_byte_columns[:4])
+        self.assertEqual(1, tutor.routing_byte_columns[5])
+
+    def test_tutor_braille_keeps_insert_end_cell_routable(self) -> None:
+        state = {
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "café",
+            "cursor": {"byteColumn": 5},
+        }
+        ordinary = plan_braille(state)
+        tutor = plan_braille({
+            **state,
+            "filetype": "tutor",
+            "tutorExerciseStatus": "incorrect",
+        })
+        self.assertEqual("café  ✗", tutor.text)
+        self.assertEqual(ordinary.source_offsets, tutor.source_offsets)
+        self.assertEqual(5, tutor.routing_byte_columns[len(ordinary.text) - 1])
+        self.assertEqual((None, None), tutor.routing_byte_columns[-2:])
+
     def test_same_line_movement_uses_utf8_byte_column(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState"))
