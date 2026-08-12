@@ -53,6 +53,10 @@ failure. Symbolic links and unusual file types are not replaced.
 On its first Neovim start, the basic configuration needs Git and access to
 GitHub to download Lazy and Oil.
 
+The basic configuration supports the approved Neovim range starting at
+0.10.1. The more extensive Python configuration later in this chapter uses
+Neovim 0.12 instead.
+
 Use Neovim's normal navigation keys in Oil. `Enter` opens an entry, `-` moves
 to the parent directory, and `Ctrl+C` closes the Oil buffer. Only `:write`
 starts Oil's save and confirmation. Close Lazy with `q`. [Setting up LSP,

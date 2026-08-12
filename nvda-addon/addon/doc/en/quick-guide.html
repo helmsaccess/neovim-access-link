@@ -163,10 +163,14 @@ connections.</li>
 <li>Check every selected target in the result dialog.</li>
 </ol>
 <p>The optional basic configuration sets up Lazy, Oil, and a few
-practical Neovim settings. An existing <code>init.lua</code> or
-<code>init.vim</code> is backed up before it is replaced; the result
-dialog gives the backup path. On the first Neovim start, Lazy and Oil
-need Git and access to GitHub.</p>
+practical Neovim settings. Line numbers remain off, and Tab inserts
+actual tab characters on two-column tab stops. In Normal mode,
+<code>Space</code>, then <code>o</code> opens Oil and
+<code>Space</code>, then <code>l</code> opens Lazy. Close Oil with
+<code>Ctrl+C</code> and Lazy with <code>q</code>. An existing
+<code>init.lua</code> or <code>init.vim</code> is backed up before it is
+replaced; the result dialog gives the backup path. On the first Neovim
+start, Lazy and Oil need Git and access to GitHub.</p>
 <p>Copy mode transfers the complete local
 <code>%LOCALAPPDATA%\nvim</code> directory only to selected Linux
 connections and backs up an existing configuration there in full. You

@@ -104,6 +104,11 @@ Terminal is focused, and install or update the bundled Neovim components from
 the top-level `Neovim Access Link` menu in NVDA. Start Neovim, enable the
 service, and press F12 once in each Neovim terminal area you want to use.
 
+The component dialog can leave an existing Neovim configuration unchanged,
+install a small starter configuration with Lazy and Oil, or copy the local
+Windows configuration to selected Linux connections with a backup on each
+target.
+
 Follow the [English Quick Guide](docs/en/manual/quick-guide.md) or
 [German Quick Guide](docs/de/manual/quick-guide.md) for the exact accessible
 steps.

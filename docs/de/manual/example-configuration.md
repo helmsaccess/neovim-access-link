@@ -58,6 +58,10 @@ ungewöhnliche Dateitypen werden nicht ersetzt.
 Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und Zugriff auf
 GitHub, um Lazy und Oil herunterzuladen.
 
+Die Grundkonfiguration unterstützt den freigegebenen Neovim-Bereich ab 0.10.1.
+Die weiter unten folgende umfangreichere Python-Konfiguration verwendet
+dagegen Neovim 0.12.
+
 In Oil bewegen Sie sich mit Neovims normalen Navigationstasten. Die
 `Eingabetaste` öffnet einen Eintrag, `-` wechselt zum übergeordneten Ordner und
 `Strg+C` schließt den Oil-Puffer. Nur `:write` startet Oils Speicherung mit der

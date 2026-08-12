@@ -84,7 +84,10 @@ Neovim-Instanzen.
 6. Prüfen Sie im Ergebnisdialog jedes ausgewählte Ziel.
 
 Die optionale Grundkonfiguration richtet Lazy, Oil und wenige sinnvolle
-Neovim-Einstellungen ein. Eine vorhandene `init.lua` oder `init.vim` wird vor
+Neovim-Einstellungen ein. Zeilennummern bleiben aus; die Tabulatortaste fügt
+echte Tabulatorzeichen in einem Zwei-Spalten-Raster ein. Im Normalmodus öffnet
+`Leertaste`, dann `o` Oil und `Leertaste`, dann `l` Lazy. Schließen Sie Oil mit
+`Strg+C` und Lazy mit `q`. Eine vorhandene `init.lua` oder `init.vim` wird vor
 dem Ersetzen gesichert; der Ergebnisdialog nennt den Sicherungspfad. Beim
 ersten Neovim-Start benötigen Lazy und Oil Git und Zugriff auf GitHub.
 

@@ -79,9 +79,12 @@ Close all affected Neovim instances before installation or update.
 6. Check every selected target in the result dialog.
 
 The optional basic configuration sets up Lazy, Oil, and a few practical
-Neovim settings. An existing `init.lua` or `init.vim` is backed up before it
-is replaced; the result dialog gives the backup path. On the first Neovim
-start, Lazy and Oil need Git and access to GitHub.
+Neovim settings. Line numbers remain off, and Tab inserts actual tab
+characters on two-column tab stops. In Normal mode, `Space`, then `o` opens
+Oil and `Space`, then `l` opens Lazy. Close Oil with `Ctrl+C` and Lazy with
+`q`. An existing `init.lua` or `init.vim` is backed up before it is replaced;
+the result dialog gives the backup path. On the first Neovim start, Lazy and
+Oil need Git and access to GitHub.
 
 Copy mode transfers the complete local `%LOCALAPPDATA%\nvim` directory only
 to selected Linux connections and backs up an existing configuration there in

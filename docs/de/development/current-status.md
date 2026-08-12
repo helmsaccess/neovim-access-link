@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 11. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
+Stand: 12. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
 `buildVars.py` erzeugt Entwicklungsbuilds mit Git-Metadaten und setzt den
 Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -36,16 +36,19 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   eindeutige Sicherungspfade verschoben; der Ergebnisdialog nennt Installation
   und Sicherungen. Die Grundkonfiguration verwendet echte Tabulatorzeichen in
   einem Zwei-Spalten-Raster auch nach dateitypspezifischen Vorgaben, keine
-  Zeilennummern und Leader-Befehle für Oil und Lazy. Alternativ
-  kopiert sie die vollständige lokale
-  Windows-Konfiguration auf ausgewählte Linux-Verbindungen, nachdem Links,
-  Dateitypen, Pfade und Größen begrenzt und geprüft wurden. Eine vorhandene
-  Linux-Konfiguration wird als vollständiges Verzeichnis atomar gesichert.
+  Zeilennummern und Leader-Befehle für Oil und Lazy. Ein isolierter
+  Headless-Start mit echten lokalen Access-Link-, Lazy- und Oil-Verzeichnissen
+  ist unter Neovim 0.10.1 geprüft. Alternativ kopiert sie die vollständige
+  lokale Windows-Konfiguration auf ausgewählte Linux-Verbindungen, nachdem
+  Links, Dateitypen, Pfade und Größen begrenzt und geprüft wurden. Eine
+  vorhandene Linux-Konfiguration wird als vollständiges Verzeichnis atomar
+  gesichert.
   Windows-spezifischen Inhalt verändert das Add-on nicht; Lazy muss die
   installierte Access-Link-Kopie ausdrücklich als lokales Plugin laden.
   Automatisierte Tests decken Archivierung, lokale und rootlose
-  Linux-Paketpfade, SSH-Übertragung und Rollback ab; eine praktische
-  Windows-/SSH-Abnahme steht noch aus.
+  Linux-Paketpfade, SSH-Übertragung und Rollback ab. Die Grundkonfiguration ist
+  lokal unter Windows praktisch abgenommen; die Konfigurationsübernahme auf
+  Linux über SSH steht praktisch noch aus.
 - Die Komponentenentfernung verlangt nach der Zielauswahl eine ausdrückliche,
   standardmäßig abgelehnte Bestätigung. Sie entfernt lokal nur das installierte
   Plugin und auf Linux zusätzlich Bridge und zugehörige Komponentenpfade.

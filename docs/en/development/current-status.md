@@ -1,6 +1,6 @@
 # Current status
 
-Status date: August 11, 2026. The source tree belongs to the 0.98.0 development
+Status date: August 12, 2026. The source tree belongs to the 0.98.0 development
 line; `buildVars.py` generates development builds with Git metadata and sets
 the release channel to beta. The current published pre-release is 0.97.0. The
 project does not infer a higher stability classification from test coverage or
@@ -33,14 +33,17 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   results dialog names the installation and backups. The basic configuration
   uses actual tab characters on two-column tab stops even after
   filetype-specific defaults, no line numbers, and leader commands for
-  Oil and Lazy. Alternatively, it copies
-  the complete local Windows configuration to selected Linux connections after
-  bounding and validating links, file types, paths, and sizes. An existing
-  Linux configuration is atomically backed up as a complete directory. The
+  Oil and Lazy. An isolated headless startup with real local Access Link,
+  Lazy, and Oil directories is checked under Neovim 0.10.1. Alternatively, it
+  copies the complete local Windows configuration to selected Linux
+  connections after bounding and validating links, file types, paths, and
+  sizes. An existing Linux configuration is atomically backed up as a complete
+  directory. The
   add-on does not rewrite Windows-specific content; Lazy must explicitly load
   the installed Access Link copy as a local plugin. Automated tests cover
-  archiving, local and rootless Linux package paths, SSH transfer, and rollback;
-  practical Windows and SSH acceptance remains pending.
+  archiving, local and rootless Linux package paths, SSH transfer, and rollback.
+  The basic configuration has practical local Windows acceptance; practical
+  acceptance of copying configuration to Linux over SSH remains pending.
 - Component removal requires explicit, default-declined confirmation after
   target selection. It removes only the installed plugin locally and also the
   bridge and related component paths on Linux. Neovim configuration and backups

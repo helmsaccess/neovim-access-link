@@ -2546,7 +2546,7 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 11, 2026. The source tree belongs to the 0.98.0
+<p>Status date: August 12, 2026. The source tree belongs to the 0.98.0
 development line; <code>buildVars.py</code> generates development builds
 with Git metadata and sets the release channel to beta. The current
 published pre-release is 0.97.0. The project does not infer a higher
@@ -2582,15 +2582,18 @@ Existing regular <code>init.lua</code> and <code>init.vim</code> files
 are first moved to unique backup paths; the results dialog names the
 installation and backups. The basic configuration uses actual tab
 characters on two-column tab stops even after filetype-specific
-defaults, no line numbers, and leader commands for Oil and Lazy.
-Alternatively, it copies the complete local Windows configuration to
-selected Linux connections after bounding and validating links, file
-types, paths, and sizes. An existing Linux configuration is atomically
-backed up as a complete directory. The add-on does not rewrite
-Windows-specific content; Lazy must explicitly load the installed Access
-Link copy as a local plugin. Automated tests cover archiving, local and
-rootless Linux package paths, SSH transfer, and rollback; practical
-Windows and SSH acceptance remains pending.</li>
+defaults, no line numbers, and leader commands for Oil and Lazy. An
+isolated headless startup with real local Access Link, Lazy, and Oil
+directories is checked under Neovim 0.10.1. Alternatively, it copies the
+complete local Windows configuration to selected Linux connections after
+bounding and validating links, file types, paths, and sizes. An existing
+Linux configuration is atomically backed up as a complete directory. The
+add-on does not rewrite Windows-specific content; Lazy must explicitly
+load the installed Access Link copy as a local plugin. Automated tests
+cover archiving, local and rootless Linux package paths, SSH transfer,
+and rollback. The basic configuration has practical local Windows
+acceptance; practical acceptance of copying configuration to Linux over
+SSH remains pending.</li>
 <li>Component removal requires explicit, default-declined confirmation
 after target selection. It removes only the installed plugin locally and
 also the bridge and related component paths on Linux. Neovim
@@ -2904,6 +2907,9 @@ purpose. The complete repository baseline on 0.10.1 covers:</p>
 <li>native search, <code>inccommand</code>, Quickfix and location lists,
 multi-buffer replacement, and LSP rename through public Neovim
 events;</li>
+<li>loading the basic configuration, the local Access Link copy, and the
+Oil/Lazy commands, plus actual tab characters after filetype
+defaults.</li>
 </ul>
 <p>Separate matrices exercise the following on both 0.10.1 and
 0.12.3:</p>
@@ -5732,12 +5738,14 @@ by default and can install a basic configuration with Lazy, Oil, the
 bundled Access Link copy, actual tab characters on two-column tab stops,
 disabled line numbers, and leader commands for Oil and Lazy. The
 indentation remains fixed after filetype-specific Neovim defaults are
-applied. Existing regular <code>init.lua</code> and
-<code>init.vim</code> files move to unique backup paths named in the
-results dialog before atomic replacement; failures restore the originals
-from the retained backups. Symbolic links and unusual targets remain
-unchanged, and component removal deletes neither configuration nor
-backups.</li>
+applied. An isolated headless startup with local Access Link, Lazy, and
+Oil directories is checked under Neovim 0.10.1. Existing regular
+<code>init.lua</code> and <code>init.vim</code> files move to unique
+backup paths named in the results dialog before atomic replacement;
+failures restore the originals from the retained backups. Symbolic links
+and unusual targets remain unchanged, and component removal deletes
+neither configuration nor backups. The local Windows basic configuration
+has practical acceptance.</li>
 <li>Adds a second configuration path that safely copies the complete
 local Windows configuration directory to selected Linux connections. A
 bounded, link-free snapshot is transferred separately from the component

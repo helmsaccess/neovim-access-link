@@ -10,12 +10,14 @@ test-build entries through August 5, 2026.
   default and can install a basic configuration with Lazy, Oil, the bundled
   Access Link copy, actual tab characters on two-column tab stops, disabled
   line numbers, and leader commands for Oil and Lazy. The indentation
-  remains fixed after filetype-specific Neovim defaults are applied.
+  remains fixed after filetype-specific Neovim defaults are applied. An
+  isolated headless startup with local Access Link, Lazy, and Oil directories
+  is checked under Neovim 0.10.1.
   Existing regular `init.lua` and `init.vim` files move to unique backup paths
   named in the results dialog before atomic replacement; failures restore the
   originals from the retained backups. Symbolic links and unusual targets
   remain unchanged, and component removal deletes neither configuration nor
-  backups.
+  backups. The local Windows basic configuration has practical acceptance.
 - Adds a second configuration path that safely copies the complete local
   Windows configuration directory to selected Linux connections. A bounded,
   link-free snapshot is transferred separately from the component package over

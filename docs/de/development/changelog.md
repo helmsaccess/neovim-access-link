@@ -11,12 +11,14 @@ und Testbuild-Einträge bis zum 5. August 2026.
   gebündelten Access-Link-Kopie, echten Tabulatorzeichen in einem
   Zwei-Spalten-Raster auch nach dateitypspezifischen Vorgaben,
   ausgeschalteten Zeilennummern sowie Leader-Befehlen für Oil und
-  Lazy. Vorhandene reguläre `init.lua` und
-  `init.vim` werden vor dem atomaren Austausch in eindeutige Sicherungspfade
-  verschoben und im Ergebnisdialog genannt; Fehler stellen die Originale aus
-  den erhaltenen Sicherungen wieder her. Symlinks und ungewöhnliche Ziele
-  bleiben unverändert, und die Komponentenentfernung löscht weder Konfiguration
-  noch Sicherungen.
+  Lazy. Ein isolierter Headless-Start mit lokalen Access-Link-, Lazy- und
+  Oil-Verzeichnissen ist unter Neovim 0.10.1 geprüft. Vorhandene reguläre
+  `init.lua` und `init.vim` werden vor dem atomaren Austausch in eindeutige
+  Sicherungspfade verschoben und im Ergebnisdialog genannt; Fehler stellen die
+  Originale aus den erhaltenen Sicherungen wieder her. Symlinks und
+  ungewöhnliche Ziele bleiben unverändert, und die Komponentenentfernung
+  löscht weder Konfiguration noch Sicherungen. Die lokale
+  Windows-Grundkonfiguration wurde praktisch abgenommen.
 - Ergänzt als zweiten Konfigurationsweg die sichere Übernahme des vollständigen
   lokalen Windows-Konfigurationsverzeichnisses auf ausgewählte
   Linux-Verbindungen. Eine begrenzte, linkfreie Momentaufnahme wird getrennt

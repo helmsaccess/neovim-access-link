@@ -48,6 +48,8 @@ Die automatisierten Pfade verwenden je nach Testzweck Neovim 0.10.1 oder
 
 - native Suche, `inccommand`, Quickfix-/Positionslisten,
   Mehrbuffer-Ersetzungen und LSP-Rename über öffentliche Neovim-Ereignisse;
+- Laden der Grundkonfiguration, der lokalen Access-Link-Kopie und der
+  Oil-/Lazy-Befehle sowie echte Tabulatoren nach dateitypspezifischen Vorgaben.
 
 Getrennte Matrizen prüfen auf 0.10.1 und 0.12.3:
 

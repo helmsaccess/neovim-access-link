@@ -45,6 +45,8 @@ The complete repository baseline on 0.10.1 covers:
 
 - native search, `inccommand`, Quickfix and location lists, multi-buffer
   replacement, and LSP rename through public Neovim events;
+- loading the basic configuration, the local Access Link copy, and the
+  Oil/Lazy commands, plus actual tab characters after filetype defaults.
 
 Separate matrices exercise the following on both 0.10.1 and 0.12.3:
 
