@@ -31,8 +31,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   and Oil through a choice that remains unchanged by default. Existing regular
   `init.lua` and `init.vim` files are first moved to unique backup paths; the
   results dialog names the installation and backups. The basic configuration
-  uses actual tab characters on two-column tab stops, no line numbers, and
-  leader commands for Oil and Lazy. Alternatively, it copies
+  uses actual tab characters on two-column tab stops even after
+  filetype-specific defaults, no line numbers, and leader commands for
+  Oil and Lazy. Alternatively, it copies
   the complete local Windows configuration to selected Linux connections after
   bounding and validating links, file types, paths, and sizes. An existing
   Linux configuration is atomically backed up as a complete directory. The

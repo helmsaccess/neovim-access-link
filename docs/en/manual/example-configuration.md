@@ -33,11 +33,13 @@ straightforward defaults:
 
 - Line numbers remain disabled.
 - Tab inserts an actual tab character. Neovim uses two-column tab stops and a
-  two-column indentation width.
+  two-column indentation width. The basic configuration reapplies these
+  values after Neovim's filetype-specific defaults, so they also apply to
+  Python files, for which Neovim otherwise uses four spaces.
 - Searches ignore case unless the search text contains an uppercase letter.
 - New horizontal splits open below and vertical splits open to the right.
-- In Normal mode, press `Space`, then `o` to open Oil and `Space`, then `l` to
-  open Lazy. These are sequential keys; Space is the leader.
+- In Normal mode, `Space`, then `o` opens Oil and `Space`, then `l` opens Lazy.
+  These are sequential keys; Space is the leader.
 
 LSP, language servers, and linters are not part of this basic configuration.
 
@@ -52,9 +54,11 @@ On its first Neovim start, the basic configuration needs Git and access to
 GitHub to download Lazy and Oil.
 
 Use Neovim's normal navigation keys in Oil. `Enter` opens an entry, `-` moves
-to the parent directory, and `q` closes the Oil buffer. [Setting up LSP,
-completion, and linters](language-tools.md#update-plugins-with-lazynvim)
-describes accessible Lazy operation.
+to the parent directory, and `Ctrl+C` closes the Oil buffer. Only `:write`
+starts Oil's save and confirmation. Close Lazy with `q`. [Setting up LSP,
+completion, and
+linters](language-tools.md#update-plugins-with-lazynvim) describes accessible
+Lazy operation.
 
 The complete Python configuration below is a more extensive alternative. Use
 it when Pyright, Ruff, and the documented LSP and linter keys should also be

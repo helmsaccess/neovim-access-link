@@ -2581,15 +2581,16 @@ Lazy and Oil through a choice that remains unchanged by default.
 Existing regular <code>init.lua</code> and <code>init.vim</code> files
 are first moved to unique backup paths; the results dialog names the
 installation and backups. The basic configuration uses actual tab
-characters on two-column tab stops, no line numbers, and leader commands
-for Oil and Lazy. Alternatively, it copies the complete local Windows
-configuration to selected Linux connections after bounding and
-validating links, file types, paths, and sizes. An existing Linux
-configuration is atomically backed up as a complete directory. The
-add-on does not rewrite Windows-specific content; Lazy must explicitly
-load the installed Access Link copy as a local plugin. Automated tests
-cover archiving, local and rootless Linux package paths, SSH transfer,
-and rollback; practical Windows and SSH acceptance remains pending.</li>
+characters on two-column tab stops even after filetype-specific
+defaults, no line numbers, and leader commands for Oil and Lazy.
+Alternatively, it copies the complete local Windows configuration to
+selected Linux connections after bounding and validating links, file
+types, paths, and sizes. An existing Linux configuration is atomically
+backed up as a complete directory. The add-on does not rewrite
+Windows-specific content; Lazy must explicitly load the installed Access
+Link copy as a local plugin. Automated tests cover archiving, local and
+rootless Linux package paths, SSH transfer, and rollback; practical
+Windows and SSH acceptance remains pending.</li>
 <li>Component removal requires explicit, default-declined confirmation
 after target selection. It removes only the installed plugin locally and
 also the bridge and related component paths on Linux. Neovim
@@ -4616,18 +4617,18 @@ installs a tested basic configuration on every selected target, or
 copies the complete local Windows configuration only to selected Linux
 connections. The basic configuration loads Access Link and Oil
 explicitly through Lazy, uses actual tab characters on two-column tab
-stops, leaves line numbers disabled, and maps <code>Space</code>, then
-<code>o</code> to Oil and <code>Space</code>, then <code>l</code> to
-Lazy. The shared <code>StarterConfigInstaller</code> detects
-<code>init.lua</code> and <code>init.vim</code>, rejects symbolic links
-and other unusual targets, and moves existing regular files to unique
-backup paths before the atomic replacement. On failure it attempts to
-restore the originals from the retained backups. Locally it uses
-<code>%LOCALAPPDATA%\nvim</code>; the rootless Linux package uses
-<code>$XDG_CONFIG_HOME/nvim</code> or <code>~/.config/nvim</code>. The
-results dialog names the configuration and backup paths. Installation
-and backup run with the other component work outside NVDA&#39;s main
-thread.</p>
+stops even after filetype-specific Neovim defaults, leaves line numbers
+disabled, and maps Oil to <code>Space</code>, then <code>o</code> and
+Lazy to <code>Space</code>, then <code>l</code>. The shared
+<code>StarterConfigInstaller</code> detects <code>init.lua</code> and
+<code>init.vim</code>, rejects symbolic links and other unusual targets,
+and moves existing regular files to unique backup paths before the
+atomic replacement. On failure it attempts to restore the originals from
+the retained backups. Locally it uses <code>%LOCALAPPDATA%\nvim</code>;
+the rootless Linux package uses <code>$XDG_CONFIG_HOME/nvim</code> or
+<code>~/.config/nvim</code>. The results dialog names the configuration
+and backup paths. Installation and backup run with the other component
+work outside NVDA&#39;s main thread.</p>
 <p>For copy mode, <code>LocalConfigArchiveBuilder</code> creates one
 bounded snapshot of <code>%LOCALAPPDATA%\nvim</code> per operation. It
 contains regular files and directories, including modular
@@ -5729,12 +5730,14 @@ August 5, 2026.</p>
 <li>Adds a component-dialog configuration choice that remains unchanged
 by default and can install a basic configuration with Lazy, Oil, the
 bundled Access Link copy, actual tab characters on two-column tab stops,
-disabled line numbers, and leader commands for Oil and Lazy. Existing
-regular <code>init.lua</code> and <code>init.vim</code> files move to
-unique backup paths named in the results dialog before atomic
-replacement; failures restore the originals from the retained backups.
-Symbolic links and unusual targets remain unchanged, and component
-removal deletes neither configuration nor backups.</li>
+disabled line numbers, and leader commands for Oil and Lazy. The
+indentation remains fixed after filetype-specific Neovim defaults are
+applied. Existing regular <code>init.lua</code> and
+<code>init.vim</code> files move to unique backup paths named in the
+results dialog before atomic replacement; failures restore the originals
+from the retained backups. Symbolic links and unusual targets remain
+unchanged, and component removal deletes neither configuration nor
+backups.</li>
 <li>Adds a second configuration path that safely copies the complete
 local Windows configuration directory to selected Linux connections. A
 bounded, link-free snapshot is transferred separately from the component

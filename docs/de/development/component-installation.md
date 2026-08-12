@@ -97,8 +97,9 @@ allen gewählten Zielen eine geprüfte Grundkonfiguration oder kopiert die
 vollständige lokale Windows-Konfiguration ausschließlich auf gewählte
 Linux-Verbindungen. Die Grundkonfiguration lädt Access Link sowie Oil
 ausdrücklich über Lazy, verwendet echte Tabulatorzeichen mit einem
-Zwei-Spalten-Raster, lässt Zeilennummern aus und belegt `Leertaste`, dann `o`
-für Oil sowie `Leertaste`, dann `l` für Lazy. Der gemeinsame
+Zwei-Spalten-Raster auch nach dateitypspezifischen Neovim-Vorgaben, lässt
+Zeilennummern aus und belegt `Leertaste`, dann `o` für Oil sowie
+`Leertaste`, dann `l` für Lazy. Der gemeinsame
 `StarterConfigInstaller` erkennt
 `init.lua` und `init.vim`, lehnt Symlinks und andere ungewöhnliche Ziele ab und
 verschiebt vorhandene reguläre Dateien vor dem atomaren Austausch in

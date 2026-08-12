@@ -35,6 +35,16 @@ vim.fn = setmetatable({
   end,
 }, { __index = original_fn })
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "python",
+  callback = function(args)
+    vim.bo[args.buf].expandtab = true
+    vim.bo[args.buf].tabstop = 4
+    vim.bo[args.buf].softtabstop = 4
+    vim.bo[args.buf].shiftwidth = 4
+  end,
+})
+
 local captured_specs
 local captured_options
 package.preload.lazy = function()
@@ -82,6 +92,15 @@ equal(2, vim.o.tabstop, "displayed Tab width is two columns")
 equal(0, vim.o.softtabstop, "Tab follows the two-column tabstop")
 equal(2, vim.o.shiftwidth, "automatic indentation width is two columns")
 vim.cmd("enew")
+vim.bo.filetype = "python"
+equal(false, vim.bo.expandtab,
+  "starter indentation overrides the Python filetype space default")
+equal(2, vim.bo.tabstop,
+  "starter tabstop overrides the Python filetype width")
+equal(0, vim.bo.softtabstop,
+  "starter softtabstop overrides the Python filetype width")
+equal(2, vim.bo.shiftwidth,
+  "starter shiftwidth overrides the Python filetype width")
 local tab_keys = vim.api.nvim_replace_termcodes("i<Tab><Esc>", true, false, true)
 vim.api.nvim_feedkeys(tab_keys, "xt", false)
 equal("\t", vim.api.nvim_get_current_line(),

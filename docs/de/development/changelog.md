@@ -9,8 +9,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Ergänzt im Komponenten-Dialog eine standardmäßig unveränderte
   Konfigurationsauswahl mit einer Grundkonfiguration aus Lazy, Oil, der
   gebündelten Access-Link-Kopie, echten Tabulatorzeichen in einem
-  Zwei-Spalten-Raster, ausgeschalteten Zeilennummern und Leader-Befehlen für
-  Oil und Lazy. Vorhandene reguläre `init.lua` und
+  Zwei-Spalten-Raster auch nach dateitypspezifischen Vorgaben,
+  ausgeschalteten Zeilennummern sowie Leader-Befehlen für Oil und
+  Lazy. Vorhandene reguläre `init.lua` und
   `init.vim` werden vor dem atomaren Austausch in eindeutige Sicherungspfade
   verschoben und im Ergebnisdialog genannt; Fehler stellen die Originale aus
   den erhaltenen Sicherungen wieder her. Symlinks und ungewöhnliche Ziele

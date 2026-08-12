@@ -12,6 +12,16 @@ vim.opt.smartcase = true
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 
+vim.api.nvim_create_autocmd("FileType", {
+  desc = "Keep starter indentation consistent across file types",
+  callback = function(args)
+    vim.bo[args.buf].expandtab = false
+    vim.bo[args.buf].tabstop = 2
+    vim.bo[args.buf].softtabstop = 0
+    vim.bo[args.buf].shiftwidth = 2
+  end,
+})
+
 local uv = vim.uv or vim.loop
 local data_path = vim.fn.stdpath("data")
 local lazy_path = vim.fs.joinpath(data_path, "lazy", "lazy.nvim")

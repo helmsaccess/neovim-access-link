@@ -9,7 +9,8 @@ test-build entries through August 5, 2026.
 - Adds a component-dialog configuration choice that remains unchanged by
   default and can install a basic configuration with Lazy, Oil, the bundled
   Access Link copy, actual tab characters on two-column tab stops, disabled
-  line numbers, and leader commands for Oil and Lazy.
+  line numbers, and leader commands for Oil and Lazy. The indentation
+  remains fixed after filetype-specific Neovim defaults are applied.
   Existing regular `init.lua` and `init.vim` files move to unique backup paths
   named in the results dialog before atomic replacement; failures restore the
   originals from the retained backups. Symbolic links and unusual targets

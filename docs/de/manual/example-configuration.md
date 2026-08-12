@@ -35,7 +35,10 @@ Access-Link-Kopie und wenigen überschaubaren Grundeinstellungen ein:
 
 - Zeilennummern bleiben ausgeschaltet.
 - Die Tabulatortaste fügt echte Tabulatorzeichen ein. Neovim verwendet ein
-  Tabstop-Raster und eine Einrückungsbreite von zwei Spalten.
+  Tabstop-Raster und eine Einrückungsbreite von zwei Spalten. Die
+  Grundkonfiguration setzt diese Werte nach den dateitypspezifischen
+  Neovim-Vorgaben erneut; dadurch gelten sie beispielsweise auch in
+  Python-Dateien, für die Neovim sonst vier Leerzeichen vorsieht.
 - Suchen ignorieren Groß-/Kleinschreibung, solange der Suchtext keinen
   Großbuchstaben enthält.
 - Neue horizontale Splits öffnen sich unten, vertikale rechts.
@@ -57,7 +60,9 @@ GitHub, um Lazy und Oil herunterzuladen.
 
 In Oil bewegen Sie sich mit Neovims normalen Navigationstasten. Die
 `Eingabetaste` öffnet einen Eintrag, `-` wechselt zum übergeordneten Ordner und
-`q` schließt den Oil-Puffer. Die zugängliche Bedienung von Lazy beschreibt
+`Strg+C` schließt den Oil-Puffer. Nur `:write` startet Oils Speicherung mit der
+vorgesehenen Bestätigung. Lazy schließen Sie mit `q`. Die zugängliche Bedienung
+von Lazy beschreibt
 [LSP, Autovervollständigung und Linter einrichten](language-tools.md#plugins-mit-lazynvim-aktualisieren).
 
 Die nachfolgende vollständige Python-Konfiguration ist eine umfangreichere

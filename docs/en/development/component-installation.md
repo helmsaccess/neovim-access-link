@@ -91,8 +91,9 @@ The configuration choice leaves configuration unchanged by default, installs
 a tested basic configuration on every selected target, or copies the complete
 local Windows configuration only to selected Linux connections. The basic
 configuration loads Access Link and Oil explicitly through Lazy, uses actual
-tab characters on two-column tab stops, leaves line numbers disabled, and maps
-`Space`, then `o` to Oil and `Space`, then `l` to Lazy. The shared
+tab characters on two-column tab stops even after filetype-specific Neovim
+defaults, leaves line numbers disabled, and maps Oil to `Space`, then `o` and
+Lazy to `Space`, then `l`. The shared
 `StarterConfigInstaller` detects `init.lua` and `init.vim`, rejects symbolic
 links and other unusual targets, and moves existing regular files to unique
 backup paths before the atomic replacement. On failure it attempts to restore

@@ -2114,14 +2114,17 @@ Access Link copy, and a few straightforward defaults:</p>
 <ul>
 <li>Line numbers remain disabled.</li>
 <li>Tab inserts an actual tab character. Neovim uses two-column tab
-stops and a two-column indentation width.</li>
+stops and a two-column indentation width. The basic configuration
+reapplies these values after Neovim&#39;s filetype-specific defaults, so
+they also apply to Python files, for which Neovim otherwise uses four
+spaces.</li>
 <li>Searches ignore case unless the search text contains an uppercase
 letter.</li>
 <li>New horizontal splits open below and vertical splits open to the
 right.</li>
-<li>In Normal mode, press <code>Space</code>, then <code>o</code> to
-open Oil and <code>Space</code>, then <code>l</code> to open Lazy. These
-are sequential keys; Space is the leader.</li>
+<li>In Normal mode, <code>Space</code>, then <code>o</code> opens Oil
+and <code>Space</code>, then <code>l</code> opens Lazy. These are
+sequential keys; Space is the leader.</li>
 </ul>
 <p>LSP, language servers, and linters are not part of this basic
 configuration.</p>
@@ -2136,7 +2139,8 @@ failure. Symbolic links and unusual file types are not replaced.</p>
 access to GitHub to download Lazy and Oil.</p>
 <p>Use Neovim&#39;s normal navigation keys in Oil. <code>Enter</code> opens
 an entry, <code>-</code> moves to the parent directory, and
-<code>q</code> closes the Oil buffer. <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Setting
+<code>Ctrl+C</code> closes the Oil buffer. Only <code>:write</code>
+starts Oil&#39;s save and confirmation. Close Lazy with <code>q</code>. <a href="#docs__en__manual__language-toolsmd__setting-up-lsp-completion-and-linters">Setting
 up LSP, completion, and linters</a> describes accessible Lazy
 operation.</p>
 <p>The complete Python configuration below is a more extensive

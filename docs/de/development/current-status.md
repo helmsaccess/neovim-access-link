@@ -35,8 +35,9 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   installieren. Vorhandene reguläre `init.lua` und `init.vim` werden zuerst in
   eindeutige Sicherungspfade verschoben; der Ergebnisdialog nennt Installation
   und Sicherungen. Die Grundkonfiguration verwendet echte Tabulatorzeichen in
-  einem Zwei-Spalten-Raster, keine Zeilennummern und Leader-Befehle für Oil und
-  Lazy. Alternativ kopiert sie die vollständige lokale
+  einem Zwei-Spalten-Raster auch nach dateitypspezifischen Vorgaben, keine
+  Zeilennummern und Leader-Befehle für Oil und Lazy. Alternativ
+  kopiert sie die vollständige lokale
   Windows-Konfiguration auf ausgewählte Linux-Verbindungen, nachdem Links,
   Dateitypen, Pfade und Größen begrenzt und geprüft wurden. Eine vorhandene
   Linux-Konfiguration wird als vollständiges Verzeichnis atomar gesichert.
