@@ -2672,14 +2672,16 @@ HTML-Dokumente.</li>
 unveränderte Konfigurationsauswahl eine kleine Grundkonfiguration mit
 Lazy und Oil installieren. Vorhandene reguläre <code>init.lua</code> und
 <code>init.vim</code> werden zuerst in eindeutige Sicherungspfade
-verschoben; der Ergebnisdialog nennt Installation und Sicherungen.
-Alternativ kopiert sie die vollständige lokale Windows-Konfiguration auf
-ausgewählte Linux-Verbindungen, nachdem Links, Dateitypen, Pfade und
-Größen begrenzt und geprüft wurden. Eine vorhandene Linux-Konfiguration
-wird als vollständiges Verzeichnis atomar gesichert.
-Windows-spezifischen Inhalt verändert das Add-on nicht; Lazy muss die
-installierte Access-Link-Kopie ausdrücklich als lokales Plugin laden.
-Automatisierte Tests decken Archivierung, lokale und rootlose
+verschoben; der Ergebnisdialog nennt Installation und Sicherungen. Die
+Grundkonfiguration verwendet echte Tabulatorzeichen in einem
+Zwei-Spalten-Raster, keine Zeilennummern und Leader-Befehle für Oil und
+Lazy. Alternativ kopiert sie die vollständige lokale
+Windows-Konfiguration auf ausgewählte Linux-Verbindungen, nachdem Links,
+Dateitypen, Pfade und Größen begrenzt und geprüft wurden. Eine
+vorhandene Linux-Konfiguration wird als vollständiges Verzeichnis atomar
+gesichert. Windows-spezifischen Inhalt verändert das Add-on nicht; Lazy
+muss die installierte Access-Link-Kopie ausdrücklich als lokales Plugin
+laden. Automatisierte Tests decken Archivierung, lokale und rootlose
 Linux-Paketpfade, SSH-Übertragung und Rollback ab; eine praktische
 Windows-/SSH-Abnahme steht noch aus.</li>
 <li>Die Komponentenentfernung verlangt nach der Zielauswahl eine
@@ -4942,7 +4944,11 @@ gestartet werden.</p>
 <p>Die Konfigurationsauswahl bleibt standardmäßig unverändert,
 installiert auf allen gewählten Zielen eine geprüfte Grundkonfiguration
 oder kopiert die vollständige lokale Windows-Konfiguration
-ausschließlich auf gewählte Linux-Verbindungen. Der gemeinsame
+ausschließlich auf gewählte Linux-Verbindungen. Die Grundkonfiguration
+lädt Access Link sowie Oil ausdrücklich über Lazy, verwendet echte
+Tabulatorzeichen mit einem Zwei-Spalten-Raster, lässt Zeilennummern aus
+und belegt <code>Leertaste</code>, dann <code>o</code> für Oil sowie
+<code>Leertaste</code>, dann <code>l</code> für Lazy. Der gemeinsame
 <code>StarterConfigInstaller</code> erkennt <code>init.lua</code> und
 <code>init.vim</code>, lehnt Symlinks und andere ungewöhnliche Ziele ab
 und verschiebt vorhandene reguläre Dateien vor dem atomaren Austausch in
@@ -6121,13 +6127,14 @@ zum 5. August 2026.</p>
 <ul>
 <li>Ergänzt im Komponenten-Dialog eine standardmäßig unveränderte
 Konfigurationsauswahl mit einer Grundkonfiguration aus Lazy, Oil, der
-gebündelten Access-Link-Kopie und wenigen Neovim-Grundeinstellungen.
-Vorhandene reguläre <code>init.lua</code> und <code>init.vim</code>
-werden vor dem atomaren Austausch in eindeutige Sicherungspfade
-verschoben und im Ergebnisdialog genannt; Fehler stellen die Originale
-aus den erhaltenen Sicherungen wieder her. Symlinks und ungewöhnliche
-Ziele bleiben unverändert, und die Komponentenentfernung löscht weder
-Konfiguration noch Sicherungen.</li>
+gebündelten Access-Link-Kopie, echten Tabulatorzeichen in einem
+Zwei-Spalten-Raster, ausgeschalteten Zeilennummern und Leader-Befehlen
+für Oil und Lazy. Vorhandene reguläre <code>init.lua</code> und
+<code>init.vim</code> werden vor dem atomaren Austausch in eindeutige
+Sicherungspfade verschoben und im Ergebnisdialog genannt; Fehler stellen
+die Originale aus den erhaltenen Sicherungen wieder her. Symlinks und
+ungewöhnliche Ziele bleiben unverändert, und die Komponentenentfernung
+löscht weder Konfiguration noch Sicherungen.</li>
 <li>Ergänzt als zweiten Konfigurationsweg die sichere Übernahme des
 vollständigen lokalen Windows-Konfigurationsverzeichnisses auf
 ausgewählte Linux-Verbindungen. Eine begrenzte, linkfreie Momentaufnahme

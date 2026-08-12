@@ -1,9 +1,12 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 
-vim.opt.number = true
-vim.opt.signcolumn = "yes"
-vim.opt.updatetime = 300
+vim.opt.number = false
+vim.opt.relativenumber = false
+vim.opt.expandtab = false
+vim.opt.tabstop = 2
+vim.opt.softtabstop = 0
+vim.opt.shiftwidth = 2
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.splitbelow = true
@@ -39,7 +42,7 @@ local plugins = {
       skip_confirm_for_simple_edits = false,
     },
     keys = {
-      { "-", "<Cmd>Oil<CR>", desc = "Open parent directory" },
+      { "<leader>o", "<Cmd>Oil<CR>", desc = "Open file manager" },
     },
   },
 }
@@ -73,4 +76,8 @@ require("lazy").setup(plugins, {
   defaults = { lazy = false },
   install = { colorscheme = { "habamax" } },
   checker = { enabled = false },
+})
+
+vim.keymap.set("n", "<leader>l", "<Cmd>Lazy<CR>", {
+  desc = "Open plugin manager",
 })

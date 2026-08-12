@@ -28,10 +28,18 @@ disable that entry yourself after removing the components.
 ### Install a smaller basic configuration
 
 `Install the basic Neovim configuration with lazy.nvim and Oil` creates a
-smaller `init.lua` with Lazy, Oil, the bundled
-Access Link copy, line numbers, a stable sign column, smart case-sensitive
-searching, and a conventional direction for new splits. LSP, language servers,
-and linters are not part of this basic configuration.
+smaller `init.lua` with Lazy, Oil, the bundled Access Link copy, and a few
+straightforward defaults:
+
+- Line numbers remain disabled.
+- Tab inserts an actual tab character. Neovim uses two-column tab stops and a
+  two-column indentation width.
+- Searches ignore case unless the search text contains an uppercase letter.
+- New horizontal splits open below and vertical splits open to the right.
+- In Normal mode, press `Space`, then `o` to open Oil and `Space`, then `l` to
+  open Lazy. These are sequential keys; Space is the leader.
+
+LSP, language servers, and linters are not part of this basic configuration.
 
 The option applies to every target selected in the same dialog. If the add-on
 finds an `init.lua` or `init.vim` there, it first moves every existing file to
@@ -42,6 +50,11 @@ failure. Symbolic links and unusual file types are not replaced.
 
 On its first Neovim start, the basic configuration needs Git and access to
 GitHub to download Lazy and Oil.
+
+Use Neovim's normal navigation keys in Oil. `Enter` opens an entry, `-` moves
+to the parent directory, and `q` closes the Oil buffer. [Setting up LSP,
+completion, and linters](language-tools.md#update-plugins-with-lazynvim)
+describes accessible Lazy operation.
 
 The complete Python configuration below is a more extensive alternative. Use
 it when Pyright, Ruff, and the documented LSP and linter keys should also be

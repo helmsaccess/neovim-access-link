@@ -31,9 +31,18 @@ deaktivieren.
 
 `Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren` richtet
 eine kleinere `init.lua` mit Lazy, Oil, der bereits mitgelieferten
-Access-Link-Kopie sowie Zeilennummern, stabiler Zeichenspalte, intelligenter
-Groß-/Kleinschreibung und einer üblichen Anordnung neuer Splits ein. LSP,
-Sprachserver und Linter gehören nicht zu dieser Grundkonfiguration.
+Access-Link-Kopie und wenigen überschaubaren Grundeinstellungen ein:
+
+- Zeilennummern bleiben ausgeschaltet.
+- Die Tabulatortaste fügt echte Tabulatorzeichen ein. Neovim verwendet ein
+  Tabstop-Raster und eine Einrückungsbreite von zwei Spalten.
+- Suchen ignorieren Groß-/Kleinschreibung, solange der Suchtext keinen
+  Großbuchstaben enthält.
+- Neue horizontale Splits öffnen sich unten, vertikale rechts.
+- Im Normalmodus öffnet `Leertaste`, dann `o` Oil und `Leertaste`, dann `l`
+  Lazy. Die Tasten werden nacheinander gedrückt; die Leertaste ist der Leader.
+
+LSP, Sprachserver und Linter gehören nicht zu dieser Grundkonfiguration.
 
 Die Option gilt für alle im selben Dialog ausgewählten Ziele. Findet das
 Add-on dort eine `init.lua` oder `init.vim`, verschiebt es jede vorhandene
@@ -45,6 +54,11 @@ ungewöhnliche Dateitypen werden nicht ersetzt.
 
 Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und Zugriff auf
 GitHub, um Lazy und Oil herunterzuladen.
+
+In Oil bewegen Sie sich mit Neovims normalen Navigationstasten. Die
+`Eingabetaste` öffnet einen Eintrag, `-` wechselt zum übergeordneten Ordner und
+`q` schließt den Oil-Puffer. Die zugängliche Bedienung von Lazy beschreibt
+[LSP, Autovervollständigung und Linter einrichten](language-tools.md#plugins-mit-lazynvim-aktualisieren).
 
 Die nachfolgende vollständige Python-Konfiguration ist eine umfangreichere
 Alternative. Verwenden Sie sie, wenn zusätzlich Pyright, Ruff und die

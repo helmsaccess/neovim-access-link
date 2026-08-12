@@ -2191,10 +2191,21 @@ selbst entfernen oder deaktivieren.</p>
 <h4>Kleinere Grundkonfiguration installieren</h4>
 <p><code>Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren</code>
 richtet eine kleinere <code>init.lua</code> mit Lazy, Oil, der bereits
-mitgelieferten Access-Link-Kopie sowie Zeilennummern, stabiler
-Zeichenspalte, intelligenter Groß-/Kleinschreibung und einer üblichen
-Anordnung neuer Splits ein. LSP, Sprachserver und Linter gehören nicht
-zu dieser Grundkonfiguration.</p>
+mitgelieferten Access-Link-Kopie und wenigen überschaubaren
+Grundeinstellungen ein:</p>
+<ul>
+<li>Zeilennummern bleiben ausgeschaltet.</li>
+<li>Die Tabulatortaste fügt echte Tabulatorzeichen ein. Neovim verwendet
+ein Tabstop-Raster und eine Einrückungsbreite von zwei Spalten.</li>
+<li>Suchen ignorieren Groß-/Kleinschreibung, solange der Suchtext keinen
+Großbuchstaben enthält.</li>
+<li>Neue horizontale Splits öffnen sich unten, vertikale rechts.</li>
+<li>Im Normalmodus öffnet <code>Leertaste</code>, dann <code>o</code>
+Oil und <code>Leertaste</code>, dann <code>l</code> Lazy. Die Tasten
+werden nacheinander gedrückt; die Leertaste ist der Leader.</li>
+</ul>
+<p>LSP, Sprachserver und Linter gehören nicht zu dieser
+Grundkonfiguration.</p>
 <p>Die Option gilt für alle im selben Dialog ausgewählten Ziele. Findet
 das Add-on dort eine <code>init.lua</code> oder <code>init.vim</code>,
 verschiebt es jede vorhandene Datei zuerst in eine eindeutig benannte
@@ -2205,6 +2216,11 @@ sicher abgeschlossen werden, meldet das Ziel einen Fehler. Symlinks und
 ungewöhnliche Dateitypen werden nicht ersetzt.</p>
 <p>Beim ersten Neovim-Start benötigt die Grundkonfiguration Git und
 Zugriff auf GitHub, um Lazy und Oil herunterzuladen.</p>
+<p>In Oil bewegen Sie sich mit Neovims normalen Navigationstasten. Die
+<code>Eingabetaste</code> öffnet einen Eintrag, <code>-</code> wechselt
+zum übergeordneten Ordner und <code>q</code> schließt den Oil-Puffer.
+Die zugängliche Bedienung von Lazy beschreibt <a href="#docs__de__manual__language-toolsmd__lsp-autovervollständigung-und-linter-einrichten">LSP,
+Autovervollständigung und Linter einrichten</a>.</p>
 <p>Die nachfolgende vollständige Python-Konfiguration ist eine
 umfangreichere Alternative. Verwenden Sie sie, wenn zusätzlich Pyright,
 Ruff und die dokumentierten LSP- und Lintertasten eingerichtet werden

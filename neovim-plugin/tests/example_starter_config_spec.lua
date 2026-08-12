@@ -69,18 +69,29 @@ equal(false, oil.opts.skip_confirm_for_simple_edits,
   "Oil keeps edit confirmations")
 equal(false, oil.opts.delete_to_trash,
   "the portable starter configuration does not assume a trash helper")
-equal("-", oil.keys[1][1], "Oil has a simple parent-directory mapping")
+equal("<leader>o", oil.keys[1][1], "Oil uses the documented leader mapping")
+equal("<Cmd>Oil<CR>", oil.keys[1][2], "Oil mapping opens the file manager")
 equal(false, captured_options.defaults.lazy, "plugins are eager by default")
 equal(false, captured_options.checker.enabled,
   "the starter configuration does not run background update checks")
 
-equal(true, vim.o.number, "line numbers are enabled")
-equal("yes", vim.o.signcolumn, "the sign column is stable")
-equal(300, vim.o.updatetime, "semantic updates use a responsive interval")
+equal(false, vim.o.number, "line numbers remain disabled")
+equal(false, vim.o.relativenumber, "relative line numbers remain disabled")
+equal(false, vim.o.expandtab, "Tab inserts a tab character")
+equal(2, vim.o.tabstop, "displayed Tab width is two columns")
+equal(0, vim.o.softtabstop, "Tab follows the two-column tabstop")
+equal(2, vim.o.shiftwidth, "automatic indentation width is two columns")
+vim.cmd("enew")
+local tab_keys = vim.api.nvim_replace_termcodes("i<Tab><Esc>", true, false, true)
+vim.api.nvim_feedkeys(tab_keys, "xt", false)
+equal("\t", vim.api.nvim_get_current_line(),
+  "pressing Tab inserts an actual tab character")
 equal(true, vim.o.ignorecase, "search ignores case by default")
 equal(true, vim.o.smartcase, "uppercase search remains case-sensitive")
 equal(true, vim.o.splitbelow, "horizontal splits open below")
 equal(true, vim.o.splitright, "vertical splits open to the right")
+equal("<Cmd>Lazy<CR>", vim.fn.maparg("<leader>l", "n"),
+  "Lazy uses the documented leader mapping")
 truthy(type(captured_specs) == "table", "lazy.nvim received a plugin spec")
 
 vim.fn = original_fn
