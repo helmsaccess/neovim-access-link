@@ -194,7 +194,6 @@ class TerminalIntegrationService:
 		self._dismissNumberedChoice()
 		self._editorSession.invalidate_held_context()
 		self._dismissDeveloperContext()
-		self._controlDispatcher.close()
 		return True
 
 	def toggle_braille_exploration(self) -> BrailleExplorationTogglePlan:

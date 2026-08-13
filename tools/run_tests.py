@@ -241,8 +241,10 @@ def jobs() -> tuple[Job, ...]:
     result.append(bridge_methods("unit", "mocked-nvim", MOCK_BRIDGE_TESTS))
     result.append(python_file("unit", "human", "tests/human/test_framework.py"))
     for file_name in (
+        "test_addon_architecture.py",
         "test_braille_exploration.py",
         "test_braille_routing_repeats.py",
+        "test_client_stopper.py",
         "test_connection_coordinator.py",
         "test_connection_instances.py",
         "test_connection_profiles.py",
@@ -257,6 +259,7 @@ def jobs() -> tuple[Job, ...]:
         "test_local_sessions.py",
         "test_numbered_choice.py",
         "test_repository_policy.py",
+        "test_runtime_scheduler.py",
         "test_service_registrar.py",
         "test_speech.py",
         "test_starter_config.py",

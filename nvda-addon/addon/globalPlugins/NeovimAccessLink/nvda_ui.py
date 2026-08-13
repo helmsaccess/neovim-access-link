@@ -5,7 +5,6 @@ import pathlib
 import threading
 
 import addonHandler
-import queueHandler
 import ui
 
 from .core.connection_profiles import (
@@ -46,6 +45,7 @@ class NvdaUiManager:
 		settings_service,
 		*,
 		record_diagnostic,
+		queue_main_thread,
 		password_for_profile,
 		askpass_path,
 		product_name,
@@ -57,6 +57,7 @@ class NvdaUiManager:
 	):
 		self._settingsService = settings_service
 		self._recordDiagnostic = record_diagnostic
+		self._queueMainThread = queue_main_thread
 		self._passwordForProfile = password_for_profile
 		self._askpassPath = askpass_path
 		self._productName = product_name
@@ -1159,15 +1160,14 @@ class NvdaUiManager:
 						configurationBackups=0,
 					)
 					completed += 1
-					queueHandler.queueFunction(
-						queueHandler.eventQueue,
+					self._queueMainThread(
 						self._reportServerInstallProgress,
 						profile,
 						failure,
 						completed,
 						total,
 					)
-				queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
+				self._queueMainThread(self._finishServerInstalls, results)
 				return
 			imported_config = archive.payload
 		for profile, password in jobs:
@@ -1223,15 +1223,14 @@ class NvdaUiManager:
 				configurationBackups=len(result.configuration_backups),
 			)
 			completed += 1
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
+			self._queueMainThread(
 				self._reportServerInstallProgress,
 				profile,
 				result,
 				completed,
 				total,
 			)
-		queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
+		self._queueMainThread(self._finishServerInstalls, results)
 
 	def _reportServerInstallProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]
@@ -1409,15 +1408,14 @@ class NvdaUiManager:
 				diagnostics=result.diagnostics,
 			)
 			completed += 1
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
+			self._queueMainThread(
 				self._reportComponentRemovalProgress,
 				profile,
 				result,
 				completed,
 				total,
 			)
-		queueHandler.queueFunction(queueHandler.eventQueue, self._finishComponentRemovals, results)
+		self._queueMainThread(self._finishComponentRemovals, results)
 
 	def _reportComponentRemovalProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]

@@ -46,16 +46,22 @@ class SshSessionListerTests(unittest.TestCase):
         self.assertIn("NumberOfPasswordPrompts=1", command)
 
     def test_filters_invalid_records_and_rejects_malformed_json(self) -> None:
-        valid_runner = lambda command, **kwargs: subprocess.CompletedProcess(
-            command, 0, stdout=b'[{"id":"1","name":"one"},{"id":"bad id","name":"bad"},7]', stderr=b"",
-        )
+        def valid_runner(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=b'[{"id":"1","name":"one"},{"id":"bad id","name":"bad"},7]',
+                stderr=b"",
+            )
         self.assertEqual(["1"], [item.identifier for item in SshSessionLister(valid_runner).list("host")])
-        bad_runner = lambda command, **kwargs: subprocess.CompletedProcess(command, 0, stdout=b"not-json", stderr=b"")
+        def bad_runner(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, stdout=b"not-json", stderr=b"")
         with self.assertRaisesRegex(RuntimeError, "valid JSON"):
             SshSessionLister(bad_runner).list("host")
 
     def test_nonzero_ssh_result_and_invalid_options_fail(self) -> None:
-        runner = lambda command, **kwargs: subprocess.CompletedProcess(command, 255, stdout=b"", stderr=b"denied")
+        def runner(command, **kwargs):
+            return subprocess.CompletedProcess(command, 255, stdout=b"", stderr=b"denied")
         with self.assertRaisesRegex(RuntimeError, "denied"):
             SshSessionLister(runner).list("host")
         for kwargs in ({"port": 0}, {"identity_file": "-bad"}, {"password": "x"}):

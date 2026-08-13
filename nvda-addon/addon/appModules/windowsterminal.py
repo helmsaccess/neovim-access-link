@@ -17,7 +17,7 @@ import scriptHandler
 import types
 import winUser
 
-from globalPlugins import NeovimAccessLink
+from globalPlugins.NeovimAccessLink import adapter_api as NeovimAccessLink
 
 addonHandler.initTranslation()
 
@@ -39,7 +39,7 @@ def script_passThroughStructuredNavigation(app_module, gesture):
 
 
 class AppModule(appModuleHandler.AppModule):
-	scriptCategory = NeovimAccessLink._PRODUCT_NAME
+	scriptCategory = NeovimAccessLink.PRODUCT_NAME
 	_observerAdapters = []
 	_observerCallback = None
 	_rawKeyCallback = None
@@ -170,7 +170,7 @@ class AppModule(appModuleHandler.AppModule):
 
 	@staticmethod
 	def _isClaimGesture(gesture):
-		return NeovimAccessLink._SESSION_CLAIM_GESTURE.lower() in (
+		return NeovimAccessLink.SESSION_CLAIM_GESTURE.lower() in (
 			identifier.lower() for identifier in getattr(gesture, "normalizedIdentifiers", ())
 		)
 
@@ -220,7 +220,7 @@ class AppModule(appModuleHandler.AppModule):
 		)
 
 	def _service(self):
-		return NeovimAccessLink.getTerminalIntegrationService()
+		return NeovimAccessLink.get_terminal_integration()
 
 	@staticmethod
 	def _physicalKey(gesture):

@@ -31,9 +31,13 @@ PRODUCT_NAME = buildVars.addon_info["summary"]
 LOCALE_ROOT = ROOT / "nvda-addon" / "locale"
 POT_PATH = LOCALE_ROOT / "NeovimAccessLink.pot"
 SOURCE_PATHS = (
-    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "__init__.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "composition.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "connection_dialogs.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "connection_workflow.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "event_delivery.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_presentation.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_ui.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "terminal_actions.py",
     ROOT / "nvda-addon" / "addon" / "appModules" / "windowsterminal.py",
     ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "speech.py",
 )

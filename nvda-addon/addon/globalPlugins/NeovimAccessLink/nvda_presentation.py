@@ -11,7 +11,13 @@ from logHandler import log
 from speech.priorities import SpeechPriority as NvdaSpeechPriority
 
 from .core.speech import Priority
+from .core.held_context_state import HeldContextDirection, HeldContextKind
 from .editor_session import mode_sound_kind as editor_mode_sound_kind
+from .nvda_braille import (
+	dismiss_numbered_choice_message,
+	present_developer_context_message,
+	present_numbered_choice_message,
+)
 from .suggestion_sounds import EditorSoundCache, SpellingSoundCache, SuggestionSoundCache
 
 addonHandler.initTranslation()
@@ -28,11 +34,19 @@ class NvdaPresentation:
 		feedback_defaults,
 		feedback_for_sound,
 		on_diagnostic,
+		*,
+		numbered_choice_start,
+		developer_context_start,
 	):
 		self._settings_provider = settings_provider
 		self._feedback_defaults = dict(feedback_defaults)
 		self._feedback_for_sound = dict(feedback_for_sound)
 		self._diagnostic = on_diagnostic
+		self._numberedChoiceStart = numbered_choice_start
+		self._developerContextStart = developer_context_start
+		self._numberedChoiceMessageToken = None
+		self._developerContextMessageToken = None
+		self._closed = False
 		self.suggestion_sounds = SuggestionSoundCache(
 			nvda_wave_directory,
 			on_diagnostic=on_diagnostic,
@@ -48,9 +62,151 @@ class NvdaPresentation:
 		)
 
 	def close(self):
+		if self._closed:
+			return False
+		self._closed = True
+		self.dismiss_numbered_choice()
+		self.dismiss_developer_context()
 		self.suggestion_sounds.close()
 		self.spelling_sound.close()
 		self.editor_sounds.close()
+		return True
+
+	def present_numbered_choice(self, text):
+		"""Present and own one transient numbered-choice Braille message."""
+		speech.cancelSpeech()
+		speech.speakText(text)
+		self.dismiss_numbered_choice()
+		self._numberedChoiceMessageToken = present_numbered_choice_message(
+			text,
+			start_cell=self._numberedChoiceStart(),
+		)
+		if self._numberedChoiceMessageToken is None:
+			self._diagnostic("numberedChoiceBrailleMessage", displayed=False)
+			return False
+		return True
+
+	def announce_numbered_choice_opened(self):
+		speech.cancelSpeech()
+		# Translators: Briefly spoken when Neovim opens a list of spelling corrections.
+		speech.speakText(_("Spelling suggestions available"))
+
+	def dismiss_numbered_choice(self):
+		token = self._numberedChoiceMessageToken
+		if token is None:
+			return False
+		self._numberedChoiceMessageToken = None
+		dismissed = dismiss_numbered_choice_message(token)
+		self._diagnostic("numberedChoiceBrailleMessageDismissed", dismissed=dismissed)
+		return dismissed
+
+	def present_developer_context(self, presentation, kind, direction=None):
+		"""Present and own held callable or diagnostic context."""
+		if presentation is None:
+			if kind is HeldContextKind.DIAGNOSTIC:
+				self.play_no_diagnostic_sound(at_position=False)
+			speech_text = (
+				_("No function parameters or hover information available")
+				if kind is HeldContextKind.CALLABLE
+				else _("No diagnostics on this line")
+			)
+			braille_text = speech_text
+		elif kind is HeldContextKind.CALLABLE:
+			speech_text, braille_text = self._callable_context_text(
+				presentation,
+				direction,
+			)
+		else:
+			speech_text, braille_text = self._diagnostic_context_text(presentation)
+		speech.cancelSpeech()
+		speech.speakText(speech_text)
+		self.dismiss_developer_context()
+		self._developerContextMessageToken = present_developer_context_message(
+			braille_text,
+			start_cell=self._developerContextStart(),
+		)
+		self._diagnostic(
+			"developerContextPresented",
+			kind=kind.value,
+			braille=self._developerContextMessageToken is not None,
+		)
+		return True
+
+	def dismiss_developer_context(self):
+		token = self._developerContextMessageToken
+		if token is None:
+			return False
+		self._developerContextMessageToken = None
+		dismissed = dismiss_numbered_choice_message(token)
+		self._diagnostic("developerContextBrailleMessageDismissed", dismissed=dismissed)
+		return dismissed
+
+	@staticmethod
+	def _callable_context_text(presentation, direction):
+		signature = presentation.item.get("signature", "")
+		documentation = presentation.item.get("documentation", "")
+		signature_text = _("Signature {index} of {count}: {signature}").format(
+			index=presentation.item_index + 1,
+			count=presentation.item_count,
+			signature=signature,
+		)
+		braille_signature = _("S {index} of {count}: {signature}").format(
+			index=presentation.item_index + 1,
+			count=presentation.item_count,
+			signature=signature,
+		)
+		parameter_text = ""
+		braille_parameter = ""
+		if presentation.parameter_count:
+			parameter_text = _("Parameter {index} of {count}: {parameter}").format(
+				index=presentation.parameter_index + 1,
+				count=presentation.parameter_count,
+				parameter=presentation.parameter,
+			)
+			braille_parameter = _("P {index} of {count}: {parameter}").format(
+				index=presentation.parameter_index + 1,
+				count=presentation.parameter_count,
+				parameter=presentation.parameter,
+			)
+		documentation_text = (
+			_("Documentation: {documentation}").format(documentation=documentation) if documentation else ""
+		)
+		braille_documentation = (
+			_("D: {documentation}").format(documentation=documentation) if documentation else ""
+		)
+		if direction in {
+			HeldContextDirection.PREVIOUS_PARAMETER,
+			HeldContextDirection.NEXT_PARAMETER,
+		}:
+			speech_text = parameter_text or _("No parameters in this signature")
+			return speech_text, braille_parameter or speech_text
+		return (
+			". ".join(part for part in (signature_text, documentation_text) if part),
+			". ".join(part for part in (braille_signature, braille_documentation) if part),
+		)
+
+	@staticmethod
+	def _diagnostic_context_text(presentation):
+		item = presentation.item
+		severity = {
+			"error": _("error"),
+			"warning": _("warning"),
+			"information": _("information"),
+			"hint": _("hint"),
+		}.get(item.get("severity"), _("diagnostic"))
+		source = item.get("source", "")
+		code = item.get("code")
+		provider = " ".join(part for part in (source, str(code) if code is not None else "") if part)
+		text = _("{severity}, diagnostic {index} of {count}: {message}").format(
+			severity=severity,
+			index=presentation.item_index + 1,
+			count=presentation.item_count,
+			message=item.get("message", ""),
+		)
+		if not provider:
+			return text, text
+		source_text = _("Source: {source}").format(source=provider)
+		return ". ".join((text, source_text)), " | ".join((text, source_text))
 
 	def feedback_mode(self, key):
 		settings = self._settings_provider()

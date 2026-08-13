@@ -72,23 +72,6 @@ class ConnectionInstanceManagerTests(unittest.TestCase):
         self.assertEqual(first, manager.unbind(tab_one))
         self.assertIsNone(manager.selected_for(tab_one))
 
-    def test_remove_and_stop_all_close_clients_and_clear_bindings(self) -> None:
-        manager = ConnectionInstanceManager()
-        first_client = FakeClient()
-        second_client = FakeClient()
-        first = add_remote(manager, "one", "1", "One", first_client)
-        second = add_remote(manager, "two", "2", "Two", second_client)
-        terminal = TerminalIdentity(10, 100)
-        manager.bind(terminal, first.identifier)
-        manager.remove(first.identifier)
-        self.assertIsNone(manager.selected_for(terminal))
-        self.assertEqual(1, first_client.stops)
-        manager.stop_all()
-        self.assertEqual(1, second_client.stops)
-        self.assertEqual([], manager.list())
-        with self.assertRaisesRegex(ValueError, "unknown"):
-            manager.client_for(second.identifier)
-
     def test_failed_start_is_not_retained(self) -> None:
         manager = ConnectionInstanceManager()
         with self.assertRaisesRegex(RuntimeError, "start failed"):
@@ -106,6 +89,11 @@ class ConnectionInstanceManagerTests(unittest.TestCase):
         self.assertIs(client, detached_client)
         self.assertEqual(0, client.stops)
         self.assertIsNone(manager.selected_for(terminal))
+
+    def test_connection_manager_exposes_no_synchronous_stop_path(self) -> None:
+        manager = ConnectionInstanceManager()
+        self.assertFalse(hasattr(manager, "remove"))
+        self.assertFalse(hasattr(manager, "stop_all"))
 
     def test_untyped_target_is_rejected(self) -> None:
         manager = ConnectionInstanceManager()
