@@ -2764,6 +2764,20 @@ verwenden denselben validierten Datenpfad.</li>
 <li>Neovims native <code>z=</code>-Vorschläge sind mit Sprache, Braille
 und kontextbezogenen NVDA-Befehlen zugänglich. Rechtschreibfeedback
 folgt NVDAs getrennten Dokumentformatierungsoptionen.</li>
+<li>Neovims eingebauter <code>:Tutor</code> bleibt vollständig
+Neovim-eigen. Access Link liest ab Neovim 0.12 ausschließlich dessen
+native, eindeutige Extmarks in Tutor-Puffern, spricht Zustandswechsel
+nur im unveränderten Buffer-, Fenster- und Zeilenkontext sowie die
+Bewertung beim erneuten Lesen der Zeile und zeigt <code>✓</code>
+beziehungsweise <code>✗</code> dauerhaft, aber nicht routbar, hinter dem
+Braille-Zeilentext. Ein bufferlokaler Textbeobachter entsteht erst im
+Tutor-Puffer; es gibt kein Polling und keine zusätzlichen
+Steuerungsnachrichten. Zustandswerte anderer Typen oder außerhalb dieses
+Kontexts werden vor der kanonischen Zustandsübernahme verworfen. Unter
+Neovim 0.10 bleibt Tutor unverändert bei Neovim, und Access Link
+registriert dafür keine Beobachter. Beide Grenzen sowie der 0.12-Pfad
+sind headless, der 0.12-Pfad zusätzlich über eine isolierte echte TUI
+automatisiert geprüft.</li>
 </ul>
 </section>
 <section id="docs__de__development__current-statusmd__entwicklungswerkzeuge-terminal-und-dateien" class="level4">
@@ -3037,6 +3051,13 @@ providerneutrale Diagnosen über <code>vim.diagnostic</code>;</li>
 <li>Clang-Tidy, Ruff, ShellCheck, Staticcheck, Clippy, RuboCop und
 <code>markdownlint-cli2</code> als reale Linterprozesse.</li>
 </ul>
+<p>Das zusätzliche Bewertungsfeedback für Neovims eingebauten
+<code>:Tutor</code> beginnt bei Neovim 0.12 und verwendet nur dessen
+namensgebundene native Extmarks. Ein gezielter 0.12.3-CI-Lauf prüft
+diese Extmarks headless und über eine echte TUI. Der 0.10.1-Basissatz
+prüft die Gegenrichtung: keine Tutor-Beobachter und kein zusätzliches
+Tutor-Protokollfeld. Die allgemeine Access-Link-Unterstützung ab Neovim
+0.10.1 bleibt davon unberührt.</p>
 <p>Der öffentliche Vertrag von <code>lazy.nvim</code> 11.17.5 wurde
 direkt geprüft. Automatisierte Tests decken die exakten
 <code>nofile</code>-/<code>lazy</code>-Pufferwerte, dokumentierte
@@ -3825,6 +3846,9 @@ Kontextwechsel verworfen.</li>
 <li>Rechtschreibauswahl sendet nur den intern validierten numerischen
 Index an einen weiterhin identischen aktiven Prompt. Vorschlagstext wird
 nicht ausgeführt oder zurückgesendet.</li>
+<li>Tutor-Bewertungen sind reine Ausgabedaten mit festem Dateityp und
+zwei erlaubten Zuständen. Ungültige Übergänge werden vor der kanonischen
+Zustandsübernahme verworfen und lösen keinen Steuerbefehl aus.</li>
 <li>Zwischenablagezugriff beginnt nur durch frei belegbare NVDA-Befehle.
 Quellen, Register und Zieloperationen sind fest; Paste ist NUL-frei und
 auf 256 KiB UTF-8 begrenzt.</li>
@@ -4052,6 +4076,23 @@ genau einer dokumentierten <code>LazyProp</code>-Extmark bedeutet
 eingeklappt. Andere oder mehrdeutige Zeilen liefern keinen Zustand.
 Lokaler Client, SSH-Client und Bridge entfernen das Feld bei falscher
 Kennung oder falschem Typ.</p>
+<p><code>tutorExerciseStatus</code> ist ausschließlich bei
+<code>filetype=tutor</code> gültig und enthält genau
+<code>correct</code> oder <code>incorrect</code>. Das Neovim-Plugin
+liest dafür nur die namensgebundenen
+<code>nvim.tutor.mark</code>-Extmarks von Neovim 0.12 mit den exakten
+Tutor-Hervorhebungen und Zeichen <code>✓</code>/<code>✗</code>. Andere
+Extmarks, Dateitypen, ungültig gewordene oder mehrdeutige Markierungen
+erzeugen keinen Zustand. Das flüchtige Ereignis
+<code>tutorExerciseChanged</code> wird nur nach einem tatsächlich
+beobachteten Wechsel dieses Zustands und nur im unveränderten Buffer-,
+Fenster- und Zeilenkontext ausgegeben. Bei einem Kontextwechsel wird nur
+der gemerkte Zustand aktualisiert; die aktuelle Bewertung bleibt beim
+späteren Lesen verfügbar. Lokaler Client, SSH-Client und Bridge
+entfernen ungültige optionale Zustandsfelder und verwerfen ein
+ungültiges Übergangsereignis, bevor es den kanonischen Zustand erreicht.
+Unter Neovim 0.10 registriert das Plugin keine Tutor-Beobachter und
+sendet kein Tutor-Feld.</p>
 <p>Dateimanagerzustand enthält nur begrenzte semantische Werte.
 Eintragsnamen sind auf 512 UTF-8-Byte, Pfade und Wurzeln auf 2048 Byte
 sowie Typ- und Adapterbezeichnungen auf 64 Byte begrenzt. Das Plugin
@@ -5227,6 +5268,8 @@ reine Testabhängigkeiten und werden nicht ausgeliefert.</p>
 und Pull Requests. Die Jobs sind bewusst getrennt:</p>
 <ul>
 <li>sichere Unit-, Paket- und listenerfreie Lua-Tests;</li>
+<li>ein gezielter Neovim-0.12.3-Vertrag für native Tutor-Extmarks und
+den echten TUI-Ereignispfad;</li>
 <li>der PowerShell-Runner für geführte Praxistests;</li>
 <li>Completion-Plugin-Verträge;</li>
 <li>öffentliche lazy.nvim-Verträge mit echten Installations-,
@@ -5436,12 +5479,22 @@ einen bestätigten Index.</td>
 geprüft.</td>
 </tr>
 <tr class="even">
+<td>Neovim Tutor</td>
+<td>Ab Neovim 0.12 liefern ausschließlich <code>filetype=tutor</code>
+und eindeutige native Tutor-Extmarks
+<code>richtig</code>/<code>falsch</code>. Zustandswechsel werden
+gesprochen; erneutes Lesen und Braille behalten die aktuelle Bewertung.
+Unter 0.10 bleibt der Zusatzpfad inaktiv.</td>
+<td>Isolierte Headless-Grenztests mit 0.10.1 und 0.12.3 sowie ein echter
+0.12.3-TUI-Test; praktische Windows-/NVDA-Abnahme steht aus.</td>
+</tr>
+<tr class="odd">
 <td><code>vim.ui</code>-Auswahl</td>
 <td><code>vim.ui.select()</code> und <code>vim.ui.input()</code> liefern
 Prompt, Auswahl und Abschluss semantisch.</td>
 <td>Echte TUI-Tests.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>lazy.nvim</td>
 <td>Öffentliche Bufferoptionen kennzeichnen das Lazy-Fenster.
 Öffentliche Buffertexte liefern die Bedienleiste; dokumentierte
@@ -6145,6 +6198,18 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
+<li>Macht Neovims eingebauten <code>:Tutor</code> gezielt zugänglicher,
+ohne eine eigene Tutorial-Logik einzuführen. Ab Neovim 0.12 liefern
+eindeutig erkannte native Tutor-Extmarks lokalisierte Meldungen bei
+einer geänderten Bewertung, die Bewertung beim erneuten Lesen der Zeile
+und dauerhafte, nicht routbare Braillemarker. Andere Buffer und Extmarks
+bleiben unberührt. Ungültige Übergänge werden vor dem kanonischen
+Zustand verworfen; das gilt auch für strukturwidrige JSON-Werte.
+Vorhandene Braille-Routing- und Quellzuordnungen bleiben erhalten. Unter
+Neovim 0.10 ist der Tutor-Pfad ohne Beobachter vollständig inaktiv.
+Übergangsmeldungen bleiben an denselben Buffer-, Fenster- und
+Zeilenkontext gebunden. Isolierte Headless-Grenztests und ein echter
+0.12.3-TUI-Vertragstest decken den Umfang ab.</li>
 <li>Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs
 normales Terminalverhalten sofort wieder her. Der SSH-Client behandelt
 den authentifizierten Bridge-Status <code>disconnected</code> jetzt als

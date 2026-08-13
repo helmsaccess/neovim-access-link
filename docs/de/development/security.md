@@ -56,6 +56,9 @@ Anfrage-ID erneut.
 - Rechtschreibauswahl sendet nur den intern validierten numerischen Index an
   einen weiterhin identischen aktiven Prompt. Vorschlagstext wird nicht
   ausgeführt oder zurückgesendet.
+- Tutor-Bewertungen sind reine Ausgabedaten mit festem Dateityp und zwei
+  erlaubten Zuständen. Ungültige Übergänge werden vor der kanonischen
+  Zustandsübernahme verworfen und lösen keinen Steuerbefehl aus.
 - Zwischenablagezugriff beginnt nur durch frei belegbare NVDA-Befehle. Quellen,
   Register und Zieloperationen sind fest; Paste ist NUL-frei und auf 256 KiB
   UTF-8 begrenzt.

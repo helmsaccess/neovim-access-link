@@ -58,6 +58,26 @@ class NvimBridgeTests(unittest.TestCase):
 		self.assertNotIn("pluginManagerKind", bridge.full_state())
 		self.assertNotIn("pluginManagerOperation", bridge.full_state())
 
+	def test_tutor_transition_is_validated_before_publication(self) -> None:
+		transport = RecordingTransport()
+		bridge = Bridge.__new__(Bridge)
+		bridge._state_lock = threading.Lock()
+		bridge._state = {"lineText": "previous"}
+		bridge._active_numbered_choice = None
+		bridge.transport = transport
+		payload = {"filetype": "tutor", "tutorExerciseStatus": "correct"}
+		bridge._on_nvim_event("tutorExerciseChanged", payload)
+		self.assertEqual("tutorExerciseChanged", transport.events[-1]["type"])
+		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
+		bridge._on_nvim_event(
+			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": "arbitrary"},
+		)
+		bridge._on_nvim_event(
+			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": []},
+		)
+		self.assertEqual(1, len(transport.events))
+		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
+
 	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -777,6 +797,185 @@ class NvimBridgeTests(unittest.TestCase):
 					[(item["pluginManagerOperation"], item["pluginManagerPhase"]) for item in lifecycle],
 				)
 				self.assertTrue(all(item["pluginManagerKind"] == "lazyNvim" for item in lifecycle))
+			finally:
+				bridge.stop()
+				process.terminate(force=True)
+
+	def test_real_tui_tutor_exercise_status_tracks_native_marks(self) -> None:
+		version = subprocess.run(
+			[
+				"nvim", "--headless", "-n", "-u", "NONE", "-i", "NONE",
+				"--cmd", "lua io.write(vim.version().major .. '.' .. vim.version().minor)",
+				"--cmd", "qa!",
+			],
+			check=True,
+			capture_output=True,
+			text=True,
+		).stdout.strip()
+		major, minor = (int(part) for part in version.split(".", 1))
+		if (major, minor) < (0, 12):
+			self.skipTest("Tutor accessibility is supported from Neovim 0.12")
+		root = pathlib.Path.cwd()
+		with tempfile.TemporaryDirectory() as directory:
+			nvim_socket = os.path.join(directory, "nvim.sock")
+			runtime = os.path.join(directory, "runtime")
+			os.mkdir(runtime)
+			process = pexpect.spawn(
+				"nvim",
+				[
+					"-n", "-u", "NONE", "-i", "NONE",
+					"--cmd", "set packpath=",
+					"--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
+					"--cmd", "runtime plugin/tutor.vim",
+					"--cmd", "runtime plugin/nvim_nvda.lua",
+					"--listen", nvim_socket,
+				],
+				env={
+					**os.environ,
+					"TERM": "xterm-256color",
+					"XDG_RUNTIME_DIR": runtime,
+					"XDG_DATA_HOME": os.path.join(directory, "data"),
+					"XDG_CONFIG_HOME": os.path.join(directory, "config"),
+					"XDG_STATE_HOME": os.path.join(directory, "state"),
+					"XDG_CACHE_HOME": os.path.join(directory, "cache"),
+				},
+				encoding=None,
+				timeout=3,
+			)
+			self._wait_socket(nvim_socket, process)
+			transport = RecordingTransport()
+			bridge = Bridge(nvim_socket, transport=transport)
+			bridge.start()
+			events, condition = transport.events, transport.condition
+			try:
+				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
+				initial = next(event for event in events if event["type"] == "fullState")
+				self.assertNotIn("tutorExerciseStatus", initial["payload"])
+				self._drain_tui_output(process)
+				process.send(b"\x1b:Tutor\r")
+				time.sleep(0.2)
+				tui_state = subprocess.run(
+					["nvim", "--server", nvim_socket, "--remote-expr",
+					 "mode(1) . ':' . &filetype . ':' . exists(':Tutor') . ':' . v:errmsg"],
+					check=True, capture_output=True, text=True,
+				).stdout.strip()
+				self.assertIn(":tutor:2:", tui_state, tui_state)
+				loaded_source = subprocess.run(
+					["nvim", "--server", nvim_socket, "--remote-expr",
+					 "luaeval(\"debug.getinfo(require('nvim_nvda').setup).source .. '|' .. debug.getinfo(require('nvim_nvda.tutor').status).source\")"],
+					check=True, capture_output=True, text=True,
+				).stdout.strip()
+				self.assertTrue(
+					loaded_source.startswith(f"@{root / 'neovim-plugin/lua/nvim_nvda/init.lua'}|"),
+					loaded_source,
+				)
+				deadline = time.monotonic() + 2
+				observer_ready = ""
+				while time.monotonic() < deadline and observer_ready != "1":
+					observer_ready = subprocess.run(
+						[
+							"nvim", "--server", nvim_socket, "--remote-expr",
+							"luaeval(\"(function() for _,item in ipairs(vim.api.nvim_get_autocmds({buffer=0,event='TextChanged'})) do if item.desc and item.desc:match('Tutor exercise changes$') then return 1 end end return 0 end)()\")",
+						],
+						check=True,
+						capture_output=True,
+						text=True,
+					).stdout.strip()
+					time.sleep(0.02)
+				self.assertEqual("1", observer_ready, "Tutor observer was not activated")
+				bridge.nvim.notify(
+					"nvim_exec_lua",
+					"for raw,value in pairs(vim.b.tutor_metadata.expect or {}) do "
+					"local line=tonumber(raw); local current=vim.fn.getline(line); "
+					"if type(value)=='string' and #value>#current "
+					"and value:sub(1,#current)==current "
+					"and value:sub(#current+1,#current+1):match('%w') "
+					"and require('nvim_nvda.tutor').status(vim.api.nvim_get_current_buf(),line)=='incorrect' then "
+					"vim.g.nvim_nvda_tutor_suffix=value:sub(#current+1); "
+					"vim.g.nvim_nvda_tutor_expected=value; "
+					"vim.api.nvim_win_set_cursor(0,{line,math.max(0,#current-1)}); break end end; "
+					"require('nvim_nvda')._test_emit('contextChanged')",
+					[],
+				)
+				deadline = time.monotonic() + 2
+				suffix = ""
+				while time.monotonic() < deadline and not suffix:
+					suffix = subprocess.run(
+						[
+							"nvim", "--server", nvim_socket, "--remote-expr",
+							"get(g:, 'nvim_nvda_tutor_suffix', '')",
+						],
+						check=True,
+						capture_output=True,
+						text=True,
+					).stdout.strip()
+					time.sleep(0.02)
+				self.assertTrue(suffix, "Tutor append exercise was not found")
+				expected = subprocess.run(
+					["nvim", "--server", nvim_socket, "--remote-expr", "g:nvim_nvda_tutor_expected"],
+					check=True,
+					capture_output=True,
+					text=True,
+				).stdout.strip()
+
+				start = len(events)
+				process.send(b"$a")
+				deadline = time.monotonic() + 2
+				mode = ""
+				while time.monotonic() < deadline and mode != "i":
+					mode = subprocess.run(
+						["nvim", "--server", nvim_socket, "--remote-expr", "mode(1)"],
+						check=True, capture_output=True, text=True,
+					).stdout.strip()
+					time.sleep(0.02)
+				self.assertEqual("i", mode)
+				process.send(suffix.encode("utf-8"))
+				self._drain_tui_output(process)
+				deadline = time.monotonic() + 2
+				actual = ""
+				while time.monotonic() < deadline and actual != expected:
+					actual = subprocess.run(
+						["nvim", "--server", nvim_socket, "--remote-expr", "getline('.')"],
+						check=True, capture_output=True, text=True,
+					).stdout.rstrip("\n")
+					time.sleep(0.02)
+				self.assertEqual(expected, actual)
+				process.send(b"\x1b")
+				deadline = time.monotonic() + 2
+				while time.monotonic() < deadline and mode != "n":
+					mode = subprocess.run(
+						["nvim", "--server", nvim_socket, "--remote-expr", "mode(1)"],
+						check=True, capture_output=True, text=True,
+					).stdout.strip()
+					time.sleep(0.02)
+				self.assertEqual("n", mode)
+				self._drain_tui_output(process)
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "tutorExerciseChanged"
+						and event["payload"].get("tutorExerciseStatus") == "correct"
+						for event in events[start:]
+					),
+				)
+				correct = next(
+					event for event in events[start:]
+					if event["type"] == "tutorExerciseChanged"
+					and event["payload"].get("tutorExerciseStatus") == "correct"
+				)
+				self.assertEqual("tutor", correct["payload"].get("filetype"))
+				self.assertEqual(expected, correct["payload"].get("lineText"))
+
+				start = len(events)
+				process.send(b"x")
+				self._wait(
+					condition,
+					lambda: any(
+						event["type"] == "tutorExerciseChanged"
+						and event["payload"].get("tutorExerciseStatus") == "incorrect"
+						for event in events[start:]
+					),
+				)
 			finally:
 				bridge.stop()
 				process.terminate(force=True)

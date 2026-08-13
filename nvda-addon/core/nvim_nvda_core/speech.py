@@ -275,6 +275,21 @@ class SpeechPlanner:
                 self._translate("no matching pair"),
                 Priority.STATUS, interrupt=True, sound="matchingError",
             ))
+        elif kind == "tutorExerciseChanged":
+            status = state.get("tutorExerciseStatus")
+            if (
+                state.get("filetype") == "tutor"
+                and isinstance(status, str)
+                and status in {"correct", "incorrect"}
+            ):
+                text = self._translate(
+                    translatable("exercise correct")
+                    if status == "correct"
+                    else translatable("exercise incorrect")
+                )
+                actions.append(SpeechAction(
+                    text, Priority.STATUS, interrupt=True, braille_message=text,
+                ))
         elif kind == "connectionStateChanged":
             connection = state.get("connection", {}).get("neovim")
             if connection in {"connected", "disconnected"}:
@@ -861,6 +876,26 @@ class SpeechPlanner:
                 )
                 for action in actions
             ]
+        tutor_status = state.get("tutorExerciseStatus")
+        tutor_line_announcement = (
+            state.get("filetype") == "tutor"
+            and isinstance(tutor_status, str)
+            and tutor_status in {"correct", "incorrect"}
+            and (
+                kind in {"fullState", "focusContext", "contextChanged", "lineChanged"}
+                or (kind == "cursorMoved" and self._line_changed(state))
+            )
+        )
+        if tutor_line_announcement:
+            label = self._translate(
+                translatable("exercise correct")
+                if tutor_status == "correct"
+                else translatable("exercise incorrect")
+            )
+            for index, action in enumerate(actions):
+                if action.priority == Priority.NAVIGATION and action.text:
+                    actions[index] = replace(action, text=f"{action.text}, {label}")
+                    break
         actions = self._suppress_unchanged_indentation(actions)
         if state and kind != "connectionStateChanged":
             self._previous = state

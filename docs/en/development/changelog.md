@@ -6,6 +6,18 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Makes Neovim's built-in `:Tutor` specifically more accessible without adding
+  separate tutorial logic. From Neovim 0.12, recognized, unambiguous native
+  Tutor extmarks provide localized announcements when an assessment changes,
+  the assessment when its line is read again, and persistent non-routable
+  Braille markers. Other buffers and extmarks remain untouched. Invalid
+  transitions, including structurally invalid JSON values, are rejected before
+  canonical state, while
+  existing Braille routing and source mappings are preserved. On Neovim 0.10
+  the Tutor path is fully inactive and registers no observers. Transition
+  announcements remain bound to the same buffer, window, and line context.
+  Isolated headless boundary tests and a real 0.12.3
+  TUI contract test cover the scope.
 - Restores NVDA's normal terminal behavior immediately after a remote Neovim
   instance exits. The SSH client now treats the authenticated bridge
   `disconnected` state as connection lifecycle rather than an ordinary editor

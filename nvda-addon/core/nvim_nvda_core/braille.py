@@ -193,6 +193,31 @@ def _plugin_manager_plan(state: dict[str, Any]) -> BraillePlan | None:
     return BraillePlan(text, cursor, None, None, tuple(offsets), tuple(routing))
 
 
+def _append_tutor_status(plan: BraillePlan, state: dict[str, Any], line: str) -> BraillePlan:
+    status = state.get("tutorExerciseStatus")
+    if (
+        state.get("filetype") != "tutor"
+        or not isinstance(status, str)
+        or status not in {"correct", "incorrect"}
+    ):
+        return plan
+    marker = "✓" if status == "correct" else "✗"
+    routing = plan.routing_byte_columns
+    if routing is None:
+        routing = tuple(
+            len(line[:source_offset_for_expanded(plan, index)].encode("utf-8"))
+            for index in range(len(plan.text))
+        )
+    return BraillePlan(
+        f"{plan.text} {marker}",
+        plan.cursor,
+        plan.selection_start,
+        plan.selection_end,
+        plan.source_offsets,
+        routing + (None, None),
+    )
+
+
 def plan_braille(
     state: dict[str, Any],
     *,
@@ -270,7 +295,8 @@ def plan_braille(
         # it, NVDA cannot focus this region and leaves its preceding terminal
         # context (for example "Windows PowerShell") at the display start.
         expanded += " "
-    return BraillePlan(expanded, cursor, selection_start, selection_end, tuple(offsets))
+    plan = BraillePlan(expanded, cursor, selection_start, selection_end, tuple(offsets))
+    return _append_tutor_status(plan, state, line)
 
 
 def plan_command_line_braille(state: dict[str, Any]) -> BraillePlan:

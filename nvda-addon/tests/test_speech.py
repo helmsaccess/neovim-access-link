@@ -43,6 +43,113 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("first", planner.plan(event("fullState", line="first"))[0].text)
         self.assertEqual("second", planner.plan(event("cursorMoved", line="second", row=2))[0].text)
 
+    def test_tutor_exercise_status_is_spoken_only_in_tutor_context(self) -> None:
+        translations = {
+            "exercise correct": "Übung richtig",
+            "exercise incorrect": "Übung falsch",
+        }
+        planner = SpeechPlanner(translate=lambda message: translations.get(message, message))
+        changed = planner.plan(event(
+            "tutorExerciseChanged",
+            filetype="tutor",
+            tutorExerciseStatus="correct",
+        ))[0]
+        self.assertEqual("Übung richtig", changed.text)
+        self.assertEqual(changed.text, changed.braille_message)
+        incorrect = planner.plan(event(
+            "tutorExerciseChanged",
+            filetype="tutor",
+            tutorExerciseStatus="incorrect",
+        ))[0]
+        self.assertEqual("Übung falsch", incorrect.text)
+        self.assertEqual([], planner.plan(event(
+            "tutorExerciseChanged",
+            filetype="lua",
+            tutorExerciseStatus="correct",
+        )))
+        self.assertEqual([], planner.plan(event(
+            "tutorExerciseChanged",
+            filetype="tutor",
+            tutorExerciseStatus=[],
+        )))
+        line = SpeechPlanner(translate=lambda message: translations.get(message, message)).plan(event(
+            "fullState",
+            line="The cow jumped",
+            filetype="tutor",
+            tutorExerciseStatus="incorrect",
+        ))[0]
+        self.assertEqual("The cow jumped, Übung falsch", line.text)
+
+    def test_tutor_braille_marker_is_persistent_and_not_routable(self) -> None:
+        plan = plan_braille({
+            "lineText": "The cow",
+            "cursor": {"characterColumn": 0},
+            "filetype": "tutor",
+            "tutorExerciseStatus": "incorrect",
+        })
+        self.assertEqual("The cow ✗", plan.text)
+        self.assertEqual((None, None), plan.routing_byte_columns[-2:])
+        self.assertEqual(0, plan.routing_byte_columns[0])
+        ordinary = plan_braille({
+            "lineText": "The cow",
+            "cursor": {"characterColumn": 0},
+            "filetype": "text",
+            "tutorExerciseStatus": "correct",
+        })
+        self.assertEqual("The cow", ordinary.text)
+        self.assertIsNone(ordinary.routing_byte_columns)
+        malformed = plan_braille({
+            "lineText": "The cow",
+            "cursor": {"characterColumn": 0},
+            "filetype": "tutor",
+            "tutorExerciseStatus": {},
+        })
+        self.assertEqual("The cow", malformed.text)
+        self.assertIsNone(malformed.routing_byte_columns)
+
+    def test_tutor_braille_preserves_complex_source_mapping_and_selection(self) -> None:
+        state = {
+            "lineText": "\tbad界",
+            "tabstop": 4,
+            "cursor": {"byteColumn": 1},
+            "selection": {"currentLine": {"startByteColumn": 1, "endByteColumn": 4}},
+            "reportSpellingBraille": True,
+            "spellingErrors": [{
+                "kind": "spelling", "startByteColumn": 1, "endByteColumn": 4,
+            }],
+        }
+        ordinary = plan_braille(state)
+        tutor = plan_braille({
+            **state,
+            "filetype": "tutor",
+            "tutorExerciseStatus": "correct",
+        })
+        self.assertEqual(f"{ordinary.text} ✓", tutor.text)
+        self.assertEqual(ordinary.source_offsets, tutor.source_offsets)
+        self.assertEqual(ordinary.selection_start, tutor.selection_start)
+        self.assertEqual(ordinary.selection_end, tutor.selection_end)
+        self.assertEqual((None, None), tutor.routing_byte_columns[-2:])
+        self.assertEqual((0, 0, 0, 0), tutor.routing_byte_columns[:4])
+        self.assertEqual(1, tutor.routing_byte_columns[5])
+
+    def test_tutor_braille_keeps_insert_end_cell_routable(self) -> None:
+        state = {
+            "mode": "insert",
+            "modeRaw": "i",
+            "lineText": "café",
+            "cursor": {"byteColumn": 5},
+        }
+        ordinary = plan_braille(state)
+        tutor = plan_braille({
+            **state,
+            "filetype": "tutor",
+            "tutorExerciseStatus": "incorrect",
+        })
+        self.assertEqual("café  ✗", tutor.text)
+        self.assertEqual(ordinary.source_offsets, tutor.source_offsets)
+        self.assertEqual(5, tutor.routing_byte_columns[len(ordinary.text) - 1])
+        self.assertEqual((None, None), tutor.routing_byte_columns[-2:])
+
     def test_same_line_movement_uses_utf8_byte_column(self) -> None:
         planner = SpeechPlanner()
         planner.plan(event("fullState"))

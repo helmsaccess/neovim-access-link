@@ -118,6 +118,36 @@ class SshStdioClientTests(unittest.TestCase):
             client._receive(process)
         self.assertNotIn("pluginManagerEntryExpanded", events[0]["payload"])
 
+    def test_rejects_invalid_tutor_transition_without_publishing_it(self) -> None:
+        events: list[dict] = []
+        diagnostics: list[tuple[str, dict]] = []
+        factory = MessageFactory()
+        stream = b"".join(encode_frame(event) for event in (
+            factory.create("fullState", {"mode": "normal"}),
+            factory.create("tutorExerciseChanged", {
+                "filetype": "tutor", "tutorExerciseStatus": "correct",
+            }),
+            factory.create("tutorExerciseChanged", {
+                "filetype": "tutor", "tutorExerciseStatus": "unknown",
+            }),
+            factory.create("tutorExerciseChanged", {
+                "filetype": "tutor", "tutorExerciseStatus": {},
+            }),
+        ))
+        process = FakeProcess(STDIO_MARKER + stream)
+        client = SshStdioClient(
+            "example-host",
+            events.append,
+            lambda _state: None,
+            lambda category, fields: diagnostics.append((category, fields)),
+        )
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+        self.assertEqual(["fullState", "tutorExerciseChanged"], [
+            event["type"] for event in events
+        ])
+        self.assertEqual("sshEventRejected", diagnostics[-1][0])
+
     def test_stdio_v1_marker_is_not_accepted(self) -> None:
         client = SshStdioClient("example-host", lambda _event: None, lambda _state: None)
         process = FakeProcess(b"NVIM-NVDA-STDIO/1\n")

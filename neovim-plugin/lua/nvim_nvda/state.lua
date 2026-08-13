@@ -4,6 +4,7 @@ local file_manager = require("nvim_nvda.file_manager")
 local text = require("nvim_nvda.text")
 local diagnostics = require("nvim_nvda.diagnostics")
 local plugin_manager = require("nvim_nvda.plugin_manager")
+local tutor = require("nvim_nvda.tutor")
 local M = {}
 
 local visual_modes = { v = true, V = true, ["\22"] = true }
@@ -102,6 +103,7 @@ function M.snapshot(reason)
   local mode_info = vim.api.nvim_get_mode()
   local mode_raw = mode_info.mode
   local line = vim.api.nvim_buf_get_lines(buf, cursor[1] - 1, cursor[1], true)[1] or ""
+  local tutor_exercise_status = tutor.status(buf, cursor[1])
   local tabs, tab_index = vim.api.nvim_list_tabpages(), 1
   for index, tab in ipairs(tabs) do if tab == vim.api.nvim_get_current_tabpage() then tab_index = index end end
   local windows, window_index = vim.api.nvim_tabpage_list_wins(0), 1
@@ -171,6 +173,7 @@ function M.snapshot(reason)
     fileManager = file_manager.current(),
     pluginManagerOverview = plugin_manager.overview(buf),
     pluginManagerEntryExpanded = plugin_manager.entry_expanded(buf, cursor[1]),
+    tutorExerciseStatus = tutor_exercise_status,
   }
   result.spellingErrors, result.spellingError = spelling.for_line(buf, cursor[1], line, cursor[2])
   result.diagnostic, result.diagnosticCount = diagnostics.snapshot(buf, cursor[1], cursor[2])

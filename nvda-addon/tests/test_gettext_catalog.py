@@ -54,6 +54,8 @@ class GettextCatalogTests(unittest.TestCase):
             translations.gettext("match {index} of {count}").format(index=2, count=4),
         )
         self.assertEqual("Funktion", translations.gettext("function"))
+        self.assertEqual("Übung richtig", translations.gettext("exercise correct"))
+        self.assertEqual("Übung falsch", translations.gettext("exercise incorrect"))
         self.assertEqual(
             "Quelle pyright",
             translations.gettext("source {source}").format(source="pyright"),

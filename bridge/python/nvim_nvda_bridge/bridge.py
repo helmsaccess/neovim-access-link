@@ -28,6 +28,8 @@ from nvim_nvda_protocol import (
     plugin_manager_public_state,
     valid_plugin_manager_operation,
     plugin_manager_operation_state,
+    tutor_public_state,
+    valid_tutor_exercise_changed,
 )
 
 
@@ -89,7 +91,11 @@ class Bridge:
 
     def _on_nvim_event(self, event_type: str, payload: dict[str, Any]) -> None:
         payload = plugin_manager_public_state(payload)
+        if "tutorExerciseStatus" in payload or event_type == "tutorExerciseChanged":
+            payload = tutor_public_state(payload)
         if event_type == "pluginManagerOperation" and not valid_plugin_manager_operation(payload):
+            return
+        if event_type == "tutorExerciseChanged" and not valid_tutor_exercise_changed(payload):
             return
         if event_type == "activeParameterChanged" and (
             not self._supports_plugin_capability("activeParameterHints")

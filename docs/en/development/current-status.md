@@ -107,6 +107,17 @@ tab changes, plus structured Neovim messages.
 - Neovim's native `z=` suggestions are accessible through speech, Braille, and
   contextual NVDA commands. Spelling feedback follows NVDA's separate document
   formatting settings.
+- Neovim's built-in `:Tutor` remains entirely owned by Neovim. Access Link
+  reads only its unambiguous native extmarks in Tutor buffers on Neovim 0.12
+  and later, speaks status transitions only while the buffer, window, and line
+  context remain unchanged, includes the assessment when the line is read
+  again, and persistently shows a non-routable `✓` or `✗` after the
+  Braille line text. A buffer-local text observer is created only inside a
+  Tutor buffer; there is no polling or additional control traffic. Values of
+  other types or outside this context are rejected before canonical state. On
+  Neovim 0.10, Tutor remains unchanged with Neovim and Access Link registers no
+  Tutor observers. Both boundaries and the 0.12 path have headless coverage; the
+  0.12 path also has an isolated real-TUI test.
 
 ### Development tools, terminal, and files
 

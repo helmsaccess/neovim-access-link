@@ -112,6 +112,8 @@ Testabhängigkeiten und werden nicht ausgeliefert.
 Die Jobs sind bewusst getrennt:
 
 - sichere Unit-, Paket- und listenerfreie Lua-Tests;
+- ein gezielter Neovim-0.12.3-Vertrag für native Tutor-Extmarks und den echten
+  TUI-Ereignispfad;
 - der PowerShell-Runner für geführte Praxistests;
 - Completion-Plugin-Verträge;
 - öffentliche lazy.nvim-Verträge mit echten Installations-, Aktualisierungs-

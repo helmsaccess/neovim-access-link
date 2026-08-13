@@ -118,6 +118,20 @@ class LocalTcpClientTests(unittest.TestCase):
 		self.assertNotIn("pluginManagerOperation", _client._state)
 		self.assertNotIn("pluginManagerPhase", _client._state)
 
+	def test_tutor_transition_is_validated_before_publication(self) -> None:
+		client, source, events, _states, diagnostics = self.make_client()
+		source.on_event("fullState", {"mode": "normal"})
+		payload = {"filetype": "tutor", "tutorExerciseStatus": "incorrect"}
+		source.on_event("tutorExerciseChanged", payload)
+		self.assertEqual("tutorExerciseChanged", events[-1]["type"])
+		self.assertEqual("incorrect", client._state["tutorExerciseStatus"])
+		source.on_event("tutorExerciseChanged", {**payload, "tutorExerciseStatus": "unknown"})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		source.on_event("tutorExerciseChanged", {**payload, "tutorExerciseStatus": []})
+		self.assertEqual("localEventRejected", diagnostics[-1][0])
+		self.assertEqual(2, len(events))
+		self.assertEqual("incorrect", client._state["tutorExerciseStatus"])
+
 	def test_plugin_manager_overview_is_sanitized_before_publication(self) -> None:
 		_client, source, events, _states, _diagnostics = self.make_client()
 		source.on_event("fullState", {
