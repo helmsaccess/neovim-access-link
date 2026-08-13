@@ -73,6 +73,7 @@ Der normale vollständige, sandbox-taugliche Ablauf ist:
 
 ```bash
 ruff check .
+ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 tools/run_tests.py all-safe
 tools/run_tests.py ssh

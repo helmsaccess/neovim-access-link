@@ -1,6 +1,6 @@
 # Active plan
 
-Status date: August 5, 2026.
+Status date: August 13, 2026.
 
 This chapter contains only open or active work. See `current-status.md` for
 implemented features and `changelog.md` for completed steps and former feature
@@ -35,12 +35,13 @@ Ongoing:
 The application boundary decided in
 [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) is implemented and
 has been exercised practically across multiple windows, tabs, and panes with
-local and remote sessions. The re-audit in
-[Appendix C](global-plugin-appmodule-audit-2026-08-04.md) confirms that scope
-but also records the sizeable process-wide NVDA-edge coordination still in
-the concrete Global Plugin class and the broad public terminal service.
-`current-status.md` describes the current design; the changelog and
-Appendices A through C preserve its development and metrics.
+local and remote sessions. The Global Plugin audit of August 13, 2026 moved
+the sizeable NVDA-edge coordination out of the concrete Global Plugin class
+into explicit owners for composition, connection workflow, terminal actions,
+event delivery, scheduling, presentation, and transport shutdown. The Global
+Plugin is now only the lifetime adapter. `current-status.md` describes the
+current design; the changelog and dated reports preserve its development and
+metrics.
 
 No further split is planned merely because of file size or LOC. Take this
 work only in small domain slices when it creates one unambiguous state owner,
@@ -50,10 +51,11 @@ F12 isolation,
 asynchronous transport, and separation of windows, tabs, and panes remain
 mandatory invariants.
 
-Evaluate connection/claim workflows, NVDA event delivery, context
-presentation, and consumer-specific service contracts first. Extract only
-with explicit invariants and regression tests; do not copy shared
-process-wide workflows into the AppModule.
+Further changes to these boundaries therefore require new demonstrated
+benefit. In particular, do not divide the cohesive connection workflow into
+pass-through layers merely because of its file size. Extract only with
+explicit invariants and regression tests; do not copy shared process-wide
+workflows into the AppModule.
 
 ## 3. Broaden practical isolation coverage
 

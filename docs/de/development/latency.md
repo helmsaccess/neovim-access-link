@@ -20,6 +20,13 @@ kleine unveränderliche Payloads und legen sie ohne Warten in begrenzte Queues.
 Worker führen Transportzugriffe aus; Ergebnisse kehren über NVDAs
 Ereignisqueue zur Präsentation zurück.
 
+Das gilt einheitlich für Exploration, Braille, Zwischenablage, Register,
+Terminalsteuerung und Fokus-/`fullState`-Anforderungen. Nur der begrenzte
+`ControlDispatcher` ruft den Transport auf. Beim Ausschalten oder Neuladen
+werden Clients zuerst atomar aus Gate-, Bindungs- und Runtimezustand entfernt;
+der einzige begrenzte `ClientStopper` führt das potenziell wartende `stop()`
+anschließend aus, ohne dass der Hauptthread auf ihn wartet.
+
 Eine volle oder geschlossene Queue, ein veraltetes Ergebnis oder ein
 Fokuswechsel verwirft eine optionale Steueraktion fail-open. Beim Loslassen
 einer Explorationstaste verwendet die Ausgabe bereits vorhandenen kanonischen

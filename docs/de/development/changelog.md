@@ -38,6 +38,19 @@ und Testbuild-Einträge bis zum 5. August 2026.
   die vollständige Prozessgruppe statt nur des direkten Testprozesses. Reale
   RPC-, Reconnect-, Menülebenszyklus- und Kindprozess-Regressionstests decken
   diese Grenzen ab. Dieser installierbare Stand ist Entwicklungsbuild 4.
+- Vereinfacht die Python-Laufzeit des NVDA-Add-ons nach einem vollständigen
+  Architekturaudit. Das Global Plugin ist von mehr als 3200 auf wenige Dutzend
+  Zeilen reduziert und verwaltet nur noch die Lebensdauer einer transaktional
+  aufgebauten Runtime.
+  Verbindungsworkflow, Terminalaktionen, Ereignislieferung, Präsentation und
+  zeitversetzte Arbeit haben eindeutige Besitzer; AppModule und
+  Braille-Adapter verwenden schmale öffentliche Verträge statt privater
+  Global-Plugin-Details. Ein einzelner Dispatcher serialisiert ausgehende
+  Steuerdaten, und ein begrenzter Hintergrundworker beendet Clients, ohne den
+  NVDA-Hauptthread auf Transportabschluss warten zu lassen. Architektur-,
+  Rollback-, Nebenläufigkeits- und Besitztests sichern diese Grenzen; die
+  Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests. Dieser erste
+  installierbare Stand des neuen Entwicklungszweigs ist Entwicklungsbuild 1.
 
 ## 0.98.0
 

@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.1 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -86,9 +86,14 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Windows-Terminal-Ereignisse und `nextHandler` gehören dem AppModule.
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin
-  bleibt der prozessweite NVDA-Rand und die Kompositionswurzel; den aktuellen
-  Schnitt beschreibt die [Architektur](architecture.md). Der datierte Anhang C
-  bewahrt nur die damalige Prüfgrundlage.
+  erzeugt und schließt nur noch die transaktional zusammengesetzte Runtime.
+  Verbindungsworkflow, Terminalaktionen und Ereignislieferung haben eigene
+  Besitzer; AppModule und Brailleadapter sehen nur ihre statischen Ports.
+  Sämtliche ausgehenden Controls und potenziell wartenden Clientstopps laufen
+  über je einen begrenzten Hintergrundpfad, sodass Ausschalten und Teardown
+  nicht auf Transport-I/O warten. Den aktuellen Schnitt beschreibt die
+  [Architektur](architecture.md); der datierte Anhang C bewahrt nur die
+  damalige Prüfgrundlage.
 
 ### Editor und Ausgabe
 

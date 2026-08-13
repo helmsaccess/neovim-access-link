@@ -57,6 +57,7 @@ path:
 
 ```bash
 ruff check .
+ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 python3 tools/run_tests.py all-safe
 python3 tools/run_tests.py ssh
@@ -91,6 +92,15 @@ allowed.
 
 Where practical, a bug-fix commit adds a regression test at the lowest useful
 layer and integration evidence at the boundary where the defect appeared.
+
+AST-based add-on architecture tests enforce the minimal Global Plugin entry
+point, the public AppModule API, an acyclic local import graph, and exactly one
+production path each for `send_control` and `client.stop`. Real worker tests
+use deliberately blocking clients; scheduler and rollback tests execute late
+callbacks and failures at every resource-owning construction stage. These
+tests therefore exercise concurrency contracts rather than only source-text
+fragments. The second Ruff command explicitly lints every Python test; format
+checking remains limited to the configured NVDA product code.
 
 ## Specialized contract checks
 

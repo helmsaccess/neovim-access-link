@@ -19,6 +19,13 @@ immutable payloads and place them into bounded queues without waiting. Workers
 perform transport access; results return through NVDA's event queue for
 presentation.
 
+This applies uniformly to exploration, Braille, clipboard, register, terminal
+control, and focus/`fullState` requests. Only the bounded `ControlDispatcher`
+invokes the transport. During disable or reload, clients are first detached
+atomically from gate, binding, and runtime state; the sole bounded
+`ClientStopper` then performs the potentially waiting `stop()` without the
+main thread waiting for it.
+
 A full or closed queue, stale result, or focus change drops an optional control
 action fail-open. Releasing an exploration key uses existing canonical state
 and waits for no round trip.

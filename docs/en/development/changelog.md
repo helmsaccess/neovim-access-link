@@ -36,6 +36,18 @@ test-build entries through August 5, 2026.
   instead of only the direct test process. Real RPC, reconnect, menu-lifetime,
   and child-process regression tests cover these boundaries. This installable
   state is development build 4.
+- Simplifies the NVDA add-on's Python runtime after a complete architecture
+  audit. The Global Plugin shrinks from more than 3,200 lines to a few dozen
+  and now owns only the lifetime of a transactionally constructed runtime. Connection workflow,
+  terminal actions, event delivery, presentation, and deferred work have
+  explicit owners; the AppModule and Braille adapter use narrow public
+  contracts instead of private Global Plugin details. One dispatcher
+  serializes outbound control data, while a bounded background worker stops
+  clients without making NVDA's main thread wait for transport shutdown.
+  Architecture, rollback, concurrency, and ownership tests protect these
+  boundaries, and Python style validation now covers every add-on test. This
+  first installable state on the new development branch is development build
+  1.
 
 ## 0.98.0
 

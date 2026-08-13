@@ -1463,13 +1463,21 @@ initialisierten <code>TerminalIntegrationService</code></td>
 Terminalereignisse</td>
 </tr>
 <tr class="odd">
-<td><code>AddonRuntime</code></td>
-<td>späte Dienstveröffentlichung und feste, wiederholbare
-Abbaureihenfolge der zusammengesetzten prozessweiten Dienste</td>
-<td>Anwendungsevents, Editorplanung, Fokusentscheidungen, Dialoge oder
-freie Dienstsuche</td>
+<td><code>composition.py</code> / <code>AddonRuntime</code></td>
+<td>transaktionaler Aufbau, späte Dienstveröffentlichung und feste,
+wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten
+Dienste</td>
+<td>fachliche Entscheidungen, Anwendungsevents oder freie
+Dienstsuche</td>
 </tr>
 <tr class="even">
+<td><code>RuntimeScheduler</code></td>
+<td>generationsgebundene NVDA-Queue und Besitz aller verzögerten
+Hauptthreadaufrufe</td>
+<td>fachliche Entscheidungen, Transport oder Ausführung nach dem
+Schließen</td>
+</tr>
+<tr class="odd">
 <td><code>TerminalIntegrationService</code></td>
 <td>gemeinsamer, ausdrücklich begrenzter Integrationsvertrag für Fokus,
 feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus,
@@ -1477,7 +1485,7 @@ Entwicklerkontexte und strukturierte Brailleinteraktion</td>
 <td>Global-Plugin-Objekt, Anwendungsevents, <code>nextHandler</code>,
 dynamische Methodennamen oder Zugriff auf private Laufzeitzustände</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>TerminalFocusService</code></td>
 <td>konkrete Terminalidentität, Fokusgeneration,
 AppModule-/Adapterkorrelation, Fokusabschluss und konservative
@@ -1485,12 +1493,31 @@ Bereinigung geschlossener Controls</td>
 <td>Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder
 <code>nextHandler</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>SessionClaimService</code></td>
 <td>einmalige F12-Autorisierung, Claim-Generationen und
 Claim-Inventarzustand</td>
 <td>Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien
 des Verbindungslaufzeitstands</td>
+</tr>
+<tr class="even">
+<td><code>ConnectionWorkflow</code></td>
+<td>Aktivierung, Discovery, Auswahl, Start, Trennung, temporäre Bindung
+und Sitzungspasswörter über einen injizierten Dialogport</td>
+<td>Transport-I/O, kanonischer Editorzustand oder Anwendungsevents</td>
+</tr>
+<tr class="odd">
+<td><code>TerminalActions</code></td>
+<td>Zwischenablage-, Register-, Terminal- und Diagnoseaktionen samt
+korrelierter Aufräumlogik</td>
+<td>Verbindungsdiscovery, Fokusbesitz oder direkter
+Transportzugriff</td>
+</tr>
+<tr class="even">
+<td><code>EventDelivery</code></td>
+<td>Instanz- und Fokusprüfung eingehender Zustände, Editorplanung und
+Übergabe fertiger Ausgabe an die Präsentation</td>
+<td>Dialoge, Passwörter, Verbindungsdiscovery oder Transportbesitz</td>
 </tr>
 <tr class="odd">
 <td><code>EditorSessionController</code></td>
@@ -1504,10 +1531,12 @@ und Explorationspläne mit Antwortkorrelation</td>
 Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer</td>
 </tr>
 <tr class="even">
-<td><code>ControlDispatcher</code></td>
-<td>begrenztes asynchrones Senden vorbereiteter Steuerpayloads</td>
-<td>NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder
-unbegrenzte Warteschlange</td>
+<td><code>ControlDispatcher</code> / <code>ClientStopper</code></td>
+<td>je ein begrenzter Hintergrundpfad für vorbereitete Steuerpayloads
+beziehungsweise potenziell wartenden Clientabbau; korrelierte Ergebnisse
+kehren über <code>RuntimeScheduler</code> zurück</td>
+<td>NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder Warten
+auf NVDAs Hauptthread</td>
 </tr>
 <tr class="odd">
 <td><code>SettingsService</code></td>
@@ -1539,13 +1568,10 @@ Braillepositionen und Abruf des veröffentlichten Terminaldienstes</td>
 </tr>
 <tr class="even">
 <td>Global Plugin</td>
-<td>NVDA-Prozesslebenszyklus, Zusammensetzung und Veröffentlichung
-gemeinsamer Dienste sowie die heutige Koordination prozessweiter
-NVDA-Randabläufe für Verbindungen, Claims, Zwischenablage,
-Netzwerkereignisse, Dialoge und Präsentationsübergänge</td>
-<td>Anwendungsevents, frei belegbare Terminalbefehle,
-<code>nextHandler</code>, Overlayauswahl, konfigurierbare
-Skriptmetadaten oder eine zweite Kopie fachlicher Laufzeitzustände</td>
+<td>Erzeugung genau einer zusammengesetzten Runtime und deren Schließen
+beim NVDA-Prozessabbau</td>
+<td>fachliche Abläufe, Registrierung, Dialoge, Transport,
+Anwendungsevents oder Zustandskopien</td>
 </tr>
 <tr class="odd">
 <td><code>NvdaUiManager</code></td>
@@ -1594,23 +1620,37 @@ Ereignisvertrag und öffentliche Funktionsnamen unverändert bleiben.</p>
 <p>Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
 Overlayauswahl, <code>nextHandler</code>, konfigurierbare NVDA-Skripte
 und Eingabebeobachter liegen im Windows-Terminal-AppModule. Das Global
-Plugin ist die prozessweite Kompositionswurzel und verbindet gemeinsame
-Dienste mit NVDAs Prozessrand; es besitzt keine Anwendungsevents. <a href="#docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lebensdauer-und-besitz-von-anwendungsevents">ADR-0004</a>
+Plugin ist nur der minimale NVDA-Lebensdaueradapter.
+<code>composition.py</code> baut den gerichteten Objektgraphen;
+<code>ConnectionWorkflow</code>, <code>TerminalActions</code> und
+<code>EventDelivery</code> besitzen die drei prozessweiten Randabläufe.
+<a href="#docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lebensdauer-und-besitz-von-anwendungsevents">ADR-0004</a>
 begründet diese Grenze.</p>
-<p><code>AddonRuntime.start()</code> registriert zuerst den
-Profilcallback, danach Einstellungen und Add-on-Menü und veröffentlicht
-erst zuletzt den Terminaldienst. Schlägt einer dieser Schritte fehl,
-verwendet die Runtime unmittelbar ihren vollständigen, wiederholbaren
-Teardown. Dieser entfernt den Dienst, schließt den veröffentlichten
-Dienst, bricht verzögerte Hauptthreadaufrufe ab, öffnet das Gate, meldet
-den Profilcallback ab, stoppt Verbindungen genau einmal über den
-Coordinator-Eigentümer, löscht dessen Runtime-/Fokus-/Requestzustand
-genau einmal und schließt zuletzt UI und Präsentation. Claim- und
-Terminalfokusgenerationen werden vor dem Clientstopp ungültig. Jeder
-Schritt fällt getrennt aus, damit ein Bereinigungsfehler keine späteren
-Ressourcen aktiv lässt. Der Callback zum Leeren der nur im Global Plugin
-gehaltenen Sitzungspasswörter bleibt als schmale, eigentumsbezogene
-Abbaugrenze bestehen.</p>
+<p><code>create_runtime()</code> registriert jede erzeugte Ressource
+sofort in einer Rollbackliste. Ein Fehler vor <code>AddonRuntime</code>
+schließt Scheduler, Präsentation, Dispatcher, Stopper und gegebenenfalls
+Terminalfassade in umgekehrter Besitzreihenfolge. Erst der vollständig
+gebaute Graph wird gestartet. <code>AddonRuntime.start()</code>
+registriert zuerst den Profilcallback, danach Einstellungen und
+Add-on-Menü und veröffentlicht erst zuletzt den Terminaldienst. Schlägt
+einer dieser Schritte fehl, verwendet die Runtime unmittelbar ihren
+vollständigen, wiederholbaren Teardown. Dieser entfernt den Dienst,
+schließt den veröffentlichten Dienst, bricht verzögerte Controls über
+den allein von der Runtime besessenen Dispatcher ab, bricht verzögerte
+Hauptthreadaufrufe ab, öffnet das Gate, meldet den Profilcallback ab,
+trennt Verbindungen aus dem Laufzeitzustand und stoppt sie nicht wartend
+über den einzigen <code>ClientStopper</code>, löscht den
+Runtime-/Fokus-/Requestzustand genau einmal und schließt zuletzt UI und
+Präsentation. Claim- und Terminalfokusgenerationen werden vor dem
+Clientstopp ungültig. Jeder Schritt fällt getrennt aus, damit ein
+Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Der nur im
+<code>ConnectionWorkflow</code> gehaltene Sitzungspasswortcache wird
+dabei vor dem Clientabbau geleert.</p>
+<p>Auch Ergebnisse länger laufender Komponenteninstallation und
+-entfernung sowie Antworten aus Verbindungsdialogen kehren über
+<code>RuntimeScheduler</code> zurück. Nach Reload oder Teardown kann
+deshalb kein Worker und kein bereits geplanter Dialog mehr den
+geschlossenen Objektgraphen verändern.</p>
 <p>Der geschlossene <code>TerminalIntegrationService</code> ist eine
 Fail-open-Schranke für zurückgehaltene Referenzen: Er unterdrückt keine
 nativen Ereignisse oder Brailleausgabe, autorisiert keine Geste und
@@ -1640,12 +1680,14 @@ Dienst bietet nur die vom AppModule, vom Braillemodul und von
 eingehenden Entwicklerkontexten benötigten, typisierten Operationen
 an.</p>
 <p>Die prozessweite Dienstinstanz liegt in der neutralen
-<code>service_registry.py</code>. Das Global Plugin veröffentlicht und
-entfernt den Dienst über denselben identitätsgeprüften
-<code>ServiceRegistrar</code>, den AppModule und Braillemodul nur lesen.
-<code>nvda_braille.py</code> besitzt Region und Overlay und importiert
-kein Global Plugin; <code>__init__.py</code> exportiert ihre
-Klassennamen lediglich für das Windows-Terminal-AppModule weiter.</p>
+<code>service_registry.py</code>. <code>AddonRuntime</code>
+veröffentlicht und entfernt den Dienst über denselben
+identitätsgeprüften <code>ServiceRegistrar</code>, den AppModule und
+Braillemodul nur lesen. Das AppModule importiert ausschließlich
+<code>adapter_api.py</code>; <code>nvda_braille.py</code> verwendet
+seinen eigenen statischen <code>BrailleAdapterPort</code>. Der
+Paketeinstieg exportiert keine Adaptertypen und kennt nur
+Runtimeerzeugung und -abbau.</p>
 <p>Der Dienst besitzt keine breite <code>_runtime</code>-Referenz. Die
 Kompositionswurzel übergibt genau einen Handler für jeden
 <code>TerminalCommand</code> sowie getrennte Callbacks für Diagnose,
@@ -1663,14 +1705,15 @@ entfernt; unklare UIA-Fehler gelten nicht als Schließung.</p>
 physische F12-Claims außerdem direkt über
 <code>SessionClaimService</code>. Dieser Dienst besitzt den
 veränderlichen Claim- und Inventarzustand, lokale/SSH-Inventarworker und
-die Kandidatenauswertung. Er besitzt außerdem Discovery, Auswahl,
-Wiederverwendung, Verbindungsstart, Trennung und gemerkte Bindungen. Das
-Global Plugin verbindet seine unveränderlichen Ergebnisse nur mit NVDAs
-Hauptthread-, Dialog-, Meldungs- und Transportgrenzen. Es hält keine
-schreibbare Kopie des Claimzustands. Der Fokusverlust der optionalen
-modalen Merkabfrage wird durch genau eine an Terminal und Instanz
-korrelierte Reaktivierung überbrückt. Falls Windows Terminal nach dem
-Schließen kein neues Fokusereignis liefert, prüft ein kurzer, begrenzter
+die Kandidatenauswertung. <code>ConnectionWorkflow</code> besitzt
+Discovery, Auswahl, Wiederverwendung, Verbindungsstart, Trennung und
+gemerkte Bindungen. Es verbindet unveränderliche Dienstergebnisse mit
+NVDAs Hauptthread-, Dialog- und Meldungsgrenzen und reicht Controls
+ausschließlich an den Dispatcher; eine schreibbare Kopie des
+Claimzustands hält es nicht. Der Fokusverlust der optionalen modalen
+Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
+Reaktivierung überbrückt. Falls Windows Terminal nach dem Schließen kein
+neues Fokusereignis liefert, prüft ein kurzer, begrenzter
 Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für dasselbe
 Control, dasselbe AppModule, denselben Adapter-Token und dieselbe
 Instanzauswahl den normalen Fokuskontext-Handshake an. Ein abweichender
@@ -1688,8 +1731,8 @@ gehört. Seine geordneten neutralen Tippechoaktionen werden erst am
 NVDA-Rand als Sprache ausgegeben. Für jedes validierte Ereignis bündelt
 ein unveränderlicher Plan den Zustandsübergang, den fachlichen
 Terminal-Passthrough, höchstens einen Modusklang und die geordneten
-neutralen Sprachaktionen. Das Global Plugin wendet den Passthrough am
-Gate an und reicht Klang- und Sprachplan an
+neutralen Sprachaktionen. <code>EventDelivery</code> wendet den
+Passthrough am Gate an und reicht Klang- und Sprachplan an
 <code>NvdaPresentation</code> weiter. Der Controller vergibt außerdem
 die begrenzten Anfrage-IDs für Zwischenablage, Register und
 Terminalsteuerung, bindet sie an Instanz und
@@ -1867,13 +1910,14 @@ Abbruch stellt die kanonische Brailleansicht wieder her. Der frei
 belegbare Toggle bleibt als kontextbezogenes Skript im
 Windows-Terminal-AppModule. Der <code>TerminalIntegrationService</code>
 besitzt Controllerumschaltung und gegebenenfalls asynchron eingereihte
-Remote-Bereinigung; die Prozessaktion im Global Plugin liefert nur die
-NVDA-Meldung und stößt die Brailleaktualisierung an. Instanzwechsel
-verwerfen die flüchtige virtuelle Position und laufende Anfragen,
-aktivieren bei einer Rückkehr aber wieder den unabhängig für diese
-Sitzung gewählten Braillemodus. Disconnect und Teardown setzen nur die
-betroffene beziehungsweise alle besessenen Runtimes symmetrisch zurück.
-Befehlszeilen- und direkter Terminalmodus sind ausgeschlossen.</p>
+Remote-Bereinigung; die Prozessaktion im <code>ConnectionWorkflow</code>
+liefert nur die NVDA-Meldung und stößt die Brailleaktualisierung an.
+Instanzwechsel verwerfen die flüchtige virtuelle Position und laufende
+Anfragen, aktivieren bei einer Rückkehr aber wieder den unabhängig für
+diese Sitzung gewählten Braillemodus. Disconnect und Teardown setzen nur
+die betroffene beziehungsweise alle besessenen Runtimes symmetrisch
+zurück. Befehlszeilen- und direkter Terminalmodus sind
+ausgeschlossen.</p>
 <p><code>StructuredLineRegion</code> ist keine parallele
 Brailleimplementierung. Sie unterklasst NVDAs öffentliche
 Erweiterungsstelle <code>braille.TextInfoRegion</code>, damit
@@ -1928,13 +1972,13 @@ kein Dialog verändert ein frei zugängliches Plugin-Dictionary. Der
 <code>NvdaUiManager</code> erhält nur diesen Dienst, einen
 Diagnose-Recorder, NVDAs schmale Auflösung installierter Add-on-Hilfe
 und die wenigen Callbacks für Passwort- und Komponentenabläufe. Menü und
-Einstellungskategorie bleiben trotzdem genau einmal im
-Prozesslebenszyklus des Global Plugins registriert. Der Dienst löst die
-Indizes für Navigationsdetails in boolesche Werte auf, bevor sie die
-Editor- oder Explorationsschnittstelle überschreiten. Der gemeinsame
-Sprachplaner bleibt dadurch von NVDAs Konfiguration unabhängig und
-erzeugt für normale Navigation und Explorationsabschluss dieselbe
-Reihenfolge Zeile, Wort, Zeichen. Die Werte für den
+Einstellungskategorie bleiben trotzdem genau einmal in der von
+<code>AddonRuntime</code> besessenen Prozesslebensdauer registriert. Der
+Dienst löst die Indizes für Navigationsdetails in boolesche Werte auf,
+bevor sie die Editor- oder Explorationsschnittstelle überschreiten. Der
+gemeinsame Sprachplaner bleibt dadurch von NVDAs Konfiguration
+unabhängig und erzeugt für normale Navigation und Explorationsabschluss
+dieselbe Reihenfolge Zeile, Wort, Zeichen. Die Werte für den
 Explorationsabschluss beeinflussen nur die Ausgabe am echten Cursor beim
 Loslassen der NVDA-Taste; die virtuellen Explorationsschritte und die
 Zeichenexploration bleiben davon unabhängig.</p>
@@ -2516,13 +2560,14 @@ prüfen zusätzlich den Inhalt des gebauten Add-ons.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> quick</span></code></pre></div>
 <p>Der normale vollständige, sandbox-taugliche Ablauf ist:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Echte lokale Listener und Unix-Sockets benötigen eine geeignete
 Umgebung und laufen deshalb separat:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> socket</span></code></pre></div>
@@ -2676,7 +2721,7 @@ Tests.</p>
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
 <p>Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie
-0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.3 mit
+0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.1 mit
 Branch- und Commitmetadaten und setzt den Update-Kanal im Manifest auf
 Beta. Der aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt
 leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -2768,9 +2813,14 @@ auch wenn SSH-Prozess und Bridge weiterlaufen.</li>
 <li>Windows-Terminal-Ereignisse und <code>nextHandler</code> gehören dem
 AppModule. Getrennte Dienste besitzen Fokus, Sitzungszuordnung,
 Verbindungen, Editorzustand, Einstellungen, Präsentation und Laufzeit.
-Das Global Plugin bleibt der prozessweite NVDA-Rand und die
-Kompositionswurzel; den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>.
-Der datierte Anhang C bewahrt nur die damalige Prüfgrundlage.</li>
+Das Global Plugin erzeugt und schließt nur noch die transaktional
+zusammengesetzte Runtime. Verbindungsworkflow, Terminalaktionen und
+Ereignislieferung haben eigene Besitzer; AppModule und Brailleadapter
+sehen nur ihre statischen Ports. Sämtliche ausgehenden Controls und
+potenziell wartenden Clientstopps laufen über je einen begrenzten
+Hintergrundpfad, sodass Ausschalten und Teardown nicht auf Transport-I/O
+warten. Den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>;
+der datierte Anhang C bewahrt nur die damalige Prüfgrundlage.</li>
 </ul>
 </section>
 <section id="docs__de__development__current-statusmd__editor-und-ausgabe" class="level4">
@@ -3429,13 +3479,14 @@ entfernen.</li>
 <section id="docs__de__development__adr__0002-nvda-api-boundariesmd__ausnahme-3-einbindung-in-nvda-einstellungen-und-hauptmenü" class="level3">
 <h3>Ausnahme 3: Einbindung in NVDA-Einstellungen und Hauptmenü</h3>
 <p>Die Registrierung über
-<code>NVDASettingsDialog.categoryClasses</code>, das Einfügen eines
-obersten Untermenüs über <code>gui.mainFrame.sysTrayIcon.menu</code> und
-<code>gui.runScriptModalDialog</code> entsprechen verbreiteter
-NVDA-Add-on-Praxis, sind aber nicht als eigenständige, langfristig
-stabile Erweiterungsschnittstellen zugesagt. Installierte Hilfe wird
-über NVDAs öffentliches <code>Addon.getDocFilePath()</code> lokalisiert
-aufgelöst.</p>
+<code>NVDASettingsDialog.categoryClasses</code> und das Einfügen eines
+obersten Untermenüs über <code>gui.mainFrame.sysTrayIcon.menu</code>
+entsprechen verbreiteter NVDA-Add-on-Praxis, sind aber nicht als
+eigenständige, langfristig stabile Erweiterungsschnittstellen zugesagt.
+Dialoge werden über eine kleine UI-Schnittstelle auf NVDAs Hauptthread
+geplant; der veraltete Helfer <code>gui.runScriptModalDialog</code> wird
+nicht verwendet. Installierte Hilfe wird über NVDAs öffentliches
+<code>Addon.getDocFilePath()</code> lokalisiert aufgelöst.</p>
 <ul>
 <li>Risiko: Menü- oder Dialogstruktur kann sich zwischen
 NVDA-Hauptversionen ändern; die Funktion könnte dann nicht angeboten
@@ -3622,12 +3673,15 @@ Verbindungszustand zusammenpassen.</p>
 </section>
 <section id="docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__entscheidung" class="level3">
 <h3>Entscheidung</h3>
-<p>Das Global Plugin ist die prozessweite Kompositions- und
-Lebenszykluswurzel. Es registriert Einstellungen und das oberste
-Add-on-Menü, baut gemeinsame Dienste auf, veröffentlicht sie erst nach
-vollständiger Initialisierung und beendet sie in festgelegter
-Reihenfolge. Fachlicher Verbindungs-, Zuordnungs-, Gate-, Protokoll- und
-Präsentationszustand liegt in gewöhnlichen Diensten ohne Vererbung von
+<p>Das Global Plugin ist nur der prozessweite Lebensdaueradapter: Es
+erzeugt über <code>create_runtime()</code> genau eine Runtime und
+schließt sie beim Beenden. <code>composition.py</code> baut gemeinsame
+Dienste transaktional auf; <code>AddonRuntime</code> registriert
+Einstellungen und Menü, veröffentlicht die Terminalfassade erst nach
+vollständiger Initialisierung und beendet alle Besitzer in festgelegter
+Reihenfolge. Verbindungsworkflow, Terminalaktionen, Ereignislieferung
+sowie fachlicher Zuordnungs-, Gate-, Protokoll- und Präsentationszustand
+liegen in gewöhnlichen Diensten ohne Vererbung von
 <code>GlobalPlugin</code>.</p>
 <p>Das Windows-Terminal-AppModule besitzt:</p>
 <ul>
@@ -3649,9 +3703,11 @@ Gesten bleiben unverändert. Jeder Treffer wird erneut gegen Fokusobjekt,
 AppModule, Control-Identität, Dienstgeneration und Gate geprüft.</p>
 <p>Beim Beenden oder Neuladen wird der gemeinsame Dienst zuerst als
 nicht verfügbar markiert. Danach werden wartende Fokusentscheidungen
-verworfen, Unterdrückung deaktiviert, Verbindungen beendet und
-UI-Registrierungen symmetrisch entfernt. AppModules verwenden keine
-ungeprüfte alte Dienstinstanz.</p>
+verworfen, Unterdrückung deaktiviert und Verbindungen aus dem
+kanonischen Zustand abgetrennt. Ein begrenzter Hintergrundworker stoppt
+die Clients, ohne NVDAs Hauptthread warten zu lassen; UI-Registrierungen
+werden symmetrisch entfernt. AppModules verwenden keine ungeprüfte alte
+Dienstinstanz.</p>
 </section>
 <section id="docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__invarianten" class="level3">
 <h3>Invarianten</h3>
@@ -3986,6 +4042,15 @@ Installation, Parsing oder Logging. Eingabe- und Regionscallbacks
 validieren kleine unveränderliche Payloads und legen sie ohne Warten in
 begrenzte Queues. Worker führen Transportzugriffe aus; Ergebnisse kehren
 über NVDAs Ereignisqueue zur Präsentation zurück.</p>
+<p>Das gilt einheitlich für Exploration, Braille, Zwischenablage,
+Register, Terminalsteuerung und
+Fokus-/<code>fullState</code>-Anforderungen. Nur der begrenzte
+<code>ControlDispatcher</code> ruft den Transport auf. Beim Ausschalten
+oder Neuladen werden Clients zuerst atomar aus Gate-, Bindungs- und
+Runtimezustand entfernt; der einzige begrenzte
+<code>ClientStopper</code> führt das potenziell wartende
+<code>stop()</code> anschließend aus, ohne dass der Hauptthread auf ihn
+wartet.</p>
 <p>Eine volle oder geschlossene Queue, ein veraltetes Ergebnis oder ein
 Fokuswechsel verwirft eine optionale Steueraktion fail-open. Beim
 Loslassen einer Explorationstaste verwendet die Ausgabe bereits
@@ -5239,10 +5304,11 @@ physischem Tastenschritt.</p>
 <p>Vor einem Commit mindestens die betroffene Gruppe und danach den
 sicheren Gesamtpfad:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Sockettests benötigen eine Umgebung, die Loopback-Listener, private
 Unix-Sockets und kurzlebige Neovim-Prozesse erlaubt:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py socket</span></code></pre></div>
@@ -5312,6 +5378,16 @@ Markdown-/HTML-Links und frischer Dokumentationsbuild</td>
 Regressionstest auf der niedrigsten sinnvollen Schicht und einen
 Integrationsnachweis an der Grenze, an der der Fehler sichtbar
 wurde.</p>
+<p>AST-basierte Add-on-Architekturtests sichern den minimalen
+Global-Plugin- Einstieg, die öffentliche AppModule-API, einen
+azyklischen lokalen Importgraphen und genau je einen produktiven Pfad
+für <code>send_control</code> und <code>client.stop</code>. Echte
+Worker-Tests verwenden absichtlich blockierende Clients; Scheduler- und
+Rollbacktests führen verspätete Callbacks und Fehler an jeder
+ressourcenbesitzenden Konstruktionsstufe aus. Damit prüfen diese Tests
+die Nebenläufigkeitsverträge statt nur Quelltextfragmente. Die zweite
+Ruff-Zeile lintet alle Python-Tests ausdrücklich; der Formatcheck bleibt
+auf den im Projekt konfigurierten NVDA-Produktcode begrenzt.</p>
 </section>
 <section id="docs__de__development__testingmd__spezialisierte-vertragsprüfungen" class="level3">
 <h3>Spezialisierte Vertragsprüfungen</h3>
@@ -6082,7 +6158,7 @@ Abhängigkeiten.</p>
 <div id="docs__de__development__planmd">
 <section id="docs__de__development__planmd__aktiver-plan" class="level2">
 <h2>Aktiver Plan</h2>
-<p>Stand: 5. August 2026.</p>
+<p>Stand: 13. August 2026.</p>
 <p>Dieses Kapitel enthält nur offene oder laufende Arbeit.
 Implementierte Funktionen stehen in <code>current-status.md</code>;
 abgeschlossene Einzelschritte und frühere Featurebranches stehen im
@@ -6118,12 +6194,14 @@ Geschichte auf Changelog, datierte Berichte und ADRs begrenzen.</li>
 <p>Der in <a href="#docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lebensdauer-und-besitz-von-anwendungsevents">ADR-0004</a>
 beschlossene Anwendungsschnitt ist umgesetzt und praktisch über mehrere
 Fenster, Tabs und Panes mit lokalen und entfernten Sitzungen geprüft.
-Der erneute Audit in <a href="#docs__de__development__global-plugin-appmodule-audit-2026-08-04md__anhang-c-reaudit-von-globalplugin-windows-terminal-appmodule-und-gemeinsamen-diensten">Anhang
-C</a> bestätigt diesen Scope, zeigt aber auch die weiterhin umfangreiche
-prozessweite NVDA-Randkoordination in der konkreten Global-Plugin-Klasse
-und den breiten öffentlichen Terminaldienst. Der aktuelle Aufbau steht
-in <code>current-status.md</code>; Entwicklung und Messwerte stehen im
-Changelog sowie in den Anhängen A bis C.</p>
+Der Global-Plugin-Audit vom 13. August 2026 führte die umfangreiche
+NVDA-Randkoordination aus der konkreten Global-Plugin-Klasse in
+eindeutige Besitzer für Komposition, Verbindungsworkflow,
+Terminalaktionen, Ereignislieferung, Planung, Präsentation und
+Transportabschluss über. Das Global Plugin ist nur noch der
+Lebensdaueradapter. Der aktuelle Aufbau steht in
+<code>current-status.md</code>; Entwicklung und Messwerte stehen im
+Changelog und in den datierten Berichten.</p>
 <p>Eine weitere Aufteilung ist nicht allein wegen Dateigröße oder LOC
 geplant. Sie wird in kleinen fachlichen Schnitten nur aufgenommen, wenn
 sie einen eindeutigen Zustandsbesitzer, einen kleineren öffentlichen
@@ -6131,11 +6209,12 @@ Vertrag, einen ohne NVDA prüfbaren Fehlerpfad oder einen belegbaren
 Robustheitsgewinn schafft. AppModule-Ereignisbesitz, Fail-open,
 F12-Isolation, asynchroner Transport sowie Fenster-, Tab- und
 Pane-Trennung bleiben dabei verbindliche Invarianten.</p>
-<p>Als Kandidaten werden zuerst Verbindungs-/Claimabläufe,
-NVDA-Ereignisausgabe, Kontextpräsentation und verbraucherspezifische
-Dienstverträge bewertet. Eine Auslagerung erfolgt nur mit klaren
-Invarianten und Regressionstests; gemeinsam genutzte prozessweite
-Abläufe werden nicht in das AppModule kopiert.</p>
+<p>Weitere Änderungen an diesen Grenzen benötigen deshalb neuen belegten
+Nutzen. Insbesondere wird der zusammenhängende Verbindungsworkflow nicht
+allein wegen seiner Dateigröße künstlich in Durchreicheschichten
+zerlegt. Neue Auslagerungen erfordern klare Invarianten und
+Regressionstests; gemeinsam genutzte prozessweite Abläufe werden nicht
+in das AppModule kopiert.</p>
 </section>
 <section id="docs__de__development__planmd__3-praktische-abschottung-verbreitern" class="level3">
 <h3>3. Praktische Abschottung verbreitern</h3>
@@ -6330,6 +6409,20 @@ vollständige Prozessgruppe statt nur des direkten Testprozesses. Reale
 RPC-, Reconnect-, Menülebenszyklus- und Kindprozess-Regressionstests
 decken diese Grenzen ab. Dieser installierbare Stand ist
 Entwicklungsbuild 4.</li>
+<li>Vereinfacht die Python-Laufzeit des NVDA-Add-ons nach einem
+vollständigen Architekturaudit. Das Global Plugin ist von mehr als 3200
+auf wenige Dutzend Zeilen reduziert und verwaltet nur noch die
+Lebensdauer einer transaktional aufgebauten Runtime.
+Verbindungsworkflow, Terminalaktionen, Ereignislieferung, Präsentation
+und zeitversetzte Arbeit haben eindeutige Besitzer; AppModule und
+Braille-Adapter verwenden schmale öffentliche Verträge statt privater
+Global-Plugin-Details. Ein einzelner Dispatcher serialisiert ausgehende
+Steuerdaten, und ein begrenzter Hintergrundworker beendet Clients, ohne
+den NVDA-Hauptthread auf Transportabschluss warten zu lassen.
+Architektur-, Rollback-, Nebenläufigkeits- und Besitztests sichern diese
+Grenzen; die Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests.
+Dieser erste installierbare Stand des neuen Entwicklungszweigs ist
+Entwicklungsbuild 1.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

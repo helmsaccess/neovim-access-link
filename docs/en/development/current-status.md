@@ -1,7 +1,7 @@
 # Current status
 
 Status date: August 13, 2026. The source tree starts the 0.99.0 development
-line; `buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
+line; `buildVars.py` generates artifacts as 0.99.0-dev.1 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -77,9 +77,13 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   disconnect, even while the SSH process and bridge remain alive.
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
-  presentation, and runtime. The Global Plugin remains the process-wide NVDA
-  edge and composition root; [architecture](architecture.md) describes the
-  current boundary. The dated Appendix C only preserves the review basis at
+  presentation, and runtime. The Global Plugin now only creates and closes the
+  transactionally composed runtime. Connection workflow, terminal actions,
+  and event delivery have dedicated owners; the AppModule and Braille adapter
+  see only their static ports. Every outbound control and potentially waiting
+  client stop uses one bounded background path, so disabling and teardown do
+  not wait for transport I/O. [Architecture](architecture.md) describes the
+  current boundary; the dated Appendix C only preserves the review basis at
   that time.
 
 ### Editor and presentation
