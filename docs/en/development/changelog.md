@@ -6,6 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+## 0.98.0
+
 - Assigns `NVDA+Alt+N` to the contextual activation command by default. The
   gesture remains reassignable in NVDA's Input Gestures dialog and continues
   to pass through outside a matching focused Windows Terminal control.
@@ -20,7 +22,8 @@ test-build entries through August 5, 2026.
   the Tutor path is fully inactive and registers no observers. Transition
   announcements remain bound to the same buffer, window, and line context.
   Isolated headless boundary tests and a real 0.12.3
-  TUI contract test cover the scope.
+  TUI contract test cover the scope; the Tutor was also sampled practically
+  under Windows/NVDA with speech and a physical Braille display.
 - Restores NVDA's normal terminal behavior immediately after a remote Neovim
   instance exits. The SSH client now treats the authenticated bridge
   `disconnected` state as connection lifecycle rather than an ordinary editor
@@ -78,12 +81,13 @@ test-build entries through August 5, 2026.
 - Integrates all eight German and English HTML documents into the add-on. A
   top-level `Neovim Access Link` menu opens settings, component management,
   and installed help selected for NVDA's language.
+- Documents the separate, assignable commands for copying a Visual selection
+  or register 0 to the Windows clipboard and inserting Windows clipboard text
+  into Neovim.
 - Adds the default help file and a change log generated from the current
   German or English changelog section to the manifest.
   Development builds use the unreleased section; releases curate it into the
   version section and then reset it.
-- Starts the 0.98.0 development line after the 0.97.0 pre-release.
-
 ## 0.97.0
 
 - Adds the HTTPS project URL to the add-on manifest.

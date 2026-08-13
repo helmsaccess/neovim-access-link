@@ -1,8 +1,9 @@
 # Aktueller Status
 
-Stand: 13. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
-`buildVars.py` erzeugt Entwicklungsbuilds mit Git-Metadaten und setzt den
-Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
+Stand: 13. August 2026. Der Quellstand ist als Beta-Release 0.98.0 vorbereitet;
+`buildVars.py` erzeugt Release-Artefakte ohne Entwicklungskennung und setzt
+den Update-Kanal im Manifest auf Beta. Der aktuelle veröffentlichte
+Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
 
@@ -54,9 +55,11 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Plugin und auf Linux zusätzlich Bridge und zugehörige Komponentenpfade.
   Neovim-Konfigurationen und Sicherungen bleiben unverändert; ausdrückliche
   Plugin-Ladeeinträge bleiben der Benutzerkonfiguration überlassen.
-- Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
-  verwenden den deutschen beziehungsweise englischen unveröffentlichten
-  Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.
+- Das Manifest folgt dem NVDA-Template mit Projektadresse,
+  Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll. Für
+  0.98.0 umfasst dieses die Änderungen seit der zuletzt im Add-on Store
+  veröffentlichten Version 0.96.0; der Projekt-Changelog 0.98.0 beschreibt
+  getrennt nur die Änderungen seit 0.97.0.
 - `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
   Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
   außerhalb eines passenden fokussierten Controls bleibt der native

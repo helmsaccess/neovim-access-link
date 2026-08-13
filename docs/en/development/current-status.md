@@ -1,8 +1,9 @@
 # Current status
 
-Status date: August 13, 2026. The source tree belongs to the 0.98.0 development
-line; `buildVars.py` generates development builds with Git metadata and sets
-the release channel to beta. The current published pre-release is 0.97.0. The
+Status date: August 13, 2026. The source tree is prepared as the 0.98.0 beta
+release; `buildVars.py` generates release artifacts without a development
+identifier and sets the manifest update channel to beta. The current published
+pre-release is 0.97.0. The
 project does not infer a higher stability classification from test coverage or
 feature count.
 
@@ -49,9 +50,10 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   bridge and related component paths on Linux. Neovim configuration and backups
   remain unchanged; explicit plugin load entries remain owned by user
   configuration.
-- The manifest provides the project URL and default help file. Development
-  builds use the matching German or English unreleased changelog section;
-  releases use their version section.
+- The manifest follows the NVDA template with the project URL, default help
+  file, update channel, and localized changelog. For 0.98.0, this covers the
+  changes since the Add-on Store's last published version, 0.96.0; the separate
+  0.98.0 project changelog covers only changes since 0.97.0.
 - `NVDA+Alt+N` is the default activation gesture and remains reassignable in
   Input Gestures. It continues to belong to the Windows Terminal AppModule;
   outside a matching focused control, the native keyboard path remains intact.

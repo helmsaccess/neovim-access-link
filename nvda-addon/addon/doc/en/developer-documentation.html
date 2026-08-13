@@ -568,6 +568,7 @@ for new work</a></li>
 <li><a href="#docs__en__development__changelogmd__changelog" id="toc-docs__en__development__changelogmd__changelog">Changelog</a>
 <ul>
 <li><a href="#docs__en__development__changelogmd__unreleased" id="toc-docs__en__development__changelogmd__unreleased">Unreleased</a></li>
+<li><a href="#docs__en__development__changelogmd__0980" id="toc-docs__en__development__changelogmd__0980">0.98.0</a></li>
 <li><a href="#docs__en__development__changelogmd__0970" id="toc-docs__en__development__changelogmd__0970">0.97.0</a></li>
 <li><a href="#docs__en__development__changelogmd__0960" id="toc-docs__en__development__changelogmd__0960">0.96.0</a></li>
 <li><a href="#docs__en__development__changelogmd__0952" id="toc-docs__en__development__changelogmd__0952">0.95.2</a></li>
@@ -2546,11 +2547,12 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 13, 2026. The source tree belongs to the 0.98.0
-development line; <code>buildVars.py</code> generates development builds
-with Git metadata and sets the release channel to beta. The current
-published pre-release is 0.97.0. The project does not infer a higher
-stability classification from test coverage or feature count.</p>
+<p>Status date: August 13, 2026. The source tree is prepared as the
+0.98.0 beta release; <code>buildVars.py</code> generates release
+artifacts without a development identifier and sets the manifest update
+channel to beta. The current published pre-release is 0.97.0. The
+project does not infer a higher stability classification from test
+coverage or feature count.</p>
 <p>This page is the compact snapshot of implemented and verified
 behavior. See <a href="#docs__en__development__architecturemd__architecture">architecture</a>
 and the <a href="#docs__en__development__accessibilitymd__feature-and-accessibility-matrix">feature
@@ -2599,9 +2601,11 @@ after target selection. It removes only the installed plugin locally and
 also the bridge and related component paths on Linux. Neovim
 configuration and backups remain unchanged; explicit plugin load entries
 remain owned by user configuration.</li>
-<li>The manifest provides the project URL and default help file.
-Development builds use the matching German or English unreleased
-changelog section; releases use their version section.</li>
+<li>The manifest follows the NVDA template with the project URL, default
+help file, update channel, and localized changelog. For 0.98.0, this
+covers the changes since the Add-on Store&#39;s last published version,
+0.96.0; the separate 0.98.0 project changelog covers only changes since
+0.97.0.</li>
 <li><code>NVDA+Alt+N</code> is the default activation gesture and
 remains reassignable in Input Gestures. It continues to belong to the
 Windows Terminal AppModule; outside a matching focused control, the
@@ -5137,8 +5141,9 @@ native Tutor extmarks provide
 <code>correct</code>/<code>incorrect</code>. Status transitions are
 spoken; reading again and Braille retain the current assessment. The
 added path remains inactive on 0.10.</td>
-<td>Isolated headless boundary tests with 0.10.1 and 0.12.3 plus a real
-0.12.3 TUI test; practical Windows/NVDA acceptance remains open.</td>
+<td>Isolated headless boundary tests with 0.10.1 and 0.12.3, a real
+0.12.3 TUI test, and sampled practical Windows/NVDA testing with a
+physical Braille display.</td>
 </tr>
 <tr class="odd">
 <td><code>vim.ui</code> choices</td>
@@ -5297,8 +5302,9 @@ tests</a> for more detail.</p>
 identity and version data. It contains:</p>
 <ul>
 <li>internal add-on identifier and visible product name;</li>
-<li>author, numeric product version, and release channel;</li>
+<li>author, numeric product version, and manifest update channel;</li>
 <li>branch-local development build number;</li>
+<li>comparison version last published in the NVDA Add-on Store;</li>
 <li>minimum and last-tested NVDA versions;</li>
 <li>project URL, default help file, and English manifest changelog.</li>
 </ul>
@@ -5308,9 +5314,13 @@ For development states, <code>artifact_version()</code> adds
 <code>-dev.N</code> and, when available, branch and commit metadata for
 filenames, diagnostic reports, and bundled components. The installed
 manifest is generated from these values and the matching changelog
-section during the build and is not maintained separately. The German
-localization manifest receives the same section from the German
-changelog.</p>
+sections during the build and is not maintained separately. The German
+localization manifest receives the same sections from the German
+changelog. For a release, <code>manifest_changelog()</code> combines
+every version section after <code>manifest_changelog_base_version</code>
+through the current version. The Store manifest therefore describes the
+exact upgrade from the last version published there; update the base
+after an actual Store publication when preparing the next release.</p>
 <p>Development states collect completed changes under
 <code>Unveröffentlicht</code> and <code>Unreleased</code>; their
 manifests use that section. When a release is set, those entries are
@@ -5361,8 +5371,9 @@ and CI process above.</p>
 <h3>Release preparation</h3>
 <p>An approved version requires one coherent state containing:</p>
 <ol type="1">
-<li>product version, channel, and <code>development_build = None</code>
-in <code>buildVars.py</code>;</li>
+<li>product version, manifest update channel,
+<code>manifest_changelog_base_version</code>, and
+<code>development_build = None</code> in <code>buildVars.py</code>;</li>
 <li>current release and changelog links in <code>README.md</code> plus
 German and English version sections curated from the unreleased entries
 and containing every change since the immediately preceding published
@@ -5797,6 +5808,9 @@ history</a> preserves earlier development and test-build entries through
 August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
+</section>
+<section id="docs__en__development__changelogmd__0980" class="level3">
+<h3>0.98.0</h3>
 <ul>
 <li>Assigns <code>NVDA+Alt+N</code> to the contextual activation command
 by default. The gesture remains reassignable in NVDA&#39;s Input Gestures
@@ -5813,7 +5827,8 @@ while existing Braille routing and source mappings are preserved. On
 Neovim 0.10 the Tutor path is fully inactive and registers no observers.
 Transition announcements remain bound to the same buffer, window, and
 line context. Isolated headless boundary tests and a real 0.12.3 TUI
-contract test cover the scope.</li>
+contract test cover the scope; the Tutor was also sampled practically
+under Windows/NVDA with speech and a physical Braille display.</li>
 <li>Restores NVDA&#39;s normal terminal behavior immediately after a remote
 Neovim instance exits. The SSH client now treats the authenticated
 bridge <code>disconnected</code> state as connection lifecycle rather
@@ -5879,12 +5894,13 @@ Git end state.</li>
 add-on. A top-level <code>Neovim Access Link</code> menu opens settings,
 component management, and installed help selected for NVDA&#39;s
 language.</li>
+<li>Documents the separate, assignable commands for copying a Visual
+selection or register 0 to the Windows clipboard and inserting Windows
+clipboard text into Neovim.</li>
 <li>Adds the default help file and a change log generated from the
 current German or English changelog section to the manifest. Development
 builds use the unreleased section; releases curate it into the version
 section and then reset it.</li>
-<li>Starts the 0.98.0 development line after the 0.97.0
-pre-release.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0970" class="level3">

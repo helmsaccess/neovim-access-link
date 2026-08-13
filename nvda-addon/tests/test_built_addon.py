@@ -99,6 +99,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.addonMenuHandlers: dict[str, object] = {}
         self.unboundMenuLabels: list[str] = []
         self.topLevelMenuLabels: list[str] = []
+        self.documentationLanguage = "en"
         self.focus = types.SimpleNamespace(
             processID=100, windowHandle=200, role=3, parent=None,
             appModule=types.SimpleNamespace(appName="windowsterminal"),
@@ -196,11 +197,15 @@ class BuiltAddonTests(unittest.TestCase):
         addon_handler = types.ModuleType("addonHandler")
         addon_handler.initTranslation = lambda: None
         self.documentationRequests = []
+
+        def get_doc_file_path(name=None):
+            file_name = name or "readme.html"
+            self.documentationRequests.append((self.documentationLanguage, file_name))
+            return str(self.extract_path / "doc" / self.documentationLanguage / file_name)
+
         addon_handler.getCodeAddon = lambda: types.SimpleNamespace(
             manifest=buildVars.manifest(),
-            getDocFilePath=lambda name=None: (
-                str(self.extract_path / "doc" / "en" / (name or "readme.html"))
-            ),
+            getDocFilePath=get_doc_file_path,
         )
         sys.modules["addonHandler"] = addon_handler
 
@@ -754,22 +759,29 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual("NeovimAccessLink", manifest["name"])
         self.assertEqual(buildVars.store_version(), manifest["version"])
         self.assertEqual("readme.html", manifest["docFileName"])
-        self.assertEqual(buildVars.changelog(), manifest["changelog"])
+        self.assertEqual(buildVars.manifest_changelog(), manifest["changelog"])
+        self.assertEqual("beta", manifest["updateChannel"])
         self.assertEqual(
             "https://github.com/helmsaccess/neovim-access-link",
             manifest["url"],
         )
         self.assertNotIn("dev", manifest["version"])
 
-    def test_manifest_changelog_selects_development_or_published_version_section(self) -> None:
-        self.assertEqual(buildVars.changelog(), buildVars.manifest()["changelog"])
-        self.assertIn(f"{buildVars.store_version()} development line", buildVars.changelog())
+    def test_manifest_changelog_covers_store_updates_since_0_96_0(self) -> None:
+        self.assertIn(buildVars.store_version(), buildVars.manifest_changelog())
+        self.assertIn("0.97.0", buildVars.manifest_changelog())
+        self.assertNotIn("0.96.0", buildVars.manifest_changelog())
+        self.assertIn("NVDA+Alt+N", buildVars.changelog())
+        self.assertNotIn("HTTPS project URL", buildVars.changelog())
+        self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
+        self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
+
+    def test_development_manifest_uses_only_unreleased_changelog(self) -> None:
         with (
-            mock.patch.object(buildVars, "development_build", None),
-            mock.patch.object(buildVars, "product_version", "0.97.0"),
+            mock.patch.object(buildVars, "development_build", 1),
+            mock.patch.object(buildVars, "_changelog_section", return_value="development changes"),
         ):
-            self.assertIn("HTTPS project URL", buildVars.changelog())
-            self.assertIn("HTTPS-Projektadresse", buildVars.changelog("de"))
+            self.assertEqual(buildVars.changelog(), buildVars.manifest_changelog())
 
     def test_built_addon_contains_all_localized_installed_documentation(self) -> None:
         expected = {
@@ -789,7 +801,7 @@ class BuiltAddonTests(unittest.TestCase):
             encoding="utf-8",
             list_values=True,
         )
-        self.assertEqual(buildVars.changelog("de"), german_manifest["changelog"])
+        self.assertEqual(buildVars.manifest_changelog("de"), german_manifest["changelog"])
 
     def test_archive_contains_only_the_new_addon_identity(self) -> None:
         with zipfile.ZipFile(self.archive_path) as archive:
@@ -9374,6 +9386,19 @@ class BuiltAddonTests(unittest.TestCase):
             str(self.extract_path / "doc" / "en" / "readme.html"),
             str(self.extract_path / "doc" / "en" / "developer-documentation.html"),
             str(self.extract_path / "doc" / "en" / "human-testing.html"),
+        ], opened)
+        self.documentationLanguage = "de"
+        opened.clear()
+        with mock.patch.object(nvda_ui.os, "startfile", side_effect=opened.append, create=True):
+            self.addonMenuHandlers["&Quick Guide"](None)
+            self.addonMenuHandlers["User &Manual"](None)
+            self.addonMenuHandlers["&Developer Documentation"](None)
+            self.addonMenuHandlers["Guided &Practical Tests"](None)
+        self.assertEqual([
+            str(self.extract_path / "doc" / "de" / "quick-guide.html"),
+            str(self.extract_path / "doc" / "de" / "readme.html"),
+            str(self.extract_path / "doc" / "de" / "developer-documentation.html"),
+            str(self.extract_path / "doc" / "de" / "human-testing.html"),
         ], opened)
         panel = self.settingsCategoryClasses[0]()
         panel.makeSettings(object())

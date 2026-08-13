@@ -6,6 +6,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+## 0.98.0
+
 - Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit
   `NVDA+Alt+N`. Die Geste bleibt im NVDA-Tastenbefehldialog änderbar und wird
   außerhalb eines passenden fokussierten Windows-Terminal-Controls wie bisher
@@ -21,7 +23,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Neovim 0.10 ist der Tutor-Pfad ohne Beobachter vollständig inaktiv.
   Übergangsmeldungen bleiben an denselben Buffer-, Fenster- und Zeilenkontext
   gebunden. Isolierte Headless-Grenztests und ein echter
-  0.12.3-TUI-Vertragstest decken den Umfang ab.
+  0.12.3-TUI-Vertragstest decken den Umfang ab; der Tutor wurde unter
+  Windows/NVDA stichprobenartig mit Sprache und physischer Braillezeile
+  praktisch geprüft.
 - Stellt nach dem Beenden einer entfernten Neovim-Instanz NVDAs normales
   Terminalverhalten sofort wieder her. Der SSH-Client behandelt den
   authentifizierten Bridge-Status `disconnected` jetzt als
@@ -89,12 +93,13 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Integriert alle acht deutschen und englischen HTML-Dokumente in das Add-on.
   Ein oberstes `Neovim Access Link`-Menü öffnet Einstellungen,
   Komponentenverwaltung und die zur NVDA-Sprache passende installierte Hilfe.
+- Beschreibt im Handbuch die getrennten, frei belegbaren Befehle zum Kopieren
+  von Visual-Auswahl oder Register 0 in die Windows-Zwischenablage und zum
+  Einfügen der Windows-Zwischenablage in Neovim.
 - Ergänzt im Manifest Standardhilfedatei und das aus dem aktuellen deutschen
   beziehungsweise englischen Changelogabschnitt erzeugte Änderungsprotokoll.
   Entwicklungsbuilds verwenden den unveröffentlichten Abschnitt; bei Releases
   wird er redaktionell in die Version überführt und anschließend zurückgesetzt.
-- Beginnt die Entwicklungslinie 0.98.0 nach dem Pre-Release 0.97.0.
-
 ## 0.97.0
 
 - Ergänzt die HTTPS-Projektadresse im Add-on-Manifest.

@@ -6,8 +6,9 @@
 Versionsdaten. Sie enthält:
 
 - internen Add-on-Identifier und sichtbaren Produktnamen;
-- Autor, numerische Produktversion und Releasekanal;
+- Autor, numerische Produktversion und Manifest-Update-Kanal;
 - branchlokale Entwicklungsbuildnummer;
+- Vergleichsversion des zuletzt im NVDA Add-on Store veröffentlichten Stands;
 - minimale und zuletzt getestete NVDA-Version;
 - Projektadresse, Standardhilfedatei und englisches Manifest-Changelog.
 
@@ -15,9 +16,14 @@ Versionsdaten. Sie enthält:
 NVDA Add-on Store. `artifact_version()` ergänzt bei Entwicklungsständen
 `-dev.N` sowie nach Möglichkeit Branch- und Commitmetadaten für Dateinamen,
 Diagnosebericht und gebündelte Komponenten. Das installierte Manifest wird
-beim Build aus diesen Werten und dem passenden Changelogabschnitt erzeugt und
-nicht separat gepflegt. Das deutsche Lokalisierungsmanifest erhält denselben
-Abschnitt aus dem deutschen Changelog.
+beim Build aus diesen Werten und den passenden Changelogabschnitten erzeugt
+und nicht separat gepflegt. Das deutsche Lokalisierungsmanifest erhält
+dieselben Abschnitte aus dem deutschen Changelog. Bei einem Release verbindet
+`manifest_changelog()` alle Versionsabschnitte nach
+`manifest_changelog_base_version` bis einschließlich der aktuellen Version.
+Damit beschreibt das Store-Manifest genau das Upgrade vom zuletzt dort
+veröffentlichten Stand; die Vergleichsversion wird nach einer tatsächlichen
+Store-Veröffentlichung für den nächsten Release aktualisiert.
 
 Entwicklungsstände sammeln abgeschlossene Änderungen unter `Unveröffentlicht`
 beziehungsweise `Unreleased`; ihre Manifeste verwenden diesen Abschnitt. Bei
@@ -73,7 +79,9 @@ Entwickler- und CI-Prozess oben bleibt davon unberührt.
 Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
 Stand:
 
-1. Produktversion, Kanal und `development_build = None` in `buildVars.py`;
+1. Produktversion, Manifest-Update-Kanal,
+   `manifest_changelog_base_version` und `development_build = None` in
+   `buildVars.py`;
 2. aktuellen Release- und Changeloglink in `README.md` sowie einen aus den
    unveröffentlichten Einträgen redaktionell erstellten deutschen und
    englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar

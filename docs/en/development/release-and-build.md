@@ -6,8 +6,9 @@
 version data. It contains:
 
 - internal add-on identifier and visible product name;
-- author, numeric product version, and release channel;
+- author, numeric product version, and manifest update channel;
 - branch-local development build number;
+- comparison version last published in the NVDA Add-on Store;
 - minimum and last-tested NVDA versions;
 - project URL, default help file, and English manifest changelog.
 
@@ -15,9 +16,13 @@ version data. It contains:
 Add-on Store. For development states, `artifact_version()` adds `-dev.N` and,
 when available, branch and commit metadata for filenames, diagnostic reports,
 and bundled components. The installed manifest is generated from these values
-and the matching changelog section during the build and is not maintained
-separately. The German localization manifest receives the same section from
-the German changelog.
+and the matching changelog sections during the build and is not maintained
+separately. The German localization manifest receives the same sections from
+the German changelog. For a release, `manifest_changelog()` combines every
+version section after `manifest_changelog_base_version` through the current
+version. The Store manifest therefore describes the exact upgrade from the
+last version published there; update the base after an actual Store
+publication when preparing the next release.
 
 Development states collect completed changes under `Unveröffentlicht` and
 `Unreleased`; their manifests use that section. When a release is set, those
@@ -72,7 +77,9 @@ developer and CI process above.
 
 An approved version requires one coherent state containing:
 
-1. product version, channel, and `development_build = None` in `buildVars.py`;
+1. product version, manifest update channel,
+   `manifest_changelog_base_version`, and `development_build = None` in
+   `buildVars.py`;
 2. current release and changelog links in `README.md` plus German and English
    version sections curated from the unreleased entries and containing every
    change since the immediately preceding published release;

@@ -92,7 +92,7 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
     required = (
         "name", "summary", "description", "author", "version",
         "changelog", "url", "docFileName",
-        "minimumNVDAVersion", "lastTestedNVDAVersion",
+        "minimumNVDAVersion", "lastTestedNVDAVersion", "updateChannel",
     )
     for field in required:
         value = manifest.get(field)
@@ -109,6 +109,8 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
         raise RuntimeError("manifest docFileName must be one portable file name")
     if pathlib.PurePath(manifest["docFileName"]).suffix.casefold() != ".html":
         raise RuntimeError("manifest docFileName must name an HTML document")
+    if manifest["updateChannel"] not in {"stable", "beta", "dev"}:
+        raise RuntimeError(f"invalid manifest updateChannel: {manifest['updateChannel']!r}")
     def api_tuple(value: str) -> tuple[int, int, int]:
         parts = [int(part) for part in value.split(".")]
         return tuple((parts + [0])[:3])
@@ -153,10 +155,10 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             destination = stage / "locale" / language / "manifest.ini"
             destination.parent.mkdir(parents=True, exist_ok=True)
             localized = ConfigObj(str(translated_manifest), encoding="utf-8", list_values=True)
-            localized["changelog"] = buildVars.changelog(language)
+            localized["changelog"] = buildVars.manifest_changelog(language)
             write_manifest(destination, dict(localized))
             staged_localized = ConfigObj(str(destination), encoding="utf-8", list_values=True)
-            if staged_localized.get("changelog") != buildVars.changelog(language):
+            if staged_localized.get("changelog") != buildVars.manifest_changelog(language):
                 raise RuntimeError(f"localized changelog differs from {language} source")
         plugin = stage / "globalPlugins" / metadata["name"]
         (plugin / "build_info.py").write_text(

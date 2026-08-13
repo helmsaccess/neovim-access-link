@@ -9,8 +9,11 @@ from pathlib import Path
 
 product_version = "0.98.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 4
+development_build: int | None = None
 release_channel = "beta"
+# The Add-on Store currently upgrades this release from 0.96.0. The manifest
+# changelog therefore includes every published product section after this base.
+manifest_changelog_base_version = "0.96.0"
 
 addon_info = {
     "name": "NeovimAccessLink",
@@ -25,6 +28,7 @@ addon_info = {
     "docFileName": "readme.html",
     "minimumNVDAVersion": "2026.1",
     "lastTestedNVDAVersion": "2026.1.1",
+    "updateChannel": release_channel,
 }
 
 _ROOT = Path(__file__).resolve().parent
@@ -78,15 +82,9 @@ def product_slug() -> str:
     return "-".join(word.lower() for word in words)
 
 
-def changelog(language: str = "en") -> str:
-    """Return the current localized changelog section for the add-on manifest."""
+def _changelog_section(language: str, heading: str) -> str:
     if language not in _CHANGELOG_HEADINGS:
         raise ValueError(f"unsupported changelog language: {language}")
-    heading = (
-        _CHANGELOG_HEADINGS[language]
-        if development_build is not None
-        else product_version
-    )
     path = _ROOT / "docs" / language / "development" / "changelog.md"
     lines = path.read_text(encoding="utf-8").splitlines()
     start = next(
@@ -109,6 +107,51 @@ def changelog(language: str = "en") -> str:
     return value
 
 
+def changelog(language: str = "en") -> str:
+    """Return the current localized product-version changelog section."""
+    if language not in _CHANGELOG_HEADINGS:
+        raise ValueError(f"unsupported changelog language: {language}")
+    heading = (
+        _CHANGELOG_HEADINGS[language]
+        if development_build is not None
+        else product_version
+    )
+    return _changelog_section(language, heading)
+
+
+def _version_tuple(value: str) -> tuple[int, int, int]:
+    if re.fullmatch(r"\d+\.\d+\.\d+", value) is None:
+        raise ValueError(f"invalid product version: {value!r}")
+    return tuple(int(part) for part in value.split("."))
+
+
+def manifest_changelog(language: str = "en") -> str:
+    """Return changes since the version currently published in the Add-on Store."""
+    if development_build is not None:
+        return changelog(language)
+    base = _version_tuple(manifest_changelog_base_version)
+    current = _version_tuple(store_version())
+    if base >= current:
+        raise ValueError("manifest changelog base must precede the release version")
+    path = _ROOT / "docs" / language / "development" / "changelog.md"
+    headings = (
+        match.group(1)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if (match := re.fullmatch(r"##\s+(\d+\.\d+\.\d+)(?:\s+\([^)]*\))?\s*", line))
+    )
+    versions = [
+        heading
+        for heading in headings
+        if base < _version_tuple(heading) <= current
+    ]
+    if store_version() not in versions:
+        raise ValueError(f"missing {store_version()!r} release section in {path}")
+    return "\n\n".join(
+        f"{version}\n\n{_changelog_section(language, version)}"
+        for version in versions
+    )
+
+
 def manifest() -> dict[str, str]:
     """Return all scalar fields required by an NVDA add-on manifest."""
-    return {**addon_info, "version": store_version(), "changelog": changelog()}
+    return {**addon_info, "version": store_version(), "changelog": manifest_changelog()}
