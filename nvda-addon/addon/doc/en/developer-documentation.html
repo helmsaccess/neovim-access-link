@@ -34,7 +34,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -2608,11 +2608,10 @@ covers the changes since the Add-on Store&#39;s last published version,
 0.97.0. The package build rejects missing, empty, unknown, or malformed
 template fields and verifies the default English help plus the German
 localization manifest.</li>
-<li>The documentation job uses the same pinned Pandoc 3.1.11.1 as the
-local reference build, downloaded from an official archive with a
-verified digest. Checked-in installed HTML therefore remains
-reproducible independently of the CI runner&#39;s changing package
-version.</li>
+<li>The documentation job and local reference build use the official
+Pandoc 3.1.11.1 binary from an archive with a verified digest. The build
+script rejects differently packaged builds of the same version, keeping
+the checked-in installed HTML reproducible.</li>
 <li><code>NVDA+Alt+N</code> is the default activation gesture and
 remains reassignable in Input Gestures. It continues to belong to the
 Windows Terminal AppModule; outside a matching focused control, the
@@ -4967,10 +4966,11 @@ and forbidden files. An earlier archive is not evidence for later source
 changes.</p>
 <p>After documentation changes, rebuild documentation:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
-<p>The local reference build and the CI job use Pandoc 3.1.11.1. CI
-downloads the official archive with a pinned SHA-256 digest so a changed
-runner package version cannot silently alter the checked-in HTML
-output.</p>
+<p>The local reference build and the CI job use the official Pandoc
+3.1.11.1 binary build. The build script rejects repackaged builds
+because they can produce different syntax highlighting despite reporting
+the same Pandoc version. CI downloads the official archive with a pinned
+SHA-256 digest.</p>
 <p>The build checks the canonical Lua example, German and English source
 files and heading structures, local Markdown links, generated HTML
 targets, language, title, and description metadata, and the eight
@@ -5830,10 +5830,10 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__0980" class="level3">
 <h3>0.98.0</h3>
 <ul>
-<li>Pins Pandoc 3.1.11.1 for the local reference and CI documentation
-builds. CI verifies the official archive by SHA-256 so changing runner
-package versions no longer generate different checked-in installed
-HTML.</li>
+<li>Pins the official Pandoc 3.1.11.1 binary for local reference and CI
+documentation builds. CI verifies the archive by SHA-256, while the
+build script rejects differently packaged builds of the same version so
+they cannot generate different checked-in installed HTML.</li>
 <li>Assigns <code>NVDA+Alt+N</code> to the contextual activation command
 by default. The gesture remains reassignable in NVDA&#39;s Input Gestures
 dialog and continues to pass through outside a matching focused Windows

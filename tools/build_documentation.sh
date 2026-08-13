@@ -145,9 +145,15 @@ human_testing_en_sources=(
 )
 
 command -v pandoc >/dev/null || {
-  echo "error: pandoc is required (tested with 3.1.11.1)" >&2
+  echo "error: the official Pandoc 3.1.11.1 build is required" >&2
   exit 1
 }
+mapfile -t pandoc_info < <(pandoc --version)
+if [[ "${pandoc_info[0]:-}" != "pandoc 3.1.11.1" \
+  || "${pandoc_info[1]:-}" != "Features: +server +lua" ]]; then
+  echo "error: the official Pandoc 3.1.11.1 build is required for reproducible HTML" >&2
+  exit 1
+fi
 
 python3 "$root/tools/sync_documentation_examples.py" --check
 

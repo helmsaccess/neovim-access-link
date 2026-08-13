@@ -10,9 +10,10 @@ There are currently no unreleased changes.
 
 ## 0.98.0
 
-- Pins Pandoc 3.1.11.1 for the local reference and CI documentation builds.
-  CI verifies the official archive by SHA-256 so changing runner package
-  versions no longer generate different checked-in installed HTML.
+- Pins the official Pandoc 3.1.11.1 binary for local reference and CI
+  documentation builds. CI verifies the archive by SHA-256, while the build
+  script rejects differently packaged builds of the same version so they
+  cannot generate different checked-in installed HTML.
 - Assigns `NVDA+Alt+N` to the contextual activation command by default. The
   gesture remains reassignable in NVDA's Input Gestures dialog and continues
   to pass through outside a matching focused Windows Terminal control.

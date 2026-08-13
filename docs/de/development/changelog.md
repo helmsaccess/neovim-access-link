@@ -10,10 +10,10 @@ Derzeit keine unveröffentlichten Änderungen.
 
 ## 0.98.0
 
-- Legt Pandoc 3.1.11.1 für den lokalen Referenz- und CI-Dokumentationsbuild
-  fest. CI prüft das offizielle Archiv per SHA-256, sodass wechselnde
-  Runner-Paketversionen die eingecheckte installierte HTML-Hilfe nicht mehr
-  unterschiedlich erzeugen.
+- Legt den offiziellen Pandoc-3.1.11.1-Binärbuild für den lokalen Referenz- und
+  CI-Dokumentationsbuild fest. CI prüft das Archiv per SHA-256; das Buildskript
+  lehnt abweichend paketierte Builds derselben Version ab, damit sie die
+  eingecheckte installierte HTML-Hilfe nicht unterschiedlich erzeugen.
 - Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit
   `NVDA+Alt+N`. Die Geste bleibt im NVDA-Tastenbefehldialog änderbar und wird
   außerhalb eines passenden fokussierten Windows-Terminal-Controls wie bisher
