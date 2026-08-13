@@ -1,9 +1,9 @@
 # Aktueller Status
 
-Stand: 13. August 2026. Der Quellstand ist als Beta-Release 0.98.0 vorbereitet;
-`buildVars.py` erzeugt Release-Artefakte ohne Entwicklungskennung und setzt
-den Update-Kanal im Manifest auf Beta. Der aktuelle veröffentlichte
-Pre-Release ist 0.97.0.
+Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie 0.99.0;
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.1 mit Branch- und
+Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
+veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
 
@@ -56,10 +56,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Neovim-Konfigurationen und Sicherungen bleiben unverändert; ausdrückliche
   Plugin-Ladeeinträge bleiben der Benutzerkonfiguration überlassen.
 - Das Manifest folgt dem NVDA-Template mit Projektadresse,
-  Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll. Für
-  0.98.0 umfasst dieses die Änderungen seit der zuletzt im Add-on Store
-  veröffentlichten Version 0.96.0; der Projekt-Changelog 0.98.0 beschreibt
-  getrennt nur die Änderungen seit 0.97.0. Der Paketbuild verwirft fehlende,
+  Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll.
+  Entwicklungsbuilds der Linie 0.99.0 verwenden den Abschnitt
+  `Unveröffentlicht`; die Store-Vergleichsversion bleibt bis zu einer
+  tatsächlichen Store-Veröffentlichung 0.96.0. Der Paketbuild verwirft fehlende,
   leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
 - Der Dokumentationsjob verwendet wie der lokale Referenzbuild den offiziellen

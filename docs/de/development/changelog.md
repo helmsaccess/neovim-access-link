@@ -6,7 +6,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-Derzeit keine unveröffentlichten Änderungen.
+- Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
+  0.99.0 mit Entwicklungsbuild 1.
 
 ## 0.98.0
 

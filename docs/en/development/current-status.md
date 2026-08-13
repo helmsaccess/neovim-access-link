@@ -1,9 +1,9 @@
 # Current status
 
-Status date: August 13, 2026. The source tree is prepared as the 0.98.0 beta
-release; `buildVars.py` generates release artifacts without a development
-identifier and sets the manifest update channel to beta. The current published
-pre-release is 0.97.0. The
+Status date: August 13, 2026. The source tree starts the 0.99.0 development
+line; `buildVars.py` generates artifacts as 0.99.0-dev.1 with branch and commit
+metadata and sets the manifest update channel to beta. The current published
+pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
 feature count.
 
@@ -51,9 +51,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   remain unchanged; explicit plugin load entries remain owned by user
   configuration.
 - The manifest follows the NVDA template with the project URL, default help
-  file, update channel, and localized changelog. For 0.98.0, this covers the
-  changes since the Add-on Store's last published version, 0.96.0; the separate
-  0.98.0 project changelog covers only changes since 0.97.0. The package build
+  file, update channel, and localized changelog. Development builds on the
+  0.99.0 line use the `Unreleased` section; the Store comparison version
+  remains 0.96.0 until an actual Store publication. The package build
   rejects missing, empty, unknown, or malformed template fields and verifies
   the default English help plus the German localization manifest.
 - The documentation job and local reference build use the official

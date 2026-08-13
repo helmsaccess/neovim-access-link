@@ -820,14 +820,18 @@ class BuiltAddonTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, expected):
                     validate_manifest(root / "manifest.ini")
 
-    def test_manifest_changelog_covers_store_updates_since_0_96_0(self) -> None:
-        self.assertIn(buildVars.store_version(), buildVars.manifest_changelog())
-        self.assertIn("0.97.0", buildVars.manifest_changelog())
-        self.assertNotIn("0.96.0", buildVars.manifest_changelog())
-        self.assertIn("NVDA+Alt+N", buildVars.changelog())
-        self.assertNotIn("HTTPS project URL", buildVars.changelog())
-        self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
-        self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
+    def test_release_manifest_changelog_covers_store_updates_since_0_96_0(self) -> None:
+        with (
+            mock.patch.object(buildVars, "product_version", "0.98.0"),
+            mock.patch.object(buildVars, "development_build", None),
+        ):
+            self.assertIn(buildVars.store_version(), buildVars.manifest_changelog())
+            self.assertIn("0.97.0", buildVars.manifest_changelog())
+            self.assertNotIn("0.96.0", buildVars.manifest_changelog())
+            self.assertIn("NVDA+Alt+N", buildVars.changelog())
+            self.assertNotIn("HTTPS project URL", buildVars.changelog())
+            self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
+            self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
 
     def test_localized_manifest_validator_rejects_incomplete_or_extra_fields(self) -> None:
         path = pathlib.Path(self.temporary.name) / "localized-manifest.ini"

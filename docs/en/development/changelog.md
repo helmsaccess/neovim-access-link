@@ -6,7 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-There are currently no unreleased changes.
+- Starts the 0.99.0 development line with development build 1 after the 0.98.0
+  beta pre-release.
 
 ## 0.98.0
 

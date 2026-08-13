@@ -2547,10 +2547,10 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 13, 2026. The source tree is prepared as the
-0.98.0 beta release; <code>buildVars.py</code> generates release
-artifacts without a development identifier and sets the manifest update
-channel to beta. The current published pre-release is 0.97.0. The
+<p>Status date: August 13, 2026. The source tree starts the 0.99.0
+development line; <code>buildVars.py</code> generates artifacts as
+0.99.0-dev.1 with branch and commit metadata and sets the manifest
+update channel to beta. The current published pre-release is 0.98.0. The
 project does not infer a higher stability classification from test
 coverage or feature count.</p>
 <p>This page is the compact snapshot of implemented and verified
@@ -2602,11 +2602,11 @@ also the bridge and related component paths on Linux. Neovim
 configuration and backups remain unchanged; explicit plugin load entries
 remain owned by user configuration.</li>
 <li>The manifest follows the NVDA template with the project URL, default
-help file, update channel, and localized changelog. For 0.98.0, this
-covers the changes since the Add-on Store&#39;s last published version,
-0.96.0; the separate 0.98.0 project changelog covers only changes since
-0.97.0. The package build rejects missing, empty, unknown, or malformed
-template fields and verifies the default English help plus the German
+help file, update channel, and localized changelog. Development builds
+on the 0.99.0 line use the <code>Unreleased</code> section; the Store
+comparison version remains 0.96.0 until an actual Store publication. The
+package build rejects missing, empty, unknown, or malformed template
+fields and verifies the default English help plus the German
 localization manifest.</li>
 <li>The documentation job and local reference build use the official
 Pandoc 3.1.11.1 binary from an archive with a verified digest. The build
@@ -5825,7 +5825,10 @@ history</a> preserves earlier development and test-build entries through
 August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
-<p>There are currently no unreleased changes.</p>
+<ul>
+<li>Starts the 0.99.0 development line with development build 1 after
+the 0.98.0 beta pre-release.</li>
+</ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">
 <h3>0.98.0</h3>
