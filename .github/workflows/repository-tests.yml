@@ -20,6 +20,10 @@ env:
   RUBOCOP_VERSION: "1.88.2"
   NODE_VERSION: "24.18.0"
   MARKDOWNLINT_VERSION: "0.23.2"
+  PANDOC_VERSION: "3.1.11.1"
+  PANDOC_ARCHIVE: pandoc-3.1.11.1-linux-amd64.tar.gz
+  PANDOC_SHA256: 07635f6953201ee261bf90e821b8fe36c045e5a6fbae2ae6b1c2127715432942
+  PANDOC_URL: https://github.com/jgm/pandoc/releases/download/3.1.11.1/pandoc-3.1.11.1-linux-amd64.tar.gz
   NEOVIM_ARCHIVE: nvim-linux64.tar.gz
   NEOVIM_SHA256: 4867de01a17f6083f902f8aa5215b40b0ed3a36e83cc0293de3f11708f1f9793
   NEOVIM_URL: https://github.com/neovim/neovim/releases/download/v0.10.1/nvim-linux64.tar.gz
@@ -97,10 +101,13 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install Pandoc from the runner repository
+      - name: Install pinned Pandoc
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends pandoc
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$PANDOC_URL" --output "$PANDOC_ARCHIVE"
+          echo "$PANDOC_SHA256  $PANDOC_ARCHIVE" | sha256sum --check -
+          tar --extract --gzip --file "$PANDOC_ARCHIVE"
+          echo "$PWD/pandoc-$PANDOC_VERSION/bin" >> "$GITHUB_PATH"
       - name: Build and validate all documentation artifacts
         run: bash tools/build_documentation.sh
       - name: Confirm installed documentation is current

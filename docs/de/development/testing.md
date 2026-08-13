@@ -149,6 +149,10 @@ Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:
 tools/build_documentation.sh
 ```
 
+Der lokale Referenzbuild und der CI-Job verwenden Pandoc 3.1.11.1. CI lädt
+das offizielle Archiv mit festgelegter SHA-256-Prüfsumme, damit eine geänderte
+Runner-Paketversion die eingecheckte HTML-Ausgabe nicht still verändert.
+
 Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche und
 englische Quelldateien und Überschriftenstrukturen, lokale Markdownlinks,
 generierte HTML-Ziele, Sprach-, Titel- und Beschreibungsmetadaten sowie die

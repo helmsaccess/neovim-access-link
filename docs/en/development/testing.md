@@ -144,6 +144,10 @@ After documentation changes, rebuild documentation:
 tools/build_documentation.sh
 ```
 
+The local reference build and the CI job use Pandoc 3.1.11.1. CI downloads the
+official archive with a pinned SHA-256 digest so a changed runner package
+version cannot silently alter the checked-in HTML output.
+
 The build checks the canonical Lua example, German and English source files
 and heading structures, local Markdown links, generated HTML targets,
 language, title, and description metadata, and the eight expected files in the

@@ -62,6 +62,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   getrennt nur die Änderungen seit 0.97.0. Der Paketbuild verwirft fehlende,
   leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
+- Der Dokumentationsjob verwendet wie der lokale Referenzbuild die festgelegte
+  Pandoc-Version 3.1.11.1 aus einem prüfsummengesicherten offiziellen Archiv.
+  Dadurch bleibt die eingecheckte installierte HTML-Hilfe unabhängig von der
+  wechselnden Paketversion des CI-Runners reproduzierbar.
 - `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
   Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
   außerhalb eines passenden fokussierten Controls bleibt der native

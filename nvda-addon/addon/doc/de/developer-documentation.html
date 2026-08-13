@@ -2703,6 +2703,11 @@ beschreibt getrennt nur die Änderungen seit 0.97.0. Der Paketbuild
 verwirft fehlende, leere, unbekannte oder fehlerhaft formatierte
 Templatefelder und prüft die englische Standardhilfe sowie das deutsche
 Lokalisierungsmanifest.</li>
+<li>Der Dokumentationsjob verwendet wie der lokale Referenzbuild die
+festgelegte Pandoc-Version 3.1.11.1 aus einem prüfsummengesicherten
+offiziellen Archiv. Dadurch bleibt die eingecheckte installierte
+HTML-Hilfe unabhängig von der wechselnden Paketversion des CI-Runners
+reproduzierbar.</li>
 <li><code>NVDA+Alt+N</code> ist die voreingestellte, im
 Tastenbefehlsdialog änderbare Aktivierungsgeste. Sie gehört weiterhin
 dem Windows-Terminal-AppModule; außerhalb eines passenden fokussierten
@@ -5306,6 +5311,10 @@ Ein vorher gebautes Archiv ist kein Nachweis für spätere
 Quelländerungen.</p>
 <p>Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
+<p>Der lokale Referenzbuild und der CI-Job verwenden Pandoc 3.1.11.1. CI
+lädt das offizielle Archiv mit festgelegter SHA-256-Prüfsumme, damit
+eine geänderte Runner-Paketversion die eingecheckte HTML-Ausgabe nicht
+still verändert.</p>
 <p>Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche
 und englische Quelldateien und Überschriftenstrukturen, lokale
 Markdownlinks, generierte HTML-Ziele, Sprach-, Titel- und
@@ -6229,6 +6238,10 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__0980" class="level3">
 <h3>0.98.0</h3>
 <ul>
+<li>Legt Pandoc 3.1.11.1 für den lokalen Referenz- und
+CI-Dokumentationsbuild fest. CI prüft das offizielle Archiv per SHA-256,
+sodass wechselnde Runner-Paketversionen die eingecheckte installierte
+HTML-Hilfe nicht mehr unterschiedlich erzeugen.</li>
 <li>Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit
 <code>NVDA+Alt+N</code>. Die Geste bleibt im NVDA-Tastenbefehldialog
 änderbar und wird außerhalb eines passenden fokussierten

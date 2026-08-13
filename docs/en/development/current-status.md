@@ -56,6 +56,10 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   0.98.0 project changelog covers only changes since 0.97.0. The package build
   rejects missing, empty, unknown, or malformed template fields and verifies
   the default English help plus the German localization manifest.
+- The documentation job uses the same pinned Pandoc 3.1.11.1 as the local
+  reference build, downloaded from an official archive with a verified digest.
+  Checked-in installed HTML therefore remains reproducible independently of
+  the CI runner's changing package version.
 - `NVDA+Alt+N` is the default activation gesture and remains reassignable in
   Input Gestures. It continues to belong to the Windows Terminal AppModule;
   outside a matching focused control, the native keyboard path remains intact.
