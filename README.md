@@ -10,8 +10,8 @@ The result is focused editor feedback through speech, sounds, and advanced
 Braille display support. Local Neovim on Windows and Neovim over SSH can use
 the same accessible workflow.
 
-[Current release line](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.98.0) —
-release notes for 0.98.0: [English](docs/en/development/changelog.md#0980) or
+[0.98.0 pre-release](https://github.com/helmsaccess/neovim-access-link/releases/tag/v0.98.0) —
+release notes: [English](docs/en/development/changelog.md#0980) or
 [German](docs/de/development/changelog.md#0980).
 
 ## What it helps with
@@ -30,6 +30,10 @@ Supported workflows include:
   held speech or Braille views, and separate error, warning, and empty-result
   cues;
 - Neovim's command line and embedded terminal;
+- the built-in `:Tutor` on Neovim 0.12, including accessible exercise
+  assessments;
+- the Lazy plugin manager, including its command bar, plugin row state, and
+  conservative lifecycle feedback;
 - copying Visual selections or register 0 to Windows and sending Windows
   clipboard text back to Neovim, locally and over SSH;
 - configurable focus announcements with the current line, mode, and connection
@@ -99,10 +103,12 @@ add-on does not guess from window titles, prompts, accounts, or terminal text.
 
 ## Get started
 
-Install the current `.nvda-addon`, assign an activation gesture while Windows
-Terminal is focused, and install or update the bundled Neovim components from
-the top-level `Neovim Access Link` menu in NVDA. Start Neovim, enable the
-service, and press F12 once in each Neovim terminal area you want to use.
+Install the current `.nvda-addon`, focus Windows Terminal, and press
+`NVDA+Alt+N` to enable the service. The gesture is available by default and
+remains reassignable in NVDA's Input Gestures dialog. Install or update the
+bundled Neovim components from the top-level `Neovim Access Link` menu in
+NVDA, start Neovim, and press F12 once in each Neovim terminal area you want
+to use.
 
 The component dialog can leave an existing Neovim configuration unchanged,
 install a small starter configuration with Lazy and Oil, or copy the local
@@ -141,6 +147,10 @@ hardware evidence. See
 and remaining gaps.
 
 ## Documentation
+
+The installed add-on opens the localized Quick Guide, user manual, and
+developer documentation directly from NVDA's top-level `Neovim Access Link`
+menu. The same sources are available here:
 
 - [English user manual](docs/en/manual/README.md)
 - [German user manual](docs/de/manual/README.md)
