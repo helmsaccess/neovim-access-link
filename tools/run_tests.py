@@ -30,6 +30,7 @@ PYTHON_TEST_PATH = os.pathsep.join(
     )
 )
 DEFAULT_JOBS = min(8, os.cpu_count() or 1)
+JOB_TIMEOUT_SECONDS = 180
 UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
 REAL_BRIDGE_TESTS = (
@@ -63,6 +64,7 @@ MOCK_BRIDGE_TESTS = (
     "test_terminal_control_uses_only_its_fixed_plugin_entry_point",
     "test_exploration_uses_only_fixed_bounded_plugin_entry_points",
     "test_developer_context_uses_only_fixed_capability_gated_entry_points",
+    "test_tui_output_drain_is_bounded",
     "test_bridge_publishes_developer_context_once_but_never_caches_it",
     "test_bridge_publishes_clipboard_text_once_but_never_caches_it",
     "test_bridge_publishes_braille_exploration_once_but_never_caches_it",
@@ -388,9 +390,16 @@ def run_job(job: Job, job_directory: Path) -> Result:
             text=True,
             errors="replace",
             check=False,
+            timeout=JOB_TIMEOUT_SECONDS,
         )
         returncode = completed.returncode
         output = completed.stdout
+    except subprocess.TimeoutExpired as error:
+        returncode = 124
+        output = error.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode(errors="replace")
+        output += f"\nJob exceeded {JOB_TIMEOUT_SECONDS}-second timeout.\n"
     except OSError as error:
         returncode = 127
         output = f"{type(error).__name__}: {error}\n"

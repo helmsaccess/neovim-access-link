@@ -37,6 +37,14 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_tui_output_drain_is_bounded(self) -> None:
+		class ContinuousOutput:
+			def read_nonblocking(self, size: int, timeout: float) -> bytes:
+				return b"x" * size
+
+		with self.assertRaisesRegex(AssertionError, "byte limit"):
+			self._drain_tui_output(ContinuousOutput(), byte_limit=131072, time_limit=1.0)
+
 	def test_plugin_manager_lifecycle_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -3540,18 +3548,41 @@ class NvimBridgeTests(unittest.TestCase):
 		self.fail("Neovim RPC socket timeout")
 
 	@staticmethod
-	def _drain_tui_output(process) -> None:
+	def _drain_tui_output(
+		process,
+		*,
+		byte_limit: int = 8 * 1024 * 1024,
+		time_limit: float = 1.0,
+	) -> None:
+		deadline = time.monotonic() + time_limit
+		drained = 0
 		try:
-			while process.read_nonblocking(65536, timeout=0.01):
-				pass
+			while True:
+				if drained >= byte_limit:
+					raise AssertionError(
+						f"TUI output drain exceeded byte limit ({byte_limit} bytes)",
+					)
+				remaining = deadline - time.monotonic()
+				if remaining <= 0:
+					raise AssertionError(
+						f"TUI output drain exceeded time limit ({time_limit:.3f} seconds)",
+					)
+				chunk = process.read_nonblocking(
+					min(65536, byte_limit - drained),
+					timeout=min(0.01, remaining),
+				)
+				if not chunk:
+					return
+				drained += len(chunk)
 		except (pexpect.TIMEOUT, pexpect.EOF):
-			pass
+			return
 
 	@classmethod
 	def _send_tui(cls, process, data: bytes) -> None:
 		# A full pseudo-terminal output buffer stops Neovim from polling its
-		# input side. Drain redraws before every physical-key step so these
-		# integration tests exercise editor behavior instead of PTY capacity.
+		# input side. Drain a bounded amount before every physical-key step so
+		# these tests exercise editor behavior instead of PTY capacity without
+		# hanging on a continuously redrawing client.
 		cls._drain_tui_output(process)
 		process.send(data)
 

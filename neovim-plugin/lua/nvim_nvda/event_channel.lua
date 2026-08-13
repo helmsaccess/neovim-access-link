@@ -20,23 +20,27 @@ function M.new(options)
     if close_rpc and disconnected_channel then
       pcall(vim.fn.chanclose, disconnected_channel)
     end
-    options.on_disconnect(reason, scheduled)
+    pcall(options.on_disconnect, reason, scheduled)
   end
 
   local function notification(event_type, payload)
-    sequence = sequence + 1
-    return pcall(vim.rpcnotify, channel, "nvim_nvda_event", {
-      sequence = sequence,
-      timestampMonotonic = vim.uv.hrtime(),
-      type = event_type,
-      payload = payload,
-    })
+    return pcall(function()
+      sequence = sequence + 1
+      vim.rpcnotify(channel, "nvim_nvda_event", {
+        sequence = sequence,
+        timestampMonotonic = vim.uv.hrtime(),
+        type = event_type,
+        payload = payload,
+      })
+    end)
   end
 
   function instance.connect(rpc_channel)
     assert(type(rpc_channel) == "number" and rpc_channel > 0, "valid RPC channel required")
     channel = rpc_channel
     sequence = 0
+    last_message_text = nil
+    last_message_time = 0
   end
 
   function instance.disconnect(rpc_channel)
@@ -63,17 +67,23 @@ function M.new(options)
     end
 
     local snapshot_ok, payload = pcall(options.snapshot, reason)
-    if not snapshot_ok then
+    if not snapshot_ok or type(payload) ~= "table" then
       -- Never turn an accessibility snapshot bug into a Neovim hit-enter
       -- prompt. Closing the RPC channel makes the NVDA side disconnect and
       -- restore native terminal output fail-open.
       detach("snapshotFailure", true, false)
       return false
     end
-    for key, value in pairs(extra or {}) do
-      payload[key] = value
+    local payload_ok = pcall(function()
+      for key, value in pairs(extra or {}) do
+        payload[key] = value
+      end
+      options.decorate(payload, reason)
+    end)
+    if not payload_ok then
+      detach("payloadFailure", true, false)
+      return false
     end
-    options.decorate(payload, reason)
     local ok = notification(event_type, payload)
     if not ok then detach("notificationFailure", false, false) end
     return ok
@@ -81,8 +91,14 @@ function M.new(options)
 
   function instance.emit_prebuilt(event_type, payload, extra)
     if not channel or type(payload) ~= "table" then return false end
-    for key, value in pairs(extra or {}) do
-      payload[key] = value
+    local payload_ok = pcall(function()
+      for key, value in pairs(extra or {}) do
+        payload[key] = value
+      end
+    end)
+    if not payload_ok then
+      detach("payloadFailure", false, true)
+      return false
     end
     local ok = notification(event_type, payload)
     if not ok then detach("notificationFailure", false, true) end

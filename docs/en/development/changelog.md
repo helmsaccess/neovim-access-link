@@ -18,6 +18,14 @@ test-build entries through August 5, 2026.
 - Stabilizes real-TUI regression tests by making one shared send helper drain
   pending PTY output before every physical-key step. A full test output buffer
   can therefore no longer stop Neovim from polling input.
+- Completes the critical follow-up review of the Neovim-plugin refactoring. The
+  event channel now fails open for invalid snapshots, payload failures, and
+  publication failures. Input prefixes form one tagged state, so coupled `g`
+  commands cannot be misclassified as independent macro, register, or edit
+  commands; reconnects discard old scheduled input events. Regression tests
+  cover these transitions, repeated setup, and bounded PTY draining. The test
+  runner also bounds every isolated job. This installable state is development
+  build 3.
 
 ## 0.98.0
 

@@ -138,10 +138,21 @@ truth(value.claimSequence == 3, "repeated claim increments sequence again")
 truth(notifications == 0, "F12 claim is silent in the terminal")
 
 vim.keymap.set("i", "<F12>", function() end, { desc = "Existing user F12" })
+vim.wait(50)
+local autocmd_count = #vim.api.nvim_get_autocmds({ group = "NvimNvda" })
+local notify_wrapper = vim.notify
+local input_wrapper = vim.ui.input
+local select_wrapper = vim.ui.select
 plugin.setup()
+vim.wait(50)
 insert_mapping = vim.fn.maparg("<F12>", "i", false, true)
 truth(insert_mapping.desc == "Existing user F12",
   "setup never replaces an existing Insert-mode F12 mapping")
+truth(#vim.api.nvim_get_autocmds({ group = "NvimNvda" }) == autocmd_count,
+  "repeated setup replaces rather than duplicates plugin autocmds")
+truth(vim.notify == notify_wrapper and vim.ui.input == input_wrapper
+  and vim.ui.select == select_wrapper,
+  "repeated setup never nests global UI wrappers")
 vim.keymap.del("i", "<F12>")
 
 vim.cmd("NvimNvdaSessionName Programming")

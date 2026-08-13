@@ -1574,10 +1574,15 @@ allein reicht nicht; auch Instanz, Fokus und Gate müssen passen.</p>
 <p><code>lua/nvim_nvda/init.lua</code> ist die stabile öffentliche RPC-
 und Pluginadapter- Fassade sowie die Kompositionswurzel, besitzt aber
 keinen fachlichen Zustandsautomaten. Der Ereigniskanal besitzt
-Verbindung, Sequenz und Fail-open-Abbau. Eigene Controller besitzen
-jeweils Completion, direkte Tasteneingabe samt Bewegungs- und
-Editzustand, Befehlszeile, Neovim-UI und Prompts, Oil-Bestätigungen
-sowie zusammengefasste Kontextwechsel. Das Braille-Routing bleibt eine
+Verbindung, Sequenz und Fail-open-Abbau. Zustandserfassung,
+Payload-Erweiterung und RPC-Versand liegen innerhalb derselben
+geschützten Fehlergrenze; jeder interne Fehler löst den Kanal und gibt
+die native UI wieder frei. Eigene Controller besitzen jeweils
+Completion, direkte Tasteneingabe samt Bewegungs- und Editzustand,
+Befehlszeile, Neovim-UI und Prompts, Oil-Bestätigungen sowie
+zusammengefasste Kontextwechsel. Eingabepräfixe bilden einen einzelnen
+markierten Zustand; Verbindungswechsel verwerfen ausstehende Präfixe und
+geplante Eingabeereignisse. Das Braille-Routing bleibt eine
 zustandsarme, vollständig validierte Kontrolle. Die Controller erhalten
 nur schmale Callbacks und importieren die Root-Fassade nicht. Dadurch
 hat jeder veränderliche Laufzeitzustand genau einen schreibenden
@@ -2668,7 +2673,7 @@ Tests.</p>
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
 <p>Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie
-0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.2 mit
+0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.3 mit
 Branch- und Commitmetadaten und setzt den Update-Kanal im Manifest auf
 Beta. Der aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt
 leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -2892,17 +2897,21 @@ Markdownlint-Profil prüft die absolute Testdatei statt eines
 stdin-Kaltstarts; beide Parser erhalten Windows-Laufwerks- und UNC-Pfade
 vollständig. Die öffentliche Neovim-Plugin-Fassade komponiert getrennte
 Besitzer für Kanal, Eingabe, Completion, Befehlszeile, UI-Prompts,
-Oil-Bestätigungen und Kontextwechsel. Semantische Lua-Tests prüfen
-insbesondere Fail-open des Ereigniskanals sowie gekoppelte Eingabe-,
-Completion- und Befehlszeilenübergänge; der Add-on-Test prüft die
-identische Aufnahme dieser getesteten Module statt ihrer internen
-Quelltextform. Reale TUI-Tests leeren über eine gemeinsame Sendehilfe
-ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt und bleiben
-dadurch auch bei umfangreichen Redraws unabhängig von der
-Pufferkapazität. Für reale Provider gilt in Vorprüfung und Testhilfe
-eine einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben
-kalte Starts auf Windows und Netzlaufwerken zulässig, ohne einen
-hängenden Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
+Oil-Bestätigungen und Kontextwechsel. Der Kanal behandelt
+Zustandserfassung, Payload-Erweiterung und RPC-Versand als eine
+Fail-open-Grenze. Eingabepräfixe sind ein einzelner markierter Zustand;
+ein Verbindungswechsel verwirft ausstehende Präfixe und bereits geplante
+Eingabeereignisse. Semantische Lua-Tests prüfen diese Fehlerpfade,
+gekoppelte Präfixbefehle, wiederholtes Setup sowie Completion- und
+Befehlszeilenübergänge; der Add-on-Test prüft die identische Aufnahme
+der getesteten Module statt ihrer internen Quelltextform. Reale
+TUI-Tests leeren über eine gemeinsame Sendehilfe eine zeitlich und nach
+Datenmenge begrenzte ausstehende PTY-Ausgabe vor jedem physischen
+Tastenschritt. Jeder isolierte Runner-Job besitzt zusätzlich ein festes
+Zeitlimit. Für reale Provider gilt in Vorprüfung und Testhilfe eine
+einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte
+Starts auf Windows und Netzlaufwerken zulässig, ohne einen hängenden
+Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
 Sockettests laufen getrennt. Einzelheiten und Befehle stehen in <a href="#docs__de__development__testingmd__teststrategie">Teststrategie</a>.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische
@@ -5208,7 +5217,10 @@ führt unabhängige Jobs in getrennten temporären Verzeichnissen aus.</p>
 </table>
 <p>Ohne Gruppenargument entspricht der Runner dem sicheren Preset.
 <code>-j N</code> begrenzt Parallelität; <code>--list</code> zeigt die
-Auswahl, ohne sie auszuführen.</p>
+Auswahl, ohne sie auszuführen. Jeder isolierte Job wird nach 180
+Sekunden beendet und als fehlgeschlagen gemeldet. Die reale
+TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
+eine Sekunde und 8 MiB je physischem Tastenschritt.</p>
 </section>
 <section id="docs__de__development__testingmd__empfohlener-ablauf" class="level3">
 <h3>Empfohlener Ablauf</h3>
@@ -6287,6 +6299,16 @@ Entwicklungsbuild 2.</li>
 Sendehilfe ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt
 leert. Damit blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims
 Eingabepolling.</li>
+<li>Schließt die kritische Nachprüfung des Neovim-Plugin-Refactorings
+ab: Der Ereigniskanal fällt nun auch bei ungültigen Snapshots, Payload-
+und Versandfehlern vollständig offen aus. Eingabepräfixe bilden einen
+einzelnen markierten Zustand, sodass gekoppelte <code>g</code>-Befehle
+nicht als unabhängige Makro-, Register- oder Editbefehle
+fehlklassifiziert werden; Reconnects verwerfen alte geplante
+Eingabeereignisse. Regressionstests decken diese Übergänge, wiederholtes
+Setup und begrenzte PTY-Entleerung ab. Der Test-Runner begrenzt außerdem
+jeden isolierten Job. Dieser installierbare Stand ist Entwicklungsbuild
+3.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

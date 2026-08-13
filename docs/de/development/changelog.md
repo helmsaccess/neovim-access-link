@@ -19,6 +19,15 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame Sendehilfe
   ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt leert. Damit
   blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims Eingabepolling.
+- Schließt die kritische Nachprüfung des Neovim-Plugin-Refactorings ab: Der
+  Ereigniskanal fällt nun auch bei ungültigen Snapshots, Payload- und
+  Versandfehlern vollständig offen aus. Eingabepräfixe bilden einen einzelnen
+  markierten Zustand, sodass gekoppelte `g`-Befehle nicht als unabhängige
+  Makro-, Register- oder Editbefehle fehlklassifiziert werden; Reconnects
+  verwerfen alte geplante Eingabeereignisse. Regressionstests decken diese
+  Übergänge, wiederholtes Setup und begrenzte PTY-Entleerung ab. Der Test-Runner
+  begrenzt außerdem jeden isolierten Job. Dieser installierbare Stand ist
+  Entwicklungsbuild 3.
 
 ## 0.98.0
 

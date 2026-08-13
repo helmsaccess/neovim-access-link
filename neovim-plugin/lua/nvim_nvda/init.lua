@@ -56,9 +56,9 @@ event_channel = event_channel_factory.new({
     payload.completionAdapterDiagnostics = completion_adapters.diagnostics()
   end,
   on_disconnect = function(_, scheduled_ui_detach)
-    signature_help.set_connected(false)
-    if input_events then input_events.reset_navigation() end
-    if ui_events then ui_events.detach(scheduled_ui_detach) end
+    pcall(signature_help.set_connected, false)
+    if input_events then pcall(input_events.reset) end
+    if ui_events then pcall(ui_events.detach, scheduled_ui_detach) end
   end,
 })
 emit = event_channel.emit
@@ -104,10 +104,11 @@ context_events = context_events_factory.new({
 native_operations.set_prebuilt_emitter(emit_prebuilt)
 
 function M.register_channel(rpc_channel)
-  event_channel.connect(rpc_channel)
   exploration.reset()
   native_operations.reset()
+  input_events.reset()
   ui_events.reset()
+  event_channel.connect(rpc_channel)
   signature_help.set_connected(true)
   -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
   -- Attach only while an authenticated consumer exists, otherwise startup

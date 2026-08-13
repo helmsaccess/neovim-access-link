@@ -37,7 +37,10 @@ separate temporary directories.
 | `all` | `all-safe`, then `ssh` and `socket` in separate phases |
 
 Without a group argument, the runner uses the safe preset. `-j N` limits
-parallelism, and `--list` shows selection without running it.
+parallelism, and `--list` shows selection without running it. Every isolated
+job is terminated and reported as failed after 180 seconds. The real-TUI send
+helper additionally bounds pseudo-terminal draining to one second and 8 MiB
+per physical-key step.
 
 ## Recommended workflow
 

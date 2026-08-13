@@ -37,6 +37,17 @@ local insert_motion_events = {
   ["<Home>"] = "lineStart", ["<End>"] = "lineEnd",
 }
 
+-- The second key of a g command belongs to that command and must not start an
+-- unrelated top-level prefix or edit operator. Retain only the semantic motion
+-- classifications which are valid for known g motions.
+local g_motion_events = {
+  e = "wordMoved", E = "wordMoved",
+  j = "lineChanged", k = "lineChanged",
+  ["0"] = "lineStart", ["^"] = "lineStart",
+  ["$"] = "lineEnd", ["_"] = "lineEnd",
+  n = "searchMatchChanged", N = "searchMatchChanged",
+}
+
 local fold_actions = {
   c = "close", o = "open", a = "toggle", C = "closeRecursive", O = "openRecursive",
   M = "closeAll", R = "openAll", j = "next", k = "previous",
@@ -79,6 +90,7 @@ function M.new(options)
   local emit = options.emit
   local key_namespace = vim.api.nvim_create_namespace("nvim_nvda_keys")
   local current = {
+    generation = 0,
     navigation_scheduled = false,
     motion = nil,
     motion_details = nil,
@@ -86,14 +98,7 @@ function M.new(options)
     matching = nil,
     edit = nil,
     suppress_next_text_change = false,
-    prefix = {
-      g = false,
-      bracket = nil,
-      z = nil,
-      mark = nil,
-      macro = false,
-      register = false,
-    },
+    prefix = { kind = "idle", value = nil },
     diagnostics = { observerErrorCount = 0 },
   }
   local instance = {}
@@ -102,6 +107,25 @@ function M.new(options)
     current.motion = nil
     current.motion_details = nil
     current.search_direction = nil
+  end
+
+  local function set_prefix(kind, value)
+    current.prefix.kind = kind
+    current.prefix.value = value
+  end
+
+  local function take_prefix()
+    local kind = current.prefix.kind
+    local value = current.prefix.value
+    set_prefix("idle", nil)
+    return kind, value
+  end
+
+  local function defer_current(callback, milliseconds)
+    local generation = current.generation
+    vim.defer_fn(function()
+      if generation == current.generation then callback() end
+    end, milliseconds)
   end
 
   local function emit_typed_spelling_error(before)
@@ -120,8 +144,10 @@ function M.new(options)
     local motion = current.motion
     local motion_details = current.motion_details
     local search_direction = current.search_direction
+    local generation = current.generation
     clear_motion()
     vim.schedule(function()
+      if generation ~= current.generation then return end
       current.navigation_scheduled = false
       if options.oil_confirmation_active() then return end
       local raw = vim.api.nvim_get_mode().mode
@@ -160,10 +186,14 @@ function M.new(options)
     current.diagnostics.promptLength = nil
   end
 
-  function instance.reset_navigation()
+  function instance.reset()
+    current.generation = current.generation + 1
     current.navigation_scheduled = false
     clear_motion()
     current.matching = nil
+    current.edit = nil
+    current.suppress_next_text_change = false
+    set_prefix("idle", nil)
   end
 
   function instance.setup(group, component_config)
@@ -228,10 +258,11 @@ function M.new(options)
         local operator_context = raw_mode:sub(1, 1) == "n" and not command_line.active
         local visual_context = not command_line.active
           and (raw_mode == "v" or raw_mode == "V" or raw_mode == "\22")
-        local prefix = current.prefix
+        local prefix_kind = current.prefix.kind
+        local g_continuation = false
 
-        if operator_context and prefix.register then
-          prefix.register = false
+        if prefix_kind == "register" then
+          take_prefix()
           if #translated == 1 then
             emit("registerSelected", "registerCommand", {
               registerName = translated,
@@ -240,27 +271,18 @@ function M.new(options)
             })
           end
           return
-        elseif operator_context and translated == '"' then
-          prefix.register = true
-          return
-        end
-        if operator_context and prefix.macro then
-          prefix.macro = false
+        elseif prefix_kind == "macro" then
+          take_prefix()
           if #translated == 1 or translated == "@" then
             local name = translated == "@" and vim.fn.reg_executing() or translated
-            vim.defer_fn(function()
+            defer_current(function()
               emit("macroPlayed", "macroCommand", { registerName = name ~= "" and name or "last" })
             end, 20)
           end
           return
-        elseif operator_context and translated == "@" then
-          prefix.macro = true
-          return
-        end
-        if (operator_context or visual_context) and prefix.z then
+        elseif prefix_kind == "z" then
+          local _, before = take_prefix()
           local action = fold_actions[translated]
-          local before = prefix.z.before
-          prefix.z = nil
           if translated == "=" then
             local snapshot_ok, snapshot = pcall(state_snapshot.snapshot, "spellSuggestions")
             options.set_spell_candidate({
@@ -276,7 +298,7 @@ function M.new(options)
             current.motion = "foldMoved"
             current.motion_details = { foldAction = action }
           elseif action then
-            vim.defer_fn(function()
+            defer_current(function()
               local details = fold_at_cursor()
               details.foldAction = action
               if not details.closed and before and before.closed then
@@ -286,16 +308,11 @@ function M.new(options)
             end, 20)
           end
           return
-        elseif (operator_context or visual_context) and translated == "z" then
-          prefix.z = { before = fold_at_cursor() }
-          return
-        end
-        if operator_context and prefix.mark then
-          local mark_prefix = prefix.mark
-          prefix.mark = nil
+        elseif prefix_kind == "mark" then
+          local _, mark_prefix = take_prefix()
           if #translated == 1 then
             if mark_prefix == "m" then
-              vim.defer_fn(function()
+              defer_current(function()
                 local position = vim.fn.getpos("'" .. translated)
                 emit("markSet", "markCommand", {
                   markName = translated,
@@ -305,7 +322,7 @@ function M.new(options)
               end, 20)
             else
               current.motion = "suppress"
-              vim.defer_fn(function()
+              defer_current(function()
                 emit("markMoved", "markCommand", {
                   markName = translated, markExact = mark_prefix == "`",
                 })
@@ -313,13 +330,48 @@ function M.new(options)
             end
           end
           return
-        elseif operator_context
+        elseif prefix_kind == "bracket" then
+          take_prefix()
+          if translated == "d" or translated == "D" then
+            current.motion = "diagnosticMoved"
+          elseif translated == "s" then
+            current.motion = "wordMoved"
+          end
+          return
+        elseif prefix_kind == "g" then
+          take_prefix()
+          if translated == "g" and (operator_context or visual_context) then
+            current.motion = "fileStart"
+            return
+          end
+          g_continuation = true
+        end
+
+        if operator_context and translated == '"' and not g_continuation then
+          set_prefix("register")
+          return
+        elseif operator_context and translated == "@" and not g_continuation then
+          set_prefix("macro")
+          return
+        elseif (operator_context or visual_context) and translated == "z"
+          and not g_continuation then
+          set_prefix("z", fold_at_cursor())
+          return
+        elseif operator_context and not g_continuation
           and (translated == "m" or translated == "'" or translated == "`") then
-          prefix.mark = translated
+          set_prefix("mark", translated)
+          return
+        elseif (operator_context or visual_context) and translated == "g"
+          and not g_continuation then
+          set_prefix("g")
+          return
+        elseif operator_context and (translated == "[" or translated == "]")
+          and not g_continuation then
+          set_prefix("bracket", translated)
           return
         end
 
-        if operator_context and translated == "d" then
+        if operator_context and translated == "d" and not g_continuation then
           if current.edit and current.edit.operator == "d" then
             current.edit.linewise = true
           else
@@ -327,7 +379,7 @@ function M.new(options)
               operator = "d", kind = "textDeleted", beforeText = vim.api.nvim_get_current_line(),
             }
           end
-        elseif operator_context and translated == "c" then
+        elseif operator_context and translated == "c" and not g_continuation then
           if current.edit and current.edit.operator == "c" then
             current.edit.linewise = true
           else
@@ -335,7 +387,7 @@ function M.new(options)
               operator = "c", kind = "textReplaced", beforeText = vim.api.nvim_get_current_line(),
             }
           end
-        elseif operator_context and translated == "C" then
+        elseif operator_context and translated == "C" and not g_continuation then
           current.edit = {
             operator = "c", kind = "textReplaced", beforeText = vim.api.nvim_get_current_line(),
           }
@@ -349,28 +401,6 @@ function M.new(options)
           end
           current.edit = nil
         end
-        if translated == "g" then
-          if prefix.g then
-            current.motion = "fileStart"
-            prefix.g = false
-          else
-            prefix.g = true
-          end
-          return
-        end
-        if operator_context and (translated == "[" or translated == "]") then
-          prefix.bracket = translated
-          return
-        elseif operator_context and prefix.bracket then
-          if translated == "d" or translated == "D" then
-            current.motion = "diagnosticMoved"
-          elseif translated == "s" then
-            current.motion = "wordMoved"
-          end
-          prefix.bracket = nil
-          return
-        end
-
         if raw_mode:sub(1, 1) == "i" then
           local physical_key = typed_translated ~= "" and typed_translated or translated
           local completion_active = completion_adapters.is_active() or vim.fn.pumvisible() == 1
@@ -380,6 +410,8 @@ function M.new(options)
           else
             current.motion = insert_motion_events[translated]
           end
+        elseif g_continuation then
+          current.motion = g_motion_events[translated]
         elseif current.edit and operator_context then
           current.motion = "suppress"
         elseif operator_context or visual_context then
@@ -389,10 +421,10 @@ function M.new(options)
         end
         if operator_context and translated == "n" then current.search_direction = "next" end
         if operator_context and translated == "N" then current.search_direction = "previous" end
-        if operator_context and translated == "%" then
+        if operator_context and translated == "%" and not g_continuation then
           local attempt = {}
           current.matching = attempt
-          vim.defer_fn(function()
+          defer_current(function()
             if current.matching == attempt then
               current.matching = nil
               emit("matchingPairNotFound", "percentMotion")
@@ -401,10 +433,9 @@ function M.new(options)
         end
         if raw_mode:sub(1, 1) == "i" and is_word_terminator(key) then
           local before = state_snapshot.snapshot("beforeSpellingTerminator")
-          vim.defer_fn(function() emit_typed_spelling_error(before) end, 50)
+          defer_current(function() emit_typed_spelling_error(before) end, 50)
         end
         if raw_mode:sub(1, 1) == "i" then signature_help.note_insert_key(key, typed) end
-        prefix.g = false
       end)
       if not observer_ok then
         current.diagnostics.observerErrorCount = current.diagnostics.observerErrorCount + 1

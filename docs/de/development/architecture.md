@@ -244,10 +244,14 @@ nicht; auch Instanz, Fokus und Gate müssen passen.
 `lua/nvim_nvda/init.lua` ist die stabile öffentliche RPC- und Pluginadapter-
 Fassade sowie die Kompositionswurzel, besitzt aber keinen fachlichen
 Zustandsautomaten. Der Ereigniskanal besitzt Verbindung, Sequenz und
-Fail-open-Abbau. Eigene Controller besitzen jeweils Completion, direkte
-Tasteneingabe samt Bewegungs- und Editzustand, Befehlszeile, Neovim-UI und
-Prompts, Oil-Bestätigungen sowie zusammengefasste Kontextwechsel. Das
-Braille-Routing bleibt eine zustandsarme, vollständig validierte Kontrolle.
+Fail-open-Abbau. Zustandserfassung, Payload-Erweiterung und RPC-Versand liegen
+innerhalb derselben geschützten Fehlergrenze; jeder interne Fehler löst den
+Kanal und gibt die native UI wieder frei. Eigene Controller besitzen jeweils
+Completion, direkte Tasteneingabe samt Bewegungs- und Editzustand,
+Befehlszeile, Neovim-UI und Prompts, Oil-Bestätigungen sowie zusammengefasste
+Kontextwechsel. Eingabepräfixe bilden einen einzelnen markierten Zustand;
+Verbindungswechsel verwerfen ausstehende Präfixe und geplante Eingabeereignisse.
+Das Braille-Routing bleibt eine zustandsarme, vollständig validierte Kontrolle.
 Die Controller erhalten nur schmale Callbacks und importieren die Root-Fassade
 nicht. Dadurch hat jeder veränderliche Laufzeitzustand genau einen schreibenden
 Besitzer, während Ereignisvertrag und öffentliche Funktionsnamen unverändert

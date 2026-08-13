@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.2 mit Branch- und
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -202,13 +202,16 @@ Markdownlint-Profil prüft die absolute Testdatei statt eines stdin-Kaltstarts;
 beide Parser erhalten Windows-Laufwerks- und UNC-Pfade vollständig.
 Die öffentliche Neovim-Plugin-Fassade komponiert getrennte Besitzer für
 Kanal, Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
-Kontextwechsel. Semantische Lua-Tests prüfen insbesondere Fail-open des
-Ereigniskanals sowie gekoppelte Eingabe-, Completion- und
-Befehlszeilenübergänge; der Add-on-Test prüft die identische Aufnahme dieser
+Kontextwechsel. Der Kanal behandelt Zustandserfassung, Payload-Erweiterung und
+RPC-Versand als eine Fail-open-Grenze. Eingabepräfixe sind ein einzelner
+markierter Zustand; ein Verbindungswechsel verwirft ausstehende Präfixe und
+bereits geplante Eingabeereignisse. Semantische Lua-Tests prüfen diese
+Fehlerpfade, gekoppelte Präfixbefehle, wiederholtes Setup sowie Completion- und
+Befehlszeilenübergänge; der Add-on-Test prüft die identische Aufnahme der
 getesteten Module statt ihrer internen Quelltextform.
-Reale TUI-Tests leeren über eine gemeinsame Sendehilfe ausstehende PTY-Ausgabe
-vor jedem physischen Tastenschritt und bleiben dadurch auch bei umfangreichen
-Redraws unabhängig von der Pufferkapazität.
+Reale TUI-Tests leeren über eine gemeinsame Sendehilfe eine zeitlich und nach
+Datenmenge begrenzte ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt.
+Jeder isolierte Runner-Job besitzt zusätzlich ein festes Zeitlimit.
 Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
 begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.

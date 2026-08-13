@@ -38,7 +38,10 @@ in getrennten temporären Verzeichnissen aus.
 | `all` | `all-safe`, danach `ssh` und `socket` in getrennten Phasen |
 
 Ohne Gruppenargument entspricht der Runner dem sicheren Preset. `-j N`
-begrenzt Parallelität; `--list` zeigt die Auswahl, ohne sie auszuführen.
+begrenzt Parallelität; `--list` zeigt die Auswahl, ohne sie auszuführen. Jeder
+isolierte Job wird nach 180 Sekunden beendet und als fehlgeschlagen gemeldet.
+Die reale TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
+eine Sekunde und 8 MiB je physischem Tastenschritt.
 
 ## Empfohlener Ablauf
 
