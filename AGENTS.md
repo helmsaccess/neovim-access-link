@@ -51,7 +51,7 @@ take precedence.
   required behavior is preserved.
 - Preserve unrelated user changes and keep changes focused.
 - Store agent-created temporary sources, downloaded tools, test workspaces, reproductions, and
-  reports under `/nfs/src/nal-tmp/`, outside the repository and its worktrees. This does not
+  reports under `../nal-aux/`, outside the repository and its worktrees. This does not
   replace runtime paths or tool-owned ignored output directories documented by the project.
 - Follow the established conventions of each component and upstream API; do not impose one
   component's style on another.
@@ -129,7 +129,7 @@ take precedence.
 - Attach exactly `dist/NeovimAccessLink-<VERSION>.nvda-addon` and
   `dist/neovim-access-link-<VERSION>-documentation.zip`. Do not attach the standalone server
   package; it is embedded in the add-on.
-- Write curated English notes to a temporary file under `/nfs/src/nal-tmp/`. Summarize changes
+- Write curated English notes to a temporary file under `../nal-aux/`. Summarize changes
   since the immediately preceding published version, relevant compatibility or test boundaries,
   tag-pinned documentation links, and the purpose of both assets.
 - Use this non-interactive command shape, substituting the placeholders and status flags above:
@@ -154,7 +154,7 @@ take precedence.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
   exhaustive coverage or response-time guarantees.
 - In manuals, use localized UI names from the translation catalogs.
-- Prefer locally available target-application or add-on source under `/nfs/src/nal-tmp/` over web
+- Prefer locally available target-application or add-on source under `../nal-aux/` over web
   retrieval. Never commit private paths, hostnames, usernames, domains, credentials, or secrets.
 - Before asking technical questions externally, check code and official documentation; ask only
   unresolved questions, with at most three per focused message.
