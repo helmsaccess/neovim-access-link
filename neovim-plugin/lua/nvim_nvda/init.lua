@@ -13,10 +13,10 @@ local exploration = require("nvim_nvda.exploration")
 local numbered_choice = require("nvim_nvda.numbered_choice")
 local developer_context = require("nvim_nvda.developer_context")
 local native_operations = require("nvim_nvda.native_operations")
+local event_channel_factory = require("nvim_nvda.event_channel")
+local braille_routing_factory = require("nvim_nvda.braille_routing")
 local M = {}
 
-local channel
-local sequence = 0
 local pending_navigation = false
 local group
 local key_namespace = vim.api.nvim_create_namespace("nvim_nvda_keys")
@@ -58,8 +58,7 @@ local command_line_generated_keys = false
 local last_command_line_echo = ""
 local command_output_pending = false
 local predicted_ui_error_code
-local last_message_text
-local last_message_time = 0
+local event_channel
 local emit
 local key_observer_diagnostics = { observerErrorCount = 0 }
 
@@ -202,82 +201,34 @@ local function emit_typed_spelling_error(before)
   if nearest then emit("spellingErrorTyped", "spellingTypingCheck", { spellingError = nearest }) end
 end
 
-emit = function(event_type, reason, extra)
-  if not channel then
-    return
-  end
-  if (event_type == "messageReceived" or event_type == "errorReceived")
-    and type(extra) == "table" and type(extra.message) == "string" then
-    local now = vim.uv.hrtime()
-    if extra.message == last_message_text and now - last_message_time < 500000000 then return end
-    last_message_text = extra.message
-    last_message_time = now
-  end
-  sequence = sequence + 1
-  local snapshot_ok, payload = pcall(state.snapshot, reason)
-  if not snapshot_ok then
-    -- Never turn an accessibility snapshot bug into a Neovim hit-enter
-    -- prompt. Closing the RPC channel makes the NVDA side disconnect and
-    -- restore native terminal output fail-open.
-    pcall(vim.fn.chanclose, channel)
-    pcall(vim.ui_detach, ui_namespace)
-    channel = nil
-    signature_help.set_connected(false)
-    pending_navigation = false
-    return
-  end
-  if extra then
-    for key, value in pairs(extra) do
-      payload[key] = value
+event_channel = event_channel_factory.new({
+  snapshot = state.snapshot,
+  decorate = function(payload, reason)
+    if reason == "oilConfirmationFallback" then
+      -- Oil renders full paths in its private confirmation float. The semantic
+      -- fallback deliberately publishes only fixed verbs and a count.
+      payload.lineText = ""
+      payload.character = ""
+      payload.word = ""
     end
-  end
-  if reason == "oilConfirmationFallback" then
-    -- Oil renders full paths in its private confirmation float. The semantic
-    -- fallback deliberately publishes only fixed verbs and a count.
-    payload.lineText = ""
-    payload.character = ""
-    payload.word = ""
-  end
-  file_manager_events.observe(payload.fileManager)
-  local current_error = tostring(vim.v.errmsg or "")
-  payload.currentErrorCode = current_error:match("E%d+") or ""
-  payload.currentErrorKind = fixed_error_kind(current_error)
-  payload.keyObserverDiagnostics = vim.deepcopy(key_observer_diagnostics)
-  payload.completionAdapterDiagnostics = completion_adapters.diagnostics()
-  local ok = pcall(vim.rpcnotify, channel, "nvim_nvda_event", {
-    sequence = sequence,
-    timestampMonotonic = vim.uv.hrtime(),
-    type = event_type,
-    payload = payload,
-  })
-  if not ok then
-    pcall(vim.ui_detach, ui_namespace)
-    channel = nil
+    file_manager_events.observe(payload.fileManager)
+    local current_error = tostring(vim.v.errmsg or "")
+    payload.currentErrorCode = current_error:match("E%d+") or ""
+    payload.currentErrorKind = fixed_error_kind(current_error)
+    payload.keyObserverDiagnostics = vim.deepcopy(key_observer_diagnostics)
+    payload.completionAdapterDiagnostics = completion_adapters.diagnostics()
+  end,
+  on_disconnect = function(_, scheduled_ui_detach)
     signature_help.set_connected(false)
     pending_navigation = false
-  end
-end
+    local detach_ui = function() pcall(vim.ui_detach, ui_namespace) end
+    if scheduled_ui_detach then vim.schedule(detach_ui) else detach_ui() end
+  end,
+})
+emit = event_channel.emit
 
-local function emit_prebuilt(event_type, payload, extra)
-  if not channel or type(payload) ~= "table" then return false end
-  sequence = sequence + 1
-  for key, value in pairs(extra or {}) do
-    payload[key] = value
-  end
-  local ok = pcall(vim.rpcnotify, channel, "nvim_nvda_event", {
-    sequence = sequence,
-    timestampMonotonic = vim.uv.hrtime(),
-    type = event_type,
-    payload = payload,
-  })
-  if not ok then
-    channel = nil
-    signature_help.set_connected(false)
-    pending_navigation = false
-    vim.schedule(function() pcall(vim.ui_detach, ui_namespace) end)
-  end
-  return ok
-end
+local emit_prebuilt = event_channel.emit_prebuilt
+local braille_routing = braille_routing_factory.new(emit)
 
 native_operations.set_prebuilt_emitter(emit_prebuilt)
 
@@ -670,9 +621,7 @@ local function setup_ui_events()
 end
 
 function M.register_channel(rpc_channel)
-  assert(type(rpc_channel) == "number" and rpc_channel > 0, "valid RPC channel required")
-  channel = rpc_channel
-  sequence = 0
+  event_channel.connect(rpc_channel)
   exploration.reset()
   native_operations.reset()
   pending_spell_choice = nil
@@ -699,14 +648,14 @@ function M.register_channel(rpc_channel)
 end
 
 function M.unregister_channel(rpc_channel)
-  if channel == rpc_channel then
-    exploration.reset()
-    native_operations.reset()
-    pending_spell_choice = nil
-    active_numbered_choice = nil
-    pcall(vim.ui_detach, ui_namespace)
-    channel = nil
-    signature_help.set_connected(false)
+  if event_channel.is_connected() then
+    local disconnected = event_channel.disconnect(rpc_channel)
+    if disconnected then
+      exploration.reset()
+      native_operations.reset()
+      pending_spell_choice = nil
+      active_numbered_choice = nil
+    end
   end
 end
 
@@ -714,277 +663,16 @@ function M.key_observer_diagnostics()
   return vim.deepcopy(key_observer_diagnostics)
 end
 
-local function routing_integer(value, minimum)
-  return type(value) == "number" and value % 1 == 0 and value >= (minimum or 0)
-end
-
-local function set_preferred_virtual_column(preferred)
-  local view = vim.fn.winsaveview()
-  view.curswant = preferred
-  return pcall(vim.fn.winrestview, view)
-end
-
-local function routing_utf8_boundary(text, byte_column)
-  if type(text) ~= "string" or not routing_integer(byte_column) or byte_column > #text then
-    return false
-  end
-  if byte_column == #text then return true end
-  local byte = text:byte(byte_column + 1)
-  return byte < 0x80 or byte >= 0xc0
-end
-
-local function previous_routing_character_start(text, byte_column)
-  if byte_column <= 0 or #text == 0 then return 0 end
-  local previous = math.min(byte_column - 1, #text - 1)
-  while previous > 0 do
-    local byte = text:byte(previous + 1)
-    if not byte or byte < 0x80 or byte >= 0xc0 then break end
-    previous = previous - 1
-  end
-  return previous
-end
-
 function M.request_route_cursor(payload)
-  if type(payload) ~= "table"
-    or not routing_integer(payload.bufferId)
-    or not routing_integer(payload.windowId)
-    or not routing_integer(payload.byteColumn)
-    or not routing_integer(payload.changedtick)
-    or type(payload.modeRaw) ~= "string"
-    or #payload.modeRaw < 1 or #payload.modeRaw > 16
-    or vim.api.nvim_get_current_buf() ~= payload.bufferId
-    or vim.api.nvim_get_current_win() ~= payload.windowId
-    or vim.api.nvim_buf_get_changedtick(payload.bufferId) ~= payload.changedtick
-    or vim.api.nvim_get_mode().mode ~= payload.modeRaw then
-    return false
-  end
-
-  if payload.target == "commandLine" then
-    if payload.modeRaw:sub(1, 1) ~= "c"
-      or type(payload.commandLine) ~= "string"
-      or #payload.commandLine > 16384
-      or type(payload.commandLineType) ~= "string"
-      or #payload.commandLineType < 1 or #payload.commandLineType > 8
-      or vim.fn.getcmdline() ~= payload.commandLine
-      or vim.fn.getcmdtype() ~= payload.commandLineType
-      or not routing_utf8_boundary(payload.commandLine, payload.byteColumn) then
-      return false
-    end
-    -- setcmdpos() alone only takes effect from a command-line expression.
-    -- setcmdline() is the public direct API for atomically retaining the
-    -- already verified text while changing its byte position.
-    local ok, result = pcall(
-      vim.fn.setcmdline,
-      payload.commandLine,
-      payload.byteColumn + 1
-    )
-    if not ok or result ~= 0
-      or vim.fn.getcmdline() ~= payload.commandLine
-      or vim.fn.getcmdpos() ~= payload.byteColumn + 1 then
-      return false
-    end
-    pcall(vim.cmd, "redraw")
-    emit("commandLineChanged", "brailleRoute", {
-      commandLineType = payload.commandLineType,
-    })
-    return true
-  end
-
-  if payload.target ~= "editor"
-    or payload.modeRaw:sub(1, 1) == "c"
-    or not routing_integer(payload.line, 1)
-    or payload.line > vim.api.nvim_buf_line_count(payload.bufferId) then
-    return false
-  end
-  local text = vim.api.nvim_buf_get_lines(
-    payload.bufferId, payload.line - 1, payload.line, true
-  )[1] or ""
-  if not routing_utf8_boundary(text, payload.byteColumn) then return false end
-  local ok = pcall(
-    vim.api.nvim_win_set_cursor,
-    payload.windowId,
-    { payload.line, payload.byteColumn }
-  )
-  if not ok then return false end
-  local preferred = payload.byteColumn == #text
-      and vim.fn.strdisplaywidth(text)
-    or math.max(0, vim.fn.virtcol({ payload.line, payload.byteColumn + 1 }) - 1)
-  set_preferred_virtual_column(preferred)
-  pcall(vim.cmd, "redraw")
-  emit("cursorMoved", "brailleRoute")
-  return true
-end
-
-local braille_routing_word_commands = {
-  changeWord = "cw",
-  deleteWord = "dw",
-}
-
-local braille_routing_line_commands = {
-  changeLine = "c$",
-  deleteLine = "d$",
-}
-
-local braille_routing_line_prefixes = {
-  routing = "",
-  indentation = "^",
-  beginning = "0",
-}
-
-local function routing_payload_fields(payload, expected)
-  local count = 0
-  for key in pairs(payload) do
-    count = count + 1
-    if not expected[key] then return false end
-  end
-  return count == vim.tbl_count(expected)
-end
-
-local function routing_character_at(text, byte_column)
-  if byte_column >= #text then return "" end
-  local finish = byte_column + 1
-  while finish < #text do
-    local byte = text:byte(finish + 1)
-    if not byte or byte < 0x80 or byte >= 0xc0 then break end
-    finish = finish + 1
-  end
-  return text:sub(byte_column + 1, finish)
+  return braille_routing.route_cursor(payload)
 end
 
 function M.request_braille_route_action(payload)
-  local action = type(payload) == "table" and payload.action or nil
-  local word_command = braille_routing_word_commands[action]
-  local line_command = braille_routing_line_commands[action]
-  local expected = {
-    bufferId = true,
-    windowId = true,
-    line = true,
-    byteColumn = true,
-    changedtick = true,
-    modeRaw = true,
-    action = true,
-  }
-  if line_command then expected.lineStart = true end
-  if type(payload) ~= "table"
-    or (not word_command and not line_command)
-    or not routing_payload_fields(payload, expected)
-    or not routing_integer(payload.bufferId)
-    or not routing_integer(payload.windowId)
-    or not routing_integer(payload.line, 1)
-    or not routing_integer(payload.byteColumn)
-    or not routing_integer(payload.changedtick)
-    or type(payload.modeRaw) ~= "string"
-    or #payload.modeRaw < 1 or #payload.modeRaw > 16
-    or (payload.modeRaw:sub(1, 1) ~= "n" and payload.modeRaw:sub(1, 1) ~= "i")
-    or vim.api.nvim_get_current_buf() ~= payload.bufferId
-    or vim.api.nvim_get_current_win() ~= payload.windowId
-    or vim.api.nvim_buf_get_changedtick(payload.bufferId) ~= payload.changedtick
-    or vim.api.nvim_get_mode().mode ~= payload.modeRaw
-    or not vim.bo[payload.bufferId].modifiable
-    or vim.bo[payload.bufferId].readonly
-    or payload.line > vim.api.nvim_buf_line_count(payload.bufferId) then
-    return false
-  end
-  local cursor = vim.api.nvim_win_get_cursor(payload.windowId)
-  if cursor[1] ~= payload.line or cursor[2] ~= payload.byteColumn then return false end
-  local text = vim.api.nvim_buf_get_lines(
-    payload.bufferId, payload.line - 1, payload.line, true
-  )[1] or ""
-  if not routing_utf8_boundary(text, payload.byteColumn) then return false end
-
-  local command
-  if word_command then
-    local character = routing_character_at(text, payload.byteColumn)
-    if character == "" or vim.fn.match(character, [[\s]]) >= 0 then return false end
-    command = word_command
-  else
-    local prefix = braille_routing_line_prefixes[payload.lineStart]
-    if not prefix then return false end
-    if payload.lineStart == "routing" and payload.byteColumn >= #text then
-      return false
-    end
-    command = prefix .. line_command
-  end
-
-  local insert_mode = payload.modeRaw:sub(1, 1) == "i"
-  if insert_mode then
-    local return_to_routed_character = payload.byteColumn > 0
-      and (word_command or payload.lineStart == "routing")
-    command = "<C-\\><C-N>"
-      .. (return_to_routed_character and "l" or "")
-      .. command
-    if action:sub(1, 6) == "delete" then command = command .. "gi" end
-  end
-  local keys = vim.api.nvim_replace_termcodes(command, true, false, true)
-  return pcall(vim.api.nvim_feedkeys, keys, "n", false)
+  return braille_routing.route_action(payload)
 end
 
 function M.request_move_braille_line(payload)
-  if type(payload) ~= "table"
-    or not routing_integer(payload.bufferId)
-    or not routing_integer(payload.windowId)
-    or not routing_integer(payload.line, 1)
-    or not routing_integer(payload.changedtick)
-    or not routing_integer(payload.preferredVirtualColumn)
-    or payload.preferredVirtualColumn > 2147483647
-    or type(payload.modeRaw) ~= "string"
-    or #payload.modeRaw < 1 or #payload.modeRaw > 16
-    or payload.modeRaw:sub(1, 1) == "c"
-    or payload.modeRaw:sub(1, 1) == "t"
-    or (payload.direction ~= "previous" and payload.direction ~= "next")
-    or (
-      payload.targetColumn ~= "preferred"
-      and payload.targetColumn ~= "start"
-      and payload.targetColumn ~= "end"
-    )
-    or vim.api.nvim_get_current_buf() ~= payload.bufferId
-    or vim.api.nvim_get_current_win() ~= payload.windowId
-    or vim.api.nvim_buf_get_changedtick(payload.bufferId) ~= payload.changedtick
-    or vim.api.nvim_get_mode().mode ~= payload.modeRaw then
-    return false
-  end
-  local cursor = vim.api.nvim_win_get_cursor(payload.windowId)
-  if cursor[1] ~= payload.line then return false end
-  local delta = payload.direction == "previous" and -1 or 1
-  local target_line = payload.line + delta
-  if target_line < 1 or target_line > vim.api.nvim_buf_line_count(payload.bufferId) then
-    return false
-  end
-  local text = vim.api.nvim_buf_get_lines(
-    payload.bufferId, target_line - 1, target_line, true
-  )[1] or ""
-  local preferred = payload.preferredVirtualColumn
-  local target_column = 0
-  if payload.targetColumn == "start" then
-    preferred = 0
-  elseif payload.targetColumn == "end" then
-    if #text == 0 then
-      preferred = 0
-    elseif payload.modeRaw:sub(1, 1) == "i" then
-      target_column = #text
-      preferred = vim.fn.strdisplaywidth(text)
-    else
-      target_column = previous_routing_character_start(text, #text)
-      preferred = math.max(0, vim.fn.virtcol({ target_line, target_column + 1 }) - 1)
-    end
-  elseif #text > 0 then
-    if payload.modeRaw:sub(1, 1) == "i" and preferred >= vim.fn.strdisplaywidth(text) then
-      target_column = #text
-    else
-      local one_based = vim.fn.virtcol2col(payload.windowId, target_line, preferred + 1)
-      target_column = one_based > 0 and one_based - 1 or #text
-    end
-  end
-  local ok = pcall(
-    vim.api.nvim_win_set_cursor,
-    payload.windowId,
-    { target_line, target_column }
-  )
-  if not ok then return false end
-  set_preferred_virtual_column(preferred)
-  pcall(vim.cmd, "redraw")
-  emit("cursorMoved", "brailleLineNavigation")
-  return true
+  return braille_routing.move_line(payload)
 end
 
 function M.request_copy_text(payload)
