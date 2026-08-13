@@ -204,14 +204,19 @@ Die öffentliche Neovim-Plugin-Fassade komponiert getrennte Besitzer für
 Kanal, Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
 Kontextwechsel. Der Kanal behandelt Zustandserfassung, Payload-Erweiterung und
 RPC-Versand als eine Fail-open-Grenze. Eingabepräfixe sind ein einzelner
-markierter Zustand; ein Verbindungswechsel verwirft ausstehende Präfixe und
-bereits geplante Eingabeereignisse. Semantische Lua-Tests prüfen diese
-Fehlerpfade, gekoppelte Präfixbefehle, wiederholtes Setup sowie Completion- und
+markierter Zustand. Bei einem internen Publikationsfehler schließt der Kanal
+auch den realen RPC-Transport. Ein Verbindungswechsel verwirft alte geplante
+Controllerereignisse und setzt transiente Menü-, Prompt- und Laufzeitzustände
+vor dem nächsten `fullState` still zurück. Semantische Lua-Tests prüfen reale
+RPC-Serialisierungsfehler, schnelle Reconnects, Menülebenszyklen, gekoppelte
+Präfixbefehle, wiederholtes Setup sowie Completion- und
 Befehlszeilenübergänge; der Add-on-Test prüft die identische Aufnahme der
 getesteten Module statt ihrer internen Quelltextform.
 Reale TUI-Tests leeren über eine gemeinsame Sendehilfe eine zeitlich und nach
 Datenmenge begrenzte ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt.
-Jeder isolierte Runner-Job besitzt zusätzlich ein festes Zeitlimit.
+Jeder isolierte Runner-Job besitzt zusätzlich ein festes Zeitlimit; dessen
+Abbruch beendet die gesamte eigene Prozessgruppe einschließlich gestarteter
+Neovim- und Hilfsprozesse.
 Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
 begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.

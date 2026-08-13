@@ -2,10 +2,16 @@ local prompt = require("nvim_nvda.file_manager_prompt")
 
 local M = {}
 
-function M.new(emit)
+function M.new(emit, guard)
   assert(type(emit) == "function", "event emitter required")
+  assert(type(guard) == "function", "connection callback guard required")
   local instance = {}
   local current = { buffer = nil, choice = nil }
+
+  function instance.reset()
+    current.buffer = nil
+    current.choice = nil
+  end
 
   function instance.emit_if_active()
     local details = prompt.current_oil_confirmation()
@@ -54,7 +60,7 @@ function M.new(emit)
         -- until vim.on_key has observed the directly typed key.
         local buffer = event.buf
         local reason = event.event
-        vim.schedule(function() close(buffer, reason) end)
+        vim.schedule(guard(function() close(buffer, reason) end))
       end,
     })
   end

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -277,6 +278,7 @@ def jobs() -> tuple[Job, ...]:
         "call_context_spec.lua",
         "clipboard_spec.lua",
         "completion_adapters_spec.lua",
+        "connection_lifecycle_spec.lua",
         "diagnostic_navigation_spec.lua",
         "diagnostics_spec.lua",
         "developer_context_spec.lua",
@@ -361,7 +363,35 @@ def validate_socket_path_budget(repository_root: Path) -> None:
         )
 
 
-def run_job(job: Job, job_directory: Path) -> Result:
+def terminate_process_tree(process: subprocess.Popen[str]) -> None:
+    """Force a timed-out isolated job and every process it started to exit."""
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ("taskkill", "/PID", str(process.pid), "/T", "/F"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            if process.poll() is None:
+                process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            if process.poll() is None:
+                process.kill()
+
+
+def run_job(
+    job: Job,
+    job_directory: Path,
+    timeout_seconds: float = JOB_TIMEOUT_SECONDS,
+) -> Result:
     runtime = job_directory / "r"
     temporary = job_directory / "t"
     runtime.mkdir(parents=True)
@@ -381,7 +411,12 @@ def run_job(job: Job, job_directory: Path) -> Result:
     environment["XDG_RUNTIME_DIR"] = str(runtime)
     started = time.monotonic()
     try:
-        completed = subprocess.run(
+        process_options: dict[str, object] = {}
+        if os.name == "nt":
+            process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            process_options["start_new_session"] = True
+        process = subprocess.Popen(
             job.command,
             cwd=job.cwd,
             env=environment,
@@ -389,17 +424,26 @@ def run_job(job: Job, job_directory: Path) -> Result:
             stderr=subprocess.STDOUT,
             text=True,
             errors="replace",
-            check=False,
-            timeout=JOB_TIMEOUT_SECONDS,
+            **process_options,
         )
-        returncode = completed.returncode
-        output = completed.stdout
-    except subprocess.TimeoutExpired as error:
-        returncode = 124
-        output = error.stdout or ""
-        if isinstance(output, bytes):
-            output = output.decode(errors="replace")
-        output += f"\nJob exceeded {JOB_TIMEOUT_SECONDS}-second timeout.\n"
+        try:
+            output, _ = process.communicate(timeout=timeout_seconds)
+            returncode = process.returncode
+        except subprocess.TimeoutExpired as error:
+            terminate_process_tree(process)
+            try:
+                output, _ = process.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                if process.stdout is not None:
+                    process.stdout.close()
+                if process.poll() is None:
+                    process.kill()
+                process.wait(timeout=10)
+                output = error.stdout or ""
+            if isinstance(output, bytes):
+                output = output.decode(errors="replace")
+            returncode = 124
+            output += f"\nJob exceeded {timeout_seconds:g}-second timeout.\n"
     except OSError as error:
         returncode = 127
         output = f"{type(error).__name__}: {error}\n"

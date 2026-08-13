@@ -94,6 +94,7 @@ fail_decorate = false
 channel.connect(11)
 fail_notification = true
 equal(false, channel.emit("modeChanged", "brokenNotification"), "notification failure rejects event")
+equal(11, closed[#closed], "notification failure closes the RPC channel")
 equal("notificationFailure", disconnected[#disconnected], "notification failure resets dependants")
 equal(false, scheduled_disconnects[#scheduled_disconnects], "regular notification detaches synchronously")
 
@@ -101,24 +102,56 @@ fail_notification = false
 channel.connect(12)
 equal(false, channel.emit_prebuilt("promptOpened", {}, "invalid extra"),
   "invalid prebuilt details reject event")
+equal(12, closed[#closed], "prebuilt payload failure closes the RPC channel")
 equal("payloadFailure", disconnected[#disconnected], "prebuilt payload failure resets dependants")
 equal(true, scheduled_disconnects[#scheduled_disconnects], "prebuilt failure schedules UI detach")
 
 channel.connect(13)
 fail_notification = true
 equal(false, channel.emit_prebuilt("promptOpened", {}), "prebuilt notification failure rejects event")
+equal(13, closed[#closed], "prebuilt notification failure closes the RPC channel")
 equal("notificationFailure", disconnected[#disconnected],
   "prebuilt notification failure resets dependants")
 equal(true, scheduled_disconnects[#scheduled_disconnects],
   "prebuilt notification failure schedules UI detach")
 
-fail_notification = false
 channel.connect(14)
+fail_notification = false
+equal(false, channel.emit_prebuilt("promptOpened", nil), "invalid prebuilt payload rejects event")
+equal(14, closed[#closed], "invalid prebuilt payload closes the RPC channel")
+equal("payloadFailure", disconnected[#disconnected], "invalid prebuilt payload fails open")
+
+channel.connect(15)
+local guarded_calls = 0
+local guarded = channel.guard(function() guarded_calls = guarded_calls + 1 end)
+equal(true, channel.disconnect(15), "guard source channel disconnects")
+channel.connect(16)
+guarded()
+equal(0, guarded_calls, "old connection callback is invalidated")
 equal(false, channel.disconnect(8), "wrong channel cannot disconnect active consumer")
-equal(true, channel.disconnect(14), "matching channel disconnects consumer")
+equal(true, channel.disconnect(16), "matching channel disconnects consumer")
 equal("unregisterChannel", disconnected[#disconnected], "explicit disconnect resets dependants")
 
 vim.rpcnotify = original_rpcnotify
 vim.fn.chanclose = original_chanclose
+
+-- A serialization failure occurs before a notification reaches a still-valid
+-- RPC transport. Verify the real channel is closed instead of relying only on
+-- the chanclose spy above.
+local real_disconnect
+local real_channel = event_channel.new({
+  snapshot = function() return { unserializable = function() end } end,
+  decorate = function() end,
+  on_disconnect = function(reason) real_disconnect = reason end,
+})
+local rpc_job = vim.fn.jobstart({ "cat" }, { rpc = true })
+assert(rpc_job > 0, "disposable RPC job starts")
+real_channel.connect(rpc_job)
+equal(false, real_channel.emit("modeChanged", "serializationFailure"),
+  "real serialization failure rejects event")
+equal("notificationFailure", real_disconnect, "real serialization failure fails open")
+equal(false, real_channel.is_connected(), "real serialization failure clears plugin channel")
+equal(0, vim.fn.jobwait({ rpc_job }, 500)[1], "real serialization failure closes RPC transport")
+
 print(string.format("event channel assertions: %d", assertions))
 vim.cmd("qa!")

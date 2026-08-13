@@ -333,10 +333,12 @@ end
 
 local function close_substitute_preview(reason)
   substitute_preview_generation = substitute_preview_generation + 1
+  local generation = substitute_preview_generation
   local session = substitute_preview
   substitute_preview = nil
   if not session or not session.announced then return end
   vim.schedule(function()
+    if generation ~= substitute_preview_generation then return end
     emit_event("substitutePreviewChanged", reason, { previewActive = false })
   end)
 end

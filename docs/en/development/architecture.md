@@ -231,13 +231,17 @@ the instance, focus, and gate must also match.
 
 `lua/nvim_nvda/init.lua` is the stable public RPC and plugin-adapter facade and
 the composition root, but owns no domain state machine. The event channel owns
-the connection, sequence, and fail-open teardown. State capture, payload
-decoration, and RPC publication are one protected failure boundary; every
-internal failure releases the channel and restores native UI ownership.
-Separate controllers own completion, direct key input including motion and edit
-state, the command line, Neovim UI and prompts, Oil confirmations, and
-coalesced context changes. Input prefixes form one tagged state; connection
-changes discard pending prefixes and scheduled input events. Braille routing
+the connection, sequence, connection generation, and fail-open teardown. State
+capture, payload decoration, and RPC publication are one protected failure
+boundary; every internal failure closes the real RPC transport and restores
+native UI ownership. Scheduled connection-specific controller callbacks and
+delayed UI teardowns are bound to the connection generation, while transient
+menu, prompt, and controller state resets silently on a connection change.
+Separate controllers
+own completion, direct key input including motion and edit state, the command
+line, Neovim UI and prompts, Oil confirmations, and coalesced context changes.
+Input prefixes form one tagged state; connection changes discard pending
+prefixes and scheduled events from the old connection. Braille routing
 remains a stateless, fully validated control. Controllers
 receive only narrow callbacks and do not import the root facade. Every mutable
 runtime state therefore has one writing owner while the event contract and

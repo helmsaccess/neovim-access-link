@@ -1578,18 +1578,22 @@ enough; the instance, focus, and gate must also match.</p>
 <h4>Internal event ownership in the Neovim plugin</h4>
 <p><code>lua/nvim_nvda/init.lua</code> is the stable public RPC and
 plugin-adapter facade and the composition root, but owns no domain state
-machine. The event channel owns the connection, sequence, and fail-open
-teardown. State capture, payload decoration, and RPC publication are one
-protected failure boundary; every internal failure releases the channel
-and restores native UI ownership. Separate controllers own completion,
-direct key input including motion and edit state, the command line,
-Neovim UI and prompts, Oil confirmations, and coalesced context changes.
-Input prefixes form one tagged state; connection changes discard pending
-prefixes and scheduled input events. Braille routing remains a
-stateless, fully validated control. Controllers receive only narrow
-callbacks and do not import the root facade. Every mutable runtime state
-therefore has one writing owner while the event contract and public
-function names remain unchanged.</p>
+machine. The event channel owns the connection, sequence, connection
+generation, and fail-open teardown. State capture, payload decoration,
+and RPC publication are one protected failure boundary; every internal
+failure closes the real RPC transport and restores native UI ownership.
+Scheduled connection-specific controller callbacks and delayed UI
+teardowns are bound to the connection generation, while transient menu,
+prompt, and controller state resets silently on a connection change.
+Separate controllers own completion, direct key input including motion
+and edit state, the command line, Neovim UI and prompts, Oil
+confirmations, and coalesced context changes. Input prefixes form one
+tagged state; connection changes discard pending prefixes and scheduled
+events from the old connection. Braille routing remains a stateless,
+fully validated control. Controllers receive only narrow callbacks and
+do not import the root facade. Every mutable runtime state therefore has
+one writing owner while the event contract and public function names
+remain unchanged.</p>
 <p>The application boundary is therefore cleanly implemented: terminal
 events, overlay selection, <code>nextHandler</code>, configurable NVDA
 scripts, and input observers live in the Windows Terminal AppModule. The
@@ -2790,18 +2794,22 @@ paths. The public Neovim-plugin facade composes separate owners for the
 channel, input, completion, command line, UI prompts, Oil confirmations,
 and context changes. The channel treats state capture, payload
 decoration, and RPC publication as one fail-open boundary. Input
-prefixes are one tagged state; a connection change discards pending
-prefixes and already scheduled input events. Semantic Lua tests cover
-these failure paths, coupled prefix commands, repeated setup,
+prefixes are one tagged state. On an internal publication failure, the
+channel also closes the real RPC transport. A connection change discards
+old scheduled controller events and silently resets transient menu,
+prompt, and runtime state before the next <code>fullState</code>.
+Semantic Lua tests cover real RPC serialization failures, fast
+reconnects, menu lifetimes, coupled prefix commands, repeated setup,
 completion, and command-line transitions; the add-on test checks that
 these tested modules are bundled identically instead of inspecting their
 internal source shape. Real-TUI tests use one shared send helper to
 drain a time- and byte-bounded amount of pending PTY output before every
-physical-key step. Every isolated runner job also has a fixed timeout.
-Preflight and test helpers use one bounded 60-second wait for real
-providers. This permits cold Windows and network-drive starts without
-waiting forever for a stalled provider. Listener-free, SSH, and real
-socket tests run separately. See the <a href="#docs__en__development__testingmd__test-strategy">test
+physical-key step. Every isolated runner job also has a fixed timeout
+whose failure terminates its complete process group, including Neovim
+and helper processes it started. Preflight and test helpers use one
+bounded 60-second wait for real providers. This permits cold Windows and
+network-drive starts without waiting forever for a stalled provider.
+Listener-free, SSH, and real socket tests run separately. See the <a href="#docs__en__development__testingmd__test-strategy">test
 strategy</a> for commands and detail. Guided practical tests isolate the
 remaining perceptual checks for speech, Braille, sounds, focus, and
 response time. Their technical preflight confirms real provider data and
@@ -4872,10 +4880,11 @@ in separate phases</td>
 </table>
 <p>Without a group argument, the runner uses the safe preset.
 <code>-j N</code> limits parallelism, and <code>--list</code> shows
-selection without running it. Every isolated job is terminated and
-reported as failed after 180 seconds. The real-TUI send helper
-additionally bounds pseudo-terminal draining to one second and 8 MiB per
-physical-key step.</p>
+selection without running it. Every isolated job runs in its own process
+group. After 180 seconds, the complete group, including Neovim and
+helper processes it started, is terminated and the job is reported as
+failed. The real-TUI send helper additionally bounds pseudo-terminal
+draining to one second and 8 MiB per physical-key step.</p>
 </section>
 <section id="docs__en__development__testingmd__recommended-workflow" class="level3">
 <h3>Recommended workflow</h3>
@@ -5885,13 +5894,24 @@ helper drain pending PTY output before every physical-key step. A full
 test output buffer can therefore no longer stop Neovim from polling
 input.</li>
 <li>Completes the critical follow-up review of the Neovim-plugin
-refactoring. The event channel now fails open for invalid snapshots,
-payload failures, and publication failures. Input prefixes form one
-tagged state, so coupled <code>g</code> commands cannot be misclassified
-as independent macro, register, or edit commands; reconnects discard old
+refactoring. The event channel now protects invalid snapshots, payload
+failures, and publication failures. Input prefixes form one tagged
+state, so coupled <code>g</code> commands cannot be misclassified as
+independent macro, register, or edit commands; reconnects discard old
 scheduled input events. Regression tests cover these transitions,
 repeated setup, and bounded PTY draining. The test runner also bounds
 every isolated job. This installable state is development build 3.</li>
+<li>Corrects the remaining gaps found by an independent lifecycle
+review. Every internal publication failure now closes the real RPC
+transport as well. A connection generation discards scheduled UI,
+command-line, context, diagnostic, and file-manager events from the
+previous connection; transient menu, prompt, and controller state resets
+silently before the next <code>fullState</code>. A scheduled UI teardown
+can no longer remove a newer UI attachment. On timeout, the runner
+terminates the complete process group instead of only the direct test
+process. Real RPC, reconnect, menu-lifetime, and child-process
+regression tests cover these boundaries. This installable state is
+development build 4.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">

@@ -19,13 +19,23 @@ test-build entries through August 5, 2026.
   pending PTY output before every physical-key step. A full test output buffer
   can therefore no longer stop Neovim from polling input.
 - Completes the critical follow-up review of the Neovim-plugin refactoring. The
-  event channel now fails open for invalid snapshots, payload failures, and
+  event channel now protects invalid snapshots, payload failures, and
   publication failures. Input prefixes form one tagged state, so coupled `g`
   commands cannot be misclassified as independent macro, register, or edit
   commands; reconnects discard old scheduled input events. Regression tests
   cover these transitions, repeated setup, and bounded PTY draining. The test
   runner also bounds every isolated job. This installable state is development
   build 3.
+- Corrects the remaining gaps found by an independent lifecycle review. Every
+  internal publication failure now closes the real RPC transport as well. A
+  connection generation discards scheduled UI, command-line, context,
+  diagnostic, and file-manager events from the previous connection; transient
+  menu, prompt, and controller state resets silently before the next
+  `fullState`. A scheduled UI teardown can no longer remove a newer UI
+  attachment. On timeout, the runner terminates the complete process group
+  instead of only the direct test process. Real RPC, reconnect, menu-lifetime,
+  and child-process regression tests cover these boundaries. This installable
+  state is development build 4.
 
 ## 0.98.0
 

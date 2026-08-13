@@ -38,7 +38,9 @@ separate temporary directories.
 
 Without a group argument, the runner uses the safe preset. `-j N` limits
 parallelism, and `--list` shows selection without running it. Every isolated
-job is terminated and reported as failed after 180 seconds. The real-TUI send
+job runs in its own process group. After 180 seconds, the complete group,
+including Neovim and helper processes it started, is terminated and the job is
+reported as failed. The real-TUI send
 helper additionally bounds pseudo-terminal draining to one second and 8 MiB
 per physical-key step.
 

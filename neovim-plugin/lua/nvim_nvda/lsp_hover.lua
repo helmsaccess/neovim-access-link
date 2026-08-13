@@ -119,6 +119,7 @@ end
 
 function M.setup(emit, group)
   emitter = emit
+  M.reset()
   wrap_legacy_handler()
   wrap_request_all()
   if group then
@@ -129,6 +130,11 @@ function M.setup(emit, group)
       callback = function() close("hoverContextLeft") end,
     })
   end
+end
+
+function M.reset()
+  active = false
+  last_documentation = nil
 end
 
 function M._test_single_result(result)

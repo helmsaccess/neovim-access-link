@@ -108,6 +108,29 @@ for _, event in ipairs(events) do
     "pre-disconnect navigation escaped into the reconnected channel")
 end
 
+-- Menu models are connection-scoped as well. A new consumer must never
+-- receive a close for a menu which only the previous consumer saw.
+events = {}
+local reconnect_item = { word = "same", abbr = "same", kind = "v" }
+plugin.accessible_menu_open({ reconnect_item }, { kind = "plugin", selected = 1 })
+plugin.unregister_channel(1)
+plugin.register_channel(1)
+events = {}
+plugin.accessible_menu_update(reconnect_item, {
+  kind = "plugin", selected = 1, item_count = 1,
+})
+plugin.accessible_menu_close()
+local reconnect_menu_events = {}
+for _, event in ipairs(events) do
+  if event.type:sub(1, 4) == "menu" then
+    reconnect_menu_events[#reconnect_menu_events + 1] = event.type
+  end
+end
+equal(3, #reconnect_menu_events, "reconnected menu event count")
+equal("menuOpened", reconnect_menu_events[1], "reconnected menu opens")
+equal("menuSelectionChanged", reconnect_menu_events[2], "reconnected menu selects")
+equal("menuClosed", reconnect_menu_events[3], "reconnected menu closes")
+
 -- Text typed on the Ex command line must not be retained as a Normal-mode
 -- motion.  The final `l` in commands such as `:terminal` previously leaked
 -- into the first cursor event of the resulting buffer as characterMoved.

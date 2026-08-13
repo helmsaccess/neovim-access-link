@@ -32,6 +32,7 @@ function M.new(options)
   assert(type(options) == "table", "UI event options required")
   assert(type(options.emit) == "function", "event emitter required")
   assert(type(options.emit_prebuilt) == "function", "prebuilt emitter required")
+  assert(type(options.guard) == "function", "connection callback guard required")
   assert(type(options.command_line) == "table", "command-line controller required")
   assert(type(options.set_prompt_diagnostics) == "function", "prompt diagnostics callback required")
   assert(type(options.clear_prompt_diagnostics) == "function", "prompt reset callback required")
@@ -39,6 +40,7 @@ function M.new(options)
   local emit = options.emit
   local ui_namespace = vim.api.nvim_create_namespace("nvim_nvda_ui")
   local ui_select_menu = menu.new()
+  local attachment_generation = 0
   local current = {
     notify_wrapped = false,
     ui_wrapped = false,
@@ -97,13 +99,22 @@ function M.new(options)
   end
 
   function instance.reset()
+    ui_select_menu = menu.new()
+    current.wrapped_confirm_active = false
+    current.recent_confirm_prompt = nil
+    current.recent_confirm_time = 0
     current.pending_spell_choice = nil
     current.active_numbered_choice = nil
     clear_message_prompt()
   end
 
   function instance.detach(scheduled)
-    local detach = function() pcall(vim.ui_detach, ui_namespace) end
+    attachment_generation = attachment_generation + 1
+    local generation = attachment_generation
+    local detach = options.guard(function()
+      if generation ~= attachment_generation then return end
+      pcall(vim.ui_detach, ui_namespace)
+    end)
     if scheduled then vim.schedule(detach) else detach() end
   end
 
@@ -210,16 +221,20 @@ function M.new(options)
 
   function instance.attach()
     instance.detach(false)
+    attachment_generation = attachment_generation + 1
+    local generation = attachment_generation
     local legacy_blocking_messages = vim.fn.has("nvim-0.12") == 0
     pcall(vim.ui_attach, ui_namespace, {
       ext_popupmenu = true,
       ext_messages = true,
     }, function(event, ...)
+      if generation ~= attachment_generation then return end
       local arguments = { ... }
       local command_line_snapshot = options.command_line.state()
-      local function dispatch()
+      local dispatch = options.guard(function()
+        if generation ~= attachment_generation then return end
         handle_ui_event(event, command_line_snapshot, unpack(arguments))
-      end
+      end)
       if legacy_blocking_messages and event == "msg_show"
         and current.pending_spell_choice then
         open_legacy_spell_choice(arguments[2])

@@ -28,20 +28,41 @@ function M.new(options)
   assert(type(options) == "table", "command-line event options required")
   assert(type(options.emit) == "function", "event emitter required")
   assert(type(options.close_numbered_choice) == "function", "choice closer required")
+  assert(type(options.guard) == "function", "connection callback guard required")
 
   local emit = options.emit
-  local command_line_menu = menu.new()
-  local current = {
-    phase = "idle",
-    text = "",
-    type = "",
-    generated_keys = false,
-    last_echo = "",
-    output_pending = false,
-    predicted_error_code = nil,
-    menu_items = {},
-  }
+  local command_line_menu
+  local current
   local instance = {}
+
+  local function reset_state(synchronize)
+    command_line_menu = menu.new()
+    current = {
+      phase = "idle",
+      text = "",
+      type = "",
+      generated_keys = false,
+      last_echo = "",
+      output_pending = false,
+      predicted_error_code = nil,
+      menu_items = {},
+    }
+    if not synchronize then return end
+    local mode_ok, mode = pcall(vim.api.nvim_get_mode)
+    if not mode_ok or type(mode) ~= "table"
+      or tostring(mode.mode or ""):sub(1, 1) ~= "c" then
+      return
+    end
+    local text_ok, command_text = pcall(vim.fn.getcmdline)
+    local type_ok, command_type = pcall(vim.fn.getcmdtype)
+    if text_ok and type_ok then
+      current.phase = "active"
+      current.text = tostring(command_text or "")
+      current.type = tostring(command_type or "")
+    end
+  end
+
+  reset_state(false)
 
   local function emit_menu_events(events, reason)
     for _, menu_event in ipairs(events) do
@@ -79,6 +100,10 @@ function M.new(options)
       type = current.type,
       generated_keys = current.generated_keys,
     }
+  end
+
+  function instance.reset(synchronize)
+    reset_state(synchronize == true)
   end
 
   function instance.reset_for_prompt_transition()
@@ -177,7 +202,7 @@ function M.new(options)
         current.type = ""
         current.generated_keys = command_type == ":"
         current.output_pending = command_type == ":" and trimmed(command) ~= ""
-        vim.schedule(function() current.generated_keys = false end)
+        vim.schedule(options.guard(function() current.generated_keys = false end))
         if command_type == ":" then emit_preflight(command) end
         local guarded = vim.bo.modified
           and (command:match("^%s*q%s*$") or command:match("^%s*quit%s*$"))
@@ -186,7 +211,7 @@ function M.new(options)
             message = "E37: No write since last change; use :q! to discard changes or :write to save",
           })
         end
-        vim.defer_fn(function()
+        vim.defer_fn(options.guard(function()
           local message = vim.v.errmsg
           if not guarded and current.phase ~= "active"
             and type(message) == "string" and message ~= "" then
@@ -209,7 +234,7 @@ function M.new(options)
             end
           end
           if not native_operations.is_active() then current.output_pending = false end
-        end, 20)
+        end), 20)
       end,
     })
 

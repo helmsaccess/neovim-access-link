@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 import runpy
+import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -193,6 +195,42 @@ class RepositoryPolicyTests(unittest.TestCase):
             runner["validate_socket_path_budget"](
                 pathlib.Path("/") / ("r" * 90),
             )
+
+    @unittest.skipUnless(os.name == "posix", "POSIX process-group contract")
+    def test_runner_timeout_terminates_the_complete_process_group(self) -> None:
+        runner = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/run_tests.py"),
+            run_name="repository_test_runner",
+        )
+        child_script = (
+            "import subprocess,sys,time; "
+            "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+            "print(child.pid,flush=True); time.sleep(30)"
+        )
+        job = runner["Job"](
+            name="process-tree-timeout",
+            group="unit",
+            command=(sys.executable, "-c", child_script),
+            cwd=REPOSITORY_ROOT,
+            source=pathlib.Path(__file__),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = runner["run_job"](job, pathlib.Path(directory) / "job", 0.1)
+
+        self.assertEqual(124, result.returncode)
+        child_pid = int(result.output.splitlines()[0])
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            try:
+                os.kill(child_pid, 0)
+            except ProcessLookupError:
+                break
+            status = pathlib.Path(f"/proc/{child_pid}/stat")
+            if status.exists() and status.read_text(encoding="utf-8").split()[2] == "Z":
+                break
+            time.sleep(0.01)
+        else:
+            self.fail(f"timed-out child process {child_pid} is still running")
 
     def test_ci_runs_safe_ssh_and_socket_groups_as_separate_jobs(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(

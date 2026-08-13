@@ -8,8 +8,8 @@ function M.new(emit)
   assert(type(emit) == "function", "event emitter required")
 
   local instance = {}
-  local completion_menu = menu.new()
-  local adapter_menu = menu.new()
+  local completion_menu
+  local adapter_menu
   local adapter_info
 
   local function emit_menu_events(events, reason)
@@ -18,9 +18,20 @@ function M.new(emit)
     end
   end
 
-  function instance.setup(group)
+  function instance.reset()
+    completion_menu = menu.new()
+    adapter_menu = menu.new()
+    adapter_info = nil
+    -- Reset the local menu models first so stopping an active adapter cannot
+    -- publish a closing event into a newly registered connection.
     native_completion.stop()
     adapters.stop()
+  end
+
+  instance.reset()
+
+  function instance.setup(group)
+    instance.reset()
     vim.api.nvim_create_autocmd("CompleteChanged", {
       group = group,
       callback = function(event)

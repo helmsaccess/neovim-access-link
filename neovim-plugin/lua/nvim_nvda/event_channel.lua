@@ -10,6 +10,7 @@ function M.new(options)
 
   local instance = {}
   local channel
+  local generation = 0
   local sequence = 0
   local last_message_text
   local last_message_time = 0
@@ -17,6 +18,7 @@ function M.new(options)
   local function detach(reason, close_rpc, scheduled)
     local disconnected_channel = channel
     channel = nil
+    generation = generation + 1
     if close_rpc and disconnected_channel then
       pcall(vim.fn.chanclose, disconnected_channel)
     end
@@ -24,19 +26,24 @@ function M.new(options)
   end
 
   local function notification(event_type, payload)
-    return pcall(function()
+    local ok, result = pcall(function()
       sequence = sequence + 1
-      vim.rpcnotify(channel, "nvim_nvda_event", {
+      return vim.rpcnotify(channel, "nvim_nvda_event", {
         sequence = sequence,
         timestampMonotonic = vim.uv.hrtime(),
         type = event_type,
         payload = payload,
       })
     end)
+    return ok and result ~= false
   end
 
   function instance.connect(rpc_channel)
     assert(type(rpc_channel) == "number" and rpc_channel > 0, "valid RPC channel required")
+    if channel then
+      detach("channelReplaced", channel ~= rpc_channel, false)
+    end
+    generation = generation + 1
     channel = rpc_channel
     sequence = 0
     last_message_text = nil
@@ -51,6 +58,15 @@ function M.new(options)
 
   function instance.is_connected()
     return channel ~= nil
+  end
+
+  function instance.guard(callback)
+    assert(type(callback) == "function", "guarded callback required")
+    local expected_generation = generation
+    return function(...)
+      if generation ~= expected_generation then return nil end
+      return callback(...)
+    end
   end
 
   function instance.emit(event_type, reason, extra)
@@ -85,23 +101,27 @@ function M.new(options)
       return false
     end
     local ok = notification(event_type, payload)
-    if not ok then detach("notificationFailure", false, false) end
+    if not ok then detach("notificationFailure", true, false) end
     return ok
   end
 
   function instance.emit_prebuilt(event_type, payload, extra)
-    if not channel or type(payload) ~= "table" then return false end
+    if not channel then return false end
+    if type(payload) ~= "table" then
+      detach("payloadFailure", true, true)
+      return false
+    end
     local payload_ok = pcall(function()
       for key, value in pairs(extra or {}) do
         payload[key] = value
       end
     end)
     if not payload_ok then
-      detach("payloadFailure", false, true)
+      detach("payloadFailure", true, true)
       return false
     end
     local ok = notification(event_type, payload)
-    if not ok then detach("notificationFailure", false, true) end
+    if not ok then detach("notificationFailure", true, true) end
     return ok
   end
 

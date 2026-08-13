@@ -9,6 +9,7 @@ local clipboard = require("nvim_nvda.clipboard")
 local exploration = require("nvim_nvda.exploration")
 local developer_context = require("nvim_nvda.developer_context")
 local native_operations = require("nvim_nvda.native_operations")
+local diagnostics = require("nvim_nvda.diagnostics")
 local event_channel_factory = require("nvim_nvda.event_channel")
 local braille_routing_factory = require("nvim_nvda.braille_routing")
 local completion_events_factory = require("nvim_nvda.completion_events")
@@ -26,6 +27,7 @@ local ui_events
 local file_manager_prompt_events
 local context_events
 local emit
+local reset_connection_state
 
 local function fixed_error_kind(value)
   local text = tostring(value or "")
@@ -56,8 +58,7 @@ event_channel = event_channel_factory.new({
     payload.completionAdapterDiagnostics = completion_adapters.diagnostics()
   end,
   on_disconnect = function(_, scheduled_ui_detach)
-    pcall(signature_help.set_connected, false)
-    if input_events then pcall(input_events.reset) end
+    if reset_connection_state then pcall(reset_connection_state, false) end
     if ui_events then pcall(ui_events.detach, scheduled_ui_detach) end
   end,
 })
@@ -66,9 +67,10 @@ emit = event_channel.emit
 local emit_prebuilt = event_channel.emit_prebuilt
 local braille_routing = braille_routing_factory.new(emit)
 local completion_events = completion_events_factory.new(emit)
-file_manager_prompt_events = file_manager_prompt_events_factory.new(emit)
+file_manager_prompt_events = file_manager_prompt_events_factory.new(emit, event_channel.guard)
 command_line_events = command_line_events_factory.new({
   emit = emit,
+  guard = event_channel.guard,
   close_numbered_choice = function(reason)
     if ui_events then ui_events.close_numbered_choice(reason) end
   end,
@@ -76,6 +78,7 @@ command_line_events = command_line_events_factory.new({
 ui_events = ui_events_factory.new({
   emit = emit,
   emit_prebuilt = emit_prebuilt,
+  guard = event_channel.guard,
   command_line = command_line_events,
   set_prompt_diagnostics = function(details)
     if input_events then input_events.set_prompt_diagnostics(details) end
@@ -98,17 +101,30 @@ input_events = input_events_factory.new({
 })
 context_events = context_events_factory.new({
   emit = emit,
+  guard = event_channel.guard,
   emit_oil_confirmation = file_manager_prompt_events.emit_if_active,
 })
 
 native_operations.set_prebuilt_emitter(emit_prebuilt)
 
+reset_connection_state = function(synchronize_command_line)
+  pcall(signature_help.set_connected, false)
+  pcall(lsp_hover.reset)
+  pcall(exploration.reset)
+  pcall(native_operations.reset)
+  pcall(completion_events.reset)
+  pcall(file_manager_events.reset)
+  pcall(file_manager_prompt_events.reset)
+  pcall(command_line_events.reset, synchronize_command_line == true)
+  pcall(ui_events.reset)
+  pcall(input_events.reset)
+  pcall(context_events.reset)
+  pcall(diagnostics.reset)
+end
+
 function M.register_channel(rpc_channel)
-  exploration.reset()
-  native_operations.reset()
-  input_events.reset()
-  ui_events.reset()
   event_channel.connect(rpc_channel)
+  reset_connection_state(true)
   signature_help.set_connected(true)
   -- ext_messages/ext_popupmenu transfer ownership away from the native TUI.
   -- Attach only while an authenticated consumer exists, otherwise startup
@@ -131,14 +147,7 @@ function M.register_channel(rpc_channel)
 end
 
 function M.unregister_channel(rpc_channel)
-  if event_channel.is_connected() then
-    local disconnected = event_channel.disconnect(rpc_channel)
-    if disconnected then
-      exploration.reset()
-      native_operations.reset()
-      ui_events.reset()
-    end
-  end
+  if event_channel.is_connected() then event_channel.disconnect(rpc_channel) end
 end
 
 function M.key_observer_diagnostics()
@@ -244,13 +253,13 @@ function M.setup()
   native_operations.setup(emit, group)
   require("nvim_nvda.plugin_manager").setup(emit, group)
   require("nvim_nvda.tutor").setup(emit, group)
-  require("nvim_nvda.diagnostics").setup(emit, group)
+  diagnostics.setup(emit, group, event_channel.guard)
   completion_events.setup(group)
   file_manager_events.setup(function(reason)
     emit("fileManagerEntryChanged", reason)
   end, function(action)
     emit("fileManagerActionResult", "fileManagerAction", { fileManagerAction = action })
-  end, group)
+  end, group, event_channel.guard)
   ui_events.setup(group)
   command_line_events.setup(group)
   file_manager_prompt_events.setup(group)

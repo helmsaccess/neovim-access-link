@@ -190,15 +190,19 @@ stdin run; both parsers retain complete Windows drive and UNC paths.
 The public Neovim-plugin facade composes separate owners for the channel,
 input, completion, command line, UI prompts, Oil confirmations, and context
 changes. The channel treats state capture, payload decoration, and RPC
-publication as one fail-open boundary. Input prefixes are one tagged state; a
-connection change discards pending prefixes and already scheduled input events.
-Semantic Lua tests cover these failure paths, coupled prefix commands, repeated
-setup, completion, and command-line transitions; the add-on test checks that
-these tested modules are bundled identically instead of inspecting their
-internal source shape.
+publication as one fail-open boundary. Input prefixes are one tagged state. On
+an internal publication failure, the channel also closes the real RPC
+transport. A connection change discards old scheduled controller events and
+silently resets transient menu, prompt, and runtime state before the next
+`fullState`.
+Semantic Lua tests cover real RPC serialization failures, fast reconnects,
+menu lifetimes, coupled prefix commands, repeated setup, completion, and
+command-line transitions; the add-on test checks that these tested modules are
+bundled identically instead of inspecting their internal source shape.
 Real-TUI tests use one shared send helper to drain a time- and byte-bounded
 amount of pending PTY output before every physical-key step. Every isolated
-runner job also has a fixed timeout.
+runner job also has a fixed timeout whose failure terminates its complete
+process group, including Neovim and helper processes it started.
 Preflight and test helpers use one bounded 60-second wait for real providers.
 This permits cold Windows and network-drive starts without waiting forever for
 a stalled provider.

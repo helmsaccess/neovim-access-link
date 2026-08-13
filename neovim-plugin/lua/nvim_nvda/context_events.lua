@@ -8,6 +8,7 @@ function M.new(options)
   assert(type(options) == "table", "context event options required")
   assert(type(options.emit) == "function", "event emitter required")
   assert(type(options.emit_oil_confirmation) == "function", "Oil prompt callback required")
+  assert(type(options.guard) == "function", "connection callback guard required")
 
   local emit = options.emit
   local current = {
@@ -16,6 +17,12 @@ function M.new(options)
     suppressed = false,
   }
   local instance = {}
+
+  function instance.reset()
+    current.change_pending = false
+    current.reason = nil
+    current.suppressed = false
+  end
 
   function instance.setup(group)
     vim.api.nvim_create_autocmd("TermClose", {
@@ -31,7 +38,7 @@ function M.new(options)
           messageLevel = status == 0 and 2 or 4,
           terminalExitStatus = status,
         })
-        vim.schedule(function() emit("contextChanged", "TermClose") end)
+        vim.schedule(options.guard(function() emit("contextChanged", "TermClose") end))
       end,
     })
 
@@ -87,7 +94,7 @@ function M.new(options)
         end
         if current.change_pending then return end
         current.change_pending = true
-        vim.schedule(function()
+        vim.schedule(options.guard(function()
           current.change_pending = false
           local final_reason = current.reason or event.event
           current.reason = nil
@@ -97,7 +104,7 @@ function M.new(options)
           if not options.emit_oil_confirmation() then
             emit("contextChanged", final_reason)
           end
-        end)
+        end))
       end,
     })
   end
