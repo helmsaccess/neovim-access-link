@@ -163,6 +163,8 @@ täglicher Einstieg und Sitzungswechsel</a>
 und F12</a></li>
 <li><a href="#docs__de__manual__communicationmd__die-erste-arbeitssitzung" id="toc-docs__de__manual__communicationmd__die-erste-arbeitssitzung">Die
 erste Arbeitssitzung</a></li>
+<li><a href="#docs__de__manual__communicationmd__text-zwischen-neovim-und-windows-übertragen" id="toc-docs__de__manual__communicationmd__text-zwischen-neovim-und-windows-übertragen">Text
+zwischen Neovim und Windows übertragen</a></li>
 <li><a href="#docs__de__manual__communicationmd__zwischen-tabs-und-panes-wechseln" id="toc-docs__de__manual__communicationmd__zwischen-tabs-und-panes-wechseln">Zwischen
 Tabs und Panes wechseln</a></li>
 <li><a href="#docs__de__manual__communicationmd__weitere-sitzungen-verbinden" id="toc-docs__de__manual__communicationmd__weitere-sitzungen-verbinden">Weitere
@@ -739,6 +741,33 @@ Beispiele sind <code>NVDA+h</code> für Sprachexploration und
 <code>NVDA+Alt+D</code> für den Diagnosebericht. Access Link übernimmt
 diese Befehle nur im dokumentierten, exakt verbundenen
 Neovim-Kontext.</p>
+</section>
+<section id="docs__de__manual__communicationmd__text-zwischen-neovim-und-windows-übertragen" class="level3">
+<h3>Text zwischen Neovim und Windows übertragen</h3>
+<p>Die Access-Link-Befehle für die Zwischenablage besitzen keine
+voreingestellten Tastenkombinationen. Fokussieren Sie zuerst Windows
+Terminal und weisen Sie den gewünschten Befehlen unter
+<code>NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link</code>
+eigene Gesten zu. Danach stehen in einer verbundenen lokalen oder
+entfernten Neovim-Sitzung vier Wege zur Verfügung:</p>
+<ul>
+<li>Beginnen Sie mit <code>v</code> eine Visual-Auswahl und verwenden
+Sie
+<code>Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen</code>.</li>
+<li>Kopieren Sie Text mit Neovims <code>y</code> und verwenden Sie
+<code>Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertragen</code>.</li>
+<li>Verwenden Sie
+<code>Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen</code>,
+um Text im Normal- oder Insert-Modus direkt in einen beschreibbaren
+normalen Buffer einzufügen.</li>
+<li>Verwenden Sie
+<code>Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern</code>
+und danach Neovims <code>p</code>, wenn Neovim das Einfügen als normalen
+Registerbefehl ausführen soll.</li>
+</ul>
+<p>Access Link prüft bei jeder Ausführung erneut das fokussierte Pane
+und seine aktive Neovim-Zuordnung. Die Rückmeldung für Kopieren und
+Einfügen richtet sich nach den <a href="#docs__de__manual__settingsmd__einstellungsreferenz">Ausgabeeinstellungen</a>.</p>
 </section>
 <section id="docs__de__manual__communicationmd__zwischen-tabs-und-panes-wechseln" class="level3">
 <h3>Zwischen Tabs und Panes wechseln</h3>
@@ -1903,19 +1932,17 @@ erste Pufferzeile ist aus Layoutgründen leer; Access Link liest beim
 Neovim-Navigation liest die echten Textzeilen des Fensters, ohne rein
 visuelle Rand- und Auffüll-Leerzeichen oder Lazys grafische
 Schriftartsymbole anzusagen. Die Braillezeile behält den ursprünglichen
-Text einschließlich seiner Symbole und Cursorposition. Zum erneuten
-Lesen der Bedienleiste halten Sie die NVDA-Taste und erkunden ihre
-Zeilen mit <code>k</code> und <code>j</code>; der Neovim-Cursor bleibt
-dabei auf dem Plugin. Ohne NVDA-Taste wechseln <code>j</code> und
-<code>k</code> wie gewohnt die Pluginzeile. Auf eindeutig erkannten
-Pluginzeilen meldet Access Link zusätzlich <code>eingeklappt</code> oder
-<code>ausgeklappt</code>. Auf der Braillezeile steht dafür wie bei NVDAs
-Baumansichten <code>+</code> beziehungsweise <code>-</code> hinter der
-Pluginzeile. <code>Eingabetaste</code> öffnet die Details des aktuellen
-Plugins und schließt sie beim nächsten Drücken wieder; Access Link
-spricht den neuen Zustand. Auf Braille genügt die unmittelbare Änderung
-des dauerhaften Markers. <code>?</code> schaltet Lazys Hilfe um und
-<code>q</code> schließt das Fenster.</p>
+Text einschließlich seiner Symbole und Cursorposition. <code>j</code>
+und <code>k</code> wechseln wie gewohnt die Pluginzeile. Auf eindeutig
+erkannten Pluginzeilen meldet Access Link zusätzlich
+<code>eingeklappt</code> oder <code>ausgeklappt</code>. Auf der
+Braillezeile steht dafür wie bei NVDAs Baumansichten <code>+</code>
+beziehungsweise <code>-</code> hinter der Pluginzeile.
+<code>Eingabetaste</code> öffnet die Details des aktuellen Plugins und
+schließt sie beim nächsten Drücken wieder; Access Link spricht den neuen
+Zustand. Auf Braille genügt die unmittelbare Änderung des dauerhaften
+Markers. <code>?</code> schaltet Lazys Hilfe um und <code>q</code>
+schließt das Fenster.</p>
 <p>Für eine vollständige Aktualisierung ist <code>:Lazy update</code>
 der direkte Weg. <code>:Lazy sync</code> installiert fehlende Plugins,
 entfernt nicht mehr benötigte Plugins und aktualisiert vorhandene

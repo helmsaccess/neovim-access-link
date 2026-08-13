@@ -45,6 +45,27 @@ Examples are `NVDA+h` for speech exploration and `NVDA+Alt+D` for the
 diagnostic report. Access Link takes over these commands only in the documented
 exact connected Neovim context.
 
+## Transfer text between Neovim and Windows
+
+The Access Link clipboard commands have no default gestures. First focus
+Windows Terminal, then assign your own gestures to the required commands under
+`NVDA menu > Preferences > Input gestures... > Neovim Access Link`. Four paths
+are then available in a connected local or remote Neovim session:
+
+- Start a Visual selection with `v`, then use
+  `Copy the active Neovim Visual selection to the Windows clipboard`.
+- Yank text with Neovim's `y`, then use
+  `Copy Neovim's last yank to the Windows clipboard`.
+- Use `Paste Windows clipboard text into the active Neovim buffer` to insert
+  text directly into an editable ordinary buffer in Normal or Insert mode.
+- Use `Store Windows clipboard text in Neovim's unnamed register`, followed by
+  Neovim's `p`, when Neovim should perform the insertion as an ordinary
+  register command.
+
+Before every execution, Access Link checks the focused pane and its active
+Neovim association again. Copy and paste feedback follows the
+[output settings](settings.md#feedback).
+
 ## Switch between tabs and panes
 
 A Windows Terminal pane is a separate terminal control. Access Link keeps a

@@ -163,6 +163,8 @@ first editing session, and session switching</a>
 and F12</a></li>
 <li><a href="#docs__en__manual__communicationmd__complete-the-first-editing-session" id="toc-docs__en__manual__communicationmd__complete-the-first-editing-session">Complete
 the first editing session</a></li>
+<li><a href="#docs__en__manual__communicationmd__transfer-text-between-neovim-and-windows" id="toc-docs__en__manual__communicationmd__transfer-text-between-neovim-and-windows">Transfer
+text between Neovim and Windows</a></li>
 <li><a href="#docs__en__manual__communicationmd__switch-between-tabs-and-panes" id="toc-docs__en__manual__communicationmd__switch-between-tabs-and-panes">Switch
 between tabs and panes</a></li>
 <li><a href="#docs__en__manual__communicationmd__connect-more-sessions" id="toc-docs__en__manual__communicationmd__connect-more-sessions">Connect
@@ -738,6 +740,32 @@ layer. Examples are <code>NVDA+h</code> for speech exploration and
 <code>NVDA+Alt+D</code> for the diagnostic report. Access Link takes
 over these commands only in the documented exact connected Neovim
 context.</p>
+</section>
+<section id="docs__en__manual__communicationmd__transfer-text-between-neovim-and-windows" class="level3">
+<h3>Transfer text between Neovim and Windows</h3>
+<p>The Access Link clipboard commands have no default gestures. First
+focus Windows Terminal, then assign your own gestures to the required
+commands under
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>.
+Four paths are then available in a connected local or remote Neovim
+session:</p>
+<ul>
+<li>Start a Visual selection with <code>v</code>, then use
+<code>Copy the active Neovim Visual selection to the Windows clipboard</code>.</li>
+<li>Yank text with Neovim&#39;s <code>y</code>, then use
+<code>Copy Neovim&#39;s last yank to the Windows clipboard</code>.</li>
+<li>Use
+<code>Paste Windows clipboard text into the active Neovim buffer</code>
+to insert text directly into an editable ordinary buffer in Normal or
+Insert mode.</li>
+<li>Use
+<code>Store Windows clipboard text in Neovim&#39;s unnamed register</code>,
+followed by Neovim&#39;s <code>p</code>, when Neovim should perform the
+insertion as an ordinary register command.</li>
+</ul>
+<p>Before every execution, Access Link checks the focused pane and its
+active Neovim association again. Copy and paste feedback follows the <a href="#docs__en__manual__settingsmd__settings-reference">output
+settings</a>.</p>
 </section>
 <section id="docs__en__manual__communicationmd__switch-between-tabs-and-panes" class="level3">
 <h3>Switch between tabs and panes</h3>
@@ -1830,18 +1858,15 @@ buffer line is empty for layout; when the window opens, Access Link
 reads the following command bar instead. Ordinary Neovim navigation
 reads the window&#39;s real text lines without announcing visual-only edge
 or padding spaces or Lazy&#39;s graphical font icons. The Braille display
-retains the original text, including its icons and cursor position. To
-read the command bar again, hold the NVDA key and explore its lines with
-<code>k</code> and <code>j</code>; the Neovim cursor remains on the
-plugin. Without NVDA, <code>j</code> and <code>k</code> move between
-plugin rows as usual. On an unambiguously recognized plugin row, Access
-Link also reports <code>collapsed</code> or <code>expanded</code>. As in
-NVDA tree views, Braille shows <code>+</code> or <code>-</code> after
-that row. <code>Enter</code> opens the current plugin&#39;s details and
-closes them when pressed again; Access Link speaks the new state. On
-Braille, the immediate change of the persistent marker is sufficient.
-<code>?</code> toggles Lazy&#39;s help, and <code>q</code> closes the
-window.</p>
+retains the original text, including its icons and cursor position.
+<code>j</code> and <code>k</code> move between plugin rows as usual. On
+an unambiguously recognized plugin row, Access Link also reports
+<code>collapsed</code> or <code>expanded</code>. As in NVDA tree views,
+Braille shows <code>+</code> or <code>-</code> after that row.
+<code>Enter</code> opens the current plugin&#39;s details and closes them
+when pressed again; Access Link speaks the new state. On Braille, the
+immediate change of the persistent marker is sufficient. <code>?</code>
+toggles Lazy&#39;s help, and <code>q</code> closes the window.</p>
 <p>Use <code>:Lazy update</code> for a complete update.
 <code>:Lazy sync</code> installs missing plugins, removes plugins which
 are no longer needed, and updates existing plugins. Access Link reports

@@ -47,6 +47,30 @@ sind `NVDA+h` für Sprachexploration und `NVDA+Alt+D` für den Diagnosebericht.
 Access Link übernimmt diese Befehle nur im dokumentierten, exakt verbundenen
 Neovim-Kontext.
 
+## Text zwischen Neovim und Windows übertragen
+
+Die Access-Link-Befehle für die Zwischenablage besitzen keine voreingestellten
+Tastenkombinationen. Fokussieren Sie zuerst Windows Terminal und weisen Sie den
+gewünschten Befehlen unter
+`NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link` eigene Gesten zu.
+Danach stehen in einer verbundenen lokalen oder entfernten Neovim-Sitzung vier
+Wege zur Verfügung:
+
+- Beginnen Sie mit `v` eine Visual-Auswahl und verwenden Sie
+  `Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen`.
+- Kopieren Sie Text mit Neovims `y` und verwenden Sie
+  `Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertragen`.
+- Verwenden Sie `Text aus der Windows-Zwischenablage in den aktiven
+  Neovim-Puffer einfügen`, um Text im Normal- oder Insert-Modus direkt in einen
+  beschreibbaren normalen Buffer einzufügen.
+- Verwenden Sie `Text aus der Windows-Zwischenablage im unbenannten
+  Neovim-Register speichern` und danach Neovims `p`, wenn Neovim das Einfügen
+  als normalen Registerbefehl ausführen soll.
+
+Access Link prüft bei jeder Ausführung erneut das fokussierte Pane und seine
+aktive Neovim-Zuordnung. Die Rückmeldung für Kopieren und Einfügen richtet sich
+nach den [Ausgabeeinstellungen](settings.md#rückmeldung).
+
 ## Zwischen Tabs und Panes wechseln
 
 Ein Windows-Terminal-Pane ist ein eigenes Terminal-Control. Access Link führt
