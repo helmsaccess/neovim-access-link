@@ -239,6 +239,20 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht allein reicht
 nicht; auch Instanz, Fokus und Gate müssen passen.
 
+### Interner Ereignisbesitz im Neovim-Plugin
+
+`lua/nvim_nvda/init.lua` ist die stabile öffentliche RPC- und Pluginadapter-
+Fassade sowie die Kompositionswurzel, besitzt aber keinen fachlichen
+Zustandsautomaten. Der Ereigniskanal besitzt Verbindung, Sequenz und
+Fail-open-Abbau. Eigene Controller besitzen jeweils Completion, direkte
+Tasteneingabe samt Bewegungs- und Editzustand, Befehlszeile, Neovim-UI und
+Prompts, Oil-Bestätigungen sowie zusammengefasste Kontextwechsel. Das
+Braille-Routing bleibt eine zustandsarme, vollständig validierte Kontrolle.
+Die Controller erhalten nur schmale Callbacks und importieren die Root-Fassade
+nicht. Dadurch hat jeder veränderliche Laufzeitzustand genau einen schreibenden
+Besitzer, während Ereignisvertrag und öffentliche Funktionsnamen unverändert
+bleiben.
+
 Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
 Overlayauswahl, `nextHandler`, konfigurierbare NVDA-Skripte und Eingabebeobachter
 liegen im Windows-Terminal-AppModule. Das Global Plugin ist die prozessweite

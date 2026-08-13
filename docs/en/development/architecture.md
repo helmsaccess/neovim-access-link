@@ -227,6 +227,18 @@ must not close output again before state is confirmed.
 These boundaries are intentionally redundant. A valid message is not enough;
 the instance, focus, and gate must also match.
 
+### Internal event ownership in the Neovim plugin
+
+`lua/nvim_nvda/init.lua` is the stable public RPC and plugin-adapter facade and
+the composition root, but owns no domain state machine. The event channel owns
+the connection, sequence, and fail-open teardown. Separate controllers own
+completion, direct key input including motion and edit state, the command
+line, Neovim UI and prompts, Oil confirmations, and coalesced context changes.
+Braille routing remains a stateless, fully validated control. Controllers
+receive only narrow callbacks and do not import the root facade. Every mutable
+runtime state therefore has one writing owner while the event contract and
+public function names remain unchanged.
+
 The application boundary is therefore cleanly implemented: terminal events,
 overlay selection, `nextHandler`, configurable NVDA scripts, and input
 observers live in the Windows Terminal AppModule. The Global Plugin is the

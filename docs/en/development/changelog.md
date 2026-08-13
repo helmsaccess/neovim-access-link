@@ -8,6 +8,16 @@ test-build entries through August 5, 2026.
 
 - Starts the 0.99.0 development line with development build 1 after the 0.98.0
   beta pre-release.
+- Simplifies Neovim-plugin runtime state: the public root facade now composes
+  explicit owners for the event channel, input, completion, command line, UI
+  prompts, Oil confirmations, and context changes. Public RPC/adapter
+  functions and semantic events remain unchanged. A dedicated behavior test
+  covers fail-open channel teardown, while the package test checks identical
+  tested modules instead of internal source fragments. This installable state
+  is development build 2.
+- Stabilizes real-TUI regression tests by making one shared send helper drain
+  pending PTY output before every physical-key step. A full test output buffer
+  can therefore no longer stop Neovim from polling input.
 
 ## 0.98.0
 

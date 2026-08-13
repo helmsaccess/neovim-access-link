@@ -8,6 +8,17 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 - Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
   0.99.0 mit Entwicklungsbuild 1.
+- Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche
+  Root-Fassade komponiert jetzt eindeutige Besitzer für Ereigniskanal,
+  Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
+  Kontextwechsel. Öffentliche RPC-/Adapterfunktionen und semantische
+  Ereignisse bleiben unverändert. Ein eigener Verhaltenstest belegt den
+  Fail-open-Kanalabbau; der Pakettest prüft identische getestete Module statt
+  interner Quelltextfragmente. Dieser installierbare Stand ist
+  Entwicklungsbuild 2.
+- Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame Sendehilfe
+  ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt leert. Damit
+  blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims Eingabepolling.
 
 ## 0.98.0
 

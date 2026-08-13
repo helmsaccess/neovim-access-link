@@ -3994,35 +3994,26 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn('vim.str_utfindex(line, "utf-32", byte_column, false)', lua)
         self.assertIn("vim.str_utfindex(line, byte_column)", lua)
 
-    def test_bundled_snapshot_failure_closes_rpc_channel_fail_open(self) -> None:
-        lua = (
+    def test_bundled_neovim_runtime_modules_match_the_tested_sources(self) -> None:
+        bundled = (
             self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
-            / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
-        ).read_text(encoding="utf-8")
-        self.assertIn("pcall(state.snapshot, reason)", lua)
-        self.assertIn("pcall(vim.fn.chanclose, channel)", lua)
-
-    def test_bundled_key_observer_contains_errors_and_records_only_f12_metadata(self) -> None:
-        lua = (
-            self.extract_path / "globalPlugins" / "NeovimAccessLink" / "resources"
-            / "neovim-plugin" / "lua" / "nvim_nvda" / "init.lua"
-        ).read_text(encoding="utf-8")
-        self.assertIn("local observer_ok, observer_result = pcall(function()", lua)
-        self.assertIn("local claim_ok, claim_error = pcall", lua)
-        self.assertIn("key_observer_diagnostics.translatedTyped = typed_translated", lua)
-        self.assertIn("key_observer_diagnostics.claimKeyConsumed", lua)
-        self.assertIn('vim.keymap.set("i", component_config.sessionClaim.neovimKey', lua)
-        self.assertIn('return ""', lua)
-        self.assertIn("key_observer_diagnostics.promptClass", lua)
-        self.assertNotIn("key_observer_diagnostics.promptText", lua)
-        setup_body = lua.split("function M.setup()", 1)[1].split("vim.on_key", 1)[0]
-        register_body = lua.split("function M.register_channel", 1)[1].split(
-            "function M.unregister_channel", 1,
-        )[0]
-        self.assertNotIn("setup_ui_events()", setup_body)
-        self.assertIn("setup_ui_events()", register_body)
-        self.assertIn('claim_mode:sub(1, 1) == "r"', lua)
-        self.assertNotIn("key_observer_diagnostics.normalKey", lua)
+            / "neovim-plugin" / "lua" / "nvim_nvda"
+        )
+        source = pathlib.Path("neovim-plugin/lua/nvim_nvda")
+        modules = (
+            "braille_routing.lua",
+            "command_line_events.lua",
+            "completion_events.lua",
+            "context_events.lua",
+            "event_channel.lua",
+            "file_manager_prompt_events.lua",
+            "init.lua",
+            "input_events.lua",
+            "ui_events.lua",
+        )
+        for name in modules:
+            with self.subTest(module=name):
+                self.assertEqual((source / name).read_bytes(), (bundled / name).read_bytes())
 
     def test_built_plugin_imports_without_source_protocol_registry_package(self) -> None:
         real_import = builtins.__import__

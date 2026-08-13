@@ -198,7 +198,11 @@ Fokuswechsel fordert einen bestätigten Kontext an</a></li>
 Trennung und Deaktivierung fallen offen aus</a></li>
 </ul></li>
 <li><a href="#docs__de__development__architecturemd__zuständigkeiten-der-schichten" id="toc-docs__de__development__architecturemd__zuständigkeiten-der-schichten">Zuständigkeiten
-der Schichten</a></li>
+der Schichten</a>
+<ul>
+<li><a href="#docs__de__development__architecturemd__interner-ereignisbesitz-im-neovim-plugin" id="toc-docs__de__development__architecturemd__interner-ereignisbesitz-im-neovim-plugin">Interner
+Ereignisbesitz im Neovim-Plugin</a></li>
+</ul></li>
 <li><a href="#docs__de__development__architecturemd__das-fail-open-gate" id="toc-docs__de__development__architecturemd__das-fail-open-gate">Das
 Fail-open-Gate</a></li>
 <li><a href="#docs__de__development__architecturemd__zustand-reihenfolge-und-spalten" id="toc-docs__de__development__architecturemd__zustand-reihenfolge-und-spalten">Zustand,
@@ -1565,6 +1569,20 @@ nativer Ausgabe</td>
 </table>
 <p>Diese Grenzen sind absichtlich redundant. Eine gültige Nachricht
 allein reicht nicht; auch Instanz, Fokus und Gate müssen passen.</p>
+<section id="docs__de__development__architecturemd__interner-ereignisbesitz-im-neovim-plugin" class="level4">
+<h4>Interner Ereignisbesitz im Neovim-Plugin</h4>
+<p><code>lua/nvim_nvda/init.lua</code> ist die stabile öffentliche RPC-
+und Pluginadapter- Fassade sowie die Kompositionswurzel, besitzt aber
+keinen fachlichen Zustandsautomaten. Der Ereigniskanal besitzt
+Verbindung, Sequenz und Fail-open-Abbau. Eigene Controller besitzen
+jeweils Completion, direkte Tasteneingabe samt Bewegungs- und
+Editzustand, Befehlszeile, Neovim-UI und Prompts, Oil-Bestätigungen
+sowie zusammengefasste Kontextwechsel. Das Braille-Routing bleibt eine
+zustandsarme, vollständig validierte Kontrolle. Die Controller erhalten
+nur schmale Callbacks und importieren die Root-Fassade nicht. Dadurch
+hat jeder veränderliche Laufzeitzustand genau einen schreibenden
+Besitzer, während Ereignisvertrag und öffentliche Funktionsnamen
+unverändert bleiben.</p>
 <p>Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
 Overlayauswahl, <code>nextHandler</code>, konfigurierbare NVDA-Skripte
 und Eingabebeobachter liegen im Windows-Terminal-AppModule. Das Global
@@ -1912,6 +1930,7 @@ Reihenfolge Zeile, Wort, Zeichen. Die Werte für den
 Explorationsabschluss beeinflussen nur die Ausgabe am echten Cursor beim
 Loslassen der NVDA-Taste; die virtuellen Explorationsschritte und die
 Zeichenexploration bleiben davon unabhängig.</p>
+</section>
 </section>
 <section id="docs__de__development__architecturemd__das-fail-open-gate" class="level3">
 <h3>Das Fail-open-Gate</h3>
@@ -2335,6 +2354,16 @@ Fokusgrenzen</td>
 <p>Die ausführliche Beziehung dieser Bereiche erklärt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>.
 Insbesondere darf NVDA-spezifischer Code nicht in den Sprachplaner oder
 das Transportprotokoll wandern.</p>
+<p>Im Neovim-Plugin bleibt <code>lua/nvim_nvda/init.lua</code> die
+öffentliche Fassade und Kompositionswurzel.
+<code>event_channel.lua</code> besitzt Verbindung und Sequenz;
+<code>input_events.lua</code>, <code>command_line_events.lua</code>,
+<code>ui_events.lua</code>, <code>completion_events.lua</code>,
+<code>file_manager_prompt_events.lua</code> und
+<code>context_events.lua</code> besitzen ihre jeweiligen
+Ereigniszustände. <code>braille_routing.lua</code> kapselt die
+validierten Routingkontrollen. Diese Module importieren die Root-Fassade
+nicht.</p>
 </section>
 <section id="docs__de__development__repository-layoutmd__quellen-paketlayout-und-erzeugte-ergebnisse" class="level3">
 <h3>Quellen, Paketlayout und erzeugte Ergebnisse</h3>
@@ -2358,9 +2387,9 @@ reproduzierbare Ergebnisse;</li>
 <li><code>tmp/human-test-state/</code> und
 <code>tmp/human-test-results/</code>: vom geführten Praxistest-Runner
 erzeugte, ignorierte Zustände und Ergebnisse.</li>
-<li><code>/nfs/src/nal-tmp/</code>: agenteneigene Untersuchungen,
-Berichte, Downloads, Reproduktionen und Testarbeitsbereiche außerhalb
-des Repositorys.</li>
+<li><code>../nal-aux/</code>: agenteneigene Untersuchungen, Berichte,
+Downloads, Reproduktionen und Testarbeitsbereiche außerhalb des
+Repositorys.</li>
 </ul>
 <p>Der private Linux-Laufzeitfallback unter <code>/tmp</code> ist ein
 Teil der Sitzungsregistrierung und kein Entwicklungsarbeitsbereich.
@@ -2639,7 +2668,7 @@ Tests.</p>
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
 <p>Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie
-0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.1 mit
+0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.2 mit
 Branch- und Commitmetadaten und setzt den Update-Kanal im Manifest auf
 Beta. Der aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt
 leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -2861,10 +2890,19 @@ Programm, legt C11 sowie die mitgelieferte Testkonfiguration explizit
 fest und führt Standard- und Fehlerausgabe zusammen. Das
 Markdownlint-Profil prüft die absolute Testdatei statt eines
 stdin-Kaltstarts; beide Parser erhalten Windows-Laufwerks- und UNC-Pfade
-vollständig. Für reale Provider gilt in Vorprüfung und Testhilfe eine
-einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte
-Starts auf Windows und Netzlaufwerken zulässig, ohne einen hängenden
-Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
+vollständig. Die öffentliche Neovim-Plugin-Fassade komponiert getrennte
+Besitzer für Kanal, Eingabe, Completion, Befehlszeile, UI-Prompts,
+Oil-Bestätigungen und Kontextwechsel. Semantische Lua-Tests prüfen
+insbesondere Fail-open des Ereigniskanals sowie gekoppelte Eingabe-,
+Completion- und Befehlszeilenübergänge; der Add-on-Test prüft die
+identische Aufnahme dieser getesteten Module statt ihrer internen
+Quelltextform. Reale TUI-Tests leeren über eine gemeinsame Sendehilfe
+ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt und bleiben
+dadurch auch bei umfangreichen Redraws unabhängig von der
+Pufferkapazität. Für reale Provider gilt in Vorprüfung und Testhilfe
+eine einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben
+kalte Starts auf Windows und Netzlaufwerken zulässig, ohne einen
+hängenden Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
 Sockettests laufen getrennt. Einzelheiten und Befehle stehen in <a href="#docs__de__development__testingmd__teststrategie">Teststrategie</a>.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische
@@ -3894,7 +3932,7 @@ und andere potenziell vertrauliche Payloads. Logs sind rein diagnostisch
 und keine Voraussetzung für Korrektheit. Protokollfehler werden mit Typ
 und Grenze, nicht mit vollständigem Benutzertext, festgehalten.</p>
 <p>Agenteneigene Reproduktionen, Downloads und Berichte liegen außerhalb
-des Repositorys unter <code>/nfs/src/nal-tmp/</code> und werden nie
+des Repositorys unter <code>../nal-aux/</code> und werden nie
 versioniert. Vom Projekt selbst erzeugte Laufzeit- oder Testausgaben
 verwenden ausschließlich ihre dokumentierten, ignorierten Pfade.</p>
 </section>
@@ -6237,6 +6275,18 @@ zum 5. August 2026.</p>
 <ul>
 <li>Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die
 Entwicklungslinie 0.99.0 mit Entwicklungsbuild 1.</li>
+<li>Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche
+Root-Fassade komponiert jetzt eindeutige Besitzer für Ereigniskanal,
+Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
+Kontextwechsel. Öffentliche RPC-/Adapterfunktionen und semantische
+Ereignisse bleiben unverändert. Ein eigener Verhaltenstest belegt den
+Fail-open-Kanalabbau; der Pakettest prüft identische getestete Module
+statt interner Quelltextfragmente. Dieser installierbare Stand ist
+Entwicklungsbuild 2.</li>
+<li>Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame
+Sendehilfe ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt
+leert. Damit blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims
+Eingabepolling.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">
