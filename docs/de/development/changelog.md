@@ -6,6 +6,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+Derzeit keine unveröffentlichten Änderungen.
+
 ## 0.98.0
 
 - Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit

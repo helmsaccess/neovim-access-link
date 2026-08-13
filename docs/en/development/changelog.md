@@ -6,6 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+There are currently no unreleased changes.
+
 ## 0.98.0
 
 - Assigns `NVDA+Alt+N` to the contextual activation command by default. The
