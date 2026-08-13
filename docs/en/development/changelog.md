@@ -6,6 +6,9 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Assigns `NVDA+Alt+N` to the contextual activation command by default. The
+  gesture remains reassignable in NVDA's Input Gestures dialog and continues
+  to pass through outside a matching focused Windows Terminal control.
 - Makes Neovim's built-in `:Tutor` specifically more accessible without adding
   separate tutorial logic. From Neovim 0.12, recognized, unambiguous native
   Tutor extmarks provide localized announcements when an assessment changes,

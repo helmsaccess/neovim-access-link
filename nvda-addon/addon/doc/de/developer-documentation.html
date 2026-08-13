@@ -2637,7 +2637,7 @@ Tests.</p>
 <div id="docs__de__development__current-statusmd">
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
-<p>Stand: 12. August 2026. Der Quellstand gehört zur Entwicklungslinie
+<p>Stand: 13. August 2026. Der Quellstand gehört zur Entwicklungslinie
 0.98.0; <code>buildVars.py</code> erzeugt Entwicklungsbuilds mit
 Git-Metadaten und setzt den Release-Kanal auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.97.0. Das Projekt leitet aus
@@ -2698,6 +2698,10 @@ Benutzerkonfiguration überlassen.</li>
 Entwicklungsbuilds verwenden den deutschen beziehungsweise englischen
 unveröffentlichten Changelogabschnitt; Releases verwenden ihren
 Versionsabschnitt.</li>
+<li><code>NVDA+Alt+N</code> ist die voreingestellte, im
+Tastenbefehlsdialog änderbare Aktivierungsgeste. Sie gehört weiterhin
+dem Windows-Terminal-AppModule; außerhalb eines passenden fokussierten
+Controls bleibt der native Tastaturpfad erhalten.</li>
 <li>Lokale Sitzungen verwenden dynamisches, nur an
 <code>127.0.0.1</code> gebundenes TCP; entfernte Sitzungen verwenden
 SSH-stdin/stdout und einen privaten Unix-RPC-Socket. Sitzungen werden
@@ -6198,6 +6202,10 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
+<li>Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit
+<code>NVDA+Alt+N</code>. Die Geste bleibt im NVDA-Tastenbefehldialog
+änderbar und wird außerhalb eines passenden fokussierten
+Windows-Terminal-Controls wie bisher durchgereicht.</li>
 <li>Macht Neovims eingebauten <code>:Tutor</code> gezielt zugänglicher,
 ohne eine eigene Tutorial-Logik einzuführen. Ab Neovim 0.12 liefern
 eindeutig erkannte native Tutor-Extmarks lokalisierte Meldungen bei

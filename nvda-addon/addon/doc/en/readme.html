@@ -700,17 +700,17 @@ same basics and further chapters.</p>
 <ol type="1">
 <li>The component command installs the Neovim plugin and, for Linux, the
 bridge.</li>
-<li>Your assigned activation gesture enables the Access Link service and
-finds reachable sessions.</li>
+<li><code>NVDA+Alt+N</code> enables the Access Link service and finds
+reachable sessions.</li>
 <li>F12 associates the focused Windows Terminal control with the
 currently focused Neovim session.</li>
 </ol>
 <p>An installed component is therefore not yet a running connection.</p>
 <section id="docs__en__manual__communicationmd__activation-and-f12" class="level3">
 <h3>Activation and F12</h3>
-<p>The activation gesture is an NVDA command and normally contains the
-NVDA key or another combination assigned in NVDA&#39;s Input Gestures
-dialog. NVDA runs it while Windows Terminal is focused.</p>
+<p>The default <code>NVDA+Alt+N</code> gesture is an NVDA command. NVDA
+runs it while Windows Terminal is focused. You can assign a different
+gesture in NVDA&#39;s Input Gestures dialog.</p>
 <p>F12 belongs to the normal Windows Terminal and Neovim keyboard path.
 Access Link does not block it: Neovim receives the key and briefly marks
 the current session. Access Link then connects exactly that new match to
@@ -1757,7 +1757,8 @@ directory and requires no root privileges.</p>
 <ol type="1">
 <li>Sign in over SSH in the intended Windows Terminal tab or pane.</li>
 <li>Start <code>nvim</code> on the Linux target.</li>
-<li>Press the assigned Access Link activation gesture.</li>
+<li>Press <code>NVDA+Alt+N</code> or your reassigned Access Link
+activation gesture.</li>
 <li>Wait for the ready message.</li>
 <li>Focus Neovim and press F12 once.</li>
 <li>Wait for connection confirmation.</li>
@@ -2548,42 +2549,47 @@ shells, and unconnected panes, NVDA&#39;s normal commands apply.</p>
 </thead>
 <tbody>
 <tr class="odd">
+<td><code>NVDA+Alt+N</code></td>
+<td>Windows Terminal</td>
+<td>turn Access Link on or off and discover configured connections</td>
+</tr>
+<tr class="even">
 <td><code>NVDA+Alt+D</code></td>
 <td>Windows Terminal</td>
 <td>copy the redacted diagnostic report</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+h</code> / <code>NVDA+l</code></td>
 <td>connected Neovim pane</td>
 <td>explore previous / next character</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Shift+NVDA+h</code> / <code>Shift+NVDA+l</code></td>
 <td>connected Neovim pane</td>
 <td>explore previous / next word</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+k</code> / <code>NVDA+j</code></td>
 <td>connected Neovim pane</td>
 <td>explore previous / next line</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NVDA+Space</code>, continue holding NVDA</td>
 <td>position with signature help</td>
 <td>show signatures and parameters</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+Shift+Space</code>, continue holding NVDA</td>
 <td>position or line with diagnostics</td>
 <td>show diagnostics</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NVDA+j</code> / <code>NVDA+k</code> while a <code>z=</code>
 list is open</td>
 <td>spelling suggestions</td>
 <td>show next / previous suggestion</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+Enter</code> with a selected suggestion</td>
 <td>spelling suggestions</td>
 <td>accept the suggestion</td>
@@ -2608,46 +2614,42 @@ Releasing the NVDA key closes the temporary view.</p>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>Turn Neovim accessibility on or off and discover configured connections</code></td>
-<td>enable or disable the service</td>
-</tr>
-<tr class="even">
 <td><code>Toggle Braille navigation between Braille cursor mode and Braille exploration mode</code></td>
 <td>change the Braille mode for the current session</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Read documentation for the selected Neovim completion item or LSP hover</code></td>
 <td>present available completion or hover documentation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Copy the active Neovim Visual selection to the Windows clipboard</code></td>
 <td>copy the current Visual selection</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Copy Neovim&#39;s last yank to the Windows clipboard</code></td>
 <td>copy Neovim register 0</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Paste Windows clipboard text into the active Neovim buffer</code></td>
 <td>insert text at the Neovim position</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Store Windows clipboard text in Neovim&#39;s unnamed register</code></td>
 <td>make text available to Neovim&#39;s <code>p</code> command</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Leave direct input in the active Neovim terminal</code></td>
 <td>change from direct terminal input to Terminal-Normal mode</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Choose a server and connect this terminal to a new Neovim session</code></td>
 <td>open the accessible session dialog</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Disconnect the selected Neovim connection instance</code></td>
 <td>end the Access Link connection</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Forget the temporary Neovim connection for the focused terminal</code></td>
 <td>remove the remembered tab association</td>
 </tr>
@@ -3261,8 +3263,8 @@ sharing it.</p>
 applications.</li>
 <li>Confirm that Neovim Access Link is enabled in NVDA&#39;s installed
 add-ons.</li>
-<li>With Windows Terminal focused, open Input gestures and assign a
-gesture to the activation command.</li>
+<li>With Windows Terminal focused, press <code>NVDA+Alt+N</code>. Check
+Input gestures if you changed the default gesture.</li>
 <li>Restart NVDA after an installation or update.</li>
 </ol>
 <p>If the category is absent from Input gestures, close the dialog,

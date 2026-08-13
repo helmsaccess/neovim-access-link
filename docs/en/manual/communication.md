@@ -3,8 +3,7 @@
 Installation, activation, and connection are separate steps:
 
 1. The component command installs the Neovim plugin and, for Linux, the bridge.
-2. Your assigned activation gesture enables the Access Link service and finds
-   reachable sessions.
+2. `NVDA+Alt+N` enables the Access Link service and finds reachable sessions.
 3. F12 associates the focused Windows Terminal control with the currently
    focused Neovim session.
 
@@ -12,9 +11,9 @@ An installed component is therefore not yet a running connection.
 
 ## Activation and F12
 
-The activation gesture is an NVDA command and normally contains the NVDA key
-or another combination assigned in NVDA's Input Gestures dialog. NVDA runs it
-while Windows Terminal is focused.
+The default `NVDA+Alt+N` gesture is an NVDA command. NVDA runs it while Windows
+Terminal is focused. You can assign a different gesture in NVDA's Input
+Gestures dialog.
 
 F12 belongs to the normal Windows Terminal and Neovim keyboard path. Access
 Link does not block it: Neovim receives the key and briefly marks the current

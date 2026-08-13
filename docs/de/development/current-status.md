@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 12. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
+Stand: 13. August 2026. Der Quellstand gehört zur Entwicklungslinie 0.98.0;
 `buildVars.py` erzeugt Entwicklungsbuilds mit Git-Metadaten und setzt den
 Release-Kanal auf Beta. Der aktuelle veröffentlichte Pre-Release ist 0.97.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -57,6 +57,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Das Manifest nennt Projektadresse und Standardhilfedatei. Entwicklungsbuilds
   verwenden den deutschen beziehungsweise englischen unveröffentlichten
   Changelogabschnitt; Releases verwenden ihren Versionsabschnitt.
+- `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
+  Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
+  außerhalb eines passenden fokussierten Controls bleibt der native
+  Tastaturpfad erhalten.
 - Lokale Sitzungen verwenden dynamisches, nur an `127.0.0.1` gebundenes TCP;
   entfernte Sitzungen verwenden SSH-stdin/stdout und einen privaten
   Unix-RPC-Socket. Sitzungen werden aus kurzlebigen JSON-Dateien erkannt, nicht

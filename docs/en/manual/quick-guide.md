@@ -49,21 +49,17 @@ After the restart, `NVDA menu > Preferences > Settings...` contains the
 `Neovim Access Link` submenu for settings, component management, and the
 installed documentation.
 
-## 3. Assign the activation gesture
+## 3. Activate Access Link
 
-1. Focus Windows Terminal.
-2. Open `NVDA menu > Preferences > Input gestures...`.
-3. Open the `Neovim Access Link` category.
-4. Assign a convenient gesture to `Turn Neovim accessibility on or off and
-   discover configured connections`.
+Focus Windows Terminal and press `NVDA+Alt+N`. This default gesture turns
+Access Link on or off and discovers configured connections. You can assign a
+different gesture under
+`NVDA menu > Preferences > Input gestures... > Neovim Access Link`.
 
-Do not use `Ctrl+Alt+N` when that combination restarts NVDA in your
-installation.
-
-The assigned gesture is an **NVDA command**: NVDA processes it while Windows
-Terminal is focused. `F12` is not the activation gesture. Access
-Link passes F12 to Neovim and then uses the key press to identify the focused
-Neovim session exactly.
+`NVDA+Alt+N` is an **NVDA command** and is different from `Ctrl+Alt+N`, which
+starts NVDA in some installations. `F12` is not the activation gesture either.
+Access Link passes F12 to Neovim and then uses the key press to identify the
+focused Neovim session exactly.
 
 ## 4. Install the components
 
@@ -124,7 +120,7 @@ NVDA process ends.
 ### Local Windows session
 
 1. Start `nvim.exe` in Windows Terminal.
-2. Press the activation gesture assigned in section 3.
+2. Press `NVDA+Alt+N` or your reassigned activation gesture.
 3. Wait for the message that local and saved connections are being checked or
    are ready.
 4. Focus the intended Neovim and press F12 once.
@@ -134,7 +130,8 @@ NVDA process ends.
 
 1. Sign in over SSH in the intended Windows Terminal tab or pane.
 2. Start `nvim` on the Linux target.
-3. Press the activation gesture and wait for the ready message.
+3. Press `NVDA+Alt+N` or your reassigned activation gesture and wait for the
+   ready message.
 4. Focus the intended Neovim and press F12 once.
 5. Wait for the connection confirmation.
 
@@ -174,7 +171,7 @@ panes and therefore several separate terminals.
 Check in this order:
 
 1. Is Neovim running in Windows Terminal?
-2. Is the activation gesture assigned, and did you press it before F12?
+2. Did you press `NVDA+Alt+N` or your reassigned activation gesture before F12?
 3. Did you fully restart Neovim after installing the components?
 4. Does the Neovim configuration load the installed Access Link plugin?
 5. For Linux, does the normal SSH login work outside the add-on?

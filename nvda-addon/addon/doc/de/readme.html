@@ -695,8 +695,8 @@ dieselben Grundlagen und weiterführende Kapitel.</p>
 <ol type="1">
 <li>Der Komponentenbefehl installiert das Neovim-Plugin und bei Linux
 zusätzlich die Bridge.</li>
-<li>Die selbst zugewiesene Aktivierungsgeste schaltet den
-Access-Link-Dienst ein und sucht erreichbare Sitzungen.</li>
+<li><code>NVDA+Alt+N</code> schaltet den Access-Link-Dienst ein und
+sucht erreichbare Sitzungen.</li>
 <li>F12 ordnet das fokussierte Windows-Terminal-Control der gerade
 fokussierten Neovim-Sitzung zu.</li>
 </ol>
@@ -704,9 +704,9 @@ fokussierten Neovim-Sitzung zu.</li>
 Verbindung.</p>
 <section id="docs__de__manual__communicationmd__aktivierung-und-f12" class="level3">
 <h3>Aktivierung und F12</h3>
-<p>Die Aktivierungsgeste ist ein NVDA-Befehl und enthält üblicherweise
-die NVDA-Taste oder eine andere im NVDA-Tastenbefehldialog zugewiesene
-Kombination. NVDA führt ihn bei fokussiertem Windows Terminal aus.</p>
+<p>Die Standardgeste <code>NVDA+Alt+N</code> ist ein NVDA-Befehl. NVDA
+führt ihn bei fokussiertem Windows Terminal aus. Im
+NVDA-Tastenbefehldialog kann eine andere Geste zugewiesen werden.</p>
 <p>F12 gehört zum normalen Tastaturpfad von Windows Terminal und Neovim.
 Access Link blockiert die Taste nicht: Neovim erhält sie und markiert
 die aktuelle Sitzung kurzzeitig. Anschließend verbindet Access Link
@@ -1826,7 +1826,8 @@ Linux-Kontos ab und benötigt keine root-Rechte.</p>
 <li>Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per
 SSH an.</li>
 <li>Starten Sie auf dem Linux-Ziel <code>nvim</code>.</li>
-<li>Drücken Sie die zugewiesene Access-Link-Aktivierungsgeste.</li>
+<li>Drücken Sie <code>NVDA+Alt+N</code> oder Ihre neu zugewiesene
+Access-Link-Aktivierungsgeste.</li>
 <li>Warten Sie auf die Bereitschaftsmeldung.</li>
 <li>Fokussieren Sie Neovim und drücken Sie F12 einmal.</li>
 <li>Warten Sie auf die Verbindungsbestätigung.</li>
@@ -2642,42 +2643,48 @@ Befehle.</p>
 </thead>
 <tbody>
 <tr class="odd">
+<td><code>NVDA+Alt+N</code></td>
+<td>Windows Terminal</td>
+<td>Access Link ein- oder ausschalten und konfigurierte Verbindungen
+erkennen</td>
+</tr>
+<tr class="even">
 <td><code>NVDA+Alt+D</code></td>
 <td>Windows Terminal</td>
 <td>redigierten Diagnosebericht kopieren</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+h</code> / <code>NVDA+l</code></td>
 <td>verbundene Neovim-Pane</td>
 <td>vorheriges / nächstes Zeichen erkunden</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Umschalt+NVDA+h</code> / <code>Umschalt+NVDA+l</code></td>
 <td>verbundene Neovim-Pane</td>
 <td>vorheriges / nächstes Wort erkunden</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+k</code> / <code>NVDA+j</code></td>
 <td>verbundene Neovim-Pane</td>
 <td>vorherige / nächste Zeile erkunden</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NVDA+Leertaste</code>, NVDA-Taste weiter halten</td>
 <td>Position mit Signaturhilfe</td>
 <td>Signaturen und Parameter anzeigen</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+Umschalt+Leertaste</code>, NVDA-Taste weiter halten</td>
 <td>Position oder Zeile mit Diagnosen</td>
 <td>Diagnosen anzeigen</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NVDA+j</code> / <code>NVDA+k</code> bei geöffneter
 <code>z=</code>-Liste</td>
 <td>Rechtschreibvorschläge</td>
 <td>nächsten / vorherigen Vorschlag anzeigen</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NVDA+Eingabe</code> bei gewähltem Vorschlag</td>
 <td>Rechtschreibvorschläge</td>
 <td>Vorschlag übernehmen</td>
@@ -2703,46 +2710,42 @@ vorübergehende Ansicht.</p>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen</code></td>
-<td>Dienst aktivieren oder deaktivieren</td>
-</tr>
-<tr class="even">
 <td><code>Braillezeilen-Navigation zwischen Braille-Cursormodus und Braille-Explorationsmodus umschalten</code></td>
 <td>Braillemodus der aktuellen Sitzung wechseln</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Dokumentation für den ausgewählten Neovim-Completion-Eintrag oder LSP-Hover lesen</code></td>
 <td>verfügbare Completion- oder Hover-Dokumentation ausgeben</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen</code></td>
 <td>aktuelle Visual-Auswahl kopieren</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertragen</code></td>
 <td>Neovims Register 0 kopieren</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfügen</code></td>
 <td>Text an der Neovim-Position einfügen</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Text aus der Windows-Zwischenablage im unbenannten Neovim-Register speichern</code></td>
 <td>Text für Neovims <code>p</code> bereitstellen</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Direkte Eingabe im aktiven Neovim-Terminal verlassen</code></td>
 <td>aus direkter Terminaleingabe in Terminal-Normalmodus wechseln</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Einen Server auswählen und dieses Terminal mit einer neuen Neovim-Sitzung verbinden</code></td>
 <td>zugänglichen Sitzungsdialog öffnen</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Ausgewählte Neovim-Verbindungsinstanz trennen</code></td>
 <td>Access-Link-Verbindung beenden</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Temporäre Neovim-Verbindung für das fokussierte Terminal vergessen</code></td>
 <td>gemerkte Tab-Zuordnung entfernen</td>
 </tr>
@@ -3370,8 +3373,9 @@ deshalb vor dem Weitergeben.</p>
 Access Link nicht ein.</li>
 <li>Prüfen Sie in NVDAs Liste installierter Add-ons, ob Neovim Access
 Link aktiviert ist.</li>
-<li>Öffnen Sie bei fokussiertem Windows Terminal den Tastenbefehlsdialog
-und weisen Sie dem Aktivierungsbefehl eine Geste zu.</li>
+<li>Drücken Sie bei fokussiertem Windows Terminal
+<code>NVDA+Alt+N</code>. Prüfen Sie im Tastenbefehlsdialog, ob Sie die
+Standardgeste geändert haben.</li>
 <li>Starten Sie NVDA nach einer Installation oder Aktualisierung
 neu.</li>
 </ol>

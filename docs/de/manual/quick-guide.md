@@ -50,21 +50,18 @@ Nach dem Neustart enthält `NVDA-Menü → Optionen → Einstellungen…` die Ka
 `Neovim Access Link` mit Einstellungen, Komponentenverwaltung und der
 installierten Dokumentation.
 
-## 3. Aktivierungsgeste zuweisen
+## 3. Access Link aktivieren
 
-1. Fokussieren Sie Windows Terminal.
-2. Öffnen Sie `NVDA-Menü → Optionen → Tastenbefehle…`.
-3. Öffnen Sie die Kategorie `Neovim Access Link`.
-4. Weisen Sie dem Befehl `Neovim-Barrierefreiheit ein- oder ausschalten und
-   konfigurierte Verbindungen erkennen` eine gut erreichbare Geste zu.
+Fokussieren Sie Windows Terminal und drücken Sie `NVDA+Alt+N`. Diese
+Standardgeste schaltet Access Link ein oder aus und sucht konfigurierte
+Verbindungen. Unter
+`NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link` können Sie dem
+Befehl eine andere Geste zuweisen.
 
-Verwenden Sie nicht `Ctrl+Alt+N`, wenn diese Kombination in Ihrer
-NVDA-Installation NVDA neu startet.
-
-Die zugewiesene Geste ist ein **NVDA-Befehl**: NVDA verarbeitet sie bei
-fokussiertem Windows Terminal. `F12` ist dagegen keine Aktivierungsgeste.
-Access Link reicht F12 an Neovim weiter und verwendet den Tastendruck danach,
-um die fokussierte Neovim-Sitzung eindeutig auszuwählen.
+`NVDA+Alt+N` ist ein **NVDA-Befehl** und nicht mit `Strg+Alt+N` zu verwechseln,
+das in manchen Installationen NVDA startet. `F12` ist ebenfalls keine
+Aktivierungsgeste. Access Link reicht F12 an Neovim weiter und verwendet den
+Tastendruck danach, um die fokussierte Neovim-Sitzung eindeutig auszuwählen.
 
 ## 4. Komponenten installieren
 
@@ -132,7 +129,7 @@ Arbeitsspeicher.
 ### Lokal unter Windows
 
 1. Starten Sie `nvim.exe` in Windows Terminal.
-2. Drücken Sie die in Abschnitt 3 zugewiesene Aktivierungsgeste.
+2. Drücken Sie `NVDA+Alt+N` oder Ihre neu zugewiesene Aktivierungsgeste.
 3. Warten Sie auf die Meldung, dass lokale und gespeicherte Verbindungen geprüft
    werden beziehungsweise bereitstehen.
 4. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
@@ -142,7 +139,8 @@ Arbeitsspeicher.
 
 1. Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per SSH an.
 2. Starten Sie auf dem Linux-Ziel `nvim`.
-3. Drücken Sie die Aktivierungsgeste und warten Sie auf die Bereitschaftsmeldung.
+3. Drücken Sie `NVDA+Alt+N` oder Ihre neu zugewiesene Aktivierungsgeste und
+   warten Sie auf die Bereitschaftsmeldung.
 4. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
 5. Warten Sie auf die Verbindungsbestätigung.
 
@@ -184,7 +182,8 @@ mehrere Panes und damit mehrere getrennte Terminals.
 Prüfen Sie in dieser Reihenfolge:
 
 1. Läuft Neovim in Windows Terminal?
-2. Ist die Aktivierungsgeste zugewiesen und wurde sie vor F12 gedrückt?
+2. Wurde `NVDA+Alt+N` oder die neu zugewiesene Aktivierungsgeste vor F12
+   gedrückt?
 3. Wurde Neovim nach der Komponenteninstallation vollständig neu gestartet?
 4. Lädt die Neovim-Konfiguration das installierte Access-Link-Plugin?
 5. Funktioniert bei Linux die normale SSH-Anmeldung außerhalb des Add-ons?

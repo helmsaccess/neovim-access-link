@@ -6,6 +6,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Belegt den kontextbezogenen Aktivierungsbefehl standardmäßig mit
+  `NVDA+Alt+N`. Die Geste bleibt im NVDA-Tastenbefehldialog änderbar und wird
+  außerhalb eines passenden fokussierten Windows-Terminal-Controls wie bisher
+  durchgereicht.
 - Macht Neovims eingebauten `:Tutor` gezielt zugänglicher, ohne eine eigene
   Tutorial-Logik einzuführen. Ab Neovim 0.12 liefern eindeutig erkannte native
   Tutor-Extmarks lokalisierte Meldungen bei einer geänderten Bewertung, die

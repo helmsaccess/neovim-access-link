@@ -33,7 +33,7 @@ directory and requires no root privileges.
 
 1. Sign in over SSH in the intended Windows Terminal tab or pane.
 2. Start `nvim` on the Linux target.
-3. Press the assigned Access Link activation gesture.
+3. Press `NVDA+Alt+N` or your reassigned Access Link activation gesture.
 4. Wait for the ready message.
 5. Focus Neovim and press F12 once.
 6. Wait for connection confirmation.

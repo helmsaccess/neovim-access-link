@@ -4,8 +4,8 @@ Installation, Aktivierung und Verbindung sind getrennte Schritte:
 
 1. Der Komponentenbefehl installiert das Neovim-Plugin und bei Linux zusätzlich
    die Bridge.
-2. Die selbst zugewiesene Aktivierungsgeste schaltet den Access-Link-Dienst ein
-   und sucht erreichbare Sitzungen.
+2. `NVDA+Alt+N` schaltet den Access-Link-Dienst ein und sucht erreichbare
+   Sitzungen.
 3. F12 ordnet das fokussierte Windows-Terminal-Control der gerade fokussierten
    Neovim-Sitzung zu.
 
@@ -13,9 +13,9 @@ Eine installierte Komponente ist daher noch keine laufende Verbindung.
 
 ## Aktivierung und F12
 
-Die Aktivierungsgeste ist ein NVDA-Befehl und enthält üblicherweise die
-NVDA-Taste oder eine andere im NVDA-Tastenbefehldialog zugewiesene Kombination.
-NVDA führt ihn bei fokussiertem Windows Terminal aus.
+Die Standardgeste `NVDA+Alt+N` ist ein NVDA-Befehl. NVDA führt ihn bei
+fokussiertem Windows Terminal aus. Im NVDA-Tastenbefehldialog kann eine andere
+Geste zugewiesen werden.
 
 F12 gehört zum normalen Tastaturpfad von Windows Terminal und Neovim. Access
 Link blockiert die Taste nicht: Neovim erhält sie und markiert die aktuelle

@@ -1,6 +1,6 @@
 # Current status
 
-Status date: August 12, 2026. The source tree belongs to the 0.98.0 development
+Status date: August 13, 2026. The source tree belongs to the 0.98.0 development
 line; `buildVars.py` generates development builds with Git metadata and sets
 the release channel to beta. The current published pre-release is 0.97.0. The
 project does not infer a higher stability classification from test coverage or
@@ -52,6 +52,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - The manifest provides the project URL and default help file. Development
   builds use the matching German or English unreleased changelog section;
   releases use their version section.
+- `NVDA+Alt+N` is the default activation gesture and remains reassignable in
+  Input Gestures. It continues to belong to the Windows Terminal AppModule;
+  outside a matching focused control, the native keyboard path remains intact.
 - Local sessions use dynamic TCP bound only to `127.0.0.1`; remote sessions use
   SSH stdin/stdout and a private Unix RPC socket. Short-lived JSON files, not
   the Windows Registry, provide session discovery.

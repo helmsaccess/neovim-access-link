@@ -12,6 +12,7 @@ unverbundenen Panes gelten NVDAs normale Befehle.
 
 | Geste | Kontext | Funktion |
 | --- | --- | --- |
+| `NVDA+Alt+N` | Windows Terminal | Access Link ein- oder ausschalten und konfigurierte Verbindungen erkennen |
 | `NVDA+Alt+D` | Windows Terminal | redigierten Diagnosebericht kopieren |
 | `NVDA+h` / `NVDA+l` | verbundene Neovim-Pane | vorheriges / nächstes Zeichen erkunden |
 | `Umschalt+NVDA+h` / `Umschalt+NVDA+l` | verbundene Neovim-Pane | vorheriges / nächstes Wort erkunden |
@@ -32,7 +33,6 @@ Diese Befehle besitzen keine Standardgeste:
 
 | UI-Name | Funktion |
 | --- | --- |
-| `Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen` | Dienst aktivieren oder deaktivieren |
 | `Braillezeilen-Navigation zwischen Braille-Cursormodus und Braille-Explorationsmodus umschalten` | Braillemodus der aktuellen Sitzung wechseln |
 | `Dokumentation für den ausgewählten Neovim-Completion-Eintrag oder LSP-Hover lesen` | verfügbare Completion- oder Hover-Dokumentation ausgeben |
 | `Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen` | aktuelle Visual-Auswahl kopieren |

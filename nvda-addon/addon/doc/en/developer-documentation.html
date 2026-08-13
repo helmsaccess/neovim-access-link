@@ -2546,7 +2546,7 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 12, 2026. The source tree belongs to the 0.98.0
+<p>Status date: August 13, 2026. The source tree belongs to the 0.98.0
 development line; <code>buildVars.py</code> generates development builds
 with Git metadata and sets the release channel to beta. The current
 published pre-release is 0.97.0. The project does not infer a higher
@@ -2602,6 +2602,10 @@ remain owned by user configuration.</li>
 <li>The manifest provides the project URL and default help file.
 Development builds use the matching German or English unreleased
 changelog section; releases use their version section.</li>
+<li><code>NVDA+Alt+N</code> is the default activation gesture and
+remains reassignable in Input Gestures. It continues to belong to the
+Windows Terminal AppModule; outside a matching focused control, the
+native keyboard path remains intact.</li>
 <li>Local sessions use dynamic TCP bound only to <code>127.0.0.1</code>;
 remote sessions use SSH stdin/stdout and a private Unix RPC socket.
 Short-lived JSON files, not the Windows Registry, provide session
@@ -5794,6 +5798,10 @@ August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
 <ul>
+<li>Assigns <code>NVDA+Alt+N</code> to the contextual activation command
+by default. The gesture remains reassignable in NVDA&#39;s Input Gestures
+dialog and continues to pass through outside a matching focused Windows
+Terminal control.</li>
 <li>Makes Neovim&#39;s built-in <code>:Tutor</code> specifically more
 accessible without adding separate tutorial logic. From Neovim 0.12,
 recognized, unambiguous native Tutor extmarks provide localized

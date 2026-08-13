@@ -64,8 +64,8 @@ Guide</a>
 <li><a href="#1-check-the-prerequisites" id="toc-1-check-the-prerequisites">1. Check the prerequisites</a></li>
 <li><a href="#2-install-the-add-on" id="toc-2-install-the-add-on">2.
 Install the add-on</a></li>
-<li><a href="#3-assign-the-activation-gesture" id="toc-3-assign-the-activation-gesture">3. Assign the activation
-gesture</a></li>
+<li><a href="#3-activate-access-link" id="toc-3-activate-access-link">3.
+Activate Access Link</a></li>
 <li><a href="#4-install-the-components" id="toc-4-install-the-components">4. Install the components</a></li>
 <li><a href="#5-optional-save-a-linux-connection" id="toc-5-optional-save-a-linux-connection">5. Optional: Save a Linux
 connection</a></li>
@@ -128,22 +128,17 @@ Windows.</li>
 contains a <code>Neovim Access Link</code> submenu for settings,
 component management, and the installed documentation.</p>
 </section>
-<section id="3-assign-the-activation-gesture" class="level3">
-<h3>3. Assign the activation gesture</h3>
-<ol type="1">
-<li>Focus Windows Terminal.</li>
-<li>Open
-<code>NVDA menu &gt; Preferences &gt; Input gestures...</code>.</li>
-<li>Open the <code>Neovim Access Link</code> category.</li>
-<li>Assign a convenient gesture to
-<code>Turn Neovim accessibility on or off and discover configured connections</code>.</li>
-</ol>
-<p>Do not use <code>Ctrl+Alt+N</code> when that combination restarts
-NVDA in your installation.</p>
-<p>The assigned gesture is an <strong>NVDA command</strong>: NVDA
-processes it while Windows Terminal is focused. <code>F12</code> is not
-the activation gesture. Access Link passes F12 to Neovim and then uses
-the key press to identify the focused Neovim session exactly.</p>
+<section id="3-activate-access-link" class="level3">
+<h3>3. Activate Access Link</h3>
+<p>Focus Windows Terminal and press <code>NVDA+Alt+N</code>. This
+default gesture turns Access Link on or off and discovers configured
+connections. You can assign a different gesture under
+<code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>.</p>
+<p><code>NVDA+Alt+N</code> is an <strong>NVDA command</strong> and is
+different from <code>Ctrl+Alt+N</code>, which starts NVDA in some
+installations. <code>F12</code> is not the activation gesture either.
+Access Link passes F12 to Neovim and then uses the key press to identify
+the focused Neovim session exactly.</p>
 </section>
 <section id="4-install-the-components" class="level3">
 <h3>4. Install the components</h3>
@@ -215,7 +210,8 @@ ends.</p>
 <h4>Local Windows session</h4>
 <ol type="1">
 <li>Start <code>nvim.exe</code> in Windows Terminal.</li>
-<li>Press the activation gesture assigned in section 3.</li>
+<li>Press <code>NVDA+Alt+N</code> or your reassigned activation
+gesture.</li>
 <li>Wait for the message that local and saved connections are being
 checked or are ready.</li>
 <li>Focus the intended Neovim and press F12 once.</li>
@@ -227,7 +223,8 @@ checked or are ready.</li>
 <ol type="1">
 <li>Sign in over SSH in the intended Windows Terminal tab or pane.</li>
 <li>Start <code>nvim</code> on the Linux target.</li>
-<li>Press the activation gesture and wait for the ready message.</li>
+<li>Press <code>NVDA+Alt+N</code> or your reassigned activation gesture
+and wait for the ready message.</li>
 <li>Focus the intended Neovim and press F12 once.</li>
 <li>Wait for the connection confirmation.</li>
 </ol>
@@ -275,8 +272,8 @@ The first association remains active.</li>
 <p>Check in this order:</p>
 <ol type="1">
 <li>Is Neovim running in Windows Terminal?</li>
-<li>Is the activation gesture assigned, and did you press it before
-F12?</li>
+<li>Did you press <code>NVDA+Alt+N</code> or your reassigned activation
+gesture before F12?</li>
 <li>Did you fully restart Neovim after installing the components?</li>
 <li>Does the Neovim configuration load the installed Access Link
 plugin?</li>

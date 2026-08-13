@@ -64,8 +64,7 @@ Guide</a>
 <li><a href="#1-voraussetzungen-prüfen" id="toc-1-voraussetzungen-prüfen">1. Voraussetzungen prüfen</a></li>
 <li><a href="#2-add-on-installieren" id="toc-2-add-on-installieren">2.
 Add-on installieren</a></li>
-<li><a href="#3-aktivierungsgeste-zuweisen" id="toc-3-aktivierungsgeste-zuweisen">3. Aktivierungsgeste
-zuweisen</a></li>
+<li><a href="#3-access-link-aktivieren" id="toc-3-access-link-aktivieren">3. Access Link aktivieren</a></li>
 <li><a href="#4-komponenten-installieren" id="toc-4-komponenten-installieren">4. Komponenten installieren</a></li>
 <li><a href="#5-optional-linux-verbindung-speichern" id="toc-5-optional-linux-verbindung-speichern">5. Optional:
 Linux-Verbindung speichern</a></li>
@@ -131,23 +130,19 @@ unter Windows.</li>
 Untermenü <code>Neovim Access Link</code> mit Einstellungen,
 Komponentenverwaltung und der installierten Dokumentation.</p>
 </section>
-<section id="3-aktivierungsgeste-zuweisen" class="level3">
-<h3>3. Aktivierungsgeste zuweisen</h3>
-<ol type="1">
-<li>Fokussieren Sie Windows Terminal.</li>
-<li>Öffnen Sie <code>NVDA-Menü → Optionen → Tastenbefehle…</code>.</li>
-<li>Öffnen Sie die Kategorie <code>Neovim Access Link</code>.</li>
-<li>Weisen Sie dem Befehl
-<code>Neovim-Barrierefreiheit ein- oder ausschalten und konfigurierte Verbindungen erkennen</code>
-eine gut erreichbare Geste zu.</li>
-</ol>
-<p>Verwenden Sie nicht <code>Ctrl+Alt+N</code>, wenn diese Kombination
-in Ihrer NVDA-Installation NVDA neu startet.</p>
-<p>Die zugewiesene Geste ist ein <strong>NVDA-Befehl</strong>: NVDA
-verarbeitet sie bei fokussiertem Windows Terminal. <code>F12</code> ist
-dagegen keine Aktivierungsgeste. Access Link reicht F12 an Neovim weiter
-und verwendet den Tastendruck danach, um die fokussierte Neovim-Sitzung
-eindeutig auszuwählen.</p>
+<section id="3-access-link-aktivieren" class="level3">
+<h3>3. Access Link aktivieren</h3>
+<p>Fokussieren Sie Windows Terminal und drücken Sie
+<code>NVDA+Alt+N</code>. Diese Standardgeste schaltet Access Link ein
+oder aus und sucht konfigurierte Verbindungen. Unter
+<code>NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link</code>
+können Sie dem Befehl eine andere Geste zuweisen.</p>
+<p><code>NVDA+Alt+N</code> ist ein <strong>NVDA-Befehl</strong> und
+nicht mit <code>Strg+Alt+N</code> zu verwechseln, das in manchen
+Installationen NVDA startet. <code>F12</code> ist ebenfalls keine
+Aktivierungsgeste. Access Link reicht F12 an Neovim weiter und verwendet
+den Tastendruck danach, um die fokussierte Neovim-Sitzung eindeutig
+auszuwählen.</p>
 </section>
 <section id="4-komponenten-installieren" class="level3">
 <h3>4. Komponenten installieren</h3>
@@ -223,7 +218,8 @@ NVDA-Laufzeit im Arbeitsspeicher.</p>
 <h4>Lokal unter Windows</h4>
 <ol type="1">
 <li>Starten Sie <code>nvim.exe</code> in Windows Terminal.</li>
-<li>Drücken Sie die in Abschnitt 3 zugewiesene Aktivierungsgeste.</li>
+<li>Drücken Sie <code>NVDA+Alt+N</code> oder Ihre neu zugewiesene
+Aktivierungsgeste.</li>
 <li>Warten Sie auf die Meldung, dass lokale und gespeicherte
 Verbindungen geprüft werden beziehungsweise bereitstehen.</li>
 <li>Fokussieren Sie das gewünschte Neovim und drücken Sie F12
@@ -237,8 +233,8 @@ einmal.</li>
 <li>Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per
 SSH an.</li>
 <li>Starten Sie auf dem Linux-Ziel <code>nvim</code>.</li>
-<li>Drücken Sie die Aktivierungsgeste und warten Sie auf die
-Bereitschaftsmeldung.</li>
+<li>Drücken Sie <code>NVDA+Alt+N</code> oder Ihre neu zugewiesene
+Aktivierungsgeste und warten Sie auf die Bereitschaftsmeldung.</li>
 <li>Fokussieren Sie das gewünschte Neovim und drücken Sie F12
 einmal.</li>
 <li>Warten Sie auf die Verbindungsbestätigung.</li>
@@ -290,8 +286,8 @@ drücken Sie dort F12. Die erste Zuordnung bleibt bestehen.</li>
 <p>Prüfen Sie in dieser Reihenfolge:</p>
 <ol type="1">
 <li>Läuft Neovim in Windows Terminal?</li>
-<li>Ist die Aktivierungsgeste zugewiesen und wurde sie vor F12
-gedrückt?</li>
+<li>Wurde <code>NVDA+Alt+N</code> oder die neu zugewiesene
+Aktivierungsgeste vor F12 gedrückt?</li>
 <li>Wurde Neovim nach der Komponenteninstallation vollständig neu
 gestartet?</li>
 <li>Lädt die Neovim-Konfiguration das installierte

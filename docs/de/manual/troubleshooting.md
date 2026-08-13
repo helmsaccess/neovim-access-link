@@ -20,8 +20,8 @@ Weitergeben.
    nicht ein.
 2. Prüfen Sie in NVDAs Liste installierter Add-ons, ob Neovim Access Link
    aktiviert ist.
-3. Öffnen Sie bei fokussiertem Windows Terminal den Tastenbefehlsdialog und
-   weisen Sie dem Aktivierungsbefehl eine Geste zu.
+3. Drücken Sie bei fokussiertem Windows Terminal `NVDA+Alt+N`. Prüfen Sie im
+   Tastenbefehlsdialog, ob Sie die Standardgeste geändert haben.
 4. Starten Sie NVDA nach einer Installation oder Aktualisierung neu.
 
 Fehlt die Kategorie im Tastenbefehlsdialog, schließen Sie den Dialog,

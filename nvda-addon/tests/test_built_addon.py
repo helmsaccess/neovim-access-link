@@ -4259,12 +4259,11 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(feeds_before + 6, len(self.soundFeeds))
         plugin.terminate()
 
-    def test_toggle_has_no_collision_prone_default_gesture(self) -> None:
+    def test_contextual_scripts_have_only_intended_default_gestures(self) -> None:
         from appModules.windowsterminal import AppModule
         from globalPlugins.NeovimAccessLink import GlobalPlugin, _PRODUCT_NAME
 
         configurable_scripts = (
-            "script_toggleNeovimMode",
             "script_toggleBrailleExplorationMode",
             "script_readCompletionDocumentation",
             "script_copyNeovimSelection",
@@ -4290,7 +4289,19 @@ class BuiltAddonTests(unittest.TestCase):
             AppModule.script_startConnectionInstance._test_script_kwargs["description"].lower(),
         )
         self.assertEqual(
+            "kb:NVDA+alt+n",
+            AppModule.script_toggleNeovimMode._test_script_kwargs["gesture"],
+        )
+        self.assertEqual(
+            _PRODUCT_NAME,
+            AppModule.script_toggleNeovimMode._test_script_kwargs["category"],
+        )
+        self.assertEqual(
             "kb:NVDA+alt+d",
+            AppModule.script_copyDiagnosticReport._test_script_kwargs["gesture"],
+        )
+        self.assertNotEqual(
+            AppModule.script_toggleNeovimMode._test_script_kwargs["gesture"],
             AppModule.script_copyDiagnosticReport._test_script_kwargs["gesture"],
         )
         self.assertFalse(hasattr(AppModule, "script_claimFocusedNeovimSession"))

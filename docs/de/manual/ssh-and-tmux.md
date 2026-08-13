@@ -34,7 +34,8 @@ ab und benötigt keine root-Rechte.
 
 1. Melden Sie sich im gewünschten Windows-Terminal-Tab oder -Pane per SSH an.
 2. Starten Sie auf dem Linux-Ziel `nvim`.
-3. Drücken Sie die zugewiesene Access-Link-Aktivierungsgeste.
+3. Drücken Sie `NVDA+Alt+N` oder Ihre neu zugewiesene
+   Access-Link-Aktivierungsgeste.
 4. Warten Sie auf die Bereitschaftsmeldung.
 5. Fokussieren Sie Neovim und drücken Sie F12 einmal.
 6. Warten Sie auf die Verbindungsbestätigung.

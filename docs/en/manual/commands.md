@@ -12,6 +12,7 @@ unconnected panes, NVDA's normal commands apply.
 
 | Gesture | Context | Function |
 | --- | --- | --- |
+| `NVDA+Alt+N` | Windows Terminal | turn Access Link on or off and discover configured connections |
 | `NVDA+Alt+D` | Windows Terminal | copy the redacted diagnostic report |
 | `NVDA+h` / `NVDA+l` | connected Neovim pane | explore previous / next character |
 | `Shift+NVDA+h` / `Shift+NVDA+l` | connected Neovim pane | explore previous / next word |
@@ -32,7 +33,6 @@ These commands have no default gesture:
 
 | UI name | Function |
 | --- | --- |
-| `Turn Neovim accessibility on or off and discover configured connections` | enable or disable the service |
 | `Toggle Braille navigation between Braille cursor mode and Braille exploration mode` | change the Braille mode for the current session |
 | `Read documentation for the selected Neovim completion item or LSP hover` | present available completion or hover documentation |
 | `Copy the active Neovim Visual selection to the Windows clipboard` | copy the current Visual selection |

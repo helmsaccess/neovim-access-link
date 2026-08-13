@@ -18,8 +18,8 @@ names, or SSH targets. Review the report before sharing it.
 1. Focus Windows Terminal. Access Link does not intervene in other
    applications.
 2. Confirm that Neovim Access Link is enabled in NVDA's installed add-ons.
-3. With Windows Terminal focused, open Input gestures and assign a gesture to
-   the activation command.
+3. With Windows Terminal focused, press `NVDA+Alt+N`. Check Input gestures if
+   you changed the default gesture.
 4. Restart NVDA after an installation or update.
 
 If the category is absent from Input gestures, close the dialog, focus Windows

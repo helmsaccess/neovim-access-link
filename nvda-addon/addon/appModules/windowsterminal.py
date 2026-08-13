@@ -625,6 +625,7 @@ class AppModule(appModuleHandler.AppModule):
 	@scriptHandler.script(
 		description=_("Turn Neovim accessibility on or off and discover configured connections"),
 		category=scriptCategory,
+		gesture="kb:NVDA+alt+n",
 	)
 	def script_toggleNeovimMode(self, gesture):
 		self._dispatchConfiguredTerminalScript(
