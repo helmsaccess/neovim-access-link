@@ -135,7 +135,9 @@ endgültigen Worktree neu gebaut:
 python3 tools/build_nvda_addon.py
 ```
 
-Pakettests öffnen das tatsächliche `.nvda-addon` und prüfen Manifest,
+Pakettests öffnen das tatsächliche `.nvda-addon` und prüfen Basis- und
+Lokalisierungsmanifest streng gegen die zutreffenden Felder des offiziellen
+NVDA-AddonTemplates sowie
 Ressourcen, alle acht lokalisierten installierten HTML-Dokumente, gebündelte
 Linux-Komponenten, Lizenzen, Übersetzungskatalog und verbotene Dateien. Ein
 vorher gebautes Archiv ist kein Nachweis für spätere

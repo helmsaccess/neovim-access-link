@@ -20,7 +20,15 @@ import zipfile
 
 from configobj import ConfigObj
 
-from tools.build_nvda_addon import build, find_msgpack_license, validate_manifest
+from tools.build_nvda_addon import (
+    LOCALIZED_MANIFEST_FIELDS,
+    NVDA_TEMPLATE_MANIFEST_FIELDS,
+    build,
+    find_msgpack_license,
+    validate_localized_manifest,
+    validate_manifest,
+    write_manifest,
+)
 from tools import build_user_package
 import buildVars
 
@@ -756,6 +764,8 @@ class BuiltAddonTests(unittest.TestCase):
     def test_manifest_uses_scalar_strings_accepted_by_nvda_parser(self) -> None:
         manifest = validate_manifest(self.extract_path / "manifest.ini")
         self.assertEqual(buildVars.manifest(), dict(manifest))
+        self.assertEqual(NVDA_TEMPLATE_MANIFEST_FIELDS, set(manifest))
+        self.assertTrue(all(value and value == value.strip() for value in manifest.values()))
         self.assertEqual("NeovimAccessLink", manifest["name"])
         self.assertEqual(buildVars.store_version(), manifest["version"])
         self.assertEqual("readme.html", manifest["docFileName"])
@@ -767,6 +777,49 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertNotIn("dev", manifest["version"])
 
+    def test_manifest_validator_rejects_non_template_and_malformed_metadata(self) -> None:
+        root = pathlib.Path(self.temporary.name) / "manifest-validation"
+        help_path = root / "doc" / "en" / "readme.html"
+        help_path.parent.mkdir(parents=True)
+        help_path.write_text("help", encoding="utf-8")
+        valid = buildVars.manifest()
+        cases = []
+
+        def changed(case_name, expected, **updates):
+            value = dict(valid)
+            value.update(updates)
+            cases.append((case_name, value, expected))
+
+        missing = dict(valid)
+        missing.pop("description")
+        cases.append(("missing template field", missing, "missing=.*description"))
+        unexpected = {**valid, "license": "GPL-2.0-or-later"}
+        cases.append(("unexpected build-only field", unexpected, "unexpected=.*license"))
+        changed("blank field", "non-empty string", summary=" ")
+        changed("surrounding whitespace", "leading or trailing whitespace", description="text ")
+        changed("multiline scalar", "must be a single line", summary="first\nsecond")
+        changed("invalid identifier", "CamelCase-compatible", name="neovim-access-link")
+        changed("missing author email", "contact email", author="Emanuel Helms")
+        changed("insecure URL", "absolute HTTPS URL", url="http://example.com/addon")
+        changed("URL credentials", "absolute HTTPS URL", url="https://user@example.com/addon")
+        changed("noncanonical version", "MAJOR.MINOR.PATCH", version="1.2")
+        changed("invalid NVDA API", "invalid NVDA API version", minimumNVDAVersion="26.1")
+        changed(
+            "reversed NVDA range",
+            "must not exceed",
+            minimumNVDAVersion="2027.1",
+            lastTestedNVDAVersion="2026.1.1",
+        )
+        changed("invalid help path", "portable file name", docFileName="../readme.html")
+        changed("missing help file", "does not resolve to English help", docFileName="missing.html")
+        changed("invalid channel", "invalid manifest updateChannel", updateChannel="preview")
+
+        for name, metadata, expected in cases:
+            with self.subTest(case=name):
+                write_manifest(root / "manifest.ini", metadata)
+                with self.assertRaisesRegex(RuntimeError, expected):
+                    validate_manifest(root / "manifest.ini")
+
     def test_manifest_changelog_covers_store_updates_since_0_96_0(self) -> None:
         self.assertIn(buildVars.store_version(), buildVars.manifest_changelog())
         self.assertIn("0.97.0", buildVars.manifest_changelog())
@@ -775,6 +828,24 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertNotIn("HTTPS project URL", buildVars.changelog())
         self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
         self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
+
+    def test_localized_manifest_validator_rejects_incomplete_or_extra_fields(self) -> None:
+        path = pathlib.Path(self.temporary.name) / "localized-manifest.ini"
+        valid = {
+            "summary": "Localized summary",
+            "description": "Localized description",
+            "changelog": "Localized changes",
+        }
+        invalid = (
+            ({key: value for key, value in valid.items() if key != "changelog"}, "missing=.*changelog"),
+            ({**valid, "author": "Must remain in the base manifest"}, "unexpected=.*author"),
+            ({**valid, "description": " "}, "trimmed non-empty string"),
+        )
+        for metadata, expected in invalid:
+            with self.subTest(expected=expected):
+                write_manifest(path, metadata)
+                with self.assertRaisesRegex(RuntimeError, expected):
+                    validate_localized_manifest(path, "de")
 
     def test_development_manifest_uses_only_unreleased_changelog(self) -> None:
         with (
@@ -796,11 +867,11 @@ class BuiltAddonTests(unittest.TestCase):
             names = set(archive.namelist())
         self.assertTrue(expected <= names)
 
-        german_manifest = ConfigObj(
-            str(self.extract_path / "locale" / "de" / "manifest.ini"),
-            encoding="utf-8",
-            list_values=True,
+        german_manifest = validate_localized_manifest(
+            self.extract_path / "locale" / "de" / "manifest.ini",
+            "de",
         )
+        self.assertEqual(LOCALIZED_MANIFEST_FIELDS, set(german_manifest))
         self.assertEqual(buildVars.manifest_changelog("de"), german_manifest["changelog"])
 
     def test_archive_contains_only_the_new_addon_identity(self) -> None:

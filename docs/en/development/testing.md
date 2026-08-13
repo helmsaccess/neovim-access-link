@@ -131,7 +131,9 @@ After a change to installable code, rebuild the add-on from the final worktree:
 python3 tools/build_nvda_addon.py
 ```
 
-Package tests open the actual `.nvda-addon` and inspect its manifest,
+Package tests open the actual `.nvda-addon` and strictly check base and
+localization manifests against the applicable official NVDA AddonTemplate
+fields, plus
 resources, all eight localized installed HTML documents, bundled Linux
 components, licenses, translation catalog, and forbidden files. An earlier
 archive is not evidence for later source changes.

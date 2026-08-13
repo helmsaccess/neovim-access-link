@@ -61,6 +61,12 @@ Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
 
 Der Add-on-Build prüft Manifest, acht installierte lokalisierte HTML-Dokumente,
 gebündelte Komponenten, Abhängigkeiten und Archivinhalt. Der
+Manifestvertrag folgt der Feldmenge des offiziellen NVDA-AddonTemplates:
+Alle zutreffenden Felder müssen als getrimmte Skalare vorliegen; unbekannte,
+leere oder fehlerhaft formatierte Angaben, eine fehlende englische
+Standardhilfe und unvollständige Lokalisierungsmanifeste brechen den Build ab.
+Ein Feld darf nur entfallen, wenn es für das Projekt tatsächlich nicht
+zutrifft. Der
 Dokumentationsbuild synchronisiert ausführbare Beispiele,
 prüft Markdown- und HTML-Links, die deutsche und englische Struktur sowie
 Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht

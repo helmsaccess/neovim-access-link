@@ -11,6 +11,7 @@ import re
 import shutil
 import sys
 import tempfile
+import urllib.parse
 import zipfile
 
 from configobj import ConfigObj
@@ -42,8 +43,16 @@ CORE_MODULES = (
     "starter_config.py",
     "service_registrar.py", "ssh_install.py", "ssh_sessions.py",
 )
-API_VERSION = re.compile(r"^(0|\d{4})\.\d(?:\.\d)?$")
-ADDON_VERSION = re.compile(r"^\d+\.\d+(?:\.\d+)?$")
+API_VERSION = re.compile(r"^(?:0|[1-9]\d{3})\.\d+(?:\.\d+)?$")
+ADDON_VERSION = re.compile(r"^\d+\.\d+\.\d+$")
+ADDON_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
+AUTHOR_WITH_EMAIL = re.compile(r"^.+\s<[^<>\s@]+@[^<>\s@]+>$")
+NVDA_TEMPLATE_MANIFEST_FIELDS = frozenset({
+    "name", "summary", "description", "author", "url", "version", "changelog",
+    "docFileName", "minimumNVDAVersion", "lastTestedNVDAVersion", "updateChannel",
+})
+LOCALIZED_MANIFEST_FIELDS = frozenset({"summary", "description", "changelog"})
+MULTILINE_MANIFEST_FIELDS = frozenset({"description", "changelog"})
 
 
 def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathlib.Path:
@@ -89,26 +98,43 @@ def write_manifest(path: pathlib.Path, manifest: dict[str, str] | None = None) -
 
 def validate_manifest(path: pathlib.Path) -> ConfigObj:
     manifest = ConfigObj(str(path), encoding="utf-8", list_values=True)
-    required = (
-        "name", "summary", "description", "author", "version",
-        "changelog", "url", "docFileName",
-        "minimumNVDAVersion", "lastTestedNVDAVersion", "updateChannel",
-    )
-    for field in required:
+    fields = set(manifest)
+    if fields != NVDA_TEMPLATE_MANIFEST_FIELDS:
+        missing = sorted(NVDA_TEMPLATE_MANIFEST_FIELDS - fields)
+        unexpected = sorted(fields - NVDA_TEMPLATE_MANIFEST_FIELDS)
+        raise RuntimeError(
+            f"manifest fields differ from the NVDA AddonTemplate; "
+            f"missing={missing!r}, unexpected={unexpected!r}"
+        )
+    for field in NVDA_TEMPLATE_MANIFEST_FIELDS:
         value = manifest.get(field)
-        if not isinstance(value, str) or not value:
+        if not isinstance(value, str) or not value.strip():
             raise RuntimeError(f"manifest field {field} must be one non-empty string, got {value!r}")
+        if value != value.strip():
+            raise RuntimeError(f"manifest field {field} has leading or trailing whitespace")
+        if "\x00" in value or "\r" in value:
+            raise RuntimeError(f"manifest field {field} contains unsupported control characters")
+        if field not in MULTILINE_MANIFEST_FIELDS and "\n" in value:
+            raise RuntimeError(f"manifest field {field} must be a single line")
+    if ADDON_NAME.fullmatch(manifest["name"]) is None:
+        raise RuntimeError(f"manifest name must be one CamelCase-compatible identifier: {manifest['name']!r}")
+    if AUTHOR_WITH_EMAIL.fullmatch(manifest["author"]) is None:
+        raise RuntimeError("manifest author must include a name and contact email in angle brackets")
     for field in ("minimumNVDAVersion", "lastTestedNVDAVersion"):
         if not API_VERSION.fullmatch(manifest[field]):
             raise RuntimeError(f"invalid NVDA API version in {field}: {manifest[field]!r}")
     if ADDON_VERSION.fullmatch(manifest["version"]) is None:
-        raise RuntimeError(f"invalid Add-on Store version: {manifest['version']!r}")
-    if not manifest["url"].startswith("https://"):
-        raise RuntimeError("manifest url must use HTTPS")
+        raise RuntimeError(f"Add-on Store version must use MAJOR.MINOR.PATCH: {manifest['version']!r}")
+    url = urllib.parse.urlsplit(manifest["url"])
+    if url.scheme != "https" or not url.hostname or url.username or url.password:
+        raise RuntimeError("manifest url must be one absolute HTTPS URL without credentials")
     if pathlib.PurePath(manifest["docFileName"]).name != manifest["docFileName"]:
         raise RuntimeError("manifest docFileName must be one portable file name")
     if pathlib.PurePath(manifest["docFileName"]).suffix.casefold() != ".html":
         raise RuntimeError("manifest docFileName must name an HTML document")
+    default_document = path.parent / "doc" / "en" / manifest["docFileName"]
+    if not default_document.is_file():
+        raise RuntimeError(f"manifest docFileName does not resolve to English help: {default_document}")
     if manifest["updateChannel"] not in {"stable", "beta", "dev"}:
         raise RuntimeError(f"invalid manifest updateChannel: {manifest['updateChannel']!r}")
     def api_tuple(value: str) -> tuple[int, int, int]:
@@ -116,6 +142,29 @@ def validate_manifest(path: pathlib.Path) -> ConfigObj:
         return tuple((parts + [0])[:3])
     if api_tuple(manifest["minimumNVDAVersion"]) > api_tuple(manifest["lastTestedNVDAVersion"]):
         raise RuntimeError("minimumNVDAVersion must not exceed lastTestedNVDAVersion")
+    return manifest
+
+
+def validate_localized_manifest(path: pathlib.Path, language: str) -> ConfigObj:
+    manifest = ConfigObj(str(path), encoding="utf-8", list_values=True)
+    fields = set(manifest)
+    if fields != LOCALIZED_MANIFEST_FIELDS:
+        missing = sorted(LOCALIZED_MANIFEST_FIELDS - fields)
+        unexpected = sorted(fields - LOCALIZED_MANIFEST_FIELDS)
+        raise RuntimeError(
+            f"localized {language} manifest fields are invalid; "
+            f"missing={missing!r}, unexpected={unexpected!r}"
+        )
+    for field in LOCALIZED_MANIFEST_FIELDS:
+        value = manifest.get(field)
+        if not isinstance(value, str) or not value.strip() or value != value.strip():
+            raise RuntimeError(
+                f"localized {language} manifest field {field} must be one trimmed non-empty string"
+            )
+        if "\x00" in value or "\r" in value:
+            raise RuntimeError(
+                f"localized {language} manifest field {field} contains unsupported control characters"
+            )
     return manifest
 
 
@@ -144,11 +193,11 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         stage.mkdir()
         write_manifest(stage / "manifest.ini")
         shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
+        shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
+        validate_documents(stage / "doc")
         staged_manifest = validate_manifest(stage / "manifest.ini")
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
-        shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
-        validate_documents(stage / "doc")
         compile_catalogs(stage / "locale")
         for translated_manifest in sorted((ROOT / "nvda-addon" / "locale").glob("*/manifest.ini")):
             language = translated_manifest.parent.name
@@ -157,7 +206,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             localized = ConfigObj(str(translated_manifest), encoding="utf-8", list_values=True)
             localized["changelog"] = buildVars.manifest_changelog(language)
             write_manifest(destination, dict(localized))
-            staged_localized = ConfigObj(str(destination), encoding="utf-8", list_values=True)
+            staged_localized = validate_localized_manifest(destination, language)
             if staged_localized.get("changelog") != buildVars.manifest_changelog(language):
                 raise RuntimeError(f"localized changelog differs from {language} source")
         plugin = stage / "globalPlugins" / metadata["name"]

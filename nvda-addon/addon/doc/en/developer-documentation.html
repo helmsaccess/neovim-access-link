@@ -2605,7 +2605,9 @@ remain owned by user configuration.</li>
 help file, update channel, and localized changelog. For 0.98.0, this
 covers the changes since the Add-on Store&#39;s last published version,
 0.96.0; the separate 0.98.0 project changelog covers only changes since
-0.97.0.</li>
+0.97.0. The package build rejects missing, empty, unknown, or malformed
+template fields and verifies the default English help plus the German
+localization manifest.</li>
 <li><code>NVDA+Alt+N</code> is the default activation gesture and
 remains reassignable in Input Gestures. It continues to belong to the
 Windows Terminal AppModule; outside a matching focused control, the
@@ -4952,10 +4954,12 @@ activity.</p>
 <p>After a change to installable code, rebuild the add-on from the final
 worktree:</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span></code></pre></div>
-<p>Package tests open the actual <code>.nvda-addon</code> and inspect
-its manifest, resources, all eight localized installed HTML documents,
-bundled Linux components, licenses, translation catalog, and forbidden
-files. An earlier archive is not evidence for later source changes.</p>
+<p>Package tests open the actual <code>.nvda-addon</code> and strictly
+check base and localization manifests against the applicable official
+NVDA AddonTemplate fields, plus resources, all eight localized installed
+HTML documents, bundled Linux components, licenses, translation catalog,
+and forbidden files. An earlier archive is not evidence for later source
+changes.</p>
 <p>After documentation changes, rebuild documentation:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
 <p>The build checks the canonical Lua example, German and English source
@@ -5353,12 +5357,16 @@ and <code>socket</code> separately as described by the <a href="#docs__en__devel
 strategy</a>.</p>
 <p>The add-on build validates the manifest, eight installed localized
 HTML documents, bundled components, dependencies, and archive contents.
-The documentation build synchronizes executable examples, checks
-Markdown and HTML links, German/English structure, and each output&#39;s
-language, title, and description, and creates eight HTML documents. It
-copies the same results under neutral names in
-<code>nvda-addon/addon/doc/de</code> and <code>doc/en</code>; CI rejects
-stale copies.</p>
+The manifest contract follows the official NVDA AddonTemplate field set:
+every applicable field must be a trimmed scalar; unknown, empty, or
+malformed metadata, missing default English help, and incomplete
+localization manifests stop the build. A field may be omitted only when
+it is genuinely inapplicable to the project. The documentation build
+synchronizes executable examples, checks Markdown and HTML links,
+German/English structure, and each output&#39;s language, title, and
+description, and creates eight HTML documents. It copies the same
+results under neutral names in <code>nvda-addon/addon/doc/de</code> and
+<code>doc/en</code>; CI rejects stale copies.</p>
 <p><code>build.cmd</code> is an additional parameterless convenience
 path for Windows users who want to build the current development state
 from a source download. It requires Python 3.10 or newer and an internet
@@ -5901,6 +5909,10 @@ clipboard text into Neovim.</li>
 current German or English changelog section to the manifest. Development
 builds use the unreleased section; releases curate it into the version
 section and then reset it.</li>
+<li>Strictly validates built base and localization manifests against the
+official NVDA AddonTemplate field set. Missing, empty, unknown, or
+malformed metadata and missing default English help stop the package
+build.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0970" class="level3">

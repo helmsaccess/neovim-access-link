@@ -59,7 +59,9 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll. Für
   0.98.0 umfasst dieses die Änderungen seit der zuletzt im Add-on Store
   veröffentlichten Version 0.96.0; der Projekt-Changelog 0.98.0 beschreibt
-  getrennt nur die Änderungen seit 0.97.0.
+  getrennt nur die Änderungen seit 0.97.0. Der Paketbuild verwirft fehlende,
+  leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
+  englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
 - `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
   Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
   außerhalb eines passenden fokussierten Controls bleibt der native

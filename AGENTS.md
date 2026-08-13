@@ -113,6 +113,9 @@ take precedence.
 - Record development changes under German `Unveröffentlicht` and English `Unreleased`. When
   `development_build` becomes `None`, curate them into the matching version section with only
   changes since the preceding published release, then reset the unreleased section.
+- Before publication, validate the built base and localized manifests against the current official
+  NVDA AddonTemplate. Populate every applicable template field; omit one only when it is genuinely
+  inapplicable, and treat unknown, malformed, or empty applicable fields as release blockers.
 - GitHub releases contain the `.nvda-addon` plus one ZIP with all eight German and English
   quick-guide, handbook, developer-documentation, and guided-human-testing HTML files.
 

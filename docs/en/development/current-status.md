@@ -53,7 +53,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - The manifest follows the NVDA template with the project URL, default help
   file, update channel, and localized changelog. For 0.98.0, this covers the
   changes since the Add-on Store's last published version, 0.96.0; the separate
-  0.98.0 project changelog covers only changes since 0.97.0.
+  0.98.0 project changelog covers only changes since 0.97.0. The package build
+  rejects missing, empty, unknown, or malformed template fields and verifies
+  the default English help plus the German localization manifest.
 - `NVDA+Alt+N` is the default activation gesture and remains reassignable in
   Input Gestures. It continues to belong to the Windows Terminal AppModule;
   outside a matching focused control, the native keyboard path remains intact.

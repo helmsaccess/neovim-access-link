@@ -26,4 +26,5 @@
 - Document private NVDA API usage in an ADR before release.
 - Run `ruff check .` and `ruff format --check .` for NVDA-facing Python changes.
 - Run relevant add-on unit tests and package tests through `python3 tools/run_tests.py`.
-- Packaging tests must validate the built add-on rather than only the source tree.
+- Packaging tests must validate the built add-on rather than only the source tree, including exact
+  official-template fields and strict base/localized manifest formats.

@@ -88,6 +88,9 @@ test-build entries through August 5, 2026.
   German or English changelog section to the manifest.
   Development builds use the unreleased section; releases curate it into the
   version section and then reset it.
+- Strictly validates built base and localization manifests against the official
+  NVDA AddonTemplate field set. Missing, empty, unknown, or malformed metadata
+  and missing default English help stop the package build.
 ## 0.97.0
 
 - Adds the HTTPS project URL to the add-on manifest.

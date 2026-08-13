@@ -2699,7 +2699,10 @@ Benutzerkonfiguration überlassen.</li>
 Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll.
 Für 0.98.0 umfasst dieses die Änderungen seit der zuletzt im Add-on
 Store veröffentlichten Version 0.96.0; der Projekt-Changelog 0.98.0
-beschreibt getrennt nur die Änderungen seit 0.97.0.</li>
+beschreibt getrennt nur die Änderungen seit 0.97.0. Der Paketbuild
+verwirft fehlende, leere, unbekannte oder fehlerhaft formatierte
+Templatefelder und prüft die englische Standardhilfe sowie das deutsche
+Lokalisierungsmanifest.</li>
 <li><code>NVDA+Alt+N</code> ist die voreingestellte, im
 Tastenbefehlsdialog änderbare Aktivierungsgeste. Sie gehört weiterhin
 dem Windows-Terminal-AppModule; außerhalb eines passenden fokussierten
@@ -5295,10 +5298,12 @@ gesonderte Abnahme.</p>
 endgültigen Worktree neu gebaut:</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span></code></pre></div>
 <p>Pakettests öffnen das tatsächliche <code>.nvda-addon</code> und
-prüfen Manifest, Ressourcen, alle acht lokalisierten installierten
-HTML-Dokumente, gebündelte Linux-Komponenten, Lizenzen,
-Übersetzungskatalog und verbotene Dateien. Ein vorher gebautes Archiv
-ist kein Nachweis für spätere Quelländerungen.</p>
+prüfen Basis- und Lokalisierungsmanifest streng gegen die zutreffenden
+Felder des offiziellen NVDA-AddonTemplates sowie Ressourcen, alle acht
+lokalisierten installierten HTML-Dokumente, gebündelte
+Linux-Komponenten, Lizenzen, Übersetzungskatalog und verbotene Dateien.
+Ein vorher gebautes Archiv ist kein Nachweis für spätere
+Quelländerungen.</p>
 <p>Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
 <p>Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche
@@ -5718,7 +5723,13 @@ In eingeschränkten Umgebungen werden <code>all-safe</code>,
 getrennt ausgeführt.</p>
 <p>Der Add-on-Build prüft Manifest, acht installierte lokalisierte
 HTML-Dokumente, gebündelte Komponenten, Abhängigkeiten und Archivinhalt.
-Der Dokumentationsbuild synchronisiert ausführbare Beispiele, prüft
+Der Manifestvertrag folgt der Feldmenge des offiziellen
+NVDA-AddonTemplates: Alle zutreffenden Felder müssen als getrimmte
+Skalare vorliegen; unbekannte, leere oder fehlerhaft formatierte
+Angaben, eine fehlende englische Standardhilfe und unvollständige
+Lokalisierungsmanifeste brechen den Build ab. Ein Feld darf nur
+entfallen, wenn es für das Projekt tatsächlich nicht zutrifft. Der
+Dokumentationsbuild synchronisiert ausführbare Beispiele, prüft
 Markdown- und HTML-Links, die deutsche und englische Struktur sowie
 Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
 HTML-Dokumente. Er übernimmt dieselben Ergebnisse unter neutralen
@@ -6315,6 +6326,10 @@ deutschen beziehungsweise englischen Changelogabschnitt erzeugte
 Änderungsprotokoll. Entwicklungsbuilds verwenden den unveröffentlichten
 Abschnitt; bei Releases wird er redaktionell in die Version überführt
 und anschließend zurückgesetzt.</li>
+<li>Prüft das gebaute Basis- und Lokalisierungsmanifest streng gegen die
+Feldmenge des offiziellen NVDA-AddonTemplates. Fehlende, leere,
+unbekannte oder fehlerhaft formatierte Angaben sowie eine fehlende
+englische Standardhilfe brechen den Paketbuild ab.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0970" class="level3">

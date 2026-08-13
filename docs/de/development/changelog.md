@@ -100,6 +100,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
   beziehungsweise englischen Changelogabschnitt erzeugte Änderungsprotokoll.
   Entwicklungsbuilds verwenden den unveröffentlichten Abschnitt; bei Releases
   wird er redaktionell in die Version überführt und anschließend zurückgesetzt.
+- Prüft das gebaute Basis- und Lokalisierungsmanifest streng gegen die
+  Feldmenge des offiziellen NVDA-AddonTemplates. Fehlende, leere, unbekannte
+  oder fehlerhaft formatierte Angaben sowie eine fehlende englische
+  Standardhilfe brechen den Paketbuild ab.
 ## 0.97.0
 
 - Ergänzt die HTTPS-Projektadresse im Add-on-Manifest.

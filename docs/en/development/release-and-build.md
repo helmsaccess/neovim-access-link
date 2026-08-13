@@ -60,6 +60,11 @@ strategy](testing.md).
 
 The add-on build validates the manifest, eight installed localized HTML
 documents, bundled components, dependencies, and archive contents. The
+manifest contract follows the official NVDA AddonTemplate field set: every
+applicable field must be a trimmed scalar; unknown, empty, or malformed
+metadata, missing default English help, and incomplete localization manifests
+stop the build. A field may be omitted only when it is genuinely inapplicable
+to the project. The
 documentation build synchronizes executable examples,
 checks Markdown and HTML links, German/English structure, and each output's
 language, title, and description, and creates eight HTML documents.
