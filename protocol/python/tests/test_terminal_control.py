@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import unittest
 
-from nvim_nvda_protocol import valid_leave_terminal_input_request
+from nvim_nvda_protocol import terminal_control_result_state, valid_leave_terminal_input_request
 
 
 class TerminalControlValidationTests(unittest.TestCase):
+    def test_result_fields_do_not_enter_canonical_state(self) -> None:
+        self.assertEqual(
+            {"modeRaw": "n", "bufferId": 2},
+            terminal_control_result_state({
+                "requestId": 1,
+                "ok": True,
+                "resultCode": "ok",
+                "modeRaw": "n",
+                "bufferId": 2,
+            }),
+        )
+
     def test_requires_exact_terminal_mode_identity_without_changedtick(self) -> None:
         payload = {
             "requestId": 1, "bufferId": 2, "windowId": 3,

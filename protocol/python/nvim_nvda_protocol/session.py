@@ -23,14 +23,14 @@ class SessionTracker:
         session_id = message["sessionId"]
         sequence = message["sequence"]
         if self.session_id is None:
-            self.session_id = session_id
-            if message["type"] != "fullState":
+            if message["type"] != "fullState" or sequence != 0:
                 return "resyncRequired"
+            self.session_id = session_id
             self.last_sequence = sequence
             self.needs_resync = False
             return "accept"
         if session_id != self.session_id:
-            if message["type"] != "fullState":
+            if message["type"] != "fullState" or sequence != 0:
                 return "staleSession"
             self.session_id = session_id
             self.last_sequence = sequence
@@ -39,6 +39,8 @@ class SessionTracker:
         if self.needs_resync:
             if message["type"] != "fullState":
                 return "resyncRequired"
+            if sequence <= self.last_sequence:
+                return "duplicate"
             self.last_sequence = sequence
             self.needs_resync = False
             return "accept"

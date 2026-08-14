@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import unittest
 
-from nvim_nvda_protocol import MessageFactory, ProtocolError, SshStdioClient, encode_frame
+from nvim_nvda_protocol import FrameDecoder, MessageFactory, ProtocolError, SshStdioClient, encode_frame
 from nvim_nvda_protocol.stdio_client import STDIO_MARKER
 
 
@@ -28,6 +28,23 @@ class ReadOneOnly(io.BytesIO):
 
 
 class SshStdioClientTests(unittest.TestCase):
+    def test_rejects_nonzero_initial_full_state_and_requests_resync(self) -> None:
+        events: list[dict] = []
+        states: list[str] = []
+        full_state = MessageFactory().create("fullState", {"lineText": "untrusted"})
+        full_state["sequence"] = 4
+        process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
+        client = SshStdioClient("example-host", events.append, states.append)
+        client._process = process
+
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+
+        self.assertEqual([], events)
+        self.assertEqual([], states)
+        controls = FrameDecoder().feed(process.stdin.getvalue())
+        self.assertEqual(["requestFullState"], [control["type"] for control in controls])
+
     def test_discards_shell_noise_and_accepts_full_state(self) -> None:
         events: list[dict] = []
         states: list[str] = []

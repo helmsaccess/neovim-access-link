@@ -3,6 +3,8 @@ from __future__ import annotations
 import struct
 import unittest
 
+import msgpack
+
 from nvim_nvda_protocol import (
     ExponentialBackoff,
     FrameDecoder,
@@ -28,11 +30,13 @@ def message(sequence: int = 0, kind: str = "fullState", session: str = "session-
 
 
 class CodecTests(unittest.TestCase):
-    def test_fragmented_and_concatenated_frames(self) -> None:
+    def test_every_byte_boundary_and_concatenated_frames(self) -> None:
         data = encode_frame(message()) + encode_frame(message(1, "modeChanged"))
         decoder = FrameDecoder()
-        self.assertEqual([], decoder.feed(data[:3]))
-        self.assertEqual([message(), message(1, "modeChanged")], decoder.feed(data[3:]))
+        decoded = []
+        for byte in data:
+            decoded.extend(decoder.feed(bytes((byte,))))
+        self.assertEqual([message(), message(1, "modeChanged")], decoded)
 
     def test_oversized_declared_frame_is_rejected(self) -> None:
         with self.assertRaises(ProtocolError):
@@ -44,6 +48,31 @@ class CodecTests(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             encode_frame(invalid)
 
+    def test_boolean_and_negative_integer_fields_are_rejected(self) -> None:
+        for field, value in (
+            ("sequence", True),
+            ("sequence", -1),
+            ("timestampMonotonic", False),
+            ("timestampMonotonic", -1),
+        ):
+            with self.subTest(field=field, value=value):
+                invalid = message()
+                invalid[field] = value
+                with self.assertRaises(ProtocolError):
+                    encode_frame(invalid)
+
+    def test_invalid_decoded_values_are_protocol_errors(self) -> None:
+        for decoded in ([], "message", None):
+            with self.subTest(decoded=decoded):
+                raw = msgpack.packb(decoded, use_bin_type=True)
+                frame = struct.pack(">I", len(raw)) + raw
+                with self.assertRaisesRegex(ProtocolError, "top-level value must be a map"):
+                    FrameDecoder().feed(frame)
+
+        raw = b"\xc1"
+        with self.assertRaisesRegex(ProtocolError, "invalid MessagePack payload"):
+            FrameDecoder().feed(struct.pack(">I", len(raw)) + raw)
+
     def test_protocol_v1_is_rejected_without_compatibility_fallback(self) -> None:
         obsolete = message()
         obsolete["protocolVersion"] = 1
@@ -54,22 +83,26 @@ class CodecTests(unittest.TestCase):
 class SessionTests(unittest.TestCase):
     def test_sequence_gap_requests_resync(self) -> None:
         tracker = SessionTracker()
-        self.assertEqual("accept", tracker.observe(message(4)))
-        self.assertEqual("resyncRequired", tracker.observe(message(6, "cursorMoved")))
-        self.assertEqual("resyncRequired", tracker.observe(message(6, "cursorMoved")))
-        self.assertEqual("accept", tracker.observe(message(7, "fullState")))
+        self.assertEqual("accept", tracker.observe(message()))
+        self.assertEqual("resyncRequired", tracker.observe(message(2, "cursorMoved")))
+        self.assertEqual("resyncRequired", tracker.observe(message(2, "cursorMoved")))
+        self.assertEqual("duplicate", tracker.observe(message(0, "fullState")))
+        self.assertEqual("accept", tracker.observe(message(3, "fullState")))
 
     def test_new_session_requires_full_state(self) -> None:
         tracker = SessionTracker()
         tracker.observe(message())
         self.assertEqual("staleSession", tracker.observe(message(0, "cursorMoved", "session-b")))
+        self.assertEqual("staleSession", tracker.observe(message(4, "fullState", "session-b")))
         self.assertEqual("accept", tracker.observe(message(0, "fullState", "session-b")))
 
-    def test_first_message_must_be_full_state(self) -> None:
+    def test_first_message_must_be_full_state_sequence_zero(self) -> None:
         tracker = SessionTracker()
         self.assertEqual("resyncRequired", tracker.observe(message(1, "cursorMoved")))
         self.assertEqual("resyncRequired", tracker.observe(message(2, "modeChanged")))
-        self.assertEqual("accept", tracker.observe(message(3, "fullState")))
+        self.assertEqual("resyncRequired", tracker.observe(message(3, "fullState")))
+        self.assertIsNone(tracker.session_id)
+        self.assertEqual("accept", tracker.observe(message()))
 
 
 class TextTests(unittest.TestCase):
@@ -80,15 +113,21 @@ class TextTests(unittest.TestCase):
         self.assertEqual((5, "🙂"), (cursor_text(line, 8).character_column, cursor_text(line, 8).character))
         self.assertEqual((6, "z"), (cursor_text(line, 12).character_column, cursor_text(line, 12).character))
 
-    def test_split_utf8_sequence_is_rejected(self) -> None:
-        with self.assertRaises(InvalidByteColumn):
-            cursor_text("界", 1)
+    def test_invalid_utf8_byte_columns_are_rejected(self) -> None:
+        for byte_column in (-1, 1, 2, 4):
+            with self.subTest(byte_column=byte_column):
+                with self.assertRaises(InvalidByteColumn):
+                    cursor_text("界", byte_column)
 
     def test_end_of_line_has_empty_character(self) -> None:
         self.assertEqual("", cursor_text("🙂", 4).character)
 
-    def test_utf16_counts_astral_character_as_two_units(self) -> None:
+    def test_utf16_counts_astral_character_and_rejects_out_of_range_columns(self) -> None:
         self.assertEqual(3, utf16_column("a🙂z", 2))
+        for character_column in (-1, 4):
+            with self.subTest(character_column=character_column):
+                with self.assertRaises(ValueError):
+                    utf16_column("a🙂z", character_column)
 
 
 class ReconnectTests(unittest.TestCase):

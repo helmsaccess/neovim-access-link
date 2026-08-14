@@ -5,11 +5,31 @@ import unittest
 from nvim_nvda_protocol import (
 	numbered_choice_state,
 	valid_accept_numbered_choice_request,
+	valid_numbered_choice_closed,
 	valid_numbered_choice_opened,
 )
 
 
 class NumberedChoiceProtocolTests(unittest.TestCase):
+	def test_closed_choice_requires_bounded_choice_and_editor_identity(self) -> None:
+		payload = {
+			"choiceKind": "spellSuggestions",
+			"choiceId": 7,
+			"bufferId": 1,
+			"windowId": 2,
+			"tabpageId": 3,
+			"changedtick": 4,
+		}
+		self.assertTrue(valid_numbered_choice_closed(payload))
+		for field, value in (
+			("choiceKind", "confirm"),
+			("choiceId", 0),
+			("bufferId", True),
+			("windowId", -1),
+		):
+			with self.subTest(field=field, value=value):
+				self.assertFalse(valid_numbered_choice_closed({**payload, field: value}))
+
 	def test_opened_choice_is_bounded_and_items_are_removed_from_cached_state(self) -> None:
 		payload = {
 			"choiceKind": "spellSuggestions",

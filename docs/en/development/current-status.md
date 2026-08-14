@@ -1,7 +1,7 @@
 # Current status
 
 Status date: August 14, 2026. The source tree develops the 0.99.0 line;
-`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
+`buildVars.py` generates artifacts as 0.99.0-dev.1 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -77,6 +77,10 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.
+  A new transport session is adopted only through `fullState` at sequence 0;
+  Boolean or negative envelope sequences and timestamps are rejected. After a
+  sequence gap, only a newer snapshot from the same session leaves the resync
+  state.
   When a remote Neovim instance ends, the SSH client immediately translates
   the bridge lifecycle state to the same fail-open path as a local RPC
   disconnect, even while the SSH process and bridge remain alive.

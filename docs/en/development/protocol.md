@@ -98,7 +98,9 @@ sequence 0. Earlier or foreign session identities are not adopted.
 - Duplicate or decreasing sequences are discarded.
 - A sequence gap enters “resync required”.
 - The client sends `requestFullState`.
-- Only a new valid `fullState` leaves that state.
+- Within the same session, only a `fullState` newer than the last accepted
+  sequence leaves that state; duplicate or decreasing snapshots stay discarded.
+- A foreign session identity is adopted only through `fullState` at sequence 0.
 - An SSH reconnect creates a new `sessionId` and restarts at sequence 0.
 
 The bridge normally sends one `heartbeat` per second. OpenSSH also uses

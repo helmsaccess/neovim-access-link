@@ -181,7 +181,11 @@ Sequenz 0. Vorherige oder fremde Sitzungskennungen werden nicht übernommen.
 - Doppelte oder rückwärts laufende Sequenzen werden verworfen.
 - Eine Sequenzlücke setzt den Client auf „Resync erforderlich“.
 - Der Client sendet `requestFullState`.
-- Erst ein neues `fullState` hebt diesen Zustand auf.
+- Innerhalb derselben Sitzung hebt erst ein gegenüber der zuletzt akzeptierten
+  Sequenz neueres `fullState` diesen Zustand auf; doppelte oder rückwärts
+  laufende Zustandsabbilder bleiben verworfen.
+- Eine fremde Sitzungskennung wird ausschließlich durch `fullState` mit
+  Sequenz 0 übernommen.
 - Nach SSH-Reconnect erzeugt die Bridge eine neue `sessionId` und beginnt
   wieder bei Sequenz 0.
 

@@ -224,6 +224,7 @@ def jobs() -> tuple[Job, ...]:
         "test_braille_navigation.py",
         "test_braille_routing_actions.py",
         "test_clipboard.py",
+        "test_cursor_routing.py",
         "test_developer_context.py",
         "test_exploration.py",
         "test_local_client.py",

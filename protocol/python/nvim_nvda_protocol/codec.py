@@ -20,7 +20,9 @@ class ProtocolError(ValueError):
     """Raised for malformed, incompatible, or oversized protocol data."""
 
 
-def _validate(message: Mapping[str, Any]) -> None:
+def _validate(message: Any) -> None:
+    if not isinstance(message, Mapping):
+        raise ProtocolError("top-level value must be a map")
     missing = _REQUIRED.difference(message)
     if missing:
         raise ProtocolError(f"missing required fields: {', '.join(sorted(missing))}")
@@ -28,9 +30,17 @@ def _validate(message: Mapping[str, Any]) -> None:
         raise ProtocolError(f"unsupported protocol version: {message['protocolVersion']!r}")
     if not isinstance(message["sessionId"], str) or not message["sessionId"]:
         raise ProtocolError("sessionId must be a non-empty string")
-    if not isinstance(message["sequence"], int) or message["sequence"] < 0:
+    if (
+        not isinstance(message["sequence"], int)
+        or isinstance(message["sequence"], bool)
+        or message["sequence"] < 0
+    ):
         raise ProtocolError("sequence must be a non-negative integer")
-    if not isinstance(message["timestampMonotonic"], int) or message["timestampMonotonic"] < 0:
+    if (
+        not isinstance(message["timestampMonotonic"], int)
+        or isinstance(message["timestampMonotonic"], bool)
+        or message["timestampMonotonic"] < 0
+    ):
         raise ProtocolError("timestampMonotonic must be a non-negative integer")
     if not isinstance(message["type"], str) or not message["type"]:
         raise ProtocolError("type must be a non-empty string")
@@ -71,8 +81,6 @@ class FrameDecoder:
                 decoded = msgpack.unpackb(raw, raw=False, strict_map_key=True)
             except (ValueError, msgpack.UnpackException) as error:
                 raise ProtocolError("invalid MessagePack payload") from error
-            if not isinstance(decoded, dict):
-                raise ProtocolError("top-level value must be a map")
             _validate(decoded)
-            messages.append(decoded)
+            messages.append(dict(decoded))
         return messages

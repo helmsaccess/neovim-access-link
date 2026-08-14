@@ -4,6 +4,7 @@ import unittest
 
 from nvim_nvda_protocol import (
     MAX_CLIPBOARD_TEXT_BYTES,
+    clipboard_result_state,
     valid_clipboard_text,
     valid_copy_text_request,
     valid_paste_text_request,
@@ -19,6 +20,20 @@ def expected_state() -> dict:
 
 
 class ClipboardValidationTests(unittest.TestCase):
+    def test_result_fields_do_not_enter_canonical_state(self) -> None:
+        payload = {
+            **expected_state(),
+            "lineText": "kept",
+            "requestId": 7,
+            "ok": True,
+            "clipboardText": "one shot",
+            "insertedBytes": 8,
+        }
+        self.assertEqual(
+            {**expected_state(), "lineText": "kept"},
+            clipboard_result_state(payload),
+        )
+
     def test_copy_control_accepts_only_fixed_sources_and_exact_state(self) -> None:
         for source in ("visualSelection", "yankRegister"):
             self.assertTrue(valid_copy_text_request({

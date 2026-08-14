@@ -65,6 +65,14 @@ test-build entries through August 5, 2026.
   not remembering automatically. Package tests cover profile switches, `Yes`
   and `No` decisions, cancellation, dialog focus, and prompt-free reuse. This
   installable state is development build 3.
+- Hardens protocol boundaries after the complete unit-test review. Boolean and
+  negative sequences or timestamps are rejected in the message envelope. A new
+  transport session starts exclusively with `fullState` at sequence 0, while
+  resync accepts neither old snapshots nor foreign sessions with a continued
+  sequence. Direct boundary and negative tests also cover MessagePack
+  fragmentation, text columns, cursor routing, and removal of transient result
+  fields. This first installable state on the test-review branch is development
+  build 1.
 
 ## 0.98.0
 

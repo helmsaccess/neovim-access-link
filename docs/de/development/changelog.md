@@ -71,6 +71,14 @@ und Testbuild-Einträge bis zum 5. August 2026.
   `Ja`- und `Nein`-Entscheidungen, Abbruch, Dialogfokus und die dialogfreie
   Wiederverwendung sind durch Pakettests abgedeckt. Dieser installierbare Stand
   ist Entwicklungsbuild 3.
+- Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
+  Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
+  Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich
+  mit `fullState` und Sequenz 0; Resync akzeptiert weder alte Zustandsabbilder
+  noch fremde Sitzungen mit fortgesetzter Sequenz. Direkte Grenzwert- und
+  Negativtests prüfen außerdem MessagePack-Fragmentierung, Textspalten,
+  Cursor-Routing und das Entfernen flüchtiger Ergebnisfelder. Dieser erste
+  installierbare Stand des Test-Review-Zweigs ist Entwicklungsbuild 1.
 
 ## 0.98.0
 

@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.1 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -85,6 +85,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.
+  Eine neue Transport-Sitzung wird nur durch `fullState` mit Sequenz 0
+  übernommen; boolesche oder negative Hüllensequenzen und Zeitstempel werden
+  verworfen. Nach einer Sequenzlücke beendet nur ein neueres Zustandsabbild
+  derselben Sitzung den Resync-Zustand.
   Beim Ende einer entfernten Neovim-Instanz übersetzt der SSH-Client den
   Bridge-Lebenszyklusstatus unmittelbar in denselben Fail-open-Pfad wie eine
   lokale RPC-Trennung, auch wenn SSH-Prozess und Bridge weiterlaufen.
