@@ -254,6 +254,7 @@ def jobs() -> tuple[Job, ...]:
         "test_config_transfer.py",
         "test_control_dispatcher.py",
         "test_exploration.py",
+        "test_event_delivery.py",
         "test_frontend_policy.py",
         "test_gettext_catalog.py",
         "test_held_context.py",
@@ -267,6 +268,7 @@ def jobs() -> tuple[Job, ...]:
         "test_speech.py",
         "test_starter_config.py",
         "test_temporary_binding.py",
+        "test_terminal_actions.py",
     ):
         result.append(python_file("unit", "addon", f"nvda-addon/tests/{file_name}"))
     result.extend(

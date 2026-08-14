@@ -7493,67 +7493,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn('"reason": "alreadyConfirmed"', plugin._runtime.diagnostics.report())
         plugin.terminate()
 
-    def test_connection_cue_plays_once_per_authenticated_transport_lifetime(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-
-        class Client:
-            def start(self):
-                pass
-
-            def stop(self):
-                pass
-
-        plugin = GlobalPlugin()
-        self._focusPlugin(plugin)
-        plugin._runtime.coordinator.gate.manual_enabled = True
-        identity = plugin._runtime.terminal_focus.identity(self.focus)
-        instance = add_remote_instance(plugin._runtime.coordinator.instances, "work", "23", "Work", Client())
-        plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
-        played: list[str] = []
-        plugin._runtime.presentation.editor_sounds.play = lambda cue: played.append(cue) or True
-        full_state = {
-            "type": "fullState",
-            "payload": {
-                "mode": "normal",
-                "lineText": "ready",
-                "cursor": {"line": 1, "byteColumn": 0},
-            },
-        }
-
-        plugin._runtime.event_delivery.handle_managed_event(instance.identifier, full_state)
-        plugin._runtime.event_delivery.handle_managed_event(instance.identifier, full_state)
-        self.assertEqual(["connectionEstablished"], played)
-
-        plugin._runtime.event_delivery._handleManagedState(instance.identifier, "disconnected")
-        plugin._runtime.event_delivery.handle_managed_event(instance.identifier, full_state)
-        self.assertEqual(
-            ["connectionEstablished", "connectionLost", "connectionEstablished"],
-            played,
-        )
-        self.assertEqual(2, plugin._runtime.diagnostics.report().count('"category": "connectionEstablished"'))
-        self.assertEqual(1, plugin._runtime.diagnostics.report().count('"category": "connectionLost"'))
-        plugin.terminate()
-
-    def test_disconnection_cue_plays_once_only_for_real_focused_transport_loss(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-
-        plugin = GlobalPlugin()
-        self._focusPlugin(plugin)
-        plugin._runtime.coordinator.gate.manual_enabled = True
-        played: list[str] = []
-        plugin._runtime.presentation.editor_sounds.play = lambda cue: played.append(cue) or True
-
-        plugin._runtime.event_delivery._handleConnectionState("disconnected")
-        plugin._runtime.event_delivery._handleConnectionState("connected")
-        plugin._runtime.event_delivery._handleConnectionState("disconnected")
-        plugin._runtime.event_delivery._handleConnectionState("disconnected")
-
-        self.assertEqual(["connectionLost"], played)
-        report = plugin._runtime.diagnostics.report()
-        self.assertEqual(1, report.count('"category": "connectionLost"'))
-        self.assertEqual(1, report.count('"category": "connectionLostSound"'))
-        plugin.terminate()
-
     def test_queued_f12_authorization_is_cancelled_after_service_replacement(self) -> None:
         import queueHandler
         from appModules.windowsterminal import AppModule
@@ -11208,65 +11147,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("The Windows clipboard does not contain supported text", self.messages)
         plugin.terminate()
 
-    def test_terminal_actions_cancel_pending_request_when_dispatch_queue_rejects(self) -> None:
-        from globalPlugins.NeovimAccessLink.terminal_actions import TerminalActions
-
-        identity = object()
-        client = object()
-        instance = types.SimpleNamespace(identifier="connection-1")
-        gate = types.SimpleNamespace(
-            focused=identity,
-            bound_terminal=identity,
-            manual_enabled=True,
-            authenticated=True,
-            nvim_active=True,
-            suppression_active=True,
-        )
-        coordinator = types.SimpleNamespace(
-            gate=gate,
-            instances=types.SimpleNamespace(selected_for=lambda _identity: instance),
-            active_instance_id=instance.identifier,
-            active_client=client,
-        )
-        editor_session = mock.Mock()
-        editor_session.validate_clipboard_request.return_value = None
-        editor_session.plan_clipboard_request.return_value = types.SimpleNamespace(
-            ready=True,
-            control="pasteTextRequest",
-            payload={"requestId": 17},
-            request_id=17,
-            discarded_request_ids=(),
-        )
-        dispatcher = mock.Mock()
-        dispatcher.submit.return_value = False
-        presentation = mock.Mock()
-        presentation.feedback_mode.return_value = 0
-        diagnostics = mock.Mock()
-        actions = TerminalActions(
-            coordinator=coordinator,
-            editor_session=editor_session,
-            control_dispatcher=dispatcher,
-            presentation=presentation,
-            diagnostics=diagnostics,
-            addon_version=buildVars.artifact_version(),
-            product_name=buildVars.addon_info["summary"],
-            nvda_version=lambda: "2026.1.1",
-        )
-        self.clipboard = "queued text"
-
-        actions.paste_windows_clipboard()
-
-        dispatcher.submit.assert_called_once()
-        editor_session.cancel_clipboard_request.assert_called_once_with(17)
-        diagnostics.record.assert_any_call(
-            "clipboardPasteRequested",
-            requestId=17,
-            accepted=False,
-            errorType="QueueUnavailable",
-            bytes=11,
-        )
-        self.assertIn("Could not send text to the active Neovim session", self.messages)
-
     def test_remembered_focus_request_returns_before_blocked_transport(self) -> None:
         from globalPlugins.NeovimAccessLink.control_dispatcher import ControlDispatcher
         from globalPlugins.NeovimAccessLink.session_claim import (
@@ -11569,64 +11449,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIsNone(token)
         self.assertIs(braille.handler.messageBuffer.regions[-1], foreign_region)
         self.assertEqual(timer_stops, self.brailleMessageTimerStops)
-
-    def test_clipboard_reply_after_focus_loss_is_discarded(self) -> None:
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-
-        controls = []
-        client = types.SimpleNamespace(
-            start=lambda: None,
-            stop=lambda: None,
-            send_control=lambda kind, payload: controls.append((kind, payload)) or True,
-        )
-        plugin = GlobalPlugin()
-        identity = plugin._runtime.terminal_focus.identity(self.focus)
-        instance = add_remote_instance(
-            plugin._runtime.coordinator.instances, "local", "1", "This computer", client
-        )
-        plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
-        plugin._runtime.coordinator.gate.manual_enabled = plugin._runtime.coordinator.gate.authenticated = (
-            plugin._runtime.coordinator.gate.nvim_active
-        ) = True
-        plugin._runtime.coordinator.gate.focused = plugin._runtime.coordinator.gate.bound_terminal = identity
-        plugin._runtime.coordinator.authenticated_instances.add(instance.identifier)
-        plugin._runtime.coordinator.active_instance_id = instance.identifier
-        plugin._runtime.coordinator.active_client = client
-        plugin._runtime.coordinator.transport_capabilities = frozenset({"clipboardTransfer"})
-        plugin._runtime.coordinator.current_state = {
-            "bufferId": 1,
-            "windowId": 2,
-            "tabpageId": 3,
-            "changedtick": 4,
-            "mode": "normal",
-            "modeRaw": "n",
-            "modeBlocking": False,
-            "buftype": "",
-            "modifiable": True,
-            "readonly": False,
-            "fileManager": None,
-        }
-        plugin._runtime.terminal_actions.copy_last_yank(None)
-        self._waitForControls(controls, 1)
-        request = controls[-1][1]
-        self.clipboard = "unchanged"
-        self._terminalAdapter().event_appModule_loseFocus()
-        plugin._runtime.event_delivery.handle_managed_event(
-            instance.identifier,
-            {
-                "type": "copyTextResult",
-                "payload": {
-                    **plugin._runtime.coordinator.current_state,
-                    "requestId": request["requestId"],
-                    "ok": True,
-                    "resultCode": "copied",
-                    "clipboardText": "must not escape",
-                },
-            },
-        )
-        self.assertEqual("unchanged", self.clipboard)
-        self.assertNotIn("must not escape", plugin._runtime.diagnostics.report())
-        plugin.terminate()
 
     def test_leave_terminal_input_is_scoped_correlated_and_needs_no_changedtick(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
