@@ -251,6 +251,7 @@ def jobs() -> tuple[Job, ...]:
         "test_connection_instances.py",
         "test_connection_profiles.py",
         "test_connection_targets.py",
+        "test_connection_workflow.py",
         "test_config_transfer.py",
         "test_control_dispatcher.py",
         "test_exploration.py",
