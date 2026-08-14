@@ -17,7 +17,10 @@ detail, the [changelog](changelog.md) for completed changes, and the
 The main practical path has been exercised with Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim 0.10.1 and 0.12.3 on
 Rocky Linux 10.2 through OpenSSH for Windows 9.5p2. Local Windows Neovim, Linux
-Neovim over SSH, and tmux inside an SSH session are covered. See
+Neovim over SSH, and tmux inside an SSH session are covered. F12 assignment,
+the remember question, focus switching, and native typing echo in other Windows
+Terminal windows were additionally exercised with NVDA 2026.2beta10; the
+manifest therefore names NVDA 2026.2 as last tested. See
 [compatibility](compatibility.md) for complete platform and version boundaries.
 
 ## Implemented end-to-end path
@@ -73,7 +76,11 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   `Yes` the default focus. A checkbox can store the selected answer in the
   active NVDA profile; the three-state setting under `Connections` applies
   `Yes` or `No` automatically or resets the behavior to asking again. The tab
-  association itself remains runtime-only.
+  association itself remains runtime-only. Dialog-decision authorization is
+  separate from the one-shot focus recovery: multiple focus changes while the
+  question is open no longer lose a later `Yes`. Native terminal output,
+  including typing echo, remains fail-open until the matching foreground
+  context is confirmed again.
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.

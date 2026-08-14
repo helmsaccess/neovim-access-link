@@ -1719,13 +1719,17 @@ only through the dispatcher; it keeps no writable copy of claim state.
 <code>TemporaryBindingWorkflow</code> separately owns confirmation,
 focus recovery, and correlated state requests for remembered bindings.
 Focus loss caused by the optional modal remember question is bridged by
-exactly one terminal- and instance-correlated reactivation. If Windows
-Terminal emits no new focus event after the question closes, a short
-bounded main-thread sequence checks NVDA&#39;s current focus and starts the
-normal focus-context handshake only for the same control, AppModule,
-adapter token, and instance selection. A different terminal focus
-discards the reactivation; missing or uncertain focus keeps native
-output open.</p>
+exactly one terminal- and instance-correlated reactivation. Separate
+dialog-decision authorization remains valid until the answer, even if
+Windows Terminal consumes that focus reactivation while the question is
+still open. A different terminal focus still discards the reactivation,
+but changes neither the explicit answer nor its original
+terminal/instance correlation. If Windows Terminal emits no new focus
+event after the question closes, a short bounded main-thread sequence
+checks NVDA&#39;s current focus and starts the normal focus-context
+handshake only for the same control, AppModule, adapter token, and
+instance selection. A different terminal focus discards the
+reactivation; missing or uncertain focus keeps native output open.</p>
 <p>The <code>EditorSessionController</code> uses the active runtime
 managed by <code>ConnectionCoordinator</code> but is solely responsible
 for its domain mutation. It owns state and mode transitions, transport
@@ -2657,7 +2661,10 @@ work.</p>
 2026.1.1, Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim
 0.10.1 and 0.12.3 on Rocky Linux 10.2 through OpenSSH for Windows 9.5p2.
 Local Windows Neovim, Linux Neovim over SSH, and tmux inside an SSH
-session are covered. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
+session are covered. F12 assignment, the remember question, focus
+switching, and native typing echo in other Windows Terminal windows were
+additionally exercised with NVDA 2026.2beta10; the manifest therefore
+names NVDA 2026.2 as last tested. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
 for complete platform and version boundaries.</p>
 </section>
 <section id="docs__en__development__current-statusmd__implemented-end-to-end-path" class="level3">
@@ -2720,7 +2727,11 @@ association gives <code>Yes</code> the default focus. A checkbox can
 store the selected answer in the active NVDA profile; the three-state
 setting under <code>Connections</code> applies <code>Yes</code> or
 <code>No</code> automatically or resets the behavior to asking again.
-The tab association itself remains runtime-only.</li>
+The tab association itself remains runtime-only. Dialog-decision
+authorization is separate from the one-shot focus recovery: multiple
+focus changes while the question is open no longer lose a later
+<code>Yes</code>. Native terminal output, including typing echo, remains
+fail-open until the matching foreground context is confirmed again.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
 focus identity restore NVDA&#39;s native terminal behavior fail-open. A new
@@ -3005,7 +3016,8 @@ a promise for every user setting or presentation.</p>
 </tr>
 <tr class="even">
 <td>NVDA</td>
-<td>2026.1.1; manifest minimum 2026.1</td>
+<td>Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest
+minimum 2026.1, last tested 2026.2</td>
 </tr>
 <tr class="odd">
 <td>Terminal frontend</td>
@@ -6094,6 +6106,15 @@ between asking again, remembering automatically, and not remembering
 automatically. Package tests cover profile switches, <code>Yes</code>
 and <code>No</code> decisions, cancellation, dialog focus, and
 prompt-free reuse. This installable state is development build 3.</li>
+<li>Fixes a focus race in the F12 remember question. Dialog-decision
+authorization and one-shot focus recovery now have separate lifetimes. A
+focus return consumed while the question is open no longer discards a
+later <code>Yes</code>; suppression and structured typing echo remain
+disabled until the correlated foreground context is confirmed again,
+preserving native typing echo in other Windows Terminal windows.
+Regression tests cover repeated focus changes while the question is
+open. A practical run under NVDA 2026.2beta10 confirms this focus path,
+and the manifest sets the last tested NVDA version to 2026.2.</li>
 <li>Hardens protocol boundaries after the complete unit-test review.
 Boolean and negative sequences or timestamps are rejected in the message
 envelope. A new transport session starts exclusively with

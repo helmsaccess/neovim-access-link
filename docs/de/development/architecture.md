@@ -363,6 +363,11 @@ Claimzustands hält es nicht. `TemporaryBindingWorkflow` besitzt getrennt davon
 Bestätigung, Fokuswiederherstellung und korrelierte Zustandsanforderungen
 gemerkter Bindungen. Der Fokusverlust der optionalen modalen Merkabfrage wird
 durch genau eine an Terminal und Instanz korrelierte Reaktivierung überbrückt.
+Die Autorisierung der noch offenen Dialogentscheidung ist davon getrennt und
+bleibt bis zur Antwort bestehen. Eine bereits verbrauchte Fokusreaktivierung
+kann deshalb ein späteres `Ja` nicht ungültig machen. Ein anderer Terminalfokus
+verwirft weiterhin die Reaktivierung, verändert aber weder die explizite
+Dialogentscheidung noch deren ursprüngliche Terminal-/Instanzkorrelation.
 Falls Windows Terminal nach dem Schließen kein
 neues Fokusereignis liefert, prüft ein kurzer, begrenzter Hauptthread-Ablauf
 den aktuellen NVDA-Fokus und stößt nur für dasselbe Control, dasselbe

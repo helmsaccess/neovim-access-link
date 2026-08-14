@@ -299,7 +299,7 @@ msgstr "Fokussierte Neovim-Sitzung wird verbunden"
 msgid "Connection name:"
 msgstr "Verbindungsname:"
 
-#: nvda-addon/addon/globalPlugins/NeovimAccessLink/temporary_binding.py:166
+#: nvda-addon/addon/globalPlugins/NeovimAccessLink/temporary_binding.py:167
 msgid "Connection remembered for this terminal tab until NVDA exits"
 msgstr "Verbindung für diesen Terminal-Tab bis zum Beenden von NVDA gemerkt"
 

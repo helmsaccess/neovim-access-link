@@ -71,6 +71,15 @@ und Testbuild-Einträge bis zum 5. August 2026.
   `Ja`- und `Nein`-Entscheidungen, Abbruch, Dialogfokus und die dialogfreie
   Wiederverwendung sind durch Pakettests abgedeckt. Dieser installierbare Stand
   ist Entwicklungsbuild 3.
+- Behebt einen Fokusrennenfehler der F12-Merkabfrage. Die Autorisierung der
+  Dialogentscheidung und die einmalige Fokuswiederherstellung besitzen nun
+  getrennte Lebensdauern. Ein zwischenzeitlich verbrauchter Fokus-Rücksprung
+  verwirft ein späteres `Ja` nicht mehr; bis zur erneuten korrelierten
+  Vordergrundbestätigung bleiben Unterdrückung und strukturiertes Tippecho aus,
+  sodass andere Windows-Terminal-Fenster ihr natives Tippecho behalten.
+  Regressionstests decken mehrfachen Fokuswechsel bei geöffneter Frage ab. Ein
+  praktischer Lauf unter NVDA 2026.2beta10 bestätigt diesen Fokuspfad; das
+  Manifest setzt die zuletzt getestete NVDA-Version auf 2026.2.
 - Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
   Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
   Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich

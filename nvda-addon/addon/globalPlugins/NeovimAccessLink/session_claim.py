@@ -241,6 +241,7 @@ class SessionClaimService:
 		self._eligibleTargets: set[tuple[str, str]] = set()
 		self._inventoryErrors: dict[tuple[str, str], str] = {}
 		self._pendingTargets: dict[TerminalIdentity, tuple[str, str]] = {}
+		self._pendingBindingDecision: tuple[TerminalIdentity, str] | None = None
 		self._pendingBindingReactivation: tuple[TerminalIdentity, str] | None = None
 
 	def authorize(self, identity: TerminalIdentity | None) -> int | None:
@@ -358,6 +359,7 @@ class SessionClaimService:
 		self._baselines.clear()
 		self._eligibleTargets.clear()
 		self._inventoryErrors.clear()
+		self._pendingBindingDecision = None
 		self._pendingBindingReactivation = None
 
 	def begin_discovery(self) -> int:
@@ -981,9 +983,10 @@ class SessionClaimService:
 		identity: TerminalIdentity,
 		instance_id: str,
 	) -> TemporaryBindingOffer:
-		"""Allow only the next matching terminal focus to resume after the modal offer."""
+		"""Authorize one modal decision and one matching post-dialog focus recovery."""
 		offer = self._validate_temporary_binding_offer(identity, instance_id)
 		if offer.kind == TemporaryBindingOfferKind.OFFER:
+			self._pendingBindingDecision = (identity, instance_id)
 			self._pendingBindingReactivation = (identity, instance_id)
 		return offer
 
@@ -1010,17 +1013,16 @@ class SessionClaimService:
 		identity: TerminalIdentity,
 		instance_id: str,
 		*,
-		allow_modal_focus_gap: bool = False,
+		allow_pending_modal_decision: bool = False,
 	) -> TemporaryBindingOffer:
 		focused = self._coordinator.gate.focused
 		selected = self._coordinator.instances.selected_for(identity)
-		modal_focus_gap = (
-			allow_modal_focus_gap
-			and focused is None
-			and self._pendingBindingReactivation == (identity, instance_id)
+		authorized_modal_decision = allow_pending_modal_decision and self._pendingBindingDecision == (
+			identity,
+			instance_id,
 		)
 		if (
-			(focused != identity and not modal_focus_gap)
+			(focused != identity and not authorized_modal_decision)
 			or selected is None
 			or selected.identifier != instance_id
 		):
@@ -1040,15 +1042,22 @@ class SessionClaimService:
 		identity: TerminalIdentity,
 		instance_id: str,
 	) -> TemporaryBindingOffer:
-		"""Revalidate after the modal confirmation, allowing only its expected focus gap."""
+		"""Resolve an accepted offer without coupling it to focus-recovery timing."""
 		offer = self._validate_temporary_binding_offer(
 			identity,
 			instance_id,
-			allow_modal_focus_gap=True,
+			allow_pending_modal_decision=True,
 		)
+		if self._pendingBindingDecision == (identity, instance_id):
+			self._pendingBindingDecision = None
 		if offer.kind == TemporaryBindingOfferKind.OFFER:
 			self._coordinator.remembered_terminal_bindings.add(identity)
 		return offer
+
+	def decline_temporary_binding(self, identity: TerminalIdentity, instance_id: str) -> None:
+		"""Resolve a declined modal offer while leaving recovery fail-open."""
+		if self._pendingBindingDecision == (identity, instance_id):
+			self._pendingBindingDecision = None
 
 	def forget_temporary_binding(self, identity: TerminalIdentity) -> bool:
 		if identity not in self._coordinator.remembered_terminal_bindings:

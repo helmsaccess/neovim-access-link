@@ -9,7 +9,7 @@ ist keine Zusage für jede Benutzereinstellung oder Darstellung.
 | Komponente | Referenzstand |
 |---|---|
 | Windows | Windows 11 25H2, 64 Bit |
-| NVDA | 2026.1.1; Manifestminimum 2026.1 |
+| NVDA | Hauptpfad 2026.1.1; F12-/Fokus-Feldtest 2026.2beta10; Manifestminimum 2026.1, zuletzt getestet 2026.2 |
 | Terminalfrontend | Windows Terminal 1.24.x |
 | Lokales Neovim | 0.12.3 praktisch; 0.10.1 automatisiert |
 | SSH-Client | OpenSSH für Windows 9.5p2 mit schlüsselbasierter Anmeldung |

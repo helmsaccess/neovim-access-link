@@ -6973,12 +6973,31 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, unarmed_focus_gap.kind)
 
-        plugin._runtime.coordinator.gate.focused = TerminalIdentity(
+        plugin._runtime.coordinator.gate.focused = identity
+        armed = plugin._runtime.session_claim.arm_temporary_binding_reactivation(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, armed.kind)
+        self.assertTrue(
+            plugin._runtime.session_claim.consume_temporary_binding_reactivation(
+                identity,
+                instance.identifier,
+            )
+        )
+        other_identity = TerminalIdentity(
             identity.process_id,
             identity.window_handle,
             identity.frontend_kind,
             (42, identity.window_handle, 4, 99),
         )
+        plugin._runtime.coordinator.gate.focused = other_identity
+        remembered_after_reactivation = plugin._runtime.session_claim.remember_temporary_binding(
+            identity,
+            instance.identifier,
+        )
+        self.assertEqual(TemporaryBindingOfferKind.OFFER, remembered_after_reactivation.kind)
+        self.assertTrue(plugin._runtime.session_claim.forget_temporary_binding(identity))
         stale = plugin._runtime.session_claim.remember_temporary_binding(
             identity,
             instance.identifier,
@@ -7068,6 +7087,66 @@ class BuiltAddonTests(unittest.TestCase):
                     self.assertEqual(controls, client.controls)
                     self.assertFalse(plugin._runtime.coordinator.gate.suppression_active)
                 plugin.terminate()
+
+    def test_temporary_binding_decision_survives_focus_churn_while_dialog_is_open(self) -> None:
+        import wx
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self):
+                inner_self.controls = []
+
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        plugin = GlobalPlugin()
+        adapter = self._terminalAdapter()
+        self.focus.appModule = adapter
+        identity = plugin._runtime.terminal_focus.identity(self.focus)
+        client = Client()
+        instance = add_remote_instance(
+            plugin._runtime.coordinator.instances,
+            "one",
+            "1",
+            "First",
+            client,
+        )
+        plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
+        adapter.event_gainFocus(self.focus, lambda: None)
+        plugin._runtime.coordinator.authenticated_instances.add(instance.identifier)
+        plugin._runtime.coordinator.confirm_foreground_instance(
+            instance.identifier,
+            identity,
+            plugin._runtime.editor_session.new_runtime,
+        )
+        plugin._runtime.coordinator.gate.manual_enabled = True
+
+        def churn_focus() -> None:
+            adapter.event_appModule_loseFocus()
+            adapter.event_gainFocus(self.focus, lambda: None)
+            adapter.event_appModule_loseFocus()
+
+        self.modalDialogCallbacks.append(churn_focus)
+        self.modalDialogResults.append(wx.ID_YES)
+        plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
+
+        self.assertTrue(plugin._runtime.session_claim.is_temporary_binding_remembered(identity))
+        self.assertFalse(plugin._runtime.coordinator.gate.suppression_active)
+        native_echo = []
+        adapter.event_typedCharacter(self.focus, lambda: native_echo.append(True), "x")
+        self.assertEqual([True], native_echo)
+
+        adapter.event_gainFocus(self.focus, lambda: None)
+        self._waitForControls(client.controls, 1)
+        self.assertEqual("requestFocusContext", client.controls[-1][0])
+        plugin.terminate()
 
     def test_temporary_binding_prompt_decision_is_persisted_and_reused(self) -> None:
         import config

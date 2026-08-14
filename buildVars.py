@@ -27,7 +27,7 @@ addon_info = {
     "url": "https://github.com/helmsaccess/neovim-access-link",
     "docFileName": "readme.html",
     "minimumNVDAVersion": "2026.1",
-    "lastTestedNVDAVersion": "2026.1.1",
+    "lastTestedNVDAVersion": "2026.2",
     "updateChannel": release_channel,
 }
 

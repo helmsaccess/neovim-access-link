@@ -31,8 +31,10 @@ Access Link currently supports:
 The practically confirmed reference environment uses Windows 11 25H2,
 NVDA 2026.1.1, Windows Terminal 1.24.x, and local Neovim 0.12.3. The remote
 path is confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2. See the
-[compatibility overview](../development/compatibility.md) for the complete
-evidence and remaining test coverage.
+F12, remember, and focus paths were additionally exercised with NVDA
+2026.2beta10; the manifest names NVDA 2026.2 as last tested. See the
+[compatibility overview](../development/compatibility.md) for complete evidence
+and remaining test coverage.
 
 Other terminal applications, graphical Neovim frontends, portable Windows
 installations, and data directories separated with `NVIM_APPNAME` are not

@@ -65,6 +65,15 @@ test-build entries through August 5, 2026.
   not remembering automatically. Package tests cover profile switches, `Yes`
   and `No` decisions, cancellation, dialog focus, and prompt-free reuse. This
   installable state is development build 3.
+- Fixes a focus race in the F12 remember question. Dialog-decision
+  authorization and one-shot focus recovery now have separate lifetimes. A
+  focus return consumed while the question is open no longer discards a later
+  `Yes`; suppression and structured typing echo remain disabled until the
+  correlated foreground context is confirmed again, preserving native typing
+  echo in other Windows Terminal windows. Regression tests cover repeated
+  focus changes while the question is open. A practical run under NVDA
+  2026.2beta10 confirms this focus path, and the manifest sets the last tested
+  NVDA version to 2026.2.
 - Hardens protocol boundaries after the complete unit-test review. Boolean and
   negative sequences or timestamps are rejected in the message envelope. A new
   transport session starts exclusively with `fullState` at sequence 0, while

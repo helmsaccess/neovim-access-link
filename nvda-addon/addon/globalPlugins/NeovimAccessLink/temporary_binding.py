@@ -143,6 +143,7 @@ class TemporaryBindingWorkflow:
 		focus_recovery=None,
 	):
 		if not accepted:
+			self._sessionClaimService.decline_temporary_binding(identity, instance_id)
 			self._diagnostics.record(
 				"temporaryTerminalBindingDeclined",
 				instanceId=instance_id,

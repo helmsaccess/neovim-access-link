@@ -342,7 +342,11 @@ and message boundaries and routes controls only through the dispatcher; it
 keeps no writable copy of claim state. `TemporaryBindingWorkflow` separately
 owns confirmation, focus recovery, and correlated state requests for remembered
 bindings. Focus loss caused by the optional modal remember question is bridged
-by exactly one terminal- and instance-correlated reactivation. If Windows
+by exactly one terminal- and instance-correlated reactivation. Separate
+dialog-decision authorization remains valid until the answer, even if Windows
+Terminal consumes that focus reactivation while the question is still open. A
+different terminal focus still discards the reactivation, but changes neither
+the explicit answer nor its original terminal/instance correlation. If Windows
 Terminal emits no new focus event after the question
 closes, a short bounded main-thread sequence checks NVDA's current focus and
 starts the normal focus-context handshake only for the same control, AppModule,

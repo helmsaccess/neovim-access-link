@@ -1728,13 +1728,19 @@ Dispatcher; eine schreibbare Kopie des Claimzustands hält es nicht.
 Bestätigung, Fokuswiederherstellung und korrelierte
 Zustandsanforderungen gemerkter Bindungen. Der Fokusverlust der
 optionalen modalen Merkabfrage wird durch genau eine an Terminal und
-Instanz korrelierte Reaktivierung überbrückt. Falls Windows Terminal
-nach dem Schließen kein neues Fokusereignis liefert, prüft ein kurzer,
-begrenzter Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für
-dasselbe Control, dasselbe AppModule, denselben Adapter-Token und
-dieselbe Instanzauswahl den normalen Fokuskontext-Handshake an. Ein
-abweichender Terminalfokus verwirft die Reaktivierung; ein ausbleibender
-oder unklarer Fokus lässt die native Ausgabe offen.</p>
+Instanz korrelierte Reaktivierung überbrückt. Die Autorisierung der noch
+offenen Dialogentscheidung ist davon getrennt und bleibt bis zur Antwort
+bestehen. Eine bereits verbrauchte Fokusreaktivierung kann deshalb ein
+späteres <code>Ja</code> nicht ungültig machen. Ein anderer
+Terminalfokus verwirft weiterhin die Reaktivierung, verändert aber weder
+die explizite Dialogentscheidung noch deren ursprüngliche
+Terminal-/Instanzkorrelation. Falls Windows Terminal nach dem Schließen
+kein neues Fokusereignis liefert, prüft ein kurzer, begrenzter
+Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für dasselbe
+Control, dasselbe AppModule, denselben Adapter-Token und dieselbe
+Instanzauswahl den normalen Fokuskontext-Handshake an. Ein abweichender
+Terminalfokus verwirft die Reaktivierung; ein ausbleibender oder
+unklarer Fokus lässt die native Ausgabe offen.</p>
 <p>Der <code>EditorSessionController</code> verwendet die vom
 <code>ConnectionCoordinator</code> verwaltete aktive Runtime, ist aber
 allein für deren fachliche Mutation zuständig. Er übernimmt Zustands-
@@ -2754,8 +2760,12 @@ Arbeit.</p>
 2026.1.1, Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim
 0.10.1 und 0.12.3 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2
 geprüft. Lokales Windows-Neovim, Linux-Neovim über SSH und tmux
-innerhalb einer SSH-Sitzung sind abgedeckt. Die vollständigen Plattform-
-und Versionsgrenzen stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
+innerhalb einer SSH-Sitzung sind abgedeckt. Die F12-Zuordnung,
+Merkabfrage, Fokuswechsel und das native Tippecho in weiteren
+Windows-Terminal-Fenstern wurden zusätzlich praktisch mit NVDA
+2026.2beta10 geprüft; das Manifest nennt deshalb 2026.2 als zuletzt
+getestete NVDA-Version. Die vollständigen Plattform- und Versionsgrenzen
+stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
 </section>
 <section id="docs__de__development__current-statusmd__implementierter-gesamtpfad" class="level3">
 <h3>Implementierter Gesamtpfad</h3>
@@ -2824,7 +2834,12 @@ fokussiert standardmäßig <code>Ja</code>. Ein Ankreuzfeld kann die
 gewählte Antwort im aktiven NVDA-Profil speichern; die dreistufige
 Einstellung unter <code>Verbindungen</code> wendet <code>Ja</code> oder
 <code>Nein</code> automatisch an oder setzt das Verhalten auf erneutes
-Fragen zurück. Die Tab-Zuordnung selbst bleibt reine
+Fragen zurück. Die Dialogentscheidung bleibt von der einmaligen
+Fokuswiederherstellung getrennt: Auch mehrere Fokuswechsel während der
+geöffneten Frage verlieren ein anschließend gewähltes <code>Ja</code>
+nicht. Solange der passende Vordergrundkontext nicht erneut bestätigt
+ist, bleibt die native Terminalausgabe einschließlich Tippecho
+fail-open. Die Tab-Zuordnung selbst bleibt reine
 Laufzeitinformation.</li>
 <li>Authentifizierung, Sequenzen, Heartbeats, Resync und
 Fokuskorrelation begrenzen den dauerhaften Pfad. Trennung, ungültiger
@@ -3129,7 +3144,8 @@ Darstellung.</p>
 </tr>
 <tr class="even">
 <td>NVDA</td>
-<td>2026.1.1; Manifestminimum 2026.1</td>
+<td>Hauptpfad 2026.1.1; F12-/Fokus-Feldtest 2026.2beta10;
+Manifestminimum 2026.1, zuletzt getestet 2026.2</td>
 </tr>
 <tr class="odd">
 <td>Terminalfrontend</td>
@@ -6528,6 +6544,17 @@ wechseln. Profilwechsel, <code>Ja</code>- und
 <code>Nein</code>-Entscheidungen, Abbruch, Dialogfokus und die
 dialogfreie Wiederverwendung sind durch Pakettests abgedeckt. Dieser
 installierbare Stand ist Entwicklungsbuild 3.</li>
+<li>Behebt einen Fokusrennenfehler der F12-Merkabfrage. Die
+Autorisierung der Dialogentscheidung und die einmalige
+Fokuswiederherstellung besitzen nun getrennte Lebensdauern. Ein
+zwischenzeitlich verbrauchter Fokus-Rücksprung verwirft ein späteres
+<code>Ja</code> nicht mehr; bis zur erneuten korrelierten
+Vordergrundbestätigung bleiben Unterdrückung und strukturiertes Tippecho
+aus, sodass andere Windows-Terminal-Fenster ihr natives Tippecho
+behalten. Regressionstests decken mehrfachen Fokuswechsel bei geöffneter
+Frage ab. Ein praktischer Lauf unter NVDA 2026.2beta10 bestätigt diesen
+Fokuspfad; das Manifest setzt die zuletzt getestete NVDA-Version auf
+2026.2.</li>
 <li>Härtet nach der vollständigen Unit-Test-Nachprüfung die
 Protokollgrenzen. Boolesche und negative Sequenzen oder Zeitstempel
 werden bereits in der Nachrichtenhülle verworfen. Eine neue

@@ -19,7 +19,10 @@ Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim 0.10.1 und 0.12.3
 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2 geprüft. Lokales
 Windows-Neovim, Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung
-sind abgedeckt.
+sind abgedeckt. Die F12-Zuordnung, Merkabfrage, Fokuswechsel und das native
+Tippecho in weiteren Windows-Terminal-Fenstern wurden zusätzlich praktisch mit
+NVDA 2026.2beta10 geprüft; das Manifest nennt deshalb 2026.2 als zuletzt
+getestete NVDA-Version.
 Die vollständigen Plattform- und Versionsgrenzen stehen in
 [Kompatibilität](compatibility.md).
 
@@ -81,7 +84,12 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   standardmäßig `Ja`. Ein Ankreuzfeld kann die gewählte Antwort im aktiven
   NVDA-Profil speichern; die dreistufige Einstellung unter `Verbindungen`
   wendet `Ja` oder `Nein` automatisch an oder setzt das Verhalten auf erneutes
-  Fragen zurück. Die Tab-Zuordnung selbst bleibt reine Laufzeitinformation.
+  Fragen zurück. Die Dialogentscheidung bleibt von der einmaligen
+  Fokuswiederherstellung getrennt: Auch mehrere Fokuswechsel während der
+  geöffneten Frage verlieren ein anschließend gewähltes `Ja` nicht. Solange
+  der passende Vordergrundkontext nicht erneut bestätigt ist, bleibt die
+  native Terminalausgabe einschließlich Tippecho fail-open. Die Tab-Zuordnung
+  selbst bleibt reine Laufzeitinformation.
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.

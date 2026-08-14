@@ -31,6 +31,8 @@ Access Link unterstützt derzeit:
 Praktisch bestätigt ist die Referenzumgebung Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x und lokales Neovim 0.12.3. Der entfernte Pfad ist mit
 Neovim 0.10.1 und 0.12.3 auf Rocky Linux 10.2 bestätigt. Die vollständigen
+F12-, Merk- und Fokuspfade wurden zusätzlich mit NVDA 2026.2beta10 geprüft;
+das Manifest nennt NVDA 2026.2 als zuletzt getestet. Die vollständigen
 Nachweise und offenen Prüfbereiche stehen in der
 [Kompatibilitätsübersicht](../development/compatibility.md).
 

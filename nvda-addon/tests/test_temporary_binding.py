@@ -155,6 +155,9 @@ class _SessionClaim:
 		self.remembered = True
 		return self._offer()
 
+	def decline_temporary_binding(self, identity, instance_id):
+		self.calls.append(("decline", identity, instance_id))
+
 	def consume_temporary_binding_reactivation(self, identity, instance_id):
 		self.calls.append(("consume", identity, instance_id))
 		self.reactivation = False
@@ -266,7 +269,13 @@ class TemporaryBindingWorkflowTests(unittest.TestCase):
 		fixture = make_workflow(prompt_answer=False)
 		fixture.workflow.offer_temporary_binding("terminal-1", "connection-1")
 
-		self.assertEqual([("prepare", "terminal-1", "connection-1")], fixture.session_claim.calls)
+		self.assertEqual(
+			[
+				("prepare", "terminal-1", "connection-1"),
+				("decline", "terminal-1", "connection-1"),
+			],
+			fixture.session_claim.calls,
+		)
 		self.assertEqual([], fixture.dialogs.calls)
 		self.assertEqual([], fixture.scheduler.calls)
 		self.assertIn(
