@@ -20,11 +20,15 @@ perform transport access; results return through NVDA's event queue for
 presentation.
 
 This applies uniformly to exploration, Braille, clipboard, register, terminal
-control, and focus/`fullState` requests. Only the bounded `ControlDispatcher`
-invokes the transport. During disable or reload, clients are first detached
-atomically from gate, binding, and runtime state; the sole bounded
-`ClientStopper` then performs the potentially waiting `stop()` without the
-main thread waiting for it.
+control, and focus/`fullState` requests. Only `ControlDispatcher` invokes the
+transport. Its total queue is bounded; controls remain ordered within one
+client, while a fixed worker pool serves independent clients concurrently. A
+local RPC stop can interrupt a blocked socket send through `shutdown`. During
+disable or reload, clients are first detached atomically from gate, binding,
+and runtime state. `ClientStopper` owns every accepted already-detached client
+and performs `stop()` with fixed parallelism without making the main thread
+wait. Its pending queue contains only already-created client resources
+transferred from runtime ownership, not protocol data.
 
 A full or closed queue, stale result, or focus change drops an optional control
 action fail-open. Releasing an exploration key uses existing canonical state

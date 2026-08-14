@@ -42,6 +42,7 @@ from .settings_service import SettingsService
 from .terminal_actions import TerminalActions
 from .terminal_focus import TerminalFocusService
 from .terminal_integration import TerminalCommand, TerminalIntegrationService
+from .temporary_binding import TemporaryBindingWorkflow
 
 
 class PluginRuntime:
@@ -63,6 +64,7 @@ class PluginRuntime:
 		terminal_actions,
 		event_delivery,
 		connection_workflow,
+		temporary_bindings,
 		integration,
 		scheduler,
 		diagnostics,
@@ -80,6 +82,7 @@ class PluginRuntime:
 		self.terminal_actions = terminal_actions
 		self.event_delivery = event_delivery
 		self.connection_workflow = connection_workflow
+		self.temporary_bindings = temporary_bindings
 		self.integration = integration
 		self.scheduler = scheduler
 		self.diagnostics = diagnostics
@@ -107,6 +110,7 @@ def create_runtime() -> PluginRuntime:
 				log.exception("NeovimAccessLink construction rollback failed: %s", name)
 
 	workflow: ConnectionWorkflow | None = None
+	temporary_bindings: TemporaryBindingWorkflow | None = None
 	event_delivery: EventDelivery | None = None
 	try:
 		diagnostics = DiagnosticBuffer()
@@ -162,6 +166,12 @@ def create_runtime() -> PluginRuntime:
 			max_pending=runtimeConfig.MAX_PENDING_OUTBOUND_CONTROLS,
 		)
 		own("controlDispatcher", control_dispatcher.close)
+
+		def dispatch_control(client, kind, payload, *, on_result=None):
+			queued = control_dispatcher.submit(client, kind, payload, on_result=on_result)
+			if not queued:
+				control_results.rejected(kind, payload, on_result)
+			return queued
 
 		def record_stop_error(instance_id: str, error: Exception) -> None:
 			diagnostics.record(
@@ -233,8 +243,8 @@ def create_runtime() -> PluginRuntime:
 				event_delivery.discard_transient_focus_context() if event_delivery is not None else None
 			),
 			activate_remembered_binding=lambda identity, instance_id, focus_regained=False: (
-				workflow.activate_remembered_binding(identity, instance_id, focus_regained)
-				if workflow is not None
+				temporary_bindings.activate_remembered_binding(identity, instance_id, focus_regained)
+				if temporary_bindings is not None
 				else None
 			),
 			consume_temporary_binding_reactivation=(session_claim.consume_temporary_binding_reactivation),
@@ -254,6 +264,19 @@ def create_runtime() -> PluginRuntime:
 			new_instance_runtime=editor_session.new_runtime,
 			stop_client_async=stop_client,
 			log_lifecycle_failure=lambda: log.exception("terminal lifecycle sweep failed open"),
+		)
+		dialogs = NvdaConnectionDialogs(
+			deliver_result=scheduler.queue,
+			runtime_active=lambda: not scheduler.closed,
+		)
+		temporary_bindings = TemporaryBindingWorkflow(
+			coordinator=coordinator,
+			session_claim=session_claim,
+			terminal_focus=terminal_focus,
+			dispatch_control=dispatch_control,
+			scheduler=scheduler,
+			diagnostics=diagnostics,
+			dialogs=dialogs,
 		)
 		ui_manager = NvdaUiManager(
 			settings,
@@ -295,7 +318,9 @@ def create_runtime() -> PluginRuntime:
 			scheduler=scheduler,
 			diagnostics=diagnostics,
 			offer_temporary_binding=lambda identity, instance_id: (
-				workflow.offer_temporary_binding(identity, instance_id) if workflow is not None else None
+				temporary_bindings.offer_temporary_binding(identity, instance_id)
+				if temporary_bindings is not None
+				else None
 			),
 		)
 		workflow = ConnectionWorkflow(
@@ -308,14 +333,12 @@ def create_runtime() -> PluginRuntime:
 			settings=settings,
 			presentation=presentation,
 			control_dispatcher=control_dispatcher,
-			control_results=control_results,
+			dispatch_control=dispatch_control,
 			client_stopper=client_stopper,
+			temporary_bindings=temporary_bindings,
 			scheduler=scheduler,
 			diagnostics=diagnostics,
-			dialogs=NvdaConnectionDialogs(
-				deliver_result=scheduler.queue,
-				runtime_active=lambda: not scheduler.closed,
-			),
+			dialogs=dialogs,
 			claim_key_name=runtimeConfig.SESSION_CLAIM_KEY_NAME,
 			package_dir=runtimeConfig.PACKAGE_DIR,
 		)
@@ -373,7 +396,7 @@ def create_runtime() -> PluginRuntime:
 			profile_switch_action=config.post_configProfileSwitch,
 			profile_switch_handler=settings.handle_profile_switch,
 			clear_session_passwords=workflow.clear_passwords,
-			coordinator=coordinator,
+			stop_connections=workflow.stop_connections,
 			focus_service=terminal_focus,
 			claim_service=session_claim,
 			ui_manager=ui_manager,
@@ -400,6 +423,7 @@ def create_runtime() -> PluginRuntime:
 			terminal_actions=terminal_actions,
 			event_delivery=event_delivery,
 			connection_workflow=workflow,
+			temporary_bindings=temporary_bindings,
 			integration=integration,
 			scheduler=scheduler,
 			diagnostics=diagnostics,

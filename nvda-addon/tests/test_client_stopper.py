@@ -36,7 +36,7 @@ class ClientStopperTests(unittest.TestCase):
 				release.wait(1.0)
 				finished.set()
 
-		stopper = ClientStopper(on_error=lambda *_args: None)
+		stopper = ClientStopper(on_error=lambda *_args: None, worker_count=1)
 		before = time.monotonic()
 		self.assertTrue(stopper.submit("instance-1", Client()))
 		self.assertLess(time.monotonic() - before, 0.1)
@@ -49,10 +49,11 @@ class ClientStopperTests(unittest.TestCase):
 		self.assertTrue(finished.wait(1.0))
 		self.assertFalse(stopper.close())
 
-	def test_queue_is_bounded_and_stop_errors_are_contained(self) -> None:
+	def test_all_accepted_clients_remain_owned_and_stop_errors_are_contained(self) -> None:
 		ClientStopper = load_stopper()
 		started = threading.Event()
 		release = threading.Event()
+		finished = threading.Event()
 		errors = []
 
 		class BlockingClient:
@@ -64,19 +65,52 @@ class ClientStopperTests(unittest.TestCase):
 			def stop(self):
 				raise OSError("closed")
 
+		class FinishingClient:
+			def stop(self):
+				finished.set()
+
 		stopper = ClientStopper(
 			on_error=lambda instance_id, error: errors.append((instance_id, type(error).__name__)),
-			max_pending=1,
+			worker_count=2,
 		)
 		self.assertTrue(stopper.submit("blocking", BlockingClient()))
 		self.assertTrue(started.wait(1.0))
 		self.assertTrue(stopper.submit("failing", FailingClient()))
-		self.assertFalse(stopper.submit("overflow", FailingClient()))
-		release.set()
+		self.assertTrue(stopper.submit("finishing", FinishingClient()))
 		deadline = time.monotonic() + 1.0
-		while not errors and time.monotonic() < deadline:
+		while (not errors or not finished.is_set()) and time.monotonic() < deadline:
 			time.sleep(0.005)
 		self.assertEqual([("failing", "OSError")], errors)
+		self.assertTrue(finished.is_set())
+		release.set()
+		stopper.close()
+
+	def test_parallel_stop_work_is_fixed_to_the_worker_count(self) -> None:
+		ClientStopper = load_stopper()
+		started = []
+		started_lock = threading.Lock()
+		two_started = threading.Event()
+		release = threading.Event()
+
+		class BlockingClient:
+			def __init__(self, identifier):
+				self.identifier = identifier
+
+			def stop(self):
+				with started_lock:
+					started.append(self.identifier)
+					if len(started) == 2:
+						two_started.set()
+				release.wait(1.0)
+
+		stopper = ClientStopper(on_error=lambda *_args: None, worker_count=2)
+		for identifier in range(3):
+			self.assertTrue(stopper.submit(str(identifier), BlockingClient(identifier)))
+		self.assertTrue(two_started.wait(1.0))
+		time.sleep(0.05)
+		with started_lock:
+			self.assertEqual(2, len(started))
+		release.set()
 		stopper.close()
 
 

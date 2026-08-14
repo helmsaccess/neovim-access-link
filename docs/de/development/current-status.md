@@ -87,11 +87,14 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin
   erzeugt und schließt nur noch die transaktional zusammengesetzte Runtime.
-  Verbindungsworkflow, Terminalaktionen und Ereignislieferung haben eigene
-  Besitzer; AppModule und Brailleadapter sehen nur ihre statischen Ports.
-  Sämtliche ausgehenden Controls und potenziell wartenden Clientstopps laufen
-  über je einen begrenzten Hintergrundpfad, sodass Ausschalten und Teardown
-  nicht auf Transport-I/O warten. Den aktuellen Schnitt beschreibt die
+  Verbindungsworkflow, Wiederherstellung temporärer Bindungen,
+  Terminalaktionen und Ereignislieferung haben eigene Besitzer; AppModule und
+  Brailleadapter sehen nur ihre statischen Ports. Ausgehende Controls verwenden
+  eine begrenzte Queue und bleiben je Client geordnet, während ein fester
+  Workerpool unabhängige Clients voneinander isoliert. Ein zweiter fester Pool
+  übernimmt jeden bereits abgetrennten Client bis zu dessen Stopp. Ausschalten
+  und Teardown warten deshalb nicht auf Transport-I/O. Den aktuellen Schnitt
+  beschreibt die
   [Architektur](architecture.md); der datierte Anhang C bewahrt nur die
   damalige Prüfgrundlage.
 

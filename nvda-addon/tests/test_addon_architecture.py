@@ -85,6 +85,45 @@ class AddonArchitectureTests(unittest.TestCase):
 		self.assertNotIn("runScriptModalDialog", combined)
 		self.assertNotIn("stop_all", combined)
 
+	def test_connection_dialogs_use_nvda_modal_lifetime_tracking(self) -> None:
+		source = (PLUGIN_ROOT / "connection_dialogs.py").read_text(encoding="utf-8")
+		self.assertIn("from gui.message import displayDialogAsModal", source)
+		self.assertNotIn(".ShowModal(", source)
+
+	def test_temporary_binding_state_machine_has_one_dedicated_owner(self) -> None:
+		connection_tree = ast.parse(
+			(PLUGIN_ROOT / "connection_workflow.py").read_text(encoding="utf-8")
+		)
+		binding_tree = ast.parse((PLUGIN_ROOT / "temporary_binding.py").read_text(encoding="utf-8"))
+		connection_class = next(
+			node
+			for node in connection_tree.body
+			if isinstance(node, ast.ClassDef) and node.name == "ConnectionWorkflow"
+		)
+		binding_class = next(
+			node
+			for node in binding_tree.body
+			if isinstance(node, ast.ClassDef) and node.name == "TemporaryBindingWorkflow"
+		)
+		connection_methods = {
+			node.name for node in connection_class.body if isinstance(node, ast.FunctionDef)
+		}
+		binding_methods = {node.name for node in binding_class.body if isinstance(node, ast.FunctionDef)}
+		owned_methods = {
+			"offer_temporary_binding",
+			"activate_remembered_binding",
+			"request_remembered_binding_state",
+		}
+		self.assertTrue(owned_methods <= binding_methods)
+		self.assertTrue(owned_methods.isdisjoint(connection_methods))
+
+	def test_addon_runtime_delegates_connection_retirement_to_the_workflow(self) -> None:
+		runtime_source = (PLUGIN_ROOT / "addon_runtime.py").read_text(encoding="utf-8")
+		workflow_source = (PLUGIN_ROOT / "connection_workflow.py").read_text(encoding="utf-8")
+		self.assertNotIn(".detach(", runtime_source)
+		self.assertIn('self._run_close_step("connections", self._stopConnections)', runtime_source)
+		self.assertIn("def stop_connections(self):", workflow_source)
+
 	def test_ui_worker_results_return_through_the_runtime_scheduler(self) -> None:
 		source = (PLUGIN_ROOT / "nvda_ui.py").read_text(encoding="utf-8")
 		tree = ast.parse(source)

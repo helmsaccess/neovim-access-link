@@ -1502,24 +1502,33 @@ des Verbindungslaufzeitstands</td>
 </tr>
 <tr class="even">
 <td><code>ConnectionWorkflow</code></td>
-<td>Aktivierung, Discovery, Auswahl, Start, Trennung, temporäre Bindung
-und Sitzungspasswörter über einen injizierten Dialogport</td>
-<td>Transport-I/O, kanonischer Editorzustand oder Anwendungsevents</td>
+<td>Aktivierung, Discovery, Auswahl, Start, Trennung, Abbau aller
+Verbindungen und Sitzungspasswörter über einen injizierten
+Dialogport</td>
+<td>Transport-I/O, kanonischer Editorzustand, Wiederherstellung
+temporärer Bindungen oder Anwendungsevents</td>
 </tr>
 <tr class="odd">
+<td><code>TemporaryBindingWorkflow</code></td>
+<td>Bestätigung, Fokuswiederherstellung und korrelierte
+Zustandsanforderung für temporär gemerkte Terminalbindungen</td>
+<td>Discovery, Verbindungsstart, Claim-Inventar oder eigener kanonischer
+Zustand</td>
+</tr>
+<tr class="even">
 <td><code>TerminalActions</code></td>
 <td>Zwischenablage-, Register-, Terminal- und Diagnoseaktionen samt
 korrelierter Aufräumlogik</td>
 <td>Verbindungsdiscovery, Fokusbesitz oder direkter
 Transportzugriff</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>EventDelivery</code></td>
 <td>Instanz- und Fokusprüfung eingehender Zustände, Editorplanung und
 Übergabe fertiger Ausgabe an die Präsentation</td>
 <td>Dialoge, Passwörter, Verbindungsdiscovery oder Transportbesitz</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>EditorSessionController</code></td>
 <td>fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten
 Editorzustands, Runtimewechsel,
@@ -1530,50 +1539,51 @@ und Explorationspläne mit Antwortkorrelation</td>
 <td>konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung,
 Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>ControlDispatcher</code> / <code>ClientStopper</code></td>
-<td>je ein begrenzter Hintergrundpfad für vorbereitete Steuerpayloads
-beziehungsweise potenziell wartenden Clientabbau; korrelierte Ergebnisse
-kehren über <code>RuntimeScheduler</code> zurück</td>
+<td>begrenzte Control-Queue mit je Client geordneten Lanes und festem
+Workerpool beziehungsweise fester Stopppool, der jeden angenommenen
+bereits abgetrennten Client besitzt; korrelierte Ergebnisse kehren über
+<code>RuntimeScheduler</code> zurück</td>
 <td>NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder Warten
 auf NVDAs Hauptthread</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>SettingsService</code></td>
 <td>Laden, Normalisieren, Speichern und Profilwechsel der
 Add-on-Einstellungen sowie unveränderliche Änderungsberichte</td>
 <td>Dialogzustand, Terminalereignisse, Fokus oder Verbindungen</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>SessionGate</code></td>
 <td>Entscheidung, ob native Terminalausgabe unterdrückt werden darf</td>
 <td>Editorsemantik und Transport</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Speech-/Brailleplanung</td>
 <td>lokalisierte, priorisierte Präsentation</td>
 <td>Netzwerk, Neovim-RPC und Fokusbindung</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NvdaPresentation</code></td>
 <td>NVDA-spezifische Ausgabe geplanter Sprache, Braillemeldungen, Töne
 und Add-on-Klänge</td>
 <td>Sprachplanung, Transport, Fokusbindung oder Dialoge</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>nvda_braille.py</code></td>
 <td>NVDA-Brailleregion, Terminaloverlay, Übersetzung von
 Braillepositionen und Abruf des veröffentlichten Terminaldienstes</td>
 <td>Global-Plugin-Objekt, Verbindungsbesitz oder Fokusentscheidung</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Global Plugin</td>
 <td>Erzeugung genau einer zusammengesetzten Runtime und deren Schließen
 beim NVDA-Prozessabbau</td>
 <td>fachliche Abläufe, Registrierung, Dialoge, Transport,
 Anwendungsevents oder Zustandskopien</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NvdaUiManager</code></td>
 <td>einmalige und symmetrische Registrierung der Einstellungskategorie
 und des obersten Add-on-Menüs, Öffnen lokalisierter installierter
@@ -1582,7 +1592,7 @@ HTML-Hilfe, Verbindungsformulare, Komponenteninstallation und
 <td>Global-Plugin-Instanz, Terminalereignisse, Fokusbindung und
 Unterdrückung</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Windows-Terminal-AppModule</td>
 <td>UIA-Ereignisse, Overlayauswahl, konkreter Terminalfokus, frei
 belegbare Terminalbefehle, kontextbezogene Gesten des
@@ -1622,9 +1632,9 @@ Overlayauswahl, <code>nextHandler</code>, konfigurierbare NVDA-Skripte
 und Eingabebeobachter liegen im Windows-Terminal-AppModule. Das Global
 Plugin ist nur der minimale NVDA-Lebensdaueradapter.
 <code>composition.py</code> baut den gerichteten Objektgraphen;
-<code>ConnectionWorkflow</code>, <code>TerminalActions</code> und
-<code>EventDelivery</code> besitzen die drei prozessweiten Randabläufe.
-<a href="#docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lebensdauer-und-besitz-von-anwendungsevents">ADR-0004</a>
+<code>ConnectionWorkflow</code>, <code>TemporaryBindingWorkflow</code>,
+<code>TerminalActions</code> und <code>EventDelivery</code> besitzen die
+prozessweiten Randabläufe. <a href="#docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lebensdauer-und-besitz-von-anwendungsevents">ADR-0004</a>
 begründet diese Grenze.</p>
 <p><code>create_runtime()</code> registriert jede erzeugte Ressource
 sofort in einer Rollbackliste. Ein Fehler vor <code>AddonRuntime</code>
@@ -1638,19 +1648,23 @@ vollständigen, wiederholbaren Teardown. Dieser entfernt den Dienst,
 schließt den veröffentlichten Dienst, bricht verzögerte Controls über
 den allein von der Runtime besessenen Dispatcher ab, bricht verzögerte
 Hauptthreadaufrufe ab, öffnet das Gate, meldet den Profilcallback ab,
-trennt Verbindungen aus dem Laufzeitzustand und stoppt sie nicht wartend
-über den einzigen <code>ClientStopper</code>, löscht den
-Runtime-/Fokus-/Requestzustand genau einmal und schließt zuletzt UI und
-Präsentation. Claim- und Terminalfokusgenerationen werden vor dem
-Clientstopp ungültig. Jeder Schritt fällt getrennt aus, damit ein
-Bereinigungsfehler keine späteren Ressourcen aktiv lässt. Der nur im
-<code>ConnectionWorkflow</code> gehaltene Sitzungspasswortcache wird
-dabei vor dem Clientabbau geleert.</p>
+trennt Verbindungen über den einzigen vollständigen Abbaupfad des
+<code>ConnectionWorkflow</code> aus dem Laufzeitzustand, übergibt jeden
+abgetrennten Client an den festen Workerpool des
+<code>ClientStopper</code>, löscht den Runtime-/Fokus-/Requestzustand
+genau einmal und schließt zuletzt UI und Präsentation. Claim- und
+Terminalfokusgenerationen werden vor dem Clientstopp ungültig. Jeder
+Schritt fällt getrennt aus, damit ein Bereinigungsfehler keine späteren
+Ressourcen aktiv lässt. Der nur im <code>ConnectionWorkflow</code>
+gehaltene Sitzungspasswortcache wird dabei vor dem Clientabbau
+geleert.</p>
 <p>Auch Ergebnisse länger laufender Komponenteninstallation und
 -entfernung sowie Antworten aus Verbindungsdialogen kehren über
-<code>RuntimeScheduler</code> zurück. Nach Reload oder Teardown kann
-deshalb kein Worker und kein bereits geplanter Dialog mehr den
-geschlossenen Objektgraphen verändern.</p>
+<code>RuntimeScheduler</code> zurück. Auswahl- und Passwortdialoge
+verwenden NVDAs öffentliche modale Lebensdauerverwaltung; ein
+Passwortergebnis nach geschlossenem Runtimegraphen wird verworfen. Nach
+Reload oder Teardown kann deshalb kein Worker und kein bereits geplanter
+Dialog mehr den geschlossenen Objektgraphen verändern.</p>
 <p>Der geschlossene <code>TerminalIntegrationService</code> ist eine
 Fail-open-Schranke für zurückgehaltene Referenzen: Er unterdrückt keine
 nativen Ereignisse oder Brailleausgabe, autorisiert keine Geste und
@@ -1706,19 +1720,21 @@ physische F12-Claims außerdem direkt über
 <code>SessionClaimService</code>. Dieser Dienst besitzt den
 veränderlichen Claim- und Inventarzustand, lokale/SSH-Inventarworker und
 die Kandidatenauswertung. <code>ConnectionWorkflow</code> besitzt
-Discovery, Auswahl, Wiederverwendung, Verbindungsstart, Trennung und
-gemerkte Bindungen. Es verbindet unveränderliche Dienstergebnisse mit
-NVDAs Hauptthread-, Dialog- und Meldungsgrenzen und reicht Controls
-ausschließlich an den Dispatcher; eine schreibbare Kopie des
-Claimzustands hält es nicht. Der Fokusverlust der optionalen modalen
-Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
-Reaktivierung überbrückt. Falls Windows Terminal nach dem Schließen kein
-neues Fokusereignis liefert, prüft ein kurzer, begrenzter
-Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für dasselbe
-Control, dasselbe AppModule, denselben Adapter-Token und dieselbe
-Instanzauswahl den normalen Fokuskontext-Handshake an. Ein abweichender
-Terminalfokus verwirft die Reaktivierung; ein ausbleibender oder
-unklarer Fokus lässt die native Ausgabe offen.</p>
+Discovery, Auswahl, Wiederverwendung, Verbindungsstart und Trennung. Es
+verbindet unveränderliche Dienstergebnisse mit NVDAs Hauptthread-,
+Dialog- und Meldungsgrenzen und reicht Controls ausschließlich an den
+Dispatcher; eine schreibbare Kopie des Claimzustands hält es nicht.
+<code>TemporaryBindingWorkflow</code> besitzt getrennt davon
+Bestätigung, Fokuswiederherstellung und korrelierte
+Zustandsanforderungen gemerkter Bindungen. Der Fokusverlust der
+optionalen modalen Merkabfrage wird durch genau eine an Terminal und
+Instanz korrelierte Reaktivierung überbrückt. Falls Windows Terminal
+nach dem Schließen kein neues Fokusereignis liefert, prüft ein kurzer,
+begrenzter Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für
+dasselbe Control, dasselbe AppModule, denselben Adapter-Token und
+dieselbe Instanzauswahl den normalen Fokuskontext-Handshake an. Ein
+abweichender Terminalfokus verwirft die Reaktivierung; ein ausbleibender
+oder unklarer Fokus lässt die native Ausgabe offen.</p>
 <p>Der <code>EditorSessionController</code> verwendet die vom
 <code>ConnectionCoordinator</code> verwaltete aktive Runtime, ist aber
 allein für deren fachliche Mutation zuständig. Er übernimmt Zustands-
@@ -1786,7 +1802,7 @@ konkrete Terminal und protokolliert das Ergebnis. Das Overlay rechnet
 nur NVDAs übersetzte Brailleposition in die semantische Bytespalte um.
 Der Dienst legt den unveränderlichen festen Payload in denselben
 begrenzten <code>ControlDispatcher</code>, den Exploration und
-nummerierte Auswahl verwenden. Dessen Worker ruft den lokalen oder
+nummerierte Auswahl verwenden. Dessen Worker rufen den lokalen oder
 SSH-Transport auf; eine volle Queue oder ein geschlossener Dispatcher
 verwirft die optionale Aktion fail-open. Damit führen weder Routingtaste
 noch NVDA-Regionscallback Socket-, SSH- oder
@@ -2814,12 +2830,14 @@ auch wenn SSH-Prozess und Bridge weiterlaufen.</li>
 AppModule. Getrennte Dienste besitzen Fokus, Sitzungszuordnung,
 Verbindungen, Editorzustand, Einstellungen, Präsentation und Laufzeit.
 Das Global Plugin erzeugt und schließt nur noch die transaktional
-zusammengesetzte Runtime. Verbindungsworkflow, Terminalaktionen und
-Ereignislieferung haben eigene Besitzer; AppModule und Brailleadapter
-sehen nur ihre statischen Ports. Sämtliche ausgehenden Controls und
-potenziell wartenden Clientstopps laufen über je einen begrenzten
-Hintergrundpfad, sodass Ausschalten und Teardown nicht auf Transport-I/O
-warten. Den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>;
+zusammengesetzte Runtime. Verbindungsworkflow, Wiederherstellung
+temporärer Bindungen, Terminalaktionen und Ereignislieferung haben
+eigene Besitzer; AppModule und Brailleadapter sehen nur ihre statischen
+Ports. Ausgehende Controls verwenden eine begrenzte Queue und bleiben je
+Client geordnet, während ein fester Workerpool unabhängige Clients
+voneinander isoliert. Ein zweiter fester Pool übernimmt jeden bereits
+abgetrennten Client bis zu dessen Stopp. Ausschalten und Teardown warten
+deshalb nicht auf Transport-I/O. Den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>;
 der datierte Anhang C bewahrt nur die damalige Prüfgrundlage.</li>
 </ul>
 </section>
@@ -3679,10 +3697,10 @@ schließt sie beim Beenden. <code>composition.py</code> baut gemeinsame
 Dienste transaktional auf; <code>AddonRuntime</code> registriert
 Einstellungen und Menü, veröffentlicht die Terminalfassade erst nach
 vollständiger Initialisierung und beendet alle Besitzer in festgelegter
-Reihenfolge. Verbindungsworkflow, Terminalaktionen, Ereignislieferung
-sowie fachlicher Zuordnungs-, Gate-, Protokoll- und Präsentationszustand
-liegen in gewöhnlichen Diensten ohne Vererbung von
-<code>GlobalPlugin</code>.</p>
+Reihenfolge. Verbindungsworkflow, Wiederherstellung temporärer
+Bindungen, Terminalaktionen, Ereignislieferung sowie fachlicher
+Zuordnungs-, Gate-, Protokoll- und Präsentationszustand liegen in
+gewöhnlichen Diensten ohne Vererbung von <code>GlobalPlugin</code>.</p>
 <p>Das Windows-Terminal-AppModule besitzt:</p>
 <ul>
 <li>alle anwendungsspezifischen NVDA-Ereigniseinstiege;</li>
@@ -3704,10 +3722,10 @@ AppModule, Control-Identität, Dienstgeneration und Gate geprüft.</p>
 <p>Beim Beenden oder Neuladen wird der gemeinsame Dienst zuerst als
 nicht verfügbar markiert. Danach werden wartende Fokusentscheidungen
 verworfen, Unterdrückung deaktiviert und Verbindungen aus dem
-kanonischen Zustand abgetrennt. Ein begrenzter Hintergrundworker stoppt
-die Clients, ohne NVDAs Hauptthread warten zu lassen; UI-Registrierungen
-werden symmetrisch entfernt. AppModules verwenden keine ungeprüfte alte
-Dienstinstanz.</p>
+kanonischen Zustand abgetrennt. Ein fester Hintergrundpool übernimmt
+jeden abgetrennten Client und stoppt ihn, ohne NVDAs Hauptthread warten
+zu lassen; UI-Registrierungen werden symmetrisch entfernt. AppModules
+verwenden keine ungeprüfte alte Dienstinstanz.</p>
 </section>
 <section id="docs__de__development__adr__0004-nvda-lifetime-and-event-ownershipmd__invarianten" class="level3">
 <h3>Invarianten</h3>
@@ -4044,13 +4062,18 @@ begrenzte Queues. Worker führen Transportzugriffe aus; Ergebnisse kehren
 über NVDAs Ereignisqueue zur Präsentation zurück.</p>
 <p>Das gilt einheitlich für Exploration, Braille, Zwischenablage,
 Register, Terminalsteuerung und
-Fokus-/<code>fullState</code>-Anforderungen. Nur der begrenzte
-<code>ControlDispatcher</code> ruft den Transport auf. Beim Ausschalten
-oder Neuladen werden Clients zuerst atomar aus Gate-, Bindungs- und
-Runtimezustand entfernt; der einzige begrenzte
-<code>ClientStopper</code> führt das potenziell wartende
-<code>stop()</code> anschließend aus, ohne dass der Hauptthread auf ihn
-wartet.</p>
+Fokus-/<code>fullState</code>-Anforderungen. Nur der
+<code>ControlDispatcher</code> ruft den Transport auf. Seine Gesamtqueue
+ist begrenzt; Controls bleiben innerhalb eines Clients geordnet, während
+ein fester Workerpool unabhängige Clients parallel bedient. Der lokale
+RPC-Stopp kann einen blockierten Socketversand per <code>shutdown</code>
+unterbrechen. Beim Ausschalten oder Neuladen werden Clients zuerst
+atomar aus Gate-, Bindungs- und Runtimezustand entfernt. Der
+<code>ClientStopper</code> übernimmt jeden angenommenen, bereits
+abgetrennten Client und führt <code>stop()</code> mit fester
+Parallelität aus, ohne dass der Hauptthread wartet. Seine Warteschlange
+enthält ausschließlich bereits erzeugte Clientressourcen aus dem
+Runtimebesitz, keine Protokolldaten.</p>
 <p>Eine volle oder geschlossene Queue, ein veraltetes Ergebnis oder ein
 Fokuswechsel verwirft eine optionale Steueraktion fail-open. Beim
 Loslassen einer Explorationstaste verwendet die Ausgabe bereits
@@ -6423,6 +6446,19 @@ Architektur-, Rollback-, Nebenläufigkeits- und Besitztests sichern diese
 Grenzen; die Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests.
 Dieser erste installierbare Stand des neuen Entwicklungszweigs ist
 Entwicklungsbuild 1.</li>
+<li>Härtet den Python-Laufzeitumbau nach einer unabhängigen
+Seniorprüfung. Der <code>ControlDispatcher</code> hält die Reihenfolge
+je Client ein, isoliert unabhängige Clients mit einem festen Workerpool
+und lässt den lokalen RPC-Stopp einen blockierten Socketversand
+unterbrechen. Der <code>ClientStopper</code> übernimmt jeden
+angenommenen abgetrennten Client statt ihn bei voller Queue besitzlos zu
+lassen. Auswahl- und Passwortdialoge verwenden NVDAs öffentliche modale
+Lebensdauerverwaltung; veraltete Passwörter werden verworfen. Der
+Lifecycle delegiert den vollständigen Verbindungsabbau an genau einen
+Workflow, während die Zustandsmaschine temporär gemerkter Bindungen
+einen eigenen Controller besitzt. Direkte Queue-, Reihenfolge-,
+Isolation-, Abbruch-, Dialog- und Besitztests decken die neuen Grenzen
+ab. Dieser installierbare Stand ist Entwicklungsbuild 2.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

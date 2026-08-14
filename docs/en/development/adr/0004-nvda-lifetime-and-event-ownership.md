@@ -24,9 +24,9 @@ one runtime through `create_runtime()` and closes it on termination.
 `composition.py` constructs shared services transactionally; `AddonRuntime`
 registers settings and the menu, publishes the terminal facade only after
 complete initialization, and shuts all owners down in a defined order.
-Connection workflow, terminal actions, event delivery, and domain assignment,
-gate, protocol, and presentation state reside in ordinary services that do not
-inherit from `GlobalPlugin`.
+Connection workflow, temporary-binding recovery, terminal actions, event
+delivery, and domain assignment, gate, protocol, and presentation state reside
+in ordinary services that do not inherit from `GlobalPlugin`.
 
 The Windows Terminal AppModule owns:
 
@@ -45,10 +45,10 @@ AppModule, control identity, service generation, and gate.
 
 On termination or reload, the shared service is marked unavailable first.
 Pending focus decisions are then discarded, suppression is disabled, and
-connections are detached from canonical state. A bounded background worker
-stops the clients without making NVDA's main thread wait; UI registrations are
-removed symmetrically. AppModules do not use an unverified stale service
-instance.
+connections are detached from canonical state. A fixed background pool owns
+and stops every detached client without making NVDA's main thread wait; UI
+registrations are removed symmetrically. AppModules do not use an unverified
+stale service instance.
 
 ## Invariants
 

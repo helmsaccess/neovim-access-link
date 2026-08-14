@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from typing import Any
 import addonHandler
 
 addonHandler.initTranslation()
+
+
+def _display_dialog_as_modal(dialog: Any) -> int:
+	from gui.message import displayDialogAsModal
+
+	return displayDialogAsModal(dialog)
 
 
 class NvdaConnectionDialogs:
@@ -16,11 +23,13 @@ class NvdaConnectionDialogs:
 		*,
 		deliver_result: Callable[..., bool],
 		runtime_active: Callable[[], bool],
+		display_modal: Callable[[Any], int] = _display_dialog_as_modal,
 	) -> None:
-		if not callable(deliver_result) or not callable(runtime_active):
+		if not callable(deliver_result) or not callable(runtime_active) or not callable(display_modal):
 			raise ValueError("runtime scheduling callbacks are required")
 		self._deliverResult = deliver_result
 		self._runtimeActive = runtime_active
+		self._displayModal = display_modal
 
 	def choose(
 		self,
@@ -42,7 +51,7 @@ class NvdaConnectionDialogs:
 			try:
 				if not self._runtimeActive():
 					return
-				selection = dialog.GetSelection() if dialog.ShowModal() == wx.ID_OK else None
+				selection = dialog.GetSelection() if self._displayModal(dialog) == wx.ID_OK else None
 				self._deliverResult(on_result, selection)
 			finally:
 				dialog.Destroy()
@@ -72,11 +81,12 @@ class NvdaConnectionDialogs:
 
 		wx.CallAfter(show)
 
-	@staticmethod
-	def password(profile_name: str) -> str | None:
+	def password(self, profile_name: str) -> str | None:
 		import gui
 		import wx
 
+		if not self._runtimeActive():
+			return None
 		dialog = wx.PasswordEntryDialog(
 			gui.mainFrame,
 			_("Enter the SSH password for {profile}. It will not be saved.").format(
@@ -85,7 +95,7 @@ class NvdaConnectionDialogs:
 			_("Neovim SSH password"),
 		)
 		try:
-			if dialog.ShowModal() != wx.ID_OK:
+			if self._displayModal(dialog) != wx.ID_OK or not self._runtimeActive():
 				return None
 			return dialog.GetValue()
 		finally:

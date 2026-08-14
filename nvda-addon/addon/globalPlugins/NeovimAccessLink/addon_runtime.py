@@ -21,15 +21,15 @@ class AddonRuntime:
 		profile_switch_action: Any,
 		profile_switch_handler: Callable[..., None],
 		clear_session_passwords: Callable[[], None],
-		coordinator: Any,
+		stop_connections: Callable[[], None],
 		focus_service: Any,
 		claim_service: Any,
 		ui_manager: Any,
 		presentation: Any,
 		diagnostics: Any,
 	) -> None:
-		if registrar is None or integration_service is None:
-			raise ValueError("registrar and integration service are required")
+		if registrar is None or integration_service is None or not callable(stop_connections):
+			raise ValueError("registrar, integration service, and connection shutdown are required")
 		self._registrar = registrar
 		self._integrationService = integration_service
 		self._controlDispatcher = control_dispatcher
@@ -39,7 +39,7 @@ class AddonRuntime:
 		self._profileSwitchAction = profile_switch_action
 		self._profileSwitchHandler = profile_switch_handler
 		self._clearSessionPasswords = clear_session_passwords
-		self._coordinator = coordinator
+		self._stopConnections = stop_connections
 		self._focusService = focus_service
 		self._claimService = claim_service
 		self._uiManager = ui_manager
@@ -98,27 +98,12 @@ class AddonRuntime:
 		self._run_close_step("passwords", self._clearSessionPasswords)
 		self._run_close_step("connectionClaims", self._claimService.invalidate_connection_state)
 		self._run_close_step("terminalFocus", self._focusService.clear)
-		self._run_close_step("connections", self._stop_owned_connections)
+		self._run_close_step("connections", self._stopConnections)
 		self._run_close_step("clientStopper", self._clientStopper.close)
-		self._run_close_step("runtimeTracking", self._coordinator.clear_runtime_tracking)
 		self._run_close_step("ui", self._uiManager.unregister)
 		self._run_close_step("presentation", self._presentation.close)
 		self._record("addonStop")
 		return True
-
-	def _stop_owned_connections(self) -> None:
-		instances = self._coordinator.instances
-		if not instances.list():
-			return
-		queued = 0
-		for instance in tuple(instances.list()):
-			_detached, client = instances.detach(instance.identifier)
-			self._controlDispatcher.discard_client(client)
-			if self._clientStopper.submit(instance.identifier, client):
-				queued += 1
-			else:
-				self._record("managedClientStopRejected", instanceId=instance.identifier)
-		self._record("clientInstancesStopped", queued=queued)
 
 	def _run_close_step(self, step: str, operation: Callable[[], Any]) -> None:
 		try:

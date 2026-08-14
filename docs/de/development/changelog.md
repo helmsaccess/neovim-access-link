@@ -51,6 +51,18 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Rollback-, Nebenläufigkeits- und Besitztests sichern diese Grenzen; die
   Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests. Dieser erste
   installierbare Stand des neuen Entwicklungszweigs ist Entwicklungsbuild 1.
+- Härtet den Python-Laufzeitumbau nach einer unabhängigen Seniorprüfung. Der
+  `ControlDispatcher` hält die Reihenfolge je Client ein, isoliert unabhängige
+  Clients mit einem festen Workerpool und lässt den lokalen RPC-Stopp einen
+  blockierten Socketversand unterbrechen. Der `ClientStopper` übernimmt jeden
+  angenommenen abgetrennten Client statt ihn bei voller Queue besitzlos zu
+  lassen. Auswahl- und Passwortdialoge verwenden NVDAs öffentliche modale
+  Lebensdauerverwaltung; veraltete Passwörter werden verworfen. Der Lifecycle
+  delegiert den vollständigen Verbindungsabbau an genau einen Workflow, während
+  die Zustandsmaschine temporär gemerkter Bindungen einen eigenen Controller
+  besitzt. Direkte Queue-, Reihenfolge-, Isolation-, Abbruch-, Dialog- und
+  Besitztests decken die neuen Grenzen ab. Dieser installierbare Stand ist
+  Entwicklungsbuild 2.
 
 ## 0.98.0
 

@@ -1,4 +1,4 @@
-"""Bounded off-main-thread shutdown for managed transport clients."""
+"""Owned off-main-thread shutdown for managed transport clients."""
 
 from __future__ import annotations
 
@@ -16,56 +16,49 @@ class _StopRequest:
 
 
 class ClientStopper:
-	"""Stop detached clients sequentially without waiting on NVDA's main thread."""
+	"""Own every accepted detached client and stop it with fixed parallelism."""
 
-	def __init__(self, *, on_error: Callable[[str, Exception], None], max_pending: int = 128) -> None:
-		if not callable(on_error) or not isinstance(max_pending, int) or max_pending < 1:
-			raise ValueError("an error callback and positive queue bound are required")
+	def __init__(self, *, on_error: Callable[[str, Exception], None], worker_count: int = 4) -> None:
+		if not callable(on_error) or not isinstance(worker_count, int) or worker_count < 1:
+			raise ValueError("an error callback and positive worker count are required")
 		self._onError = on_error
-		self._queue: queue.Queue[_StopRequest | None] = queue.Queue(maxsize=max_pending)
+		self._queue: queue.Queue[_StopRequest | None] = queue.Queue()
 		self._closed = threading.Event()
 		self._stateLock = threading.Lock()
-		self._worker = threading.Thread(
-			target=self._run,
-			name="nvim-nvda-client-stop",
-			daemon=True,
+		self._workers = tuple(
+			threading.Thread(
+				target=self._run,
+				name="nvim-nvda-client-stop",
+				daemon=True,
+			)
+			for _worker_index in range(worker_count)
 		)
-		self._worker.start()
+		for worker in self._workers:
+			worker.start()
 
 	def submit(self, instance_id: str, client: Any) -> bool:
-		"""Queue a client already detached from canonical runtime state."""
+		"""Transfer ownership of one detached client to the shutdown workers."""
 		if not isinstance(instance_id, str) or not instance_id or client is None:
 			return False
 		with self._stateLock:
 			if self._closed.is_set():
 				return False
-			try:
-				self._queue.put_nowait(_StopRequest(instance_id, client))
-			except queue.Full:
-				return False
+			self._queue.put_nowait(_StopRequest(instance_id, client))
 		return True
 
 	def close(self) -> bool:
-		"""Finish already queued stop requests, without joining the worker."""
+		"""Finish already accepted stop requests, without joining the workers."""
 		with self._stateLock:
 			if self._closed.is_set():
 				return False
 			self._closed.set()
-			try:
+			for _worker in self._workers:
 				self._queue.put_nowait(None)
-			except queue.Full:
-				# The worker exits after observing closed once the bounded queue drains.
-				pass
 		return True
 
 	def _run(self) -> None:
 		while True:
-			try:
-				request = self._queue.get(timeout=0.1)
-			except queue.Empty:
-				if self._closed.is_set():
-					return
-				continue
+			request = self._queue.get()
 			if request is None:
 				return
 			try:

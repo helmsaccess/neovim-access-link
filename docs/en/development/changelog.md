@@ -48,6 +48,16 @@ test-build entries through August 5, 2026.
   boundaries, and Python style validation now covers every add-on test. This
   first installable state on the new development branch is development build
   1.
+- Hardens the Python runtime refactoring after an independent senior review.
+  `ControlDispatcher` preserves per-client order, isolates independent clients
+  with a fixed worker pool, and lets local RPC shutdown interrupt a blocked
+  socket send. `ClientStopper` owns every accepted detached client instead of
+  leaving one unowned when a queue is full. Selection and password dialogs use
+  NVDA's public modal-lifetime tracking, and stale passwords are discarded. The
+  lifecycle delegates complete connection retirement to one workflow, while
+  the state machine for temporarily remembered bindings has its own controller.
+  Direct queue, ordering, isolation, cancellation, dialog, and ownership tests
+  cover the new boundaries. This installable state is development build 2.
 
 ## 0.98.0
 

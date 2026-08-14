@@ -78,11 +78,13 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
   presentation, and runtime. The Global Plugin now only creates and closes the
-  transactionally composed runtime. Connection workflow, terminal actions,
-  and event delivery have dedicated owners; the AppModule and Braille adapter
-  see only their static ports. Every outbound control and potentially waiting
-  client stop uses one bounded background path, so disabling and teardown do
-  not wait for transport I/O. [Architecture](architecture.md) describes the
+  transactionally composed runtime. Connection workflow, temporary-binding
+  recovery, terminal actions, and event delivery have dedicated owners; the
+  AppModule and Braille adapter see only their static ports. Outbound controls
+  use a bounded queue and remain ordered per client, while a fixed worker pool
+  isolates independent clients. A second fixed pool owns every already-detached
+  client until it is stopped. Disabling and teardown therefore do not wait for
+  transport I/O. [Architecture](architecture.md) describes the
   current boundary; the dated Appendix C only preserves the review basis at
   that time.
 

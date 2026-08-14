@@ -182,9 +182,19 @@ class BuiltAddonTests(unittest.TestCase):
 
     def _waitFor(self, predicate, timeout=1.0) -> None:
         deadline = time.monotonic() + timeout
+        self._drainNvdaQueue()
         while not predicate() and time.monotonic() < deadline:
             time.sleep(0.005)
+            self._drainNvdaQueue()
         self.assertTrue(predicate(), "background operation did not finish in time")
+
+    def _drainNvdaQueue(self) -> None:
+        while True:
+            with self._nvdaQueueLock:
+                if not self.nvdaQueuedCallbacks:
+                    return
+                callback, args = self.nvdaQueuedCallbacks.pop(0)
+            callback(*args)
 
     def _waitForControls(self, controls, count) -> None:
         self._waitFor(lambda: len(controls) >= count)
@@ -535,7 +545,18 @@ class BuiltAddonTests(unittest.TestCase):
 
         queue_handler = types.ModuleType("queueHandler")
         queue_handler.eventQueue = object()
-        queue_handler.queueFunction = lambda _queue, function, *args, **_kwargs: function(*args)
+        self.nvdaQueuedCallbacks = []
+        self._nvdaQueueLock = threading.Lock()
+        nvda_main_thread = threading.get_ident()
+
+        def queue_function(_queue, function, *args, **_kwargs):
+            if threading.get_ident() == nvda_main_thread:
+                return function(*args)
+            with self._nvdaQueueLock:
+                self.nvdaQueuedCallbacks.append((function, args))
+            return None
+
+        queue_handler.queueFunction = queue_function
         sys.modules["queueHandler"] = queue_handler
 
         script_handler = types.ModuleType("scriptHandler")
@@ -827,6 +848,27 @@ class BuiltAddonTests(unittest.TestCase):
                 pass
 
         wx.SingleChoiceDialog = SingleChoiceDialog
+        self.passwordDialogResults = []
+        self.passwordDialogValues = []
+
+        class PasswordEntryDialog:
+            def __init__(inner_self, _parent, message, title):
+                inner_self.message = message
+                inner_self.title = title
+                inner_self.value = (
+                    self.passwordDialogValues.pop(0) if self.passwordDialogValues else "password"
+                )
+
+            def GetValue(inner_self):
+                return inner_self.value
+
+            def ShowModal(inner_self):
+                return self.passwordDialogResults.pop(0) if self.passwordDialogResults else wx.ID_OK
+
+            def Destroy(inner_self):
+                pass
+
+        wx.PasswordEntryDialog = PasswordEntryDialog
         self.messageBoxAnswers = []
         self.messageBoxes = []
 
@@ -917,6 +959,16 @@ class BuiltAddonTests(unittest.TestCase):
                 dialog.Destroy()
 
         gui.runScriptModalDialog = run_script_modal_dialog
+        self.modalDialogsShown = []
+        gui_message = types.ModuleType("gui.message")
+
+        def display_dialog_as_modal(dialog):
+            self.modalDialogsShown.append(dialog)
+            return dialog.ShowModal()
+
+        gui_message.displayDialogAsModal = display_dialog_as_modal
+        gui.message = gui_message
+        sys.modules["gui.message"] = gui_message
 
         class ChoiceControl:
             def __init__(self):
@@ -2413,6 +2465,29 @@ class BuiltAddonTests(unittest.TestCase):
         callback, args = scheduled.pop()
         callback(*args)
         self.assertEqual([0], results)
+        self.assertEqual(1, len(self.modalDialogsShown))
+
+        self.passwordDialogValues.append("session secret")
+        self.assertEqual("session secret", dialogs.password("Work"))
+        self.assertEqual(2, len(self.modalDialogsShown))
+
+    def test_connection_password_result_is_rejected_after_runtime_closes(self) -> None:
+        from globalPlugins.NeovimAccessLink.connection_dialogs import NvdaConnectionDialogs
+
+        active = True
+
+        def display_modal(dialog):
+            nonlocal active
+            active = False
+            return dialog.ShowModal()
+
+        dialogs = NvdaConnectionDialogs(
+            deliver_result=lambda *_args: True,
+            runtime_active=lambda: active,
+            display_modal=display_modal,
+        )
+        self.passwordDialogValues.append("stale secret")
+        self.assertIsNone(dialogs.password("Work"))
 
     def test_automatic_parameter_speech_respects_its_profile_setting(self) -> None:
         from globalPlugins.NeovimAccessLink.nvda_presentation import NvdaPresentation
@@ -2550,7 +2625,6 @@ class BuiltAddonTests(unittest.TestCase):
         scheduler = mock.Mock()
         scheduler.close.side_effect = lambda: order.append("scheduler")
         client_stopper = mock.Mock()
-        client_stopper.submit.side_effect = lambda *_args: order.append("connections") or True
         client_stopper.close.side_effect = lambda: order.append("clientStopper")
         gate = mock.Mock()
         gate.disable.side_effect = lambda: order.append("gate")
@@ -2558,11 +2632,6 @@ class BuiltAddonTests(unittest.TestCase):
         profile_switch.register.side_effect = lambda _handler: order.append("profileRegister")
         profile_switch.unregister.side_effect = lambda _handler: order.append("profileSwitch")
         profile_handler = mock.Mock()
-        coordinator = mock.Mock()
-        instance = types.SimpleNamespace(identifier="connection-1")
-        coordinator.instances.list.return_value = [instance]
-        coordinator.instances.detach.return_value = (instance, object())
-        coordinator.clear_runtime_tracking.side_effect = lambda: order.append("runtimeTracking")
         focus = mock.Mock()
         focus.clear.side_effect = lambda: order.append("terminalFocus")
         claim = mock.Mock()
@@ -2586,7 +2655,7 @@ class BuiltAddonTests(unittest.TestCase):
             profile_switch_action=profile_switch,
             profile_switch_handler=profile_handler,
             clear_session_passwords=lambda: order.append("passwords"),
-            coordinator=coordinator,
+            stop_connections=lambda: order.append("connections"),
             focus_service=focus,
             claim_service=claim,
             ui_manager=ui_manager,
@@ -2614,7 +2683,6 @@ class BuiltAddonTests(unittest.TestCase):
                 "terminalFocus",
                 "connections",
                 "clientStopper",
-                "runtimeTracking",
                 "ui",
                 "presentation",
             ],
@@ -2633,10 +2701,6 @@ class BuiltAddonTests(unittest.TestCase):
         diagnostics = mock.Mock()
         ui_manager = mock.Mock()
         presentation = mock.Mock()
-        coordinator = mock.Mock()
-        instance = types.SimpleNamespace(identifier="connection-1")
-        coordinator.instances.list.return_value = [instance]
-        coordinator.instances.detach.side_effect = RuntimeError("stop failed")
         runtime = AddonRuntime(
             registrar=registrar,
             integration_service=mock.Mock(),
@@ -2647,7 +2711,7 @@ class BuiltAddonTests(unittest.TestCase):
             profile_switch_action=mock.Mock(),
             profile_switch_handler=mock.Mock(),
             clear_session_passwords=mock.Mock(),
-            coordinator=coordinator,
+            stop_connections=mock.Mock(side_effect=RuntimeError("stop failed")),
             focus_service=mock.Mock(),
             claim_service=mock.Mock(),
             ui_manager=ui_manager,
@@ -2724,7 +2788,7 @@ class BuiltAddonTests(unittest.TestCase):
                     profile_switch_action=profile_switch,
                     profile_switch_handler=profile_handler,
                     clear_session_passwords=mock.Mock(),
-                    coordinator=mock.Mock(),
+                    stop_connections=mock.Mock(),
                     focus_service=mock.Mock(),
                     claim_service=mock.Mock(),
                     ui_manager=ui_manager,
@@ -7147,7 +7211,7 @@ class BuiltAddonTests(unittest.TestCase):
 
                 gui.messageBox = modal_message_box
                 try:
-                    plugin._runtime.connection_workflow.offer_temporary_binding(identity, instance.identifier)
+                    plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
                 finally:
                     gui.messageBox = original_message_box
 
@@ -7232,7 +7296,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         gui.messageBox = modal_message_box
         try:
-            plugin._runtime.connection_workflow.offer_temporary_binding(identity, instance.identifier)
+            plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
         finally:
             gui.messageBox = original_message_box
 
@@ -7319,7 +7383,7 @@ class BuiltAddonTests(unittest.TestCase):
         gui.messageBox = modal_message_box
         api.getDesktopObject = lambda: types.SimpleNamespace(objectWithFocus=lambda: terminal)
         try:
-            plugin._runtime.connection_workflow.offer_temporary_binding(identity, instance.identifier)
+            plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
             _delay, callback, args = scheduled.pop(0)
             callback(*args)
         finally:
@@ -7399,7 +7463,7 @@ class BuiltAddonTests(unittest.TestCase):
         gui.messageBox = modal_message_box
         api.getDesktopObject = lambda: types.SimpleNamespace(objectWithFocus=lambda: other)
         try:
-            plugin._runtime.connection_workflow.offer_temporary_binding(identity, instance.identifier)
+            plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
         finally:
             gui.messageBox = original_message_box
             api.getDesktopObject = original_get_desktop
@@ -7458,7 +7522,7 @@ class BuiltAddonTests(unittest.TestCase):
 
         gui.messageBox = modal_message_box
         try:
-            plugin._runtime.connection_workflow.offer_temporary_binding(identity, instance.identifier)
+            plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
         finally:
             gui.messageBox = original_message_box
 
@@ -7746,7 +7810,7 @@ class BuiltAddonTests(unittest.TestCase):
             (delay, callback, args)
         )
 
-        plugin._runtime.connection_workflow.request_remembered_binding_state(identity, instance.identifier)
+        plugin._runtime.temporary_bindings.request_remembered_binding_state(identity, instance.identifier)
         self._waitFor(lambda: len(scheduled) == 1)
         self.assertEqual(1, len(scheduled))
         _delay, callback, args = scheduled.pop()
@@ -7797,7 +7861,7 @@ class BuiltAddonTests(unittest.TestCase):
         played: list[str] = []
         plugin._runtime.presentation.editor_sounds.play = lambda cue: played.append(cue) or True
 
-        plugin._runtime.connection_workflow.request_remembered_binding_state(identity, instance.identifier)
+        plugin._runtime.temporary_bindings.request_remembered_binding_state(identity, instance.identifier)
         self._waitForControls(client.controls, 1)
         request_id = client.controls[-1][1]["requestId"]
         plugin._runtime.event_delivery.handle_managed_event(
@@ -7812,7 +7876,7 @@ class BuiltAddonTests(unittest.TestCase):
                 },
             },
         )
-        plugin._runtime.connection_workflow.request_remembered_binding_state(identity, instance.identifier)
+        plugin._runtime.temporary_bindings.request_remembered_binding_state(identity, instance.identifier)
 
         self.assertEqual(1, len(client.controls))
         self.assertEqual(["normalMode"], played)
@@ -10879,7 +10943,7 @@ class BuiltAddonTests(unittest.TestCase):
         instance = add_remote_instance(plugin._runtime.coordinator.instances, "one", "1", "First", Client())
         plugin._runtime.coordinator.instances.bind(first_id, instance.identifier)
         self.messageBoxAnswers.append(0)
-        plugin._runtime.connection_workflow.offer_temporary_binding(first_id, instance.identifier)
+        plugin._runtime.temporary_bindings.offer_temporary_binding(first_id, instance.identifier)
         self.assertNotIn(first_id, plugin._runtime.coordinator.remembered_terminal_bindings)
         adapter = self._terminalAdapter()
         plugin._runtime.coordinator.gate.focused = first_id
@@ -11584,12 +11648,12 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("Could not send text to the active Neovim session", self.messages)
 
     def test_remembered_focus_request_returns_before_blocked_transport(self) -> None:
-        from globalPlugins.NeovimAccessLink.connection_workflow import ConnectionWorkflow
         from globalPlugins.NeovimAccessLink.control_dispatcher import ControlDispatcher
         from globalPlugins.NeovimAccessLink.session_claim import (
             RememberedStateRequest,
             RememberedStateRequestKind,
         )
+        from globalPlugins.NeovimAccessLink.temporary_binding import TemporaryBindingWorkflow
 
         started = threading.Event()
         release = threading.Event()
@@ -11610,23 +11674,19 @@ class BuiltAddonTests(unittest.TestCase):
             Client(),
             23,
         )
-        workflow = ConnectionWorkflow(
+        workflow = TemporaryBindingWorkflow(
             coordinator=coordinator,
-            editor_session=mock.Mock(),
             session_claim=session_claim,
             terminal_focus=mock.Mock(),
-            terminal_actions=mock.Mock(),
-            event_delivery=mock.Mock(),
-            settings=mock.Mock(),
-            presentation=mock.Mock(),
-            control_dispatcher=dispatcher,
-            control_results=mock.Mock(),
-            client_stopper=mock.Mock(),
+            dispatch_control=lambda client, kind, payload, on_result=None: dispatcher.submit(
+                client,
+                kind,
+                payload,
+                on_result=on_result,
+            ),
             scheduler=mock.Mock(),
             diagnostics=mock.Mock(),
             dialogs=mock.Mock(),
-            claim_key_name="F12",
-            package_dir="/addon",
         )
 
         before = time.monotonic()

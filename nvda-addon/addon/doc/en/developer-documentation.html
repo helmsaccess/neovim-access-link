@@ -1506,25 +1506,33 @@ connection runtime copies</td>
 </tr>
 <tr class="even">
 <td><code>ConnectionWorkflow</code></td>
-<td>Activation, discovery, selection, start, disconnect, temporary
-bindings, and session passwords through an injected dialog port</td>
-<td>Transport I/O, canonical editor state, or application events</td>
+<td>Activation, discovery, selection, start, disconnect, all-connection
+retirement, and session passwords through an injected dialog port</td>
+<td>Transport I/O, canonical editor state, temporary-binding recovery,
+or application events</td>
 </tr>
 <tr class="odd">
+<td><code>TemporaryBindingWorkflow</code></td>
+<td>Confirmation, focus recovery, and correlated state requests for
+temporarily remembered terminal bindings</td>
+<td>Discovery, connection start, claim inventory, or canonical state of
+its own</td>
+</tr>
+<tr class="even">
 <td><code>TerminalActions</code></td>
 <td>Clipboard, register, terminal, and diagnostic actions with
 correlated cleanup</td>
 <td>Connection discovery, focus ownership, or direct transport
 access</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>EventDelivery</code></td>
 <td>Instance and focus validation of inbound state, editor planning, and
 delivery of completed output to presentation</td>
 <td>Dialogs, passwords, connection discovery, or transport
 ownership</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>EditorSessionController</code></td>
 <td>Domain mutation and reset of the active isolated per-instance editor
 state, runtime switching, mode/menu/transport/passthrough state,
@@ -1534,51 +1542,52 @@ exploration plans with reply correlation</td>
 <td>Concrete NVDA output, focus binding or authentication, the Windows
 clipboard, network I/O, or instance lifetime</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>ControlDispatcher</code> / <code>ClientStopper</code></td>
-<td>One bounded background path each for prepared control payloads and
-potentially waiting client shutdown; correlated results return through
+<td>A bounded control queue with per-client ordered lanes and a fixed
+worker pool, plus a fixed stop pool that owns every accepted
+already-detached client; correlated results return through
 <code>RuntimeScheduler</code></td>
 <td>NVDA events, focus decisions, payload construction, or waiting on
 NVDA&#39;s main thread</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>SettingsService</code></td>
 <td>Loading, normalization, persistence, and profile switching for
 add-on settings plus immutable change reports</td>
 <td>Dialog state, terminal events, focus, or connections</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>SessionGate</code></td>
 <td>Whether native terminal output may be suppressed</td>
 <td>Editor semantics and transport</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Speech/Braille planning</td>
 <td>Localized and prioritized presentation</td>
 <td>Network, Neovim RPC, and focus binding</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NvdaPresentation</code></td>
 <td>NVDA-specific delivery of planned speech, Braille messages, tones,
 and add-on sounds</td>
 <td>Speech planning, transport, focus binding, or dialogs</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>nvda_braille.py</code></td>
 <td>NVDA Braille region, terminal overlay, Braille-position translation,
 and lookup of the published terminal service</td>
 <td>A Global Plugin object, connection ownership, or focus
 decisions</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Global Plugin</td>
 <td>Creation of exactly one composed runtime and closing it during
 NVDA-process teardown</td>
 <td>Domain workflows, registration, dialogs, transport, application
 events, or state copies</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>NvdaUiManager</code></td>
 <td>One-time symmetrical registration of the Settings category and
 top-level add-on menu, opening localized installed HTML help, connection
@@ -1586,7 +1595,7 @@ forms, component installation, and removal</td>
 <td>A Global Plugin instance, terminal events, focus binding, and
 suppression</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Windows Terminal AppModule</td>
 <td>UIA events, overlay selection, concrete terminal focus, configurable
 speech-exploration-mode gestures and their physical-key lifecycle, every
@@ -1624,8 +1633,9 @@ events, overlay selection, <code>nextHandler</code>, configurable NVDA
 scripts, and input observers live in the Windows Terminal AppModule. The
 Global Plugin is only the minimal NVDA lifetime adapter.
 <code>composition.py</code> builds the directed object graph;
-<code>ConnectionWorkflow</code>, <code>TerminalActions</code>, and
-<code>EventDelivery</code> own the three process-wide edge workflows. <a href="#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership">ADR-0004</a>
+<code>ConnectionWorkflow</code>, <code>TemporaryBindingWorkflow</code>,
+<code>TerminalActions</code>, and <code>EventDelivery</code> own the
+process-wide edge workflows. <a href="#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership">ADR-0004</a>
 records the rationale for this boundary.</p>
 <p><code>create_runtime()</code> immediately adds every constructed
 resource to a rollback list. A failure before <code>AddonRuntime</code>
@@ -1637,8 +1647,9 @@ publishes the terminal service last. If any step fails, the runtime
 immediately uses its complete idempotent teardown: unpublish, close the
 published service, close controls through the dispatcher owned only by
 the runtime, cancel delayed main-thread calls, open the gate, unregister
-the profile callback, detach connections from runtime state and stop
-them without waiting through the sole <code>ClientStopper</code>, clear
+the profile callback, detach connections through the sole complete
+retirement path in <code>ConnectionWorkflow</code>, transfer every
+detached client to <code>ClientStopper</code>&#39;s fixed worker pool, clear
 runtime/focus/request state exactly once, then close UI and
 presentation. Claim and terminal-focus generations are invalidated
 before clients stop. Each step fails independently so one cleanup error
@@ -1647,9 +1658,11 @@ only by <code>ConnectionWorkflow</code> is cleared before client
 shutdown.</p>
 <p>Results from longer-running component installation and removal, and
 answers from connection dialogs, also return through
-<code>RuntimeScheduler</code>. After reload or teardown, no worker or
-already scheduled dialog can therefore mutate the closed object
-graph.</p>
+<code>RuntimeScheduler</code>. Selection and password dialogs use NVDA&#39;s
+public modal-lifetime tracking; a password result is discarded if its
+runtime graph closed while the dialog was open. After reload or
+teardown, no worker or already scheduled dialog can therefore mutate the
+closed object graph.</p>
 <p>A closed <code>TerminalIntegrationService</code> is a fail-open fence
 for retained references: it suppresses no native event or Braille
 output, authorizes no gesture, and produces no diagnostic effect. Claim,
@@ -1700,17 +1713,19 @@ physical F12 claims directly through <code>SessionClaimService</code>.
 That service owns the mutable claim and inventory state, local/SSH
 inventory workers, and candidate evaluation.
 <code>ConnectionWorkflow</code> owns discovery, selection, reuse,
-connection start, disconnect, and remembered bindings. It joins
-immutable service results to NVDA&#39;s main-thread, dialog, and message
-boundaries and routes controls only through the dispatcher; it keeps no
-writable copy of claim state. Focus loss caused by the optional modal
-remember question is bridged by exactly one terminal- and
-instance-correlated reactivation. If Windows Terminal emits no new focus
-event after the question closes, a short bounded main-thread sequence
-checks NVDA&#39;s current focus and starts the normal focus-context
-handshake only for the same control, AppModule, adapter token, and
-instance selection. A different terminal focus discards the
-reactivation; missing or uncertain focus keeps native output open.</p>
+connection start, and disconnect. It joins immutable service results to
+NVDA&#39;s main-thread, dialog, and message boundaries and routes controls
+only through the dispatcher; it keeps no writable copy of claim state.
+<code>TemporaryBindingWorkflow</code> separately owns confirmation,
+focus recovery, and correlated state requests for remembered bindings.
+Focus loss caused by the optional modal remember question is bridged by
+exactly one terminal- and instance-correlated reactivation. If Windows
+Terminal emits no new focus event after the question closes, a short
+bounded main-thread sequence checks NVDA&#39;s current focus and starts the
+normal focus-context handshake only for the same control, AppModule,
+adapter token, and instance selection. A different terminal focus
+discards the reactivation; missing or uncertain focus keeps native
+output open.</p>
 <p>The <code>EditorSessionController</code> uses the active runtime
 managed by <code>ConnectionCoordinator</code> but is solely responsible
 for its domain mutation. It owns state and mode transitions, transport
@@ -1766,7 +1781,7 @@ replaces preceding Windows Terminal context labels.</p>
 records the result. The overlay maps only NVDA&#39;s translated Braille
 position to the semantic byte column. The service places the immutable
 fixed payload in the same bounded <code>ControlDispatcher</code> used by
-exploration and numbered choices. Its worker calls the local or SSH
+exploration and numbered choices. Its workers call the local or SSH
 transport; a full queue or closed dispatcher drops the optional action
 fail-open. Neither a routing key nor an NVDA region callback can
 therefore perform socket, SSH, or <code>stdin.flush()</code> I/O on
@@ -2710,11 +2725,13 @@ disconnect, even while the SSH process and bridge remain alive.</li>
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
 runtime. The Global Plugin now only creates and closes the
-transactionally composed runtime. Connection workflow, terminal actions,
-and event delivery have dedicated owners; the AppModule and Braille
-adapter see only their static ports. Every outbound control and
-potentially waiting client stop uses one bounded background path, so
-disabling and teardown do not wait for transport I/O. <a href="#docs__en__development__architecturemd__architecture">Architecture</a>
+transactionally composed runtime. Connection workflow, temporary-binding
+recovery, terminal actions, and event delivery have dedicated owners;
+the AppModule and Braille adapter see only their static ports. Outbound
+controls use a bounded queue and remain ordered per client, while a
+fixed worker pool isolates independent clients. A second fixed pool owns
+every already-detached client until it is stopped. Disabling and
+teardown therefore do not wait for transport I/O. <a href="#docs__en__development__architecturemd__architecture">Architecture</a>
 describes the current boundary; the dated Appendix C only preserves the
 review basis at that time.</li>
 </ul>
@@ -3517,9 +3534,10 @@ closes it on termination. <code>composition.py</code> constructs shared
 services transactionally; <code>AddonRuntime</code> registers settings
 and the menu, publishes the terminal facade only after complete
 initialization, and shuts all owners down in a defined order. Connection
-workflow, terminal actions, event delivery, and domain assignment, gate,
-protocol, and presentation state reside in ordinary services that do not
-inherit from <code>GlobalPlugin</code>.</p>
+workflow, temporary-binding recovery, terminal actions, event delivery,
+and domain assignment, gate, protocol, and presentation state reside in
+ordinary services that do not inherit from
+<code>GlobalPlugin</code>.</p>
 <p>The Windows Terminal AppModule owns:</p>
 <ul>
 <li>every application-specific NVDA event entry point;</li>
@@ -3539,10 +3557,10 @@ unchanged. Each match is revalidated against the focus object,
 AppModule, control identity, service generation, and gate.</p>
 <p>On termination or reload, the shared service is marked unavailable
 first. Pending focus decisions are then discarded, suppression is
-disabled, and connections are detached from canonical state. A bounded
-background worker stops the clients without making NVDA&#39;s main thread
-wait; UI registrations are removed symmetrically. AppModules do not use
-an unverified stale service instance.</p>
+disabled, and connections are detached from canonical state. A fixed
+background pool owns and stops every detached client without making
+NVDA&#39;s main thread wait; UI registrations are removed symmetrically.
+AppModules do not use an unverified stale service instance.</p>
 </section>
 <section id="docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__invariants" class="level3">
 <h3>Invariants</h3>
@@ -3853,12 +3871,17 @@ small immutable payloads and place them into bounded queues without
 waiting. Workers perform transport access; results return through NVDA&#39;s
 event queue for presentation.</p>
 <p>This applies uniformly to exploration, Braille, clipboard, register,
-terminal control, and focus/<code>fullState</code> requests. Only the
-bounded <code>ControlDispatcher</code> invokes the transport. During
+terminal control, and focus/<code>fullState</code> requests. Only
+<code>ControlDispatcher</code> invokes the transport. Its total queue is
+bounded; controls remain ordered within one client, while a fixed worker
+pool serves independent clients concurrently. A local RPC stop can
+interrupt a blocked socket send through <code>shutdown</code>. During
 disable or reload, clients are first detached atomically from gate,
-binding, and runtime state; the sole bounded <code>ClientStopper</code>
-then performs the potentially waiting <code>stop()</code> without the
-main thread waiting for it.</p>
+binding, and runtime state. <code>ClientStopper</code> owns every
+accepted already-detached client and performs <code>stop()</code> with
+fixed parallelism without making the main thread wait. Its pending queue
+contains only already-created client resources transferred from runtime
+ownership, not protocol data.</p>
 <p>A full or closed queue, stale result, or focus change drops an
 optional control action fail-open. Releasing an exploration key uses
 existing canonical state and waits for no round trip.</p>
@@ -5996,6 +6019,18 @@ rollback, concurrency, and ownership tests protect these boundaries, and
 Python style validation now covers every add-on test. This first
 installable state on the new development branch is development build
 1.</li>
+<li>Hardens the Python runtime refactoring after an independent senior
+review. <code>ControlDispatcher</code> preserves per-client order,
+isolates independent clients with a fixed worker pool, and lets local
+RPC shutdown interrupt a blocked socket send. <code>ClientStopper</code>
+owns every accepted detached client instead of leaving one unowned when
+a queue is full. Selection and password dialogs use NVDA&#39;s public
+modal-lifetime tracking, and stale passwords are discarded. The
+lifecycle delegates complete connection retirement to one workflow,
+while the state machine for temporarily remembered bindings has its own
+controller. Direct queue, ordering, isolation, cancellation, dialog, and
+ownership tests cover the new boundaries. This installable state is
+development build 2.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">

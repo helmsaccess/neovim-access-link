@@ -214,11 +214,12 @@ must not close output again before state is confirmed.
 | `TerminalIntegrationService` | Shared, explicitly bounded integration contract for focus, fixed terminal commands, F12 claims, speech exploration mode, developer contexts, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
 | `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
-| `ConnectionWorkflow` | Activation, discovery, selection, start, disconnect, temporary bindings, and session passwords through an injected dialog port | Transport I/O, canonical editor state, or application events |
+| `ConnectionWorkflow` | Activation, discovery, selection, start, disconnect, all-connection retirement, and session passwords through an injected dialog port | Transport I/O, canonical editor state, temporary-binding recovery, or application events |
+| `TemporaryBindingWorkflow` | Confirmation, focus recovery, and correlated state requests for temporarily remembered terminal bindings | Discovery, connection start, claim inventory, or canonical state of its own |
 | `TerminalActions` | Clipboard, register, terminal, and diagnostic actions with correlated cleanup | Connection discovery, focus ownership, or direct transport access |
 | `EventDelivery` | Instance and focus validation of inbound state, editor planning, and delivery of completed output to presentation | Dialogs, passwords, connection discovery, or transport ownership |
 | `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard, terminal, and exploration plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
-| `ControlDispatcher` / `ClientStopper` | One bounded background path each for prepared control payloads and potentially waiting client shutdown; correlated results return through `RuntimeScheduler` | NVDA events, focus decisions, payload construction, or waiting on NVDA's main thread |
+| `ControlDispatcher` / `ClientStopper` | A bounded control queue with per-client ordered lanes and a fixed worker pool, plus a fixed stop pool that owns every accepted already-detached client; correlated results return through `RuntimeScheduler` | NVDA events, focus decisions, payload construction, or waiting on NVDA's main thread |
 | `SettingsService` | Loading, normalization, persistence, and profile switching for add-on settings plus immutable change reports | Dialog state, terminal events, focus, or connections |
 | `SessionGate` | Whether native terminal output may be suppressed | Editor semantics and transport |
 | Speech/Braille planning | Localized and prioritized presentation | Network, Neovim RPC, and focus binding |
@@ -255,8 +256,8 @@ The application boundary is therefore cleanly implemented: terminal events,
 overlay selection, `nextHandler`, configurable NVDA scripts, and input
 observers live in the Windows Terminal AppModule. The Global Plugin is only
 the minimal NVDA lifetime adapter. `composition.py` builds the directed object
-graph; `ConnectionWorkflow`, `TerminalActions`, and `EventDelivery` own the
-three process-wide edge workflows.
+graph; `ConnectionWorkflow`, `TemporaryBindingWorkflow`, `TerminalActions`,
+and `EventDelivery` own the process-wide edge workflows.
 [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) records the rationale
 for this boundary.
 
@@ -270,18 +271,21 @@ the runtime
 immediately uses its complete idempotent teardown: unpublish, close the
 published service, close controls through the dispatcher owned only by the
 runtime, cancel delayed main-thread calls, open the gate, unregister
-the profile callback, detach connections from runtime state and stop them
-without waiting through the sole `ClientStopper`, clear runtime/focus/request
-state exactly once, then close UI and
+the profile callback, detach connections through the sole complete retirement
+path in `ConnectionWorkflow`, transfer every detached client to
+`ClientStopper`'s fixed worker pool, clear runtime/focus/request state exactly
+once, then close UI and
 presentation. Claim and terminal-focus generations are invalidated before
 clients stop. Each step fails independently so one cleanup error cannot leave
 later resources active. The session-password cache owned only by
 `ConnectionWorkflow` is cleared before client shutdown.
 
 Results from longer-running component installation and removal, and answers
-from connection dialogs, also return through `RuntimeScheduler`. After reload
-or teardown, no worker or already scheduled dialog can therefore mutate the
-closed object graph.
+from connection dialogs, also return through `RuntimeScheduler`. Selection and
+password dialogs use NVDA's public modal-lifetime tracking; a password result
+is discarded if its runtime graph closed while the dialog was open. After
+reload or teardown, no worker or already scheduled dialog can therefore mutate
+the closed object graph.
 
 A closed `TerminalIntegrationService` is a fail-open fence for retained
 references: it suppresses no native event or Braille output, authorizes no
@@ -332,12 +336,14 @@ an uncertain UIA failure is not treated as closure.
 `TerminalIntegrationService` also authorizes and cancels physical F12 claims
 directly through `SessionClaimService`. That service owns the mutable claim and
 inventory state, local/SSH inventory workers, and candidate evaluation.
-`ConnectionWorkflow` owns discovery, selection, reuse, connection start,
-disconnect, and remembered bindings. It joins immutable service results to
-NVDA's main-thread, dialog, and message boundaries and routes controls only
-through the dispatcher; it keeps no writable copy of claim state. Focus loss caused by the optional modal remember
-question is bridged by exactly one terminal- and instance-correlated
-reactivation. If Windows Terminal emits no new focus event after the question
+`ConnectionWorkflow` owns discovery, selection, reuse, connection start, and
+disconnect. It joins immutable service results to NVDA's main-thread, dialog,
+and message boundaries and routes controls only through the dispatcher; it
+keeps no writable copy of claim state. `TemporaryBindingWorkflow` separately
+owns confirmation, focus recovery, and correlated state requests for remembered
+bindings. Focus loss caused by the optional modal remember question is bridged
+by exactly one terminal- and instance-correlated reactivation. If Windows
+Terminal emits no new focus event after the question
 closes, a short bounded main-thread sequence checks NVDA's current focus and
 starts the normal focus-context handshake only for the same control, AppModule,
 adapter token, and instance selection. A different terminal focus discards the
@@ -396,7 +402,7 @@ The public terminal service first confirms the exact terminal and records the
 result. The overlay maps only NVDA's translated Braille position to the
 semantic byte column. The service places the immutable fixed payload in the
 same bounded `ControlDispatcher` used by exploration and numbered choices.
-Its worker calls the local or SSH transport; a full queue or closed dispatcher
+Its workers call the local or SSH transport; a full queue or closed dispatcher
 drops the optional action fail-open. Neither a routing key nor an NVDA region
 callback can therefore perform socket, SSH, or `stdin.flush()` I/O on NVDA's
 main thread. Only after successful queueing does `NvdaPresentation` announce

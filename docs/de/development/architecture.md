@@ -226,11 +226,12 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `TerminalIntegrationService` | gemeinsamer, ausdrücklich begrenzter Integrationsvertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus, Entwicklerkontexte und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
 | `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
-| `ConnectionWorkflow` | Aktivierung, Discovery, Auswahl, Start, Trennung, temporäre Bindung und Sitzungspasswörter über einen injizierten Dialogport | Transport-I/O, kanonischer Editorzustand oder Anwendungsevents |
+| `ConnectionWorkflow` | Aktivierung, Discovery, Auswahl, Start, Trennung, Abbau aller Verbindungen und Sitzungspasswörter über einen injizierten Dialogport | Transport-I/O, kanonischer Editorzustand, Wiederherstellung temporärer Bindungen oder Anwendungsevents |
+| `TemporaryBindingWorkflow` | Bestätigung, Fokuswiederherstellung und korrelierte Zustandsanforderung für temporär gemerkte Terminalbindungen | Discovery, Verbindungsstart, Claim-Inventar oder eigener kanonischer Zustand |
 | `TerminalActions` | Zwischenablage-, Register-, Terminal- und Diagnoseaktionen samt korrelierter Aufräumlogik | Verbindungsdiscovery, Fokusbesitz oder direkter Transportzugriff |
 | `EventDelivery` | Instanz- und Fokusprüfung eingehender Zustände, Editorplanung und Übergabe fertiger Ausgabe an die Präsentation | Dialoge, Passwörter, Verbindungsdiscovery oder Transportbesitz |
 | `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-, Terminal- und Explorationspläne mit Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
-| `ControlDispatcher` / `ClientStopper` | je ein begrenzter Hintergrundpfad für vorbereitete Steuerpayloads beziehungsweise potenziell wartenden Clientabbau; korrelierte Ergebnisse kehren über `RuntimeScheduler` zurück | NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder Warten auf NVDAs Hauptthread |
+| `ControlDispatcher` / `ClientStopper` | begrenzte Control-Queue mit je Client geordneten Lanes und festem Workerpool beziehungsweise fester Stopppool, der jeden angenommenen bereits abgetrennten Client besitzt; korrelierte Ergebnisse kehren über `RuntimeScheduler` zurück | NVDA-Ereignisse, Fokusentscheidung, Payload-Erzeugung oder Warten auf NVDAs Hauptthread |
 | `SettingsService` | Laden, Normalisieren, Speichern und Profilwechsel der Add-on-Einstellungen sowie unveränderliche Änderungsberichte | Dialogzustand, Terminalereignisse, Fokus oder Verbindungen |
 | `SessionGate` | Entscheidung, ob native Terminalausgabe unterdrückt werden darf | Editorsemantik und Transport |
 | Speech-/Brailleplanung | lokalisierte, priorisierte Präsentation | Netzwerk, Neovim-RPC und Fokusbindung |
@@ -270,8 +271,9 @@ Der Anwendungsschnitt ist damit sauber umgesetzt: Terminalereignisse,
 Overlayauswahl, `nextHandler`, konfigurierbare NVDA-Skripte und Eingabebeobachter
 liegen im Windows-Terminal-AppModule. Das Global Plugin ist nur der minimale
 NVDA-Lebensdaueradapter. `composition.py` baut den gerichteten Objektgraphen;
-`ConnectionWorkflow`, `TerminalActions` und `EventDelivery` besitzen die drei
-prozessweiten Randabläufe. [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md)
+`ConnectionWorkflow`, `TemporaryBindingWorkflow`, `TerminalActions` und
+`EventDelivery` besitzen die prozessweiten Randabläufe.
+[ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md)
 begründet diese Grenze.
 
 `create_runtime()` registriert jede erzeugte Ressource sofort in einer
@@ -285,8 +287,9 @@ unmittelbar ihren vollständigen, wiederholbaren Teardown. Dieser entfernt den
 Dienst, schließt den veröffentlichten Dienst, bricht verzögerte
 Controls über den allein von der Runtime besessenen Dispatcher ab, bricht
 verzögerte Hauptthreadaufrufe ab, öffnet das Gate, meldet den Profilcallback ab, trennt
-Verbindungen aus dem Laufzeitzustand und stoppt sie nicht wartend über den
-einzigen `ClientStopper`, löscht den
+Verbindungen über den einzigen vollständigen Abbaupfad des
+`ConnectionWorkflow` aus dem Laufzeitzustand, übergibt jeden abgetrennten
+Client an den festen Workerpool des `ClientStopper`, löscht den
 Runtime-/Fokus-/Requestzustand genau einmal und schließt zuletzt UI und
 Präsentation. Claim- und Terminalfokusgenerationen werden vor dem Clientstopp
 ungültig. Jeder Schritt fällt getrennt aus, damit ein Bereinigungsfehler keine
@@ -295,9 +298,11 @@ Der nur im `ConnectionWorkflow` gehaltene Sitzungspasswortcache wird dabei vor
 dem Clientabbau geleert.
 
 Auch Ergebnisse länger laufender Komponenteninstallation und -entfernung sowie
-Antworten aus Verbindungsdialogen kehren über `RuntimeScheduler` zurück. Nach
-Reload oder Teardown kann deshalb kein Worker und kein bereits geplanter Dialog
-mehr den geschlossenen Objektgraphen verändern.
+Antworten aus Verbindungsdialogen kehren über `RuntimeScheduler` zurück.
+Auswahl- und Passwortdialoge verwenden NVDAs öffentliche modale
+Lebensdauerverwaltung; ein Passwortergebnis nach geschlossenem Runtimegraphen
+wird verworfen. Nach Reload oder Teardown kann deshalb kein Worker und kein
+bereits geplanter Dialog mehr den geschlossenen Objektgraphen verändern.
 
 Der geschlossene `TerminalIntegrationService` ist eine Fail-open-Schranke für
 zurückgehaltene Referenzen: Er unterdrückt keine nativen Ereignisse oder
@@ -351,12 +356,14 @@ Der `TerminalIntegrationService` autorisiert und verwirft physische F12-Claims
 außerdem direkt über `SessionClaimService`. Dieser Dienst besitzt den
 veränderlichen Claim- und Inventarzustand, lokale/SSH-Inventarworker und die
 Kandidatenauswertung. `ConnectionWorkflow` besitzt Discovery, Auswahl,
-Wiederverwendung, Verbindungsstart, Trennung und gemerkte Bindungen. Es
-verbindet unveränderliche Dienstergebnisse mit NVDAs Hauptthread-, Dialog- und
-Meldungsgrenzen und reicht Controls ausschließlich an den Dispatcher; eine
-schreibbare Kopie des Claimzustands hält es nicht. Der Fokusverlust der optionalen modalen
-Merkabfrage wird durch genau eine an Terminal und Instanz korrelierte
-Reaktivierung überbrückt. Falls Windows Terminal nach dem Schließen kein
+Wiederverwendung, Verbindungsstart und Trennung. Es verbindet unveränderliche
+Dienstergebnisse mit NVDAs Hauptthread-, Dialog- und Meldungsgrenzen und reicht
+Controls ausschließlich an den Dispatcher; eine schreibbare Kopie des
+Claimzustands hält es nicht. `TemporaryBindingWorkflow` besitzt getrennt davon
+Bestätigung, Fokuswiederherstellung und korrelierte Zustandsanforderungen
+gemerkter Bindungen. Der Fokusverlust der optionalen modalen Merkabfrage wird
+durch genau eine an Terminal und Instanz korrelierte Reaktivierung überbrückt.
+Falls Windows Terminal nach dem Schließen kein
 neues Fokusereignis liefert, prüft ein kurzer, begrenzter Hauptthread-Ablauf
 den aktuellen NVDA-Fokus und stößt nur für dasselbe Control, dasselbe
 AppModule, denselben Adapter-Token und dieselbe Instanzauswahl den normalen
@@ -425,7 +432,7 @@ Terminal und protokolliert das Ergebnis. Das Overlay rechnet nur NVDAs
 übersetzte Brailleposition in die semantische Bytespalte um. Der Dienst legt
 den unveränderlichen festen Payload in denselben begrenzten
 `ControlDispatcher`, den Exploration und nummerierte Auswahl verwenden.
-Dessen Worker ruft den lokalen oder SSH-Transport auf; eine volle Queue oder
+Dessen Worker rufen den lokalen oder SSH-Transport auf; eine volle Queue oder
 ein geschlossener Dispatcher verwirft die optionale Aktion fail-open. Damit
 führen weder Routingtaste noch NVDA-Regionscallback Socket-, SSH- oder
 `stdin.flush()`-I/O auf NVDAs Hauptthread aus. Erst nach erfolgreichem

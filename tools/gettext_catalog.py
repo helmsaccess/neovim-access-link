@@ -38,6 +38,7 @@ SOURCE_PATHS = (
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_presentation.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_ui.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "terminal_actions.py",
+    ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "temporary_binding.py",
     ROOT / "nvda-addon" / "addon" / "appModules" / "windowsterminal.py",
     ROOT / "nvda-addon" / "core" / "nvim_nvda_core" / "speech.py",
 )

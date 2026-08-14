@@ -24,9 +24,10 @@ Das Global Plugin ist nur der prozessweite Lebensdaueradapter: Es erzeugt über
 `composition.py` baut gemeinsame Dienste transaktional auf; `AddonRuntime`
 registriert Einstellungen und Menü, veröffentlicht die Terminalfassade erst
 nach vollständiger Initialisierung und beendet alle Besitzer in festgelegter
-Reihenfolge. Verbindungsworkflow, Terminalaktionen, Ereignislieferung sowie
-fachlicher Zuordnungs-, Gate-, Protokoll- und Präsentationszustand liegen in
-gewöhnlichen Diensten ohne Vererbung von `GlobalPlugin`.
+Reihenfolge. Verbindungsworkflow, Wiederherstellung temporärer Bindungen,
+Terminalaktionen, Ereignislieferung sowie fachlicher Zuordnungs-, Gate-,
+Protokoll- und Präsentationszustand liegen in gewöhnlichen Diensten ohne
+Vererbung von `GlobalPlugin`.
 
 Das Windows-Terminal-AppModule besitzt:
 
@@ -48,8 +49,9 @@ Fokusobjekt, AppModule, Control-Identität, Dienstgeneration und Gate geprüft.
 Beim Beenden oder Neuladen wird der gemeinsame Dienst zuerst als nicht
 verfügbar markiert. Danach werden wartende Fokusentscheidungen verworfen,
 Unterdrückung deaktiviert und Verbindungen aus dem kanonischen Zustand
-abgetrennt. Ein begrenzter Hintergrundworker stoppt die Clients, ohne NVDAs
-Hauptthread warten zu lassen; UI-Registrierungen werden symmetrisch entfernt.
+abgetrennt. Ein fester Hintergrundpool übernimmt jeden abgetrennten Client und
+stoppt ihn, ohne NVDAs Hauptthread warten zu lassen; UI-Registrierungen werden
+symmetrisch entfernt.
 AppModules verwenden keine ungeprüfte alte Dienstinstanz.
 
 ## Invarianten
