@@ -2644,7 +2644,7 @@ changelog provide context but do not replace current code and tests.</p>
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
 <p>Status date: August 14, 2026. The source tree develops the 0.99.0
-line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.1 with
+line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.2 with
 branch and commit metadata and sets the manifest update channel to beta.
 The current published pre-release is 0.98.0. The project does not infer
 a higher stability classification from test coverage or feature
@@ -2741,7 +2741,11 @@ rejected. After a sequence gap, only a newer snapshot from the same
 session leaves the resync state. When a remote Neovim instance ends, the
 SSH client immediately translates the bridge lifecycle state to the same
 fail-open path as a local RPC disconnect, even while the SSH process and
-bridge remain alive.</li>
+bridge remain alive. State snapshots requested during that disconnect
+cannot authenticate the instance again; only a <code>fullState</code>
+reporting a connected Neovim may create another connection transition.
+An automated boundary test reproduces a mixed local/SSH pane scenario
+with an ended remote instance and repeated focus changes.</li>
 <li>The AppModule owns Windows Terminal events and
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
@@ -3759,6 +3763,11 @@ forwards from being inherited by the bridge connection.</li>
 validated. Capabilities are negotiated, and control messages run only
 for the confirmed focused session. Native NVDA and terminal handling
 remains active on failure.</li>
+<li>On the SSH path, a <code>fullState</code> is an authentication point
+only when it explicitly reports the bridge lifecycle as
+<code>connection.neovim=connected</code>. A disconnected snapshot from a
+bridge that survives Neovim exit stays fail-open and is not adopted as
+canonical editor state.</li>
 </ul>
 </section>
 <section id="docs__en__development__adr__0006-local-tcp-and-ssh-stdio-transportsmd__consequences" class="level3">
@@ -3814,6 +3823,12 @@ never Neovim or tmux.</p>
 <p>Protocol messages are size-bounded, schema-validated, and bound to
 session and sequence. Incoming data is not executed and grants no
 general Neovim RPC access.</p>
+<p>On the SSH path, only a valid <code>fullState</code> with the
+explicit lifecycle state <code>connection.neovim=connected</code>
+authenticates the accessibility session. Missing, unknown, or
+disconnected states are rejected before canonical state. In particular,
+a bridge surviving Neovim exit cannot use a requested disconnected
+snapshot to enable suppression or an apparent reconnect.</p>
 <p>The reverse direction has a fixed allowlist for state requests,
 cursor routing, bounded Braille actions, read-only exploration, explicit
 clipboard commands, Terminal-Normal mode, and contextual numbered
@@ -4110,7 +4125,12 @@ translates this internal lifecycle event to its existing
 connection-state callback and releases the affected terminal association
 fail-open; it is not published as an editor event. Only a subsequent
 valid <code>fullState</code> authenticates the same transport instance
-again.</p>
+again when it also reports <code>connection.neovim=connected</code>. A
+snapshot requested by focus reactivation or resync while disconnected
+still reports <code>connection.neovim=disconnected</code>; the client
+rejects it as an authentication point. The surviving bridge therefore
+cannot make an ended Neovim instance appear to reconnect or cause
+repeated connect/disconnect transitions.</p>
 <p>For both transports, the first valid <code>fullState</code> is the
 add-on&#39;s accessibility authentication point.</p>
 </section>
@@ -6116,7 +6136,19 @@ Regression tests cover repeated focus changes while the question is
 open. The practical run under NVDA 2026.2beta10 exposed the defect and
 exercised the surrounding focus path, so the manifest sets the last
 tested NVDA version to 2026.2. The corrected build still needs the final
-manual repetition test.</li>
+manual repetition test. This installable state is development build
+1.</li>
+<li>Prevents false SSH reconnections after the bound remote Neovim
+instance exits. A surviving bridge can still answer focus-triggered
+state requests, but a <code>fullState</code> with
+<code>connection.neovim=disconnected</code> can no longer authenticate
+the transport instance. Focus changes between a local pane and the ended
+SSH pane therefore cannot cause repeated connection and disconnection
+cues. Direct protocol tests cover repeated disconnected snapshots, an
+initially disconnected state, and a genuine later reconnect. The
+practical two-pane run under NVDA 2026.2beta10 exposed the defect; the
+corrected build still needs manual repetition. This installable state is
+development build 2.</li>
 <li>Hardens protocol boundaries after the complete unit-test review.
 Boolean and negative sequences or timestamps are rejected in the message
 envelope. A new transport session starts exclusively with

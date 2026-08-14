@@ -114,7 +114,11 @@ ends. The bridge then sends a sequenced `connectionStateChanged` with
 internal lifecycle event to its existing connection-state callback and releases
 the affected terminal association fail-open; it is not published as an editor
 event. Only a subsequent valid `fullState` authenticates the same transport
-instance again.
+instance again when it also reports `connection.neovim=connected`. A snapshot
+requested by focus reactivation or resync while disconnected still reports
+`connection.neovim=disconnected`; the client rejects it as an authentication
+point. The surviving bridge therefore cannot make an ended Neovim instance
+appear to reconnect or cause repeated connect/disconnect transitions.
 
 For both transports, the first valid `fullState` is the add-on's accessibility
 authentication point.

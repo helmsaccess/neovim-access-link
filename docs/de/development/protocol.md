@@ -200,7 +200,13 @@ Neovim-Instanz endet. Die Bridge sendet dann ein sequenziertes
 übersetzt dieses interne Lebenszyklusereignis unmittelbar in seinen bestehenden
 Verbindungsstatus-Callback und gibt die betroffene Terminalzuordnung fail-open
 frei; es wird nicht als Editorereignis ausgegeben. Erst ein anschließendes
-gültiges `fullState` authentifiziert dieselbe Transportinstanz erneut.
+gültiges `fullState` mit `connection.neovim=connected` authentifiziert dieselbe
+Transportinstanz erneut. Ein während der Trennung durch Fokusreaktivierung oder
+Resync angefordertes Zustandsabbild trägt weiterhin
+`connection.neovim=disconnected`; der Client verwirft es als nicht
+authentifizierbar. Dadurch kann die weiterlaufende Bridge eine beendete
+Neovim-Instanz weder scheinbar neu verbinden noch wiederholte Verbindungs- und
+Trennungsübergänge auslösen.
 
 Der lokale Client besitzt keinen separaten Heartbeat: Ein geschlossener
 Neovim-RPC-Socket erzeugt `disconnected`; Reconnect verwendet ebenfalls

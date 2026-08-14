@@ -1,7 +1,7 @@
 # Aktueller Status
 
 Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.1 mit Branch- und
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.2 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -99,7 +99,12 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   derselben Sitzung den Resync-Zustand.
   Beim Ende einer entfernten Neovim-Instanz übersetzt der SSH-Client den
   Bridge-Lebenszyklusstatus unmittelbar in denselben Fail-open-Pfad wie eine
-  lokale RPC-Trennung, auch wenn SSH-Prozess und Bridge weiterlaufen.
+  lokale RPC-Trennung, auch wenn SSH-Prozess und Bridge weiterlaufen. Während
+  dieser Trennung angeforderte Zustandsabbilder authentifizieren die Instanz
+  nicht erneut; erst `fullState` mit einem verbundenen Neovim-Zustand darf
+  wieder einen Verbindungsübergang auslösen. Ein automatisierter Grenztest
+  bildet dafür ein gemischtes lokales/SSH-Pane-Szenario mit beendeter
+  Remote-Instanz und wiederholtem Fokuswechsel nach.
 - Windows-Terminal-Ereignisse und `nextHandler` gehören dem AppModule.
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin

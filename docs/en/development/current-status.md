@@ -1,7 +1,7 @@
 # Current status
 
 Status date: August 14, 2026. The source tree develops the 0.99.0 line;
-`buildVars.py` generates artifacts as 0.99.0-dev.1 with branch and commit
+`buildVars.py` generates artifacts as 0.99.0-dev.2 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -90,7 +90,12 @@ manifest therefore names NVDA 2026.2 as last tested. See
   state.
   When a remote Neovim instance ends, the SSH client immediately translates
   the bridge lifecycle state to the same fail-open path as a local RPC
-  disconnect, even while the SSH process and bridge remain alive.
+  disconnect, even while the SSH process and bridge remain alive. State
+  snapshots requested during that disconnect cannot authenticate the instance
+  again; only a `fullState` reporting a connected Neovim may create another
+  connection transition. An automated boundary test reproduces a mixed
+  local/SSH pane scenario with an ended remote instance and repeated focus
+  changes.
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
   presentation, and runtime. The Global Plugin now only creates and closes the

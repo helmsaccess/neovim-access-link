@@ -48,7 +48,10 @@ class SshStdioClientTests(unittest.TestCase):
     def test_discards_shell_noise_and_accepts_full_state(self) -> None:
         events: list[dict] = []
         states: list[str] = []
-        full_state = MessageFactory().create("fullState", {"lineText": "hello"})
+        full_state = MessageFactory().create("fullState", {
+            "lineText": "hello",
+            "connection": {"neovim": "connected"},
+        })
         process = FakeProcess(b"shell noise\r\n" + STDIO_MARKER + encode_frame(full_state))
         process.stdout = ReadOneOnly(process.stdout.getvalue())
         client = SshStdioClient("example-host", events.append, states.append)
@@ -60,21 +63,79 @@ class SshStdioClientTests(unittest.TestCase):
     def test_remote_neovim_disconnect_fails_open_before_ssh_closes(self) -> None:
         events: list[dict] = []
         states: list[str] = []
+        diagnostics: list[tuple[str, dict]] = []
         factory = MessageFactory()
         stream = b"".join(
             encode_frame(event)
             for event in (
-                factory.create("fullState", {"lineText": "first"}),
+                factory.create("fullState", {
+                    "lineText": "first",
+                    "connection": {"neovim": "connected"},
+                }),
                 factory.create(
                     "connectionStateChanged",
                     {"connection": {"neovim": "disconnected"}},
                 ),
                 factory.create("heartbeat", {}),
+                # Focusing a remembered terminal asks the still-running bridge
+                # for its current state.  A snapshot of the ended Neovim must
+                # not authenticate the SSH transport again.
+                factory.create("fullState", {
+                    "lineText": "ended",
+                    "connection": {"neovim": "disconnected"},
+                }),
                 factory.create(
                     "connectionStateChanged",
                     {"connection": {"neovim": "connected"}},
                 ),
-                factory.create("fullState", {"lineText": "second"}),
+                factory.create("fullState", {
+                    "lineText": "second",
+                    "connection": {"neovim": "connected"},
+                }),
+            )
+        )
+        process = FakeProcess(STDIO_MARKER + stream)
+        client = SshStdioClient(
+            "example-host",
+            events.append,
+            states.append,
+            lambda category, fields: diagnostics.append((category, fields)),
+        )
+
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+
+        self.assertEqual(["connected", "disconnected", "connected"], states)
+        self.assertEqual(["fullState", "fullState"], [event["type"] for event in events])
+        self.assertEqual(["first", "second"], [event["payload"]["lineText"] for event in events])
+        self.assertIn(
+            ("sshFullStateIgnored", {"reason": "neovimDisconnected"}),
+            diagnostics,
+        )
+
+    def test_repeated_disconnected_snapshots_do_not_flap_connection_state(self) -> None:
+        events: list[dict] = []
+        states: list[str] = []
+        factory = MessageFactory()
+        stream = b"".join(
+            encode_frame(event)
+            for event in (
+                factory.create("fullState", {
+                    "lineText": "running",
+                    "connection": {"neovim": "connected"},
+                }),
+                factory.create(
+                    "connectionStateChanged",
+                    {"connection": {"neovim": "disconnected"}},
+                ),
+                factory.create("fullState", {
+                    "lineText": "ended",
+                    "connection": {"neovim": "disconnected"},
+                }),
+                factory.create("fullState", {
+                    "lineText": "ended",
+                    "connection": {"neovim": "disconnected"},
+                }),
             )
         )
         process = FakeProcess(STDIO_MARKER + stream)
@@ -83,16 +144,52 @@ class SshStdioClientTests(unittest.TestCase):
         with self.assertRaisesRegex(ConnectionResetError, "closed"):
             client._receive(process)
 
-        self.assertEqual(["connected", "disconnected", "connected"], states)
-        self.assertEqual(["fullState", "fullState"], [event["type"] for event in events])
-        self.assertEqual(["first", "second"], [event["payload"]["lineText"] for event in events])
+        self.assertEqual(["connected", "disconnected"], states)
+        self.assertEqual(["running"], [event["payload"]["lineText"] for event in events])
+
+    def test_initial_disconnected_snapshot_reports_fail_open_without_authentication(self) -> None:
+        events: list[dict] = []
+        states: list[str] = []
+        full_state = MessageFactory().create("fullState", {
+            "lineText": "ended",
+            "connection": {"neovim": "disconnected"},
+        })
+        process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
+        client = SshStdioClient("example-host", events.append, states.append)
+
+        with self.assertRaisesRegex(ConnectionResetError, "closed"):
+            client._receive(process)
+
+        self.assertEqual(["disconnected"], states)
+        self.assertEqual([], events)
+
+    def test_rejects_invalid_remote_neovim_state_in_full_state(self) -> None:
+        for payload in (
+            {},
+            {"connection": None},
+            {"connection": {"neovim": "unknown"}},
+        ):
+            with self.subTest(payload=payload):
+                full_state = MessageFactory().create("fullState", payload)
+                process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
+                client = SshStdioClient(
+                    "example-host",
+                    lambda _event: None,
+                    lambda _state: None,
+                )
+
+                with self.assertRaisesRegex(ProtocolError, "fullState"):
+                    client._receive(process)
 
     def test_rejects_invalid_remote_neovim_connection_state(self) -> None:
         factory = MessageFactory()
         stream = b"".join(
             encode_frame(event)
             for event in (
-                factory.create("fullState", {"lineText": "first"}),
+                factory.create("fullState", {
+                    "lineText": "first",
+                    "connection": {"neovim": "connected"},
+                }),
                 factory.create(
                     "connectionStateChanged",
                     {"connection": {"neovim": "unknown"}},
@@ -115,6 +212,7 @@ class SshStdioClientTests(unittest.TestCase):
             "buftype": "nofile",
             "filetype": "not-lazy",
             "pluginManagerOverview": "untrusted",
+            "connection": {"neovim": "connected"},
         })
         process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
         client = SshStdioClient("example-host", events.append, lambda _state: None)
@@ -128,6 +226,7 @@ class SshStdioClientTests(unittest.TestCase):
             "buftype": "nofile",
             "filetype": "not-lazy",
             "pluginManagerEntryExpanded": True,
+            "connection": {"neovim": "connected"},
         })
         process = FakeProcess(STDIO_MARKER + encode_frame(full_state))
         client = SshStdioClient("example-host", events.append, lambda _state: None)
@@ -140,7 +239,10 @@ class SshStdioClientTests(unittest.TestCase):
         diagnostics: list[tuple[str, dict]] = []
         factory = MessageFactory()
         stream = b"".join(encode_frame(event) for event in (
-            factory.create("fullState", {"mode": "normal"}),
+            factory.create("fullState", {
+                "mode": "normal",
+                "connection": {"neovim": "connected"},
+            }),
             factory.create("tutorExerciseChanged", {
                 "filetype": "tutor", "tutorExerciseStatus": "correct",
             }),

@@ -37,6 +37,12 @@ Protocol messages are size-bounded, schema-validated, and bound to session and
 sequence. Incoming data is not executed and grants no general Neovim RPC
 access.
 
+On the SSH path, only a valid `fullState` with the explicit lifecycle state
+`connection.neovim=connected` authenticates the accessibility session.
+Missing, unknown, or disconnected states are rejected before canonical state.
+In particular, a bridge surviving Neovim exit cannot use a requested
+disconnected snapshot to enable suppression or an apparent reconnect.
+
 The reverse direction has a fixed allowlist for state requests, cursor
 routing, bounded Braille actions, read-only exploration, explicit clipboard
 commands, Terminal-Normal mode, and contextual numbered choices. Every

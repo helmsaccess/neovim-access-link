@@ -74,7 +74,18 @@ test-build entries through August 5, 2026.
   focus changes while the question is open. The practical run under NVDA
   2026.2beta10 exposed the defect and exercised the surrounding focus path, so
   the manifest sets the last tested NVDA version to 2026.2. The corrected build
-  still needs the final manual repetition test.
+  still needs the final manual repetition test. This installable state is
+  development build 1.
+- Prevents false SSH reconnections after the bound remote Neovim instance
+  exits. A surviving bridge can still answer focus-triggered state requests,
+  but a `fullState` with `connection.neovim=disconnected` can no longer
+  authenticate the transport instance. Focus changes between a local pane and
+  the ended SSH pane therefore cannot cause repeated connection and
+  disconnection cues. Direct protocol tests cover repeated disconnected
+  snapshots, an initially disconnected state, and a genuine later reconnect.
+  The practical two-pane run under NVDA 2026.2beta10 exposed the defect; the
+  corrected build still needs manual repetition. This installable state is
+  development build 2.
 - Hardens protocol boundaries after the complete unit-test review. Boolean and
   negative sequences or timestamps are rejected in the message envelope. A new
   transport session starts exclusively with `fullState` at sequence 0, while

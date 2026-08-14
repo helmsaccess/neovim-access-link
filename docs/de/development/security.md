@@ -42,6 +42,13 @@ Protokollnachrichten sind größenbegrenzt, schemageprüft und an Sitzung sowie
 Sequenz gebunden. Eingehende Daten werden nicht ausgeführt und gewähren keinen
 allgemeinen Neovim-RPC-Zugang.
 
+Auf dem SSH-Pfad authentifiziert nur ein gültiges `fullState` mit dem
+ausdrücklichen Lebenszykluszustand `connection.neovim=connected` die
+Accessibility-Sitzung. Fehlende, unbekannte oder getrennte Zustände werden vor
+dem kanonischen Zustand verworfen. Insbesondere kann die nach Neovims Ende
+weiterlaufende Bridge mit einem angeforderten getrennten Zustandsabbild weder
+Unterdrückung noch einen scheinbaren Reconnect aktivieren.
+
 Die Rückrichtung besitzt eine feste Allowlist für Zustandsanforderung,
 Cursor-Routing, begrenzte Brailleaktionen, read-only Exploration, ausdrückliche
 Zwischenablagebefehle, Terminal-Normalmodus und kontextbezogene nummerierte

@@ -32,6 +32,9 @@ and failure surface.
 - Endpoints and discovered sessions remain untrusted until fully validated. Capabilities are
   negotiated, and control messages run only for the confirmed focused session. Native NVDA and
   terminal handling remains active on failure.
+- On the SSH path, a `fullState` is an authentication point only when it explicitly reports the
+  bridge lifecycle as `connection.neovim=connected`. A disconnected snapshot from a bridge that
+  survives Neovim exit stays fail-open and is not adopted as canonical editor state.
 
 ## Consequences
 

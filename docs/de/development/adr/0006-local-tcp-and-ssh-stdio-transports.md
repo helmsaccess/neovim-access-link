@@ -33,6 +33,10 @@ geerbte Portweiterleitungen vergrößern die Angriffs- und Fehlerfläche.
   vertrauenswürdig. Fähigkeiten werden ausgehandelt und Steuerbefehle nur in der bestätigten,
   fokussierten Sitzung ausgeführt. Bei Fehlern bleibt die normale NVDA- und Terminalbehandlung
   aktiv.
+- Auf dem SSH-Pfad ist ein `fullState` nur dann ein Authentifizierungspunkt, wenn es den
+  Bridge-Lebenszyklus ausdrücklich als `connection.neovim=connected` ausweist. Ein getrenntes
+  Zustandsabbild der nach Neovims Ende weiterlaufenden Bridge bleibt fail-open und wird nicht in
+  den kanonischen Editorzustand übernommen.
 
 ## Folgen
 

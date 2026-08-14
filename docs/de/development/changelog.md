@@ -81,7 +81,18 @@ und Testbuild-Einträge bis zum 5. August 2026.
   praktische Lauf unter NVDA 2026.2beta10 deckte den Fehler auf und prüfte den
   umgebenden Fokuspfad; das Manifest setzt die zuletzt getestete NVDA-Version
   auf 2026.2. Der korrigierte Build benötigt noch den abschließenden manuellen
-  Wiederholungstest.
+  Wiederholungstest. Dieser installierbare Stand ist Entwicklungsbuild 1.
+- Verhindert falsche SSH-Wiederverbindungen nach dem Beenden der gebundenen
+  entfernten Neovim-Instanz. Eine weiterlaufende Bridge beantwortet
+  fokusbedingte Zustandsabfragen zwar weiterhin, doch ein `fullState` mit
+  `connection.neovim=disconnected` kann die Transportinstanz nicht mehr
+  authentifizieren. Damit lösen Fokuswechsel zwischen einem lokalen und dem
+  beendeten SSH-Pane keine wiederholten Verbindungs- und Trennungsklänge mehr
+  aus. Direkte Protokolltests decken wiederholte getrennte Zustandsabbilder,
+  den anfänglich getrennten Zustand und einen echten späteren Reconnect ab.
+  Der praktische Zwei-Pane-Test unter NVDA 2026.2beta10 deckte den Fehler auf;
+  der korrigierte Build benötigt noch den manuellen Wiederholungstest. Dieser
+  installierbare Stand ist Entwicklungsbuild 2.
 - Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
   Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
   Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich
