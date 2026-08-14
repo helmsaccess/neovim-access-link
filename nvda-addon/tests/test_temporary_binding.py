@@ -270,10 +270,13 @@ class TemporaryBindingWorkflowTests(unittest.TestCase):
 		self.assertEqual([], fixture.dialogs.calls)
 		self.assertEqual([], fixture.scheduler.calls)
 		self.assertIn(
-			("temporaryTerminalBindingDeclined", {
-				"instanceId": "connection-1",
-				"terminal": {"identity": "terminal-1"},
-			}),
+			(
+				"temporaryTerminalBindingDeclined",
+				{
+					"instanceId": "connection-1",
+					"terminal": {"identity": "terminal-1"},
+				},
+			),
 			fixture.diagnostics.entries,
 		)
 
@@ -310,10 +313,13 @@ class TemporaryBindingWorkflowTests(unittest.TestCase):
 		self.assertEqual([("terminal-1", "connection-1")], requests)
 		self.assertIn(("consume", "terminal-1", "connection-1"), fixture.session_claim.calls)
 		self.assertIn(
-			("temporaryTerminalBindingFocusHandshakeRetried", {
-				"instanceId": "connection-1",
-				"terminal": {"identity": "terminal-1"},
-			}),
+			(
+				"temporaryTerminalBindingFocusHandshakeRetried",
+				{
+					"instanceId": "connection-1",
+					"terminal": {"identity": "terminal-1"},
+				},
+			),
 			fixture.diagnostics.entries,
 		)
 
@@ -349,10 +355,10 @@ class TemporaryBindingWorkflowTests(unittest.TestCase):
 
 		fixture.workflow.request_remembered_binding_state("terminal-1", "connection-1")
 
-		self.assertEqual([(client, "requestFocusContext", {"requestId": 7})], [
-			(client, kind, payload)
-			for client, kind, payload, _callback in fixture.dispatch_calls
-		])
+		self.assertEqual(
+			[(client, "requestFocusContext", {"requestId": 7})],
+			[(client, kind, payload) for client, kind, payload, _callback in fixture.dispatch_calls],
+		)
 		self.assertEqual(["connection-1"], fixture.coordinator.discarded)
 		self.assertEqual(150, fixture.scheduler.calls[0][0])
 		self.assertEqual(

@@ -8,11 +8,7 @@ import unittest
 
 
 MODULE_PATH = (
-	pathlib.Path(__file__).parents[1]
-	/ "addon"
-	/ "globalPlugins"
-	/ "NeovimAccessLink"
-	/ "managed_clients.py"
+	pathlib.Path(__file__).parents[1] / "addon" / "globalPlugins" / "NeovimAccessLink" / "managed_clients.py"
 )
 
 
@@ -43,9 +39,7 @@ class ManagedClientFactoryTests(unittest.TestCase):
 			ssh_client_constructor=remote_constructor,
 			on_event=lambda instance_id, event: self.events.append((instance_id, event)),
 			on_state=lambda instance_id, state: self.states.append((instance_id, state)),
-			record_network_diagnostic=lambda category, fields: self.diagnostics.append(
-				(category, fields)
-			),
+			record_network_diagnostic=lambda category, fields: self.diagnostics.append((category, fields)),
 		)
 
 	def test_local_callbacks_are_correlated_after_instance_assignment(self) -> None:
@@ -69,11 +63,14 @@ class ManagedClientFactoryTests(unittest.TestCase):
 		self.callbacks["on_state"]("connected")
 		self.callbacks["on_diagnostic"]("transport", {"attempt": 1})
 
-		self.assertEqual(("127.0.0.1", 45678, "a" * 32), (
-			self.callbacks["host"],
-			self.callbacks["port"],
-			self.callbacks["session_nonce"],
-		))
+		self.assertEqual(
+			("127.0.0.1", 45678, "a" * 32),
+			(
+				self.callbacks["host"],
+				self.callbacks["port"],
+				self.callbacks["session_nonce"],
+			),
+		)
 		self.assertEqual(
 			[(None, {"type": "preAssignment"}), ("connection-7", {"type": "fullState"})],
 			self.events,

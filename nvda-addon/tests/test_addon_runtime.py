@@ -7,11 +7,7 @@ import unittest
 
 
 MODULE_PATH = (
-	pathlib.Path(__file__).parents[1]
-	/ "addon"
-	/ "globalPlugins"
-	/ "NeovimAccessLink"
-	/ "addon_runtime.py"
+	pathlib.Path(__file__).parents[1] / "addon" / "globalPlugins" / "NeovimAccessLink" / "addon_runtime.py"
 )
 
 
@@ -100,23 +96,29 @@ def make_runtime(*, failure: str = ""):
 	registrar = _Registrar(calls, fail_publish=failure == "publish")
 	profile = _ProfileSwitch(calls, fail_register=failure == "profile")
 	ui_manager = _Service(calls, "ui", fail="register" if failure == "ui" else "")
-	return AddonRuntime(
-		registrar=registrar,
-		integration_service=service,
-		control_dispatcher=_Service(calls, "controlDispatcher"),
-		scheduler=_Service(calls, "scheduler"),
-		client_stopper=_Service(calls, "clientStopper"),
-		gate=_Service(calls, "gate"),
-		profile_switch_action=profile,
-		profile_switch_handler=handler,
-		clear_session_passwords=lambda: calls.append("passwords"),
-		stop_connections=lambda: calls.append("connections"),
-		focus_service=_Service(calls, "terminalFocus"),
-		claim_service=_Service(calls, "connectionClaims"),
-		ui_manager=ui_manager,
-		presentation=_Service(calls, "presentation"),
-		diagnostics=_Diagnostics(calls),
-	), calls, service, registrar, handler
+	return (
+		AddonRuntime(
+			registrar=registrar,
+			integration_service=service,
+			control_dispatcher=_Service(calls, "controlDispatcher"),
+			scheduler=_Service(calls, "scheduler"),
+			client_stopper=_Service(calls, "clientStopper"),
+			gate=_Service(calls, "gate"),
+			profile_switch_action=profile,
+			profile_switch_handler=handler,
+			clear_session_passwords=lambda: calls.append("passwords"),
+			stop_connections=lambda: calls.append("connections"),
+			focus_service=_Service(calls, "terminalFocus"),
+			claim_service=_Service(calls, "connectionClaims"),
+			ui_manager=ui_manager,
+			presentation=_Service(calls, "presentation"),
+			diagnostics=_Diagnostics(calls),
+		),
+		calls,
+		service,
+		registrar,
+		handler,
+	)
 
 
 class AddonRuntimeTests(unittest.TestCase):
