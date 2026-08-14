@@ -2923,7 +2923,9 @@ Kontexts werden vor der kanonischen Zustandsübernahme verworfen. Unter
 Neovim 0.10 bleibt Tutor unverändert bei Neovim, und Access Link
 registriert dafür keine Beobachter. Beide Grenzen sowie der 0.12-Pfad
 sind headless, der 0.12-Pfad zusätzlich über eine isolierte echte TUI
-automatisiert geprüft.</li>
+automatisiert geprüft. Ein eigener GitHub-Actions-Job führt den nativen
+Lua-Vertrag und genau diesen aktuellen Socket-/TUI-Test unter dem
+festgelegten Neovim 0.12.3 aus.</li>
 </ul>
 </section>
 <section id="docs__de__development__current-statusmd__entwicklungswerkzeuge-terminal-und-dateien" class="level4">
@@ -6635,6 +6637,11 @@ statt fragiler Quelltexttreffer, Nebenläufigkeitstests Ereignisse statt
 kurzer Wandzeitgrenzen. Mock- und echte TUI-Bridge-Tests sind
 dateibasiert getrennt, der Runner zeigt Skip-Gründe und Warnungen, und
 vier gezielte Mutationen belegen kritische Protokollverträge.</li>
+<li>Korrigiert den eigenen GitHub-Actions-Job für
+Neovim-0.12-Tutor-Semantik nach der Trennung der Mock- und Socket-Tests.
+Der Job ruft wieder den vorhandenen echten TUI-Test mit seinem aktuellen
+Modul- und Klassennamen auf, statt nach dem erfolgreichen Lua-Test an
+einem veralteten Importpfad abzubrechen.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

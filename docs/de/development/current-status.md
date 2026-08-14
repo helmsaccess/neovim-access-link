@@ -170,7 +170,9 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   Neovim 0.10 bleibt Tutor unverändert bei
   Neovim, und Access Link registriert dafür keine Beobachter. Beide Grenzen
   sowie der 0.12-Pfad sind headless, der 0.12-Pfad zusätzlich über eine
-  isolierte echte TUI automatisiert geprüft.
+  isolierte echte TUI automatisiert geprüft. Ein eigener GitHub-Actions-Job
+  führt den nativen Lua-Vertrag und genau diesen aktuellen Socket-/TUI-Test
+  unter dem festgelegten Neovim 0.12.3 aus.
 
 ### Entwicklungswerkzeuge, Terminal und Dateien
 

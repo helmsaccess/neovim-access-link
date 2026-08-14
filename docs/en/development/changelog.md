@@ -117,6 +117,10 @@ test-build entries through August 5, 2026.
   events instead of short wall-time thresholds. Mock and real-TUI bridge tests
   are separated by file, the runner reports skip reasons and warnings, and
   four targeted mutations provide evidence for critical protocol contracts.
+- Corrects the dedicated GitHub Actions job for Neovim 0.12 Tutor semantics
+  after the mock and socket tests were split. The job again invokes the
+  existing real-TUI test through its current module and class names instead of
+  failing at a stale import path after the Lua test succeeds.
 
 ## 0.98.0
 

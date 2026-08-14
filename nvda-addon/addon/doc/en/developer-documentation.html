@@ -2811,8 +2811,9 @@ buffer; there is no polling or additional control traffic. Values of
 other types or outside this context are rejected before canonical state.
 On Neovim 0.10, Tutor remains unchanged with Neovim and Access Link
 registers no Tutor observers. Both boundaries and the 0.12 path have
-headless coverage; the 0.12 path also has an isolated real-TUI
-test.</li>
+headless coverage; the 0.12 path also has an isolated real-TUI test. A
+dedicated GitHub Actions job runs the native Lua contract and this
+current socket/TUI test under the pinned Neovim 0.12.3.</li>
 </ul>
 </section>
 <section id="docs__en__development__current-statusmd__development-tools-terminal-and-files" class="level4">
@@ -6189,6 +6190,11 @@ source-text matches, and concurrency tests use events instead of short
 wall-time thresholds. Mock and real-TUI bridge tests are separated by
 file, the runner reports skip reasons and warnings, and four targeted
 mutations provide evidence for critical protocol contracts.</li>
+<li>Corrects the dedicated GitHub Actions job for Neovim 0.12 Tutor
+semantics after the mock and socket tests were split. The job again
+invokes the existing real-TUI test through its current module and class
+names instead of failing at a stale import path after the Lua test
+succeeds.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">

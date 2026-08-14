@@ -156,7 +156,9 @@ tab changes, plus structured Neovim messages.
   other types or outside this context are rejected before canonical state. On
   Neovim 0.10, Tutor remains unchanged with Neovim and Access Link registers no
   Tutor observers. Both boundaries and the 0.12 path have headless coverage; the
-  0.12 path also has an isolated real-TUI test.
+  0.12 path also has an isolated real-TUI test. A dedicated GitHub Actions job
+  runs the native Lua contract and this current socket/TUI test under the pinned
+  Neovim 0.12.3.
 
 ### Development tools, terminal, and files
 

@@ -127,6 +127,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Wandzeitgrenzen. Mock- und echte TUI-Bridge-Tests sind dateibasiert getrennt,
   der Runner zeigt Skip-Gründe und Warnungen, und vier gezielte Mutationen
   belegen kritische Protokollverträge.
+- Korrigiert den eigenen GitHub-Actions-Job für Neovim-0.12-Tutor-Semantik
+  nach der Trennung der Mock- und Socket-Tests. Der Job ruft wieder den
+  vorhandenen echten TUI-Test mit seinem aktuellen Modul- und Klassennamen
+  auf, statt nach dem erfolgreichen Lua-Test an einem veralteten Importpfad
+  abzubrechen.
 
 ## 0.98.0
 

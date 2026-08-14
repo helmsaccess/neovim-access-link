@@ -86,9 +86,9 @@ jobs:
           nvim --headless -n -u NONE -i NONE --cmd "set packpath=" \
             -l neovim-plugin/tests/tutor_spec.lua
           PYTHONDONTWRITEBYTECODE=1 \
-            PYTHONPATH=protocol/python:bridge/python:nvda-addon/core \
+            PYTHONPATH=protocol/python:bridge/python:bridge/python/tests:nvda-addon/core \
             python3 -m unittest -v \
-              bridge.python.tests.test_nvim_bridge.NvimBridgeTests.test_real_tui_tutor_exercise_status_tracks_native_marks
+              bridge.python.tests.test_nvim_bridge_socket.NvimBridgeSocketTests.test_real_tui_tutor_exercise_status_tracks_native_marks
 
   documentation:
     name: German and English documentation build
