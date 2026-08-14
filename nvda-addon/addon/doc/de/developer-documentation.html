@@ -2737,7 +2737,7 @@ Tests.</p>
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
 <p>Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-<code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.3 mit Branch-
+<code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.1 mit Branch-
 und Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der
 aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt leitet aus
 Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung
@@ -2829,10 +2829,14 @@ Laufzeitinformation.</li>
 <li>Authentifizierung, Sequenzen, Heartbeats, Resync und
 Fokuskorrelation begrenzen den dauerhaften Pfad. Trennung, ungültiger
 Zustand oder unsichere Fokusidentität geben NVDAs natives
-Terminalverhalten fail-open frei. Beim Ende einer entfernten
-Neovim-Instanz übersetzt der SSH-Client den Bridge-Lebenszyklusstatus
-unmittelbar in denselben Fail-open-Pfad wie eine lokale RPC-Trennung,
-auch wenn SSH-Prozess und Bridge weiterlaufen.</li>
+Terminalverhalten fail-open frei. Eine neue Transport-Sitzung wird nur
+durch <code>fullState</code> mit Sequenz 0 übernommen; boolesche oder
+negative Hüllensequenzen und Zeitstempel werden verworfen. Nach einer
+Sequenzlücke beendet nur ein neueres Zustandsabbild derselben Sitzung
+den Resync-Zustand. Beim Ende einer entfernten Neovim-Instanz übersetzt
+der SSH-Client den Bridge-Lebenszyklusstatus unmittelbar in denselben
+Fail-open-Pfad wie eine lokale RPC-Trennung, auch wenn SSH-Prozess und
+Bridge weiterlaufen.</li>
 <li>Windows-Terminal-Ereignisse und <code>nextHandler</code> gehören dem
 AppModule. Getrennte Dienste besitzen Fokus, Sitzungszuordnung,
 Verbindungen, Editorzustand, Einstellungen, Präsentation und Laufzeit.
@@ -2991,7 +2995,15 @@ eine zeitlich und nach Datenmenge begrenzte ausstehende PTY-Ausgabe vor
 jedem physischen Tastenschritt. Jeder isolierte Runner-Job besitzt
 zusätzlich ein festes Zeitlimit; dessen Abbruch beendet die gesamte
 eigene Prozessgruppe einschließlich gestarteter Neovim- und
-Hilfsprozesse. Für reale Provider gilt in Vorprüfung und Testhilfe eine
+Hilfsprozesse. Die abgeschlossene Unit-Test-Nachprüfung prüft die
+extrahierten NVDA-Runtime- Eigentümer direkt, während vollständige
+Kompositionsverträge in der verkleinerten Paketfixture verbleiben.
+Mockisolierte Bridge-Verträge und echte TUI-/Socket- Szenarien sind
+getrennte, dateibasiert klassifizierte Suiten. Vier gezielte
+Protokollmutationen müssen an Bool-/Integer-Grenze, exakter Feldmenge,
+Größenobergrenze und Sitzungssequenz scheitern. Der Runner weist
+außerdem Skip-Gründe und Python-Warnungen auch bei erfolgreichen Jobs
+aus. Für reale Provider gilt in Vorprüfung und Testhilfe eine
 einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte
 Starts auf Windows und Netzlaufwerken zulässig, ohne einen hängenden
 Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
@@ -4353,7 +4365,12 @@ Sitzungskennungen werden nicht übernommen.</p>
 <li>Doppelte oder rückwärts laufende Sequenzen werden verworfen.</li>
 <li>Eine Sequenzlücke setzt den Client auf „Resync erforderlich“.</li>
 <li>Der Client sendet <code>requestFullState</code>.</li>
-<li>Erst ein neues <code>fullState</code> hebt diesen Zustand auf.</li>
+<li>Innerhalb derselben Sitzung hebt erst ein gegenüber der zuletzt
+akzeptierten Sequenz neueres <code>fullState</code> diesen Zustand auf;
+doppelte oder rückwärts laufende Zustandsabbilder bleiben
+verworfen.</li>
+<li>Eine fremde Sitzungskennung wird ausschließlich durch
+<code>fullState</code> mit Sequenz 0 übernommen.</li>
 <li>Nach SSH-Reconnect erzeugt die Bridge eine neue
 <code>sessionId</code> und beginnt wieder bei Sequenz 0.</li>
 </ul>
@@ -5336,7 +5353,12 @@ eigenen Prozessgruppe. Nach 180 Sekunden wird die vollständige Gruppe
 einschließlich gestarteter Neovim- und Hilfsprozesse beendet und der Job
 als fehlgeschlagen gemeldet. Die reale TUI-Sendehilfe begrenzt das
 Leeren des Pseudoterminals zusätzlich auf eine Sekunde und 8 MiB je
-physischem Tastenschritt.</p>
+physischem Tastenschritt. Die kompakte Ausgabe nennt für jeden Job und
+in der Gesamtsumme auch übersprungene Fälle und Python-Warnungen. Für
+jeden Fund folgt eine <code>SKIP</code>- oder <code>WARN</code>-Zeile
+mit Job und Grund beziehungsweise Warntext; ein grüner Lauf mit
+<code>0 skipped, 0 warnings</code> belegt damit ausdrücklich, dass
+nichts verborgen übersprungen oder gewarnt wurde.</p>
 </section>
 <section id="docs__de__development__testingmd__empfohlener-ablauf" class="level3">
 <h3>Empfohlener Ablauf</h3>
@@ -5429,6 +5451,25 @@ ressourcenbesitzenden Konstruktionsstufe aus. Damit prüfen diese Tests
 die Nebenläufigkeitsverträge statt nur Quelltextfragmente. Die zweite
 Ruff-Zeile lintet alle Python-Tests ausdrücklich; der Formatcheck bleibt
 auf den im Projekt konfigurierten NVDA-Produktcode begrenzt.</p>
+<p>Die fachlichen Eigentümer <code>AddonRuntime</code>,
+<code>ManagedClientFactory</code>,
+<code>TemporaryBindingWorkflow</code>, <code>EventDelivery</code>,
+<code>TerminalActions</code> und <code>ConnectionWorkflow</code>
+besitzen direkte Tests mit kleinen injizierten Attrappen. Pakettests
+bleiben für echte Komposition, NVDA-Registrierung, Persistenz und
+vollständige Fokus-/Disconnect-Szenarien zuständig. Die Bridge folgt
+derselben Grenze: mockisolierte Verträge stehen in
+<code>test_nvim_bridge_mock.py</code>, reale TUI-/Socket-Szenarien in
+<code>test_nvim_bridge_socket.py</code>. Der Runner entdeckt und shardet
+deren Methoden aus der jeweiligen Datei, statt eine zweite manuelle
+Namensliste zu pflegen.</p>
+<p><code>test_contract_mutations.py</code> prüft vier besonders
+kritische Verträge gegen temporäre, gezielt veränderte Protokollpakete.
+Die Suite muss das Entfernen der Bool-Abgrenzung, eine falsche exakte
+Größenobergrenze, eine aufgeweichte Feldmenge und einen gelockerten
+initialen Sequenzvergleich jeweils erkennen. Das ist bewusst eine kleine
+deterministische Auswahl und kein allgemeines Mutationstest-Framework
+oder Coverage-Prozentwert.</p>
 </section>
 <section id="docs__de__development__testingmd__spezialisierte-vertragsprüfungen" class="level3">
 <h3>Spezialisierte Vertragsprüfungen</h3>
@@ -6487,6 +6528,24 @@ wechseln. Profilwechsel, <code>Ja</code>- und
 <code>Nein</code>-Entscheidungen, Abbruch, Dialogfokus und die
 dialogfreie Wiederverwendung sind durch Pakettests abgedeckt. Dieser
 installierbare Stand ist Entwicklungsbuild 3.</li>
+<li>Härtet nach der vollständigen Unit-Test-Nachprüfung die
+Protokollgrenzen. Boolesche und negative Sequenzen oder Zeitstempel
+werden bereits in der Nachrichtenhülle verworfen. Eine neue
+Transport-Sitzung beginnt ausschließlich mit <code>fullState</code> und
+Sequenz 0; Resync akzeptiert weder alte Zustandsabbilder noch fremde
+Sitzungen mit fortgesetzter Sequenz. Direkte Grenzwert- und Negativtests
+prüfen außerdem MessagePack-Fragmentierung, Textspalten, Cursor-Routing
+und das Entfernen flüchtiger Ergebnisfelder. Dieser erste installierbare
+Stand des Test-Review-Zweigs ist Entwicklungsbuild 1.</li>
+<li>Schließt die strukturellen Punkte der Unit-Test-Nachprüfung. Direkte
+Tests prüfen die extrahierten NVDA-Runtime-Eigentümer ohne vollständige
+<code>GlobalPlugin</code>-Konstruktion; redundante Paketfälle wurden
+entfernt, während echte Kompositions-, Persistenz- und Fokusverträge
+erhalten bleiben. Architekturregeln verwenden Syntaxbaum-Invarianten
+statt fragiler Quelltexttreffer, Nebenläufigkeitstests Ereignisse statt
+kurzer Wandzeitgrenzen. Mock- und echte TUI-Bridge-Tests sind
+dateibasiert getrennt, der Runner zeigt Skip-Gründe und Warnungen, und
+vier gezielte Mutationen belegen kritische Protokollverträge.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

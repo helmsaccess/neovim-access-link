@@ -2640,7 +2640,7 @@ changelog provide context but do not replace current code and tests.</p>
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
 <p>Status date: August 14, 2026. The source tree develops the 0.99.0
-line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.3 with
+line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.1 with
 branch and commit metadata and sets the manifest update channel to beta.
 The current published pre-release is 0.98.0. The project does not infer
 a higher stability classification from test coverage or feature
@@ -2723,10 +2723,14 @@ setting under <code>Connections</code> applies <code>Yes</code> or
 The tab association itself remains runtime-only.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
-focus identity restore NVDA&#39;s native terminal behavior fail-open. When a
-remote Neovim instance ends, the SSH client immediately translates the
-bridge lifecycle state to the same fail-open path as a local RPC
-disconnect, even while the SSH process and bridge remain alive.</li>
+focus identity restore NVDA&#39;s native terminal behavior fail-open. A new
+transport session is adopted only through <code>fullState</code> at
+sequence 0; Boolean or negative envelope sequences and timestamps are
+rejected. After a sequence gap, only a newer snapshot from the same
+session leaves the resync state. When a remote Neovim instance ends, the
+SSH client immediately translates the bridge lifecycle state to the same
+fail-open path as a local RPC disconnect, even while the SSH process and
+bridge remain alive.</li>
 <li>The AppModule owns Windows Terminal events and
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
@@ -2876,7 +2880,14 @@ internal source shape. Real-TUI tests use one shared send helper to
 drain a time- and byte-bounded amount of pending PTY output before every
 physical-key step. Every isolated runner job also has a fixed timeout
 whose failure terminates its complete process group, including Neovim
-and helper processes it started. Preflight and test helpers use one
+and helper processes it started. The completed unit-test review
+exercises the extracted NVDA runtime owners directly while complete
+composition contracts remain in the reduced package fixture.
+Mock-isolated bridge contracts and real TUI/socket scenarios are
+separate, file-classified suites. Four targeted protocol mutations must
+fail at the Boolean/integer distinction, exact field set, size boundary,
+and session-sequence rule. The runner also reports skip reasons and
+Python warnings for successful jobs. Preflight and test helpers use one
 bounded 60-second wait for real providers. This permits cold Windows and
 network-drive starts without waiting forever for a stalled provider.
 Listener-free, SSH, and real socket tests run separately. See the <a href="#docs__en__development__testingmd__test-strategy">test
@@ -4065,7 +4076,11 @@ identities are not adopted.</p>
 <li>Duplicate or decreasing sequences are discarded.</li>
 <li>A sequence gap enters “resync required”.</li>
 <li>The client sends <code>requestFullState</code>.</li>
-<li>Only a new valid <code>fullState</code> leaves that state.</li>
+<li>Within the same session, only a <code>fullState</code> newer than
+the last accepted sequence leaves that state; duplicate or decreasing
+snapshots stay discarded.</li>
+<li>A foreign session identity is adopted only through
+<code>fullState</code> at sequence 0.</li>
 <li>An SSH reconnect creates a new <code>sessionId</code> and restarts
 at sequence 0.</li>
 </ul>
@@ -4982,7 +4997,12 @@ selection without running it. Every isolated job runs in its own process
 group. After 180 seconds, the complete group, including Neovim and
 helper processes it started, is terminated and the job is reported as
 failed. The real-TUI send helper additionally bounds pseudo-terminal
-draining to one second and 8 MiB per physical-key step.</p>
+draining to one second and 8 MiB per physical-key step. The compact
+output also reports skipped cases and Python warnings per job and in the
+overall total. Every observation is followed by a <code>SKIP</code> or
+<code>WARN</code> line with its job and reason or warning text; a
+passing run with <code>0 skipped, 0 warnings</code> therefore explicitly
+proves that neither was hidden.</p>
 </section>
 <section id="docs__en__development__testingmd__recommended-workflow" class="level3">
 <h3>Recommended workflow</h3>
@@ -5072,6 +5092,25 @@ failures at every resource-owning construction stage. These tests
 therefore exercise concurrency contracts rather than only source-text
 fragments. The second Ruff command explicitly lints every Python test;
 format checking remains limited to the configured NVDA product code.</p>
+<p>The domain owners <code>AddonRuntime</code>,
+<code>ManagedClientFactory</code>,
+<code>TemporaryBindingWorkflow</code>, <code>EventDelivery</code>,
+<code>TerminalActions</code>, and <code>ConnectionWorkflow</code> have
+direct tests with small injected doubles. Package tests remain
+responsible for real composition, NVDA registration, persistence, and
+complete focus/disconnect scenarios. The bridge follows the same
+boundary: mock-isolated contracts live in
+<code>test_nvim_bridge_mock.py</code>, and real TUI/socket scenarios in
+<code>test_nvim_bridge_socket.py</code>. The runner discovers and shards
+methods from each file instead of maintaining a second manual name
+list.</p>
+<p><code>test_contract_mutations.py</code> checks four particularly
+critical contracts against temporary, deliberately modified protocol
+packages. The suite must detect removal of the Boolean distinction, an
+incorrect exact size boundary, a relaxed field set, and a loosened
+initial sequence comparison. This is a small deterministic selection by
+design, not a general mutation framework or a coverage-percentage
+target.</p>
 </section>
 <section id="docs__en__development__testingmd__specialized-contract-checks" class="level3">
 <h3>Specialized contract checks</h3>
@@ -6055,6 +6094,24 @@ between asking again, remembering automatically, and not remembering
 automatically. Package tests cover profile switches, <code>Yes</code>
 and <code>No</code> decisions, cancellation, dialog focus, and
 prompt-free reuse. This installable state is development build 3.</li>
+<li>Hardens protocol boundaries after the complete unit-test review.
+Boolean and negative sequences or timestamps are rejected in the message
+envelope. A new transport session starts exclusively with
+<code>fullState</code> at sequence 0, while resync accepts neither old
+snapshots nor foreign sessions with a continued sequence. Direct
+boundary and negative tests also cover MessagePack fragmentation, text
+columns, cursor routing, and removal of transient result fields. This
+first installable state on the test-review branch is development build
+1.</li>
+<li>Completes the structural actions from the unit-test review. Direct
+tests exercise the extracted NVDA runtime owners without constructing
+the complete <code>GlobalPlugin</code>; redundant package cases were
+removed while real composition, persistence, and focus contracts remain.
+Architecture rules use syntax-tree invariants instead of fragile
+source-text matches, and concurrency tests use events instead of short
+wall-time thresholds. Mock and real-TUI bridge tests are separated by
+file, the runner reports skip reasons and warnings, and four targeted
+mutations provide evidence for critical protocol contracts.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">
