@@ -224,10 +224,10 @@ Ausgabe nicht während eines unbestätigten Zustands erneut schließen.
 | `composition.py` / `AddonRuntime` | transaktionaler Aufbau, späte Dienstveröffentlichung und feste, wiederholbare Abbaureihenfolge der zusammengesetzten prozessweiten Dienste | fachliche Entscheidungen, Anwendungsevents oder freie Dienstsuche |
 | `RuntimeScheduler` | generationsgebundene NVDA-Queue und Besitz aller verzögerten Hauptthreadaufrufe | fachliche Entscheidungen, Transport oder Ausführung nach dem Schließen |
 | `TerminalIntegrationService` | gemeinsamer, ausdrücklich begrenzter Integrationsvertrag für Fokus, feste Terminalbefehle, F12-Claims, Sprachexplorationsmodus, Entwicklerkontexte und strukturierte Brailleinteraktion | Global-Plugin-Objekt, Anwendungsevents, `nextHandler`, dynamische Methodennamen oder Zugriff auf private Laufzeitzustände |
-| `TerminalFocusService` | konkrete Terminalidentität, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und konservative Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
+| `TerminalFocusService` | konkrete Terminalidentität, konservative Normalisierung nachgewiesener UIA-Provider-Aliase, Fokusgeneration, AppModule-/Adapterkorrelation, Fokusabschluss und Bereinigung geschlossener Controls | Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder `nextHandler` |
 | `SessionClaimService` | einmalige F12-Autorisierung, Claim-Generationen und Claim-Inventarzustand | Global-Plugin-Instanz, NVDA-Dialoge, synchrone Discovery oder Kopien des Verbindungslaufzeitstands |
-| `ConnectionWorkflow` | Aktivierung, Discovery, Auswahl, Start, Trennung, Abbau aller Verbindungen und Sitzungspasswörter über einen injizierten Dialogport | Transport-I/O, kanonischer Editorzustand, Wiederherstellung temporärer Bindungen oder Anwendungsevents |
-| `TemporaryBindingWorkflow` | Bestätigung, Fokuswiederherstellung und korrelierte Zustandsanforderung für temporär gemerkte Terminalbindungen | Discovery, Verbindungsstart, Claim-Inventar oder eigener kanonischer Zustand |
+| `ConnectionWorkflow` | Aktivierung, Discovery, Auswahl, Start, Trennung, Abbau aller Verbindungen und Sitzungspasswörter über einen injizierten Dialogport | Transport-I/O, kanonischer Editorzustand, Laufzeitpflege temporärer Bindungen oder Anwendungsevents |
+| `TemporaryBindingWorkflow` | automatisches Laufzeitmerken erfolgreicher Terminalbindungen und korrelierte Zustandsanforderungen beim Fokuswechsel | Dialoge, Profileinstellungen, Discovery, Verbindungsstart, Claim-Inventar oder eigener kanonischer Zustand |
 | `TerminalActions` | Zwischenablage-, Register-, Terminal- und Diagnoseaktionen samt korrelierter Aufräumlogik | Verbindungsdiscovery, Fokusbesitz oder direkter Transportzugriff |
 | `EventDelivery` | Instanz- und Fokusprüfung eingehender Zustände, Editorplanung und Übergabe fertiger Ausgabe an die Präsentation | Dialoge, Passwörter, Verbindungsdiscovery oder Transportbesitz |
 | `EditorSessionController` | fachliche Mutation und Zurücksetzung des aktiven instanzgetrennten Editorzustands, Runtimewechsel, Modus-/Menü-/Transport-/Passthroughzustand, Zugriff auf Completion-Dokumentation, Normalisierung des Verbindungsnamens, neutrale Tippechoaktionen sowie validierte ausgehende Zwischenablage-, Terminal- und Explorationspläne mit Antwortkorrelation | konkrete NVDA-Ausgabe, Fokusbindung oder Authentifizierung, Windows-Zwischenablage, Netzwerk-I/O oder Instanzlebensdauer |
@@ -351,6 +351,11 @@ den `TerminalFocusService`. Dieser erhält Identitätsbildung, UIA-Lebensprüfun
 Hauptthread-Scheduler und wenige fachliche Callbacks explizit injiziert. Ein
 geschlossenes, nicht fokussiertes Control wird erst nach zwei eindeutigen
 Negativprüfungen entfernt; unklare UIA-Fehler gelten nicht als Schließung.
+Wechselt Windows Terminal nur die providerabhängige Form der Runtime-ID,
+normalisiert der Dienst sie ausschließlich dann auf die bekannte Identität,
+wenn Prozess, Fensterhandle, freigegebene WT-Klasse und die stabilen beiden
+Pane-Komponenten übereinstimmen und NVDAs UIA-Client beide lebenden Elemente
+als dasselbe Control bestätigt. Jede Unsicherheit hält die Identitäten getrennt.
 
 Der `TerminalIntegrationService` autorisiert und verwirft physische F12-Claims
 außerdem direkt über `SessionClaimService`. Dieser Dienst besitzt den
@@ -359,22 +364,13 @@ Kandidatenauswertung. `ConnectionWorkflow` besitzt Discovery, Auswahl,
 Wiederverwendung, Verbindungsstart und Trennung. Es verbindet unveränderliche
 Dienstergebnisse mit NVDAs Hauptthread-, Dialog- und Meldungsgrenzen und reicht
 Controls ausschließlich an den Dispatcher; eine schreibbare Kopie des
-Claimzustands hält es nicht. `TemporaryBindingWorkflow` besitzt getrennt davon
-Bestätigung, Fokuswiederherstellung und korrelierte Zustandsanforderungen
-gemerkter Bindungen. Der Fokusverlust der optionalen modalen Merkabfrage wird
-durch genau eine an Terminal und Instanz korrelierte Reaktivierung überbrückt.
-Die Autorisierung der noch offenen Dialogentscheidung ist davon getrennt und
-bleibt bis zur Antwort bestehen. Eine bereits verbrauchte Fokusreaktivierung
-kann deshalb ein späteres `Ja` nicht ungültig machen. Ein anderer Terminalfokus
-verwirft weiterhin die Reaktivierung, verändert aber weder die explizite
-Dialogentscheidung noch deren ursprüngliche Terminal-/Instanzkorrelation.
-Falls Windows Terminal nach dem Schließen kein
-neues Fokusereignis liefert, prüft ein kurzer, begrenzter Hauptthread-Ablauf
-den aktuellen NVDA-Fokus und stößt nur für dasselbe Control, dasselbe
-AppModule, denselben Adapter-Token und dieselbe Instanzauswahl den normalen
-Fokuskontext-Handshake an. Ein abweichender Terminalfokus verwirft die
-Reaktivierung; ein ausbleibender oder unklarer Fokus lässt die native Ausgabe
-offen.
+Claimzustands hält es nicht. `TemporaryBindingWorkflow` merkt getrennt davon
+eine erfolgreiche, noch exakt fokussierte Terminal-/Instanzzuordnung
+automatisch im Arbeitsspeicher und besitzt die korrelierten Zustandsanforderungen
+beim späteren Fokuswechsel. Es öffnet keinen Dialog und speichert keine
+Profilentscheidung. Nur der normale, erneut gegen Control, Instanz und
+Anfrage-ID geprüfte Fokuskontext-Handshake reaktiviert die Bindung; ein
+abweichender oder unklarer Fokus lässt die native Ausgabe offen.
 
 Der `EditorSessionController` verwendet die vom
 `ConnectionCoordinator` verwaltete aktive Runtime, ist aber allein für deren

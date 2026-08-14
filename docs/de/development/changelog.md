@@ -93,6 +93,19 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Der praktische Zwei-Pane-Test unter NVDA 2026.2beta10 deckte den Fehler auf;
   der korrigierte Build benötigt noch den manuellen Wiederholungstest. Dieser
   installierbare Stand ist Entwicklungsbuild 2.
+- Entfernt die fehleranfällige Rückfrage nach dem Merken einer neuen
+  F12-Zuordnung einschließlich Ankreuzfeld, Profilwert und Einstellung. Eine
+  erfolgreiche, noch exakt fokussierte Zuordnung wird jetzt automatisch nur
+  für die laufende NVDA-/Windows-Terminal-Sitzung gemerkt; der vorhandene
+  Vergessen-Befehl entfernt sie weiterhin vorzeitig. Derselbe WT-Pane bleibt
+  auch dann zugeordnet, wenn dessen UIA-Provider zwischen den unter
+  NVDA 2026.2beta10 beobachteten Runtime-ID-Formen wechselt. Diese
+  Normalisierung verlangt gemeinsam denselben Prozess, dasselbe Fensterhandle,
+  dieselbe freigegebene Klasse und dieselben Pane-Endkomponenten sowie NVDAs
+  positive UIA-Elementgleichheit; andere Panes bleiben getrennt. Direkte und
+  Paketregressionstests decken automatisches Merken, Fokusrennen, Aliaswechsel
+  und getrennte Panes ab. Der korrigierte Build benötigt noch den manuellen
+  Wiederholungstest. Dieser installierbare Stand ist Entwicklungsbuild 3.
 - Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
   Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
   Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich

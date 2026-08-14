@@ -212,10 +212,10 @@ must not close output again before state is confirmed.
 | `composition.py` / `AddonRuntime` | Transactional construction, late service publication, and the fixed, idempotent teardown order for composed process-wide services | Domain decisions, application events, or arbitrary service lookup |
 | `RuntimeScheduler` | The generation-bound NVDA queue and ownership of every delayed main-thread call | Domain decisions, transport, or execution after close |
 | `TerminalIntegrationService` | Shared, explicitly bounded integration contract for focus, fixed terminal commands, F12 claims, speech exploration mode, developer contexts, and structured Braille interaction | A Global Plugin object, application events, `nextHandler`, dynamic method names, or access to private runtime state |
-| `TerminalFocusService` | Concrete terminal identity, focus generation, AppModule/adapter correlation, focus completion, and conservative disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
+| `TerminalFocusService` | Concrete terminal identity, conservative normalization of proven UIA-provider aliases, focus generation, AppModule/adapter correlation, focus completion, and disposal of closed controls | A Global Plugin instance, network I/O, application events, or `nextHandler` |
 | `SessionClaimService` | One-shot F12 authorization, claim generations, and claim inventory state | A Global Plugin instance, NVDA dialogs, synchronous discovery, or connection runtime copies |
-| `ConnectionWorkflow` | Activation, discovery, selection, start, disconnect, all-connection retirement, and session passwords through an injected dialog port | Transport I/O, canonical editor state, temporary-binding recovery, or application events |
-| `TemporaryBindingWorkflow` | Confirmation, focus recovery, and correlated state requests for temporarily remembered terminal bindings | Discovery, connection start, claim inventory, or canonical state of its own |
+| `ConnectionWorkflow` | Activation, discovery, selection, start, disconnect, all-connection retirement, and session passwords through an injected dialog port | Transport I/O, canonical editor state, runtime maintenance of temporary bindings, or application events |
+| `TemporaryBindingWorkflow` | Automatic runtime retention of successful terminal bindings and correlated state requests after focus changes | Dialogs, profile settings, discovery, connection start, claim inventory, or canonical state of its own |
 | `TerminalActions` | Clipboard, register, terminal, and diagnostic actions with correlated cleanup | Connection discovery, focus ownership, or direct transport access |
 | `EventDelivery` | Instance and focus validation of inbound state, editor planning, and delivery of completed output to presentation | Dialogs, passwords, connection discovery, or transport ownership |
 | `EditorSessionController` | Domain mutation and reset of the active isolated per-instance editor state, runtime switching, mode/menu/transport/passthrough state, completion-documentation access, connection-label normalization, neutral typing actions, and validated outbound clipboard, terminal, and exploration plans with reply correlation | Concrete NVDA output, focus binding or authentication, the Windows clipboard, network I/O, or instance lifetime |
@@ -332,6 +332,11 @@ Plugin methods or state.
 main-thread scheduler, and a few domain callbacks are injected explicitly. A
 closed, unfocused control is removed only after two conclusive negative checks;
 an uncertain UIA failure is not treated as closure.
+When Windows Terminal changes only the provider-specific runtime-ID form, the
+service normalizes it to the known identity only if process, window handle,
+allowed WT class, and the stable two pane components match and NVDA's UIA
+client confirms both live elements are the same control. Any uncertainty keeps
+the identities separate.
 
 `TerminalIntegrationService` also authorizes and cancels physical F12 claims
 directly through `SessionClaimService`. That service owns the mutable claim and
@@ -340,18 +345,12 @@ inventory state, local/SSH inventory workers, and candidate evaluation.
 disconnect. It joins immutable service results to NVDA's main-thread, dialog,
 and message boundaries and routes controls only through the dispatcher; it
 keeps no writable copy of claim state. `TemporaryBindingWorkflow` separately
-owns confirmation, focus recovery, and correlated state requests for remembered
-bindings. Focus loss caused by the optional modal remember question is bridged
-by exactly one terminal- and instance-correlated reactivation. Separate
-dialog-decision authorization remains valid until the answer, even if Windows
-Terminal consumes that focus reactivation while the question is still open. A
-different terminal focus still discards the reactivation, but changes neither
-the explicit answer nor its original terminal/instance correlation. If Windows
-Terminal emits no new focus event after the question
-closes, a short bounded main-thread sequence checks NVDA's current focus and
-starts the normal focus-context handshake only for the same control, AppModule,
-adapter token, and instance selection. A different terminal focus discards the
-reactivation; missing or uncertain focus keeps native output open.
+remembers a successful, still-exactly-focused terminal/instance association
+automatically in memory and owns correlated state requests after a later focus
+switch. It opens no dialog and stores no profile decision. Only the normal
+focus-context handshake, revalidated against control, instance, and request ID,
+reactivates the binding; a different or uncertain focus keeps native output
+open.
 
 The `EditorSessionController` uses the active runtime managed by
 `ConnectionCoordinator` but is solely responsible for its domain mutation. It

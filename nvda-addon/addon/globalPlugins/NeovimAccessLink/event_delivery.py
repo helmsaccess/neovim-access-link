@@ -240,9 +240,9 @@ class EventDelivery:
 		if event.get("type") == "fullState" and self._sessionClaimService.consume_temporary_binding_offer(
 			instance_id
 		):
-			# Activate the authenticated state immediately. Only the optional
-			# remember question is deferred out of NVDA's event queue; its answer
-			# must never control whether native terminal output is suppressed.
+			# Retain the exact authenticated binding in this same main-thread
+			# transition. Deferring it would let a later focus event invalidate a
+			# successful F12 association before it reaches runtime memory.
 			if self._sessionClaimService.is_temporary_binding_remembered(identity):
 				self._diagnostics.record(
 					"temporaryTerminalBindingRetained",
@@ -250,11 +250,7 @@ class EventDelivery:
 					terminal=self._identityFields(identity),
 				)
 				return
-			self._queueRuntimeCallback(
-				self._offerTemporaryBinding,
-				identity,
-				instance_id,
-			)
+			self._offerTemporaryBinding(identity, instance_id)
 			return
 
 	def discard_transient_focus_context(self):

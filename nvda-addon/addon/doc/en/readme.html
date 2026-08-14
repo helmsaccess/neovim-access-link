@@ -372,8 +372,6 @@ information</a></li>
 </ul></li>
 <li><a href="#docs__en__manual__settingsmd__connections" id="toc-docs__en__manual__settingsmd__connections">Connections</a>
 <ul>
-<li><a href="#docs__en__manual__settingsmd__temporary-terminal-connections" id="toc-docs__en__manual__settingsmd__temporary-terminal-connections">Temporary
-terminal connections</a></li>
 <li><a href="#docs__en__manual__settingsmd__add-edit-or-remove-a-connection" id="toc-docs__en__manual__settingsmd__add-edit-or-remove-a-connection">Add,
 edit, or remove a connection</a></li>
 <li><a href="#docs__en__manual__settingsmd__linux-connection-fields" id="toc-docs__en__manual__settingsmd__linux-connection-fields">Linux
@@ -806,22 +804,11 @@ working directory.</p>
 </section>
 <section id="docs__en__manual__communicationmd__remember-or-manually-select-an-association" class="level3">
 <h3>Remember or manually select an association</h3>
-<p>After a new F12 association, Access Link asks whether to remember it
-for the Windows Terminal tab until NVDA or Windows Terminal exits.
-<code>Yes</code> has the default focus. The
-<code>Remember this decision in the current configuration profile</code>
-checkbox stores either the <code>Yes</code> or <code>No</code> answer;
-later new associations in the same NVDA profile use that answer without
-another prompt. Open `NVDA menu &gt; Preferences &gt; Settings... &gt;
-Neovim Access Link &gt; Connections</p>
-<blockquote>
-<p>Temporary terminal connections<code>to change it or restore</code>Ask
-whether to remember the
-connection<code>. The decision belongs to the profile, while the tab association created by a remembered </code>Yes`
-remains limited to the current NVDA process. On a later tab switch,
-Access Link restores the matching running session after focus is
-confirmed.</p>
-</blockquote>
+<p>Access Link automatically remembers a successful F12 association for
+the concrete Windows Terminal control until NVDA or Windows Terminal
+exits. The association remains runtime-only and is not stored in the
+NVDA profile. On a later tab or pane switch, Access Link restores the
+matching running session only after focus is confirmed.</p>
 <p>The following assignable commands are available under
 <code>NVDA menu &gt; Preferences &gt; Input gestures... &gt; Neovim Access Link</code>:</p>
 <ul>
@@ -3037,25 +3024,12 @@ connection entry.</p>
 <p><code>Saved connections</code> shows the chosen name, SSH target, and
 a port that differs from the default 22. There is no default
 connection.</p>
-<section id="docs__en__manual__settingsmd__temporary-terminal-connections" class="level4">
-<h4>Temporary terminal connections</h4>
-<p><code>After a new F12 association</code> controls the prompt asking
-whether Access Link should remember the connection for the focused
-Windows Terminal tab:</p>
-<ul>
-<li><code>Ask whether to remember the connection</code> shows the
-prompt; this is the default.</li>
-<li><code>Remember the connection</code> uses the <code>Yes</code>
-answer for every new association.</li>
-<li><code>Do not remember the connection</code> uses the <code>No</code>
-answer for every new association.</li>
-</ul>
-<p><code>Yes</code> has the default focus in the prompt. Selecting
-<code>Remember this decision in the current configuration profile</code>
-there immediately copies the chosen answer into this setting. The first
-choice resets such a stored decision. All three values belong to the
-active NVDA configuration profile.</p>
-</section>
+<p>A successful F12 association is remembered automatically for the
+concrete Windows Terminal control until NVDA or Windows Terminal exits.
+This runtime association is not stored in the NVDA configuration
+profile. The assignable
+<code>Forget the temporary Neovim connection for the focused terminal</code>
+command removes it early.</p>
 <section id="docs__en__manual__settingsmd__add-edit-or-remove-a-connection" class="level4">
 <h4>Add, edit, or remove a connection</h4>
 <ul>

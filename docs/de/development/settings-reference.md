@@ -118,18 +118,11 @@ F12 ist die paketierte physische Zuordnungstaste und kein frei belegbares
 NVDA-Skript. Bei aktiviertem Dienst autorisiert ein F12-Druck genau einen
 Versuch für das fokussierte Windows-Terminal-Control. Fokusobjekt, konkrete
 AppModule-Instanz, vollständige UIA-Identität, Gate und frischer
-Sitzungs-Claim müssen übereinstimmen. Ohne Treffer entstehen keine Bindung,
-kein Dialog und keine Unterdrückung.
-
-`temporaryBindingPrompt` steuert die anschließende Frage nach der nur zur
-Laufzeit gemerkten Tab-Bindung. `0` fragt jedes Mal und ist der Standard, `1`
-wendet `Ja` ohne Dialog an und `2` wendet `Nein` ohne Dialog an. Im Dialog ist
-`Ja` standardmäßig fokussiert. Sein Ankreuzfeld schreibt die ausdrücklich
-gewählte Antwort sofort und ausschließlich als diesen Wert in das aktive
-NVDA-Konfigurationsprofil; ein Abbruch speichert nichts. Die dreistufige
-Auswahl unter `Verbindungen` kann den Wert ändern oder auf `0` zurücksetzen.
-Ein Profilwechsel lädt ihn zusammen mit den übrigen nativen
-Add-on-Einstellungen neu.
+Sitzungs-Claim müssen übereinstimmen. Ohne Treffer entstehen keine Bindung und
+keine Unterdrückung. Eine erfolgreiche Zuordnung wird ohne Rückfrage nur im
+Arbeitsspeicher für das konkrete Control gemerkt; dafür existiert keine
+Profileinstellung. Ein älterer Profilwert `temporaryBindingPrompt` wird beim
+Laden ignoriert.
 
 Der frei belegbare Befehl „Server wählen und dieses Terminal mit einer neuen
 Neovim-Sitzung verbinden“ öffnet die Profilauswahl und verlangt danach F12 in

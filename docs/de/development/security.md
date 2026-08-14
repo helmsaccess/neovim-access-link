@@ -84,6 +84,10 @@ aktuell fokussierte `TerminalIdentity`. Fokusobjekt, registrierte
 AppModule-Instanz, vollständige Control-Identität und Gate werden vor Beginn
 und erneut auf NVDAs Hauptthread geprüft. Ein Fokuswechsel oder eine Aktivität
 aus einer anderen Neovim-Instanz kann keine Bindung verschieben.
+Providerabhängige Runtime-ID-Aliase werden nur bei übereinstimmendem Prozess,
+Fensterhandle, WT-Klasse und Pane-Endkomponenten sowie positiver
+UIA-Elementgleichheit zusammengeführt. Ein Fehler oder eine Abweichung hält die
+Identitäten getrennt und kann keine Unterdrückung autorisieren.
 
 Konfigurierbare Befehle gehören dem Windows-Terminal-AppModule. Auch wenn
 NVDAs Benutzergestenkarte eine gespeicherte Zuordnung außerhalb der Anwendung

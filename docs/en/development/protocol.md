@@ -191,6 +191,10 @@ bind the focused terminal identity and start its typed local or SSH connection.
 No match produces no guessed connection; multiple matches require explicit
 selection. Manual target selection narrows the target but still requires a
 fresh physical F12 claim.
+The bound terminal identity remains exact. Two provider-specific runtime-ID
+forms count as the same live Windows Terminal control only when all process,
+window, class, pane, and UIA-element checks defined by
+[ADR-0002](adr/0002-nvda-api-boundaries.md) pass together.
 
 ## Event direction
 

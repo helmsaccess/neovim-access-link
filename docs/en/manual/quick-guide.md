@@ -135,11 +135,9 @@ NVDA process ends.
 4. Focus the intended Neovim and press F12 once.
 5. Wait for the connection confirmation.
 
-After a new association, Access Link asks whether to remember the connection
-for this tab; `Yes` has the default focus. Select `Remember this decision in
-the current configuration profile` only when future associations in the same
-profile should automatically use the same answer. Change or reset the stored
-choice on the `Connections` tab in the Access Link settings.
+A successful association is remembered automatically for this concrete
+Windows Terminal control until NVDA or Windows Terminal exits. No additional
+question appears.
 
 ## 7. Confirm the connection in practice
 

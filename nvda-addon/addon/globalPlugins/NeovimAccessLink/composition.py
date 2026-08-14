@@ -237,6 +237,7 @@ def create_runtime() -> PluginRuntime:
 			coordinator,
 			identity_for_object=runtimeConfig.identity_for_object,
 			identity_element=runtimeConfig.identity_element_for_object,
+			identities_equivalent=runtimeConfig.terminal_identities_equivalent,
 			identity_fields=runtimeConfig.terminal_identity_fields,
 			record_diagnostic=diagnostics.record,
 			discard_transient_context=lambda: (
@@ -247,7 +248,6 @@ def create_runtime() -> PluginRuntime:
 				if temporary_bindings is not None
 				else None
 			),
-			consume_temporary_binding_reactivation=(session_claim.consume_temporary_binding_reactivation),
 			handle_pending_full_state=lambda instance_id, event: (
 				event_delivery.handle_managed_event(instance_id, event)
 				if event_delivery is not None
@@ -276,9 +276,6 @@ def create_runtime() -> PluginRuntime:
 			dispatch_control=dispatch_control,
 			scheduler=scheduler,
 			diagnostics=diagnostics,
-			dialogs=dialogs,
-			prompt_answer=settings.temporary_binding_prompt_answer,
-			remember_prompt_answer=settings.remember_temporary_binding_prompt_answer,
 		)
 		ui_manager = NvdaUiManager(
 			settings,

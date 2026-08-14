@@ -30,11 +30,11 @@ class TerminalFocusService:
 		*,
 		identity_for_object: Callable[[object], TerminalIdentity | None],
 		identity_element: Callable[[object, TerminalIdentity], object | None],
+		identities_equivalent: Callable[[TerminalIdentity, object, TerminalIdentity, object], bool],
 		identity_fields: Callable[[TerminalIdentity | None], dict | None],
 		record_diagnostic: Callable[..., None],
 		discard_transient_context: Callable[[], None],
 		activate_remembered_binding: Callable[[TerminalIdentity, str, bool], None],
-		consume_temporary_binding_reactivation: Callable[[TerminalIdentity | None, str | None], bool],
 		handle_pending_full_state: Callable[[str, dict], None],
 		reset_typed_echo: Callable[[], None],
 		cancel_speech: Callable[[], None],
@@ -49,11 +49,11 @@ class TerminalFocusService:
 		self._coordinator = coordinator
 		self._identityForObject = identity_for_object
 		self._identityElement = identity_element
+		self._identitiesEquivalent = identities_equivalent
 		self._identityFields = identity_fields
 		self._recordDiagnostic = record_diagnostic
 		self._discardTransientContext = discard_transient_context
 		self._activateRememberedBinding = activate_remembered_binding
-		self._consumeTemporaryBindingReactivation = consume_temporary_binding_reactivation
 		self._handlePendingFullState = handle_pending_full_state
 		self._resetTypedEcho = reset_typed_echo
 		self._cancelSpeech = cancel_speech
@@ -91,7 +91,28 @@ class TerminalFocusService:
 		return self._focusedAdapterToken
 
 	def identity(self, obj: object) -> TerminalIdentity | None:
-		return self._identityForObject(obj)
+		identity, _element, _raw_identity = self._resolve_identity(obj)
+		return identity
+
+	def _resolve_identity(
+		self,
+		obj: object,
+	) -> tuple[TerminalIdentity | None, object | None, TerminalIdentity | None]:
+		raw_identity = self._identityForObject(obj)
+		if raw_identity is None:
+			return None, None, None
+		element = self._identityElement(obj, raw_identity)
+		if element is None:
+			return raw_identity, None, raw_identity
+		for known_identity, known_element in tuple(self._identityElements.items()):
+			if self._identitiesEquivalent(
+				known_identity,
+				known_element,
+				raw_identity,
+				element,
+			):
+				return known_identity, element, raw_identity
+		return raw_identity, element, raw_identity
 
 	def identity_fields(self, identity: TerminalIdentity | None) -> dict | None:
 		return self._identityFields(identity)
@@ -121,7 +142,13 @@ class TerminalFocusService:
 			raise ValueError("adapter token is required")
 		gate = self._coordinator.gate
 		previous = gate.focused
-		identity = self.identity(obj)
+		identity, element, raw_identity = self._resolve_identity(obj)
+		if identity is not None and raw_identity != identity:
+			self._recordDiagnostic(
+				"terminalFocusIdentityAliasNormalized",
+				canonical=self.identity_fields(identity),
+				observed=self.identity_fields(raw_identity),
+			)
 		if previous != identity:
 			self._discardTransientContext()
 			gate.disconnect()
@@ -132,7 +159,6 @@ class TerminalFocusService:
 			)
 		gate.focused = identity
 		if identity is not None:
-			element = self._identityElement(obj, identity)
 			if element is not None:
 				self._identityElements[identity] = element
 		self._focusedTerminalObject = obj if identity is not None else None
@@ -143,15 +169,7 @@ class TerminalFocusService:
 		pending_full_state = (
 			self._coordinator.pending_full_states.get(instance.identifier) if instance is not None else None
 		)
-		temporary_reactivation = (
-			self._consumeTemporaryBindingReactivation(
-				identity,
-				instance.identifier if instance is not None else None,
-			)
-			if identity is not None
-			else False
-		)
-		if identity in self._coordinator.remembered_terminal_bindings or temporary_reactivation:
+		if identity in self._coordinator.remembered_terminal_bindings:
 			if instance is None:
 				self._coordinator.remembered_terminal_bindings.discard(identity)
 			else:
@@ -203,11 +221,16 @@ class TerminalFocusService:
 	) -> TerminalIdentity | None:
 		"""Refresh focus when an action does not receive a new gainFocus event."""
 		gate = self._coordinator.gate
-		identity = self.identity(obj)
+		identity, element, raw_identity = self._resolve_identity(obj)
+		if identity is not None and raw_identity != identity:
+			self._recordDiagnostic(
+				"terminalActionIdentityAliasNormalized",
+				canonical=self.identity_fields(identity),
+				observed=self.identity_fields(raw_identity),
+			)
 		previous = gate.focused
 		gate.focused = identity
 		if identity is not None:
-			element = self._identityElement(obj, identity)
 			if element is not None:
 				self._identityElements[identity] = element
 		self._focusedTerminalObject = obj if identity is not None else None
@@ -219,30 +242,6 @@ class TerminalFocusService:
 			current=self.identity_fields(identity),
 		)
 		return identity
-
-	def recover_after_modal(
-		self,
-		obj: object,
-		identity: TerminalIdentity,
-		instance_id: str,
-		app_module: object,
-		adapter_token: object,
-	) -> bool:
-		"""Re-run the focus transition when a closed modal emitted no gainFocus."""
-		if (
-			adapter_token is None
-			or getattr(obj, "appModule", None) is not app_module
-			or self.identity(obj) != identity
-		):
-			return False
-		selected = self._coordinator.instances.selected_for(identity)
-		if selected is None or selected.identifier != instance_id:
-			return False
-		decision = self.prepare_focus(obj, adapter_token, app_module)
-		if decision.identity != identity or decision.instance_id != instance_id:
-			return False
-		self.finish_focus(decision)
-		return True
 
 	def lose_focus(self, adapter_token: object) -> None:
 		if (

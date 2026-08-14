@@ -1487,9 +1487,10 @@ dynamische Methodennamen oder Zugriff auf private Laufzeitzustände</td>
 </tr>
 <tr class="even">
 <td><code>TerminalFocusService</code></td>
-<td>konkrete Terminalidentität, Fokusgeneration,
-AppModule-/Adapterkorrelation, Fokusabschluss und konservative
-Bereinigung geschlossener Controls</td>
+<td>konkrete Terminalidentität, konservative Normalisierung
+nachgewiesener UIA-Provider-Aliase, Fokusgeneration,
+AppModule-/Adapterkorrelation, Fokusabschluss und Bereinigung
+geschlossener Controls</td>
 <td>Global-Plugin-Instanz, Netzwerk-I/O, Anwendungsevents oder
 <code>nextHandler</code></td>
 </tr>
@@ -1505,15 +1506,15 @@ des Verbindungslaufzeitstands</td>
 <td>Aktivierung, Discovery, Auswahl, Start, Trennung, Abbau aller
 Verbindungen und Sitzungspasswörter über einen injizierten
 Dialogport</td>
-<td>Transport-I/O, kanonischer Editorzustand, Wiederherstellung
-temporärer Bindungen oder Anwendungsevents</td>
+<td>Transport-I/O, kanonischer Editorzustand, Laufzeitpflege temporärer
+Bindungen oder Anwendungsevents</td>
 </tr>
 <tr class="odd">
 <td><code>TemporaryBindingWorkflow</code></td>
-<td>Bestätigung, Fokuswiederherstellung und korrelierte
-Zustandsanforderung für temporär gemerkte Terminalbindungen</td>
-<td>Discovery, Verbindungsstart, Claim-Inventar oder eigener kanonischer
-Zustand</td>
+<td>automatisches Laufzeitmerken erfolgreicher Terminalbindungen und
+korrelierte Zustandsanforderungen beim Fokuswechsel</td>
+<td>Dialoge, Profileinstellungen, Discovery, Verbindungsstart,
+Claim-Inventar oder eigener kanonischer Zustand</td>
 </tr>
 <tr class="even">
 <td><code>TerminalActions</code></td>
@@ -1714,7 +1715,13 @@ Fokusoperationen direkt an den <code>TerminalFocusService</code>. Dieser
 erhält Identitätsbildung, UIA-Lebensprüfung, Hauptthread-Scheduler und
 wenige fachliche Callbacks explizit injiziert. Ein geschlossenes, nicht
 fokussiertes Control wird erst nach zwei eindeutigen Negativprüfungen
-entfernt; unklare UIA-Fehler gelten nicht als Schließung.</p>
+entfernt; unklare UIA-Fehler gelten nicht als Schließung. Wechselt
+Windows Terminal nur die providerabhängige Form der Runtime-ID,
+normalisiert der Dienst sie ausschließlich dann auf die bekannte
+Identität, wenn Prozess, Fensterhandle, freigegebene WT-Klasse und die
+stabilen beiden Pane-Komponenten übereinstimmen und NVDAs UIA-Client
+beide lebenden Elemente als dasselbe Control bestätigt. Jede
+Unsicherheit hält die Identitäten getrennt.</p>
 <p>Der <code>TerminalIntegrationService</code> autorisiert und verwirft
 physische F12-Claims außerdem direkt über
 <code>SessionClaimService</code>. Dieser Dienst besitzt den
@@ -1724,23 +1731,14 @@ Discovery, Auswahl, Wiederverwendung, Verbindungsstart und Trennung. Es
 verbindet unveränderliche Dienstergebnisse mit NVDAs Hauptthread-,
 Dialog- und Meldungsgrenzen und reicht Controls ausschließlich an den
 Dispatcher; eine schreibbare Kopie des Claimzustands hält es nicht.
-<code>TemporaryBindingWorkflow</code> besitzt getrennt davon
-Bestätigung, Fokuswiederherstellung und korrelierte
-Zustandsanforderungen gemerkter Bindungen. Der Fokusverlust der
-optionalen modalen Merkabfrage wird durch genau eine an Terminal und
-Instanz korrelierte Reaktivierung überbrückt. Die Autorisierung der noch
-offenen Dialogentscheidung ist davon getrennt und bleibt bis zur Antwort
-bestehen. Eine bereits verbrauchte Fokusreaktivierung kann deshalb ein
-späteres <code>Ja</code> nicht ungültig machen. Ein anderer
-Terminalfokus verwirft weiterhin die Reaktivierung, verändert aber weder
-die explizite Dialogentscheidung noch deren ursprüngliche
-Terminal-/Instanzkorrelation. Falls Windows Terminal nach dem Schließen
-kein neues Fokusereignis liefert, prüft ein kurzer, begrenzter
-Hauptthread-Ablauf den aktuellen NVDA-Fokus und stößt nur für dasselbe
-Control, dasselbe AppModule, denselben Adapter-Token und dieselbe
-Instanzauswahl den normalen Fokuskontext-Handshake an. Ein abweichender
-Terminalfokus verwirft die Reaktivierung; ein ausbleibender oder
-unklarer Fokus lässt die native Ausgabe offen.</p>
+<code>TemporaryBindingWorkflow</code> merkt getrennt davon eine
+erfolgreiche, noch exakt fokussierte Terminal-/Instanzzuordnung
+automatisch im Arbeitsspeicher und besitzt die korrelierten
+Zustandsanforderungen beim späteren Fokuswechsel. Es öffnet keinen
+Dialog und speichert keine Profilentscheidung. Nur der normale, erneut
+gegen Control, Instanz und Anfrage-ID geprüfte Fokuskontext-Handshake
+reaktiviert die Bindung; ein abweichender oder unklarer Fokus lässt die
+native Ausgabe offen.</p>
 <p>Der <code>EditorSessionController</code> verwendet die vom
 <code>ConnectionCoordinator</code> verwaltete aktive Runtime, ist aber
 allein für deren fachliche Mutation zuständig. Er übernimmt Zustands-
@@ -2760,12 +2758,11 @@ Arbeit.</p>
 2026.1.1, Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim
 0.10.1 und 0.12.3 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2
 geprüft. Lokales Windows-Neovim, Linux-Neovim über SSH und tmux
-innerhalb einer SSH-Sitzung sind abgedeckt. Die F12-Zuordnung,
-Merkabfrage, Fokuswechsel und das native Tippecho in weiteren
-Windows-Terminal-Fenstern wurden zusätzlich praktisch mit NVDA
-2026.2beta10 geprüft; das Manifest nennt deshalb 2026.2 als zuletzt
-getestete NVDA-Version. Die vollständigen Plattform- und Versionsgrenzen
-stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
+innerhalb einer SSH-Sitzung sind abgedeckt. F12-Zuordnung, Fokuswechsel
+und das native Tippecho in weiteren Windows-Terminal-Fenstern wurden
+zusätzlich praktisch mit NVDA 2026.2beta10 geprüft; das Manifest nennt
+deshalb 2026.2 als zuletzt getestete NVDA-Version. Die vollständigen
+Plattform- und Versionsgrenzen stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
 </section>
 <section id="docs__de__development__current-statusmd__implementierter-gesamtpfad" class="level3">
 <h3>Implementierter Gesamtpfad</h3>
@@ -2829,18 +2826,13 @@ Windows-Registry.</li>
 exakt fokussierten Windows-Terminal-Control zu. Mehrere Fenster, Tabs
 und Panes halten unabhängige lokale, entfernte oder normale
 Shell-Sitzungen.</li>
-<li>Die anschließende Frage nach einer temporär gemerkten Tab-Zuordnung
-fokussiert standardmäßig <code>Ja</code>. Ein Ankreuzfeld kann die
-gewählte Antwort im aktiven NVDA-Profil speichern; die dreistufige
-Einstellung unter <code>Verbindungen</code> wendet <code>Ja</code> oder
-<code>Nein</code> automatisch an oder setzt das Verhalten auf erneutes
-Fragen zurück. Die Dialogentscheidung bleibt von der einmaligen
-Fokuswiederherstellung getrennt: Auch mehrere Fokuswechsel während der
-geöffneten Frage verlieren ein anschließend gewähltes <code>Ja</code>
-nicht. Solange der passende Vordergrundkontext nicht erneut bestätigt
-ist, bleibt die native Terminalausgabe einschließlich Tippecho
-fail-open. Die Tab-Zuordnung selbst bleibt reine
-Laufzeitinformation.</li>
+<li>Eine erfolgreiche F12-Zuordnung wird ohne Rückfrage automatisch für
+das konkrete Control bis zum Ende von NVDA oder Windows Terminal
+gemerkt. Sie bleibt reine Laufzeitinformation; es gibt weder eine
+Profilentscheidung noch eine zugehörige Einstellung. Beim Fokuswechsel
+wird die laufende Sitzung erst nach erneut korreliert bestätigtem
+Vordergrundkontext aktiviert. Die native Terminalausgabe einschließlich
+Tippecho bleibt bis dahin fail-open.</li>
 <li>Authentifizierung, Sequenzen, Heartbeats, Resync und
 Fokuskorrelation begrenzen den dauerhaften Pfad. Trennung, ungültiger
 Zustand oder unsichere Fokusidentität geben NVDAs natives
@@ -2861,14 +2853,14 @@ Remote-Instanz und wiederholtem Fokuswechsel nach.</li>
 AppModule. Getrennte Dienste besitzen Fokus, Sitzungszuordnung,
 Verbindungen, Editorzustand, Einstellungen, Präsentation und Laufzeit.
 Das Global Plugin erzeugt und schließt nur noch die transaktional
-zusammengesetzte Runtime. Verbindungsworkflow, Wiederherstellung
-temporärer Bindungen, Terminalaktionen und Ereignislieferung haben
-eigene Besitzer; AppModule und Brailleadapter sehen nur ihre statischen
-Ports. Ausgehende Controls verwenden eine begrenzte Queue und bleiben je
-Client geordnet, während ein fester Workerpool unabhängige Clients
-voneinander isoliert. Ein zweiter fester Pool übernimmt jeden bereits
-abgetrennten Client bis zu dessen Stopp. Ausschalten und Teardown warten
-deshalb nicht auf Transport-I/O. Den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>;
+zusammengesetzte Runtime. Verbindungsworkflow, Laufzeitpflege temporärer
+Bindungen, Terminalaktionen und Ereignislieferung haben eigene Besitzer;
+AppModule und Brailleadapter sehen nur ihre statischen Ports. Ausgehende
+Controls verwenden eine begrenzte Queue und bleiben je Client geordnet,
+während ein fester Workerpool unabhängige Clients voneinander isoliert.
+Ein zweiter fester Pool übernimmt jeden bereits abgetrennten Client bis
+zu dessen Stopp. Ausschalten und Teardown warten deshalb nicht auf
+Transport-I/O. Den aktuellen Schnitt beschreibt die <a href="#docs__de__development__architecturemd__architektur">Architektur</a>;
 der datierte Anhang C bewahrt nur die damalige Prüfgrundlage.</li>
 </ul>
 </section>
@@ -3521,13 +3513,21 @@ nach NVDAs eigenem UIA-Muster über eine
 <code>RuntimeId</code>-Property-Condition im Teilbaum des weiterhin
 validierten Fensterhandles gesucht. Die Werte werden nur nach Prüfung
 des Windows-Terminal- AppModules, des Prozesses und der freigegebenen
-UIA-Klasse verwendet.</p>
+UIA-Klasse verwendet. Windows Terminal kann dasselbe Pane über zwei
+providerabhängige Runtime-ID- Formen melden. Eine laufzeitinterne
+Normalisierung ist nur zulässig, wenn Prozess, Fensterhandle,
+freigegebene Klasse und die letzten beiden Pane-Komponenten
+übereinstimmen und NVDAs UIA-Client beide lebenden Elemente mit
+<code>compareElements</code> als dasselbe Control bestätigt.
+<code>compareElements</code> allein ist ausdrücklich kein
+Identitätsnachweis.</p>
 <ul>
 <li>Risiko: Form und Lebensdauer des UIA-Wrappers können sich
 ändern.</li>
 <li>Begrenzung: Fehlende oder ungültige Werte deaktivieren Zuordnung und
 Unterdrückung; COM-/UIA-Fehler gelten als unklar und lösen keine
-Bereinigung aus. Fenstertitel oder Terminaltext dienen nie als
+Bereinigung aus. Eine unbestätigte Aliasprüfung hält beide Identitäten
+getrennt. Fenstertitel oder Terminaltext dienen nie als
 Ersatzheuristik.</li>
 <li>Ablöseplan: Einen späteren öffentlichen, stabilen
 Terminal-Control-Identifier bevorzugen und die Runtime-ID-Abhängigkeit
@@ -3737,10 +3737,10 @@ schließt sie beim Beenden. <code>composition.py</code> baut gemeinsame
 Dienste transaktional auf; <code>AddonRuntime</code> registriert
 Einstellungen und Menü, veröffentlicht die Terminalfassade erst nach
 vollständiger Initialisierung und beendet alle Besitzer in festgelegter
-Reihenfolge. Verbindungsworkflow, Wiederherstellung temporärer
-Bindungen, Terminalaktionen, Ereignislieferung sowie fachlicher
-Zuordnungs-, Gate-, Protokoll- und Präsentationszustand liegen in
-gewöhnlichen Diensten ohne Vererbung von <code>GlobalPlugin</code>.</p>
+Reihenfolge. Verbindungsworkflow, Laufzeitpflege temporärer Bindungen,
+Terminalaktionen, Ereignislieferung sowie fachlicher Zuordnungs-, Gate-,
+Protokoll- und Präsentationszustand liegen in gewöhnlichen Diensten ohne
+Vererbung von <code>GlobalPlugin</code>.</p>
 <p>Das Windows-Terminal-AppModule besitzt:</p>
 <ul>
 <li>alle anwendungsspezifischen NVDA-Ereigniseinstiege;</li>
@@ -4062,7 +4062,11 @@ für das aktuell fokussierte <code>TerminalIdentity</code>. Fokusobjekt,
 registrierte AppModule-Instanz, vollständige Control-Identität und Gate
 werden vor Beginn und erneut auf NVDAs Hauptthread geprüft. Ein
 Fokuswechsel oder eine Aktivität aus einer anderen Neovim-Instanz kann
-keine Bindung verschieben.</p>
+keine Bindung verschieben. Providerabhängige Runtime-ID-Aliase werden
+nur bei übereinstimmendem Prozess, Fensterhandle, WT-Klasse und
+Pane-Endkomponenten sowie positiver UIA-Elementgleichheit
+zusammengeführt. Ein Fehler oder eine Abweichung hält die Identitäten
+getrennt und kann keine Unterdrückung autorisieren.</p>
 <p>Konfigurierbare Befehle gehören dem Windows-Terminal-AppModule. Auch
 wenn NVDAs Benutzergestenkarte eine gespeicherte Zuordnung außerhalb der
 Anwendung anzeigt, verlangt die Ausführung dieselbe konkrete AppModule-
@@ -4520,7 +4524,11 @@ erhöhte Sequenz gilt als ausdrücklicher Treffer. Damit benötigt die
 Zuordnung weder Standardverbindung noch interne ID, Fenstertitel oder
 Terminaltext. Der eigentliche dauerhafte TCP- beziehungsweise
 SSH-Transport startet erst nach einem eindeutigen Treffer oder einer
-ausdrücklichen Dialogauswahl.</p>
+ausdrücklichen Dialogauswahl. Die gebundene Terminalidentität bleibt
+exakt. Zwei providerabhängige Runtime-ID-Formen gelten nur dann als
+dasselbe lebende Windows-Terminal-Control, wenn die in <a href="#docs__de__development__adr__0002-nvda-api-boundariesmd__adr-0002-nvda-api-grenzen-für-den-ersten-beta-stand">ADR-0002</a>
+festgelegten Prozess-, Fenster-, Klassen-, Pane- und
+UIA-Elementprüfungen gemeinsam bestehen.</p>
 </section>
 <section id="docs__de__development__protocolmd__ereignisrichtung" class="level3">
 <h3>Ereignisrichtung</h3>
@@ -5112,18 +5120,11 @@ belegbares NVDA-Skript. Bei aktiviertem Dienst autorisiert ein F12-Druck
 genau einen Versuch für das fokussierte Windows-Terminal-Control.
 Fokusobjekt, konkrete AppModule-Instanz, vollständige UIA-Identität,
 Gate und frischer Sitzungs-Claim müssen übereinstimmen. Ohne Treffer
-entstehen keine Bindung, kein Dialog und keine Unterdrückung.</p>
-<p><code>temporaryBindingPrompt</code> steuert die anschließende Frage
-nach der nur zur Laufzeit gemerkten Tab-Bindung. <code>0</code> fragt
-jedes Mal und ist der Standard, <code>1</code> wendet <code>Ja</code>
-ohne Dialog an und <code>2</code> wendet <code>Nein</code> ohne Dialog
-an. Im Dialog ist <code>Ja</code> standardmäßig fokussiert. Sein
-Ankreuzfeld schreibt die ausdrücklich gewählte Antwort sofort und
-ausschließlich als diesen Wert in das aktive NVDA-Konfigurationsprofil;
-ein Abbruch speichert nichts. Die dreistufige Auswahl unter
-<code>Verbindungen</code> kann den Wert ändern oder auf <code>0</code>
-zurücksetzen. Ein Profilwechsel lädt ihn zusammen mit den übrigen
-nativen Add-on-Einstellungen neu.</p>
+entstehen keine Bindung und keine Unterdrückung. Eine erfolgreiche
+Zuordnung wird ohne Rückfrage nur im Arbeitsspeicher für das konkrete
+Control gemerkt; dafür existiert keine Profileinstellung. Ein älterer
+Profilwert <code>temporaryBindingPrompt</code> wird beim Laden
+ignoriert.</p>
 <p>Der frei belegbare Befehl „Server wählen und dieses Terminal mit
 einer neuen Neovim-Sitzung verbinden“ öffnet die Profilauswahl und
 verlangt danach F12 in der gewünschten Sitzung. Laufzeitbindungen
@@ -6594,6 +6595,20 @@ Der praktische Zwei-Pane-Test unter NVDA 2026.2beta10 deckte den Fehler
 auf; der korrigierte Build benötigt noch den manuellen
 Wiederholungstest. Dieser installierbare Stand ist Entwicklungsbuild
 2.</li>
+<li>Entfernt die fehleranfällige Rückfrage nach dem Merken einer neuen
+F12-Zuordnung einschließlich Ankreuzfeld, Profilwert und Einstellung.
+Eine erfolgreiche, noch exakt fokussierte Zuordnung wird jetzt
+automatisch nur für die laufende NVDA-/Windows-Terminal-Sitzung gemerkt;
+der vorhandene Vergessen-Befehl entfernt sie weiterhin vorzeitig.
+Derselbe WT-Pane bleibt auch dann zugeordnet, wenn dessen UIA-Provider
+zwischen den unter NVDA 2026.2beta10 beobachteten Runtime-ID-Formen
+wechselt. Diese Normalisierung verlangt gemeinsam denselben Prozess,
+dasselbe Fensterhandle, dieselbe freigegebene Klasse und dieselben
+Pane-Endkomponenten sowie NVDAs positive UIA-Elementgleichheit; andere
+Panes bleiben getrennt. Direkte und Paketregressionstests decken
+automatisches Merken, Fokusrennen, Aliaswechsel und getrennte Panes ab.
+Der korrigierte Build benötigt noch den manuellen Wiederholungstest.
+Dieser installierbare Stand ist Entwicklungsbuild 3.</li>
 <li>Härtet nach der vollständigen Unit-Test-Nachprüfung die
 Protokollgrenzen. Boolesche und negative Sequenzen oder Zeitstempel
 werden bereits in der Nachrichtenhülle verworfen. Eine neue

@@ -19,10 +19,9 @@ Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim 0.10.1 und 0.12.3
 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2 geprüft. Lokales
 Windows-Neovim, Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung
-sind abgedeckt. Die F12-Zuordnung, Merkabfrage, Fokuswechsel und das native
-Tippecho in weiteren Windows-Terminal-Fenstern wurden zusätzlich praktisch mit
-NVDA 2026.2beta10 geprüft; das Manifest nennt deshalb 2026.2 als zuletzt
-getestete NVDA-Version.
+sind abgedeckt. F12-Zuordnung, Fokuswechsel und das native Tippecho in weiteren
+Windows-Terminal-Fenstern wurden zusätzlich praktisch mit NVDA 2026.2beta10
+geprüft; das Manifest nennt deshalb 2026.2 als zuletzt getestete NVDA-Version.
 Die vollständigen Plattform- und Versionsgrenzen stehen in
 [Kompatibilität](compatibility.md).
 
@@ -80,16 +79,12 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Ein physischer F12-Druck ordnet die laufende Neovim-Instanz dem exakt
   fokussierten Windows-Terminal-Control zu. Mehrere Fenster, Tabs und Panes
   halten unabhängige lokale, entfernte oder normale Shell-Sitzungen.
-- Die anschließende Frage nach einer temporär gemerkten Tab-Zuordnung fokussiert
-  standardmäßig `Ja`. Ein Ankreuzfeld kann die gewählte Antwort im aktiven
-  NVDA-Profil speichern; die dreistufige Einstellung unter `Verbindungen`
-  wendet `Ja` oder `Nein` automatisch an oder setzt das Verhalten auf erneutes
-  Fragen zurück. Die Dialogentscheidung bleibt von der einmaligen
-  Fokuswiederherstellung getrennt: Auch mehrere Fokuswechsel während der
-  geöffneten Frage verlieren ein anschließend gewähltes `Ja` nicht. Solange
-  der passende Vordergrundkontext nicht erneut bestätigt ist, bleibt die
-  native Terminalausgabe einschließlich Tippecho fail-open. Die Tab-Zuordnung
-  selbst bleibt reine Laufzeitinformation.
+- Eine erfolgreiche F12-Zuordnung wird ohne Rückfrage automatisch für das
+  konkrete Control bis zum Ende von NVDA oder Windows Terminal gemerkt. Sie
+  bleibt reine Laufzeitinformation; es gibt weder eine Profilentscheidung noch
+  eine zugehörige Einstellung. Beim Fokuswechsel wird die laufende Sitzung erst
+  nach erneut korreliert bestätigtem Vordergrundkontext aktiviert. Die native
+  Terminalausgabe einschließlich Tippecho bleibt bis dahin fail-open.
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.
@@ -109,7 +104,7 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin
   erzeugt und schließt nur noch die transaktional zusammengesetzte Runtime.
-  Verbindungsworkflow, Wiederherstellung temporärer Bindungen,
+  Verbindungsworkflow, Laufzeitpflege temporärer Bindungen,
   Terminalaktionen und Ereignislieferung haben eigene Besitzer; AppModule und
   Brailleadapter sehen nur ihre statischen Ports. Ausgehende Controls verwenden
   eine begrenzte Queue und bleiben je Client geordnet, während ein fester

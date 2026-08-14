@@ -25,10 +25,6 @@ BRAILLE_ROUTING_DEFAULTS = {
 }
 BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT = True
 AUTOMATIC_PARAMETER_HINTS_DEFAULT = True
-TEMPORARY_BINDING_PROMPT_ASK = 0
-TEMPORARY_BINDING_PROMPT_REMEMBER = 1
-TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER = 2
-TEMPORARY_BINDING_PROMPT_DEFAULT = TEMPORARY_BINDING_PROMPT_ASK
 
 
 @dataclass(frozen=True)
@@ -42,7 +38,6 @@ class SettingsChange:
 	braille_routing_changed: bool
 	braille_follow_speech_exploration_changed: bool
 	automatic_parameter_hints_changed: bool
-	temporary_binding_prompt_changed: bool
 	focus_announcement_changed: bool
 	connections_changed: bool
 	claim_inventory_started: bool
@@ -94,10 +89,6 @@ class SettingsService:
 			"automaticParameterHints",
 			AUTOMATIC_PARAMETER_HINTS_DEFAULT,
 		)
-		temporary_binding_prompt = settings.get(
-			"temporaryBindingPrompt",
-			TEMPORARY_BINDING_PROMPT_DEFAULT,
-		)
 		if not isinstance(raw_feedback, dict):
 			self._recordDiagnostic("configError", error="feedback must be an object")
 			raw_feedback = {}
@@ -121,19 +112,6 @@ class SettingsService:
 				option="automaticParameterHints",
 			)
 			automatic_parameter_hints = AUTOMATIC_PARAMETER_HINTS_DEFAULT
-		if not (
-			isinstance(temporary_binding_prompt, int)
-			and not isinstance(temporary_binding_prompt, bool)
-			and TEMPORARY_BINDING_PROMPT_ASK
-			<= temporary_binding_prompt
-			<= TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER
-		):
-			self._recordDiagnostic(
-				"configError",
-				error="invalid temporary binding prompt setting",
-				option="temporaryBindingPrompt",
-			)
-			temporary_binding_prompt = TEMPORARY_BINDING_PROMPT_DEFAULT
 		feedback = dict(self._feedbackDefaults)
 		for key in feedback:
 			value = raw_feedback.get(key, feedback[key])
@@ -227,7 +205,6 @@ class SettingsService:
 			"brailleRouting": braille_routing,
 			"brailleFollowSpeechExploration": braille_follow_speech_exploration,
 			"automaticParameterHints": automatic_parameter_hints,
-			"temporaryBindingPrompt": temporary_binding_prompt,
 			"focusAnnouncement": focus_announcement,
 			"connections": [profile.as_dict() for profile in connections],
 		}
@@ -254,7 +231,6 @@ class SettingsService:
 			brailleRoutingChanged=change.braille_routing_changed,
 			brailleFollowSpeechExplorationChanged=(change.braille_follow_speech_exploration_changed),
 			automaticParameterHintsChanged=change.automatic_parameter_hints_changed,
-			temporaryBindingPromptChanged=change.temporary_binding_prompt_changed,
 			focusAnnouncementChanged=change.focus_announcement_changed,
 			connectionsChanged=change.connections_changed,
 		)
@@ -325,28 +301,6 @@ class SettingsService:
 		value = self._values.get("automaticParameterHints", AUTOMATIC_PARAMETER_HINTS_DEFAULT)
 		return value if isinstance(value, bool) else AUTOMATIC_PARAMETER_HINTS_DEFAULT
 
-	def temporary_binding_prompt_answer(self) -> bool | None:
-		"""Return a stored prompt answer, or None when the active profile asks each time."""
-		value = self._values.get("temporaryBindingPrompt", TEMPORARY_BINDING_PROMPT_DEFAULT)
-		if value == TEMPORARY_BINDING_PROMPT_REMEMBER:
-			return True
-		if value == TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER:
-			return False
-		return None
-
-	def remember_temporary_binding_prompt_answer(self, answer: bool) -> None:
-		"""Store one prompt answer in the active NVDA profile and persist it immediately."""
-		if not isinstance(answer, bool):
-			raise ValueError("temporary binding prompt answer must be boolean")
-		value = TEMPORARY_BINDING_PROMPT_REMEMBER if answer else TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER
-		self._configRoot[self._sectionName]["temporaryBindingPrompt"] = value
-		values = self.snapshot()
-		values["temporaryBindingPrompt"] = value
-		self._commit(values)
-		persist = getattr(self._configRoot, "save", None)
-		if callable(persist):
-			persist()
-
 	def connection_profile_by_id(self, identifier: str):
 		try:
 			return next(
@@ -394,10 +348,6 @@ class SettingsService:
 					"automaticParameterHints",
 					AUTOMATIC_PARAMETER_HINTS_DEFAULT,
 				),
-				"temporaryBindingPrompt": section.get(
-					"temporaryBindingPrompt",
-					TEMPORARY_BINDING_PROMPT_DEFAULT,
-				),
 				# NVDA exposes nested configuration through AggregatedSection.
 				# Its public items() method has normal mapping semantics.
 				"feedback": dict(feedback_section.items()),
@@ -431,9 +381,6 @@ class SettingsService:
 		)
 		section["automaticParameterHints"] = bool(
 			settings.get("automaticParameterHints", AUTOMATIC_PARAMETER_HINTS_DEFAULT)
-		)
-		section["temporaryBindingPrompt"] = int(
-			settings.get("temporaryBindingPrompt", TEMPORARY_BINDING_PROMPT_DEFAULT)
 		)
 		section["connections"] = json.dumps(
 			settings.get("connections", []),
@@ -470,9 +417,6 @@ class SettingsService:
 		automatic_parameter_hints_changed = previous.get("automaticParameterHints") != values.get(
 			"automaticParameterHints"
 		)
-		temporary_binding_prompt_changed = previous.get("temporaryBindingPrompt") != values.get(
-			"temporaryBindingPrompt"
-		)
 		focus_changed = previous.get("focusAnnouncement") != values.get("focusAnnouncement")
 		connections_changed = previous.get("connections") != values.get("connections")
 		self._values = values
@@ -494,7 +438,6 @@ class SettingsService:
 			braille_routing_changed=braille_routing_changed,
 			braille_follow_speech_exploration_changed=(braille_follow_speech_exploration_changed),
 			automatic_parameter_hints_changed=automatic_parameter_hints_changed,
-			temporary_binding_prompt_changed=temporary_binding_prompt_changed,
 			focus_announcement_changed=focus_changed,
 			connections_changed=connections_changed,
 			claim_inventory_started=inventory_started,

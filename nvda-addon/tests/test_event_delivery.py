@@ -198,6 +198,7 @@ def make_delivery():
 	presentation = _Presentation()
 	scheduler = _Scheduler()
 	diagnostics = _Diagnostics()
+	binding_offers = []
 	session_claim = types.SimpleNamespace(
 		consume_temporary_binding_offer=lambda _instance_id: False,
 		is_temporary_binding_remembered=lambda _identity: False,
@@ -214,7 +215,7 @@ def make_delivery():
 		presentation=presentation,
 		scheduler=scheduler,
 		diagnostics=diagnostics,
-		offer_temporary_binding=lambda *_args: None,
+		offer_temporary_binding=lambda *args: binding_offers.append(args),
 	)
 	integration = _Integration()
 	delivery.bind_terminal_integration(integration)
@@ -226,6 +227,8 @@ def make_delivery():
 		scheduler=scheduler,
 		diagnostics=diagnostics,
 		integration=integration,
+		session_claim=session_claim,
+		binding_offers=binding_offers,
 	)
 
 
@@ -336,6 +339,21 @@ class EventDeliveryTests(unittest.TestCase):
 
 		self.assertEqual(1, fixture.presentation.connection_sounds)
 		self.assertEqual({"connection-1"}, fixture.coordinator.authenticated_instances)
+
+	def test_successful_f12_binding_is_retained_in_same_full_state_transition(self) -> None:
+		fixture = make_delivery()
+		instance = types.SimpleNamespace(identifier="connection-1", context_label="Work")
+		fixture.coordinator.instances.selected["terminal-1"] = instance
+		fixture.session_claim.consume_temporary_binding_offer = lambda _instance_id: True
+		fixture.delivery._handleEvent = lambda *_args, **_kwargs: None
+
+		fixture.delivery.handle_managed_event(
+			"connection-1",
+			{"type": "fullState", "payload": {}},
+		)
+
+		self.assertEqual([("terminal-1", "connection-1")], fixture.binding_offers)
+		self.assertEqual([], fixture.scheduler.calls)
 
 	def test_active_disconnect_fails_open_before_queued_cleanup(self) -> None:
 		fixture = make_delivery()

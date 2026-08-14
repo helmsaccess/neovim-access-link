@@ -39,11 +39,17 @@ add-on reads `cachedClassName` and `getRuntimeId()` from the underlying
 then follows NVDA's UIA pattern with a `RuntimeId` property condition within
 the still-validated window handle's subtree. Values are used only after
 checking the Windows Terminal AppModule, process, and allowed UIA class.
+Windows Terminal can report the same pane through two provider-specific
+runtime-ID forms. Runtime-only normalization is permitted only when process,
+window handle, allowed class, and the final two pane components match and
+NVDA's UIA client confirms both live elements as the same control through
+`compareElements`. `compareElements` alone is explicitly not identity proof.
 
 - Risk: the UIA wrapper's shape or lifetime can change.
 - Containment: missing or invalid values disable correlation and suppression.
-  COM/UIA errors are uncertain and do not trigger cleanup. Window titles and
-  terminal text are never substitute heuristics.
+  COM/UIA errors are uncertain and do not trigger cleanup. An unconfirmed alias
+  check keeps both identities separate. Window titles and terminal text are
+  never substitute heuristics.
 - Replacement: prefer a future public, stable terminal-control identifier and
   remove the runtime-ID dependency.
 

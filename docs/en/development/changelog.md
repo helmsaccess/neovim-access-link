@@ -86,6 +86,18 @@ test-build entries through August 5, 2026.
   The practical two-pane run under NVDA 2026.2beta10 exposed the defect; the
   corrected build still needs manual repetition. This installable state is
   development build 2.
+- Removes the error-prone question about remembering a new F12 association,
+  including its checkbox, profile value, and setting. A successful,
+  still-exactly-focused association is now remembered automatically only for
+  the running NVDA/Windows Terminal session; the existing forget command still
+  removes it early. The same WT pane also remains associated when its UIA
+  provider changes between the runtime-ID forms observed under NVDA
+  2026.2beta10. This normalization jointly requires the same process, window
+  handle, allowed class, and pane-tail components plus NVDA's positive UIA
+  element equality; different panes remain separate. Direct and package
+  regression tests cover automatic retention, focus races, alias changes, and
+  distinct panes. The corrected build still needs manual repetition. This
+  installable state is development build 3.
 - Hardens protocol boundaries after the complete unit-test review. Boolean and
   negative sequences or timestamps are rejected in the message envelope. A new
   transport session starts exclusively with `fullState` at sequence 0, while

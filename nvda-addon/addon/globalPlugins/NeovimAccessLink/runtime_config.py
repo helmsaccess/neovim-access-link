@@ -25,7 +25,6 @@ from .settings_service import (  # noqa: E402
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
 	BRAILLE_SUGGESTION_START_MAXIMUM,
-	TEMPORARY_BINDING_PROMPT_DEFAULT,
 )
 
 addonHandler.initTranslation()
@@ -49,7 +48,13 @@ def terminal_identity_exists(identity, known_element=None):
 		return True
 	if known_element is not None:
 		try:
-			if tuple(int(value) for value in known_element.getRuntimeId()) == identity.runtime_id:
+			known_runtime_id = tuple(int(value) for value in known_element.getRuntimeId())
+			if known_runtime_id == identity.runtime_id:
+				return True
+			# The focus service only stores an alias element under this canonical
+			# identity after comparing both live UIA elements. Preserve that proof
+			# when the provider later exposes only the alias runtime ID.
+			if _terminal_identity_alias_shape(identity, known_runtime_id):
 				return True
 		except Exception:
 			pass
@@ -142,6 +147,51 @@ def _frontendPolicy():
 
 
 FRONTEND_POLICY = _frontendPolicy()
+
+
+def _terminal_identity_alias_shape(identity, other_runtime_id):
+	return bool(
+		identity is not None
+		and identity.frontend_kind == "windowsTerminal"
+		and len(identity.runtime_id) >= 2
+		and len(other_runtime_id) >= 2
+		and identity.runtime_id[-2:] == other_runtime_id[-2:]
+	)
+
+
+def terminal_identities_equivalent(first, first_element, second, second_element):
+	"""Confirm two provider-specific runtime IDs for one live WT control."""
+	if first == second:
+		return True
+	if (
+		first is None
+		or second is None
+		or first_element is None
+		or second_element is None
+		or first.process_id != second.process_id
+		or first.window_handle != second.window_handle
+		or first.frontend_kind != "windowsTerminal"
+		or second.frontend_kind != "windowsTerminal"
+		or not _terminal_identity_alias_shape(first, second.runtime_id)
+	):
+		return False
+	descriptor = FRONTEND_POLICY.descriptor("windowsTerminal")
+	if descriptor is None or not descriptor.enabled:
+		return False
+	try:
+		if (
+			str(first_element.cachedClassName or "") not in descriptor.uia_class_names
+			or str(second_element.cachedClassName or "") not in descriptor.uia_class_names
+		):
+			return False
+		import UIAHandler
+
+		# CompareElements alone can be overly permissive with some providers.
+		# The process, HWND, WT class, and stable pane tail above are mandatory.
+		return bool(UIAHandler.handler.clientObject.compareElements(first_element, second_element))
+	except Exception:
+		# A provider disagreement or COM failure must keep the controls separate.
+		return False
 
 
 def identity_for_object(obj):
@@ -264,7 +314,6 @@ NVDA_CONFIG_SPEC = {
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
 	),
 	"automaticParameterHints": (f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"),
-	"temporaryBindingPrompt": f"integer(default={TEMPORARY_BINDING_PROMPT_DEFAULT}, min=0, max=2)",
 	"brailleRouting": {
 		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",
 		"lineAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineAction']}, min=0, max=2)",

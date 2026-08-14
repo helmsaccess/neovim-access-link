@@ -42,11 +42,18 @@ direkt geprüft und anschließend nach NVDAs eigenem UIA-Muster über eine
 `RuntimeId`-Property-Condition im Teilbaum des weiterhin validierten
 Fensterhandles gesucht. Die Werte werden nur nach Prüfung des Windows-Terminal-
 AppModules, des Prozesses und der freigegebenen UIA-Klasse verwendet.
+Windows Terminal kann dasselbe Pane über zwei providerabhängige Runtime-ID-
+Formen melden. Eine laufzeitinterne Normalisierung ist nur zulässig, wenn
+Prozess, Fensterhandle, freigegebene Klasse und die letzten beiden
+Pane-Komponenten übereinstimmen und NVDAs UIA-Client beide lebenden Elemente
+mit `compareElements` als dasselbe Control bestätigt. `compareElements` allein
+ist ausdrücklich kein Identitätsnachweis.
 
 - Risiko: Form und Lebensdauer des UIA-Wrappers können sich ändern.
 - Begrenzung: Fehlende oder ungültige Werte deaktivieren Zuordnung und
   Unterdrückung; COM-/UIA-Fehler gelten als unklar und lösen keine Bereinigung
-  aus. Fenstertitel oder Terminaltext dienen nie als Ersatzheuristik.
+  aus. Eine unbestätigte Aliasprüfung hält beide Identitäten getrennt.
+  Fenstertitel oder Terminaltext dienen nie als Ersatzheuristik.
 - Ablöseplan: Einen späteren öffentlichen, stabilen Terminal-Control-Identifier
   bevorzugen und die Runtime-ID-Abhängigkeit entfernen.
 

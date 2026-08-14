@@ -144,10 +144,9 @@ Arbeitsspeicher.
 4. Fokussieren Sie das gewünschte Neovim und drücken Sie F12 einmal.
 5. Warten Sie auf die Verbindungsbestätigung.
 
-Nach einer neuen Zuordnung fragt Access Link, ob die Verbindung für diesen Tab
-gemerkt werden soll; `Ja` besitzt den Standardfokus. Kreuzen Sie `Diese
-Entscheidung im aktuellen Konfigurationsprofil merken` nur an, wenn zukünftige
-Zuordnungen im selben Profil automatisch dieselbe Antwort verwenden sollen.
+Eine erfolgreiche Zuordnung wird automatisch für dieses konkrete
+Windows-Terminal-Control bis zum Ende von NVDA oder Windows Terminal gemerkt.
+Es erscheint keine zusätzliche Rückfrage.
 Die Festlegung lässt sich in den Access-Link-Einstellungen auf der Registerkarte
 `Verbindungen` ändern oder zurücksetzen.
 

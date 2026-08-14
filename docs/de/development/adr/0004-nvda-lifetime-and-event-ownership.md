@@ -24,7 +24,7 @@ Das Global Plugin ist nur der prozessweite Lebensdaueradapter: Es erzeugt über
 `composition.py` baut gemeinsame Dienste transaktional auf; `AddonRuntime`
 registriert Einstellungen und Menü, veröffentlicht die Terminalfassade erst
 nach vollständiger Initialisierung und beendet alle Besitzer in festgelegter
-Reihenfolge. Verbindungsworkflow, Wiederherstellung temporärer Bindungen,
+Reihenfolge. Verbindungsworkflow, Laufzeitpflege temporärer Bindungen,
 Terminalaktionen, Ereignislieferung sowie fachlicher Zuordnungs-, Gate-,
 Protokoll- und Präsentationszustand liegen in gewöhnlichen Diensten ohne
 Vererbung von `GlobalPlugin`.

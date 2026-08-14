@@ -299,6 +299,10 @@ Treffer. Damit benötigt die Zuordnung weder Standardverbindung noch interne ID,
 Fenstertitel oder Terminaltext. Der eigentliche dauerhafte TCP- beziehungsweise
 SSH-Transport startet erst nach einem eindeutigen Treffer oder einer
 ausdrücklichen Dialogauswahl.
+Die gebundene Terminalidentität bleibt exakt. Zwei providerabhängige
+Runtime-ID-Formen gelten nur dann als dasselbe lebende Windows-Terminal-Control,
+wenn die in [ADR-0002](adr/0002-nvda-api-boundaries.md) festgelegten Prozess-,
+Fenster-, Klassen-, Pane- und UIA-Elementprüfungen gemeinsam bestehen.
 
 ## Ereignisrichtung
 

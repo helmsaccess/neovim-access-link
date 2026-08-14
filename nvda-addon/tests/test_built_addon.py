@@ -777,7 +777,6 @@ class BuiltAddonTests(unittest.TestCase):
         sys.modules["gui.nvdaControls"] = nvda_controls
         self.modalDialogResults = []
         self.modalDialogCallbacks = []
-        self.rememberChoiceSelections = []
         self.dialogs = []
 
         class DialogButtonControl:
@@ -826,8 +825,6 @@ class BuiltAddonTests(unittest.TestCase):
                 if self.checkListSelections and self.checkListBoxes:
                     for index in self.checkListSelections.pop(0):
                         self.checkListBoxes[-1].Check(index)
-                if self.rememberChoiceSelections and hasattr(inner_self, "rememberChoiceCheckbox"):
-                    inner_self.rememberChoiceCheckbox.SetValue(self.rememberChoiceSelections.pop(0))
                 return self.modalDialogResults.pop(0) if self.modalDialogResults else wx.ID_CANCEL
 
             def Destroy(inner_self):
@@ -2414,7 +2411,6 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_connection_dialog_results_are_bound_to_the_live_runtime_scheduler(self) -> None:
         from globalPlugins.NeovimAccessLink.connection_dialogs import NvdaConnectionDialogs
-        import wx
 
         active = False
         scheduled = []
@@ -2429,11 +2425,6 @@ class BuiltAddonTests(unittest.TestCase):
             message="Choose",
             choices=["First"],
             on_result=results.append,
-        )
-        dialogs.confirm(
-            title="Connection",
-            message="Confirm",
-            on_result=lambda accepted, remember: results.append((accepted, remember)),
         )
         self.assertEqual([], scheduled)
         self.assertEqual([], results)
@@ -2451,37 +2442,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual([0], results)
         self.assertEqual(1, len(self.modalDialogsShown))
 
-        self.modalDialogResults.append(wx.ID_YES)
-        self.rememberChoiceSelections.append(True)
-        dialogs.confirm(
-            title="Connection",
-            message="Confirm",
-            on_result=lambda accepted, remember: results.append((accepted, remember)),
-        )
-        self.assertEqual(1, len(scheduled))
-        confirmation_dialog = self.modalDialogsShown[-1]
-        self.assertEqual(wx.ID_YES, confirmation_dialog.affirmativeId)
-        self.assertEqual(wx.ID_NO, confirmation_dialog.escapeId)
-        self.assertTrue(confirmation_dialog.buttons[wx.ID_YES].default)
-        self.assertTrue(confirmation_dialog.buttons[wx.ID_YES].focused)
-        callback, args = scheduled.pop()
-        callback(*args)
-        self.assertEqual((True, True), results[-1])
-
-        self.modalDialogResults.append(wx.ID_CANCEL)
-        self.rememberChoiceSelections.append(True)
-        dialogs.confirm(
-            title="Connection",
-            message="Confirm",
-            on_result=lambda accepted, remember: results.append((accepted, remember)),
-        )
-        callback, args = scheduled.pop()
-        callback(*args)
-        self.assertEqual((False, False), results[-1])
-
         self.passwordDialogValues.append("session secret")
         self.assertEqual("session secret", dialogs.password("Work"))
-        self.assertEqual(4, len(self.modalDialogsShown))
+        self.assertEqual(2, len(self.modalDialogsShown))
 
     def test_connection_password_result_is_rejected_after_runtime_closes(self) -> None:
         from globalPlugins.NeovimAccessLink.connection_dialogs import NvdaConnectionDialogs
@@ -6959,12 +6922,14 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(plugin._runtime.session_claim.consume_temporary_binding_offer(instance.identifier))
         self.assertFalse(plugin._runtime.session_claim.consume_temporary_binding_offer(instance.identifier))
         self.assertFalse(plugin._runtime.session_claim.request_temporary_binding_offer("missing"))
-        offer = plugin._runtime.session_claim.prepare_temporary_binding_offer(
+        offer = plugin._runtime.session_claim.remember_temporary_binding(
             identity,
             instance.identifier,
         )
         self.assertEqual(TemporaryBindingOfferKind.OFFER, offer.kind)
         self.assertEqual(instance, offer.instance)
+        self.assertIn(identity, plugin._runtime.coordinator.remembered_terminal_bindings)
+        self.assertTrue(plugin._runtime.session_claim.forget_temporary_binding(identity))
 
         plugin._runtime.coordinator.gate.focused = None
         unarmed_focus_gap = plugin._runtime.session_claim.remember_temporary_binding(
@@ -6973,18 +6938,6 @@ class BuiltAddonTests(unittest.TestCase):
         )
         self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, unarmed_focus_gap.kind)
 
-        plugin._runtime.coordinator.gate.focused = identity
-        armed = plugin._runtime.session_claim.arm_temporary_binding_reactivation(
-            identity,
-            instance.identifier,
-        )
-        self.assertEqual(TemporaryBindingOfferKind.OFFER, armed.kind)
-        self.assertTrue(
-            plugin._runtime.session_claim.consume_temporary_binding_reactivation(
-                identity,
-                instance.identifier,
-            )
-        )
         other_identity = TerminalIdentity(
             identity.process_id,
             identity.window_handle,
@@ -6992,17 +6945,11 @@ class BuiltAddonTests(unittest.TestCase):
             (42, identity.window_handle, 4, 99),
         )
         plugin._runtime.coordinator.gate.focused = other_identity
-        remembered_after_reactivation = plugin._runtime.session_claim.remember_temporary_binding(
+        changed_focus = plugin._runtime.session_claim.remember_temporary_binding(
             identity,
             instance.identifier,
         )
-        self.assertEqual(TemporaryBindingOfferKind.OFFER, remembered_after_reactivation.kind)
-        self.assertTrue(plugin._runtime.session_claim.forget_temporary_binding(identity))
-        stale = plugin._runtime.session_claim.remember_temporary_binding(
-            identity,
-            instance.identifier,
-        )
-        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, stale.kind)
+        self.assertEqual(TemporaryBindingOfferKind.FOCUS_CHANGED, changed_focus.kind)
         self.assertFalse(plugin._runtime.session_claim.is_temporary_binding_remembered(identity))
 
         plugin._runtime.coordinator.gate.focused = identity
@@ -7016,80 +6963,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertFalse(plugin._runtime.session_claim.forget_temporary_binding(identity))
         plugin.terminate()
 
-    def test_temporary_binding_dialog_focus_gap_restores_current_connection(self) -> None:
-        import wx
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-
-        class Client:
-            def __init__(inner_self):
-                inner_self.controls = []
-
-            def start(inner_self):
-                pass
-
-            def stop(inner_self):
-                pass
-
-            def send_control(inner_self, kind, payload):
-                inner_self.controls.append((kind, payload))
-                return True
-
-        for answer, should_remember in ((wx.ID_YES, True), (wx.ID_NO, False)):
-            with self.subTest(answer=answer):
-                plugin = GlobalPlugin()
-                adapter = self._terminalAdapter()
-                self.focus.appModule = adapter
-                identity = plugin._runtime.terminal_focus.identity(self.focus)
-                client = Client()
-                instance = add_remote_instance(
-                    plugin._runtime.coordinator.instances,
-                    "one",
-                    "1",
-                    "First",
-                    client,
-                )
-                plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
-                adapter.event_gainFocus(self.focus, lambda: None)
-                plugin._runtime.coordinator.authenticated_instances.add(instance.identifier)
-                plugin._runtime.coordinator.confirm_foreground_instance(
-                    instance.identifier,
-                    identity,
-                    plugin._runtime.editor_session.new_runtime,
-                )
-                plugin._runtime.coordinator.gate.manual_enabled = True
-                self.modalDialogCallbacks.append(adapter.event_appModule_loseFocus)
-                self.modalDialogResults.append(answer)
-                plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
-
-                self.assertEqual(
-                    should_remember,
-                    plugin._runtime.session_claim.is_temporary_binding_remembered(identity),
-                )
-                self._waitForControls(client.controls, 1)
-                self.assertEqual("requestFocusContext", client.controls[-1][0])
-                request_id = client.controls[-1][1]["requestId"]
-                plugin._runtime.event_delivery.handle_managed_event(
-                    instance.identifier,
-                    {
-                        "type": "focusContext",
-                        "payload": {
-                            "_focusRequestId": request_id,
-                            "bufferName": "/work/returned.lua",
-                            "mode": "normal",
-                        },
-                    },
-                )
-                self.assertTrue(plugin._runtime.coordinator.gate.suppression_active)
-                if not should_remember:
-                    controls = list(client.controls)
-                    adapter.event_appModule_loseFocus()
-                    adapter.event_gainFocus(self.focus, lambda: None)
-                    self.assertEqual(controls, client.controls)
-                    self.assertFalse(plugin._runtime.coordinator.gate.suppression_active)
-                plugin.terminate()
-
-    def test_temporary_binding_decision_survives_focus_churn_while_dialog_is_open(self) -> None:
-        import wx
+    def test_successful_binding_is_remembered_without_a_modal_question(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
@@ -7127,155 +7001,13 @@ class BuiltAddonTests(unittest.TestCase):
             plugin._runtime.editor_session.new_runtime,
         )
         plugin._runtime.coordinator.gate.manual_enabled = True
-
-        def churn_focus() -> None:
-            adapter.event_appModule_loseFocus()
-            adapter.event_gainFocus(self.focus, lambda: None)
-            adapter.event_appModule_loseFocus()
-
-        self.modalDialogCallbacks.append(churn_focus)
-        self.modalDialogResults.append(wx.ID_YES)
+        dialogs_before = len(self.modalDialogsShown)
         plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
 
         self.assertTrue(plugin._runtime.session_claim.is_temporary_binding_remembered(identity))
-        self.assertFalse(plugin._runtime.coordinator.gate.suppression_active)
-        native_echo = []
-        adapter.event_typedCharacter(self.focus, lambda: native_echo.append(True), "x")
-        self.assertEqual([True], native_echo)
-
-        adapter.event_gainFocus(self.focus, lambda: None)
-        self._waitForControls(client.controls, 1)
-        self.assertEqual("requestFocusContext", client.controls[-1][0])
-        plugin.terminate()
-
-    def test_temporary_binding_prompt_decision_is_persisted_and_reused(self) -> None:
-        import config
-        import wx
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-        from globalPlugins.NeovimAccessLink.settings_service import (
-            TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER,
-            TEMPORARY_BINDING_PROMPT_REMEMBER,
-        )
-
-        class Client:
-            def start(inner_self):
-                pass
-
-            def stop(inner_self):
-                pass
-
-            def send_control(inner_self, *_args):
-                return True
-
-        for answer, stored_value, should_remember in (
-            (wx.ID_YES, TEMPORARY_BINDING_PROMPT_REMEMBER, True),
-            (wx.ID_NO, TEMPORARY_BINDING_PROMPT_DO_NOT_REMEMBER, False),
-        ):
-            with self.subTest(answer=answer):
-                config.conf["NeovimAccessLink"]["temporaryBindingPrompt"] = 0
-                plugin = GlobalPlugin()
-                adapter = self._terminalAdapter()
-                self.focus.appModule = adapter
-                identity = plugin._runtime.terminal_focus.identity(self.focus)
-                instance = add_remote_instance(
-                    plugin._runtime.coordinator.instances,
-                    "one",
-                    "1",
-                    "First",
-                    Client(),
-                )
-                plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
-                adapter.event_gainFocus(self.focus, lambda: None)
-                saves_before = self.configSaves
-                self.modalDialogResults.append(answer)
-                self.rememberChoiceSelections.append(True)
-
-                plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
-
-                self.assertEqual(
-                    stored_value,
-                    plugin._runtime.settings.snapshot()["temporaryBindingPrompt"],
-                )
-                self.assertEqual(
-                    stored_value,
-                    config.conf["NeovimAccessLink"]["temporaryBindingPrompt"],
-                )
-                self.assertEqual(saves_before + 1, self.configSaves)
-                self.assertEqual(
-                    should_remember,
-                    plugin._runtime.session_claim.is_temporary_binding_remembered(identity),
-                )
-                if should_remember:
-                    plugin._runtime.session_claim.forget_temporary_binding(identity)
-                dialogs_before = len(self.modalDialogsShown)
-
-                plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
-
-                self.assertEqual(dialogs_before, len(self.modalDialogsShown))
-                self.assertEqual(
-                    should_remember,
-                    plugin._runtime.session_claim.is_temporary_binding_remembered(identity),
-                )
-                plugin.terminate()
-
-    def test_regular_gain_focus_wins_over_scheduled_binding_recovery(self) -> None:
-        import wx
-        from globalPlugins.NeovimAccessLink import GlobalPlugin
-
-        class Client:
-            def __init__(inner_self):
-                inner_self.controls = []
-
-            def start(inner_self):
-                pass
-
-            def stop(inner_self):
-                pass
-
-            def send_control(inner_self, kind, payload):
-                inner_self.controls.append((kind, payload))
-                return True
-
-        adapter = self._terminalAdapter()
-        self.focus.appModule = adapter
-        plugin = GlobalPlugin()
-        identity = plugin._runtime.terminal_focus.identity(self.focus)
-        client = Client()
-        instance = add_remote_instance(plugin._runtime.coordinator.instances, "one", "1", "First", client)
-        plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
-        adapter.event_gainFocus(self.focus, lambda: None)
-        plugin._runtime.coordinator.authenticated_instances.add(instance.identifier)
-        plugin._runtime.coordinator.confirm_foreground_instance(
-            instance.identifier,
-            identity,
-            plugin._runtime.editor_session.new_runtime,
-        )
-        plugin._runtime.coordinator.gate.manual_enabled = True
-        scheduled = []
-        plugin._runtime.scheduler.later = lambda delay, callback, *args: scheduled.append(
-            (delay, callback, args)
-        )
-
-        def lose_focus():
-            adapter.event_appModule_loseFocus()
-
-        self.modalDialogCallbacks.append(lose_focus)
-        self.modalDialogResults.append(wx.ID_NO)
-        plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
-
-        adapter.event_gainFocus(self.focus, lambda: None)
-        _delay, callback, args = scheduled.pop(0)
-        callback(*args)
-        request_index = next(
-            index
-            for index, (_delay, pending_callback, _args) in enumerate(scheduled)
-            if pending_callback.__name__ == "request_remembered_binding_state"
-        )
-        _delay, callback, args = scheduled.pop(request_index)
-        callback(*args)
-        self._waitForControls(client.controls, 1)
-        self.assertEqual(1, len(client.controls))
-        self.assertEqual([], scheduled)
+        self.assertEqual(dialogs_before, len(self.modalDialogsShown))
+        self.assertTrue(plugin._runtime.coordinator.gate.suppression_active)
+        self.assertEqual([], client.controls)
         plugin.terminate()
 
     def test_session_claim_service_plans_reuse_and_replacement_without_client_transition(self) -> None:
@@ -9022,7 +8754,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertIn("unavailable", self.messages[-1])
         plugin.terminate()
 
-    def test_successful_explicit_connection_can_be_remembered_for_tab(self) -> None:
+    def test_successful_explicit_connection_is_automatically_remembered_for_tab(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
@@ -9056,7 +8788,6 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._runtime.coordinator.gate.focused = plugin._runtime.coordinator.gate.bound_terminal = identity
         plugin._runtime.coordinator.gate.authenticated = plugin._runtime.coordinator.gate.nvim_active = True
         plugin._runtime.coordinator.remember_offer_instances.add(instance.identifier)
-        self.modalDialogResults.append(sys.modules["wx"].ID_YES)
         plugin._runtime.event_delivery.handle_managed_event(
             instance.identifier,
             {
@@ -9074,7 +8805,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(any("remembered" in message.lower() for message in self.messages))
         plugin.terminate()
 
-    def test_new_session_in_remembered_tab_does_not_repeat_binding_question(self) -> None:
+    def test_new_session_in_remembered_tab_retains_binding_without_duplicate_message(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
 
         class Client:
@@ -9102,7 +8833,7 @@ class BuiltAddonTests(unittest.TestCase):
         plugin._runtime.coordinator.gate.authenticated = plugin._runtime.coordinator.gate.nvim_active = True
         plugin._runtime.coordinator.remembered_terminal_bindings.add(identity)
         plugin._runtime.coordinator.remember_offer_instances.add(instance.identifier)
-        previous_questions = len(self.modalDialogsShown)
+        previous_messages = len(self.messages)
 
         plugin._runtime.event_delivery.handle_managed_event(
             instance.identifier,
@@ -9116,7 +8847,7 @@ class BuiltAddonTests(unittest.TestCase):
             },
         )
 
-        self.assertEqual(previous_questions, len(self.modalDialogsShown))
+        self.assertEqual(previous_messages, len(self.messages))
         self.assertTrue(plugin._runtime.coordinator.gate.suppression_active)
         self.assertIn(identity, plugin._runtime.coordinator.remembered_terminal_bindings)
         self.assertNotIn(instance.identifier, plugin._runtime.coordinator.remember_offer_instances)
@@ -9372,6 +9103,159 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["second", "first", "unbound"], native_focus_announcements)
         self.assertFalse(plugin._runtime.coordinator.gate.suppression_active)
         plugin.terminate()
+
+    def test_provider_runtime_id_alias_reactivates_the_same_remembered_wt_pane(self) -> None:
+        from globalPlugins.NeovimAccessLink import GlobalPlugin
+
+        class Client:
+            def __init__(inner_self):
+                inner_self.controls = []
+
+            def start(inner_self):
+                pass
+
+            def stop(inner_self):
+                pass
+
+            def send_control(inner_self, kind, payload):
+                inner_self.controls.append((kind, payload))
+                return True
+
+        pane = object()
+
+        def terminal(runtime_id, app_module):
+            return types.SimpleNamespace(
+                processID=9156,
+                windowHandle=655522,
+                role=3,
+                parent=None,
+                appModule=app_module,
+                UIAElement=types.SimpleNamespace(
+                    pane=pane,
+                    cachedClassName="TermControl",
+                    getRuntimeId=lambda: runtime_id,
+                ),
+            )
+
+        adapter = self._terminalAdapter()
+        original = terminal((14, 5899928, 0, 0, 0, 4, 7), adapter)
+        alias = terminal((42, 655522, 4, 7), adapter)
+        uia = types.SimpleNamespace(
+            handler=types.SimpleNamespace(
+                clientObject=types.SimpleNamespace(
+                    compareElements=lambda first, second: first.pane is second.pane,
+                )
+            )
+        )
+        with mock.patch.dict(sys.modules, {"UIAHandler": uia}):
+            plugin = GlobalPlugin()
+            self.focus = original
+            adapter.event_gainFocus(original, lambda: None)
+            identity = plugin._runtime.terminal_focus.identity(original)
+            client = Client()
+            instance = add_remote_instance(
+                plugin._runtime.coordinator.instances,
+                "one",
+                "1",
+                "First",
+                client,
+            )
+            plugin._runtime.coordinator.instances.bind(identity, instance.identifier)
+            plugin._runtime.coordinator.authenticated_instances.add(instance.identifier)
+            plugin._runtime.coordinator.confirm_foreground_instance(
+                instance.identifier,
+                identity,
+                plugin._runtime.editor_session.new_runtime,
+            )
+            plugin._runtime.coordinator.gate.manual_enabled = True
+            plugin._runtime.temporary_bindings.offer_temporary_binding(identity, instance.identifier)
+
+            adapter.event_appModule_loseFocus()
+            self.focus = alias
+            adapter.event_gainFocus(alias, lambda: None)
+
+            self.assertEqual(identity, plugin._runtime.terminal_focus.identity(alias))
+            self.assertEqual(instance, plugin._runtime.coordinator.instances.selected_for(identity))
+            self._waitForControls(client.controls, 1)
+            self.assertEqual("requestFocusContext", client.controls[-1][0])
+            request_id = client.controls[-1][1]["requestId"]
+            plugin._runtime.event_delivery.handle_managed_event(
+                instance.identifier,
+                {
+                    "type": "focusContext",
+                    "payload": {
+                        "_focusRequestId": request_id,
+                        "bufferName": "/work/returned.lua",
+                        "mode": "normal",
+                    },
+                },
+            )
+
+            self.assertTrue(plugin._runtime.coordinator.gate.suppression_active)
+            self.assertIn(
+                '"category": "terminalFocusIdentityAliasNormalized"',
+                plugin._runtime.diagnostics.report(),
+            )
+            plugin.terminate()
+
+    def test_different_runtime_id_tail_never_aliases_another_wt_pane(self) -> None:
+        from globalPlugins.NeovimAccessLink import runtime_config as addon_module
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+
+        first_element = types.SimpleNamespace(cachedClassName="TermControl")
+        second_element = types.SimpleNamespace(cachedClassName="TermControl")
+        uia = types.SimpleNamespace(
+            handler=types.SimpleNamespace(
+                clientObject=types.SimpleNamespace(compareElements=lambda *_args: True),
+            )
+        )
+        with mock.patch.dict(sys.modules, {"UIAHandler": uia}):
+            self.assertFalse(
+                addon_module.terminal_identities_equivalent(
+                    TerminalIdentity(9156, 655522, "windowsTerminal", (14, 1, 0, 0, 0, 4, 7)),
+                    first_element,
+                    TerminalIdentity(9156, 655522, "windowsTerminal", (42, 655522, 4, 26)),
+                    second_element,
+                )
+            )
+
+    def test_provider_alias_requires_supported_classes_and_uia_element_equivalence(self) -> None:
+        from globalPlugins.NeovimAccessLink import runtime_config as addon_module
+        from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
+
+        original = TerminalIdentity(9156, 655522, "windowsTerminal", (14, 1, 0, 0, 0, 4, 7))
+        alias = TerminalIdentity(9156, 655522, "windowsTerminal", (42, 655522, 4, 7))
+        first_element = types.SimpleNamespace(cachedClassName="TermControl")
+        second_element = types.SimpleNamespace(cachedClassName="TermControl")
+        compare_elements = mock.Mock(return_value=False)
+        uia = types.SimpleNamespace(
+            handler=types.SimpleNamespace(
+                clientObject=types.SimpleNamespace(compareElements=compare_elements),
+            )
+        )
+        with mock.patch.dict(sys.modules, {"UIAHandler": uia}):
+            self.assertFalse(
+                addon_module.terminal_identities_equivalent(
+                    original,
+                    first_element,
+                    alias,
+                    second_element,
+                )
+            )
+            compare_elements.assert_called_once_with(first_element, second_element)
+
+            first_element.cachedClassName = "UnknownControl"
+            compare_elements.reset_mock()
+            compare_elements.return_value = True
+            self.assertFalse(
+                addon_module.terminal_identities_equivalent(
+                    original,
+                    first_element,
+                    alias,
+                    second_element,
+                )
+            )
+            compare_elements.assert_not_called()
 
     def test_return_from_another_application_requests_context_for_same_wt_control(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
@@ -10538,20 +10422,9 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["secondPending"], plugin._runtime.coordinator.typed_word)
         plugin.terminate()
 
-    def test_declined_or_stale_tab_binding_never_auto_reconnects(self) -> None:
+    def test_stale_remembered_tab_without_instance_never_auto_reconnects(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.core.gate import TerminalIdentity
-        import wx
-
-        class Client:
-            def start(self):
-                pass
-
-            def stop(self):
-                pass
-
-            def send_control(self, *_args):
-                return True
 
         def terminal(runtime_id):
             return types.SimpleNamespace(
@@ -10566,26 +10439,9 @@ class BuiltAddonTests(unittest.TestCase):
                 ),
             )
 
-        first_obj = terminal((42, 2001, 4, 6))
         second_obj = terminal((42, 2001, 4, 53))
         plugin = GlobalPlugin()
-        first_id = plugin._runtime.terminal_focus.identity(first_obj)
-        instance = add_remote_instance(plugin._runtime.coordinator.instances, "one", "1", "First", Client())
-        plugin._runtime.coordinator.instances.bind(first_id, instance.identifier)
-        self.modalDialogResults.append(wx.ID_NO)
-        plugin._runtime.temporary_bindings.offer_temporary_binding(first_id, instance.identifier)
-        self.assertNotIn(first_id, plugin._runtime.coordinator.remembered_terminal_bindings)
         adapter = self._terminalAdapter()
-        plugin._runtime.coordinator.gate.focused = first_id
-        adapter.event_gainFocus(second_obj, lambda: None)
-        # Declining persistence means that focus alone never reactivates the
-        # binding.  Keep the dormant in-memory mapping, however: destroying it
-        # on a transient UIA focus identity change loses suppression and makes
-        # subsequent events from the still-running client unselectable.
-        self.assertEqual(
-            instance.identifier, plugin._runtime.coordinator.instances.selected_for(first_id).identifier
-        )
-
         stale_id = plugin._runtime.terminal_focus.identity(second_obj)
         plugin._runtime.coordinator.remembered_terminal_bindings.add(stale_id)
         plugin._runtime.coordinator.gate.focused = TerminalIdentity(1, 2)
@@ -10852,7 +10708,6 @@ class BuiltAddonTests(unittest.TestCase):
                 "Normal navigation",
                 "Speech exploration mode release",
                 "Saved SSH connections",
-                "Temporary terminal connections",
             ],
             self.staticBoxLabels,
         )
@@ -10875,9 +10730,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(0, panel.brailleRoutingWordAction.GetSelection())
         self.assertEqual(0, panel.brailleRoutingLineAction.GetSelection())
         self.assertEqual(0, panel.brailleRoutingLineStart.GetSelection())
-        self.assertEqual(0, panel.temporaryBindingPrompt.GetSelection())
         panel.focusAnnouncement.SetSelection(1)
-        panel.temporaryBindingPrompt.SetSelection(2)
         panel.brailleSuggestionStart.SetValue(40)
         panel.brailleFollowSpeechExploration.SetValue(False)
         panel.brailleRoutingWordAction.SetSelection(1)
@@ -10889,11 +10742,6 @@ class BuiltAddonTests(unittest.TestCase):
         panel.onSave()
         self.assertEqual(1, self._settingsSnapshot(plugin)["focusAnnouncement"])
         self.assertEqual(1, __import__("config").conf["NeovimAccessLink"]["focusAnnouncement"])
-        self.assertEqual(2, self._settingsSnapshot(plugin)["temporaryBindingPrompt"])
-        self.assertEqual(
-            2,
-            __import__("config").conf["NeovimAccessLink"]["temporaryBindingPrompt"],
-        )
         self.assertEqual(40, self._settingsSnapshot(plugin)["brailleSuggestionStart"])
         self.assertEqual(
             40,
@@ -11265,9 +11113,6 @@ class BuiltAddonTests(unittest.TestCase):
             ),
             scheduler=mock.Mock(),
             diagnostics=mock.Mock(),
-            dialogs=mock.Mock(),
-            prompt_answer=lambda: None,
-            remember_prompt_answer=mock.Mock(),
         )
 
         before = time.monotonic()
@@ -15197,7 +15042,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, service.braille_suggestion_start())
         self.assertTrue(service.braille_follows_speech_exploration())
         self.assertTrue(service.automatic_parameter_hints())
-        self.assertIsNone(service.temporary_binding_prompt_answer())
         self.assertFalse(service.braille_routing_actions().enabled)
         self.assertEqual((True, False, True), service.navigation_details(exploration=False))
         self.assertEqual((True, False, True), service.navigation_details(exploration=True))
@@ -15224,12 +15068,6 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertTrue(parameter_changed.automatic_parameter_hints_changed)
         self.assertFalse(service.automatic_parameter_hints())
         self.assertFalse(section["automaticParameterHints"])
-        values = service.snapshot()
-        values["temporaryBindingPrompt"] = 1
-        prompt_changed = service.update(values)
-        self.assertTrue(prompt_changed.temporary_binding_prompt_changed)
-        self.assertTrue(service.temporary_binding_prompt_answer())
-        self.assertEqual(1, section["temporaryBindingPrompt"])
         values = service.snapshot()
         values["brailleRouting"] = {
             "wordAction": 1,
@@ -15293,7 +15131,6 @@ class BuiltAddonTests(unittest.TestCase):
                 "brailleDeveloperStart": 1,
                 "brailleFollowSpeechExploration": True,
                 "automaticParameterHints": True,
-                "temporaryBindingPrompt": 0,
                 "brailleRouting": {
                     "wordAction": 0,
                     "lineAction": 0,
@@ -15319,6 +15156,7 @@ class BuiltAddonTests(unittest.TestCase):
                 "brailleSuggestionStart": 1001,
                 "brailleFollowSpeechExploration": "yes",
                 "automaticParameterHints": "yes",
+                # Removed versions can leave this obsolete key in an NVDA profile.
                 "temporaryBindingPrompt": True,
                 "brailleRouting": {
                     "wordAction": 3,
@@ -15342,7 +15180,7 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(1, normalized["brailleDeveloperStart"])
         self.assertTrue(normalized["brailleFollowSpeechExploration"])
         self.assertTrue(normalized["automaticParameterHints"])
-        self.assertEqual(0, normalized["temporaryBindingPrompt"])
+        self.assertNotIn("temporaryBindingPrompt", normalized)
         self.assertEqual(
             {
                 "wordAction": 0,
@@ -15384,9 +15222,9 @@ class BuiltAddonTests(unittest.TestCase):
         unchanged = service.reload()
         self.assertFalse(unchanged.connections_changed)
         root["NeovimAccessLink"]["temporaryBindingPrompt"] = 1
-        prompt_changed = service.reload()
-        self.assertTrue(prompt_changed.temporary_binding_prompt_changed)
-        self.assertTrue(service.temporary_binding_prompt_answer())
+        legacy_key_ignored = service.reload()
+        self.assertFalse(legacy_key_ignored.connections_changed)
+        self.assertNotIn("temporaryBindingPrompt", service.snapshot())
         self.assertEqual([], notifications)
         root["NeovimAccessLink"]["connections"] = json.dumps(
             [

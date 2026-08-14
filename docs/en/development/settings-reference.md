@@ -114,16 +114,10 @@ F12 is the packaged physical assignment key, not an assignable NVDA script.
 With support enabled, one F12 press authorizes exactly one attempt for the
 focused Windows Terminal control. Focus object, concrete AppModule instance,
 complete UIA identity, gate, and fresh session claim must agree. Without a
-match, no binding, dialog, or suppression is created.
-
-`temporaryBindingPrompt` controls the following question about the runtime-only
-remembered tab binding. `0` asks every time and is the default, `1` applies
-`Yes` without a dialog, and `2` applies `No` without a dialog. `Yes` has the
-default focus in the dialog. Its checkbox writes the explicitly selected
-answer immediately and exclusively as this value in the active NVDA
-configuration profile; closing the dialog stores nothing. The three-state
-choice under `Connections` can change the value or reset it to `0`. A profile
-switch reloads it with the other native add-on settings.
+match, no binding or suppression is created. A successful assignment is
+remembered without a question, only in memory for the concrete control; there
+is no profile setting for it. An older `temporaryBindingPrompt` profile value
+is ignored while loading.
 
 The assignable “Select a server and connect this terminal to a new Neovim
 session” command opens profile selection and then requires F12 in the desired

@@ -32,7 +32,6 @@ from .settings_service import (
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
 	BRAILLE_SUGGESTION_START_MAXIMUM,
-	TEMPORARY_BINDING_PROMPT_DEFAULT,
 )
 
 addonHandler.initTranslation()
@@ -694,35 +693,6 @@ class NvdaUiManager:
 							).format(name=product_name),
 						)
 					)
-					# Translators: Group controlling the question shown after a new F12 association.
-					temporary_binding_sizer = wx.StaticBoxSizer(
-						wx.VERTICAL,
-						connections_page,
-						label=_("Temporary terminal connections"),
-					)
-					connections_helper.addItem(temporary_binding_sizer)
-					temporary_binding_group = guiHelper.BoxSizerHelper(
-						connections_page,
-						sizer=temporary_binding_sizer,
-					)
-					# Translators: Choice controlling whether the temporary connection question is shown.
-					self.temporaryBindingPrompt = temporary_binding_group.addLabeledControl(
-						_("After a new &F12 association:"),
-						wx.Choice,
-						choices=[
-							_("Ask whether to remember the connection"),
-							_("Remember the connection"),
-							_("Do not remember the connection"),
-						],
-					)
-					self.temporaryBindingPrompt.SetSelection(
-						int(
-							settings.get(
-								"temporaryBindingPrompt",
-								TEMPORARY_BINDING_PROMPT_DEFAULT,
-							)
-						)
-					)
 					self._updateConnectionButtons()
 
 				def _onConnectionSelection(self, _event):
@@ -782,7 +752,6 @@ class NvdaUiManager:
 						{
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
 							"automaticParameterHints": self.automaticParameterHints.GetValue(),
-							"temporaryBindingPrompt": self.temporaryBindingPrompt.GetSelection(),
 							"brailleSuggestionStart": self.brailleSuggestionStart.GetValue(),
 							"brailleDeveloperStart": self.brailleDeveloperStart.GetValue(),
 							"brailleFollowSpeechExploration": (

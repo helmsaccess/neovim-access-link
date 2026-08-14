@@ -241,8 +241,6 @@ class SessionClaimService:
 		self._eligibleTargets: set[tuple[str, str]] = set()
 		self._inventoryErrors: dict[tuple[str, str], str] = {}
 		self._pendingTargets: dict[TerminalIdentity, tuple[str, str]] = {}
-		self._pendingBindingDecision: tuple[TerminalIdentity, str] | None = None
-		self._pendingBindingReactivation: tuple[TerminalIdentity, str] | None = None
 
 	def authorize(self, identity: TerminalIdentity | None) -> int | None:
 		"""Authorize one physical claim for the exact focused terminal."""
@@ -359,8 +357,6 @@ class SessionClaimService:
 		self._baselines.clear()
 		self._eligibleTargets.clear()
 		self._inventoryErrors.clear()
-		self._pendingBindingDecision = None
-		self._pendingBindingReactivation = None
 
 	def begin_discovery(self) -> int:
 		"""Invalidate older session-list callbacks and return the new generation."""
@@ -970,62 +966,14 @@ class SessionClaimService:
 		self._coordinator.remember_offer_instances.discard(instance_id)
 		return True
 
-	def prepare_temporary_binding_offer(
-		self,
-		identity: TerminalIdentity,
-		instance_id: str,
-	) -> TemporaryBindingOffer:
-		"""Validate focus, selection, frontend identity, and instance before UI opens."""
-		return self._validate_temporary_binding_offer(identity, instance_id)
-
-	def arm_temporary_binding_reactivation(
-		self,
-		identity: TerminalIdentity,
-		instance_id: str,
-	) -> TemporaryBindingOffer:
-		"""Authorize one modal decision and one matching post-dialog focus recovery."""
-		offer = self._validate_temporary_binding_offer(identity, instance_id)
-		if offer.kind == TemporaryBindingOfferKind.OFFER:
-			self._pendingBindingDecision = (identity, instance_id)
-			self._pendingBindingReactivation = (identity, instance_id)
-		return offer
-
-	def consume_temporary_binding_reactivation(
-		self,
-		identity: TerminalIdentity | None,
-		instance_id: str | None,
-	) -> bool:
-		"""Consume the one-shot modal focus allowance, including on a mismatched focus."""
-		pending = self._pendingBindingReactivation
-		self._pendingBindingReactivation = None
-		return pending is not None and pending == (identity, instance_id)
-
-	def has_temporary_binding_reactivation(
-		self,
-		identity: TerminalIdentity,
-		instance_id: str,
-	) -> bool:
-		"""Return whether the exact modal focus allowance is still pending."""
-		return self._pendingBindingReactivation == (identity, instance_id)
-
 	def _validate_temporary_binding_offer(
 		self,
 		identity: TerminalIdentity,
 		instance_id: str,
-		*,
-		allow_pending_modal_decision: bool = False,
 	) -> TemporaryBindingOffer:
 		focused = self._coordinator.gate.focused
 		selected = self._coordinator.instances.selected_for(identity)
-		authorized_modal_decision = allow_pending_modal_decision and self._pendingBindingDecision == (
-			identity,
-			instance_id,
-		)
-		if (
-			(focused != identity and not authorized_modal_decision)
-			or selected is None
-			or selected.identifier != instance_id
-		):
+		if focused != identity or selected is None or selected.identifier != instance_id:
 			return TemporaryBindingOffer(TemporaryBindingOfferKind.FOCUS_CHANGED)
 		if identity.frontend_kind != "windowsTerminal" or not identity.runtime_id:
 			return TemporaryBindingOffer(TemporaryBindingOfferKind.UNAVAILABLE)
@@ -1042,22 +990,11 @@ class SessionClaimService:
 		identity: TerminalIdentity,
 		instance_id: str,
 	) -> TemporaryBindingOffer:
-		"""Resolve an accepted offer without coupling it to focus-recovery timing."""
-		offer = self._validate_temporary_binding_offer(
-			identity,
-			instance_id,
-			allow_pending_modal_decision=True,
-		)
-		if self._pendingBindingDecision == (identity, instance_id):
-			self._pendingBindingDecision = None
+		"""Remember one still-focused terminal-to-instance association."""
+		offer = self._validate_temporary_binding_offer(identity, instance_id)
 		if offer.kind == TemporaryBindingOfferKind.OFFER:
 			self._coordinator.remembered_terminal_bindings.add(identity)
 		return offer
-
-	def decline_temporary_binding(self, identity: TerminalIdentity, instance_id: str) -> None:
-		"""Resolve a declined modal offer while leaving recovery fail-open."""
-		if self._pendingBindingDecision == (identity, instance_id):
-			self._pendingBindingDecision = None
 
 	def forget_temporary_binding(self, identity: TerminalIdentity) -> bool:
 		if identity not in self._coordinator.remembered_terminal_bindings:

@@ -47,10 +47,6 @@ def load_workflow_module():
 	addon_handler = types.ModuleType("addonHandler")
 	addon_handler.initTranslation = lambda: None
 	sys.modules["addonHandler"] = addon_handler
-	api_module = types.ModuleType("api")
-	api_module.getFocusObject = lambda: None
-	api_module.getDesktopObject = lambda: types.SimpleNamespace(objectWithFocus=lambda: None)
-	sys.modules["api"] = api_module
 	ui_module = types.ModuleType("ui")
 	ui_module.messages = []
 	ui_module.message = ui_module.messages.append
@@ -88,25 +84,8 @@ class _Scheduler:
 		return self.calls[-1]
 
 
-class _Instances:
-	def __init__(self) -> None:
-		self.selected = {}
-
-	def selected_for(self, identity):
-		return self.selected.get(identity)
-
-
 class _Coordinator:
 	def __init__(self) -> None:
-		self.gate = types.SimpleNamespace(
-			focused=None,
-			bound_terminal=None,
-			authenticated=False,
-			nvim_active=False,
-			disconnect=lambda: None,
-		)
-		self.instances = _Instances()
-		self.active_instance_id = None
 		self.foreground_confirmed = False
 		self.matches = True
 		self.discarded = []
@@ -136,37 +115,10 @@ class _SessionClaim:
 			request_id=0,
 		)
 		self.calls = []
-		self.remembered = False
-		self.reactivation = True
-
-	def _offer(self):
-		return types.SimpleNamespace(kind=self.offer_kind, instance=self.instance)
-
-	def arm_temporary_binding_reactivation(self, identity, instance_id):
-		self.calls.append(("arm", identity, instance_id))
-		return self._offer()
-
-	def prepare_temporary_binding_offer(self, identity, instance_id):
-		self.calls.append(("prepare", identity, instance_id))
-		return self._offer()
 
 	def remember_temporary_binding(self, identity, instance_id):
 		self.calls.append(("remember", identity, instance_id))
-		self.remembered = True
-		return self._offer()
-
-	def decline_temporary_binding(self, identity, instance_id):
-		self.calls.append(("decline", identity, instance_id))
-
-	def consume_temporary_binding_reactivation(self, identity, instance_id):
-		self.calls.append(("consume", identity, instance_id))
-		self.reactivation = False
-
-	def is_temporary_binding_remembered(self, identity):
-		return self.remembered
-
-	def has_temporary_binding_reactivation(self, identity, instance_id):
-		return self.reactivation
+		return types.SimpleNamespace(kind=self.offer_kind, instance=self.instance)
 
 	def activate_remembered_binding(self, identity, instance_id, *, focus_regained=False):
 		self.calls.append(("activate", identity, instance_id, focus_regained))
@@ -178,41 +130,17 @@ class _SessionClaim:
 
 
 class _TerminalFocus:
-	def __init__(self) -> None:
-		self.focused_app_module = object()
-		self.focused_adapter_token = object()
-		self.recover_result = False
-		self.recover_calls = []
-
 	@staticmethod
 	def identity_fields(identity):
 		return {"identity": identity}
 
-	@staticmethod
-	def identity(obj):
-		return getattr(obj, "identity", None)
 
-	def recover_after_modal(self, *args):
-		self.recover_calls.append(args)
-		return self.recover_result
-
-
-class _Dialogs:
-	def __init__(self) -> None:
-		self.calls = []
-
-	def confirm(self, **kwargs) -> None:
-		self.calls.append(kwargs)
-
-
-def make_workflow(*, prompt_answer=None, dispatch=None):
+def make_workflow(*, dispatch=None):
 	coordinator = _Coordinator()
 	session_claim = _SessionClaim()
 	terminal_focus = _TerminalFocus()
 	scheduler = _Scheduler()
 	diagnostics = _Diagnostics()
-	dialogs = _Dialogs()
-	saved_answers = []
 	dispatch_calls = []
 
 	def dispatch_control(client, kind, payload, *, on_result):
@@ -227,19 +155,13 @@ def make_workflow(*, prompt_answer=None, dispatch=None):
 		dispatch_control=dispatch_control,
 		scheduler=scheduler,
 		diagnostics=diagnostics,
-		dialogs=dialogs,
-		prompt_answer=lambda: prompt_answer,
-		remember_prompt_answer=saved_answers.append,
 	)
 	return types.SimpleNamespace(
 		workflow=workflow,
 		coordinator=coordinator,
 		session_claim=session_claim,
-		terminal_focus=terminal_focus,
 		scheduler=scheduler,
 		diagnostics=diagnostics,
-		dialogs=dialogs,
-		saved_answers=saved_answers,
 		dispatch_calls=dispatch_calls,
 	)
 
@@ -247,111 +169,59 @@ def make_workflow(*, prompt_answer=None, dispatch=None):
 class TemporaryBindingWorkflowTests(unittest.TestCase):
 	def setUp(self) -> None:
 		WORKFLOW_MODULE.ui.messages.clear()
-		WORKFLOW_MODULE.api.getFocusObject = lambda: None
-		WORKFLOW_MODULE.api.getDesktopObject = lambda: types.SimpleNamespace(objectWithFocus=lambda: None)
 
-	def test_dialog_decision_is_saved_then_revalidated_and_schedules_focus_recovery(self) -> None:
+	def test_successful_binding_is_remembered_immediately_without_scheduled_modal_work(self) -> None:
 		fixture = make_workflow()
-		fixture.workflow.offer_temporary_binding("terminal-1", "connection-1")
 
-		self.assertEqual([("arm", "terminal-1", "connection-1")], fixture.session_claim.calls)
-		self.assertEqual(1, len(fixture.dialogs.calls))
-		self.assertIn("Work", fixture.dialogs.calls[0]["message"])
-		fixture.dialogs.calls[0]["on_result"](True, True)
-
-		self.assertEqual([True], fixture.saved_answers)
-		self.assertIn(("remember", "terminal-1", "connection-1"), fixture.session_claim.calls)
-		self.assertEqual(1, len(WORKFLOW_MODULE.ui.messages))
-		self.assertEqual(50, fixture.scheduler.calls[0][0])
-		self.assertEqual("_recoverTemporaryBindingFocus", fixture.scheduler.calls[0][1].__name__)
-
-	def test_configured_decline_bypasses_dialog_and_does_not_arm_reactivation(self) -> None:
-		fixture = make_workflow(prompt_answer=False)
 		fixture.workflow.offer_temporary_binding("terminal-1", "connection-1")
 
 		self.assertEqual(
-			[
-				("prepare", "terminal-1", "connection-1"),
-				("decline", "terminal-1", "connection-1"),
-			],
+			[("remember", "terminal-1", "connection-1")],
 			fixture.session_claim.calls,
 		)
-		self.assertEqual([], fixture.dialogs.calls)
 		self.assertEqual([], fixture.scheduler.calls)
+		self.assertEqual(1, len(WORKFLOW_MODULE.ui.messages))
 		self.assertIn(
 			(
-				"temporaryTerminalBindingDeclined",
+				"temporaryTerminalBindingRemembered",
 				{
 					"instanceId": "connection-1",
+					"transportKind": "remoteSsh",
 					"terminal": {"identity": "terminal-1"},
 				},
 			),
 			fixture.diagnostics.entries,
 		)
 
-	def test_focus_recovery_waits_for_focus_then_uses_live_system_identity(self) -> None:
+	def test_changed_focus_cannot_be_remembered(self) -> None:
 		fixture = make_workflow()
-		app_module = fixture.terminal_focus.focused_app_module
-		adapter_token = fixture.terminal_focus.focused_adapter_token
-		fixture.workflow._recoverTemporaryBindingFocus(
-			"terminal-1",
-			"connection-1",
-			app_module,
-			adapter_token,
-			0,
-		)
-		self.assertEqual(150, fixture.scheduler.calls[-1][0])
+		fixture.session_claim.offer_kind = TemporaryBindingOfferKind.FOCUS_CHANGED
 
-		live_focus = types.SimpleNamespace(identity="terminal-1", appModule=app_module)
-		WORKFLOW_MODULE.api.getDesktopObject = lambda: types.SimpleNamespace(
-			objectWithFocus=lambda: live_focus
-		)
-		fixture.coordinator.gate.focused = "terminal-1"
-		fixture.coordinator.active_instance_id = "connection-1"
-		fixture.coordinator.instances.selected["terminal-1"] = fixture.session_claim.instance
-		requests = []
-		fixture.workflow.request_remembered_binding_state = lambda *args: requests.append(args)
-		fixture.workflow._recoverTemporaryBindingFocus(
-			"terminal-1",
-			"connection-1",
-			app_module,
-			adapter_token,
-			1,
-		)
+		fixture.workflow.offer_temporary_binding("terminal-1", "connection-1")
 
-		self.assertEqual([("terminal-1", "connection-1")], requests)
-		self.assertIn(("consume", "terminal-1", "connection-1"), fixture.session_claim.calls)
+		self.assertEqual([], WORKFLOW_MODULE.ui.messages)
 		self.assertIn(
 			(
-				"temporaryTerminalBindingFocusHandshakeRetried",
-				{
-					"instanceId": "connection-1",
-					"terminal": {"identity": "terminal-1"},
-				},
+				"temporaryTerminalBindingRememberIgnored",
+				{"instanceId": "connection-1", "reason": "focusChanged"},
 			),
 			fixture.diagnostics.entries,
 		)
 
-	def test_focus_recovery_never_rebinds_a_different_live_terminal(self) -> None:
+	def test_unsupported_terminal_cannot_be_remembered(self) -> None:
 		fixture = make_workflow()
-		app_module = fixture.terminal_focus.focused_app_module
-		other = types.SimpleNamespace(identity="terminal-2", appModule=app_module)
-		fixture.coordinator.instances.selected["terminal-2"] = types.SimpleNamespace(
-			identifier="connection-2"
-		)
-		WORKFLOW_MODULE.api.getDesktopObject = lambda: types.SimpleNamespace(objectWithFocus=lambda: other)
+		fixture.session_claim.offer_kind = TemporaryBindingOfferKind.UNAVAILABLE
 
-		fixture.workflow._recoverTemporaryBindingFocus(
-			"terminal-1",
-			"connection-1",
-			app_module,
-			fixture.terminal_focus.focused_adapter_token,
-			0,
-		)
+		fixture.workflow.offer_temporary_binding("terminal-1", "connection-1")
 
-		self.assertIn(("consume", "terminal-2", "connection-2"), fixture.session_claim.calls)
-		self.assertEqual([], fixture.terminal_focus.recover_calls)
-		self.assertEqual([], fixture.scheduler.calls)
+		self.assertEqual([], WORKFLOW_MODULE.ui.messages)
+		self.assertIn(
+			(
+				"temporaryTerminalBindingUnavailable",
+				{"terminal": {"identity": "terminal-1"}},
+			),
+			fixture.diagnostics.entries,
+		)
 
 	def test_failed_focus_context_dispatch_is_discarded_and_retried(self) -> None:
 		fixture = make_workflow(dispatch=lambda on_result: on_result(False, "QueueUnavailable"))

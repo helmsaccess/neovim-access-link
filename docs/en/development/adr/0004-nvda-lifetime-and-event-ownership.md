@@ -24,7 +24,7 @@ one runtime through `create_runtime()` and closes it on termination.
 `composition.py` constructs shared services transactionally; `AddonRuntime`
 registers settings and the menu, publishes the terminal facade only after
 complete initialization, and shuts all owners down in a defined order.
-Connection workflow, temporary-binding recovery, terminal actions, event
+Connection workflow, runtime maintenance of temporary bindings, terminal actions, event
 delivery, and domain assignment, gate, protocol, and presentation state reside
 in ordinary services that do not inherit from `GlobalPlugin`.
 

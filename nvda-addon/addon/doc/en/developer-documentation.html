@@ -1491,9 +1491,9 @@ runtime state</td>
 </tr>
 <tr class="even">
 <td><code>TerminalFocusService</code></td>
-<td>Concrete terminal identity, focus generation, AppModule/adapter
-correlation, focus completion, and conservative disposal of closed
-controls</td>
+<td>Concrete terminal identity, conservative normalization of proven
+UIA-provider aliases, focus generation, AppModule/adapter correlation,
+focus completion, and disposal of closed controls</td>
 <td>A Global Plugin instance, network I/O, application events, or
 <code>nextHandler</code></td>
 </tr>
@@ -1508,15 +1508,15 @@ connection runtime copies</td>
 <td><code>ConnectionWorkflow</code></td>
 <td>Activation, discovery, selection, start, disconnect, all-connection
 retirement, and session passwords through an injected dialog port</td>
-<td>Transport I/O, canonical editor state, temporary-binding recovery,
-or application events</td>
+<td>Transport I/O, canonical editor state, runtime maintenance of
+temporary bindings, or application events</td>
 </tr>
 <tr class="odd">
 <td><code>TemporaryBindingWorkflow</code></td>
-<td>Confirmation, focus recovery, and correlated state requests for
-temporarily remembered terminal bindings</td>
-<td>Discovery, connection start, claim inventory, or canonical state of
-its own</td>
+<td>Automatic runtime retention of successful terminal bindings and
+correlated state requests after focus changes</td>
+<td>Dialogs, profile settings, discovery, connection start, claim
+inventory, or canonical state of its own</td>
 </tr>
 <tr class="even">
 <td><code>TerminalActions</code></td>
@@ -1707,7 +1707,12 @@ directly to <code>TerminalFocusService</code>. Identity construction,
 UIA lifetime validation, the main-thread scheduler, and a few domain
 callbacks are injected explicitly. A closed, unfocused control is
 removed only after two conclusive negative checks; an uncertain UIA
-failure is not treated as closure.</p>
+failure is not treated as closure. When Windows Terminal changes only
+the provider-specific runtime-ID form, the service normalizes it to the
+known identity only if process, window handle, allowed WT class, and the
+stable two pane components match and NVDA&#39;s UIA client confirms both
+live elements are the same control. Any uncertainty keeps the identities
+separate.</p>
 <p><code>TerminalIntegrationService</code> also authorizes and cancels
 physical F12 claims directly through <code>SessionClaimService</code>.
 That service owns the mutable claim and inventory state, local/SSH
@@ -1716,20 +1721,13 @@ inventory workers, and candidate evaluation.
 connection start, and disconnect. It joins immutable service results to
 NVDA&#39;s main-thread, dialog, and message boundaries and routes controls
 only through the dispatcher; it keeps no writable copy of claim state.
-<code>TemporaryBindingWorkflow</code> separately owns confirmation,
-focus recovery, and correlated state requests for remembered bindings.
-Focus loss caused by the optional modal remember question is bridged by
-exactly one terminal- and instance-correlated reactivation. Separate
-dialog-decision authorization remains valid until the answer, even if
-Windows Terminal consumes that focus reactivation while the question is
-still open. A different terminal focus still discards the reactivation,
-but changes neither the explicit answer nor its original
-terminal/instance correlation. If Windows Terminal emits no new focus
-event after the question closes, a short bounded main-thread sequence
-checks NVDA&#39;s current focus and starts the normal focus-context
-handshake only for the same control, AppModule, adapter token, and
-instance selection. A different terminal focus discards the
-reactivation; missing or uncertain focus keeps native output open.</p>
+<code>TemporaryBindingWorkflow</code> separately remembers a successful,
+still-exactly-focused terminal/instance association automatically in
+memory and owns correlated state requests after a later focus switch. It
+opens no dialog and stores no profile decision. Only the normal
+focus-context handshake, revalidated against control, instance, and
+request ID, reactivates the binding; a different or uncertain focus
+keeps native output open.</p>
 <p>The <code>EditorSessionController</code> uses the active runtime
 managed by <code>ConnectionCoordinator</code> but is solely responsible
 for its domain mutation. It owns state and mode transitions, transport
@@ -2661,10 +2659,10 @@ work.</p>
 2026.1.1, Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim
 0.10.1 and 0.12.3 on Rocky Linux 10.2 through OpenSSH for Windows 9.5p2.
 Local Windows Neovim, Linux Neovim over SSH, and tmux inside an SSH
-session are covered. F12 assignment, the remember question, focus
-switching, and native typing echo in other Windows Terminal windows were
-additionally exercised with NVDA 2026.2beta10; the manifest therefore
-names NVDA 2026.2 as last tested. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
+session are covered. F12 assignment, focus switching, and native typing
+echo in other Windows Terminal windows were additionally exercised with
+NVDA 2026.2beta10; the manifest therefore names NVDA 2026.2 as last
+tested. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
 for complete platform and version boundaries.</p>
 </section>
 <section id="docs__en__development__current-statusmd__implemented-end-to-end-path" class="level3">
@@ -2722,16 +2720,13 @@ discovery.</li>
 <li>A physical F12 press assigns the running Neovim instance to the
 exact focused Windows Terminal control. Multiple windows, tabs, and
 panes retain independent local, remote, or ordinary shell sessions.</li>
-<li>The following question about a temporarily remembered tab
-association gives <code>Yes</code> the default focus. A checkbox can
-store the selected answer in the active NVDA profile; the three-state
-setting under <code>Connections</code> applies <code>Yes</code> or
-<code>No</code> automatically or resets the behavior to asking again.
-The tab association itself remains runtime-only. Dialog-decision
-authorization is separate from the one-shot focus recovery: multiple
-focus changes while the question is open no longer lose a later
-<code>Yes</code>. Native terminal output, including typing echo, remains
-fail-open until the matching foreground context is confirmed again.</li>
+<li>A successful F12 association is remembered automatically without a
+question for the concrete control until NVDA or Windows Terminal exits.
+It remains runtime-only; there is no profile decision or related
+setting. After a focus switch, the running session activates only after
+the foreground context is correlated and confirmed again. Native
+terminal output, including typing echo, remains fail-open until
+then.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
 focus identity restore NVDA&#39;s native terminal behavior fail-open. A new
@@ -2750,13 +2745,14 @@ with an ended remote instance and repeated focus changes.</li>
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
 runtime. The Global Plugin now only creates and closes the
-transactionally composed runtime. Connection workflow, temporary-binding
-recovery, terminal actions, and event delivery have dedicated owners;
-the AppModule and Braille adapter see only their static ports. Outbound
-controls use a bounded queue and remain ordered per client, while a
-fixed worker pool isolates independent clients. A second fixed pool owns
-every already-detached client until it is stopped. Disabling and
-teardown therefore do not wait for transport I/O. <a href="#docs__en__development__architecturemd__architecture">Architecture</a>
+transactionally composed runtime. Connection workflow, runtime
+maintenance of temporary bindings, terminal actions, and event delivery
+have dedicated owners; the AppModule and Braille adapter see only their
+static ports. Outbound controls use a bounded queue and remain ordered
+per client, while a fixed worker pool isolates independent clients. A
+second fixed pool owns every already-detached client until it is
+stopped. Disabling and teardown therefore do not wait for transport I/O.
+<a href="#docs__en__development__architecturemd__architecture">Architecture</a>
 describes the current boundary; the dated Appendix C only preserves the
 review basis at that time.</li>
 </ul>
@@ -3374,12 +3370,18 @@ To recognize closed controls, it checks the same element and then
 follows NVDA&#39;s UIA pattern with a <code>RuntimeId</code> property
 condition within the still-validated window handle&#39;s subtree. Values are
 used only after checking the Windows Terminal AppModule, process, and
-allowed UIA class.</p>
+allowed UIA class. Windows Terminal can report the same pane through two
+provider-specific runtime-ID forms. Runtime-only normalization is
+permitted only when process, window handle, allowed class, and the final
+two pane components match and NVDA&#39;s UIA client confirms both live
+elements as the same control through <code>compareElements</code>.
+<code>compareElements</code> alone is explicitly not identity proof.</p>
 <ul>
 <li>Risk: the UIA wrapper&#39;s shape or lifetime can change.</li>
 <li>Containment: missing or invalid values disable correlation and
-suppression. COM/UIA errors are uncertain and do not trigger cleanup.
-Window titles and terminal text are never substitute heuristics.</li>
+suppression. COM/UIA errors are uncertain and do not trigger cleanup. An
+unconfirmed alias check keeps both identities separate. Window titles
+and terminal text are never substitute heuristics.</li>
 <li>Replacement: prefer a future public, stable terminal-control
 identifier and remove the runtime-ID dependency.</li>
 </ul>
@@ -3567,9 +3569,9 @@ closes it on termination. <code>composition.py</code> constructs shared
 services transactionally; <code>AddonRuntime</code> registers settings
 and the menu, publishes the terminal facade only after complete
 initialization, and shuts all owners down in a defined order. Connection
-workflow, temporary-binding recovery, terminal actions, event delivery,
-and domain assignment, gate, protocol, and presentation state reside in
-ordinary services that do not inherit from
+workflow, runtime maintenance of temporary bindings, terminal actions,
+event delivery, and domain assignment, gate, protocol, and presentation
+state reside in ordinary services that do not inherit from
 <code>GlobalPlugin</code>.</p>
 <p>The Windows Terminal AppModule owns:</p>
 <ul>
@@ -3864,7 +3866,11 @@ NVDA&#39;s native terminal handling.</p>
 the currently focused <code>TerminalIdentity</code>. Focus object,
 registered AppModule instance, complete control identity, and gate are
 checked before starting and again on NVDA&#39;s main thread. Focus change or
-activity from another Neovim instance cannot move a binding.</p>
+activity from another Neovim instance cannot move a binding.
+Provider-specific runtime-ID aliases are merged only when process,
+window handle, WT class, pane-tail components, and positive UIA element
+equality all agree. An error or mismatch keeps the identities separate
+and cannot authorize suppression.</p>
 <p>Configurable commands belong to the Windows Terminal AppModule. Even
 if NVDA&#39;s user gesture map displays a saved assignment outside the
 application, dispatch requires the same concrete AppModule and control
@@ -4198,7 +4204,11 @@ their claim sequences as a baseline. After physical F12, exactly one
 fresh increase may bind the focused terminal identity and start its
 typed local or SSH connection. No match produces no guessed connection;
 multiple matches require explicit selection. Manual target selection
-narrows the target but still requires a fresh physical F12 claim.</p>
+narrows the target but still requires a fresh physical F12 claim. The
+bound terminal identity remains exact. Two provider-specific runtime-ID
+forms count as the same live Windows Terminal control only when all
+process, window, class, pane, and UIA-element checks defined by <a href="#docs__en__development__adr__0002-nvda-api-boundariesmd__adr-0002-nvda-api-boundaries-for-the-first-beta">ADR-0002</a>
+pass together.</p>
 </section>
 <section id="docs__en__development__protocolmd__event-direction" class="level3">
 <h3>Event direction</h3>
@@ -4764,18 +4774,11 @@ endpoint remains on <code>127.0.0.1</code>.</p>
 script. With support enabled, one F12 press authorizes exactly one
 attempt for the focused Windows Terminal control. Focus object, concrete
 AppModule instance, complete UIA identity, gate, and fresh session claim
-must agree. Without a match, no binding, dialog, or suppression is
-created.</p>
-<p><code>temporaryBindingPrompt</code> controls the following question
-about the runtime-only remembered tab binding. <code>0</code> asks every
-time and is the default, <code>1</code> applies <code>Yes</code> without
-a dialog, and <code>2</code> applies <code>No</code> without a dialog.
-<code>Yes</code> has the default focus in the dialog. Its checkbox
-writes the explicitly selected answer immediately and exclusively as
-this value in the active NVDA configuration profile; closing the dialog
-stores nothing. The three-state choice under <code>Connections</code>
-can change the value or reset it to <code>0</code>. A profile switch
-reloads it with the other native add-on settings.</p>
+must agree. Without a match, no binding or suppression is created. A
+successful assignment is remembered without a question, only in memory
+for the concrete control; there is no profile setting for it. An older
+<code>temporaryBindingPrompt</code> profile value is ignored while
+loading.</p>
 <p>The assignable “Select a server and connect this terminal to a new
 Neovim session” command opens profile selection and then requires F12 in
 the desired session. Runtime bindings use UIA runtime IDs, live only in
@@ -6149,6 +6152,19 @@ initially disconnected state, and a genuine later reconnect. The
 practical two-pane run under NVDA 2026.2beta10 exposed the defect; the
 corrected build still needs manual repetition. This installable state is
 development build 2.</li>
+<li>Removes the error-prone question about remembering a new F12
+association, including its checkbox, profile value, and setting. A
+successful, still-exactly-focused association is now remembered
+automatically only for the running NVDA/Windows Terminal session; the
+existing forget command still removes it early. The same WT pane also
+remains associated when its UIA provider changes between the runtime-ID
+forms observed under NVDA 2026.2beta10. This normalization jointly
+requires the same process, window handle, allowed class, and pane-tail
+components plus NVDA&#39;s positive UIA element equality; different panes
+remain separate. Direct and package regression tests cover automatic
+retention, focus races, alias changes, and distinct panes. The corrected
+build still needs manual repetition. This installable state is
+development build 3.</li>
 <li>Hardens protocol boundaries after the complete unit-test review.
 Boolean and negative sequences or timestamps are rejected in the message
 envelope. A new transport session starts exclusively with

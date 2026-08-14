@@ -18,8 +18,8 @@ The main practical path has been exercised with Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim 0.10.1 and 0.12.3 on
 Rocky Linux 10.2 through OpenSSH for Windows 9.5p2. Local Windows Neovim, Linux
 Neovim over SSH, and tmux inside an SSH session are covered. F12 assignment,
-the remember question, focus switching, and native typing echo in other Windows
-Terminal windows were additionally exercised with NVDA 2026.2beta10; the
+focus switching, and native typing echo in other Windows Terminal windows were
+additionally exercised with NVDA 2026.2beta10; the
 manifest therefore names NVDA 2026.2 as last tested. See
 [compatibility](compatibility.md) for complete platform and version boundaries.
 
@@ -72,15 +72,12 @@ manifest therefore names NVDA 2026.2 as last tested. See
 - A physical F12 press assigns the running Neovim instance to the exact focused
   Windows Terminal control. Multiple windows, tabs, and panes retain
   independent local, remote, or ordinary shell sessions.
-- The following question about a temporarily remembered tab association gives
-  `Yes` the default focus. A checkbox can store the selected answer in the
-  active NVDA profile; the three-state setting under `Connections` applies
-  `Yes` or `No` automatically or resets the behavior to asking again. The tab
-  association itself remains runtime-only. Dialog-decision authorization is
-  separate from the one-shot focus recovery: multiple focus changes while the
-  question is open no longer lose a later `Yes`. Native terminal output,
-  including typing echo, remains fail-open until the matching foreground
-  context is confirmed again.
+- A successful F12 association is remembered automatically without a question
+  for the concrete control until NVDA or Windows Terminal exits. It remains
+  runtime-only; there is no profile decision or related setting. After a focus
+  switch, the running session activates only after the foreground context is
+  correlated and confirmed again. Native terminal output, including typing
+  echo, remains fail-open until then.
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.
@@ -99,8 +96,9 @@ manifest therefore names NVDA 2026.2 as last tested. See
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
   presentation, and runtime. The Global Plugin now only creates and closes the
-  transactionally composed runtime. Connection workflow, temporary-binding
-  recovery, terminal actions, and event delivery have dedicated owners; the
+  transactionally composed runtime. Connection workflow, runtime maintenance
+  of temporary bindings, terminal actions, and event delivery have dedicated
+  owners; the
   AppModule and Braille adapter see only their static ports. Outbound controls
   use a bounded queue and remain ordered per client, while a fixed worker pool
   isolates independent clients. A second fixed pool owns every already-detached

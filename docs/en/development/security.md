@@ -76,6 +76,10 @@ currently focused `TerminalIdentity`. Focus object, registered AppModule
 instance, complete control identity, and gate are checked before starting and
 again on NVDA's main thread. Focus change or activity from another Neovim
 instance cannot move a binding.
+Provider-specific runtime-ID aliases are merged only when process, window
+handle, WT class, pane-tail components, and positive UIA element equality all
+agree. An error or mismatch keeps the identities separate and cannot authorize
+suppression.
 
 Configurable commands belong to the Windows Terminal AppModule. Even if
 NVDA's user gesture map displays a saved assignment outside the application,
