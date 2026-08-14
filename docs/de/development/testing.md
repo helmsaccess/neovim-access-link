@@ -44,6 +44,11 @@ vollständige Gruppe einschließlich gestarteter Neovim- und Hilfsprozesse
 beendet und der Job als fehlgeschlagen gemeldet.
 Die reale TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
 eine Sekunde und 8 MiB je physischem Tastenschritt.
+Die kompakte Ausgabe nennt für jeden Job und in der Gesamtsumme auch
+übersprungene Fälle und Python-Warnungen. Für jeden Fund folgt eine `SKIP`-
+oder `WARN`-Zeile mit Job und Grund beziehungsweise Warntext; ein grüner Lauf
+mit `0 skipped, 0 warnings` belegt damit ausdrücklich, dass nichts verborgen
+übersprungen oder gewarnt wurde.
 
 ## Empfohlener Ablauf
 
@@ -104,6 +109,23 @@ ressourcenbesitzenden Konstruktionsstufe aus. Damit prüfen diese Tests die
 Nebenläufigkeitsverträge statt nur Quelltextfragmente. Die zweite Ruff-Zeile
 lintet alle Python-Tests ausdrücklich; der Formatcheck bleibt auf den im
 Projekt konfigurierten NVDA-Produktcode begrenzt.
+
+Die fachlichen Eigentümer `AddonRuntime`, `ManagedClientFactory`,
+`TemporaryBindingWorkflow`, `EventDelivery`, `TerminalActions` und
+`ConnectionWorkflow` besitzen direkte Tests mit kleinen injizierten Attrappen.
+Pakettests bleiben für echte Komposition, NVDA-Registrierung, Persistenz und
+vollständige Fokus-/Disconnect-Szenarien zuständig. Die Bridge folgt derselben
+Grenze: mockisolierte Verträge stehen in `test_nvim_bridge_mock.py`, reale
+TUI-/Socket-Szenarien in `test_nvim_bridge_socket.py`. Der Runner entdeckt und
+shardet deren Methoden aus der jeweiligen Datei, statt eine zweite manuelle
+Namensliste zu pflegen.
+
+`test_contract_mutations.py` prüft vier besonders kritische Verträge gegen
+temporäre, gezielt veränderte Protokollpakete. Die Suite muss das Entfernen der
+Bool-Abgrenzung, eine falsche exakte Größenobergrenze, eine aufgeweichte
+Feldmenge und einen gelockerten initialen Sequenzvergleich jeweils erkennen.
+Das ist bewusst eine kleine deterministische Auswahl und kein allgemeines
+Mutationstest-Framework oder Coverage-Prozentwert.
 
 ## Spezialisierte Vertragsprüfungen
 

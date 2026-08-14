@@ -79,6 +79,15 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Negativtests prüfen außerdem MessagePack-Fragmentierung, Textspalten,
   Cursor-Routing und das Entfernen flüchtiger Ergebnisfelder. Dieser erste
   installierbare Stand des Test-Review-Zweigs ist Entwicklungsbuild 1.
+- Schließt die strukturellen Punkte der Unit-Test-Nachprüfung. Direkte Tests
+  prüfen die extrahierten NVDA-Runtime-Eigentümer ohne vollständige
+  `GlobalPlugin`-Konstruktion; redundante Paketfälle wurden entfernt, während
+  echte Kompositions-, Persistenz- und Fokusverträge erhalten bleiben.
+  Architekturregeln verwenden Syntaxbaum-Invarianten statt fragiler
+  Quelltexttreffer, Nebenläufigkeitstests Ereignisse statt kurzer
+  Wandzeitgrenzen. Mock- und echte TUI-Bridge-Tests sind dateibasiert getrennt,
+  der Runner zeigt Skip-Gründe und Warnungen, und vier gezielte Mutationen
+  belegen kritische Protokollverträge.
 
 ## 0.98.0
 

@@ -43,6 +43,10 @@ including Neovim and helper processes it started, is terminated and the job is
 reported as failed. The real-TUI send
 helper additionally bounds pseudo-terminal draining to one second and 8 MiB
 per physical-key step.
+The compact output also reports skipped cases and Python warnings per job and
+in the overall total. Every observation is followed by a `SKIP` or `WARN` line
+with its job and reason or warning text; a passing run with
+`0 skipped, 0 warnings` therefore explicitly proves that neither was hidden.
 
 ## Recommended workflow
 
@@ -101,6 +105,23 @@ callbacks and failures at every resource-owning construction stage. These
 tests therefore exercise concurrency contracts rather than only source-text
 fragments. The second Ruff command explicitly lints every Python test; format
 checking remains limited to the configured NVDA product code.
+
+The domain owners `AddonRuntime`, `ManagedClientFactory`,
+`TemporaryBindingWorkflow`, `EventDelivery`, `TerminalActions`, and
+`ConnectionWorkflow` have direct tests with small injected doubles. Package
+tests remain responsible for real composition, NVDA registration,
+persistence, and complete focus/disconnect scenarios. The bridge follows the
+same boundary: mock-isolated contracts live in `test_nvim_bridge_mock.py`, and
+real TUI/socket scenarios in `test_nvim_bridge_socket.py`. The runner discovers
+and shards methods from each file instead of maintaining a second manual name
+list.
+
+`test_contract_mutations.py` checks four particularly critical contracts
+against temporary, deliberately modified protocol packages. The suite must
+detect removal of the Boolean distinction, an incorrect exact size boundary,
+a relaxed field set, and a loosened initial sequence comparison. This is a
+small deterministic selection by design, not a general mutation framework or
+a coverage-percentage target.
 
 ## Specialized contract checks
 

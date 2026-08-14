@@ -218,6 +218,13 @@ Real-TUI tests use one shared send helper to drain a time- and byte-bounded
 amount of pending PTY output before every physical-key step. Every isolated
 runner job also has a fixed timeout whose failure terminates its complete
 process group, including Neovim and helper processes it started.
+The completed unit-test review exercises the extracted NVDA runtime owners
+directly while complete composition contracts remain in the reduced package
+fixture. Mock-isolated bridge contracts and real TUI/socket scenarios are
+separate, file-classified suites. Four targeted protocol mutations must fail
+at the Boolean/integer distinction, exact field set, size boundary, and
+session-sequence rule. The runner also reports skip reasons and Python
+warnings for successful jobs.
 Preflight and test helpers use one bounded 60-second wait for real providers.
 This permits cold Windows and network-drive starts without waiting forever for
 a stalled provider.

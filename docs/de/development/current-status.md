@@ -234,6 +234,13 @@ Datenmenge begrenzte ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt.
 Jeder isolierte Runner-Job besitzt zusätzlich ein festes Zeitlimit; dessen
 Abbruch beendet die gesamte eigene Prozessgruppe einschließlich gestarteter
 Neovim- und Hilfsprozesse.
+Die abgeschlossene Unit-Test-Nachprüfung prüft die extrahierten NVDA-Runtime-
+Eigentümer direkt, während vollständige Kompositionsverträge in der verkleinerten
+Paketfixture verbleiben. Mockisolierte Bridge-Verträge und echte TUI-/Socket-
+Szenarien sind getrennte, dateibasiert klassifizierte Suiten. Vier gezielte
+Protokollmutationen müssen an Bool-/Integer-Grenze, exakter Feldmenge,
+Größenobergrenze und Sitzungssequenz scheitern. Der Runner weist außerdem
+Skip-Gründe und Python-Warnungen auch bei erfolgreichen Jobs aus.
 Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
 begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.

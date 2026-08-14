@@ -73,6 +73,14 @@ test-build entries through August 5, 2026.
   fragmentation, text columns, cursor routing, and removal of transient result
   fields. This first installable state on the test-review branch is development
   build 1.
+- Completes the structural actions from the unit-test review. Direct tests
+  exercise the extracted NVDA runtime owners without constructing the complete
+  `GlobalPlugin`; redundant package cases were removed while real composition,
+  persistence, and focus contracts remain. Architecture rules use syntax-tree
+  invariants instead of fragile source-text matches, and concurrency tests use
+  events instead of short wall-time thresholds. Mock and real-TUI bridge tests
+  are separated by file, the runner reports skip reasons and warnings, and
+  four targeted mutations provide evidence for critical protocol contracts.
 
 ## 0.98.0
 

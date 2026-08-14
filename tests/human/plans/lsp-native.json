@@ -90,7 +90,7 @@
       "manualReasons": ["speechPerception", "latencyUsability"],
       "requires": [],
       "automatedEvidence": [
-        "bridge/python/tests/test_nvim_bridge.py",
+        "bridge/python/tests/test_nvim_bridge_socket.py",
         "neovim-plugin/tests/native_operations_lsp_integration_spec.lua",
         "neovim-plugin/tests/human_test_config_spec.lua",
         "nvda-addon/tests/test_speech.py"

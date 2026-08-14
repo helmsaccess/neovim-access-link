@@ -9,21 +9,42 @@ ADDON_ROOT = pathlib.Path(__file__).parents[1] / "addon"
 PLUGIN_ROOT = ADDON_ROOT / "globalPlugins" / "NeovimAccessLink"
 
 
+def parse_python(path: pathlib.Path) -> ast.Module:
+	return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+
+
 class AddonArchitectureTests(unittest.TestCase):
 	def test_global_plugin_is_only_a_composition_lifetime_adapter(self) -> None:
-		source = (PLUGIN_ROOT / "__init__.py").read_text(encoding="utf-8")
-		tree = ast.parse(source)
+		tree = parse_python(PLUGIN_ROOT / "__init__.py")
 		plugin = next(
 			node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "GlobalPlugin"
 		)
 		methods = [node.name for node in plugin.body if isinstance(node, ast.FunctionDef)]
 		self.assertEqual(["__init__", "terminate"], methods)
-		self.assertIn("self._runtime = create_runtime()", source)
+		runtime_assignments = [
+			node
+			for node in ast.walk(plugin)
+			if isinstance(node, ast.Assign)
+			and any(
+				isinstance(target, ast.Attribute)
+				and isinstance(target.value, ast.Name)
+				and target.value.id == "self"
+				and target.attr == "_runtime"
+				for target in node.targets
+			)
+		]
+		self.assertEqual(1, len(runtime_assignments))
+		factory_call = runtime_assignments[0].value
+		self.assertIsInstance(factory_call, ast.Call)
+		self.assertIsInstance(factory_call.func, ast.Name)
+		self.assertEqual("create_runtime", factory_call.func.id)
+		self.assertEqual([], factory_call.args)
+		self.assertEqual([], factory_call.keywords)
 
 	def test_transport_controls_have_exactly_one_production_gateway(self) -> None:
 		owners = []
 		for path in PLUGIN_ROOT.rglob("*.py"):
-			tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+			tree = parse_python(path)
 			for node in ast.walk(tree):
 				if (
 					isinstance(node, ast.Call)
@@ -37,7 +58,7 @@ class AddonArchitectureTests(unittest.TestCase):
 		owners = []
 		core_root = pathlib.Path(__file__).parents[1] / "core" / "nvim_nvda_core"
 		for path in (*PLUGIN_ROOT.rglob("*.py"), *core_root.rglob("*.py")):
-			tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+			tree = parse_python(path)
 			for node in ast.walk(tree):
 				if (
 					isinstance(node, ast.Call)
@@ -52,7 +73,7 @@ class AddonArchitectureTests(unittest.TestCase):
 	def test_control_dispatcher_shutdown_has_one_lifetime_owner(self) -> None:
 		owners = []
 		for path in PLUGIN_ROOT.rglob("*.py"):
-			tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+			tree = parse_python(path)
 			for node in ast.walk(tree):
 				if (
 					isinstance(node, ast.Attribute)
@@ -64,8 +85,7 @@ class AddonArchitectureTests(unittest.TestCase):
 		self.assertEqual(["addon_runtime.py"], owners)
 
 	def test_app_module_uses_only_the_public_adapter_module(self) -> None:
-		source = (ADDON_ROOT / "appModules" / "windowsterminal.py").read_text(encoding="utf-8")
-		tree = ast.parse(source)
+		tree = parse_python(ADDON_ROOT / "appModules" / "windowsterminal.py")
 		imports = [node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))]
 		plugin_imports = [
 			node
@@ -77,24 +97,41 @@ class AddonArchitectureTests(unittest.TestCase):
 
 	def test_deprecated_modal_helper_and_legacy_stop_all_are_absent(self) -> None:
 		core_root = pathlib.Path(__file__).parents[1] / "core" / "nvim_nvda_core"
-		combined = "\n".join(
-			path.read_text(encoding="utf-8")
-			for root in (PLUGIN_ROOT, core_root)
-			for path in root.rglob("*.py")
-		)
-		self.assertNotIn("runScriptModalDialog", combined)
-		self.assertNotIn("stop_all", combined)
+		forbidden_references = []
+		paths = (path for root in (PLUGIN_ROOT, core_root) for path in root.rglob("*.py"))
+		for path in paths:
+			for node in ast.walk(parse_python(path)):
+				if isinstance(node, ast.Name) and node.id in {"runScriptModalDialog", "stop_all"}:
+					forbidden_references.append((path.name, node.id))
+				if isinstance(node, ast.Attribute) and node.attr in {
+					"runScriptModalDialog",
+					"stop_all",
+				}:
+					forbidden_references.append((path.name, node.attr))
+		self.assertEqual([], forbidden_references)
 
 	def test_connection_dialogs_use_nvda_modal_lifetime_tracking(self) -> None:
-		source = (PLUGIN_ROOT / "connection_dialogs.py").read_text(encoding="utf-8")
-		self.assertIn("from gui.message import displayDialogAsModal", source)
-		self.assertNotIn(".ShowModal(", source)
+		tree = parse_python(PLUGIN_ROOT / "connection_dialogs.py")
+		modal_imports = [
+			alias.name
+			for node in ast.walk(tree)
+			if isinstance(node, ast.ImportFrom) and node.module == "gui.message"
+			for alias in node.names
+		]
+		self.assertEqual(["displayDialogAsModal"], modal_imports)
+		calls = [node.func for node in ast.walk(tree) if isinstance(node, ast.Call)]
+		self.assertTrue(
+			any(
+				isinstance(function, ast.Name) and function.id == "displayDialogAsModal" for function in calls
+			)
+		)
+		self.assertFalse(
+			any(isinstance(function, ast.Attribute) and function.attr == "ShowModal" for function in calls)
+		)
 
 	def test_temporary_binding_state_machine_has_one_dedicated_owner(self) -> None:
-		connection_tree = ast.parse(
-			(PLUGIN_ROOT / "connection_workflow.py").read_text(encoding="utf-8")
-		)
-		binding_tree = ast.parse((PLUGIN_ROOT / "temporary_binding.py").read_text(encoding="utf-8"))
+		connection_tree = parse_python(PLUGIN_ROOT / "connection_workflow.py")
+		binding_tree = parse_python(PLUGIN_ROOT / "temporary_binding.py")
 		connection_class = next(
 			node
 			for node in connection_tree.body
@@ -117,32 +154,43 @@ class AddonArchitectureTests(unittest.TestCase):
 		self.assertTrue(owned_methods <= binding_methods)
 		self.assertTrue(owned_methods.isdisjoint(connection_methods))
 
-	def test_addon_runtime_delegates_connection_retirement_to_the_workflow(self) -> None:
-		runtime_source = (PLUGIN_ROOT / "addon_runtime.py").read_text(encoding="utf-8")
-		workflow_source = (PLUGIN_ROOT / "connection_workflow.py").read_text(encoding="utf-8")
-		self.assertNotIn(".detach(", runtime_source)
-		self.assertIn('self._run_close_step("connections", self._stopConnections)', runtime_source)
-		self.assertIn("def stop_connections(self):", workflow_source)
-
 	def test_ui_worker_results_return_through_the_runtime_scheduler(self) -> None:
-		source = (PLUGIN_ROOT / "nvda_ui.py").read_text(encoding="utf-8")
-		tree = ast.parse(source)
-		imports = {
-			node.names[0].name for node in tree.body if isinstance(node, ast.Import) and len(node.names) == 1
-		}
+		tree = parse_python(PLUGIN_ROOT / "nvda_ui.py")
+		imports = {alias.name for node in tree.body if isinstance(node, ast.Import) for alias in node.names}
+		imports.update(node.module for node in tree.body if isinstance(node, ast.ImportFrom) and node.module)
 		self.assertNotIn("queueHandler", imports)
-		self.assertIn("self._queueMainThread", source)
+		self.assertTrue(
+			any(
+				isinstance(node, ast.Call)
+				and isinstance(node.func, ast.Attribute)
+				and isinstance(node.func.value, ast.Name)
+				and node.func.value.id == "self"
+				and node.func.attr == "_queueMainThread"
+				for node in ast.walk(tree)
+			)
+		)
 
 	def test_braille_adapter_uses_a_static_consumer_port(self) -> None:
-		source = (PLUGIN_ROOT / "nvda_braille.py").read_text(encoding="utf-8")
-		self.assertIn("from .adapter_ports import BrailleAdapterPort", source)
-		self.assertIn("def _get_braille_adapter() -> BrailleAdapterPort | None", source)
+		tree = parse_python(PLUGIN_ROOT / "nvda_braille.py")
+		port_imports = [
+			alias.name
+			for node in tree.body
+			if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module == "adapter_ports"
+			for alias in node.names
+		]
+		self.assertIn("BrailleAdapterPort", port_imports)
+		adapter_function = next(
+			node
+			for node in tree.body
+			if isinstance(node, ast.FunctionDef) and node.name == "_get_braille_adapter"
+		)
+		self.assertEqual("BrailleAdapterPort | None", ast.unparse(adapter_function.returns))
 
 	def test_local_plugin_import_graph_is_acyclic(self) -> None:
 		paths = {path.stem: path for path in PLUGIN_ROOT.glob("*.py")}
 		edges = {name: set() for name in paths}
 		for name, path in paths.items():
-			tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+			tree = parse_python(path)
 			for node in ast.walk(tree):
 				if isinstance(node, ast.ImportFrom) and node.level and node.module:
 					target = node.module.split(".", 1)[0]

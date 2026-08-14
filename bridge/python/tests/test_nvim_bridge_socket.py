@@ -15,559 +15,10 @@ import pexpect
 from nvim_nvda_bridge import Bridge
 from nvim_nvda_protocol import LocalTcpClient
 
-
-class RecordingTransport:
-	"""Record semantic bridge output without reintroducing the removed TCP protocol."""
-
-	def __init__(self) -> None:
-		self.events: list[dict] = []
-		self.condition = threading.Condition()
-
-	def start(self) -> None:
-		pass
-
-	def stop(self) -> None:
-		pass
-
-	def publish(self, event_type: str, payload: dict) -> bool:
-		with self.condition:
-			self.events.append({"type": event_type, "payload": payload})
-			self.condition.notify_all()
-		return True
+from nvim_bridge_test_support import RecordingTransport, drain_tui_output
 
 
-class NvimBridgeTests(unittest.TestCase):
-	def test_tui_output_drain_is_bounded(self) -> None:
-		class ContinuousOutput:
-			def read_nonblocking(self, size: int, timeout: float) -> bytes:
-				return b"x" * size
-
-		with self.assertRaisesRegex(AssertionError, "byte limit"):
-			self._drain_tui_output(ContinuousOutput(), byte_limit=131072, time_limit=1.0)
-
-	def test_plugin_manager_lifecycle_is_validated_before_publication(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge._active_numbered_choice = None
-		bridge.transport = transport
-		payload = {
-			"pluginManagerKind": "lazyNvim",
-			"pluginManagerOperation": "update",
-			"pluginManagerPhase": "started",
-		}
-		bridge._on_nvim_event("pluginManagerOperation", payload)
-		self.assertEqual("pluginManagerOperation", transport.events[-1]["type"])
-		bridge._on_nvim_event(
-			"pluginManagerOperation", {**payload, "pluginManagerOperation": "arbitrary"},
-		)
-		self.assertEqual(1, len(transport.events))
-		self.assertNotIn("pluginManagerKind", bridge.full_state())
-		self.assertNotIn("pluginManagerOperation", bridge.full_state())
-
-	def test_tutor_transition_is_validated_before_publication(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"lineText": "previous"}
-		bridge._active_numbered_choice = None
-		bridge.transport = transport
-		payload = {"filetype": "tutor", "tutorExerciseStatus": "correct"}
-		bridge._on_nvim_event("tutorExerciseChanged", payload)
-		self.assertEqual("tutorExerciseChanged", transport.events[-1]["type"])
-		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
-		bridge._on_nvim_event(
-			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": "arbitrary"},
-		)
-		bridge._on_nvim_event(
-			"tutorExerciseChanged", {**payload, "tutorExerciseStatus": []},
-		)
-		self.assertEqual(1, len(transport.events))
-		self.assertEqual("correct", bridge.full_state()["tutorExerciseStatus"])
-
-	def test_active_parameter_transition_is_validated_before_publication(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"pluginCapabilities": ["activeParameterHints"]}
-		bridge._active_numbered_choice = None
-		bridge.transport = transport
-		payload = {
-			"mode": "insert",
-			"modeRaw": "i",
-			"pluginCapabilities": ["activeParameterHints"],
-			"bufferId": 1,
-			"windowId": 2,
-			"changedtick": 3,
-			"cursor": {"line": 4, "byteColumn": 5},
-			"callName": "sum",
-			"callStartLine": 4,
-			"callStartByteColumn": 3,
-			"signature": "sum(first, second)",
-			"signatureIndex": 1,
-			"signatureCount": 1,
-			"activeParameter": 1,
-			"parameterCount": 2,
-			"parameter": "first",
-			"hintReason": "callEntered",
-		}
-		bridge._on_nvim_event("activeParameterChanged", payload)
-		self.assertEqual("activeParameterChanged", transport.events[-1]["type"])
-		bridge._on_nvim_event("activeParameterChanged", {**payload, "parameterCount": 0})
-		self.assertEqual(1, len(transport.events))
-		bridge._state = {"pluginCapabilities": []}
-		bridge._on_nvim_event("activeParameterChanged", payload)
-		self.assertEqual(1, len(transport.events))
-
-	def test_cursor_routing_uses_only_fixed_validated_plugin_entry_point(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		payload = {
-			"target": "editor",
-			"bufferId": 1,
-			"windowId": 2,
-			"line": 3,
-			"byteColumn": 4,
-			"changedtick": 5,
-			"modeRaw": "i",
-		}
-		bridge._on_client_control("routeCursor", payload)
-		bridge._on_client_control("routeCursor", {**payload, "modeRaw": "c"})
-		self.assertEqual(1, len(notifications))
-		self.assertEqual("nvim_exec_lua", notifications[0][0])
-		self.assertIn("request_route_cursor", notifications[0][1][0])
-		self.assertEqual([payload], notifications[0][1][1])
-
-	def test_braille_line_navigation_uses_only_fixed_capability_gated_entry_point(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"pluginCapabilities": ["brailleLineNavigation"]}
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		payload = {
-			"bufferId": 1,
-			"windowId": 2,
-			"line": 3,
-			"changedtick": 4,
-			"modeRaw": "n",
-			"direction": "next",
-			"targetColumn": "preferred",
-			"preferredVirtualColumn": 79,
-		}
-		bridge._on_client_control("moveBrailleLine", payload)
-		bridge._on_client_control("moveBrailleLine", {**payload, "modeRaw": "c"})
-		bridge._state = {"pluginCapabilities": []}
-		bridge._on_client_control("moveBrailleLine", payload)
-		self.assertEqual(1, len(notifications))
-		self.assertEqual("nvim_exec_lua", notifications[0][0])
-		self.assertIn("request_move_braille_line", notifications[0][1][0])
-		self.assertEqual([payload], notifications[0][1][1])
-
-	def test_repeated_braille_routing_uses_only_fixed_capability_gated_entry_point(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"pluginCapabilities": ["brailleRoutingActions"]}
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		payload = {
-			"bufferId": 1,
-			"windowId": 2,
-			"line": 3,
-			"byteColumn": 4,
-			"changedtick": 5,
-			"modeRaw": "n",
-			"action": "deleteLine",
-			"lineStart": "routing",
-		}
-		bridge._on_client_control("brailleRouteAction", payload)
-		bridge._on_client_control("brailleRouteAction", {**payload, "action": "dd"})
-		bridge._state = {"pluginCapabilities": []}
-		bridge._on_client_control("brailleRouteAction", payload)
-		self.assertEqual(1, len(notifications))
-		self.assertEqual("nvim_exec_lua", notifications[0][0])
-		self.assertIn("request_braille_route_action", notifications[0][1][0])
-		self.assertEqual([payload], notifications[0][1][1])
-
-	def test_braille_exploration_uses_separate_fixed_capability_gated_entry_points(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"pluginCapabilities": ["brailleExploration"]}
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		payload = {
-			"requestId": 1,
-			"explorationId": 2,
-			"actionIndex": 1,
-			"action": "lineDown",
-			"count": 1,
-			"bufferId": 3,
-			"windowId": 4,
-			"tabpageId": 5,
-			"changedtick": 6,
-			"modeRaw": "n",
-			"cursorLine": 7,
-			"cursorByteColumn": 0,
-			"cursorVirtualColumn": 0,
-			"desiredVirtualColumn": 79,
-			"targetColumn": "preferred",
-		}
-		bridge._on_client_control("brailleExploreLineRequest", payload)
-		bridge._on_client_control(
-			"endBrailleExplorationRequest",
-			{"requestId": 2, "explorationId": 2},
-		)
-		bridge._on_client_control("brailleExploreLineRequest", {**payload, "action": "wordNext"})
-		bridge._state = {"pluginCapabilities": ["exploration"]}
-		bridge._on_client_control("brailleExploreLineRequest", payload)
-		self.assertEqual(2, len(notifications))
-		self.assertIn("request_braille_explore_line", notifications[0][1][0])
-		self.assertIn("request_end_braille_exploration", notifications[1][1][0])
-
-	def test_bridge_publishes_braille_exploration_once_but_never_caches_it(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge.transport = transport
-		result = {
-			"mode": "normal",
-			"requestId": 1,
-			"explorationId": 2,
-			"actionIndex": 1,
-			"action": "lineDown",
-			"unit": "line",
-			"ok": True,
-			"resultCode": "moved",
-			"text": "virtual line",
-			"line": 2,
-			"byteColumn": 0,
-			"characterColumn": 0,
-			"virtualColumn": 0,
-			"atOrigin": False,
-		}
-		bridge._on_nvim_event("brailleExploreLineResult", result)
-		self.assertEqual("virtual line", transport.events[-1]["payload"]["text"])
-		self.assertNotIn("text", bridge.full_state())
-		self.assertNotIn("explorationId", bridge.full_state())
-		bridge._on_nvim_event("brailleExploreLineResult", {**result, "unit": "word"})
-		self.assertEqual(1, len(transport.events))
-
-	def test_clipboard_control_uses_only_fixed_plugin_entry_points(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		state = {
-			"bufferId": 1,
-			"windowId": 2,
-			"tabpageId": 3,
-			"changedtick": 4,
-			"modeRaw": "n",
-			"requestId": 5,
-		}
-		bridge._on_client_control("copyTextRequest", {**state, "source": "yankRegister"})
-		bridge._on_client_control("pasteTextRequest", {**state, "text": "remote text"})
-		bridge._on_client_control("setRegisterRequest", {**state, "text": "current register"})
-		bridge._on_client_control("pasteTextRequest", {**state, "text": "bad\0text"})
-		self.assertEqual(3, len(notifications))
-		self.assertTrue(all(method == "nvim_exec_lua" for method, _ in notifications))
-		self.assertIn("request_copy_text", notifications[0][1][0])
-		self.assertIn("request_paste_text", notifications[1][1][0])
-		self.assertIn("request_set_register", notifications[2][1][0])
-
-	def test_terminal_control_uses_only_its_fixed_plugin_entry_point(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		state = {
-			"bufferId": 1,
-			"windowId": 2,
-			"tabpageId": 3,
-			"modeRaw": "t",
-			"requestId": 5,
-		}
-		bridge._on_client_control("leaveTerminalInputRequest", state)
-		bridge._on_client_control("leaveTerminalInputRequest", {**state, "modeRaw": "n"})
-		self.assertEqual(1, len(notifications))
-		self.assertEqual("nvim_exec_lua", notifications[0][0])
-		self.assertIn("request_leave_terminal_input", notifications[0][1][0])
-
-	def test_exploration_uses_only_fixed_bounded_plugin_entry_points(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		payload = {
-			"requestId": 1,
-			"explorationId": 2,
-			"actionIndex": 1,
-			"action": "lineDown",
-			"count": 1,
-			"bufferId": 3,
-			"windowId": 4,
-			"tabpageId": 5,
-			"changedtick": 6,
-			"modeRaw": "n",
-			"cursorLine": 7,
-			"cursorByteColumn": 0,
-			"cursorVirtualColumn": 0,
-		}
-		bridge._on_client_control("exploreTextRequest", payload)
-		bridge._on_client_control(
-			"endExplorationRequest",
-			{
-				"requestId": 2,
-				"explorationId": 2,
-			},
-		)
-		bridge._on_client_control("exploreTextRequest", {**payload, "action": "arbitrary"})
-		self.assertEqual(2, len(notifications))
-		self.assertIn("request_explore_text", notifications[0][1][0])
-		self.assertIn("request_end_exploration", notifications[1][1][0])
-
-	def test_developer_context_uses_only_fixed_capability_gated_entry_points(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {
-			"pluginCapabilities": [
-				"callableContextQuery",
-				"diagnosticContextQuery",
-			],
-		}
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append(
-					(method, parameters)
-				),
-			},
-		)()
-		payload = {
-			"requestId": 1,
-			"bufferId": 2,
-			"windowId": 3,
-			"tabpageId": 4,
-			"changedtick": 5,
-			"line": 6,
-			"byteColumn": 7,
-		}
-		bridge._on_client_control("callableContextRequest", payload)
-		bridge._on_client_control("diagnosticContextRequest", payload)
-		bridge._on_client_control("callableContextRequest", {**payload, "line": 0})
-		bridge._state = {"pluginCapabilities": []}
-		bridge._on_client_control("diagnosticContextRequest", payload)
-		self.assertEqual(2, len(notifications))
-		self.assertIn("request_callable_context", notifications[0][1][0])
-		self.assertIn("request_diagnostic_context", notifications[1][1][0])
-		self.assertEqual([payload], notifications[0][1][1])
-		self.assertEqual([payload], notifications[1][1][1])
-
-	def test_bridge_publishes_developer_context_once_but_never_caches_it(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge.transport = transport
-		request = {
-			"requestId": 1,
-			"bufferId": 2,
-			"windowId": 3,
-			"tabpageId": 4,
-			"changedtick": 5,
-			"line": 6,
-			"byteColumn": 7,
-		}
-		result = {
-			**request,
-			"ok": True,
-			"resultCode": "ok",
-			"items": [
-				{
-					"signature": "calculate_total(price, quantity)",
-					"parameters": ["price", "quantity"],
-					"documentation": "",
-				},
-			],
-			"activeItem": 0,
-			"activeParameter": 0,
-		}
-		bridge._on_nvim_event("callableContextResult", result)
-		self.assertEqual(result["items"], transport.events[-1]["payload"]["items"])
-		self.assertNotIn("items", bridge.full_state())
-		self.assertNotIn("requestId", bridge.full_state())
-		diagnostic = {
-			"message": "Undefined name",
-			"severity": "error",
-			"source": "ruff",
-			"code": "F821",
-			"line": 6,
-			"byteColumn": 7,
-			"endLine": 6,
-			"endByteColumn": 12,
-			"atCursor": True,
-		}
-		bridge._on_nvim_event(
-			"diagnosticContextResult",
-			{
-				**request,
-				"ok": True,
-				"resultCode": "ok",
-				"items": [diagnostic],
-				"activeItem": 0,
-				"activeParameter": 0,
-			},
-		)
-		self.assertEqual([diagnostic], transport.events[-1]["payload"]["items"])
-		self.assertNotIn("items", bridge.full_state())
-		bridge._on_nvim_event("callableContextResult", {**result, "bufferId": 0})
-		bridge._on_nvim_event(
-			"diagnosticContextResult",
-			{
-				**request,
-				"ok": True,
-				"resultCode": "ok",
-				"items": [diagnostic],
-				"activeItem": 0,
-				"activeParameter": 1,
-			},
-		)
-		self.assertEqual(2, len(transport.events))
-
-	def test_bridge_publishes_clipboard_text_once_but_never_caches_it(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge.transport = transport
-		bridge._on_nvim_event(
-			"copyTextResult",
-			{
-				"mode": "normal",
-				"requestId": 9,
-				"ok": True,
-				"resultCode": "copied",
-				"clipboardText": "private text",
-			},
-		)
-		self.assertEqual("private text", transport.events[-1]["payload"]["clipboardText"])
-		self.assertNotIn("clipboardText", bridge.full_state())
-		self.assertNotIn("requestId", bridge.full_state())
-
-	def test_bridge_publishes_valid_exploration_once_but_never_caches_it(self) -> None:
-		transport = RecordingTransport()
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {}
-		bridge.transport = transport
-		result = {
-			"mode": "normal",
-			"requestId": 1,
-			"explorationId": 2,
-			"actionIndex": 1,
-			"action": "wordNext",
-			"unit": "word",
-			"ok": True,
-			"resultCode": "moved",
-			"text": "beta",
-			"line": 1,
-			"byteColumn": 6,
-			"characterColumn": 6,
-			"virtualColumn": 6,
-			"atOrigin": False,
-		}
-		bridge._on_nvim_event("exploreTextResult", result)
-		self.assertEqual("beta", transport.events[-1]["payload"]["text"])
-		self.assertNotIn("text", bridge.full_state())
-		self.assertNotIn("explorationId", bridge.full_state())
-		bridge._on_nvim_event("exploreTextResult", {**result, "action": "arbitrary"})
-		self.assertEqual(1, len(transport.events))
-
-	def test_bridge_accepts_only_the_exact_active_numbered_choice(self) -> None:
-		notifications = []
-		bridge = Bridge.__new__(Bridge)
-		bridge._state_lock = threading.Lock()
-		bridge._state = {"pluginCapabilities": ["numberedChoices"]}
-		bridge.transport = RecordingTransport()
-		bridge._active_numbered_choice = {
-			"choiceKind": "spellSuggestions",
-			"choiceId": 7,
-			"items": ["misspelled", "misapplied"],
-			"bufferId": 1,
-			"windowId": 2,
-			"tabpageId": 3,
-			"changedtick": 4,
-		}
-		bridge.nvim = type(
-			"Nvim",
-			(),
-			{
-				"notify": lambda _self, method, *parameters: notifications.append((method, parameters)),
-			},
-		)()
-		request = {
-			"requestId": 8,
-			"choiceKind": "spellSuggestions",
-			"choiceId": 7,
-			"itemIndex": 1,
-			"bufferId": 1,
-			"windowId": 2,
-			"tabpageId": 3,
-			"changedtick": 4,
-		}
-
-		bridge._on_client_control("acceptNumberedChoiceRequest", request)
-		bridge._on_client_control(
-			"acceptNumberedChoiceRequest",
-			{**request, "windowId": 9},
-		)
-		self.assertEqual([("nvim_input", ("2\r",))], notifications)
-		bridge._on_nvim_connection("disconnected")
-		self.assertIsNone(bridge._active_numbered_choice)
-
+class NvimBridgeSocketTests(unittest.TestCase):
 	def test_real_tui_f12_claim_preserves_normal_and_insert_input(self) -> None:
 		root = pathlib.Path.cwd()
 		with tempfile.TemporaryDirectory() as directory:
@@ -681,11 +132,19 @@ class NvimBridgeTests(unittest.TestCase):
 			process = pexpect.spawn(
 				"nvim",
 				[
-					"-n", "-u", "NONE", "-i", "NONE",
-					"--cmd", "set packpath=",
-					"--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
-					"--cmd", "runtime plugin/nvim_nvda.lua",
-					"--listen", nvim_socket,
+					"-n",
+					"-u",
+					"NONE",
+					"-i",
+					"NONE",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"set runtimepath^={root / 'neovim-plugin'}",
+					"--cmd",
+					"runtime plugin/nvim_nvda.lua",
+					"--listen",
+					nvim_socket,
 				],
 				env=environment,
 				encoding=None,
@@ -762,7 +221,10 @@ class NvimBridgeTests(unittest.TestCase):
 				)
 				registered = subprocess.run(
 					[
-						"nvim", "--server", nvim_socket, "--remote-expr",
+						"nvim",
+						"--server",
+						nvim_socket,
+						"--remote-expr",
 						"luaeval(\"#vim.api.nvim_get_autocmds({event='User',pattern='LazySyncPre'})\")",
 					],
 					check=True,
@@ -771,7 +233,10 @@ class NvimBridgeTests(unittest.TestCase):
 				).stdout.strip()
 				source = subprocess.run(
 					[
-						"nvim", "--server", nvim_socket, "--remote-expr",
+						"nvim",
+						"--server",
+						nvim_socket,
+						"--remote-expr",
 						"luaeval(\"debug.getinfo(require('nvim_nvda').setup).source\")",
 					],
 					check=True,
@@ -783,21 +248,24 @@ class NvimBridgeTests(unittest.TestCase):
 
 				start = len(events)
 				for pattern in (
-					"LazySyncPre", "LazyInstallPre", "LazyInstall", "LazyUpdatePre", "LazyUpdate",
+					"LazySyncPre",
+					"LazyInstallPre",
+					"LazyInstall",
+					"LazyUpdatePre",
+					"LazyUpdate",
 					"LazySync",
 				):
 					self._send_tui(process, f":doautocmd User {pattern}\r".encode())
 				self._wait(
 					condition,
-					lambda: len([
-						event for event in events[start:]
-						if event["type"] == "pluginManagerOperation"
-					]) >= 2,
+					lambda: (
+						len([event for event in events[start:] if event["type"] == "pluginManagerOperation"])
+						>= 2
+					),
 					timeout=10.0,
 				)
 				lifecycle = [
-					event["payload"] for event in events[start:]
-					if event["type"] == "pluginManagerOperation"
+					event["payload"] for event in events[start:] if event["type"] == "pluginManagerOperation"
 				]
 				self.assertEqual(2, len(lifecycle))
 				self.assertEqual(
@@ -812,9 +280,17 @@ class NvimBridgeTests(unittest.TestCase):
 	def test_real_tui_tutor_exercise_status_tracks_native_marks(self) -> None:
 		version = subprocess.run(
 			[
-				"nvim", "--headless", "-n", "-u", "NONE", "-i", "NONE",
-				"--cmd", "lua io.write(vim.version().major .. '.' .. vim.version().minor)",
-				"--cmd", "qa!",
+				"nvim",
+				"--headless",
+				"-n",
+				"-u",
+				"NONE",
+				"-i",
+				"NONE",
+				"--cmd",
+				"lua io.write(vim.version().major .. '.' .. vim.version().minor)",
+				"--cmd",
+				"qa!",
 			],
 			check=True,
 			capture_output=True,
@@ -831,12 +307,21 @@ class NvimBridgeTests(unittest.TestCase):
 			process = pexpect.spawn(
 				"nvim",
 				[
-					"-n", "-u", "NONE", "-i", "NONE",
-					"--cmd", "set packpath=",
-					"--cmd", f"set runtimepath^={root / 'neovim-plugin'}",
-					"--cmd", "runtime plugin/tutor.vim",
-					"--cmd", "runtime plugin/nvim_nvda.lua",
-					"--listen", nvim_socket,
+					"-n",
+					"-u",
+					"NONE",
+					"-i",
+					"NONE",
+					"--cmd",
+					"set packpath=",
+					"--cmd",
+					f"set runtimepath^={root / 'neovim-plugin'}",
+					"--cmd",
+					"runtime plugin/tutor.vim",
+					"--cmd",
+					"runtime plugin/nvim_nvda.lua",
+					"--listen",
+					nvim_socket,
 				],
 				env={
 					**os.environ,
@@ -862,15 +347,29 @@ class NvimBridgeTests(unittest.TestCase):
 				self._send_tui(process, b"\x1b:Tutor\r")
 				time.sleep(0.2)
 				tui_state = subprocess.run(
-					["nvim", "--server", nvim_socket, "--remote-expr",
-					 "mode(1) . ':' . &filetype . ':' . exists(':Tutor') . ':' . v:errmsg"],
-					check=True, capture_output=True, text=True,
+					[
+						"nvim",
+						"--server",
+						nvim_socket,
+						"--remote-expr",
+						"mode(1) . ':' . &filetype . ':' . exists(':Tutor') . ':' . v:errmsg",
+					],
+					check=True,
+					capture_output=True,
+					text=True,
 				).stdout.strip()
 				self.assertIn(":tutor:2:", tui_state, tui_state)
 				loaded_source = subprocess.run(
-					["nvim", "--server", nvim_socket, "--remote-expr",
-					 "luaeval(\"debug.getinfo(require('nvim_nvda').setup).source .. '|' .. debug.getinfo(require('nvim_nvda.tutor').status).source\")"],
-					check=True, capture_output=True, text=True,
+					[
+						"nvim",
+						"--server",
+						nvim_socket,
+						"--remote-expr",
+						"luaeval(\"debug.getinfo(require('nvim_nvda').setup).source .. '|' .. debug.getinfo(require('nvim_nvda.tutor').status).source\")",
+					],
+					check=True,
+					capture_output=True,
+					text=True,
 				).stdout.strip()
 				self.assertTrue(
 					loaded_source.startswith(f"@{root / 'neovim-plugin/lua/nvim_nvda/init.lua'}|"),
@@ -881,7 +380,10 @@ class NvimBridgeTests(unittest.TestCase):
 				while time.monotonic() < deadline and observer_ready != "1":
 					observer_ready = subprocess.run(
 						[
-							"nvim", "--server", nvim_socket, "--remote-expr",
+							"nvim",
+							"--server",
+							nvim_socket,
+							"--remote-expr",
 							"luaeval(\"(function() for _,item in ipairs(vim.api.nvim_get_autocmds({buffer=0,event='TextChanged'})) do if item.desc and item.desc:match('Tutor exercise changes$') then return 1 end end return 0 end)()\")",
 						],
 						check=True,
@@ -909,7 +411,10 @@ class NvimBridgeTests(unittest.TestCase):
 				while time.monotonic() < deadline and not suffix:
 					suffix = subprocess.run(
 						[
-							"nvim", "--server", nvim_socket, "--remote-expr",
+							"nvim",
+							"--server",
+							nvim_socket,
+							"--remote-expr",
 							"get(g:, 'nvim_nvda_tutor_suffix', '')",
 						],
 						check=True,
@@ -932,18 +437,22 @@ class NvimBridgeTests(unittest.TestCase):
 				while time.monotonic() < deadline and mode != "i":
 					mode = subprocess.run(
 						["nvim", "--server", nvim_socket, "--remote-expr", "mode(1)"],
-						check=True, capture_output=True, text=True,
+						check=True,
+						capture_output=True,
+						text=True,
 					).stdout.strip()
 					time.sleep(0.02)
 				self.assertEqual("i", mode)
 				self._send_tui(process, suffix.encode("utf-8"))
-				self._drain_tui_output(process)
+				drain_tui_output(process)
 				deadline = time.monotonic() + 2
 				actual = ""
 				while time.monotonic() < deadline and actual != expected:
 					actual = subprocess.run(
 						["nvim", "--server", nvim_socket, "--remote-expr", "getline('.')"],
-						check=True, capture_output=True, text=True,
+						check=True,
+						capture_output=True,
+						text=True,
 					).stdout.rstrip("\n")
 					time.sleep(0.02)
 				self.assertEqual(expected, actual)
@@ -952,11 +461,13 @@ class NvimBridgeTests(unittest.TestCase):
 				while time.monotonic() < deadline and mode != "n":
 					mode = subprocess.run(
 						["nvim", "--server", nvim_socket, "--remote-expr", "mode(1)"],
-						check=True, capture_output=True, text=True,
+						check=True,
+						capture_output=True,
+						text=True,
 					).stdout.strip()
 					time.sleep(0.02)
 				self.assertEqual("n", mode)
-				self._drain_tui_output(process)
+				drain_tui_output(process)
 				self._wait(
 					condition,
 					lambda: any(
@@ -966,7 +477,8 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				correct = next(
-					event for event in events[start:]
+					event
+					for event in events[start:]
 					if event["type"] == "tutorExerciseChanged"
 					and event["payload"].get("tutorExerciseStatus") == "correct"
 				)
@@ -1279,9 +791,7 @@ class NvimBridgeTests(unittest.TestCase):
 					lambda: any(event["type"] == "resultListChanged" for event in events[start:]),
 				)
 				search_events = events[start:]
-				result_list = next(
-					event for event in search_events if event["type"] == "resultListChanged"
-				)
+				result_list = next(event for event in search_events if event["type"] == "resultListChanged")
 				self.assertEqual(4, result_list["payload"]["itemCount"])
 
 				start = len(events)
@@ -1289,28 +799,22 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "contextChanged"
-						and event["payload"].get("resultIndex") == 2
+						event["type"] == "contextChanged" and event["payload"].get("resultIndex") == 2
 						for event in events[start:]
 					),
 				)
-				self.assertFalse(any(
-					event["type"] == "characterMoved" for event in events[start:]
-				))
+				self.assertFalse(any(event["type"] == "characterMoved" for event in events[start:]))
 
 				start = len(events)
 				self._send_tui(process, b"\x1bOS")  # F4 again: third result within Quickfix.
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "cursorMoved"
-						and event["payload"].get("resultIndex") == 3
+						event["type"] == "cursorMoved" and event["payload"].get("resultIndex") == 3
 						for event in events[start:]
 					),
 				)
-				self.assertFalse(any(
-					event["type"] == "contextChanged" for event in events[start:]
-				))
+				self.assertFalse(any(event["type"] == "contextChanged" for event in events[start:]))
 
 				for expected_index in (2, 1):
 					start = len(events)
@@ -1323,9 +827,7 @@ class NvimBridgeTests(unittest.TestCase):
 							for event in events[start:]
 						),
 					)
-					self.assertFalse(any(
-						event["type"] == "contextChanged" for event in events[start:]
-					))
+					self.assertFalse(any(event["type"] == "contextChanged" for event in events[start:]))
 
 				start = len(events)
 				self._send_tui(process, b"\x1b[15~")  # F5 again: remain at first result.
@@ -1333,27 +835,25 @@ class NvimBridgeTests(unittest.TestCase):
 					condition,
 					lambda: any(
 						event["type"] == "messageReceived"
-						and event["payload"].get("message")
-						== "Already at the first Quickfix result."
+						and event["payload"].get("message") == "Already at the first Quickfix result."
 						for event in events[start:]
 					),
 				)
 				boundary_events = events[start:]
-				self.assertFalse(any(
-					event["type"] == "errorReceived" for event in boundary_events
-				))
-				self.assertFalse(any(
-					"No more items" in str(event["payload"].get("message", ""))
-					for event in boundary_events
-				))
+				self.assertFalse(any(event["type"] == "errorReceived" for event in boundary_events))
+				self.assertFalse(
+					any(
+						"No more items" in str(event["payload"].get("message", ""))
+						for event in boundary_events
+					)
+				)
 
 				start = len(events)
 				self._send_tui(process, b"\x1b[17~")  # F6: confirmed project replacement.
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "promptOpened"
-						and event["payload"].get("promptKind") == "confirmSub"
+						event["type"] == "promptOpened" and event["payload"].get("promptKind") == "confirmSub"
 						for event in events[start:]
 					),
 				)
@@ -1371,34 +871,33 @@ class NvimBridgeTests(unittest.TestCase):
 				self._send_tui(process, b"a")
 				self._wait(
 					condition,
-					lambda: any(
-						event["type"] == "replacementPerformed" for event in events[start:]
-					),
+					lambda: any(event["type"] == "replacementPerformed" for event in events[start:]),
 					timeout=5,
 				)
 				time.sleep(0.2)
 				replacement_events = events[start:]
 				replacements = [
-					event for event in replacement_events
-					if event["type"] == "replacementPerformed"
+					event for event in replacement_events if event["type"] == "replacementPerformed"
 				]
 				prompts_opened = [
-					event for event in replacement_events
-					if event["type"] == "promptOpened"
-					and event["payload"].get("promptKind") == "confirmSub"
+					event
+					for event in replacement_events
+					if event["type"] == "promptOpened" and event["payload"].get("promptKind") == "confirmSub"
 				]
 				prompts_closed = [
-					event for event in replacement_events
-					if event["type"] == "promptClosed"
-					and event["payload"].get("promptKind") == "confirmSub"
+					event
+					for event in replacement_events
+					if event["type"] == "promptClosed" and event["payload"].get("promptKind") == "confirmSub"
 				]
 				self.assertEqual(3, len(prompts_opened))
 				self.assertEqual(3, len(prompts_closed))
-				self.assertTrue(all(
-					event["payload"].get("lineText")
-					and event["payload"].get("reason") == "substituteConfirmation"
-					for event in prompts_opened
-				))
+				self.assertTrue(
+					all(
+						event["payload"].get("lineText")
+						and event["payload"].get("reason") == "substituteConfirmation"
+						for event in prompts_opened
+					)
+				)
 				self.assertEqual(
 					[30, 36, 1],
 					[event["payload"]["cursor"]["line"] for event in prompts_opened],
@@ -1440,9 +939,7 @@ class NvimBridgeTests(unittest.TestCase):
 				"ACCESS_LINK_HUMAN_STEP_ID": "native-lsp-rename",
 				"ACCESS_LINK_HUMAN_LANGUAGE": "en",
 				"ACCESS_LINK_HUMAN_DRY_RUN": "1",
-				"ACCESS_LINK_TEST_LSP_SERVER": str(
-					root / "neovim-plugin/tests/fixtures/lsp_test_server.py"
-				),
+				"ACCESS_LINK_TEST_LSP_SERVER": str(root / "neovim-plugin/tests/fixtures/lsp_test_server.py"),
 				"ACCESS_LINK_TEST_PYTHON": sys.executable,
 			}
 			process = pexpect.spawn(
@@ -1501,8 +998,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "lspStatus"
-						and event["payload"].get("clientCount") == 1
+						event["type"] == "lspStatus" and event["payload"].get("clientCount") == 1
 						for event in events
 					),
 					timeout=5,
@@ -1520,55 +1016,50 @@ class NvimBridgeTests(unittest.TestCase):
 					lambda: any(event["type"] == "lspRenameCompleted" for event in events[start:]),
 					timeout=5,
 				)
-				rename_events = [
-					event for event in events[start:] if event["type"] == "lspRenameCompleted"
-				]
+				rename_events = [event for event in events[start:] if event["type"] == "lspRenameCompleted"]
 				self.assertEqual(1, len(rename_events))
 				self.assertEqual("changesObserved", rename_events[0]["payload"]["renameResult"])
 				self.assertEqual(2, rename_events[0]["payload"]["changedBufferCount"])
 				self.assertEqual(2, rename_events[0]["payload"]["modifiedBufferCount"])
 				rename_intermediate_updates = [
-						(event["type"], event["payload"].get("reason"))
-						for event in events[start:]
-						if event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
-					]
+					(event["type"], event["payload"].get("reason"))
+					for event in events[start:]
+					if event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+				]
 				self.assertEqual(
-					[], rename_intermediate_updates,
+					[],
+					rename_intermediate_updates,
 					[
 						(
-							event["type"], event["payload"].get("reason"),
+							event["type"],
+							event["payload"].get("reason"),
 							event["payload"].get("message"),
 						)
 						for event in events[start:]
 					],
 				)
-				self.assertFalse(any(
-					event["type"] == "errorReceived" for event in events[start:]
-				))
+				self.assertFalse(any(event["type"] == "errorReceived" for event in events[start:]))
 
 				for expected in (
-					"Renamed reference 1 of 2, line 1: "
-					"from lsp_features import calculate_gratuity",
-					"Renamed reference 2 of 2, line 4: "
-					"suggested_tip = calculate_gratuity(40.0)",
+					"Renamed reference 1 of 2, line 1: from lsp_features import calculate_gratuity",
+					"Renamed reference 2 of 2, line 4: suggested_tip = calculate_gratuity(40.0)",
 				):
 					start = len(events)
 					self._send_tui(process, b"\x1bOS")  # F4: report the next renamed reference.
 					self._wait(
 						condition,
 						lambda expected=expected: any(
-							event["type"] == "messageReceived"
-							and event["payload"].get("message") == expected
+							event["type"] == "messageReceived" and event["payload"].get("message") == expected
 							for event in events[start:]
 						),
 					)
-					self.assertFalse(any(
-						event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
-						for event in events[start:]
-					))
-					self.assertFalse(any(
-						event["type"] == "errorReceived" for event in events[start:]
-					))
+					self.assertFalse(
+						any(
+							event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+							for event in events[start:]
+						)
+					)
+					self.assertFalse(any(event["type"] == "errorReceived" for event in events[start:]))
 			finally:
 				bridge.stop()
 				process.terminate(force=True)
@@ -1640,28 +1131,28 @@ class NvimBridgeTests(unittest.TestCase):
 				self._send_tui(process, b"\x1bOR")  # F3: replace across both loaded buffers.
 				self._wait(
 					condition,
-					lambda: any(
-						event["type"] == "replacementPerformed" for event in events[start:]
-					),
+					lambda: any(event["type"] == "replacementPerformed" for event in events[start:]),
 					timeout=5,
 				)
 				time.sleep(0.2)
 				replacement_events = events[start:]
 				replacements = [
-					event for event in replacement_events
-					if event["type"] == "replacementPerformed"
+					event for event in replacement_events if event["type"] == "replacementPerformed"
 				]
 				self.assertEqual(1, len(replacements))
 				self.assertEqual("buffers", replacements[0]["payload"]["replacementScope"])
 				self.assertEqual(2, replacements[0]["payload"]["changedBufferCount"])
 				self.assertEqual(2, replacements[0]["payload"]["modifiedBufferCount"])
-				self.assertFalse(any(
-					event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
-					for event in replacement_events
-				), [
-					(event["type"], event["payload"].get("reason"), event["payload"].get("fileName"))
-					for event in replacement_events
-				])
+				self.assertFalse(
+					any(
+						event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+						for event in replacement_events
+					),
+					[
+						(event["type"], event["payload"].get("reason"), event["payload"].get("fileName"))
+						for event in replacement_events
+					],
+				)
 
 				for expected in (
 					"lsp_features.py: 2 occurrences of calculate_tip_buffered",
@@ -1677,10 +1168,12 @@ class NvimBridgeTests(unittest.TestCase):
 							for event in events[start:]
 						),
 					)
-					self.assertFalse(any(
-						event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
-						for event in events[start:]
-					))
+					self.assertFalse(
+						any(
+							event["type"] in {"contextChanged", "cursorMoved", "textChanged"}
+							for event in events[start:]
+						)
+					)
 			finally:
 				bridge.stop()
 				process.terminate(force=True)
@@ -2124,13 +1617,13 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(
 					condition,
 					lambda: any(
-						e["type"] == "searchMatchChanged"
-						and e["payload"].get("searchPreview") is True
+						e["type"] == "searchMatchChanged" and e["payload"].get("searchPreview") is True
 						for e in events[prior:]
 					),
 				)
 				preview = next(
-					e for e in reversed(events[prior:])
+					e
+					for e in reversed(events[prior:])
 					if e["type"] == "searchMatchChanged" and e["payload"].get("searchPreview") is True
 				)
 				self.assertEqual(1, preview["payload"]["matchLine"])
@@ -2215,7 +1708,9 @@ class NvimBridgeTests(unittest.TestCase):
 
 				for inccommand_mode in ("nosplit", "split"):
 					bridge.nvim.notify(
-						"nvim_exec_lua", f"vim.o.inccommand={inccommand_mode!r}", [],
+						"nvim_exec_lua",
+						f"vim.o.inccommand={inccommand_mode!r}",
+						[],
 					)
 					time.sleep(0.05)
 					prior = len(events)
@@ -2229,7 +1724,8 @@ class NvimBridgeTests(unittest.TestCase):
 						),
 					)
 					preview = next(
-						e for e in reversed(events[prior:])
+						e
+						for e in reversed(events[prior:])
 						if e["type"] == "substitutePreviewChanged"
 						and e["payload"].get("previewActive") is True
 					)
@@ -3548,42 +3044,12 @@ class NvimBridgeTests(unittest.TestCase):
 		self.fail("Neovim RPC socket timeout")
 
 	@staticmethod
-	def _drain_tui_output(
-		process,
-		*,
-		byte_limit: int = 8 * 1024 * 1024,
-		time_limit: float = 1.0,
-	) -> None:
-		deadline = time.monotonic() + time_limit
-		drained = 0
-		try:
-			while True:
-				if drained >= byte_limit:
-					raise AssertionError(
-						f"TUI output drain exceeded byte limit ({byte_limit} bytes)",
-					)
-				remaining = deadline - time.monotonic()
-				if remaining <= 0:
-					raise AssertionError(
-						f"TUI output drain exceeded time limit ({time_limit:.3f} seconds)",
-					)
-				chunk = process.read_nonblocking(
-					min(65536, byte_limit - drained),
-					timeout=min(0.01, remaining),
-				)
-				if not chunk:
-					return
-				drained += len(chunk)
-		except (pexpect.TIMEOUT, pexpect.EOF):
-			return
-
-	@classmethod
-	def _send_tui(cls, process, data: bytes) -> None:
+	def _send_tui(process, data: bytes) -> None:
 		# A full pseudo-terminal output buffer stops Neovim from polling its
 		# input side. Drain a bounded amount before every physical-key step so
 		# these tests exercise editor behavior instead of PTY capacity without
 		# hanging on a continuously redrawing client.
-		cls._drain_tui_output(process)
+		drain_tui_output(process)
 		process.send(data)
 
 	def _wait(self, condition: threading.Condition, predicate, timeout: float = 3.0) -> None:

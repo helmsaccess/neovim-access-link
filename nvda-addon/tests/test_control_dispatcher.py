@@ -4,7 +4,6 @@ import importlib.util
 import pathlib
 import sys
 import threading
-import time
 import unittest
 
 
@@ -104,16 +103,25 @@ class ControlDispatcherTests(unittest.TestCase):
 			callback(result[2], result[3])
 
 		dispatcher = ControlDispatcher(on_result=on_result)
-		before = time.monotonic()
-		self.assertTrue(
-			dispatcher.submit(
-				Client(),
-				"clipboardSetRequest",
-				{"requestId": 19},
-				on_result=lambda *result: (request_results.append(result), completed.set()),
+		submit_result = []
+		submit_returned = threading.Event()
+		submit_thread = threading.Thread(
+			target=lambda: (
+				submit_result.append(
+					dispatcher.submit(
+						Client(),
+						"clipboardSetRequest",
+						{"requestId": 19},
+						on_result=lambda *result: (request_results.append(result), completed.set()),
+					)
+				),
+				submit_returned.set(),
 			)
 		)
-		self.assertLess(time.monotonic() - before, 0.1)
+		submit_thread.start()
+		self.assertTrue(submit_returned.wait(1.0))
+		submit_thread.join()
+		self.assertEqual([True], submit_result)
 		self.assertTrue(started.wait(1.0))
 		release.set()
 		self.assertTrue(completed.wait(1.0))
@@ -207,7 +215,11 @@ class ControlDispatcherTests(unittest.TestCase):
 		self.assertTrue(dispatcher.submit(client, "first", {}))
 		self.assertTrue(first_started.wait(1.0))
 		self.assertTrue(dispatcher.submit(client, "second", {}))
-		self.assertFalse(second_completed.wait(0.05))
+		with dispatcher._stateLock:
+			lane = dispatcher._lanes[id(client)]
+			self.assertTrue(lane.running)
+			self.assertEqual(["second"], [control.kind for control in lane.controls])
+		self.assertFalse(second_completed.is_set())
 		release_first.set()
 		self.assertTrue(second_completed.wait(1.0))
 		self.assertEqual(["first", "second"], calls)
@@ -226,6 +238,7 @@ class ControlDispatcherTests(unittest.TestCase):
 			"RuntimeScheduler",
 		)
 		queued = []
+		queued_event = threading.Event()
 		diagnostics = []
 		sent = threading.Event()
 		completions = []
@@ -245,6 +258,7 @@ class ControlDispatcherTests(unittest.TestCase):
 
 		def queue_function(_event_queue, callback, *args, **_kwargs):
 			queued.append((callback, args))
+			queued_event.set()
 
 		scheduler = RuntimeScheduler(
 			queue_function=queue_function,
@@ -273,9 +287,7 @@ class ControlDispatcherTests(unittest.TestCase):
 			)
 		)
 		self.assertTrue(sent.wait(1.0))
-		deadline = time.monotonic() + 1.0
-		while not queued and time.monotonic() < deadline:
-			time.sleep(0.005)
+		self.assertTrue(queued_event.wait(1.0))
 		self.assertEqual([], completions)
 		self.assertEqual([], diagnostics)
 		callback, args = queued.pop(0)

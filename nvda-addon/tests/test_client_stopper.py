@@ -4,7 +4,6 @@ import importlib.util
 import pathlib
 import sys
 import threading
-import time
 import unittest
 
 
@@ -37,13 +36,28 @@ class ClientStopperTests(unittest.TestCase):
 				finished.set()
 
 		stopper = ClientStopper(on_error=lambda *_args: None, worker_count=1)
-		before = time.monotonic()
-		self.assertTrue(stopper.submit("instance-1", Client()))
-		self.assertLess(time.monotonic() - before, 0.1)
+		submit_result = []
+		submit_returned = threading.Event()
+		submit_thread = threading.Thread(
+			target=lambda: (
+				submit_result.append(stopper.submit("instance-1", Client())),
+				submit_returned.set(),
+			)
+		)
+		submit_thread.start()
+		self.assertTrue(submit_returned.wait(1.0))
+		submit_thread.join()
+		self.assertEqual([True], submit_result)
 		self.assertTrue(started.wait(1.0))
-		before = time.monotonic()
-		self.assertTrue(stopper.close())
-		self.assertLess(time.monotonic() - before, 0.1)
+		close_result = []
+		close_returned = threading.Event()
+		close_thread = threading.Thread(
+			target=lambda: (close_result.append(stopper.close()), close_returned.set())
+		)
+		close_thread.start()
+		self.assertTrue(close_returned.wait(1.0))
+		close_thread.join()
+		self.assertEqual([True], close_result)
 		self.assertFalse(stopper.submit("instance-2", Client()))
 		release.set()
 		self.assertTrue(finished.wait(1.0))
@@ -54,6 +68,7 @@ class ClientStopperTests(unittest.TestCase):
 		started = threading.Event()
 		release = threading.Event()
 		finished = threading.Event()
+		error_reported = threading.Event()
 		errors = []
 
 		class BlockingClient:
@@ -70,18 +85,19 @@ class ClientStopperTests(unittest.TestCase):
 				finished.set()
 
 		stopper = ClientStopper(
-			on_error=lambda instance_id, error: errors.append((instance_id, type(error).__name__)),
+			on_error=lambda instance_id, error: (
+				errors.append((instance_id, type(error).__name__)),
+				error_reported.set(),
+			),
 			worker_count=2,
 		)
 		self.assertTrue(stopper.submit("blocking", BlockingClient()))
 		self.assertTrue(started.wait(1.0))
 		self.assertTrue(stopper.submit("failing", FailingClient()))
 		self.assertTrue(stopper.submit("finishing", FinishingClient()))
-		deadline = time.monotonic() + 1.0
-		while (not errors or not finished.is_set()) and time.monotonic() < deadline:
-			time.sleep(0.005)
+		self.assertTrue(error_reported.wait(1.0))
+		self.assertTrue(finished.wait(1.0))
 		self.assertEqual([("failing", "OSError")], errors)
-		self.assertTrue(finished.is_set())
 		release.set()
 		stopper.close()
 
@@ -104,10 +120,10 @@ class ClientStopperTests(unittest.TestCase):
 				release.wait(1.0)
 
 		stopper = ClientStopper(on_error=lambda *_args: None, worker_count=2)
+		self.assertEqual(2, len(stopper._workers))
 		for identifier in range(3):
 			self.assertTrue(stopper.submit(str(identifier), BlockingClient(identifier)))
 		self.assertTrue(two_started.wait(1.0))
-		time.sleep(0.05)
 		with started_lock:
 			self.assertEqual(2, len(started))
 		release.set()

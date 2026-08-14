@@ -42,6 +42,15 @@ class CodecTests(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             FrameDecoder(max_frame_bytes=8).feed(struct.pack(">I", 9))
 
+    def test_exact_frame_size_limit_is_accepted(self) -> None:
+        unbounded_frame = encode_frame(message())
+        payload_size = len(unbounded_frame) - 4
+        self.assertEqual(unbounded_frame, encode_frame(message(), max_frame_bytes=payload_size))
+        self.assertEqual(
+            [message()],
+            FrameDecoder(max_frame_bytes=payload_size).feed(unbounded_frame),
+        )
+
     def test_missing_field_is_rejected(self) -> None:
         invalid = message()
         del invalid["payload"]

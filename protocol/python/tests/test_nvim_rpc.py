@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import socket
 import threading
-import time
 import unittest
 from unittest import mock
 
@@ -30,8 +29,10 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
 
     def test_mismatched_identity_aborts_before_plugin_setup(self) -> None:
         source = self.make_source()
-        with mock.patch.object(source, "_request", return_value="b" * 32), \
-                self.assertRaisesRegex(RuntimeError, "identity mismatch"):
+        with (
+            mock.patch.object(source, "_request", return_value="b" * 32),
+            self.assertRaisesRegex(RuntimeError, "identity mismatch"),
+        ):
             source._verify_session_identity()
 
     def test_mismatched_identity_disconnects_without_reconnect_loop(self) -> None:
@@ -43,8 +44,10 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
             "a" * 32,
         )
         connection = mock.Mock()
-        with mock.patch("nvim_nvda_protocol.nvim_rpc.socket.socket", return_value=connection) as socket_type, \
-                mock.patch.object(source, "_request", side_effect=[(7, {}), "b" * 32]) as request:
+        with (
+            mock.patch("nvim_nvda_protocol.nvim_rpc.socket.socket", return_value=connection) as socket_type,
+            mock.patch.object(source, "_request", side_effect=[(7, {}), "b" * 32]) as request,
+        ):
             source._run()
         self.assertEqual(["connecting", "disconnected"], states)
         socket_type.assert_called_once()
@@ -97,9 +100,11 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
         )
         notify_thread.start()
         self.assertTrue(send_started.wait(1.0))
-        before = time.monotonic()
-        source.stop()
-        self.assertLess(time.monotonic() - before, 0.1)
+        stop_returned = threading.Event()
+        stop_thread = threading.Thread(target=lambda: (source.stop(), stop_returned.set()))
+        stop_thread.start()
+        self.assertTrue(stop_returned.wait(1.0))
+        stop_thread.join()
         notify_thread.join(timeout=1.0)
         self.assertFalse(notify_thread.is_alive())
         self.assertEqual([False], notify_result)

@@ -34,43 +34,6 @@ DEFAULT_JOBS = min(8, os.cpu_count() or 1)
 JOB_TIMEOUT_SECONDS = 180
 UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
-REAL_BRIDGE_TESTS = (
-    "test_real_tui_f12_claim_preserves_normal_and_insert_input",
-    "test_real_tui_lazy_context_and_lifecycle_are_semantic",
-    "test_real_tui_tutor_exercise_status_tracks_native_marks",
-    "test_real_tui_spell_choices_are_structured_and_accept_the_native_index",
-    "test_real_tui_guided_quickfix_keys_keep_semantic_feedback",
-    "test_real_tui_guided_buffer_replacement_reports_one_aggregate_result",
-    "test_real_tui_guided_lsp_rename_keys_complete_and_report_references",
-    "test_local_windows_loopback_client_receives_semantic_results",
-    "test_real_tui_omnifunc_emits_popup_selection_and_close",
-    "test_real_tui_terminal_control_and_process_exit_are_structured",
-    "test_real_tui_running_terminal_bd_reports_guard_before_hit_enter",
-    "test_cursor_routing_publishes_immediately_in_insert_and_command_line_modes",
-    "test_braille_line_navigation_preserves_insert_virtual_column",
-    "test_repeated_braille_routing_actions_preserve_insert_and_line_semantics",
-    "test_braille_exploration_is_read_only_in_insert_and_independent",
-    "test_neovim_restart_reconnects_and_pushes_full_state",
-)
-MOCK_BRIDGE_TESTS = (
-    "test_active_parameter_transition_is_validated_before_publication",
-    "test_tutor_transition_is_validated_before_publication",
-    "test_plugin_manager_lifecycle_is_validated_before_publication",
-    "test_bridge_accepts_only_the_exact_active_numbered_choice",
-    "test_braille_exploration_uses_separate_fixed_capability_gated_entry_points",
-    "test_cursor_routing_uses_only_fixed_validated_plugin_entry_point",
-    "test_braille_line_navigation_uses_only_fixed_capability_gated_entry_point",
-    "test_repeated_braille_routing_uses_only_fixed_capability_gated_entry_point",
-    "test_clipboard_control_uses_only_fixed_plugin_entry_points",
-    "test_terminal_control_uses_only_its_fixed_plugin_entry_point",
-    "test_exploration_uses_only_fixed_bounded_plugin_entry_points",
-    "test_developer_context_uses_only_fixed_capability_gated_entry_points",
-    "test_tui_output_drain_is_bounded",
-    "test_bridge_publishes_developer_context_once_but_never_caches_it",
-    "test_bridge_publishes_clipboard_text_once_but_never_caches_it",
-    "test_bridge_publishes_braille_exploration_once_but_never_caches_it",
-    "test_bridge_publishes_valid_exploration_once_but_never_caches_it",
-)
 GROUPS = ("unit", "package", "lua", "ssh", "socket")
 PRESETS = {
     "quick": ("unit",),
@@ -96,6 +59,25 @@ class Result:
     elapsed: float
     output: str
     test_count: int
+    skip_reasons: tuple[str, ...]
+    warnings: tuple[str, ...]
+
+
+def parse_unittest_observations(output: str) -> tuple[int, tuple[str, ...], tuple[str, ...]]:
+    """Extract the successful-run details that the compact runner output would hide."""
+    count_match = re.search(r"^Ran (\d+) tests? in ", output, flags=re.MULTILINE)
+    skip_reasons = tuple(
+        match.group("reason")
+        for match in re.finditer(
+            r"^.* \.\.\. skipped (?P<quote>['\"])(?P<reason>.*)(?P=quote)$",
+            output,
+            flags=re.MULTILINE,
+        )
+    )
+    warning_lines = tuple(
+        line.strip() for line in output.splitlines() if re.search(r"(?:^|\s)[A-Z][A-Za-z]*Warning: ", line)
+    )
+    return int(count_match.group(1)) if count_match else 0, skip_reasons, warning_lines
 
 
 def python_file(group: str, component: str, relative: str) -> Job:
@@ -145,18 +127,6 @@ def python_shards(
     )
 
 
-def bridge_methods(group: str, name: str, methods: tuple[str, ...]) -> Job:
-    source = ROOT / "bridge/python/tests/test_nvim_bridge.py"
-    prefix = "test_nvim_bridge.NvimBridgeTests."
-    return Job(
-        name=f"bridge:{name}",
-        group=group,
-        command=(sys.executable, "-m", "unittest", "-v", *(prefix + method for method in methods)),
-        cwd=ROOT,
-        source=source,
-    )
-
-
 def lua_spec(group: str, relative: str) -> Job:
     path = ROOT / relative
     arguments = [
@@ -203,18 +173,7 @@ def validate_inventory(configured: tuple[Job, ...]) -> None:
     missing = sorted(expected - configured_sources)
     unexpected = sorted(configured_sources - expected)
     if missing or unexpected:
-        raise RuntimeError(
-            f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}"
-        )
-    bridge_source = ROOT / "bridge/python/tests/test_nvim_bridge.py"
-    bridge_methods_in_source = set(class_test_methods(bridge_source, "NvimBridgeTests"))
-    configured_bridge_methods = set(MOCK_BRIDGE_TESTS) | set(REAL_BRIDGE_TESTS)
-    if bridge_methods_in_source != configured_bridge_methods:
-        raise RuntimeError(
-            "test_nvim_bridge classification mismatch; "
-            f"missing={sorted(bridge_methods_in_source - configured_bridge_methods)!r}, "
-            f"unexpected={sorted(configured_bridge_methods - bridge_methods_in_source)!r}"
-        )
+        raise RuntimeError(f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}")
 
 
 def jobs() -> tuple[Job, ...]:
@@ -224,6 +183,7 @@ def jobs() -> tuple[Job, ...]:
         "test_braille_navigation.py",
         "test_braille_routing_actions.py",
         "test_clipboard.py",
+        "test_contract_mutations.py",
         "test_cursor_routing.py",
         "test_developer_context.py",
         "test_exploration.py",
@@ -239,7 +199,7 @@ def jobs() -> tuple[Job, ...]:
         result.append(python_file("unit", "protocol", f"protocol/python/tests/{file_name}"))
     for file_name in ("test_cli.py", "test_session_registry.py", "test_stdio.py"):
         result.append(python_file("unit", "bridge", f"bridge/python/tests/{file_name}"))
-    result.append(bridge_methods("unit", "mocked-nvim", MOCK_BRIDGE_TESTS))
+    result.append(python_file("unit", "bridge", "bridge/python/tests/test_nvim_bridge_mock.py"))
     result.append(python_file("unit", "human", "tests/human/test_framework.py"))
     for file_name in (
         "test_addon_architecture.py",
@@ -326,8 +286,13 @@ def jobs() -> tuple[Job, ...]:
         )
     )
     result.extend(
-        bridge_methods("socket", f"real-{index}", (method,))
-        for index, method in enumerate(REAL_BRIDGE_TESTS, start=1)
+        python_shards(
+            "socket",
+            "bridge",
+            "bridge/python/tests/test_nvim_bridge_socket.py",
+            "NvimBridgeSocketTests",
+            16,
+        )
     )
     result.extend(
         (
@@ -353,13 +318,7 @@ def selected_groups(arguments: tuple[str, ...]) -> tuple[str, ...]:
 def nested_socket_path_probe(repository_root: Path, job_index: int = 99) -> Path:
     """Model the longest nested socket path created by the real TUI tests."""
     return (
-        repository_root
-        / "tmp"
-        / "r-12345678"
-        / f"j{job_index}"
-        / "t"
-        / TEMPORARY_NAME_SAMPLE
-        / "nvim.sock"
+        repository_root / "tmp" / "r-12345678" / f"j{job_index}" / "t" / TEMPORARY_NAME_SAMPLE / "nvim.sock"
     )
 
 
@@ -419,6 +378,7 @@ def run_job(
         environment.pop("PYTHONPYCACHEPREFIX", None)
     environment["TMPDIR"] = str(temporary)
     environment["XDG_RUNTIME_DIR"] = str(runtime)
+    environment.setdefault("PYTHONWARNINGS", "default")
     started = time.monotonic()
     try:
         process_options: dict[str, object] = {}
@@ -458,8 +418,8 @@ def run_job(
         returncode = 127
         output = f"{type(error).__name__}: {error}\n"
     elapsed = time.monotonic() - started
-    match = re.search(r"^Ran (\d+) tests? in ", output, flags=re.MULTILINE)
-    return Result(job, returncode, elapsed, output, int(match.group(1)) if match else 0)
+    test_count, skip_reasons, warnings = parse_unittest_observations(output)
+    return Result(job, returncode, elapsed, output, test_count, skip_reasons, warnings)
 
 
 def parse_args() -> argparse.Namespace:
@@ -542,9 +502,15 @@ def main() -> int:
                     result = future.result()
                     results.append(result)
                     status = "PASS" if result.returncode == 0 else "FAIL"
+                    observations = []
+                    if result.skip_reasons:
+                        observations.append(f"skipped={len(result.skip_reasons)}")
+                    if result.warnings:
+                        observations.append(f"warnings={len(result.warnings)}")
+                    observation_suffix = f"; {', '.join(observations)}" if observations else ""
                     print(
                         f"[{len(results):02d}/{len(selected):02d}] {status} "
-                        f"{result.job.name} ({result.elapsed:.2f}s)",
+                        f"{result.job.name} ({result.elapsed:.2f}s{observation_suffix})",
                         flush=True,
                     )
 
@@ -554,14 +520,25 @@ def main() -> int:
         print(result.output.rstrip(), file=sys.stderr)
     elapsed = time.monotonic() - started
     tests = sum(result.test_count for result in results)
+    skipped = sum(len(result.skip_reasons) for result in results)
+    warnings = sum(len(result.warnings) for result in results)
+    for result in results:
+        for reason in result.skip_reasons:
+            print(f"SKIP {result.job.name}: {reason}")
+        for warning in result.warnings:
+            print(f"WARN {result.job.name}: {warning}")
     if failures:
         print(
             f"\nFAILED: {len(failures)} of {len(results)} jobs failed; "
-            f"{tests} unittest cases completed in {elapsed:.2f}s",
+            f"{tests} unittest cases completed, {skipped} skipped, {warnings} warnings "
+            f"in {elapsed:.2f}s",
             file=sys.stderr,
         )
         return 1
-    print(f"\nOK: {len(results)} jobs, {tests} unittest cases in {elapsed:.2f}s")
+    print(
+        f"\nOK: {len(results)} jobs, {tests} unittest cases, "
+        f"{skipped} skipped, {warnings} warnings in {elapsed:.2f}s"
+    )
     return 0
 
 

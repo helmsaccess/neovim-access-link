@@ -43,9 +43,7 @@ FORBIDDEN_DOCUMENTATION_WORKFLOW_PHRASES = {
 def discover_agents_paths() -> set[pathlib.Path]:
     discovered: set[pathlib.Path] = set()
     for current_root, directory_names, file_names in os.walk(REPOSITORY_ROOT):
-        directory_names[:] = sorted(
-            name for name in directory_names if name not in IGNORED_DIRECTORY_NAMES
-        )
+        directory_names[:] = sorted(name for name in directory_names if name not in IGNORED_DIRECTORY_NAMES)
         current_path = pathlib.Path(current_root)
         if "AGENTS.md" in file_names:
             discovered.add((current_path / "AGENTS.md").relative_to(REPOSITORY_ROOT))
@@ -106,7 +104,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             source.write_text('print("current")\n', encoding="utf-8")
             target.write_text(
                 "before\n<!-- BEGIN lazy-python-example -->\n"
-                "```lua\nprint(\"stale\")\n```\n"
+                '```lua\nprint("stale")\n```\n'
                 "<!-- END lazy-python-example -->\nafter\n",
                 encoding="utf-8",
             )
@@ -119,8 +117,10 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_lazy_python_example_is_identical_in_both_manuals(self) -> None:
         example = (
-            REPOSITORY_ROOT / "examples/neovim-lazy-python/init.lua"
-        ).read_text(encoding="utf-8").rstrip("\n")
+            (REPOSITORY_ROOT / "examples/neovim-lazy-python/init.lua")
+            .read_text(encoding="utf-8")
+            .rstrip("\n")
+        )
         start_marker = "<!-- BEGIN lazy-python-example -->"
         end_marker = "<!-- END lazy-python-example -->"
 
@@ -151,8 +151,7 @@ class RepositoryPolicyTests(unittest.TestCase):
                 self.assertLessEqual(
                     size,
                     MAX_AGENTS_BYTES,
-                    f"{agents_path} is {size} bytes; keep it at or below "
-                    f"{MAX_AGENTS_BYTES} bytes (12 KiB)",
+                    f"{agents_path} is {size} bytes; keep it at or below {MAX_AGENTS_BYTES} bytes (12 KiB)",
                 )
 
     def test_published_documentation_excludes_agent_workflow_instructions(self) -> None:
@@ -196,6 +195,30 @@ class RepositoryPolicyTests(unittest.TestCase):
                 pathlib.Path("/") / ("r" * 90),
             )
 
+    def test_runner_reports_successful_skips_and_warnings(self) -> None:
+        runner = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/run_tests.py"),
+            run_name="repository_test_runner",
+        )
+        output = "\n".join(
+            (
+                "test_first (Example.test_first) ... ok",
+                "test_second (Example.test_second) ... skipped 'requires Windows'",
+                "/tmp/example.py:17: ResourceWarning: unclosed resource",
+                "Ran 2 tests in 0.001s",
+                "OK (skipped=1)",
+            )
+        )
+
+        count, skip_reasons, warnings = runner["parse_unittest_observations"](output)
+
+        self.assertEqual(2, count)
+        self.assertEqual(("requires Windows",), skip_reasons)
+        self.assertEqual(
+            ("/tmp/example.py:17: ResourceWarning: unclosed resource",),
+            warnings,
+        )
+
     @unittest.skipUnless(os.name == "posix", "POSIX process-group contract")
     def test_runner_timeout_terminates_the_complete_process_group(self) -> None:
         runner = runpy.run_path(
@@ -233,9 +256,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.fail(f"timed-out child process {child_pid} is still running")
 
     def test_ci_runs_safe_ssh_and_socket_groups_as_separate_jobs(self) -> None:
-        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(encoding="utf-8")
         for command in (
             "python3 tools/run_tests.py all-safe",
             "python3 tools/run_tests.py ssh",
@@ -245,22 +266,16 @@ class RepositoryPolicyTests(unittest.TestCase):
                 self.assertEqual(1, workflow.count(command))
         self.assertEqual(
             4,
-            workflow.count(
-                "python3 -m pip install --requirement tools/requirements-ci.txt"
-            ),
+            workflow.count("python3 -m pip install --requirement tools/requirements-ci.txt"),
         )
 
     def test_ci_builds_the_complete_documentation_set(self) -> None:
-        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(encoding="utf-8")
         self.assertEqual(1, workflow.count("run: bash tools/build_documentation.sh"))
         self.assertIn("German and English documentation build", workflow)
 
     def test_ci_pins_real_completion_plugin_matrix(self) -> None:
-        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(encoding="utf-8")
         for expected in (
             "Neovim 0.10.1 / blink.cmp v1",
             "Neovim 0.12.3 / blink.cmp v1",
