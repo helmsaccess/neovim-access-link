@@ -77,9 +77,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
   verwirft ein späteres `Ja` nicht mehr; bis zur erneuten korrelierten
   Vordergrundbestätigung bleiben Unterdrückung und strukturiertes Tippecho aus,
   sodass andere Windows-Terminal-Fenster ihr natives Tippecho behalten.
-  Regressionstests decken mehrfachen Fokuswechsel bei geöffneter Frage ab. Ein
-  praktischer Lauf unter NVDA 2026.2beta10 bestätigt diesen Fokuspfad; das
-  Manifest setzt die zuletzt getestete NVDA-Version auf 2026.2.
+  Regressionstests decken mehrfachen Fokuswechsel bei geöffneter Frage ab. Der
+  praktische Lauf unter NVDA 2026.2beta10 deckte den Fehler auf und prüfte den
+  umgebenden Fokuspfad; das Manifest setzt die zuletzt getestete NVDA-Version
+  auf 2026.2. Der korrigierte Build benötigt noch den abschließenden manuellen
+  Wiederholungstest.
 - Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
   Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
   Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich

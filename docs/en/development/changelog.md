@@ -71,9 +71,10 @@ test-build entries through August 5, 2026.
   `Yes`; suppression and structured typing echo remain disabled until the
   correlated foreground context is confirmed again, preserving native typing
   echo in other Windows Terminal windows. Regression tests cover repeated
-  focus changes while the question is open. A practical run under NVDA
-  2026.2beta10 confirms this focus path, and the manifest sets the last tested
-  NVDA version to 2026.2.
+  focus changes while the question is open. The practical run under NVDA
+  2026.2beta10 exposed the defect and exercised the surrounding focus path, so
+  the manifest sets the last tested NVDA version to 2026.2. The corrected build
+  still needs the final manual repetition test.
 - Hardens protocol boundaries after the complete unit-test review. Boolean and
   negative sequences or timestamps are rejected in the message envelope. A new
   transport session starts exclusively with `fullState` at sequence 0, while
