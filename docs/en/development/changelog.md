@@ -6,7 +6,65 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-There are currently no unreleased changes.
+- Starts the 0.99.0 development line with development build 1 after the 0.98.0
+  beta pre-release.
+- Simplifies Neovim-plugin runtime state: the public root facade now composes
+  explicit owners for the event channel, input, completion, command line, UI
+  prompts, Oil confirmations, and context changes. Public RPC/adapter
+  functions and semantic events remain unchanged. A dedicated behavior test
+  covers fail-open channel teardown, while the package test checks identical
+  tested modules instead of internal source fragments. This installable state
+  is development build 2.
+- Stabilizes real-TUI regression tests by making one shared send helper drain
+  pending PTY output before every physical-key step. A full test output buffer
+  can therefore no longer stop Neovim from polling input.
+- Completes the critical follow-up review of the Neovim-plugin refactoring. The
+  event channel now protects invalid snapshots, payload failures, and
+  publication failures. Input prefixes form one tagged state, so coupled `g`
+  commands cannot be misclassified as independent macro, register, or edit
+  commands; reconnects discard old scheduled input events. Regression tests
+  cover these transitions, repeated setup, and bounded PTY draining. The test
+  runner also bounds every isolated job. This installable state is development
+  build 3.
+- Corrects the remaining gaps found by an independent lifecycle review. Every
+  internal publication failure now closes the real RPC transport as well. A
+  connection generation discards scheduled UI, command-line, context,
+  diagnostic, and file-manager events from the previous connection; transient
+  menu, prompt, and controller state resets silently before the next
+  `fullState`. A scheduled UI teardown can no longer remove a newer UI
+  attachment. On timeout, the runner terminates the complete process group
+  instead of only the direct test process. Real RPC, reconnect, menu-lifetime,
+  and child-process regression tests cover these boundaries. This installable
+  state is development build 4.
+- Simplifies the NVDA add-on's Python runtime after a complete architecture
+  audit. The Global Plugin shrinks from more than 3,200 lines to a few dozen
+  and now owns only the lifetime of a transactionally constructed runtime. Connection workflow,
+  terminal actions, event delivery, presentation, and deferred work have
+  explicit owners; the AppModule and Braille adapter use narrow public
+  contracts instead of private Global Plugin details. One dispatcher
+  serializes outbound control data, while a bounded background worker stops
+  clients without making NVDA's main thread wait for transport shutdown.
+  Architecture, rollback, concurrency, and ownership tests protect these
+  boundaries, and Python style validation now covers every add-on test. This
+  first installable state on the new development branch is development build
+  1.
+- Hardens the Python runtime refactoring after an independent senior review.
+  `ControlDispatcher` preserves per-client order, isolates independent clients
+  with a fixed worker pool, and lets local RPC shutdown interrupt a blocked
+  socket send. `ClientStopper` owns every accepted detached client instead of
+  leaving one unowned when a queue is full. Selection and password dialogs use
+  NVDA's public modal-lifetime tracking, and stale passwords are discarded. The
+  lifecycle delegates complete connection retirement to one workflow, while
+  the state machine for temporarily remembered bindings has its own controller.
+  Direct queue, ordering, isolation, cancellation, dialog, and ownership tests
+  cover the new boundaries. This installable state is development build 2.
+- Improves the question about a temporary F12 tab association: `Yes` again has
+  the default focus. A new checkbox stores the explicitly selected answer in
+  the active NVDA configuration profile; the `Temporary terminal connections`
+  setting can then switch between asking again, remembering automatically, and
+  not remembering automatically. Package tests cover profile switches, `Yes`
+  and `No` decisions, cancellation, dialog focus, and prompt-free reuse. This
+  installable state is development build 3.
 
 ## 0.98.0
 

@@ -49,11 +49,12 @@ checking the Windows Terminal AppModule, process, and allowed UIA class.
 
 ## Exception 3: NVDA Settings and main-menu integration
 
-Registration through `NVDASettingsDialog.categoryClasses`, insertion of a
-top-level submenu through `gui.mainFrame.sysTrayIcon.menu`, and
-`gui.runScriptModalDialog` are common NVDA add-on practice, but are not
-promised as independent long-term stable extension interfaces. Installed help
-is resolved by NVDA's public localized `Addon.getDocFilePath()`.
+Registration through `NVDASettingsDialog.categoryClasses` and insertion of a
+top-level submenu through `gui.mainFrame.sysTrayIcon.menu` are common NVDA
+add-on practice, but are not promised as independent long-term stable extension
+interfaces. Dialogs are scheduled on NVDA's main thread through a narrow UI
+port; the deprecated `gui.runScriptModalDialog` helper is not used. Installed
+help is resolved by NVDA's public localized `Addon.getDocFilePath()`.
 
 - Risk: menu or dialog structure can change between NVDA major versions,
   making the feature unavailable.

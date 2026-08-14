@@ -14,28 +14,32 @@ class AddonRuntime:
 		*,
 		registrar: Any,
 		integration_service: Any,
-		pending_main_thread_calls: set[Any],
+		control_dispatcher: Any,
+		scheduler: Any,
+		client_stopper: Any,
 		gate: Any,
 		profile_switch_action: Any,
 		profile_switch_handler: Callable[..., None],
 		clear_session_passwords: Callable[[], None],
-		coordinator: Any,
+		stop_connections: Callable[[], None],
 		focus_service: Any,
 		claim_service: Any,
 		ui_manager: Any,
 		presentation: Any,
 		diagnostics: Any,
 	) -> None:
-		if registrar is None or integration_service is None:
-			raise ValueError("registrar and integration service are required")
+		if registrar is None or integration_service is None or not callable(stop_connections):
+			raise ValueError("registrar, integration service, and connection shutdown are required")
 		self._registrar = registrar
 		self._integrationService = integration_service
-		self._pendingMainThreadCalls = pending_main_thread_calls
+		self._controlDispatcher = control_dispatcher
+		self._scheduler = scheduler
+		self._clientStopper = client_stopper
 		self._gate = gate
 		self._profileSwitchAction = profile_switch_action
 		self._profileSwitchHandler = profile_switch_handler
 		self._clearSessionPasswords = clear_session_passwords
-		self._coordinator = coordinator
+		self._stopConnections = stop_connections
 		self._focusService = focus_service
 		self._claimService = claim_service
 		self._uiManager = ui_manager
@@ -82,7 +86,8 @@ class AddonRuntime:
 				lambda: self._registrar.unpublish(self._integrationService, token),
 			)
 		self._run_close_step("terminalService", self._integrationService.close)
-		self._cancel_main_thread_calls()
+		self._run_close_step("controlDispatcher", self._controlDispatcher.close)
+		self._run_close_step("scheduler", self._scheduler.close)
 		self._run_close_step("gate", self._gate.disable)
 		if self._profileSwitchRegistered:
 			self._profileSwitchRegistered = False
@@ -93,24 +98,12 @@ class AddonRuntime:
 		self._run_close_step("passwords", self._clearSessionPasswords)
 		self._run_close_step("connectionClaims", self._claimService.invalidate_connection_state)
 		self._run_close_step("terminalFocus", self._focusService.clear)
-		self._run_close_step("connections", self._stop_owned_connections)
-		self._run_close_step("runtimeTracking", self._coordinator.clear_runtime_tracking)
+		self._run_close_step("connections", self._stopConnections)
+		self._run_close_step("clientStopper", self._clientStopper.close)
 		self._run_close_step("ui", self._uiManager.unregister)
 		self._run_close_step("presentation", self._presentation.close)
 		self._record("addonStop")
 		return True
-
-	def _stop_owned_connections(self) -> None:
-		instances = self._coordinator.instances
-		if not instances.list():
-			return
-		instances.stop_all()
-		self._record("clientInstancesStopped")
-
-	def _cancel_main_thread_calls(self) -> None:
-		for pending in tuple(self._pendingMainThreadCalls):
-			self._run_close_step("mainThreadCall", pending.Stop)
-		self._pendingMainThreadCalls.clear()
 
 	def _run_close_step(self, step: str, operation: Callable[[], Any]) -> None:
 		try:

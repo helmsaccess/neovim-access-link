@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import socket
+import threading
+import time
 import unittest
 from unittest import mock
 
@@ -66,6 +69,42 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
                 lambda _event, _payload: None,
                 lambda _state: None,
             )
+
+    def test_stop_interrupts_a_blocked_notification_send(self) -> None:
+        source = self.make_source(None)
+        send_started = threading.Event()
+        send_released = threading.Event()
+        stopped = threading.Event()
+        notify_result: list[bool] = []
+
+        class BlockingSocket:
+            def sendall(self, _data: bytes) -> None:
+                send_started.set()
+                send_released.wait(1.0)
+                raise OSError("closed")
+
+            def shutdown(self, how: int) -> None:
+                self.shutdown_how = how
+                send_released.set()
+
+            def close(self) -> None:
+                stopped.set()
+
+        connection = BlockingSocket()
+        source._socket = connection
+        notify_thread = threading.Thread(
+            target=lambda: notify_result.append(source.notify("nvim_nvda_control", {})),
+        )
+        notify_thread.start()
+        self.assertTrue(send_started.wait(1.0))
+        before = time.monotonic()
+        source.stop()
+        self.assertLess(time.monotonic() - before, 0.1)
+        notify_thread.join(timeout=1.0)
+        self.assertFalse(notify_thread.is_alive())
+        self.assertEqual([False], notify_result)
+        self.assertEqual(socket.SHUT_RDWR, connection.shutdown_how)
+        self.assertTrue(stopped.is_set())
 
 
 if __name__ == "__main__":

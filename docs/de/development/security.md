@@ -92,7 +92,7 @@ Voraussetzung für Korrektheit. Protokollfehler werden mit Typ und Grenze, nicht
 mit vollständigem Benutzertext, festgehalten.
 
 Agenteneigene Reproduktionen, Downloads und Berichte liegen außerhalb des
-Repositorys unter `/nfs/src/nal-tmp/` und werden nie versioniert. Vom Projekt
+Repositorys unter `../nal-aux/` und werden nie versioniert. Vom Projekt
 selbst erzeugte Laufzeit- oder Testausgaben verwenden ausschließlich ihre
 dokumentierten, ignorierten Pfade.
 

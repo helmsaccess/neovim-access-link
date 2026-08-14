@@ -1,9 +1,9 @@
 # Aktueller Status
 
-Stand: 13. August 2026. Der Quellstand ist als Beta-Release 0.98.0 vorbereitet;
-`buildVars.py` erzeugt Release-Artefakte ohne Entwicklungskennung und setzt
-den Update-Kanal im Manifest auf Beta. Der aktuelle veröffentlichte
-Pre-Release ist 0.97.0.
+Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
+Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
+veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
 Stabilitätseinstufung ab.
 
@@ -56,10 +56,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   Neovim-Konfigurationen und Sicherungen bleiben unverändert; ausdrückliche
   Plugin-Ladeeinträge bleiben der Benutzerkonfiguration überlassen.
 - Das Manifest folgt dem NVDA-Template mit Projektadresse,
-  Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll. Für
-  0.98.0 umfasst dieses die Änderungen seit der zuletzt im Add-on Store
-  veröffentlichten Version 0.96.0; der Projekt-Changelog 0.98.0 beschreibt
-  getrennt nur die Änderungen seit 0.97.0. Der Paketbuild verwirft fehlende,
+  Standardhilfedatei, Update-Kanal und lokalisiertem Änderungsprotokoll.
+  Entwicklungsbuilds der Linie 0.99.0 verwenden den Abschnitt
+  `Unveröffentlicht`; die Store-Vergleichsversion bleibt bis zu einer
+  tatsächlichen Store-Veröffentlichung 0.96.0. Der Paketbuild verwirft fehlende,
   leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
 - Der Dokumentationsjob verwendet wie der lokale Referenzbuild den offiziellen
@@ -77,6 +77,11 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Ein physischer F12-Druck ordnet die laufende Neovim-Instanz dem exakt
   fokussierten Windows-Terminal-Control zu. Mehrere Fenster, Tabs und Panes
   halten unabhängige lokale, entfernte oder normale Shell-Sitzungen.
+- Die anschließende Frage nach einer temporär gemerkten Tab-Zuordnung fokussiert
+  standardmäßig `Ja`. Ein Ankreuzfeld kann die gewählte Antwort im aktiven
+  NVDA-Profil speichern; die dreistufige Einstellung unter `Verbindungen`
+  wendet `Ja` oder `Nein` automatisch an oder setzt das Verhalten auf erneutes
+  Fragen zurück. Die Tab-Zuordnung selbst bleibt reine Laufzeitinformation.
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.
@@ -86,9 +91,17 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Windows-Terminal-Ereignisse und `nextHandler` gehören dem AppModule.
   Getrennte Dienste besitzen Fokus, Sitzungszuordnung, Verbindungen,
   Editorzustand, Einstellungen, Präsentation und Laufzeit. Das Global Plugin
-  bleibt der prozessweite NVDA-Rand und die Kompositionswurzel; den aktuellen
-  Schnitt beschreibt die [Architektur](architecture.md). Der datierte Anhang C
-  bewahrt nur die damalige Prüfgrundlage.
+  erzeugt und schließt nur noch die transaktional zusammengesetzte Runtime.
+  Verbindungsworkflow, Wiederherstellung temporärer Bindungen,
+  Terminalaktionen und Ereignislieferung haben eigene Besitzer; AppModule und
+  Brailleadapter sehen nur ihre statischen Ports. Ausgehende Controls verwenden
+  eine begrenzte Queue und bleiben je Client geordnet, während ein fester
+  Workerpool unabhängige Clients voneinander isoliert. Ein zweiter fester Pool
+  übernimmt jeden bereits abgetrennten Client bis zu dessen Stopp. Ausschalten
+  und Teardown warten deshalb nicht auf Transport-I/O. Den aktuellen Schnitt
+  beschreibt die
+  [Architektur](architecture.md); der datierte Anhang C bewahrt nur die
+  damalige Prüfgrundlage.
 
 ### Editor und Ausgabe
 
@@ -200,6 +213,23 @@ legt C11 sowie die mitgelieferte Testkonfiguration explizit fest und führt
 Standard- und Fehlerausgabe zusammen. Das
 Markdownlint-Profil prüft die absolute Testdatei statt eines stdin-Kaltstarts;
 beide Parser erhalten Windows-Laufwerks- und UNC-Pfade vollständig.
+Die öffentliche Neovim-Plugin-Fassade komponiert getrennte Besitzer für
+Kanal, Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
+Kontextwechsel. Der Kanal behandelt Zustandserfassung, Payload-Erweiterung und
+RPC-Versand als eine Fail-open-Grenze. Eingabepräfixe sind ein einzelner
+markierter Zustand. Bei einem internen Publikationsfehler schließt der Kanal
+auch den realen RPC-Transport. Ein Verbindungswechsel verwirft alte geplante
+Controllerereignisse und setzt transiente Menü-, Prompt- und Laufzeitzustände
+vor dem nächsten `fullState` still zurück. Semantische Lua-Tests prüfen reale
+RPC-Serialisierungsfehler, schnelle Reconnects, Menülebenszyklen, gekoppelte
+Präfixbefehle, wiederholtes Setup sowie Completion- und
+Befehlszeilenübergänge; der Add-on-Test prüft die identische Aufnahme der
+getesteten Module statt ihrer internen Quelltextform.
+Reale TUI-Tests leeren über eine gemeinsame Sendehilfe eine zeitlich und nach
+Datenmenge begrenzte ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt.
+Jeder isolierte Runner-Job besitzt zusätzlich ein festes Zeitlimit; dessen
+Abbruch beendet die gesamte eigene Prozessgruppe einschließlich gestarteter
+Neovim- und Hilfsprozesse.
 Für reale Provider gilt in Vorprüfung und Testhilfe eine einheitliche,
 begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.

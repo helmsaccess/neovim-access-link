@@ -1,9 +1,9 @@
 # Current status
 
-Status date: August 13, 2026. The source tree is prepared as the 0.98.0 beta
-release; `buildVars.py` generates release artifacts without a development
-identifier and sets the manifest update channel to beta. The current published
-pre-release is 0.97.0. The
+Status date: August 14, 2026. The source tree develops the 0.99.0 line;
+`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
+metadata and sets the manifest update channel to beta. The current published
+pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
 feature count.
 
@@ -51,9 +51,9 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   remain unchanged; explicit plugin load entries remain owned by user
   configuration.
 - The manifest follows the NVDA template with the project URL, default help
-  file, update channel, and localized changelog. For 0.98.0, this covers the
-  changes since the Add-on Store's last published version, 0.96.0; the separate
-  0.98.0 project changelog covers only changes since 0.97.0. The package build
+  file, update channel, and localized changelog. Development builds on the
+  0.99.0 line use the `Unreleased` section; the Store comparison version
+  remains 0.96.0 until an actual Store publication. The package build
   rejects missing, empty, unknown, or malformed template fields and verifies
   the default English help plus the German localization manifest.
 - The documentation job and local reference build use the official
@@ -69,6 +69,11 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - A physical F12 press assigns the running Neovim instance to the exact focused
   Windows Terminal control. Multiple windows, tabs, and panes retain
   independent local, remote, or ordinary shell sessions.
+- The following question about a temporarily remembered tab association gives
+  `Yes` the default focus. A checkbox can store the selected answer in the
+  active NVDA profile; the three-state setting under `Connections` applies
+  `Yes` or `No` automatically or resets the behavior to asking again. The tab
+  association itself remains runtime-only.
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.
@@ -77,9 +82,15 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
   disconnect, even while the SSH process and bridge remain alive.
 - The AppModule owns Windows Terminal events and `nextHandler`. Dedicated
   services own focus, session assignment, connections, editor state, settings,
-  presentation, and runtime. The Global Plugin remains the process-wide NVDA
-  edge and composition root; [architecture](architecture.md) describes the
-  current boundary. The dated Appendix C only preserves the review basis at
+  presentation, and runtime. The Global Plugin now only creates and closes the
+  transactionally composed runtime. Connection workflow, temporary-binding
+  recovery, terminal actions, and event delivery have dedicated owners; the
+  AppModule and Braille adapter see only their static ports. Outbound controls
+  use a bounded queue and remain ordered per client, while a fixed worker pool
+  isolates independent clients. A second fixed pool owns every already-detached
+  client until it is stopped. Disabling and teardown therefore do not wait for
+  transport I/O. [Architecture](architecture.md) describes the
+  current boundary; the dated Appendix C only preserves the review basis at
   that time.
 
 ### Editor and presentation
@@ -187,6 +198,22 @@ the language mode and supplied test configuration explicitly, and merges
 standard and error output. The
 markdownlint profile checks the absolute fixture instead of relying on a cold
 stdin run; both parsers retain complete Windows drive and UNC paths.
+The public Neovim-plugin facade composes separate owners for the channel,
+input, completion, command line, UI prompts, Oil confirmations, and context
+changes. The channel treats state capture, payload decoration, and RPC
+publication as one fail-open boundary. Input prefixes are one tagged state. On
+an internal publication failure, the channel also closes the real RPC
+transport. A connection change discards old scheduled controller events and
+silently resets transient menu, prompt, and runtime state before the next
+`fullState`.
+Semantic Lua tests cover real RPC serialization failures, fast reconnects,
+menu lifetimes, coupled prefix commands, repeated setup, completion, and
+command-line transitions; the add-on test checks that these tested modules are
+bundled identically instead of inspecting their internal source shape.
+Real-TUI tests use one shared send helper to drain a time- and byte-bounded
+amount of pending PTY output before every physical-key step. Every isolated
+runner job also has a fixed timeout whose failure terminates its complete
+process group, including Neovim and helper processes it started.
 Preflight and test helpers use one bounded 60-second wait for real providers.
 This permits cold Windows and network-drive starts without waiting forever for
 a stalled provider.

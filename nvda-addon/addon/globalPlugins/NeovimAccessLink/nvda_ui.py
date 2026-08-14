@@ -5,7 +5,6 @@ import pathlib
 import threading
 
 import addonHandler
-import queueHandler
 import ui
 
 from .core.connection_profiles import (
@@ -33,6 +32,7 @@ from .settings_service import (
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
 	BRAILLE_SUGGESTION_START_MAXIMUM,
+	TEMPORARY_BINDING_PROMPT_DEFAULT,
 )
 
 addonHandler.initTranslation()
@@ -46,6 +46,7 @@ class NvdaUiManager:
 		settings_service,
 		*,
 		record_diagnostic,
+		queue_main_thread,
 		password_for_profile,
 		askpass_path,
 		product_name,
@@ -57,6 +58,7 @@ class NvdaUiManager:
 	):
 		self._settingsService = settings_service
 		self._recordDiagnostic = record_diagnostic
+		self._queueMainThread = queue_main_thread
 		self._passwordForProfile = password_for_profile
 		self._askpassPath = askpass_path
 		self._productName = product_name
@@ -692,6 +694,35 @@ class NvdaUiManager:
 							).format(name=product_name),
 						)
 					)
+					# Translators: Group controlling the question shown after a new F12 association.
+					temporary_binding_sizer = wx.StaticBoxSizer(
+						wx.VERTICAL,
+						connections_page,
+						label=_("Temporary terminal connections"),
+					)
+					connections_helper.addItem(temporary_binding_sizer)
+					temporary_binding_group = guiHelper.BoxSizerHelper(
+						connections_page,
+						sizer=temporary_binding_sizer,
+					)
+					# Translators: Choice controlling whether the temporary connection question is shown.
+					self.temporaryBindingPrompt = temporary_binding_group.addLabeledControl(
+						_("After a new &F12 association:"),
+						wx.Choice,
+						choices=[
+							_("Ask whether to remember the connection"),
+							_("Remember the connection"),
+							_("Do not remember the connection"),
+						],
+					)
+					self.temporaryBindingPrompt.SetSelection(
+						int(
+							settings.get(
+								"temporaryBindingPrompt",
+								TEMPORARY_BINDING_PROMPT_DEFAULT,
+							)
+						)
+					)
 					self._updateConnectionButtons()
 
 				def _onConnectionSelection(self, _event):
@@ -751,6 +782,7 @@ class NvdaUiManager:
 						{
 							"focusAnnouncement": self.focusAnnouncement.GetSelection(),
 							"automaticParameterHints": self.automaticParameterHints.GetValue(),
+							"temporaryBindingPrompt": self.temporaryBindingPrompt.GetSelection(),
 							"brailleSuggestionStart": self.brailleSuggestionStart.GetValue(),
 							"brailleDeveloperStart": self.brailleDeveloperStart.GetValue(),
 							"brailleFollowSpeechExploration": (
@@ -1159,15 +1191,14 @@ class NvdaUiManager:
 						configurationBackups=0,
 					)
 					completed += 1
-					queueHandler.queueFunction(
-						queueHandler.eventQueue,
+					self._queueMainThread(
 						self._reportServerInstallProgress,
 						profile,
 						failure,
 						completed,
 						total,
 					)
-				queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
+				self._queueMainThread(self._finishServerInstalls, results)
 				return
 			imported_config = archive.payload
 		for profile, password in jobs:
@@ -1223,15 +1254,14 @@ class NvdaUiManager:
 				configurationBackups=len(result.configuration_backups),
 			)
 			completed += 1
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
+			self._queueMainThread(
 				self._reportServerInstallProgress,
 				profile,
 				result,
 				completed,
 				total,
 			)
-		queueHandler.queueFunction(queueHandler.eventQueue, self._finishServerInstalls, results)
+		self._queueMainThread(self._finishServerInstalls, results)
 
 	def _reportServerInstallProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]
@@ -1409,15 +1439,14 @@ class NvdaUiManager:
 				diagnostics=result.diagnostics,
 			)
 			completed += 1
-			queueHandler.queueFunction(
-				queueHandler.eventQueue,
+			self._queueMainThread(
 				self._reportComponentRemovalProgress,
 				profile,
 				result,
 				completed,
 				total,
 			)
-		queueHandler.queueFunction(queueHandler.eventQueue, self._finishComponentRemovals, results)
+		self._queueMainThread(self._finishComponentRemovals, results)
 
 	def _reportComponentRemovalProgress(self, profile, result, completed, total):
 		name = self._installTargetSummary(profile)[0]

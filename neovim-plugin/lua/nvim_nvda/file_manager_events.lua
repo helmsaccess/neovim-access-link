@@ -3,6 +3,7 @@ local file_manager = require("nvim_nvda.file_manager")
 local M = {}
 local publish
 local publish_action
+local current_guard = function(callback) return callback end
 local observed
 local pending = false
 local pending_action
@@ -74,7 +75,7 @@ local function emit_action(value)
   end
   if action_scheduled then return end
   action_scheduled = true
-  vim.schedule(function()
+  vim.schedule(current_guard(function()
     action_scheduled = false
     local action = pending_action
     local action_target = pending_action_target
@@ -83,7 +84,7 @@ local function emit_action(value)
     if action and target_is_current(action_target) and manager_is_current(action.manager) then
       publish_action(action)
     end
-  end)
+  end))
 end
 
 local function action_path(action)
@@ -125,14 +126,14 @@ end
 function M.refresh(reason, target)
   if type(publish) ~= "function" or pending or not target_is_current(target) then return end
   pending = true
-  vim.schedule(function()
+  vim.schedule(current_guard(function()
     pending = false
     if not target_is_current(target) then return end
     local current = file_manager.current()
     if type(current) ~= "table" or vim.deep_equal(current, observed) then return end
     observed = copy(current)
     publish(reason)
-  end)
+  end))
 end
 
 local function subscribe_nvim_tree()
@@ -251,11 +252,22 @@ local function subscribe_neo_tree()
   end
 end
 
-function M.setup(state_callback, action_callback, group)
+function M.reset()
+  observed = nil
+  pending = false
+  pending_action = nil
+  pending_action_target = nil
+  action_scheduled = false
+end
+
+function M.setup(state_callback, action_callback, group, guard)
   assert(type(state_callback) == "function", "file-manager event publisher required")
   assert(type(action_callback) == "function", "file-manager action publisher required")
   publish = state_callback
   publish_action = action_callback
+  current_guard = type(guard) == "function" and guard
+    or function(callback) return callback end
+  M.reset()
   vim.api.nvim_create_autocmd("BufWipeout", {
     group = group,
     callback = function(event) file_manager.forget_buffer(event.buf) end,

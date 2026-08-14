@@ -20,6 +20,7 @@ local command_names = {
   "NvimNvdaDiagnosticCurrent",
 }
 local current_emit
+local current_guard = function(callback) return callback end
 local jump_callback
 local previous_jump_callback
 local pending_navigation
@@ -307,7 +308,7 @@ end
 
 local function emit_moved(reason, extra)
   if type(current_emit) ~= "function" then return end
-  vim.schedule(function() current_emit("diagnosticMoved", reason, extra) end)
+  vim.schedule(current_guard(function() current_emit("diagnosticMoved", reason, extra) end))
 end
 
 local function record_navigation(reason, extra)
@@ -323,13 +324,13 @@ local function record_navigation(reason, extra)
     extra = extra,
   }
   pending_navigation = token
-  vim.defer_fn(function()
+  vim.defer_fn(current_guard(function()
     if pending_navigation ~= token then return end
     pending_navigation = nil
     if type(current_emit) == "function" then
       current_emit("diagnosticMoved", reason, extra)
     end
-  end, 20)
+  end), 20)
 end
 
 local function diagnostics_for_current_buffer()
@@ -504,9 +505,16 @@ local function install_jump_hook()
   pcall(vim.diagnostic.config, { jump = jump })
 end
 
-function M.setup(emit, group)
-  current_emit = emit
+function M.reset()
+  pending_navigation = nil
   command_selection = nil
+end
+
+function M.setup(emit, group, guard)
+  current_emit = emit
+  current_guard = type(guard) == "function" and guard
+    or function(callback) return callback end
+  M.reset()
   buffer_cache = {}
   buffer_line_cache = {}
   cache_enabled = group ~= nil

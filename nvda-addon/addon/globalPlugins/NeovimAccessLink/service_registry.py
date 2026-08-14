@@ -8,6 +8,6 @@ from .core.service_registrar import ServiceRegistrar
 serviceRegistrar = ServiceRegistrar()
 
 
-def getTerminalIntegrationService():
+def get_terminal_integration_service():
 	"""Return the service published for application and Braille adapters."""
 	return serviceRegistrar.current

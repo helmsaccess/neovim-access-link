@@ -84,7 +84,7 @@ required for correctness. Protocol errors record type and bound rather than
 complete user text.
 
 Agent-created reproductions, downloads, and reports live outside the
-repository under `/nfs/src/nal-tmp/` and are never versioned. Project tools'
+repository under `../nal-aux/` and are never versioned. Project tools'
 runtime or test output uses only its documented ignored paths.
 
 ## Remaining boundary

@@ -37,7 +37,12 @@ separate temporary directories.
 | `all` | `all-safe`, then `ssh` and `socket` in separate phases |
 
 Without a group argument, the runner uses the safe preset. `-j N` limits
-parallelism, and `--list` shows selection without running it.
+parallelism, and `--list` shows selection without running it. Every isolated
+job runs in its own process group. After 180 seconds, the complete group,
+including Neovim and helper processes it started, is terminated and the job is
+reported as failed. The real-TUI send
+helper additionally bounds pseudo-terminal draining to one second and 8 MiB
+per physical-key step.
 
 ## Recommended workflow
 
@@ -52,6 +57,7 @@ path:
 
 ```bash
 ruff check .
+ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 python3 tools/run_tests.py all-safe
 python3 tools/run_tests.py ssh
@@ -86,6 +92,15 @@ allowed.
 
 Where practical, a bug-fix commit adds a regression test at the lowest useful
 layer and integration evidence at the boundary where the defect appeared.
+
+AST-based add-on architecture tests enforce the minimal Global Plugin entry
+point, the public AppModule API, an acyclic local import graph, and exactly one
+production path each for `send_control` and `client.stop`. Real worker tests
+use deliberately blocking clients; scheduler and rollback tests execute late
+callbacks and failures at every resource-owning construction stage. These
+tests therefore exercise concurrency contracts rather than only source-text
+fragments. The second Ruff command explicitly lints every Python test; format
+checking remains limited to the configured NVDA product code.
 
 ## Specialized contract checks
 

@@ -20,6 +20,18 @@ kleine unveränderliche Payloads und legen sie ohne Warten in begrenzte Queues.
 Worker führen Transportzugriffe aus; Ergebnisse kehren über NVDAs
 Ereignisqueue zur Präsentation zurück.
 
+Das gilt einheitlich für Exploration, Braille, Zwischenablage, Register,
+Terminalsteuerung und Fokus-/`fullState`-Anforderungen. Nur der
+`ControlDispatcher` ruft den Transport auf. Seine Gesamtqueue ist begrenzt;
+Controls bleiben innerhalb eines Clients geordnet, während ein fester
+Workerpool unabhängige Clients parallel bedient. Der lokale RPC-Stopp kann
+einen blockierten Socketversand per `shutdown` unterbrechen. Beim Ausschalten
+oder Neuladen werden Clients zuerst atomar aus Gate-, Bindungs- und
+Runtimezustand entfernt. Der `ClientStopper` übernimmt jeden angenommenen,
+bereits abgetrennten Client und führt `stop()` mit fester Parallelität aus,
+ohne dass der Hauptthread wartet. Seine Warteschlange enthält ausschließlich
+bereits erzeugte Clientressourcen aus dem Runtimebesitz, keine Protokolldaten.
+
 Eine volle oder geschlossene Queue, ein veraltetes Ergebnis oder ein
 Fokuswechsel verwirft eine optionale Steueraktion fail-open. Beim Loslassen
 einer Explorationstaste verwendet die Ausgabe bereits vorhandenen kanonischen

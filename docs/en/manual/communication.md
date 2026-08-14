@@ -109,9 +109,16 @@ directory.
 ## Remember or manually select an association
 
 After a new F12 association, Access Link asks whether to remember it for the
-Windows Terminal tab until NVDA or Windows Terminal exits. On a later tab
-switch, Access Link restores the matching running session after focus is
-confirmed.
+Windows Terminal tab until NVDA or Windows Terminal exits. `Yes` has the
+default focus. The `Remember this decision in the current configuration
+profile` checkbox stores either the `Yes` or `No` answer; later new
+associations in the same NVDA profile use that answer without another prompt.
+Open `NVDA menu > Preferences > Settings... > Neovim Access Link > Connections
+> Temporary terminal connections` to change it or restore `Ask whether to
+remember the connection`. The decision belongs to the profile, while the tab
+association created by a remembered `Yes` remains limited to the current NVDA
+process. On a later tab switch, Access Link restores the matching running
+session after focus is confirmed.
 
 The following assignable commands are available under
 `NVDA menu > Preferences > Input gestures... > Neovim Access Link`:

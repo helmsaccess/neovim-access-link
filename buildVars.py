@@ -7,9 +7,9 @@ import subprocess
 from pathlib import Path
 
 
-product_version = "0.98.0"
+product_version = "0.99.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = None
+development_build: int | None = 3
 release_channel = "beta"
 # The Add-on Store currently upgrades this release from 0.96.0. The manifest
 # changelog therefore includes every published product section after this base.

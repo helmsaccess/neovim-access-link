@@ -448,8 +448,14 @@ end
 
 function M.set_connected(value)
   automatic_enabled = value == true
-  reset_automatic()
+  M.reset()
   if automatic_enabled and automatic_mode() then schedule_automatic(nil, 0) end
+end
+
+function M.reset()
+  active = false
+  last_signature = nil
+  reset_automatic()
 end
 
 function M.setup(emit, group)

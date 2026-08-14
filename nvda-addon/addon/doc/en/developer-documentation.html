@@ -199,7 +199,11 @@ Focus changes request confirmed context</a></li>
 Disconnect and deactivation fail open</a></li>
 </ul></li>
 <li><a href="#docs__en__development__architecturemd__layer-responsibilities" id="toc-docs__en__development__architecturemd__layer-responsibilities">Layer
-responsibilities</a></li>
+responsibilities</a>
+<ul>
+<li><a href="#docs__en__development__architecturemd__internal-event-ownership-in-the-neovim-plugin" id="toc-docs__en__development__architecturemd__internal-event-ownership-in-the-neovim-plugin">Internal
+event ownership in the Neovim plugin</a></li>
+</ul></li>
 <li><a href="#docs__en__development__architecturemd__the-fail-open-gate" id="toc-docs__en__development__architecturemd__the-fail-open-gate">The
 fail-open gate</a></li>
 <li><a href="#docs__en__development__architecturemd__state-ordering-and-columns" id="toc-docs__en__development__architecturemd__state-ordering-and-columns">State,
@@ -1464,13 +1468,19 @@ states</td>
 <td>A Global Plugin object, lifecycle decisions, or terminal events</td>
 </tr>
 <tr class="odd">
-<td><code>AddonRuntime</code></td>
-<td>Late service publication and the fixed, idempotent teardown order
-for composed process-wide services</td>
-<td>Application events, editor planning, focus decisions, dialogs, or
-arbitrary service lookup</td>
+<td><code>composition.py</code> / <code>AddonRuntime</code></td>
+<td>Transactional construction, late service publication, and the fixed,
+idempotent teardown order for composed process-wide services</td>
+<td>Domain decisions, application events, or arbitrary service
+lookup</td>
 </tr>
 <tr class="even">
+<td><code>RuntimeScheduler</code></td>
+<td>The generation-bound NVDA queue and ownership of every delayed
+main-thread call</td>
+<td>Domain decisions, transport, or execution after close</td>
+</tr>
+<tr class="odd">
 <td><code>TerminalIntegrationService</code></td>
 <td>Shared, explicitly bounded integration contract for focus, fixed
 terminal commands, F12 claims, speech exploration mode, developer
@@ -1479,7 +1489,7 @@ contexts, and structured Braille interaction</td>
 <code>nextHandler</code>, dynamic method names, or access to private
 runtime state</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>TerminalFocusService</code></td>
 <td>Concrete terminal identity, focus generation, AppModule/adapter
 correlation, focus completion, and conservative disposal of closed
@@ -1487,14 +1497,42 @@ controls</td>
 <td>A Global Plugin instance, network I/O, application events, or
 <code>nextHandler</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>SessionClaimService</code></td>
 <td>One-shot F12 authorization, claim generations, and claim inventory
 state</td>
 <td>A Global Plugin instance, NVDA dialogs, synchronous discovery, or
 connection runtime copies</td>
 </tr>
+<tr class="even">
+<td><code>ConnectionWorkflow</code></td>
+<td>Activation, discovery, selection, start, disconnect, all-connection
+retirement, and session passwords through an injected dialog port</td>
+<td>Transport I/O, canonical editor state, temporary-binding recovery,
+or application events</td>
+</tr>
 <tr class="odd">
+<td><code>TemporaryBindingWorkflow</code></td>
+<td>Confirmation, focus recovery, and correlated state requests for
+temporarily remembered terminal bindings</td>
+<td>Discovery, connection start, claim inventory, or canonical state of
+its own</td>
+</tr>
+<tr class="even">
+<td><code>TerminalActions</code></td>
+<td>Clipboard, register, terminal, and diagnostic actions with
+correlated cleanup</td>
+<td>Connection discovery, focus ownership, or direct transport
+access</td>
+</tr>
+<tr class="odd">
+<td><code>EventDelivery</code></td>
+<td>Instance and focus validation of inbound state, editor planning, and
+delivery of completed output to presentation</td>
+<td>Dialogs, passwords, connection discovery, or transport
+ownership</td>
+</tr>
+<tr class="even">
 <td><code>EditorSessionController</code></td>
 <td>Domain mutation and reset of the active isolated per-instance editor
 state, runtime switching, mode/menu/transport/passthrough state,
@@ -1504,52 +1542,52 @@ exploration plans with reply correlation</td>
 <td>Concrete NVDA output, focus binding or authentication, the Windows
 clipboard, network I/O, or instance lifetime</td>
 </tr>
-<tr class="even">
-<td><code>ControlDispatcher</code></td>
-<td>Bounded asynchronous sending of prepared control payloads</td>
-<td>NVDA events, focus decisions, payload construction, or an unbounded
-queue</td>
-</tr>
 <tr class="odd">
+<td><code>ControlDispatcher</code> / <code>ClientStopper</code></td>
+<td>A bounded control queue with per-client ordered lanes and a fixed
+worker pool, plus a fixed stop pool that owns every accepted
+already-detached client; correlated results return through
+<code>RuntimeScheduler</code></td>
+<td>NVDA events, focus decisions, payload construction, or waiting on
+NVDA&#39;s main thread</td>
+</tr>
+<tr class="even">
 <td><code>SettingsService</code></td>
 <td>Loading, normalization, persistence, and profile switching for
 add-on settings plus immutable change reports</td>
 <td>Dialog state, terminal events, focus, or connections</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>SessionGate</code></td>
 <td>Whether native terminal output may be suppressed</td>
 <td>Editor semantics and transport</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Speech/Braille planning</td>
 <td>Localized and prioritized presentation</td>
 <td>Network, Neovim RPC, and focus binding</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>NvdaPresentation</code></td>
 <td>NVDA-specific delivery of planned speech, Braille messages, tones,
 and add-on sounds</td>
 <td>Speech planning, transport, focus binding, or dialogs</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>nvda_braille.py</code></td>
 <td>NVDA Braille region, terminal overlay, Braille-position translation,
 and lookup of the published terminal service</td>
 <td>A Global Plugin object, connection ownership, or focus
 decisions</td>
 </tr>
-<tr class="even">
-<td>Global Plugin</td>
-<td>NVDA-process lifetime, composition and publication of shared
-services, and the current coordination of process-wide NVDA-edge
-workflows for connections, claims, clipboard, network events, dialogs,
-and presentation transitions</td>
-<td>Application events, configurable terminal commands,
-<code>nextHandler</code>, overlay selection, configurable script
-metadata, or a second copy of domain runtime state</td>
-</tr>
 <tr class="odd">
+<td>Global Plugin</td>
+<td>Creation of exactly one composed runtime and closing it during
+NVDA-process teardown</td>
+<td>Domain workflows, registration, dialogs, transport, application
+events, or state copies</td>
+</tr>
+<tr class="even">
 <td><code>NvdaUiManager</code></td>
 <td>One-time symmetrical registration of the Settings category and
 top-level add-on menu, opening localized installed HTML help, connection
@@ -1557,7 +1595,7 @@ forms, component installation, and removal</td>
 <td>A Global Plugin instance, terminal events, focus binding, and
 suppression</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Windows Terminal AppModule</td>
 <td>UIA events, overlay selection, concrete terminal focus, configurable
 speech-exploration-mode gestures and their physical-key lifecycle, every
@@ -1570,24 +1608,61 @@ transport</td>
 </table>
 <p>These boundaries are intentionally redundant. A valid message is not
 enough; the instance, focus, and gate must also match.</p>
+<section id="docs__en__development__architecturemd__internal-event-ownership-in-the-neovim-plugin" class="level4">
+<h4>Internal event ownership in the Neovim plugin</h4>
+<p><code>lua/nvim_nvda/init.lua</code> is the stable public RPC and
+plugin-adapter facade and the composition root, but owns no domain state
+machine. The event channel owns the connection, sequence, connection
+generation, and fail-open teardown. State capture, payload decoration,
+and RPC publication are one protected failure boundary; every internal
+failure closes the real RPC transport and restores native UI ownership.
+Scheduled connection-specific controller callbacks and delayed UI
+teardowns are bound to the connection generation, while transient menu,
+prompt, and controller state resets silently on a connection change.
+Separate controllers own completion, direct key input including motion
+and edit state, the command line, Neovim UI and prompts, Oil
+confirmations, and coalesced context changes. Input prefixes form one
+tagged state; connection changes discard pending prefixes and scheduled
+events from the old connection. Braille routing remains a stateless,
+fully validated control. Controllers receive only narrow callbacks and
+do not import the root facade. Every mutable runtime state therefore has
+one writing owner while the event contract and public function names
+remain unchanged.</p>
 <p>The application boundary is therefore cleanly implemented: terminal
 events, overlay selection, <code>nextHandler</code>, configurable NVDA
 scripts, and input observers live in the Windows Terminal AppModule. The
-Global Plugin is the process-wide composition root and joins shared
-services to NVDA&#39;s process boundary; it owns no application events. <a href="#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership">ADR-0004</a>
+Global Plugin is only the minimal NVDA lifetime adapter.
+<code>composition.py</code> builds the directed object graph;
+<code>ConnectionWorkflow</code>, <code>TemporaryBindingWorkflow</code>,
+<code>TerminalActions</code>, and <code>EventDelivery</code> own the
+process-wide edge workflows. <a href="#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership">ADR-0004</a>
 records the rationale for this boundary.</p>
-<p><code>AddonRuntime.start()</code> first registers the profile
-callback, then Settings and the add-on menu, and publishes the terminal
-service last. If any step fails, the runtime immediately uses its
-complete idempotent teardown: unpublish, close the published service,
-cancel delayed main-thread calls, open the gate, unregister the profile
-callback, stop connections exactly once through their coordinator owner,
-clear its runtime/focus/request state exactly once, then close UI and
+<p><code>create_runtime()</code> immediately adds every constructed
+resource to a rollback list. A failure before <code>AddonRuntime</code>
+closes the scheduler, presentation, dispatcher, stopper, and, when
+present, the terminal facade in reverse ownership order. Only the
+complete graph is started. <code>AddonRuntime.start()</code> first
+registers the profile callback, then Settings and the add-on menu, and
+publishes the terminal service last. If any step fails, the runtime
+immediately uses its complete idempotent teardown: unpublish, close the
+published service, close controls through the dispatcher owned only by
+the runtime, cancel delayed main-thread calls, open the gate, unregister
+the profile callback, detach connections through the sole complete
+retirement path in <code>ConnectionWorkflow</code>, transfer every
+detached client to <code>ClientStopper</code>&#39;s fixed worker pool, clear
+runtime/focus/request state exactly once, then close UI and
 presentation. Claim and terminal-focus generations are invalidated
 before clients stop. Each step fails independently so one cleanup error
-cannot leave later resources active. The callback that clears session
-passwords held only by the Global Plugin remains as a narrow
-ownership-specific shutdown boundary.</p>
+cannot leave later resources active. The session-password cache owned
+only by <code>ConnectionWorkflow</code> is cleared before client
+shutdown.</p>
+<p>Results from longer-running component installation and removal, and
+answers from connection dialogs, also return through
+<code>RuntimeScheduler</code>. Selection and password dialogs use NVDA&#39;s
+public modal-lifetime tracking; a password result is discarded if its
+runtime graph closed while the dialog was open. After reload or
+teardown, no worker or already scheduled dialog can therefore mutate the
+closed object graph.</p>
 <p>A closed <code>TerminalIntegrationService</code> is a fail-open fence
 for retained references: it suppresses no native event or Braille
 output, authorizes no gesture, and produces no diagnostic effect. Claim,
@@ -1613,12 +1688,13 @@ passes the original gesture or native NVDA event through fail-open.</p>
 exposes only the typed operations required by the AppModule, the Braille
 module, and inbound developer contexts.</p>
 <p>The process-wide service instance lives in neutral
-<code>service_registry.py</code>. The Global Plugin publishes and
-removes the service through the same identity-checked
+<code>service_registry.py</code>. <code>AddonRuntime</code> publishes
+and removes it through the same identity-checked
 <code>ServiceRegistrar</code> that the AppModule and Braille module only
-read. <code>nvda_braille.py</code> owns the region and overlay and
-imports no Global Plugin; <code>__init__.py</code> merely re-exports
-their class names for the Windows Terminal AppModule.</p>
+read. The AppModule imports only <code>adapter_api.py</code>;
+<code>nvda_braille.py</code> uses its own static
+<code>BrailleAdapterPort</code>. The package entry point exports no
+adapter types and knows only runtime creation and teardown.</p>
 <p>The service holds no broad <code>_runtime</code> reference. The
 composition root supplies exactly one handler for every
 <code>TerminalCommand</code> plus separate callbacks for diagnostics,
@@ -1635,18 +1711,21 @@ failure is not treated as closure.</p>
 <p><code>TerminalIntegrationService</code> also authorizes and cancels
 physical F12 claims directly through <code>SessionClaimService</code>.
 That service owns the mutable claim and inventory state, local/SSH
-inventory workers, and candidate evaluation. It also owns discovery,
-selection, reuse, connection start, disconnect, and remembered bindings.
-The Global Plugin only joins its immutable results to NVDA&#39;s
-main-thread, dialog, message, and transport boundaries; it keeps no
-writable copy of claim state. Focus loss caused by the optional modal
-remember question is bridged by exactly one terminal- and
-instance-correlated reactivation. If Windows Terminal emits no new focus
-event after the question closes, a short bounded main-thread sequence
-checks NVDA&#39;s current focus and starts the normal focus-context
-handshake only for the same control, AppModule, adapter token, and
-instance selection. A different terminal focus discards the
-reactivation; missing or uncertain focus keeps native output open.</p>
+inventory workers, and candidate evaluation.
+<code>ConnectionWorkflow</code> owns discovery, selection, reuse,
+connection start, and disconnect. It joins immutable service results to
+NVDA&#39;s main-thread, dialog, and message boundaries and routes controls
+only through the dispatcher; it keeps no writable copy of claim state.
+<code>TemporaryBindingWorkflow</code> separately owns confirmation,
+focus recovery, and correlated state requests for remembered bindings.
+Focus loss caused by the optional modal remember question is bridged by
+exactly one terminal- and instance-correlated reactivation. If Windows
+Terminal emits no new focus event after the question closes, a short
+bounded main-thread sequence checks NVDA&#39;s current focus and starts the
+normal focus-context handshake only for the same control, AppModule,
+adapter token, and instance selection. A different terminal focus
+discards the reactivation; missing or uncertain focus keeps native
+output open.</p>
 <p>The <code>EditorSessionController</code> uses the active runtime
 managed by <code>ConnectionCoordinator</code> but is solely responsible
 for its domain mutation. It owns state and mode transitions, transport
@@ -1659,21 +1738,22 @@ speech only at the NVDA boundary. Protocol-envelope validation and
 network callbacks remain separate. For each validated event, an
 immutable plan combines the state transition, domain terminal
 passthrough, at most one mode cue, and the ordered neutral speech
-actions. The Global Plugin applies passthrough to the gate and hands the
-cue and speech plan to <code>NvdaPresentation</code>. The controller
-also allocates bounded request IDs for clipboard, register, and terminal
-control, binds them to an instance and <code>TerminalIdentity</code>,
-and rejects foreign or late replies. One-shot clipboard text is exposed
-only as a validated result to the NVDA boundary and is removed from the
-safe follow-up event. Before sending, the same controller validates the
-negotiated capability and canonical buffer/mode state and returns either
-an immutable allowlisted outbound plan or one bounded rejection reason.
-It allocates a pending request only for a valid action. Exact focus/gate
-validation, transport calls, the Windows clipboard, diagnostics, and
-concrete presentation remain separate. Semantic planner reset and access
-to the active instance&#39;s completion documentation use the same
-controller boundary. NVDA&#39;s own typed-word buffer and speech delivery
-remain at the NVDA boundary.</p>
+actions. <code>EventDelivery</code> applies passthrough to the gate and
+hands the cue and speech plan to <code>NvdaPresentation</code>. The
+controller also allocates bounded request IDs for clipboard, register,
+and terminal control, binds them to an instance and
+<code>TerminalIdentity</code>, and rejects foreign or late replies.
+One-shot clipboard text is exposed only as a validated result to the
+NVDA boundary and is removed from the safe follow-up event. Before
+sending, the same controller validates the negotiated capability and
+canonical buffer/mode state and returns either an immutable allowlisted
+outbound plan or one bounded rejection reason. It allocates a pending
+request only for a valid action. Exact focus/gate validation, transport
+calls, the Windows clipboard, diagnostics, and concrete presentation
+remain separate. Semantic planner reset and access to the active
+instance&#39;s completion documentation use the same controller boundary.
+NVDA&#39;s own typed-word buffer and speech delivery remain at the NVDA
+boundary.</p>
 <p>Each managed Neovim instance runtime also owns its own Braille
 exploration controller, its own controller for numbered native choices,
 and a <code>HeldContextController</code> for read-only callable and
@@ -1701,7 +1781,7 @@ replaces preceding Windows Terminal context labels.</p>
 records the result. The overlay maps only NVDA&#39;s translated Braille
 position to the semantic byte column. The service places the immutable
 fixed payload in the same bounded <code>ControlDispatcher</code> used by
-exploration and numbered choices. Its worker calls the local or SSH
+exploration and numbered choices. Its workers call the local or SSH
 transport; a full queue or closed dispatcher drops the optional action
 fail-open. Neither a routing key nor an NVDA region callback can
 therefore perform socket, SSH, or <code>stdin.flush()</code> I/O on
@@ -1810,13 +1890,14 @@ controller takes priority, and release or cancellation restores the
 canonical Braille view. The freely assignable toggle remains a
 contextual script in the Windows Terminal AppModule.
 <code>TerminalIntegrationService</code> owns the controller toggle and
-any asynchronously queued remote cleanup; the Global Plugin process
-action only delivers the NVDA message and requests a Braille refresh.
-Instance changes discard the transient virtual position and in-flight
-requests, but returning activates that session&#39;s independently selected
-Braille mode again. Disconnect and teardown symmetrically reset only the
-affected runtime or all owned runtimes, respectively. Command-line and
-direct-terminal modes are excluded.</p>
+any asynchronously queued remote cleanup; the
+<code>ConnectionWorkflow</code> process action only delivers the NVDA
+message and requests a Braille refresh. Instance changes discard the
+transient virtual position and in-flight requests, but returning
+activates that session&#39;s independently selected Braille mode again.
+Disconnect and teardown symmetrically reset only the affected runtime or
+all owned runtimes, respectively. Command-line and direct-terminal modes
+are excluded.</p>
 <p><code>StructuredLineRegion</code> is not a parallel Braille
 implementation. It subclasses NVDA&#39;s public
 <code>braille.TextInfoRegion</code> extension point so
@@ -1852,14 +1933,15 @@ no dialog mutates a freely accessible plugin dictionary.
 recorder, NVDA&#39;s narrow installed add-on help resolver, and the small
 password and component-operation callbacks it needs. Its menu and
 Settings category nevertheless remain registered exactly once for the
-Global Plugin&#39;s process lifetime. Navigation-detail indices are resolved
-by the service into booleans before they cross the editor or exploration
-interfaces. The shared speech planner therefore remains independent of
-NVDA configuration and produces the same line-word-character ordering
-for normal navigation and exploration release. The exploration-release
-values affect only output at the real cursor when NVDA is released;
-virtual exploration steps and character exploration remain independent
-of them.</p>
+process lifetime owned by <code>AddonRuntime</code>. Navigation-detail
+indices are resolved by the service into booleans before they cross the
+editor or exploration interfaces. The shared speech planner therefore
+remains independent of NVDA configuration and produces the same
+line-word-character ordering for normal navigation and exploration
+release. The exploration-release values affect only output at the real
+cursor when NVDA is released; virtual exploration steps and character
+exploration remain independent of them.</p>
+</section>
 </section>
 <section id="docs__en__development__architecturemd__the-fail-open-gate" class="level3">
 <h3>The fail-open gate</h3>
@@ -2251,6 +2333,15 @@ focus boundaries</td>
 <p><a href="#docs__en__development__architecturemd__architecture">Architecture</a>
 explains how these areas relate. In particular, NVDA-specific code must
 not move into the speech planner or transport protocol.</p>
+<p>Within the Neovim plugin, <code>lua/nvim_nvda/init.lua</code> remains
+the public facade and composition root. <code>event_channel.lua</code>
+owns connection and sequencing; <code>input_events.lua</code>,
+<code>command_line_events.lua</code>, <code>ui_events.lua</code>,
+<code>completion_events.lua</code>,
+<code>file_manager_prompt_events.lua</code>, and
+<code>context_events.lua</code> own their respective event state.
+<code>braille_routing.lua</code> encapsulates validated routing
+controls. None of these modules imports the root facade.</p>
 </section>
 <section id="docs__en__development__repository-layoutmd__sources-package-layout-and-generated-output" class="level3">
 <h3>Sources, package layout, and generated output</h3>
@@ -2272,8 +2363,8 @@ reproducible output;</li>
 <li><code>tmp/human-test-state/</code> and
 <code>tmp/human-test-results/</code>: ignored state and results
 generated by the guided practical-test runner.</li>
-<li><code>/nfs/src/nal-tmp/</code>: agent-created investigations,
-reports, downloads, reproductions, and test workspaces outside the
+<li><code>../nal-aux/</code>: agent-created investigations, reports,
+downloads, reproductions, and test workspaces outside the
 repository.</li>
 </ul>
 <p>The private Linux runtime fallback under <code>/tmp</code> is part of
@@ -2390,13 +2481,14 @@ controlled test doubles and additionally inspect the built add-on.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> quick</span></code></pre></div>
 <p>The normal complete sandbox-compatible workflow is:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Real local listeners and Unix sockets require a suitable environment
 and therefore run separately:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> socket</span></code></pre></div>
@@ -2547,12 +2639,12 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 13, 2026. The source tree is prepared as the
-0.98.0 beta release; <code>buildVars.py</code> generates release
-artifacts without a development identifier and sets the manifest update
-channel to beta. The current published pre-release is 0.97.0. The
-project does not infer a higher stability classification from test
-coverage or feature count.</p>
+<p>Status date: August 14, 2026. The source tree develops the 0.99.0
+line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.3 with
+branch and commit metadata and sets the manifest update channel to beta.
+The current published pre-release is 0.98.0. The project does not infer
+a higher stability classification from test coverage or feature
+count.</p>
 <p>This page is the compact snapshot of implemented and verified
 behavior. See <a href="#docs__en__development__architecturemd__architecture">architecture</a>
 and the <a href="#docs__en__development__accessibilitymd__feature-and-accessibility-matrix">feature
@@ -2602,11 +2694,11 @@ also the bridge and related component paths on Linux. Neovim
 configuration and backups remain unchanged; explicit plugin load entries
 remain owned by user configuration.</li>
 <li>The manifest follows the NVDA template with the project URL, default
-help file, update channel, and localized changelog. For 0.98.0, this
-covers the changes since the Add-on Store&#39;s last published version,
-0.96.0; the separate 0.98.0 project changelog covers only changes since
-0.97.0. The package build rejects missing, empty, unknown, or malformed
-template fields and verifies the default English help plus the German
+help file, update channel, and localized changelog. Development builds
+on the 0.99.0 line use the <code>Unreleased</code> section; the Store
+comparison version remains 0.96.0 until an actual Store publication. The
+package build rejects missing, empty, unknown, or malformed template
+fields and verifies the default English help plus the German
 localization manifest.</li>
 <li>The documentation job and local reference build use the official
 Pandoc 3.1.11.1 binary from an archive with a verified digest. The build
@@ -2623,6 +2715,12 @@ discovery.</li>
 <li>A physical F12 press assigns the running Neovim instance to the
 exact focused Windows Terminal control. Multiple windows, tabs, and
 panes retain independent local, remote, or ordinary shell sessions.</li>
+<li>The following question about a temporarily remembered tab
+association gives <code>Yes</code> the default focus. A checkbox can
+store the selected answer in the active NVDA profile; the three-state
+setting under <code>Connections</code> applies <code>Yes</code> or
+<code>No</code> automatically or resets the behavior to asking again.
+The tab association itself remains runtime-only.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
 focus identity restore NVDA&#39;s native terminal behavior fail-open. When a
@@ -2632,9 +2730,15 @@ disconnect, even while the SSH process and bridge remain alive.</li>
 <li>The AppModule owns Windows Terminal events and
 <code>nextHandler</code>. Dedicated services own focus, session
 assignment, connections, editor state, settings, presentation, and
-runtime. The Global Plugin remains the process-wide NVDA edge and
-composition root; <a href="#docs__en__development__architecturemd__architecture">architecture</a>
-describes the current boundary. The dated Appendix C only preserves the
+runtime. The Global Plugin now only creates and closes the
+transactionally composed runtime. Connection workflow, temporary-binding
+recovery, terminal actions, and event delivery have dedicated owners;
+the AppModule and Braille adapter see only their static ports. Outbound
+controls use a bounded queue and remain ordered per client, while a
+fixed worker pool isolates independent clients. A second fixed pool owns
+every already-detached client until it is stopped. Disabling and
+teardown therefore do not wait for transport I/O. <a href="#docs__en__development__architecturemd__architecture">Architecture</a>
+describes the current boundary; the dated Appendix C only preserves the
 review basis at that time.</li>
 </ul>
 </section>
@@ -2756,10 +2860,26 @@ invokes the pinned binary directly, fixes the language mode and supplied
 test configuration explicitly, and merges standard and error output. The
 markdownlint profile checks the absolute fixture instead of relying on a
 cold stdin run; both parsers retain complete Windows drive and UNC
-paths. Preflight and test helpers use one bounded 60-second wait for
-real providers. This permits cold Windows and network-drive starts
-without waiting forever for a stalled provider. Listener-free, SSH, and
-real socket tests run separately. See the <a href="#docs__en__development__testingmd__test-strategy">test
+paths. The public Neovim-plugin facade composes separate owners for the
+channel, input, completion, command line, UI prompts, Oil confirmations,
+and context changes. The channel treats state capture, payload
+decoration, and RPC publication as one fail-open boundary. Input
+prefixes are one tagged state. On an internal publication failure, the
+channel also closes the real RPC transport. A connection change discards
+old scheduled controller events and silently resets transient menu,
+prompt, and runtime state before the next <code>fullState</code>.
+Semantic Lua tests cover real RPC serialization failures, fast
+reconnects, menu lifetimes, coupled prefix commands, repeated setup,
+completion, and command-line transitions; the add-on test checks that
+these tested modules are bundled identically instead of inspecting their
+internal source shape. Real-TUI tests use one shared send helper to
+drain a time- and byte-bounded amount of pending PTY output before every
+physical-key step. Every isolated runner job also has a fixed timeout
+whose failure terminates its complete process group, including Neovim
+and helper processes it started. Preflight and test helpers use one
+bounded 60-second wait for real providers. This permits cold Windows and
+network-drive starts without waiting forever for a stalled provider.
+Listener-free, SSH, and real socket tests run separately. See the <a href="#docs__en__development__testingmd__test-strategy">test
 strategy</a> for commands and detail. Guided practical tests isolate the
 remaining perceptual checks for speech, Braille, sounds, focus, and
 response time. Their technical preflight confirms real provider data and
@@ -3239,12 +3359,13 @@ identifier and remove the runtime-ID dependency.</li>
 </section>
 <section id="docs__en__development__adr__0002-nvda-api-boundariesmd__exception-3-nvda-settings-and-main-menu-integration" class="level3">
 <h3>Exception 3: NVDA Settings and main-menu integration</h3>
-<p>Registration through <code>NVDASettingsDialog.categoryClasses</code>,
-insertion of a top-level submenu through
-<code>gui.mainFrame.sysTrayIcon.menu</code>, and
-<code>gui.runScriptModalDialog</code> are common NVDA add-on practice,
-but are not promised as independent long-term stable extension
-interfaces. Installed help is resolved by NVDA&#39;s public localized
+<p>Registration through <code>NVDASettingsDialog.categoryClasses</code>
+and insertion of a top-level submenu through
+<code>gui.mainFrame.sysTrayIcon.menu</code> are common NVDA add-on
+practice, but are not promised as independent long-term stable extension
+interfaces. Dialogs are scheduled on NVDA&#39;s main thread through a narrow
+UI port; the deprecated <code>gui.runScriptModalDialog</code> helper is
+not used. Installed help is resolved by NVDA&#39;s public localized
 <code>Addon.getDocFilePath()</code>.</p>
 <ul>
 <li>Risk: menu or dialog structure can change between NVDA major
@@ -3413,12 +3534,16 @@ terminal control, and confirmed connection state all match.</p>
 </section>
 <section id="docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__decision" class="level3">
 <h3>Decision</h3>
-<p>The Global Plugin is the process-wide composition and lifetime root.
-It registers settings and the top-level add-on menu, constructs shared
-services, publishes them only after complete initialization, and shuts
-them down in a defined order. Domain connection, assignment, gate,
-protocol, and presentation state resides in ordinary services that do
-not inherit from <code>GlobalPlugin</code>.</p>
+<p>The Global Plugin is only the process-wide lifetime adapter: it
+creates exactly one runtime through <code>create_runtime()</code> and
+closes it on termination. <code>composition.py</code> constructs shared
+services transactionally; <code>AddonRuntime</code> registers settings
+and the menu, publishes the terminal facade only after complete
+initialization, and shuts all owners down in a defined order. Connection
+workflow, temporary-binding recovery, terminal actions, event delivery,
+and domain assignment, gate, protocol, and presentation state reside in
+ordinary services that do not inherit from
+<code>GlobalPlugin</code>.</p>
 <p>The Windows Terminal AppModule owns:</p>
 <ul>
 <li>every application-specific NVDA event entry point;</li>
@@ -3438,9 +3563,10 @@ unchanged. Each match is revalidated against the focus object,
 AppModule, control identity, service generation, and gate.</p>
 <p>On termination or reload, the shared service is marked unavailable
 first. Pending focus decisions are then discarded, suppression is
-disabled, connections are stopped, and UI registrations are removed
-symmetrically. AppModules do not use an unverified stale service
-instance.</p>
+disabled, and connections are detached from canonical state. A fixed
+background pool owns and stops every detached client without making
+NVDA&#39;s main thread wait; UI registrations are removed symmetrically.
+AppModules do not use an unverified stale service instance.</p>
 </section>
 <section id="docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__invariants" class="level3">
 <h3>Invariants</h3>
@@ -3713,7 +3839,7 @@ other potentially confidential payloads. Logs are diagnostic only and
 are not required for correctness. Protocol errors record type and bound
 rather than complete user text.</p>
 <p>Agent-created reproductions, downloads, and reports live outside the
-repository under <code>/nfs/src/nal-tmp/</code> and are never versioned.
+repository under <code>../nal-aux/</code> and are never versioned.
 Project tools&#39; runtime or test output uses only its documented ignored
 paths.</p>
 </section>
@@ -3750,6 +3876,18 @@ installation, parsing, or logging. Input and region callbacks validate
 small immutable payloads and place them into bounded queues without
 waiting. Workers perform transport access; results return through NVDA&#39;s
 event queue for presentation.</p>
+<p>This applies uniformly to exploration, Braille, clipboard, register,
+terminal control, and focus/<code>fullState</code> requests. Only
+<code>ControlDispatcher</code> invokes the transport. Its total queue is
+bounded; controls remain ordered within one client, while a fixed worker
+pool serves independent clients concurrently. A local RPC stop can
+interrupt a blocked socket send through <code>shutdown</code>. During
+disable or reload, clients are first detached atomically from gate,
+binding, and runtime state. <code>ClientStopper</code> owns every
+accepted already-detached client and performs <code>stop()</code> with
+fixed parallelism without making the main thread wait. Its pending queue
+contains only already-created client resources transferred from runtime
+ownership, not protocol data.</p>
 <p>A full or closed queue, stale result, or focus change drops an
 optional control action fail-open. Releasing an exploration key uses
 existing canonical state and waits for no round trip.</p>
@@ -4581,6 +4719,16 @@ attempt for the focused Windows Terminal control. Focus object, concrete
 AppModule instance, complete UIA identity, gate, and fresh session claim
 must agree. Without a match, no binding, dialog, or suppression is
 created.</p>
+<p><code>temporaryBindingPrompt</code> controls the following question
+about the runtime-only remembered tab binding. <code>0</code> asks every
+time and is the default, <code>1</code> applies <code>Yes</code> without
+a dialog, and <code>2</code> applies <code>No</code> without a dialog.
+<code>Yes</code> has the default focus in the dialog. Its checkbox
+writes the explicitly selected answer immediately and exclusively as
+this value in the active NVDA configuration profile; closing the dialog
+stores nothing. The three-state choice under <code>Connections</code>
+can change the value or reset it to <code>0</code>. A profile switch
+reloads it with the other native add-on settings.</p>
 <p>The assignable “Select a server and connect this terminal to a new
 Neovim session” command opens profile selection and then requires F12 in
 the desired session. Runtime bindings use UIA runtime IDs, live only in
@@ -4830,7 +4978,11 @@ in separate phases</td>
 </table>
 <p>Without a group argument, the runner uses the safe preset.
 <code>-j N</code> limits parallelism, and <code>--list</code> shows
-selection without running it.</p>
+selection without running it. Every isolated job runs in its own process
+group. After 180 seconds, the complete group, including Neovim and
+helper processes it started, is terminated and the job is reported as
+failed. The real-TUI send helper additionally bounds pseudo-terminal
+draining to one second and 8 MiB per physical-key step.</p>
 </section>
 <section id="docs__en__development__testingmd__recommended-workflow" class="level3">
 <h3>Recommended workflow</h3>
@@ -4839,10 +4991,11 @@ selection without running it.</p>
 <p>Before a commit, run at least the affected group and then the safe
 complete path:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Socket tests need an environment that permits loopback listeners,
 private Unix sockets, and short-lived Neovim processes:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py socket</span></code></pre></div>
@@ -4910,6 +5063,15 @@ Markdown/HTML links, and a fresh documentation build</td>
 <p>Where practical, a bug-fix commit adds a regression test at the
 lowest useful layer and integration evidence at the boundary where the
 defect appeared.</p>
+<p>AST-based add-on architecture tests enforce the minimal Global Plugin
+entry point, the public AppModule API, an acyclic local import graph,
+and exactly one production path each for <code>send_control</code> and
+<code>client.stop</code>. Real worker tests use deliberately blocking
+clients; scheduler and rollback tests execute late callbacks and
+failures at every resource-owning construction stage. These tests
+therefore exercise concurrency contracts rather than only source-text
+fragments. The second Ruff command explicitly lints every Python test;
+format checking remains limited to the configured NVDA product code.</p>
 </section>
 <section id="docs__en__development__testingmd__specialized-contract-checks" class="level3">
 <h3>Specialized contract checks</h3>
@@ -5630,7 +5792,7 @@ repeats the dependency roles relevant to developers.</p>
 <div id="docs__en__development__planmd">
 <section id="docs__en__development__planmd__active-plan" class="level2">
 <h2>Active plan</h2>
-<p>Status date: August 5, 2026.</p>
+<p>Status date: August 13, 2026.</p>
 <p>This chapter contains only open or active work. See
 <code>current-status.md</code> for implemented features and
 <code>changelog.md</code> for completed steps and former feature
@@ -5663,12 +5825,13 @@ restrict history to changelogs, dated reports, and ADRs.</li>
 <h3>2. Change architecture boundaries only for demonstrated benefit</h3>
 <p>The application boundary decided in <a href="#docs__en__development__adr__0004-nvda-lifetime-and-event-ownershipmd__adr-0004-nvda-lifetime-and-application-event-ownership">ADR-0004</a>
 is implemented and has been exercised practically across multiple
-windows, tabs, and panes with local and remote sessions. The re-audit in
-<a href="#docs__en__development__global-plugin-appmodule-audit-2026-08-04md__appendix-c-re-audit-of-the-global-plugin-windows-terminal-appmodule-and-shared-services">Appendix
-C</a> confirms that scope but also records the sizeable process-wide
-NVDA-edge coordination still in the concrete Global Plugin class and the
-broad public terminal service. <code>current-status.md</code> describes
-the current design; the changelog and Appendices A through C preserve
+windows, tabs, and panes with local and remote sessions. The Global
+Plugin audit of August 13, 2026 moved the sizeable NVDA-edge
+coordination out of the concrete Global Plugin class into explicit
+owners for composition, connection workflow, terminal actions, event
+delivery, scheduling, presentation, and transport shutdown. The Global
+Plugin is now only the lifetime adapter. <code>current-status.md</code>
+describes the current design; the changelog and dated reports preserve
 its development and metrics.</p>
 <p>No further split is planned merely because of file size or LOC. Take
 this work only in small domain slices when it creates one unambiguous
@@ -5676,10 +5839,11 @@ state owner, a smaller public contract, a failure path testable without
 NVDA, or a demonstrated robustness gain. AppModule event ownership,
 fail-open behavior, F12 isolation, asynchronous transport, and
 separation of windows, tabs, and panes remain mandatory invariants.</p>
-<p>Evaluate connection/claim workflows, NVDA event delivery, context
-presentation, and consumer-specific service contracts first. Extract
-only with explicit invariants and regression tests; do not copy shared
-process-wide workflows into the AppModule.</p>
+<p>Further changes to these boundaries therefore require new
+demonstrated benefit. In particular, do not divide the cohesive
+connection workflow into pass-through layers merely because of its file
+size. Extract only with explicit invariants and regression tests; do not
+copy shared process-wide workflows into the AppModule.</p>
 </section>
 <section id="docs__en__development__planmd__3-broaden-practical-isolation-coverage" class="level3">
 <h3>3. Broaden practical isolation coverage</h3>
@@ -5825,7 +5989,73 @@ history</a> preserves earlier development and test-build entries through
 August 5, 2026.</p>
 <section id="docs__en__development__changelogmd__unreleased" class="level3">
 <h3>Unreleased</h3>
-<p>There are currently no unreleased changes.</p>
+<ul>
+<li>Starts the 0.99.0 development line with development build 1 after
+the 0.98.0 beta pre-release.</li>
+<li>Simplifies Neovim-plugin runtime state: the public root facade now
+composes explicit owners for the event channel, input, completion,
+command line, UI prompts, Oil confirmations, and context changes. Public
+RPC/adapter functions and semantic events remain unchanged. A dedicated
+behavior test covers fail-open channel teardown, while the package test
+checks identical tested modules instead of internal source fragments.
+This installable state is development build 2.</li>
+<li>Stabilizes real-TUI regression tests by making one shared send
+helper drain pending PTY output before every physical-key step. A full
+test output buffer can therefore no longer stop Neovim from polling
+input.</li>
+<li>Completes the critical follow-up review of the Neovim-plugin
+refactoring. The event channel now protects invalid snapshots, payload
+failures, and publication failures. Input prefixes form one tagged
+state, so coupled <code>g</code> commands cannot be misclassified as
+independent macro, register, or edit commands; reconnects discard old
+scheduled input events. Regression tests cover these transitions,
+repeated setup, and bounded PTY draining. The test runner also bounds
+every isolated job. This installable state is development build 3.</li>
+<li>Corrects the remaining gaps found by an independent lifecycle
+review. Every internal publication failure now closes the real RPC
+transport as well. A connection generation discards scheduled UI,
+command-line, context, diagnostic, and file-manager events from the
+previous connection; transient menu, prompt, and controller state resets
+silently before the next <code>fullState</code>. A scheduled UI teardown
+can no longer remove a newer UI attachment. On timeout, the runner
+terminates the complete process group instead of only the direct test
+process. Real RPC, reconnect, menu-lifetime, and child-process
+regression tests cover these boundaries. This installable state is
+development build 4.</li>
+<li>Simplifies the NVDA add-on&#39;s Python runtime after a complete
+architecture audit. The Global Plugin shrinks from more than 3,200 lines
+to a few dozen and now owns only the lifetime of a transactionally
+constructed runtime. Connection workflow, terminal actions, event
+delivery, presentation, and deferred work have explicit owners; the
+AppModule and Braille adapter use narrow public contracts instead of
+private Global Plugin details. One dispatcher serializes outbound
+control data, while a bounded background worker stops clients without
+making NVDA&#39;s main thread wait for transport shutdown. Architecture,
+rollback, concurrency, and ownership tests protect these boundaries, and
+Python style validation now covers every add-on test. This first
+installable state on the new development branch is development build
+1.</li>
+<li>Hardens the Python runtime refactoring after an independent senior
+review. <code>ControlDispatcher</code> preserves per-client order,
+isolates independent clients with a fixed worker pool, and lets local
+RPC shutdown interrupt a blocked socket send. <code>ClientStopper</code>
+owns every accepted detached client instead of leaving one unowned when
+a queue is full. Selection and password dialogs use NVDA&#39;s public
+modal-lifetime tracking, and stale passwords are discarded. The
+lifecycle delegates complete connection retirement to one workflow,
+while the state machine for temporarily remembered bindings has its own
+controller. Direct queue, ordering, isolation, cancellation, dialog, and
+ownership tests cover the new boundaries. This installable state is
+development build 2.</li>
+<li>Improves the question about a temporary F12 tab association:
+<code>Yes</code> again has the default focus. A new checkbox stores the
+explicitly selected answer in the active NVDA configuration profile; the
+<code>Temporary terminal connections</code> setting can then switch
+between asking again, remembering automatically, and not remembering
+automatically. Package tests cover profile switches, <code>Yes</code>
+and <code>No</code> decisions, cancellation, dialog focus, and
+prompt-free reuse. This installable state is development build 3.</li>
+</ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">
 <h3>0.98.0</h3>

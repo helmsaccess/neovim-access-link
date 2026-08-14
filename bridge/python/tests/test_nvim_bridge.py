@@ -37,6 +37,14 @@ class RecordingTransport:
 
 
 class NvimBridgeTests(unittest.TestCase):
+	def test_tui_output_drain_is_bounded(self) -> None:
+		class ContinuousOutput:
+			def read_nonblocking(self, size: int, timeout: float) -> bytes:
+				return b"x" * size
+
+		with self.assertRaisesRegex(AssertionError, "byte limit"):
+			self._drain_tui_output(ContinuousOutput(), byte_limit=131072, time_limit=1.0)
+
 	def test_plugin_manager_lifecycle_is_validated_before_publication(self) -> None:
 		transport = RecordingTransport()
 		bridge = Bridge.__new__(Bridge)
@@ -599,7 +607,7 @@ class NvimBridgeTests(unittest.TestCase):
 				time.sleep(0.02)
 			self.assertIsNotNone(registry, "F12 test registry timeout")
 			try:
-				process.send(b"\x1b[24~")
+				self._send_tui(process, b"\x1b[24~")
 				deadline = time.monotonic() + 3
 				value = {}
 				while time.monotonic() < deadline:
@@ -616,7 +624,7 @@ class NvimBridgeTests(unittest.TestCase):
 					text=True,
 				).stdout.strip()
 				self.assertEqual("n", output)
-				process.send(b"i")
+				self._send_tui(process, b"i")
 				deadline = time.monotonic() + 2
 				while time.monotonic() < deadline:
 					output = subprocess.run(
@@ -629,7 +637,7 @@ class NvimBridgeTests(unittest.TestCase):
 						break
 					time.sleep(0.02)
 				self.assertEqual("i", output)
-				process.send(b"\x1b[24~")
+				self._send_tui(process, b"\x1b[24~")
 				deadline = time.monotonic() + 3
 				while time.monotonic() < deadline:
 					value = json.loads(registry.read_text(encoding="utf-8"))
@@ -637,7 +645,7 @@ class NvimBridgeTests(unittest.TestCase):
 						break
 					time.sleep(0.02)
 				self.assertEqual(2, value.get("claimSequence"))
-				process.send(b"x")
+				self._send_tui(process, b"x")
 				time.sleep(0.1)
 				output = subprocess.run(
 					[
@@ -778,7 +786,7 @@ class NvimBridgeTests(unittest.TestCase):
 					"LazySyncPre", "LazyInstallPre", "LazyInstall", "LazyUpdatePre", "LazyUpdate",
 					"LazySync",
 				):
-					process.send(f":doautocmd User {pattern}\r".encode())
+					self._send_tui(process, f":doautocmd User {pattern}\r".encode())
 				self._wait(
 					condition,
 					lambda: len([
@@ -851,8 +859,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
 				initial = next(event for event in events if event["type"] == "fullState")
 				self.assertNotIn("tutorExerciseStatus", initial["payload"])
-				self._drain_tui_output(process)
-				process.send(b"\x1b:Tutor\r")
+				self._send_tui(process, b"\x1b:Tutor\r")
 				time.sleep(0.2)
 				tui_state = subprocess.run(
 					["nvim", "--server", nvim_socket, "--remote-expr",
@@ -919,7 +926,7 @@ class NvimBridgeTests(unittest.TestCase):
 				).stdout.strip()
 
 				start = len(events)
-				process.send(b"$a")
+				self._send_tui(process, b"$a")
 				deadline = time.monotonic() + 2
 				mode = ""
 				while time.monotonic() < deadline and mode != "i":
@@ -929,7 +936,7 @@ class NvimBridgeTests(unittest.TestCase):
 					).stdout.strip()
 					time.sleep(0.02)
 				self.assertEqual("i", mode)
-				process.send(suffix.encode("utf-8"))
+				self._send_tui(process, suffix.encode("utf-8"))
 				self._drain_tui_output(process)
 				deadline = time.monotonic() + 2
 				actual = ""
@@ -940,7 +947,7 @@ class NvimBridgeTests(unittest.TestCase):
 					).stdout.rstrip("\n")
 					time.sleep(0.02)
 				self.assertEqual(expected, actual)
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				deadline = time.monotonic() + 2
 				while time.monotonic() < deadline and mode != "n":
 					mode = subprocess.run(
@@ -967,7 +974,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self.assertEqual(expected, correct["payload"].get("lineText"))
 
 				start = len(events)
-				process.send(b"x")
+				self._send_tui(process, b"x")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1266,7 +1273,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
 
 				start = len(events)
-				process.send(b"\x1bOR")  # F3: populate Quickfix.
+				self._send_tui(process, b"\x1bOR")  # F3: populate Quickfix.
 				self._wait(
 					condition,
 					lambda: any(event["type"] == "resultListChanged" for event in events[start:]),
@@ -1278,7 +1285,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self.assertEqual(4, result_list["payload"]["itemCount"])
 
 				start = len(events)
-				process.send(b"\x1bOS")  # F4: second result.
+				self._send_tui(process, b"\x1bOS")  # F4: second result.
 				self._wait(
 					condition,
 					lambda: any(
@@ -1292,7 +1299,7 @@ class NvimBridgeTests(unittest.TestCase):
 				))
 
 				start = len(events)
-				process.send(b"\x1bOS")  # F4 again: third result within Quickfix.
+				self._send_tui(process, b"\x1bOS")  # F4 again: third result within Quickfix.
 				self._wait(
 					condition,
 					lambda: any(
@@ -1307,7 +1314,7 @@ class NvimBridgeTests(unittest.TestCase):
 
 				for expected_index in (2, 1):
 					start = len(events)
-					process.send(b"\x1b[15~")  # F5: previous result within Quickfix.
+					self._send_tui(process, b"\x1b[15~")  # F5: previous result within Quickfix.
 					self._wait(
 						condition,
 						lambda expected_index=expected_index: any(
@@ -1321,7 +1328,7 @@ class NvimBridgeTests(unittest.TestCase):
 					))
 
 				start = len(events)
-				process.send(b"\x1b[15~")  # F5 again: remain at first result.
+				self._send_tui(process, b"\x1b[15~")  # F5 again: remain at first result.
 				self._wait(
 					condition,
 					lambda: any(
@@ -1341,7 +1348,7 @@ class NvimBridgeTests(unittest.TestCase):
 				))
 
 				start = len(events)
-				process.send(b"\x1b[17~")  # F6: confirmed project replacement.
+				self._send_tui(process, b"\x1b[17~")  # F6: confirmed project replacement.
 				self._wait(
 					condition,
 					lambda: any(
@@ -1352,7 +1359,7 @@ class NvimBridgeTests(unittest.TestCase):
 				)
 				for answer in b"yn":
 					prior = len(events)
-					process.send(bytes((answer,)))
+					self._send_tui(process, bytes((answer,)))
 					self._wait(
 						condition,
 						lambda: any(
@@ -1361,7 +1368,7 @@ class NvimBridgeTests(unittest.TestCase):
 							for event in events[prior:]
 						),
 					)
-				process.send(b"a")
+				self._send_tui(process, b"a")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1502,12 +1509,12 @@ class NvimBridgeTests(unittest.TestCase):
 				)
 
 				start = len(events)
-				process.send(b"\x1bOR")  # F3: open the prepared native rename prompt.
+				self._send_tui(process, b"\x1bOR")  # F3: open the prepared native rename prompt.
 				self._wait(
 					condition,
 					lambda: any(event["type"] == "commandLineChanged" for event in events[start:]),
 				)
-				process.send(b"calculate_gratuity\r")
+				self._send_tui(process, b"calculate_gratuity\r")
 				self._wait(
 					condition,
 					lambda: any(event["type"] == "lspRenameCompleted" for event in events[start:]),
@@ -1546,7 +1553,7 @@ class NvimBridgeTests(unittest.TestCase):
 					"suggested_tip = calculate_gratuity(40.0)",
 				):
 					start = len(events)
-					process.send(b"\x1bOS")  # F4: report the next renamed reference.
+					self._send_tui(process, b"\x1bOS")  # F4: report the next renamed reference.
 					self._wait(
 						condition,
 						lambda expected=expected: any(
@@ -1630,7 +1637,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
 				time.sleep(0.2)
 				start = len(events)
-				process.send(b"\x1bOR")  # F3: replace across both loaded buffers.
+				self._send_tui(process, b"\x1bOR")  # F3: replace across both loaded buffers.
 				self._wait(
 					condition,
 					lambda: any(
@@ -1661,7 +1668,7 @@ class NvimBridgeTests(unittest.TestCase):
 					"lsp_rename_consumer.py: 2 occurrences of calculate_tip_buffered",
 				):
 					start = len(events)
-					process.send(b"\x1bOS")  # F4: verify the next changed buffer.
+					self._send_tui(process, b"\x1bOS")  # F4: verify the next changed buffer.
 					self._wait(
 						condition,
 						lambda expected=expected: any(
@@ -1738,7 +1745,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				time.sleep(0.05)
-				process.send(b"i\x18\x0f")  # Insert, CTRL-X CTRL-O.
+				self._send_tui(process, b"i\x18\x0f")  # Insert, CTRL-X CTRL-O.
 				self._wait(condition, lambda: any(e["type"] == "menuSelectionChanged" for e in events))
 				selected = next(e for e in reversed(events) if e["type"] == "menuSelectionChanged")
 				initial_index = selected["payload"]["itemIndex"]
@@ -1754,7 +1761,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior_selection_count = sum(e["type"] == "menuSelectionChanged" for e in events)
-				process.send(b"\x0e")  # CTRL-N selects the next item.
+				self._send_tui(process, b"\x0e")  # CTRL-N selects the next item.
 				self._wait(
 					condition,
 					lambda: sum(e["type"] == "menuSelectionChanged" for e in events) > prior_selection_count,
@@ -1769,14 +1776,14 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"\x0e")  # CTRL-N keeps the original text after the final item.
+				self._send_tui(process, b"\x0e")  # CTRL-N keeps the original text after the final item.
 				self._wait(
 					condition,
 					lambda: any(e["type"] == "menuSelectionCleared" for e in events[prior:]),
 				)
 				cleared = next(e for e in reversed(events[prior:]) if e["type"] == "menuSelectionCleared")
 				self.assertEqual(2, cleared["payload"]["itemCount"])
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				self._wait(condition, lambda: any(e["type"] == "menuClosed" for e in events))
 				opened_index = next(i for i, e in enumerate(events) if e["type"] == "menuOpened")
 				closed_index = next(
@@ -1788,7 +1795,7 @@ class NvimBridgeTests(unittest.TestCase):
 					any(e["type"] == "textChanged" for e in events[opened_index : closed_index + 1])
 				)
 				prior = len(events)
-				process.send(b":set wildm\t")
+				self._send_tui(process, b":set wildm\t")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1802,7 +1809,7 @@ class NvimBridgeTests(unittest.TestCase):
 					if e["type"] == "menuSelectionChanged" and e["payload"].get("menuKind") == "wildmenu"
 				)
 				self.assertGreater(wildmenu["payload"]["itemCount"], 1)
-				process.send(b"\x03")
+				self._send_tui(process, b"\x03")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1845,8 +1852,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				self._drain_tui_output(process)
-				process.send(b"feature\r")
+				self._send_tui(process, b"feature\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1869,7 +1875,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1893,7 +1899,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"2\r")
+				self._send_tui(process, b"2\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1919,7 +1925,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"n\r")
+				self._send_tui(process, b"n\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1977,7 +1983,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					)
 				)
-				process.send(b"n")
+				self._send_tui(process, b"n")
 				self._wait(
 					condition,
 					lambda: any(
@@ -1995,7 +2001,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"zc")
+				self._send_tui(process, b"zc")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2005,7 +2011,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"zo")
+				self._send_tui(process, b"zo")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2014,14 +2020,14 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"ma")
+				self._send_tui(process, b"ma")
 				self._wait(
 					condition,
 					lambda: any(
 						e["type"] == "markSet" and e["payload"].get("markName") == "a" for e in events[prior:]
 					),
 				)
-				process.send(b"G'a")
+				self._send_tui(process, b"G'a")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2030,7 +2036,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b'"byy')
+				self._send_tui(process, b'"byy')
 				self._wait(
 					condition,
 					lambda: any(
@@ -2046,7 +2052,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"qajq")
+				self._send_tui(process, b"qajq")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2061,7 +2067,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"@a")
+				self._send_tui(process, b"@a")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2076,7 +2082,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"Vj")
+				self._send_tui(process, b"Vj")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2096,10 +2102,10 @@ class NvimBridgeTests(unittest.TestCase):
 					["alpha beta", "beta tail"],
 					[item["text"] for item in line_selection["payload"]["selection"]["selectedLines"]],
 				)
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				time.sleep(0.05)
 				bridge.nvim.notify("nvim_win_set_cursor", 0, [1, 0])
-				process.send(b"\x16jl")  # CTRL-V, down, right.
+				self._send_tui(process, b"\x16jl")  # CTRL-V, down, right.
 				self._wait(
 					condition,
 					lambda: any(
@@ -2109,12 +2115,12 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events
 					),
 				)
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				bridge.nvim.notify("nvim_win_set_cursor", 0, [1, 0])
 				bridge.nvim.notify("nvim_exec_lua", "vim.o.hlsearch=true", [])
 				time.sleep(0.05)
 				prior = len(events)
-				process.send(b"/be")
+				self._send_tui(process, b"/be")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2128,7 +2134,7 @@ class NvimBridgeTests(unittest.TestCase):
 					if e["type"] == "searchMatchChanged" and e["payload"].get("searchPreview") is True
 				)
 				self.assertEqual(1, preview["payload"]["matchLine"])
-				process.send(b"ta\r")
+				self._send_tui(process, b"ta\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2149,8 +2155,7 @@ class NvimBridgeTests(unittest.TestCase):
 				# Let the TUI finish the search-result redraw before sending
 				# the next physical key. The structured event may arrive a
 				# few milliseconds before the terminal has consumed redraw.
-				self._drain_tui_output(process)
-				process.send(b"n")
+				self._send_tui(process, b"n")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2159,7 +2164,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"n")
+				self._send_tui(process, b"n")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2170,7 +2175,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"N")
+				self._send_tui(process, b"N")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2181,7 +2186,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"?alpha\r")
+				self._send_tui(process, b"?alpha\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2192,7 +2197,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b":nohlsearch\r")
+				self._send_tui(process, b":nohlsearch\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2201,7 +2206,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b":%s/beta/gamma/g\r")
+				self._send_tui(process, b":%s/beta/gamma/g\r")
 				self._wait(condition, lambda: any(e["type"] == "replacementPerformed" for e in events))
 				replacement = next(e for e in reversed(events) if e["type"] == "replacementPerformed")
 				self.assertIn("replacementMessage", replacement["payload"])
@@ -2213,9 +2218,8 @@ class NvimBridgeTests(unittest.TestCase):
 						"nvim_exec_lua", f"vim.o.inccommand={inccommand_mode!r}", [],
 					)
 					time.sleep(0.05)
-					self._drain_tui_output(process)
 					prior = len(events)
-					process.send(b":%s/gamma/delta/g")
+					self._send_tui(process, b":%s/gamma/delta/g")
 					self._wait(
 						condition,
 						lambda: any(
@@ -2232,7 +2236,7 @@ class NvimBridgeTests(unittest.TestCase):
 					self.assertEqual(2, preview["payload"].get("previewChangedLineCount"))
 					self.assertEqual(inccommand_mode, preview["payload"].get("inccommandMode"))
 					self.assertIn("delta", preview["payload"].get("previewLineText", ""))
-					process.send(b"\x1b")
+					self._send_tui(process, b"\x1b")
 					self._wait(
 						condition,
 						lambda: any(
@@ -2242,7 +2246,7 @@ class NvimBridgeTests(unittest.TestCase):
 						),
 					)
 				prior = len(events)
-				process.send(b":s/gamma/delta/\r")
+				self._send_tui(process, b":s/gamma/delta/\r")
 				self._wait(
 					condition,
 					lambda: any(e["type"] == "replacementPerformed" for e in events[prior:]),
@@ -2260,7 +2264,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"%")
+				self._send_tui(process, b"%")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2276,7 +2280,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"%")
+				self._send_tui(process, b"%")
 				self._wait(
 					condition,
 					lambda: any(e["type"] == "matchingPairNotFound" for e in events[prior:]),
@@ -2288,7 +2292,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"imispelled ")
+				self._send_tui(process, b"imispelled ")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2298,14 +2302,14 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				spelling_event_count = sum(e["type"] == "spellingErrorTyped" for e in events)
-				process.send(b".")
+				self._send_tui(process, b".")
 				time.sleep(0.12)
 				self.assertEqual(
 					spelling_event_count,
 					sum(e["type"] == "spellingErrorTyped" for e in events),
 					"punctuation after a completed misspelling must not replay the sound",
 				)
-				process.send(b"\x1b")
+				self._send_tui(process, b"\x1b")
 				bridge.nvim.notify(
 					"nvim_exec_lua",
 					"vim.wo.spell=false; local ns=vim.api.nvim_create_namespace('nvim_nvda_test_cspell'); "
@@ -2373,7 +2377,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				prior = len(events)
-				process.send(b"%")
+				self._send_tui(process, b"%")
 				try:
 					self._wait(
 						condition,
@@ -2400,7 +2404,7 @@ class NvimBridgeTests(unittest.TestCase):
 					[],
 				)
 				time.sleep(0.05)
-				process.send(b":q\r")
+				self._send_tui(process, b":q\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2464,7 +2468,7 @@ class NvimBridgeTests(unittest.TestCase):
 					condition,
 					lambda: any(e["payload"].get("lineText") == "mispelled" for e in events),
 				)
-				process.send(b"z=")
+				self._send_tui(process, b"z=")
 				self._wait(
 					condition,
 					lambda: any(e["type"] == "numberedChoiceOpened" for e in events),
@@ -2544,7 +2548,7 @@ class NvimBridgeTests(unittest.TestCase):
 				self._wait(condition, lambda: any(e["type"] == "fullState" for e in events))
 				bridge.nvim.notify("nvim_exec_lua", "vim.o.shell='sh'", [])
 				prior = len(events)
-				process.send(b":terminal\r")
+				self._send_tui(process, b":terminal\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2555,7 +2559,7 @@ class NvimBridgeTests(unittest.TestCase):
 				)
 				time.sleep(0.1)
 				self.assertFalse(any(e["type"] == "characterMoved" for e in events[prior:]))
-				process.send(b"i")
+				self._send_tui(process, b"i")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2598,7 +2602,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b":bp\r")
+				self._send_tui(process, b":bp\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2616,7 +2620,7 @@ class NvimBridgeTests(unittest.TestCase):
 					)
 				)
 				prior = len(events)
-				process.send(b"i")
+				self._send_tui(process, b"i")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2627,7 +2631,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b"exit\r")
+				self._send_tui(process, b"exit\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2658,7 +2662,7 @@ class NvimBridgeTests(unittest.TestCase):
 						for e in events[prior:]
 					),
 				)
-				process.send(b"y")
+				self._send_tui(process, b"y")
 				self._wait(
 					condition,
 					lambda: any(
@@ -2727,7 +2731,7 @@ class NvimBridgeTests(unittest.TestCase):
 					),
 				)
 				prior = len(events)
-				process.send(b":bd\r")
+				self._send_tui(process, b":bd\r")
 				self._wait(
 					condition,
 					lambda: any(
@@ -3544,12 +3548,43 @@ class NvimBridgeTests(unittest.TestCase):
 		self.fail("Neovim RPC socket timeout")
 
 	@staticmethod
-	def _drain_tui_output(process) -> None:
+	def _drain_tui_output(
+		process,
+		*,
+		byte_limit: int = 8 * 1024 * 1024,
+		time_limit: float = 1.0,
+	) -> None:
+		deadline = time.monotonic() + time_limit
+		drained = 0
 		try:
-			while process.read_nonblocking(65536, timeout=0.01):
-				pass
+			while True:
+				if drained >= byte_limit:
+					raise AssertionError(
+						f"TUI output drain exceeded byte limit ({byte_limit} bytes)",
+					)
+				remaining = deadline - time.monotonic()
+				if remaining <= 0:
+					raise AssertionError(
+						f"TUI output drain exceeded time limit ({time_limit:.3f} seconds)",
+					)
+				chunk = process.read_nonblocking(
+					min(65536, byte_limit - drained),
+					timeout=min(0.01, remaining),
+				)
+				if not chunk:
+					return
+				drained += len(chunk)
 		except (pexpect.TIMEOUT, pexpect.EOF):
-			pass
+			return
+
+	@classmethod
+	def _send_tui(cls, process, data: bytes) -> None:
+		# A full pseudo-terminal output buffer stops Neovim from polling its
+		# input side. Drain a bounded amount before every physical-key step so
+		# these tests exercise editor behavior instead of PTY capacity without
+		# hanging on a continuously redrawing client.
+		cls._drain_tui_output(process)
+		process.send(data)
 
 	def _wait(self, condition: threading.Condition, predicate, timeout: float = 3.0) -> None:
 		deadline = time.monotonic() + timeout

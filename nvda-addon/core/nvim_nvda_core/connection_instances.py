@@ -83,10 +83,6 @@ class ConnectionInstanceManager:
         except KeyError as error:
             raise ValueError("unknown connection instance") from error
 
-    def remove(self, instance_id: str) -> None:
-        _instance, client = self.detach(instance_id)
-        client.stop()
-
     def detach(self, instance_id: str) -> tuple[ConnectionInstance, Any]:
         """Remove ownership without stopping the client, for off-main-thread shutdown."""
         try:
@@ -97,14 +93,3 @@ class ConnectionInstanceManager:
             if selected == instance_id:
                 del self._terminal_bindings[terminal]
         return instance, client
-
-    def stop_all(self) -> None:
-        errors = []
-        for identifier in list(self._instances):
-            try:
-                self.remove(identifier)
-            except Exception as error:
-                errors.append(error)
-        self._terminal_bindings.clear()
-        if errors:
-            raise RuntimeError(f"{len(errors)} connection clients failed to stop")

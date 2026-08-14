@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import cast
 
 import braille as nvdaBraille
 import config
 import core
 
 from .core.braille import BraillePlan, plan_braille, source_offset_for_expanded
-from .service_registry import getTerminalIntegrationService
+from .adapter_ports import BrailleAdapterPort
+from .service_registry import get_terminal_integration_service
+
+
+def _get_braille_adapter() -> BrailleAdapterPort | None:
+	return cast(BrailleAdapterPort | None, get_terminal_integration_service())
 
 
 def capture_structured_viewport(handler: object) -> int | None:
@@ -349,7 +355,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 		self.hidePreviousRegions = True
 
 	def update(self):
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		formatting = config.conf.get("documentFormatting", {})
 		report_spelling = bool(int(formatting.get("reportSpellingErrors2", 0)) & 4)
 		try:
@@ -397,7 +403,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 		self.brailleSelectionEnd = None
 
 	def routeTo(self, braillePos):
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		try:
 			suppressed = service is not None and service.should_suppress_braille(self.obj)
 		except Exception:
@@ -437,7 +443,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 		)
 
 	def nextLine(self):
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		try:
 			direct = service is not None and service.consume_direct_braille_next_line(self.obj)
 		except Exception:
@@ -448,7 +454,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 		)
 
 	def _navigate_line(self, direction: str, *, target_column: str) -> None:
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		try:
 			if service is not None:
 				service.navigate_braille_line(
@@ -463,7 +469,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 
 class StructuredTerminalBrailleOverlay:
 	def _reportNewLines(self, lines):
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		try:
 			suppressed = service is not None and service.suppress_terminal_live_text(self, len(lines))
 		except Exception:
@@ -473,7 +479,7 @@ class StructuredTerminalBrailleOverlay:
 		return super()._reportNewLines(lines)
 
 	def getBrailleRegions(self, review=False):
-		service = getTerminalIntegrationService()
+		service = _get_braille_adapter()
 		try:
 			suppressed = service is not None and service.should_suppress_braille(self)
 		except Exception:

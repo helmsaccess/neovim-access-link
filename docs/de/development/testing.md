@@ -38,7 +38,12 @@ in getrennten temporären Verzeichnissen aus.
 | `all` | `all-safe`, danach `ssh` und `socket` in getrennten Phasen |
 
 Ohne Gruppenargument entspricht der Runner dem sicheren Preset. `-j N`
-begrenzt Parallelität; `--list` zeigt die Auswahl, ohne sie auszuführen.
+begrenzt Parallelität; `--list` zeigt die Auswahl, ohne sie auszuführen. Jeder
+isolierte Job läuft in einer eigenen Prozessgruppe. Nach 180 Sekunden wird die
+vollständige Gruppe einschließlich gestarteter Neovim- und Hilfsprozesse
+beendet und der Job als fehlgeschlagen gemeldet.
+Die reale TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
+eine Sekunde und 8 MiB je physischem Tastenschritt.
 
 ## Empfohlener Ablauf
 
@@ -53,6 +58,7 @@ Gesamtpfad:
 
 ```bash
 ruff check .
+ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 python3 tools/run_tests.py all-safe
 python3 tools/run_tests.py ssh
@@ -88,6 +94,16 @@ dort sinnvoll, wo alle drei Phasen zulässig sind.
 Ein Fehlerbehebungscommit ergänzt nach Möglichkeit einen Regressionstest auf
 der niedrigsten sinnvollen Schicht und einen Integrationsnachweis an der
 Grenze, an der der Fehler sichtbar wurde.
+
+AST-basierte Add-on-Architekturtests sichern den minimalen Global-Plugin-
+Einstieg, die öffentliche AppModule-API, einen azyklischen lokalen Importgraphen
+und genau je einen produktiven Pfad für `send_control` und `client.stop`.
+Echte Worker-Tests verwenden absichtlich blockierende Clients; Scheduler- und
+Rollbacktests führen verspätete Callbacks und Fehler an jeder
+ressourcenbesitzenden Konstruktionsstufe aus. Damit prüfen diese Tests die
+Nebenläufigkeitsverträge statt nur Quelltextfragmente. Die zweite Ruff-Zeile
+lintet alle Python-Tests ausdrücklich; der Formatcheck bleibt auf den im
+Projekt konfigurierten NVDA-Produktcode begrenzt.
 
 ## Spezialisierte Vertragsprüfungen
 

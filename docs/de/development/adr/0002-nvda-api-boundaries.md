@@ -52,12 +52,13 @@ AppModules, des Prozesses und der freigegebenen UIA-Klasse verwendet.
 
 ## Ausnahme 3: Einbindung in NVDA-Einstellungen und Hauptmenü
 
-Die Registrierung über `NVDASettingsDialog.categoryClasses`, das Einfügen
-eines obersten Untermenüs über `gui.mainFrame.sysTrayIcon.menu` und
-`gui.runScriptModalDialog` entsprechen verbreiteter NVDA-Add-on-Praxis, sind
-aber nicht als eigenständige, langfristig stabile Erweiterungsschnittstellen
-zugesagt. Installierte Hilfe wird über NVDAs öffentliches
-`Addon.getDocFilePath()` lokalisiert aufgelöst.
+Die Registrierung über `NVDASettingsDialog.categoryClasses` und das Einfügen
+eines obersten Untermenüs über `gui.mainFrame.sysTrayIcon.menu` entsprechen
+verbreiteter NVDA-Add-on-Praxis, sind aber nicht als eigenständige, langfristig
+stabile Erweiterungsschnittstellen zugesagt. Dialoge werden über eine kleine
+UI-Schnittstelle auf NVDAs Hauptthread geplant; der veraltete Helfer
+`gui.runScriptModalDialog` wird nicht verwendet. Installierte Hilfe wird über
+NVDAs öffentliches `Addon.getDocFilePath()` lokalisiert aufgelöst.
 
 - Risiko: Menü- oder Dialogstruktur kann sich zwischen NVDA-Hauptversionen
   ändern; die Funktion könnte dann nicht angeboten werden.

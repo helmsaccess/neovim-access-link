@@ -19,11 +19,14 @@ confirmed connection state all match.
 
 ## Decision
 
-The Global Plugin is the process-wide composition and lifetime root. It
-registers settings and the top-level add-on menu, constructs shared services,
-publishes them only after complete initialization, and shuts them down in a
-defined order. Domain connection, assignment, gate, protocol, and presentation
-state resides in ordinary services that do not inherit from `GlobalPlugin`.
+The Global Plugin is only the process-wide lifetime adapter: it creates exactly
+one runtime through `create_runtime()` and closes it on termination.
+`composition.py` constructs shared services transactionally; `AddonRuntime`
+registers settings and the menu, publishes the terminal facade only after
+complete initialization, and shuts all owners down in a defined order.
+Connection workflow, temporary-binding recovery, terminal actions, event
+delivery, and domain assignment, gate, protocol, and presentation state reside
+in ordinary services that do not inherit from `GlobalPlugin`.
 
 The Windows Terminal AppModule owns:
 
@@ -41,9 +44,11 @@ gesture remains unchanged. Each match is revalidated against the focus object,
 AppModule, control identity, service generation, and gate.
 
 On termination or reload, the shared service is marked unavailable first.
-Pending focus decisions are then discarded, suppression is disabled,
-connections are stopped, and UI registrations are removed symmetrically.
-AppModules do not use an unverified stale service instance.
+Pending focus decisions are then discarded, suppression is disabled, and
+connections are detached from canonical state. A fixed background pool owns
+and stops every detached client without making NVDA's main thread wait; UI
+registrations are removed symmetrically. AppModules do not use an unverified
+stale service instance.
 
 ## Invariants
 

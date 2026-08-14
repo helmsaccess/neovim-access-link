@@ -149,6 +149,22 @@ entry.
 `Saved connections` shows the chosen name, SSH target, and a port that differs
 from the default 22. There is no default connection.
 
+### Temporary terminal connections
+
+`After a new F12 association` controls the prompt asking whether Access Link
+should remember the connection for the focused Windows Terminal tab:
+
+- `Ask whether to remember the connection` shows the prompt; this is the
+  default.
+- `Remember the connection` uses the `Yes` answer for every new association.
+- `Do not remember the connection` uses the `No` answer for every new
+  association.
+
+`Yes` has the default focus in the prompt. Selecting `Remember this decision
+in the current configuration profile` there immediately copies the chosen
+answer into this setting. The first choice resets such a stored decision. All
+three values belong to the active NVDA configuration profile.
+
 ### Add, edit, or remove a connection
 
 - `Add connection...` opens an empty Linux connection form.

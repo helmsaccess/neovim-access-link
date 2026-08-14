@@ -6,12 +6,14 @@ on:
       - ".editorconfig"
       - "pyproject.toml"
       - "nvda-addon/addon/**/*.py"
+      - "nvda-addon/tests/**/*.py"
       - ".github/workflows/nvda-python-style.yml"
   pull_request:
     paths:
       - ".editorconfig"
       - "pyproject.toml"
       - "nvda-addon/addon/**/*.py"
+      - "nvda-addon/tests/**/*.py"
       - ".github/workflows/nvda-python-style.yml"
 
 permissions:
@@ -26,6 +28,8 @@ jobs:
       - name: Install Ruff used by NVDA 2026.1
         run: python -m pip install ruff==0.14.5
       - name: Lint NVDA-facing Python
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
       - name: Check NVDA Python formatting
         run: ruff format --check .

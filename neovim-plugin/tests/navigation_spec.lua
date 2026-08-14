@@ -20,8 +20,8 @@ vim.api.nvim_buf_set_lines(0, 0, -1, true, { "" })
 
 -- These characters are Normal-mode motions or command prefixes, but ordinary
 -- text in Insert mode.  None may escape as semantic navigation.
-vim.api.nvim_feedkeys("ihjklwebn%[d sample", "xt", false)
-vim.wait(500, function() return vim.api.nvim_get_current_line() == "hjklwebn%[d sample" end)
+vim.api.nvim_feedkeys("ihjklwebng%[d sample", "xt", false)
+vim.wait(500, function() return vim.api.nvim_get_current_line() == "hjklwebng%[d sample" end)
 vim.wait(100)
 local forbidden = {
   characterMoved = true, wordMoved = true, lineChanged = true,
@@ -31,10 +31,38 @@ local forbidden = {
 for _, event in ipairs(events) do
   assert(not forbidden[event.type], "inserted text emitted navigation event " .. event.type)
 end
-equal("hjklwebn%[d sample", vim.api.nvim_get_current_line(), "inserted motion-like text")
+equal("hjklwebng%[d sample", vim.api.nvim_get_current_line(), "inserted motion-like text")
 
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
 vim.wait(50)
+
+-- Prefixes are one tagged state. The @ in g@ belongs to Neovim's operatorfunc
+-- command and must not start the unrelated top-level macro prefix.
+events = {}
+_G.nvim_nvda_test_operator = function() end
+vim.go.operatorfunc = "v:lua.nvim_nvda_test_operator"
+vim.api.nvim_feedkeys("g@l", "xt", false)
+vim.wait(100)
+for _, event in ipairs(events) do
+  assert(event.type ~= "macroPlayed", "g@ operator command escaped as macro playback")
+end
+equal("n", vim.api.nvim_get_mode().mode, "g@ motion completes in Normal mode")
+
+-- The real gg transition remains semantic after replacing the independent
+-- flags with the tagged prefix state.
+events = {}
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "one", "two", "three" })
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+vim.api.nvim_feedkeys("gg", "xt", false)
+vim.wait(100)
+vim.api.nvim_exec_autocmds("CursorMoved", { modeline = false })
+vim.wait(100)
+local saw_file_start = false
+for _, event in ipairs(events) do
+  if event.type == "fileStart" then saw_file_start = true end
+end
+equal(true, saw_file_start, "gg keeps its file-start semantic event")
+_G.nvim_nvda_test_operator = nil
 
 -- One physical arrow motion must publish one authoritative semantic event.
 -- A following generic cursor event would make NVDA speak the same character
@@ -57,6 +85,51 @@ for _, event in ipairs(events) do
 end
 equal(1, #arrow_events, "arrow motion publishes one navigation event")
 equal("characterMoved", arrow_events[1], "arrow motion keeps its semantic unit")
+
+-- A queued navigation callback belongs to the connection generation in which
+-- it was observed. A fast disconnect/reconnect must not publish it to the new
+-- consumer.
+local scheduled = {}
+local original_schedule = vim.schedule
+vim.schedule = function(callback) scheduled[#scheduled + 1] = callback end
+events = {}
+vim.api.nvim_buf_set_lines(0, 0, -1, true, { "abc" })
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.api.nvim_feedkeys("l", "xt", false)
+vim.api.nvim_exec_autocmds("CursorMoved", { modeline = false })
+assert(#scheduled > 0, "navigation callback was not scheduled")
+plugin.unregister_channel(1)
+plugin.register_channel(1)
+events = {}
+vim.schedule = original_schedule
+for _, callback in ipairs(scheduled) do callback() end
+for _, event in ipairs(events) do
+  assert(event.type ~= "characterMoved" and event.type ~= "cursorMoved",
+    "pre-disconnect navigation escaped into the reconnected channel")
+end
+
+-- Menu models are connection-scoped as well. A new consumer must never
+-- receive a close for a menu which only the previous consumer saw.
+events = {}
+local reconnect_item = { word = "same", abbr = "same", kind = "v" }
+plugin.accessible_menu_open({ reconnect_item }, { kind = "plugin", selected = 1 })
+plugin.unregister_channel(1)
+plugin.register_channel(1)
+events = {}
+plugin.accessible_menu_update(reconnect_item, {
+  kind = "plugin", selected = 1, item_count = 1,
+})
+plugin.accessible_menu_close()
+local reconnect_menu_events = {}
+for _, event in ipairs(events) do
+  if event.type:sub(1, 4) == "menu" then
+    reconnect_menu_events[#reconnect_menu_events + 1] = event.type
+  end
+end
+equal(3, #reconnect_menu_events, "reconnected menu event count")
+equal("menuOpened", reconnect_menu_events[1], "reconnected menu opens")
+equal("menuSelectionChanged", reconnect_menu_events[2], "reconnected menu selects")
+equal("menuClosed", reconnect_menu_events[3], "reconnected menu closes")
 
 -- Text typed on the Ex command line must not be retained as a Normal-mode
 -- motion.  The final `l` in commands such as `:terminal` previously leaked
@@ -139,5 +212,5 @@ vim.wait(50)
 package.loaded.cmp = nil
 
 vim.rpcnotify = original_rpcnotify
-print("navigation tests: 8 assertions passed")
+print("navigation tests: 11 assertions passed")
 vim.cmd("qa!")

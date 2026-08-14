@@ -27,6 +27,14 @@ Die ausführliche Beziehung dieser Bereiche erklärt die
 [Architektur](architecture.md). Insbesondere darf NVDA-spezifischer Code nicht
 in den Sprachplaner oder das Transportprotokoll wandern.
 
+Im Neovim-Plugin bleibt `lua/nvim_nvda/init.lua` die öffentliche Fassade und
+Kompositionswurzel. `event_channel.lua` besitzt Verbindung und Sequenz;
+`input_events.lua`, `command_line_events.lua`, `ui_events.lua`,
+`completion_events.lua`, `file_manager_prompt_events.lua` und
+`context_events.lua` besitzen ihre jeweiligen Ereigniszustände.
+`braille_routing.lua` kapselt die validierten Routingkontrollen. Diese Module
+importieren die Root-Fassade nicht.
+
 ## Quellen, Paketlayout und erzeugte Ergebnisse
 
 `buildVars.py` ist die einzige gepflegte Quelle für Produkt-ID, numerische
@@ -47,7 +55,7 @@ Erzeugte oder private Dateien haben feste Orte:
 - `build/`: erzeugte HTML-Dokumentation und andere reproduzierbare Ergebnisse;
 - `tmp/human-test-state/` und `tmp/human-test-results/`: vom geführten
   Praxistest-Runner erzeugte, ignorierte Zustände und Ergebnisse.
-- `/nfs/src/nal-tmp/`: agenteneigene Untersuchungen, Berichte, Downloads,
+- `../nal-aux/`: agenteneigene Untersuchungen, Berichte, Downloads,
   Reproduktionen und Testarbeitsbereiche außerhalb des Repositorys.
 
 Der private Linux-Laufzeitfallback unter `/tmp` ist ein Teil der

@@ -1,6 +1,6 @@
 # Aktiver Plan
 
-Stand: 5. August 2026.
+Stand: 13. August 2026.
 
 Dieses Kapitel enthält nur offene oder laufende Arbeit. Implementierte
 Funktionen stehen in `current-status.md`; abgeschlossene Einzelschritte und
@@ -35,13 +35,13 @@ Laufend:
 
 Der in [ADR-0004](adr/0004-nvda-lifetime-and-event-ownership.md) beschlossene
 Anwendungsschnitt ist umgesetzt und praktisch über mehrere Fenster, Tabs und
-Panes mit lokalen und entfernten Sitzungen geprüft. Der erneute Audit in
-[Anhang C](global-plugin-appmodule-audit-2026-08-04.md) bestätigt diesen
-Scope, zeigt aber auch die weiterhin umfangreiche prozessweite
-NVDA-Randkoordination in der konkreten Global-Plugin-Klasse und den breiten
-öffentlichen Terminaldienst. Der aktuelle Aufbau steht in
-`current-status.md`; Entwicklung und Messwerte stehen im Changelog sowie in
-den Anhängen A bis C.
+Panes mit lokalen und entfernten Sitzungen geprüft. Der Global-Plugin-Audit vom
+13. August 2026 führte die umfangreiche NVDA-Randkoordination aus der konkreten
+Global-Plugin-Klasse in eindeutige Besitzer für Komposition,
+Verbindungsworkflow, Terminalaktionen, Ereignislieferung, Planung,
+Präsentation und Transportabschluss über. Das Global Plugin ist nur noch der
+Lebensdaueradapter. Der aktuelle Aufbau steht in `current-status.md`;
+Entwicklung und Messwerte stehen im Changelog und in den datierten Berichten.
 
 Eine weitere Aufteilung ist nicht allein wegen Dateigröße oder LOC geplant.
 Sie wird in kleinen fachlichen Schnitten nur aufgenommen, wenn sie einen
@@ -51,10 +51,11 @@ AppModule-Ereignisbesitz,
 Fail-open, F12-Isolation, asynchroner Transport sowie Fenster-, Tab- und
 Pane-Trennung bleiben dabei verbindliche Invarianten.
 
-Als Kandidaten werden zuerst Verbindungs-/Claimabläufe, NVDA-Ereignisausgabe,
-Kontextpräsentation und verbraucherspezifische Dienstverträge bewertet. Eine
-Auslagerung erfolgt nur mit klaren Invarianten und Regressionstests; gemeinsam
-genutzte prozessweite Abläufe werden nicht in das AppModule kopiert.
+Weitere Änderungen an diesen Grenzen benötigen deshalb neuen belegten Nutzen.
+Insbesondere wird der zusammenhängende Verbindungsworkflow nicht allein wegen
+seiner Dateigröße künstlich in Durchreicheschichten zerlegt. Neue Auslagerungen
+erfordern klare Invarianten und Regressionstests; gemeinsam genutzte
+prozessweite Abläufe werden nicht in das AppModule kopiert.
 
 ## 3. Praktische Abschottung verbreitern
 

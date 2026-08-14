@@ -74,12 +74,14 @@ class NvimRpcSource:
     def stop(self) -> None:
         self._stop.set()
         with self._socket_lock:
-            if self._socket is not None:
-                try:
-                    self._socket.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
-                self._socket.close()
+            connection = self._socket
+            self._socket = None
+        if connection is not None:
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            connection.close()
         if self._thread is not None:
             self._thread.join(timeout=2.0)
             if self._thread.is_alive():
@@ -96,6 +98,9 @@ class NvimRpcSource:
                 connection.connect(self.endpoint.address)
                 connection.settimeout(None)
                 with self._socket_lock:
+                    if self._stop.is_set():
+                        connection.close()
+                        raise EOFError("stopped")
                     self._socket = connection
                 self._unpacker = msgpack.Unpacker(raw=False, strict_map_key=False)
                 self._pending_notifications.clear()
@@ -118,9 +123,10 @@ class NvimRpcSource:
                 pass
             finally:
                 with self._socket_lock:
-                    if self._socket is not None:
-                        self._socket.close()
+                    connection = self._socket
                     self._socket = None
+                if connection is not None:
+                    connection.close()
             if not self._stop.is_set():
                 self.on_connection_state("disconnected")
                 if identity_rejected:
@@ -139,20 +145,24 @@ class NvimRpcSource:
         if actual != self.expected_session_nonce:
             raise SessionIdentityError("Neovim session identity mismatch")
 
-    def _send(self, message: list[Any]) -> None:
-        assert self._socket is not None
+    def _send(self, message: list[Any], connection: socket.socket | None = None) -> None:
+        if connection is None:
+            connection = self._socket
+        if connection is None:
+            raise EOFError("Neovim RPC socket is not connected")
         encoded = msgpack.packb(message, use_bin_type=True)
         with self._send_lock:
-            self._socket.sendall(encoded)
+            connection.sendall(encoded)
 
     def notify(self, method: str, *parameters: Any) -> bool:
         with self._socket_lock:
-            if self._socket is None:
-                return False
-            try:
-                self._send([2, method, list(parameters)])
-            except OSError:
-                return False
+            connection = self._socket
+        if connection is None:
+            return False
+        try:
+            self._send([2, method, list(parameters)], connection)
+        except (OSError, EOFError):
+            return False
         return True
 
     def _request(self, method: str, *parameters: Any) -> Any:

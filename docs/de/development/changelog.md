@@ -6,7 +6,71 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-Derzeit keine unveröffentlichten Änderungen.
+- Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
+  0.99.0 mit Entwicklungsbuild 1.
+- Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche
+  Root-Fassade komponiert jetzt eindeutige Besitzer für Ereigniskanal,
+  Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
+  Kontextwechsel. Öffentliche RPC-/Adapterfunktionen und semantische
+  Ereignisse bleiben unverändert. Ein eigener Verhaltenstest belegt den
+  Fail-open-Kanalabbau; der Pakettest prüft identische getestete Module statt
+  interner Quelltextfragmente. Dieser installierbare Stand ist
+  Entwicklungsbuild 2.
+- Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame Sendehilfe
+  ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt leert. Damit
+  blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims Eingabepolling.
+- Schließt die kritische Nachprüfung des Neovim-Plugin-Refactorings ab: Der
+  Ereigniskanal schützt nun auch ungültige Snapshots, Payload- und
+  Versandfehler. Eingabepräfixe bilden einen einzelnen
+  markierten Zustand, sodass gekoppelte `g`-Befehle nicht als unabhängige
+  Makro-, Register- oder Editbefehle fehlklassifiziert werden; Reconnects
+  verwerfen alte geplante Eingabeereignisse. Regressionstests decken diese
+  Übergänge, wiederholtes Setup und begrenzte PTY-Entleerung ab. Der Test-Runner
+  begrenzt außerdem jeden isolierten Job. Dieser installierbare Stand ist
+  Entwicklungsbuild 3.
+- Korrigiert die bei einer unabhängigen Lifecycle-Nachprüfung gefundenen
+  Restlücken: Jeder interne Publikationsfehler schließt jetzt auch den realen
+  RPC-Transport. Eine Verbindungsgeneration verwirft geplante UI-,
+  Befehlszeilen-, Kontext-, Diagnose- und Dateimanagerereignisse der alten
+  Verbindung; transiente Menü-, Prompt- und Controllerzustände werden vor dem
+  nächsten `fullState` still zurückgesetzt. Geplante UI-Abbauten können keine
+  neuere UI-Anbindung mehr entfernen. Der Runner beendet bei seinem Zeitlimit
+  die vollständige Prozessgruppe statt nur des direkten Testprozesses. Reale
+  RPC-, Reconnect-, Menülebenszyklus- und Kindprozess-Regressionstests decken
+  diese Grenzen ab. Dieser installierbare Stand ist Entwicklungsbuild 4.
+- Vereinfacht die Python-Laufzeit des NVDA-Add-ons nach einem vollständigen
+  Architekturaudit. Das Global Plugin ist von mehr als 3200 auf wenige Dutzend
+  Zeilen reduziert und verwaltet nur noch die Lebensdauer einer transaktional
+  aufgebauten Runtime.
+  Verbindungsworkflow, Terminalaktionen, Ereignislieferung, Präsentation und
+  zeitversetzte Arbeit haben eindeutige Besitzer; AppModule und
+  Braille-Adapter verwenden schmale öffentliche Verträge statt privater
+  Global-Plugin-Details. Ein einzelner Dispatcher serialisiert ausgehende
+  Steuerdaten, und ein begrenzter Hintergrundworker beendet Clients, ohne den
+  NVDA-Hauptthread auf Transportabschluss warten zu lassen. Architektur-,
+  Rollback-, Nebenläufigkeits- und Besitztests sichern diese Grenzen; die
+  Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests. Dieser erste
+  installierbare Stand des neuen Entwicklungszweigs ist Entwicklungsbuild 1.
+- Härtet den Python-Laufzeitumbau nach einer unabhängigen Seniorprüfung. Der
+  `ControlDispatcher` hält die Reihenfolge je Client ein, isoliert unabhängige
+  Clients mit einem festen Workerpool und lässt den lokalen RPC-Stopp einen
+  blockierten Socketversand unterbrechen. Der `ClientStopper` übernimmt jeden
+  angenommenen abgetrennten Client statt ihn bei voller Queue besitzlos zu
+  lassen. Auswahl- und Passwortdialoge verwenden NVDAs öffentliche modale
+  Lebensdauerverwaltung; veraltete Passwörter werden verworfen. Der Lifecycle
+  delegiert den vollständigen Verbindungsabbau an genau einen Workflow, während
+  die Zustandsmaschine temporär gemerkter Bindungen einen eigenen Controller
+  besitzt. Direkte Queue-, Reihenfolge-, Isolation-, Abbruch-, Dialog- und
+  Besitztests decken die neuen Grenzen ab. Dieser installierbare Stand ist
+  Entwicklungsbuild 2.
+- Verbessert die Rückfrage nach einer temporären F12-Tab-Zuordnung: `Ja` besitzt
+  wieder den Standardfokus. Ein neues Ankreuzfeld speichert die ausdrücklich
+  gewählte Antwort im aktiven NVDA-Konfigurationsprofil; die Einstellung
+  `Temporäre Terminalverbindungen` kann anschließend zwischen erneutem Fragen,
+  automatischem Merken und automatischem Nichtmerken wechseln. Profilwechsel,
+  `Ja`- und `Nein`-Entscheidungen, Abbruch, Dialogfokus und die dialogfreie
+  Wiederverwendung sind durch Pakettests abgedeckt. Dieser installierbare Stand
+  ist Entwicklungsbuild 3.
 
 ## 0.98.0
 
