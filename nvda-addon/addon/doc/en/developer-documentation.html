@@ -2642,7 +2642,7 @@ changelog provide context but do not replace current code and tests.</p>
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
 <p>Status date: August 14, 2026. The source tree develops the 0.99.0
-line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.2 with
+line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.3 with
 branch and commit metadata and sets the manifest update channel to beta.
 The current published pre-release is 0.98.0. The project does not infer
 a higher stability classification from test coverage or feature
@@ -2659,10 +2659,13 @@ work.</p>
 2026.1.1, Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim
 0.10.1 and 0.12.3 on Rocky Linux 10.2 through OpenSSH for Windows 9.5p2.
 Local Windows Neovim, Linux Neovim over SSH, and tmux inside an SSH
-session are covered. F12 assignment, focus switching, and native typing
-echo in other Windows Terminal windows were additionally exercised with
-NVDA 2026.2beta10; the manifest therefore names NVDA 2026.2 as last
-tested. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
+session are covered. The final field test of development build 3 under
+NVDA 2026.2beta10 covered automatic F12 bindings, frequent switching
+between local and remote panes and another Windows Terminal window,
+ending and restarting remote Neovim, and native typing echo outside the
+active session. Bindings remained distinct and active, and disconnected
+SSH snapshots caused no false reconnections. The manifest therefore
+names NVDA 2026.2 as last tested. See <a href="#docs__en__development__compatibilitymd__compatibility">compatibility</a>
 for complete platform and version boundaries.</p>
 </section>
 <section id="docs__en__development__current-statusmd__implemented-end-to-end-path" class="level3">
@@ -6162,9 +6165,12 @@ forms observed under NVDA 2026.2beta10. This normalization jointly
 requires the same process, window handle, allowed class, and pane-tail
 components plus NVDA&#39;s positive UIA element equality; different panes
 remain separate. Direct and package regression tests cover automatic
-retention, focus races, alias changes, and distinct panes. The corrected
-build still needs manual repetition. This installable state is
-development build 3.</li>
+retention, focus races, alias changes, and distinct panes. Manual
+repetition of the corrected build under NVDA 2026.2beta10 confirmed
+stable, distinct bindings during frequent switching between a local
+pane, an SSH pane, and another WT window, native typing echo outside the
+active session, and no false reconnections after remote Neovim ended.
+This installable state is development build 3.</li>
 <li>Hardens protocol boundaries after the complete unit-test review.
 Boolean and negative sequences or timestamps are rejected in the message
 envelope. A new transport session starts exclusively with

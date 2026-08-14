@@ -96,8 +96,11 @@ test-build entries through August 5, 2026.
   handle, allowed class, and pane-tail components plus NVDA's positive UIA
   element equality; different panes remain separate. Direct and package
   regression tests cover automatic retention, focus races, alias changes, and
-  distinct panes. The corrected build still needs manual repetition. This
-  installable state is development build 3.
+  distinct panes. Manual repetition of the corrected build under NVDA
+  2026.2beta10 confirmed stable, distinct bindings during frequent switching
+  between a local pane, an SSH pane, and another WT window, native typing echo
+  outside the active session, and no false reconnections after remote Neovim
+  ended. This installable state is development build 3.
 - Hardens protocol boundaries after the complete unit-test review. Boolean and
   negative sequences or timestamps are rejected in the message envelope. A new
   transport session starts exclusively with `fullState` at sequence 0, while

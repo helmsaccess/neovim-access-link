@@ -1,7 +1,7 @@
 # Current status
 
 Status date: August 14, 2026. The source tree develops the 0.99.0 line;
-`buildVars.py` generates artifacts as 0.99.0-dev.2 with branch and commit
+`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -17,10 +17,13 @@ detail, the [changelog](changelog.md) for completed changes, and the
 The main practical path has been exercised with Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim 0.10.1 and 0.12.3 on
 Rocky Linux 10.2 through OpenSSH for Windows 9.5p2. Local Windows Neovim, Linux
-Neovim over SSH, and tmux inside an SSH session are covered. F12 assignment,
-focus switching, and native typing echo in other Windows Terminal windows were
-additionally exercised with NVDA 2026.2beta10; the
-manifest therefore names NVDA 2026.2 as last tested. See
+Neovim over SSH, and tmux inside an SSH session are covered. The final field
+test of development build 3 under NVDA 2026.2beta10 covered automatic F12
+bindings, frequent switching between local and remote panes and another
+Windows Terminal window, ending and restarting remote Neovim, and native typing
+echo outside the active session. Bindings remained distinct and active, and
+disconnected SSH snapshots caused no false reconnections. The manifest
+therefore names NVDA 2026.2 as last tested. See
 [compatibility](compatibility.md) for complete platform and version boundaries.
 
 ## Implemented end-to-end path

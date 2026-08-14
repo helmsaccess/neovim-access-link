@@ -104,8 +104,12 @@ und Testbuild-Einträge bis zum 5. August 2026.
   dieselbe freigegebene Klasse und dieselben Pane-Endkomponenten sowie NVDAs
   positive UIA-Elementgleichheit; andere Panes bleiben getrennt. Direkte und
   Paketregressionstests decken automatisches Merken, Fokusrennen, Aliaswechsel
-  und getrennte Panes ab. Der korrigierte Build benötigt noch den manuellen
-  Wiederholungstest. Dieser installierbare Stand ist Entwicklungsbuild 3.
+  und getrennte Panes ab. Der manuelle Wiederholungstest des korrigierten
+  Builds unter NVDA 2026.2beta10 bestätigte bei häufigen Wechseln zwischen
+  lokalem Pane, SSH-Pane und einem weiteren WT-Fenster stabile, getrennte
+  Bindungen, natives Tippecho außerhalb der aktiven Sitzung sowie das
+  Ausbleiben falscher Wiederverbindungen nach dem Ende von Remote-Neovim.
+  Dieser installierbare Stand ist Entwicklungsbuild 3.
 - Härtet nach der vollständigen Unit-Test-Nachprüfung die Protokollgrenzen.
   Boolesche und negative Sequenzen oder Zeitstempel werden bereits in der
   Nachrichtenhülle verworfen. Eine neue Transport-Sitzung beginnt ausschließlich
