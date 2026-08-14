@@ -243,6 +243,7 @@ def jobs() -> tuple[Job, ...]:
     result.append(python_file("unit", "human", "tests/human/test_framework.py"))
     for file_name in (
         "test_addon_architecture.py",
+        "test_addon_runtime.py",
         "test_braille_exploration.py",
         "test_braille_routing_repeats.py",
         "test_client_stopper.py",
@@ -258,6 +259,7 @@ def jobs() -> tuple[Job, ...]:
         "test_held_context.py",
         "test_local_install.py",
         "test_local_sessions.py",
+        "test_managed_clients.py",
         "test_numbered_choice.py",
         "test_repository_policy.py",
         "test_runtime_scheduler.py",
