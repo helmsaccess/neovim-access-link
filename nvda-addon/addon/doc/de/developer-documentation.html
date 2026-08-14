@@ -2736,12 +2736,12 @@ Tests.</p>
 <div id="docs__de__development__current-statusmd">
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
-<p>Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie
-0.99.0; <code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.1 mit
-Branch- und Commitmetadaten und setzt den Update-Kanal im Manifest auf
-Beta. Der aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt
-leitet aus Testumfang oder Funktionsmenge keine höhere
-Stabilitätseinstufung ab.</p>
+<p>Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
+<code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.3 mit Branch-
+und Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der
+aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt leitet aus
+Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung
+ab.</p>
 <p>Diese Seite ist die kompakte Momentaufnahme des implementierten und
 geprüften Stands. <a href="#docs__de__development__architecturemd__architektur">Architektur</a>
 und <a href="#docs__de__development__accessibilitymd__funktions--und-accessibility-matrix">Funktionsmatrix</a>
@@ -2819,6 +2819,13 @@ Windows-Registry.</li>
 exakt fokussierten Windows-Terminal-Control zu. Mehrere Fenster, Tabs
 und Panes halten unabhängige lokale, entfernte oder normale
 Shell-Sitzungen.</li>
+<li>Die anschließende Frage nach einer temporär gemerkten Tab-Zuordnung
+fokussiert standardmäßig <code>Ja</code>. Ein Ankreuzfeld kann die
+gewählte Antwort im aktiven NVDA-Profil speichern; die dreistufige
+Einstellung unter <code>Verbindungen</code> wendet <code>Ja</code> oder
+<code>Nein</code> automatisch an oder setzt das Verhalten auf erneutes
+Fragen zurück. Die Tab-Zuordnung selbst bleibt reine
+Laufzeitinformation.</li>
 <li>Authentifizierung, Sequenzen, Heartbeats, Resync und
 Fokuskorrelation begrenzen den dauerhaften Pfad. Trennung, ungültiger
 Zustand oder unsichere Fokusidentität geben NVDAs natives
@@ -5049,6 +5056,17 @@ genau einen Versuch für das fokussierte Windows-Terminal-Control.
 Fokusobjekt, konkrete AppModule-Instanz, vollständige UIA-Identität,
 Gate und frischer Sitzungs-Claim müssen übereinstimmen. Ohne Treffer
 entstehen keine Bindung, kein Dialog und keine Unterdrückung.</p>
+<p><code>temporaryBindingPrompt</code> steuert die anschließende Frage
+nach der nur zur Laufzeit gemerkten Tab-Bindung. <code>0</code> fragt
+jedes Mal und ist der Standard, <code>1</code> wendet <code>Ja</code>
+ohne Dialog an und <code>2</code> wendet <code>Nein</code> ohne Dialog
+an. Im Dialog ist <code>Ja</code> standardmäßig fokussiert. Sein
+Ankreuzfeld schreibt die ausdrücklich gewählte Antwort sofort und
+ausschließlich als diesen Wert in das aktive NVDA-Konfigurationsprofil;
+ein Abbruch speichert nichts. Die dreistufige Auswahl unter
+<code>Verbindungen</code> kann den Wert ändern oder auf <code>0</code>
+zurücksetzen. Ein Profilwechsel lädt ihn zusammen mit den übrigen
+nativen Add-on-Einstellungen neu.</p>
 <p>Der frei belegbare Befehl „Server wählen und dieses Terminal mit
 einer neuen Neovim-Sitzung verbinden“ öffnet die Profilauswahl und
 verlangt danach F12 in der gewünschten Sitzung. Laufzeitbindungen
@@ -6459,6 +6477,16 @@ Workflow, während die Zustandsmaschine temporär gemerkter Bindungen
 einen eigenen Controller besitzt. Direkte Queue-, Reihenfolge-,
 Isolation-, Abbruch-, Dialog- und Besitztests decken die neuen Grenzen
 ab. Dieser installierbare Stand ist Entwicklungsbuild 2.</li>
+<li>Verbessert die Rückfrage nach einer temporären F12-Tab-Zuordnung:
+<code>Ja</code> besitzt wieder den Standardfokus. Ein neues Ankreuzfeld
+speichert die ausdrücklich gewählte Antwort im aktiven
+NVDA-Konfigurationsprofil; die Einstellung
+<code>Temporäre Terminalverbindungen</code> kann anschließend zwischen
+erneutem Fragen, automatischem Merken und automatischem Nichtmerken
+wechseln. Profilwechsel, <code>Ja</code>- und
+<code>Nein</code>-Entscheidungen, Abbruch, Dialogfokus und die
+dialogfreie Wiederverwendung sind durch Pakettests abgedeckt. Dieser
+installierbare Stand ist Entwicklungsbuild 3.</li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">

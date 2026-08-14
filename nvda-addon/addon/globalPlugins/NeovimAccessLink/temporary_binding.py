@@ -33,9 +33,13 @@ class TemporaryBindingWorkflow:
 		scheduler: Any,
 		diagnostics: Any,
 		dialogs: Any,
+		prompt_answer: Any,
+		remember_prompt_answer: Any,
 	) -> None:
-		if not callable(dispatch_control):
-			raise ValueError("control dispatch callback is required")
+		if not all(
+			callable(callback) for callback in (dispatch_control, prompt_answer, remember_prompt_answer)
+		):
+			raise ValueError("control dispatch and prompt callbacks are required")
 		self._connectionCoordinator = coordinator
 		self._sessionClaimService = session_claim
 		self._terminalFocusService = terminal_focus
@@ -43,6 +47,8 @@ class TemporaryBindingWorkflow:
 		self._scheduler = scheduler
 		self._diagnostics = diagnostics
 		self._dialogs = dialogs
+		self._promptAnswer = prompt_answer
+		self._rememberPromptAnswer = remember_prompt_answer
 
 	@property
 	def _gate(self):
@@ -59,7 +65,19 @@ class TemporaryBindingWorkflow:
 		return self._scheduler.later(delay_ms, callback, *args)
 
 	def offer_temporary_binding(self, identity, instance_id):
-		offer = self._sessionClaimService.arm_temporary_binding_reactivation(identity, instance_id)
+		try:
+			prompt_answer = self._promptAnswer()
+		except Exception as error:
+			prompt_answer = None
+			self._diagnostics.record(
+				"temporaryTerminalBindingPromptSettingError",
+				errorType=type(error).__name__,
+			)
+		offer = (
+			self._sessionClaimService.arm_temporary_binding_reactivation(identity, instance_id)
+			if prompt_answer is None
+			else self._sessionClaimService.prepare_temporary_binding_offer(identity, instance_id)
+		)
 		if offer.kind == TemporaryBindingOfferKind.FOCUS_CHANGED:
 			self._diagnostics.record(
 				"temporaryTerminalBindingOfferIgnored",
@@ -75,37 +93,36 @@ class TemporaryBindingWorkflow:
 			return
 		if offer.kind != TemporaryBindingOfferKind.OFFER or offer.instance is None:
 			return
+		if prompt_answer is not None:
+			self._diagnostics.record(
+				"temporaryTerminalBindingPromptDecisionApplied",
+				decision="remember" if prompt_answer else "doNotRemember",
+				instanceId=instance_id,
+			)
+			self._finishTemporaryBindingDecision(identity, instance_id, prompt_answer)
+			return
 		app_module = self._terminalFocusService.focused_app_module
 		adapter_token = self._terminalFocusService.focused_adapter_token
 
-		def finish(accepted):
-			if not accepted:
-				self._diagnostics.record(
-					"temporaryTerminalBindingDeclined",
-					instanceId=instance_id,
-					terminal=self._identityFields(identity),
-				)
-			else:
-				remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
-				if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+		def finish(accepted, remember_choice):
+			if remember_choice:
+				try:
+					self._rememberPromptAnswer(accepted)
+				except Exception as error:
 					self._diagnostics.record(
-						"temporaryTerminalBindingOfferIgnored",
-						instanceId=instance_id,
-						reason=remembered.kind.value,
+						"temporaryTerminalBindingPromptDecisionSaveFailed",
+						errorType=type(error).__name__,
 					)
 				else:
 					self._diagnostics.record(
-						"temporaryTerminalBindingRemembered",
-						instanceId=instance_id,
-						transportKind=remembered.instance.transport_kind,
-						terminal=self._identityFields(identity),
+						"temporaryTerminalBindingPromptDecisionSaved",
+						decision="remember" if accepted else "doNotRemember",
 					)
-					ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
-			self._scheduleTemporaryBindingRecovery(
+			self._finishTemporaryBindingDecision(
 				identity,
 				instance_id,
-				app_module,
-				adapter_token,
+				accepted,
+				focus_recovery=(app_module, adapter_token),
 			)
 
 		self._dialogs.confirm(
@@ -116,6 +133,45 @@ class TemporaryBindingWorkflow:
 			).format(connection=offer.instance.label),
 			on_result=finish,
 		)
+
+	def _finishTemporaryBindingDecision(
+		self,
+		identity,
+		instance_id,
+		accepted,
+		*,
+		focus_recovery=None,
+	):
+		if not accepted:
+			self._diagnostics.record(
+				"temporaryTerminalBindingDeclined",
+				instanceId=instance_id,
+				terminal=self._identityFields(identity),
+			)
+		else:
+			remembered = self._sessionClaimService.remember_temporary_binding(identity, instance_id)
+			if remembered.kind != TemporaryBindingOfferKind.OFFER or remembered.instance is None:
+				self._diagnostics.record(
+					"temporaryTerminalBindingOfferIgnored",
+					instanceId=instance_id,
+					reason=remembered.kind.value,
+				)
+			else:
+				self._diagnostics.record(
+					"temporaryTerminalBindingRemembered",
+					instanceId=instance_id,
+					transportKind=remembered.instance.transport_kind,
+					terminal=self._identityFields(identity),
+				)
+				ui.message(_("Connection remembered for this terminal tab until NVDA exits"))
+		if focus_recovery is not None:
+			app_module, adapter_token = focus_recovery
+			self._scheduleTemporaryBindingRecovery(
+				identity,
+				instance_id,
+				app_module,
+				adapter_token,
+			)
 
 	def _scheduleTemporaryBindingRecovery(
 		self,

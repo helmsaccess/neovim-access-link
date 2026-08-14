@@ -63,21 +63,57 @@ class NvdaConnectionDialogs:
 		*,
 		title: str,
 		message: str,
-		on_result: Callable[[bool], None],
-		default_no: bool = True,
+		on_result: Callable[[bool, bool], None],
 	) -> None:
 		import gui
 		import wx
 
-		style = wx.YES_NO | wx.ICON_QUESTION
-		if default_no:
-			style |= wx.NO_DEFAULT
+		class RememberChoiceDialog(wx.Dialog):
+			def __init__(self) -> None:
+				super().__init__(gui.mainFrame, title=title)
+				main_sizer = wx.BoxSizer(wx.VERTICAL)
+				main_sizer.Add(
+					wx.StaticText(self, label=message),
+					border=12,
+					flag=wx.ALL | wx.EXPAND,
+				)
+				# Translators: Checkbox in the temporary terminal binding question.
+				self.rememberChoiceCheckbox = wx.CheckBox(
+					self,
+					label=_("Remember this decision in the current configuration profile"),
+				)
+				main_sizer.Add(
+					self.rememberChoiceCheckbox,
+					border=12,
+					flag=wx.LEFT | wx.RIGHT | wx.BOTTOM,
+				)
+				main_sizer.Add(
+					self.CreateButtonSizer(wx.YES_NO),
+					border=12,
+					flag=wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.ALIGN_RIGHT,
+				)
+				self.SetSizerAndFit(main_sizer)
+				self.SetAffirmativeId(wx.ID_YES)
+				self.SetEscapeId(wx.ID_NO)
+				yes_button = self.FindWindow(wx.ID_YES)
+				if yes_button is not None:
+					yes_button.SetDefault()
+					yes_button.SetFocus()
+
+		dialog = RememberChoiceDialog()
 
 		def show() -> None:
-			if not self._runtimeActive():
-				return
-			result = gui.messageBox(message, title, style)
-			self._deliverResult(on_result, result == wx.YES)
+			try:
+				if not self._runtimeActive():
+					return
+				result = self._displayModal(dialog)
+				self._deliverResult(
+					on_result,
+					result == wx.ID_YES,
+					result in (wx.ID_YES, wx.ID_NO) and dialog.rememberChoiceCheckbox.IsChecked(),
+				)
+			finally:
+				dialog.Destroy()
 
 		wx.CallAfter(show)
 

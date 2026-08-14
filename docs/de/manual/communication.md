@@ -115,8 +115,16 @@ Der Name dient nur der Auswahl und ändert Neovims Arbeitsverzeichnis nicht.
 
 Nach einer neuen F12-Zuordnung fragt Access Link, ob sie für den
 Windows-Terminal-Tab bis zum Ende von NVDA oder Windows Terminal gemerkt werden
-soll. Beim späteren Tabwechsel stellt Access Link die passende laufende Sitzung
-nach bestätigtem Fokus wieder her.
+soll. `Ja` besitzt den Standardfokus. Das Ankreuzfeld `Diese Entscheidung im
+aktuellen Konfigurationsprofil merken` speichert wahlweise die Antwort `Ja`
+oder `Nein`; spätere neue Zuordnungen im selben NVDA-Profil verwenden diese
+Antwort ohne erneute Rückfrage. Unter `NVDA-Menü → Optionen → Einstellungen… →
+Neovim Access Link → Verbindungen → Temporäre Terminalverbindungen` lässt sich
+die Festlegung ändern oder mit `Fragen, ob die Verbindung gemerkt werden soll`
+zurücksetzen. Die Entscheidung gehört zum Profil, die dadurch gemerkte
+Tab-Zuordnung selbst bleibt auf die aktuelle NVDA-Laufzeit begrenzt. Beim
+späteren Tabwechsel stellt Access Link die passende laufende Sitzung nach
+bestätigtem Fokus wieder her.
 
 Folgende frei belegbare Befehle stehen in
 `NVDA-Menü → Optionen → Tastenbefehle… → Neovim Access Link`:

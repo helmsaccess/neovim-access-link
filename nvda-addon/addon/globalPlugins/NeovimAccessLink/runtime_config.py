@@ -25,6 +25,7 @@ from .settings_service import (  # noqa: E402
 	BRAILLE_ROUTING_DEFAULTS,
 	BRAILLE_SUGGESTION_START_DEFAULT,
 	BRAILLE_SUGGESTION_START_MAXIMUM,
+	TEMPORARY_BINDING_PROMPT_DEFAULT,
 )
 
 addonHandler.initTranslation()
@@ -263,6 +264,7 @@ NVDA_CONFIG_SPEC = {
 		f"boolean(default={str(BRAILLE_FOLLOW_SPEECH_EXPLORATION_DEFAULT).lower()})"
 	),
 	"automaticParameterHints": (f"boolean(default={str(AUTOMATIC_PARAMETER_HINTS_DEFAULT).lower()})"),
+	"temporaryBindingPrompt": f"integer(default={TEMPORARY_BINDING_PROMPT_DEFAULT}, min=0, max=2)",
 	"brailleRouting": {
 		"wordAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['wordAction']}, min=0, max=2)",
 		"lineAction": f"integer(default={BRAILLE_ROUTING_DEFAULTS['lineAction']}, min=0, max=2)",

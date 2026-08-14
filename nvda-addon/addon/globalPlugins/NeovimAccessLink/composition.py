@@ -277,6 +277,8 @@ def create_runtime() -> PluginRuntime:
 			scheduler=scheduler,
 			diagnostics=diagnostics,
 			dialogs=dialogs,
+			prompt_answer=settings.temporary_binding_prompt_answer,
+			remember_prompt_answer=settings.remember_temporary_binding_prompt_answer,
 		)
 		ui_manager = NvdaUiManager(
 			settings,

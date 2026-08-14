@@ -63,6 +63,14 @@ und Testbuild-Einträge bis zum 5. August 2026.
   besitzt. Direkte Queue-, Reihenfolge-, Isolation-, Abbruch-, Dialog- und
   Besitztests decken die neuen Grenzen ab. Dieser installierbare Stand ist
   Entwicklungsbuild 2.
+- Verbessert die Rückfrage nach einer temporären F12-Tab-Zuordnung: `Ja` besitzt
+  wieder den Standardfokus. Ein neues Ankreuzfeld speichert die ausdrücklich
+  gewählte Antwort im aktiven NVDA-Konfigurationsprofil; die Einstellung
+  `Temporäre Terminalverbindungen` kann anschließend zwischen erneutem Fragen,
+  automatischem Merken und automatischem Nichtmerken wechseln. Profilwechsel,
+  `Ja`- und `Nein`-Entscheidungen, Abbruch, Dialogfokus und die dialogfreie
+  Wiederverwendung sind durch Pakettests abgedeckt. Dieser installierbare Stand
+  ist Entwicklungsbuild 3.
 
 ## 0.98.0
 

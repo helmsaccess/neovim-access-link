@@ -2639,12 +2639,12 @@ changelog provide context but do not replace current code and tests.</p>
 <div id="docs__en__development__current-statusmd">
 <section id="docs__en__development__current-statusmd__current-status" class="level2">
 <h2>Current status</h2>
-<p>Status date: August 13, 2026. The source tree starts the 0.99.0
-development line; <code>buildVars.py</code> generates artifacts as
-0.99.0-dev.1 with branch and commit metadata and sets the manifest
-update channel to beta. The current published pre-release is 0.98.0. The
-project does not infer a higher stability classification from test
-coverage or feature count.</p>
+<p>Status date: August 14, 2026. The source tree develops the 0.99.0
+line; <code>buildVars.py</code> generates artifacts as 0.99.0-dev.3 with
+branch and commit metadata and sets the manifest update channel to beta.
+The current published pre-release is 0.98.0. The project does not infer
+a higher stability classification from test coverage or feature
+count.</p>
 <p>This page is the compact snapshot of implemented and verified
 behavior. See <a href="#docs__en__development__architecturemd__architecture">architecture</a>
 and the <a href="#docs__en__development__accessibilitymd__feature-and-accessibility-matrix">feature
@@ -2715,6 +2715,12 @@ discovery.</li>
 <li>A physical F12 press assigns the running Neovim instance to the
 exact focused Windows Terminal control. Multiple windows, tabs, and
 panes retain independent local, remote, or ordinary shell sessions.</li>
+<li>The following question about a temporarily remembered tab
+association gives <code>Yes</code> the default focus. A checkbox can
+store the selected answer in the active NVDA profile; the three-state
+setting under <code>Connections</code> applies <code>Yes</code> or
+<code>No</code> automatically or resets the behavior to asking again.
+The tab association itself remains runtime-only.</li>
 <li>Authentication, sequences, heartbeats, resync, and focus correlation
 bound the persistent path. Disconnects, invalid state, or uncertain
 focus identity restore NVDA&#39;s native terminal behavior fail-open. When a
@@ -4713,6 +4719,16 @@ attempt for the focused Windows Terminal control. Focus object, concrete
 AppModule instance, complete UIA identity, gate, and fresh session claim
 must agree. Without a match, no binding, dialog, or suppression is
 created.</p>
+<p><code>temporaryBindingPrompt</code> controls the following question
+about the runtime-only remembered tab binding. <code>0</code> asks every
+time and is the default, <code>1</code> applies <code>Yes</code> without
+a dialog, and <code>2</code> applies <code>No</code> without a dialog.
+<code>Yes</code> has the default focus in the dialog. Its checkbox
+writes the explicitly selected answer immediately and exclusively as
+this value in the active NVDA configuration profile; closing the dialog
+stores nothing. The three-state choice under <code>Connections</code>
+can change the value or reset it to <code>0</code>. A profile switch
+reloads it with the other native add-on settings.</p>
 <p>The assignable “Select a server and connect this terminal to a new
 Neovim session” command opens profile selection and then requires F12 in
 the desired session. Runtime bindings use UIA runtime IDs, live only in
@@ -6031,6 +6047,14 @@ while the state machine for temporarily remembered bindings has its own
 controller. Direct queue, ordering, isolation, cancellation, dialog, and
 ownership tests cover the new boundaries. This installable state is
 development build 2.</li>
+<li>Improves the question about a temporary F12 tab association:
+<code>Yes</code> again has the default focus. A new checkbox stores the
+explicitly selected answer in the active NVDA configuration profile; the
+<code>Temporary terminal connections</code> setting can then switch
+between asking again, remembering automatically, and not remembering
+automatically. Package tests cover profile switches, <code>Yes</code>
+and <code>No</code> decisions, cancellation, dialog focus, and
+prompt-free reuse. This installable state is development build 3.</li>
 </ul>
 </section>
 <section id="docs__en__development__changelogmd__0980" class="level3">

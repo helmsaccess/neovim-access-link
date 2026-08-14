@@ -1,7 +1,7 @@
 # Current status
 
-Status date: August 13, 2026. The source tree starts the 0.99.0 development
-line; `buildVars.py` generates artifacts as 0.99.0-dev.1 with branch and commit
+Status date: August 14, 2026. The source tree develops the 0.99.0 line;
+`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -69,6 +69,11 @@ Neovim over SSH, and tmux inside an SSH session are covered. See
 - A physical F12 press assigns the running Neovim instance to the exact focused
   Windows Terminal control. Multiple windows, tabs, and panes retain
   independent local, remote, or ordinary shell sessions.
+- The following question about a temporarily remembered tab association gives
+  `Yes` the default focus. A checkbox can store the selected answer in the
+  active NVDA profile; the three-state setting under `Connections` applies
+  `Yes` or `No` automatically or resets the behavior to asking again. The tab
+  association itself remains runtime-only.
 - Authentication, sequences, heartbeats, resync, and focus correlation bound
   the persistent path. Disconnects, invalid state, or uncertain focus identity
   restore NVDA's native terminal behavior fail-open.

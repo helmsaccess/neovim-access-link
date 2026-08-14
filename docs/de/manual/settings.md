@@ -152,6 +152,23 @@ benötigt keinen Verbindungseintrag.
 `Gespeicherte Verbindungen` zeigt den gewählten Namen, das SSH-Ziel und einen
 vom Standard 22 abweichenden Port. Es gibt keine Standardverbindung.
 
+### Temporäre Terminalverbindungen
+
+`Nach einer neuen F12-Zuordnung` steuert die Rückfrage, ob Access Link die
+Verbindung für den fokussierten Windows-Terminal-Tab merken soll:
+
+- `Fragen, ob die Verbindung gemerkt werden soll` zeigt die Rückfrage; dies ist
+  der Standard.
+- `Verbindung merken` verwendet bei jeder neuen Zuordnung die Antwort `Ja`.
+- `Verbindung nicht merken` verwendet bei jeder neuen Zuordnung die Antwort
+  `Nein`.
+
+In der Rückfrage besitzt `Ja` den Standardfokus. Wird dort `Diese Entscheidung
+im aktuellen Konfigurationsprofil merken` angekreuzt, übernimmt Access Link die
+gewählte Antwort sofort in diese Einstellung. Die erste Auswahl setzt eine
+solche Festlegung zurück. Alle drei Werte gehören zum aktiven
+NVDA-Konfigurationsprofil.
+
 ### Verbindung hinzufügen, bearbeiten oder entfernen
 
 - `Verbindung hinzufügen...` öffnet ein leeres Linux-Verbindungsformular.

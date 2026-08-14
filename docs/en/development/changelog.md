@@ -58,6 +58,13 @@ test-build entries through August 5, 2026.
   the state machine for temporarily remembered bindings has its own controller.
   Direct queue, ordering, isolation, cancellation, dialog, and ownership tests
   cover the new boundaries. This installable state is development build 2.
+- Improves the question about a temporary F12 tab association: `Yes` again has
+  the default focus. A new checkbox stores the explicitly selected answer in
+  the active NVDA configuration profile; the `Temporary terminal connections`
+  setting can then switch between asking again, remembering automatically, and
+  not remembering automatically. Package tests cover profile switches, `Yes`
+  and `No` decisions, cancellation, dialog focus, and prompt-free reuse. This
+  installable state is development build 3.
 
 ## 0.98.0
 

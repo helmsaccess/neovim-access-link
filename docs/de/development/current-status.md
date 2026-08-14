@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 13. August 2026. Der Quellstand beginnt die Entwicklungslinie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.1 mit Branch- und
+Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -77,6 +77,11 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
 - Ein physischer F12-Druck ordnet die laufende Neovim-Instanz dem exakt
   fokussierten Windows-Terminal-Control zu. Mehrere Fenster, Tabs und Panes
   halten unabhängige lokale, entfernte oder normale Shell-Sitzungen.
+- Die anschließende Frage nach einer temporär gemerkten Tab-Zuordnung fokussiert
+  standardmäßig `Ja`. Ein Ankreuzfeld kann die gewählte Antwort im aktiven
+  NVDA-Profil speichern; die dreistufige Einstellung unter `Verbindungen`
+  wendet `Ja` oder `Nein` automatisch an oder setzt das Verhalten auf erneutes
+  Fragen zurück. Die Tab-Zuordnung selbst bleibt reine Laufzeitinformation.
 - Authentifizierung, Sequenzen, Heartbeats, Resync und Fokuskorrelation
   begrenzen den dauerhaften Pfad. Trennung, ungültiger Zustand oder unsichere
   Fokusidentität geben NVDAs natives Terminalverhalten fail-open frei.
