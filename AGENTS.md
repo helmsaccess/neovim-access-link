@@ -50,11 +50,14 @@ take precedence.
 - Prefer simplification and deletion over new layers, state, or parallel paths when tests show
   required behavior is preserved.
 - Preserve unrelated user changes and keep changes focused.
-- Store agent-created temporary sources, downloaded tools, test workspaces, reproductions, and
-  reports under `../nal-aux/`, outside the repository and its worktrees. This does not
-  replace runtime paths or tool-owned ignored output directories documented by the project.
+- Before web research, check `../nvda-shared-aux/`; store NVDA and add-on sources or references
+  there when they are likely to remain useful across add-ons.
+- Use `../nal-aux/` for all Neovim Access Link-specific temporary sources, tools, test
+  workspaces, reproductions, and reports.
 - Follow the established conventions of each component and upstream API; do not impose one
   component's style on another.
+- Avoid meta-commentary about instructions, process, or text organization. State the actionable
+  rule or result directly unless context is necessary for safety or traceability.
 - Logging is diagnostic only; correctness must never depend on it.
 - Do not add unowned TODOs. Record intentional follow-up work with scope and a durable reference.
 - For bug fixes, add a regression test where practical.
@@ -154,8 +157,7 @@ take precedence.
 - State scope, limitations, testing, and support as risk-based best effort; do not imply
   exhaustive coverage or response-time guarantees.
 - In manuals, use localized UI names from the translation catalogs.
-- Prefer locally available target-application or add-on source under `../nal-aux/` over web
-  retrieval. Never commit private paths, hostnames, usernames, domains, credentials, or secrets.
+- Never commit private paths, hostnames, usernames, domains, credentials, or secrets.
 - Before asking technical questions externally, check code and official documentation; ask only
   unresolved questions, with at most three per focused message.
 - Write commits, issues, pull requests, release text, and other project collaboration text in

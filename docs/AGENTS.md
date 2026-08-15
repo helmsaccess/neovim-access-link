@@ -29,6 +29,8 @@
   directions into documentation. Include a decision or process rule only when it has independent
   value for the document's audience; otherwise keep it in `AGENTS.md`, an issue, a commit, or
   `../nal-aux/`.
+- Avoid meta-commentary about the document, its instructions, or the writing process. Present
+  useful content directly unless the context is necessary for understanding or traceability.
 - Keep the architecture understandable from a concise overview before presenting details. Update
   it whenever component ownership, data flow, trust boundaries, or lifecycle responsibilities
   change.
@@ -46,8 +48,9 @@
 - Keep executable examples in real source files. Where GitHub Markdown cannot include them
   directly, generate committed fenced blocks from the canonical source and validate exact sync.
 - Treat plans and dated reports as context, not proof that a feature is implemented now.
-- Prefer locally available source for NVDA, Neovim, terminal applications, or add-ons over web
-  retrieval. Never copy private environment details into versioned documentation.
+- Before web retrieval, check `../nvda-shared-aux/` for NVDA and add-on references and
+  `../nal-aux/` for project-specific source. Preserve reusable references in the shared directory.
+  Never copy private environment details into versioned documentation.
 - Changes to behavior, support, architecture, compatibility, developer workflows, or release
   state update both languages of `development/current-status.md` and
   `development/changelog.md` in the same change. Status is the current snapshot, changelog is
