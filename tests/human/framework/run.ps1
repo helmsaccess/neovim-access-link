@@ -42,7 +42,8 @@ $ClangTidyPath = Join-Path $PythonRoot `
 $NodeRoot = Join-Path $StateRoot "node"
 $NodeBin = Join-Path $NodeRoot "node_modules\.bin"
 $PyrightRoot = Join-Path $NodeRoot "node_modules\pyright"
-$PyrightPath = Join-Path $NodeBin "pyright-langserver.cmd"
+$PyrightPath = Join-Path $PyrightRoot "langserver.index.js"
+$PyrightCliPath = Join-Path $PyrightRoot "index.js"
 $MarkdownlintRoot = Join-Path $StateRoot "markdownlint"
 $MarkdownlintBin = Join-Path $MarkdownlintRoot "node_modules\.bin"
 $MarkdownlintPath = Join-Path $MarkdownlintBin "markdownlint-cli2.cmd"
@@ -236,6 +237,9 @@ function Test-ToolFixtureContracts {
         [Parameter(Mandatory = $true)][bool]$NeedsClangTidy,
         [Parameter(Mandatory = $true)][bool]$NeedsMarkdownlint
     )
+    if (-not ($NeedsRuff -or $NeedsClangTidy -or $NeedsMarkdownlint)) {
+        return
+    }
     Write-Step (Get-Message "runner.setup.toolProbes")
 
     if ($NeedsRuff) {
@@ -256,7 +260,7 @@ function Test-ToolFixtureContracts {
         }
         if (-not $valid) {
             throw (Get-Message "runner.setup.toolProbeFailed" @(
-                "Ruff", $probe.ExitCode
+                "Ruff", $probe.ExitCode, (Get-ToolProbeDetail $probe.Text)
             ))
         }
     }
@@ -275,7 +279,7 @@ function Test-ToolFixtureContracts {
         )).Count
         if ($probe.ExitCode -ne 1 -or $first -lt 1 -or $second -lt 1) {
             throw (Get-Message "runner.setup.toolProbeFailed" @(
-                "Clang-Tidy", $probe.ExitCode
+                "Clang-Tidy", $probe.ExitCode, (Get-ToolProbeDetail $probe.Text)
             ))
         }
     }
@@ -288,10 +292,22 @@ function Test-ToolFixtureContracts {
         )
         if ($probe.ExitCode -ne 1 -or $probe.Text -notmatch "MD025") {
             throw (Get-Message "runner.setup.toolProbeFailed" @(
-                "markdownlint", $probe.ExitCode
+                "markdownlint", $probe.ExitCode, (Get-ToolProbeDetail $probe.Text)
             ))
         }
     }
+}
+
+function Get-ToolProbeDetail {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return Get-Message "runner.setup.toolProbeNoOutput"
+    }
+    $value = $Text.Trim()
+    if ($value.Length -gt 1200) {
+        return $value.Substring(0, 1200) + "..."
+    }
+    return $value
 }
 
 function Invoke-Python {
@@ -318,34 +334,18 @@ function Invoke-PythonText {
 
 function Install-PyrightPackage {
     param(
-        [Parameter(Mandatory = $true)][string]$Npm,
         [Parameter(Mandatory = $true)][string]$Node,
-        [Parameter(Mandatory = $true)][string]$Tar,
         [Parameter(Mandatory = $true)][object]$Dependencies
     )
     $version = [string]$Dependencies.tools.pyright
     $expectedSha512 = [string]$Dependencies.tools.pyrightSha512
-    $packageJson = Join-Path $PyrightRoot "package.json"
-    $langserver = Join-Path $PyrightRoot "langserver.index.js"
-    $cli = Join-Path $PyrightRoot "index.js"
-    $current = $false
-    if ((Test-Path -LiteralPath $PyrightPath -PathType Leaf) -and
-        (Test-Path -LiteralPath $packageJson -PathType Leaf) -and
-        (Test-Path -LiteralPath $langserver -PathType Leaf) -and
-        (Test-Path -LiteralPath $cli -PathType Leaf)) {
-        try {
-            $metadata = Get-Content -LiteralPath $packageJson -Raw -Encoding UTF8 |
-                ConvertFrom-Json
-            $current = [string]$metadata.version -eq $version
-        } catch {
-            $current = $false
-        }
-    }
-    if ($current) {
+    if (Test-PyrightPackageCurrent -Node $Node -Version $version) {
         Write-Host (Get-Message "runner.setup.pyrightCurrent" @($version))
-        $null = Invoke-External -Command $Node -Arguments @($cli, "--version")
         return
     }
+
+    $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
+    $tar = Get-RequiredCommand "tar" (Get-Message "runner.installTar")
 
     New-Item -ItemType Directory -Path $PackageRoot -Force | Out-Null
     $archive = Join-Path $PackageRoot "pyright-$version.tgz"
@@ -392,11 +392,36 @@ function Install-PyrightPackage {
     }
     Move-Item -LiteralPath $extractedPackage -Destination $PyrightRoot
     Remove-Item -LiteralPath $extractRoot -Recurse -Force
-    New-Item -ItemType Directory -Path $NodeBin -Force | Out-Null
-    $shim = "@ECHO OFF`r`nnode `"%~dp0..\pyright\langserver.index.js`" %*`r`n"
-    $ascii = New-Object Text.ASCIIEncoding
-    [IO.File]::WriteAllText($PyrightPath, $shim, $ascii)
-    $null = Invoke-External -Command $Node -Arguments @($cli, "--version")
+    if (-not (Test-PyrightPackageCurrent -Node $Node -Version $version)) {
+        throw (Get-Message "runner.setup.pyrightVerification" @($version))
+    }
+}
+
+function Test-PyrightPackageCurrent {
+    param(
+        [Parameter(Mandatory = $true)][string]$Node,
+        [Parameter(Mandatory = $true)][string]$Version
+    )
+    $packageJson = Join-Path $PyrightRoot "package.json"
+    foreach ($path in @($packageJson, $PyrightPath, $PyrightCliPath)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            return $false
+        }
+    }
+    try {
+        $metadata = Get-Content -LiteralPath $packageJson -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+        if ([string]$metadata.version -ne $Version) {
+            return $false
+        }
+        $result = Invoke-ExternalText -Command $Node -Arguments @(
+            $PyrightCliPath, "--version"
+        )
+        return $result.ExitCode -eq 0 -and
+            $result.Text.Trim() -eq "pyright $Version"
+    } catch {
+        return $false
+    }
 }
 
 function Get-EquivalentPaths {
@@ -988,6 +1013,7 @@ function Invoke-TestNvim {
     $environmentNames = @(
         "Path",
         "ACCESS_LINK_HUMAN_PROFILE",
+        "ACCESS_LINK_HUMAN_SETUP_PROFILES",
         "ACCESS_LINK_HUMAN_TEST_ID",
         "ACCESS_LINK_HUMAN_STEP_ID",
         "ACCESS_LINK_HUMAN_PLUGIN",
@@ -1015,6 +1041,11 @@ function Invoke-TestNvim {
     }
     try {
         $env:ACCESS_LINK_HUMAN_PROFILE = $Profile
+        $env:ACCESS_LINK_HUMAN_SETUP_PROFILES = if ($Profile -eq "setup") {
+            (@(Get-SelectedProfiles) -join ",")
+        } else {
+            $null
+        }
         $env:ACCESS_LINK_HUMAN_TEST_ID = $HumanTestId
         $env:ACCESS_LINK_HUMAN_STEP_ID = $StepId
         $env:ACCESS_LINK_HUMAN_PLUGIN = $AccessLinkPlugin
@@ -1086,7 +1117,41 @@ function Invoke-TestNvim {
     }
 }
 
+function Get-ManagedPluginRequirements {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Profiles,
+        [Parameter(Mandatory = $true)][object]$Dependencies
+    )
+    $plugins = [ordered]@{}
+    if (@($Profiles | Where-Object {
+        @("diagnostics", "c-diagnostics", "markdown-diagnostics") -contains $_
+    }).Count -gt 0) {
+        $plugins["nvim-lint"] = $Dependencies.plugins.nvimLint
+    }
+    if ($Profiles -contains "cmp") {
+        $plugins["nvim-cmp"] = $Dependencies.plugins.nvimCmp
+        $plugins["cmp-nvim-lsp"] = $Dependencies.plugins.cmpNvimLsp
+    }
+    if ($Profiles -contains "blink") {
+        $plugins["blink.cmp"] = $Dependencies.plugins.blinkCmp
+    }
+    if ($Profiles -contains "lazy") {
+        $plugins["lazy.nvim"] = $Dependencies.plugins.lazyNvim
+    }
+    return $plugins
+}
+
+function Set-SetupIssue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Key,
+        [object[]]$Values = @()
+    )
+    $script:SetupIssue = Get-Message $Key $Values
+    return $false
+}
+
 function Test-SetupCurrent {
+    $script:SetupIssue = Get-Message "runner.setup.reason.unknown"
     $profiles = @(Get-SelectedProfiles)
     $needsPyright = @($profiles | Where-Object {
         @("native", "diagnostics", "cmp", "blink", "focus") -contains $_
@@ -1094,35 +1159,44 @@ function Test-SetupCurrent {
     $needsRuff = $profiles -contains "diagnostics"
     $needsClangTidy = $profiles -contains "c-diagnostics"
     $needsMarkdownlint = $profiles -contains "markdown-diagnostics"
-    if (-not (Test-Path -LiteralPath $SetupMarker -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $VenvPython -PathType Leaf) -or
-        ($needsRuff -and -not (Test-Path -LiteralPath $RuffPath -PathType Leaf)) -or
-        ($needsClangTidy -and -not (Test-Path -LiteralPath $ClangTidyPath -PathType Leaf)) -or
-        ($needsMarkdownlint -and -not (Test-Path -LiteralPath $MarkdownlintPath -PathType Leaf)) -or
-        ($needsPyright -and -not (Test-Path -LiteralPath $PyrightPath -PathType Leaf))) {
-        return $false
+    $needsPythonTools = $needsRuff -or $needsClangTidy
+    if (-not (Test-Path -LiteralPath $SetupMarker -PathType Leaf)) {
+        return Set-SetupIssue "runner.setup.reason.marker"
+    }
+    if ($needsPythonTools -and
+        -not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
+        return Set-SetupIssue "runner.setup.reason.python"
     }
     try {
         $marker = Get-Content -LiteralPath $SetupMarker -Raw -Encoding UTF8 |
             ConvertFrom-Json
-        if ([int]$marker.schemaVersion -ne 4) {
-            return $false
+        if ([int]$marker.schemaVersion -ne 5) {
+            return Set-SetupIssue "runner.setup.reason.environment"
+        }
+        $preparedProfiles = @($marker.profiles | ForEach-Object { [string]$_ })
+        $unpreparedProfiles = @($profiles | Where-Object {
+            $preparedProfiles -notcontains $_
+        })
+        if ($unpreparedProfiles.Count -gt 0) {
+            return Set-SetupIssue "runner.setup.reason.profiles" @(
+                $unpreparedProfiles -join ", "
+            )
         }
         $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
             ConvertFrom-Json
         if ($needsPyright) {
-            $metadata = Get-Content -LiteralPath `
-                (Join-Path $PyrightRoot "package.json") -Raw -Encoding UTF8 |
-                ConvertFrom-Json
-            if ([string]$metadata.version -ne [string]$dependencies.tools.pyright) {
-                return $false
+            $node = Get-Command "node" -CommandType Application -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+            if ($null -eq $node -or -not (Test-PyrightPackageCurrent `
+                -Node $node.Source -Version ([string]$dependencies.tools.pyright))) {
+                return Set-SetupIssue "runner.setup.reason.tool" @("Pyright")
             }
         }
         if ($needsRuff) {
             $ruffVersion = Invoke-ExternalText -Command $RuffPath -Arguments @("--version")
             if ($ruffVersion.ExitCode -ne 0 -or
                 $ruffVersion.Text.Trim() -ne "ruff $($dependencies.tools.ruff)") {
-                return $false
+                return Set-SetupIssue "runner.setup.reason.tool" @("Ruff")
             }
         }
         if ($needsClangTidy) {
@@ -1131,7 +1205,7 @@ function Test-SetupCurrent {
             if ($clangTidyVersion.ExitCode -ne 0 -or
                 $clangTidyVersion.Text -notmatch
                     "LLVM version $([regex]::Escape([string]$dependencies.tools.clangTidy))") {
-                return $false
+                return Set-SetupIssue "runner.setup.reason.tool" @("Clang-Tidy")
             }
         }
         if ($needsMarkdownlint) {
@@ -1140,20 +1214,20 @@ function Test-SetupCurrent {
             if ($markdownlintVersion.ExitCode -ne 0 -or
                 $markdownlintVersion.Text -notmatch
                     "^markdownlint-cli2 v$([regex]::Escape([string]$dependencies.tools.markdownlintCli2))") {
-                return $false
+                return Set-SetupIssue "runner.setup.reason.tool" @("markdownlint-cli2")
             }
         }
-        if (-not (Test-Path -LiteralPath $PackLockPath -PathType Leaf)) {
-            return $false
+        $managedPlugins = Get-ManagedPluginRequirements `
+            -Profiles $profiles -Dependencies $dependencies
+        if ($managedPlugins.Count -gt 0 -and
+            -not (Test-Path -LiteralPath $PackLockPath -PathType Leaf)) {
+            return Set-SetupIssue "runner.setup.reason.plugins"
         }
-        $lock = Get-Content -LiteralPath $PackLockPath -Raw -Encoding UTF8 |
-            ConvertFrom-Json
-        $managedPlugins = @{
-            "nvim-lint" = $dependencies.plugins.nvimLint
-            "nvim-cmp" = $dependencies.plugins.nvimCmp
-            "cmp-nvim-lsp" = $dependencies.plugins.cmpNvimLsp
-            "blink.cmp" = $dependencies.plugins.blinkCmp
-            "lazy.nvim" = $dependencies.plugins.lazyNvim
+        $lock = if ($managedPlugins.Count -gt 0) {
+            Get-Content -LiteralPath $PackLockPath -Raw -Encoding UTF8 |
+                ConvertFrom-Json
+        } else {
+            $null
         }
         foreach ($name in $managedPlugins.Keys) {
             $directory = Join-Path $ManagedPluginsRoot $name
@@ -1161,14 +1235,20 @@ function Test-SetupCurrent {
             if (-not (Test-Path -LiteralPath $directory -PathType Container) -or
                 $null -eq $locked -or
                 [string]$locked.Value.rev -ne [string]$managedPlugins[$name].revision) {
-                return $false
+                return Set-SetupIssue "runner.setup.reason.plugin" @($name)
             }
         }
         $pluginHash = Get-PluginFingerprint $AccessLinkPlugin
-        return [string]$marker.environmentSha256 -eq (Get-EnvironmentFingerprint) -and
-            [string]$marker.accessLinkPluginSha256 -eq $pluginHash
+        if ([string]$marker.environmentSha256 -ne (Get-EnvironmentFingerprint)) {
+            return Set-SetupIssue "runner.setup.reason.environment"
+        }
+        if ([string]$marker.accessLinkPluginSha256 -ne $pluginHash) {
+            return Set-SetupIssue "runner.setup.reason.accessLink"
+        }
+        $script:SetupIssue = ""
+        return $true
     } catch {
-        return $false
+        return Set-SetupIssue "runner.setup.reason.state"
     }
 }
 
@@ -1178,7 +1258,6 @@ function Install-TestEnvironment {
     Write-Host (Get-Message "runner.setup.network")
     $null = Assert-AccessLinkPluginCurrent
     $null = Get-Nvim
-    $null = Get-RequiredCommand "git" (Get-Message "runner.installGit")
     $profiles = @(Get-SelectedProfiles)
     $needsPyright = @($profiles | Where-Object {
         @("native", "diagnostics", "cmp", "blink", "focus") -contains $_
@@ -1186,24 +1265,24 @@ function Install-TestEnvironment {
     $needsRuff = $profiles -contains "diagnostics"
     $needsClangTidy = $profiles -contains "c-diagnostics"
     $needsMarkdownlint = $profiles -contains "markdown-diagnostics"
-    $npm = $null
     $node = $null
-    $tar = $null
-    if ($needsPyright -or $needsMarkdownlint) {
-        $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
-    }
     if ($needsPyright) {
         $node = Get-RequiredCommand "node" (Get-Message "runner.installNode")
-        $tar = Get-RequiredCommand "tar" (Get-Message "runner.installTar")
     }
     $python = Get-PythonInvocation
     $dependencies = Get-Content -LiteralPath $DependenciesPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
+    $managedPlugins = Get-ManagedPluginRequirements `
+        -Profiles $profiles -Dependencies $dependencies
+    if ($managedPlugins.Count -gt 0) {
+        $null = Get-RequiredCommand "git" (Get-Message "runner.installGit")
+    }
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     if ($Repair -and (Test-Path -LiteralPath $ManagedPluginsRoot -PathType Container)) {
         Remove-Item -LiteralPath $ManagedPluginsRoot -Recurse -Force
     }
-    if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
+    if (($needsRuff -or $needsClangTidy) -and
+        -not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) {
         Write-Step (Get-Message "runner.setup.python")
         $arguments = @($python.Prefix) + @("-m", "venv", $PythonRoot)
         $null = Invoke-External -Command $python.Command -Arguments $arguments
@@ -1248,8 +1327,7 @@ function Install-TestEnvironment {
     }
     if ($needsPyright) {
         Write-Step (Get-Message "runner.setup.pyright")
-        Install-PyrightPackage -Npm $npm -Node $node -Tar $tar `
-            -Dependencies $dependencies
+        Install-PyrightPackage -Node $node -Dependencies $dependencies
     }
     if ($needsMarkdownlint) {
         Write-Step (Get-Message "runner.setup.markdownlint")
@@ -1266,6 +1344,7 @@ function Install-TestEnvironment {
                 $dependencies.tools.markdownlintCli2
             ))
         } else {
+            $npm = Get-RequiredCommand "npm" (Get-Message "runner.installNode")
             $null = Invoke-External -Command $npm -Arguments @(
                 "install", "--prefix", $MarkdownlintRoot, "--ignore-scripts",
                 "--no-audit", "--no-fund", "--loglevel=info",
@@ -1305,7 +1384,8 @@ function Install-TestEnvironment {
         }
     }
     $marker = [PSCustomObject]@{
-        schemaVersion = 4
+        schemaVersion = 5
+        profiles = @($profiles | Sort-Object -Unique)
         environmentSha256 = Get-EnvironmentFingerprint
         accessLinkPluginSha256 = Get-PluginFingerprint $AccessLinkPlugin
     }
@@ -1555,7 +1635,7 @@ function Invoke-ResultValidation {
 
 function Confirm-TestEnvironment {
     if (-not (Test-SetupCurrent)) {
-        Write-Step (Get-Message "runner.setup.missing")
+        Write-Step (Get-Message "runner.setup.missing" @($script:SetupIssue))
         Install-TestEnvironment
     }
 }

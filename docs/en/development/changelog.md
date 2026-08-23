@@ -9,7 +9,13 @@ test-build entries through August 5, 2026.
 - Fixes Lazy guided-test preparation on shared or mapped repository drives:
   the isolated Git configuration lists the concrete fixture repositories
   instead of a wildcard. Preparation stops at the first failed tool or profile
-  check and shows its immediate reason.
+  check and shows its immediate reason. Existing Pyright installations are
+  recognized from the package, server file, and a real CLI invocation and are
+  started directly through Node. Preparation loads only plugins required by
+  the selection, starts each linter exactly once, and evaluates its own
+  diagnostic namespace. Saved state distinguishes which selected profiles
+  already passed preflight. Specific reuse, update, and provider errors replace
+  ambiguous aggregate messages.
 - Starts the 0.99.0 development line with development build 1 after the 0.98.0
   beta pre-release.
 - Simplifies Neovim-plugin runtime state: the public root facade now composes

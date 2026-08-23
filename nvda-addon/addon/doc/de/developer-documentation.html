@@ -3040,8 +3040,14 @@ Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam
 genutzten oder gemappten Laufwerken erlaubt die isolierte
 Git-Konfiguration nur die konkreten Fixture-Repositories. Die
 Vorbereitung bricht beim ersten fehlgeschlagenen Werkzeug- oder
-Profiltest mit dessen direktem Grund ab. Aufbau und sichere
-Tastenbelegung stehen in <a href="human-testing.html">Geführte
+Profiltest mit dessen direktem Grund ab. Sie prüft und verwendet
+vorhandene festgelegte Werkzeuge und nur die für die Auswahl benötigten
+Plugin-Revisionen weiter. Der gespeicherte Zustand nennt die bereits
+erfolgreich vorgeprüften Profile; eine neue Auswahl wird nicht aufgrund
+anderer bestandener Profile übersprungen. Pyright läuft direkt über
+Node. Direkte Werkzeugfehler enthalten die Werkzeugausgabe; Linterfehler
+nennen den konfigurierten Provider und ob dessen Prozess noch läuft.
+Aufbau und sichere Tastenbelegung stehen in <a href="human-testing.html">Geführte
 Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
 echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
 oder fremdes JSON-<code>null</code>, bevor F5 die tatsächlichen
@@ -6511,7 +6517,14 @@ zum 5. August 2026.</p>
 oder gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration
 führt die konkreten Fixture-Repositories statt eines Wildcards auf. Die
 Vorbereitung bricht beim ersten fehlerhaften Werkzeug- oder Profiltest
-mit dem direkten Grund ab.</li>
+mit dem direkten Grund ab. Vorhandene Pyright-Installationen werden
+anhand von Paket, Serverdatei und echtem CLI-Aufruf erkannt und direkt
+über Node gestartet. Die Vorbereitung lädt nur die für die Auswahl
+benötigten Plugins, startet jeden Linter genau einmal und wertet dessen
+eigenen Diagnoseraum aus. Der Zustand unterscheidet, welche ausgewählten
+Profile bereits erfolgreich vorgeprüft wurden. Konkrete
+Wiederverwendungs-, Aktualisierungs- und Providerfehler ersetzen
+mehrdeutige Sammelmeldungen.</li>
 <li>Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die
 Entwicklungslinie 0.99.0 mit Entwicklungsbuild 1.</li>
 <li>Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche

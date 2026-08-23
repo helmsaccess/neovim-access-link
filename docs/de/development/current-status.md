@@ -273,6 +273,12 @@ Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam genutzten
 oder gemappten Laufwerken erlaubt die isolierte Git-Konfiguration nur die
 konkreten Fixture-Repositories. Die Vorbereitung bricht beim ersten
 fehlgeschlagenen Werkzeug- oder Profiltest mit dessen direktem Grund ab.
+Sie prüft und verwendet vorhandene festgelegte Werkzeuge und nur die für die
+Auswahl benötigten Plugin-Revisionen weiter. Der gespeicherte Zustand nennt die
+bereits erfolgreich vorgeprüften Profile; eine neue Auswahl wird nicht aufgrund
+anderer bestandener Profile übersprungen. Pyright läuft direkt über Node.
+Direkte Werkzeugfehler enthalten die Werkzeugausgabe; Linterfehler nennen den
+konfigurierten Provider und ob dessen Prozess noch läuft.
 Aufbau und sichere Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die

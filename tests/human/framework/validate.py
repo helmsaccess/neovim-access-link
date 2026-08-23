@@ -442,14 +442,15 @@ def definition_fingerprint() -> str:
 
 def environment_fingerprint() -> str:
 	"""Fingerprint only inputs that can change the isolated tool environment."""
-	return _sha256_tree(
-		HUMAN_ROOT,
-		[
-			DEPENDENCIES_PATH,
-			HUMAN_ROOT / "framework" / "init.lua",
-			HUMAN_ROOT / "framework" / "linter_readiness.lua",
-		],
-	)
+	files = [
+		DEPENDENCIES_PATH,
+		HUMAN_ROOT / "framework" / "completion_parentheses.lua",
+		HUMAN_ROOT / "framework" / "init.lua",
+		HUMAN_ROOT / "framework" / "lazy_fixture.lua",
+		HUMAN_ROOT / "framework" / "linter_readiness.lua",
+	]
+	files.extend(path for path in FIXTURES_ROOT.rglob("*") if path.is_file())
+	return _sha256_tree(HUMAN_ROOT, files)
 
 
 def component_fingerprint(path: Path) -> str:

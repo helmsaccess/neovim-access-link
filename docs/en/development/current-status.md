@@ -256,6 +256,12 @@ isolated fixture configuration. Fixture repositories disable line-ending
 conversion and irrelevant Git output. On shared or mapped drives, the isolated
 Git configuration permits only the concrete fixture repositories. Preparation
 stops at the first failed tool or profile check and names its immediate reason.
+It verifies and reuses matching pinned tools and only the plugin revisions
+required by the selection. Saved state records the profiles that passed
+preflight, so a new selection is not skipped because other profiles passed.
+Pyright runs directly through Node. Direct tool failures include tool output;
+linter failures name the configured provider and whether its process is still
+running.
 Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 Optional empty path lists remain real JSON arrays in the PowerShell runner;

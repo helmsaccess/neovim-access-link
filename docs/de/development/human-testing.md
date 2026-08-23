@@ -275,18 +275,24 @@ referenzierten Dateien. Beim ersten Lauf richtet er unter
 | Bestandteil | Verwendung |
 | --- | --- |
 | festgelegte Versionen von Pyright, Ruff, Clang-Tidy und markdownlint-cli2 | reproduzierbare LSP- und Diagnoseantworten; installiert werden nur die für die Auswahl benötigten Werkzeuge |
-| festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und blink.cmp | reproduzierbare Provider- und Completion-Kompatibilität |
+| festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp, blink.cmp und lazy.nvim | reproduzierbare Provider-, Completion- und Plugin-Verwaltungskompatibilität; geladen werden nur die für die Auswahl benötigten Plugins |
 | eigene Neovim-Konfigurations-, Daten-, Zustands- und Cacheverzeichnisse | vollständige Trennung von der persönlichen Neovim-Umgebung |
 
 Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
 Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
-Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
+Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann. Er
+prüft Paketversion, Server- und CLI-Datei sowie einen echten CLI-Aufruf und
+startet den JavaScript-Sprachserver anschließend ausdrücklich mit Node statt
+über einen Windows-Batch-Wrapper.
 
 Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die für die
-Auswahl benötigten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
+Auswahl benötigten Werkzeugversionen und Plugin-Revisionen. Änderungen nur
 an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen deshalb keine neue
 Einrichtung aus. Stimmen die benötigten Werkzeuge und Plugins bereits, werden
-sie ohne Paketinstallation wiederverwendet. Clang-Tidy und markdownlint werden
+sie ohne Paketinstallation wiederverwendet. Der gespeicherte Zustand enthält
+zusätzlich die erfolgreich vorgeprüften Profile; neu ausgewählte Profile
+durchlaufen ihre Vorprüfung auch dann, wenn ihre Dateien bereits vorhanden
+sind. Clang-Tidy und markdownlint werden
 bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
 technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
 relevanten Laufzeitänderungen wiederholt.
@@ -300,15 +306,19 @@ Completion-Profilen fordert die Vorprüfung die drei benannten Kandidaten ab;
 bei den Signaturaufgaben zusätzlich mindestens zwei Signaturen mit jeweils
 drei Parametern. Im Diagnoseprofil
 erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
-einen Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
+einen Ruff-F821-Fehler. Dabei betrachtet die Bereitschaftsprüfung nur den
+Diagnoseraum des gerade geprüften Linters; Pyright-Diagnosen können das Ruff-
+Ergebnis weder erfüllen noch verdecken. Die C- und Markdown-Profile verlangen vorab eine echte
 Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Schlägt
-ein Profil fehl, werden die weiteren ausgewählten Profile trotzdem geprüft;
-der Runner fasst danach alle Fehler zusammen. Ein menschlicher Tester wird erst
+ein direkter Werkzeugtest fehl, zeigt der Runner dessen Ausgabe. Bei einem
+Linterfehler nennt er den konfigurierten Provider und ob dessen Prozess noch
+läuft. Die Vorbereitung bricht beim ersten Fehler ab. Ein menschlicher Tester wird erst
 zu einer Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren
 Grundlagen funktionieren.
 
 **Testabhängigkeiten einrichten oder reparieren** ist die ausdrückliche
-Reparaturfunktion: Sie installiert die verwalteten Plugin-Revisionen neu und
+Reparaturfunktion: Sie installiert die für die Auswahl benötigten verwalteten
+Plugin-Revisionen neu und
 wiederholt diese Vorprüfung. Der normale Standardtest führt diese erzwungene
 Neuinstallation nicht aus. Die persönliche
 Neovim-Umgebung bleibt auch dabei unberührt. Für Git verwendet allein die

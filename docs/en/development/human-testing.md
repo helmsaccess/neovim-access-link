@@ -262,18 +262,22 @@ file. On the first run, it creates an isolated environment below
 | Component | Use |
 | --- | --- |
 | pinned versions of Pyright, Ruff, Clang-Tidy, and markdownlint-cli2 | reproducible LSP and diagnostic responses; only tools required by the selection are installed |
-| pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, and blink.cmp | reproducible provider and completion compatibility |
+| pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, blink.cmp, and lazy.nvim | reproducible provider, completion, and plugin-management compatibility; only plugins required by the selection are loaded |
 | separate Neovim configuration, data, state, and cache directories | complete isolation from the personal Neovim environment |
 
 Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
-mounted directories on Windows.
+mounted directories on Windows. The runner verifies the package version,
+server and CLI files, and a real CLI invocation, then starts the JavaScript
+language server explicitly with Node instead of a Windows batch wrapper.
 
 Later runs compare a separate environment fingerprint, the tool versions
-required by the selection, and all four plugin revisions. Changes only to task
+required by the selection, and the required plugin revisions. Changes only to task
 wording, translations, or result logic therefore do not trigger setup again.
 If the required tools and plugins already match, they are reused without
-package installation. Clang-Tidy and markdownlint are not installed
+package installation. Saved state also records which profiles passed
+preflight; newly selected profiles run their own preflight even when their
+files are already present. Clang-Tidy and markdownlint are not installed
 preemptively for a normal smoke run. Only the technical preflight for actually
 selected profiles is repeated after a relevant runtime change.
 
@@ -285,13 +289,17 @@ preflight requests the three named candidates; signature tasks additionally
 require at least two signatures with three parameters each. In the Python
 diagnostic profile, it requires
 two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
-The C and Markdown profiles require a real Clang-Tidy error and markdownlint
-MD025 warning, respectively. If one profile fails, the runner still checks the
-remaining selected profiles and then summarizes every failure. A human tester
+That readiness check considers only the diagnostic namespace of the linter
+under test, so Pyright diagnostics can neither satisfy nor obscure the Ruff
+result. The C and Markdown profiles require a real Clang-Tidy error and markdownlint
+MD025 warning, respectively. A direct tool failure includes its output; a
+linter failure names the configured provider and whether its process is still
+running. Preparation stops at the first failure. A human tester
 only sees a perception task after these machine-decidable foundations work.
 
 **Set up or repair test dependencies** is the explicit repair operation: it
-reinstalls managed plugin revisions and repeats this preflight. The normal
+reinstalls the managed plugin revisions required by the selection and repeats
+this preflight. The normal
 standard test does not perform this forced reinstall. The personal Neovim
 environment remains untouched.
 Only the test Neovim process uses a temporary global Git configuration that

@@ -696,9 +696,11 @@ markdownlint-cli2</td>
 die für die Auswahl benötigten Werkzeuge</td>
 </tr>
 <tr class="even">
-<td>festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und
-blink.cmp</td>
-<td>reproduzierbare Provider- und Completion-Kompatibilität</td>
+<td>festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp,
+blink.cmp und lazy.nvim</td>
+<td>reproduzierbare Provider-, Completion- und
+Plugin-Verwaltungskompatibilität; geladen werden nur die für die Auswahl
+benötigten Plugins</td>
 </tr>
 <tr class="odd">
 <td>eigene Neovim-Konfigurations-, Daten-, Zustands- und
@@ -710,15 +712,20 @@ Cacheverzeichnisse</td>
 <p>Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor
 dem Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den
 <code>npm install</code>- Ablauf, der in eingebundenen Verzeichnissen
-unter Windows hängen kann.</p>
+unter Windows hängen kann. Er prüft Paketversion, Server- und CLI-Datei
+sowie einen echten CLI-Aufruf und startet den JavaScript-Sprachserver
+anschließend ausdrücklich mit Node statt über einen
+Windows-Batch-Wrapper.</p>
 <p>Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck,
-die für die Auswahl benötigten Werkzeugversionen und die vier
-Plugin-Revisionen. Änderungen nur an Aufgabentexten, Übersetzungen oder
-Ergebnislogik lösen deshalb keine neue Einrichtung aus. Stimmen die
-benötigten Werkzeuge und Plugins bereits, werden sie ohne
-Paketinstallation wiederverwendet. Clang-Tidy und markdownlint werden
-bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
-technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
+die für die Auswahl benötigten Werkzeugversionen und Plugin-Revisionen.
+Änderungen nur an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen
+deshalb keine neue Einrichtung aus. Stimmen die benötigten Werkzeuge und
+Plugins bereits, werden sie ohne Paketinstallation wiederverwendet. Der
+gespeicherte Zustand enthält zusätzlich die erfolgreich vorgeprüften
+Profile; neu ausgewählte Profile durchlaufen ihre Vorprüfung auch dann,
+wenn ihre Dateien bereits vorhanden sind. Clang-Tidy und markdownlint
+werden bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur
+die technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
 relevanten Laufzeitänderungen wiederholt.</p>
 <p>Danach prüft der Runner die echten Ausgaben aller benötigten Linter
 direkt mit den festgelegten Testdateien. Anschließend startet eine
@@ -729,21 +736,26 @@ Completion-Profilen fordert die Vorprüfung die drei benannten Kandidaten
 ab; bei den Signaturaufgaben zusätzlich mindestens zwei Signaturen mit
 jeweils drei Parametern. Im Diagnoseprofil erwartet sie zwei reale
 Ruff-F401-Warnungen in der ersten Zeile und mindestens einen
-Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
-Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung.
-Schlägt ein Profil fehl, werden die weiteren ausgewählten Profile
-trotzdem geprüft; der Runner fasst danach alle Fehler zusammen. Ein
+Ruff-F821-Fehler. Dabei betrachtet die Bereitschaftsprüfung nur den
+Diagnoseraum des gerade geprüften Linters; Pyright-Diagnosen können das
+Ruff- Ergebnis weder erfüllen noch verdecken. Die C- und
+Markdown-Profile verlangen vorab eine echte Clang-Tidy-Fehlermeldung
+beziehungsweise markdownlint-MD025-Warnung. Schlägt ein direkter
+Werkzeugtest fehl, zeigt der Runner dessen Ausgabe. Bei einem
+Linterfehler nennt er den konfigurierten Provider und ob dessen Prozess
+noch läuft. Die Vorbereitung bricht beim ersten Fehler ab. Ein
 menschlicher Tester wird erst zu einer Wahrnehmungsaufgabe geführt, wenn
 diese maschinell entscheidbaren Grundlagen funktionieren.</p>
 <p><strong>Testabhängigkeiten einrichten oder reparieren</strong> ist
-die ausdrückliche Reparaturfunktion: Sie installiert die verwalteten
-Plugin-Revisionen neu und wiederholt diese Vorprüfung. Der normale
-Standardtest führt diese erzwungene Neuinstallation nicht aus. Die
-persönliche Neovim-Umgebung bleibt auch dabei unberührt. Für Git
-verwendet allein die Test-Neovim-Sitzung eine temporäre globale
-Konfigurationsdatei, die nur die verwalteten Pluginverzeichnisse unter
-<code>tmp/human-test-state/</code> als sicher zulässt. Die persönliche
-globale Git-Konfiguration wird nicht verändert.</p>
+die ausdrückliche Reparaturfunktion: Sie installiert die für die Auswahl
+benötigten verwalteten Plugin-Revisionen neu und wiederholt diese
+Vorprüfung. Der normale Standardtest führt diese erzwungene
+Neuinstallation nicht aus. Die persönliche Neovim-Umgebung bleibt auch
+dabei unberührt. Für Git verwendet allein die Test-Neovim-Sitzung eine
+temporäre globale Konfigurationsdatei, die nur die verwalteten
+Pluginverzeichnisse unter <code>tmp/human-test-state/</code> als sicher
+zulässt. Die persönliche globale Git-Konfiguration wird nicht
+verändert.</p>
 </section>
 <section id="ergebnisauswahl" class="level3">
 <h3>Ergebnisauswahl</h3>

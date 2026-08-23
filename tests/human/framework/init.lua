@@ -138,22 +138,31 @@ if not dry_run then
     "ACCESS_LINK_HUMAN_DEPENDENCIES is required")
   local dependencies = read_json(dependency_path)
   assert(dependencies.schemaVersion == 1, "unsupported dependency schema")
+  local setup_profiles = {}
+  if profile == "setup" then
+    for name in (vim.env.ACCESS_LINK_HUMAN_SETUP_PROFILES or ""):gmatch("[^,]+") do
+      setup_profiles[name] = true
+    end
+  end
+  local function selected(name)
+    return profile == name or (profile == "setup" and setup_profiles[name])
+  end
   local specifications = {}
   local function add(key, name)
     specifications[#specifications + 1] = dependency_spec(dependencies, key, name)
   end
-  if profile == "setup" or profile == "diagnostics"
-      or profile == "c-diagnostics" or profile == "markdown-diagnostics" then
+  if selected("diagnostics") or selected("c-diagnostics")
+      or selected("markdown-diagnostics") then
     add("nvimLint", "nvim-lint")
   end
-  if profile == "setup" or profile == "cmp" then
+  if selected("cmp") then
     add("nvimCmp", "nvim-cmp")
     add("cmpNvimLsp", "cmp-nvim-lsp")
   end
-  if profile == "setup" or profile == "blink" then
+  if selected("blink") then
     add("blinkCmp", "blink.cmp")
   end
-  if profile == "setup" or profile == "lazy" then
+  if selected("lazy") then
     add("lazyNvim", "lazy.nvim")
   end
   if #specifications > 0 then
@@ -707,7 +716,7 @@ if uses_pyright then
   local pyright = assert(vim.env.ACCESS_LINK_HUMAN_PYRIGHT,
     "ACCESS_LINK_HUMAN_PYRIGHT is required")
   vim.lsp.config("pyright", {
-    cmd = { pyright, "--stdio" },
+    cmd = { "node", pyright, "--stdio" },
     capabilities = capabilities,
     root_markers = { "pyrightconfig.json" },
     settings = {
@@ -732,6 +741,7 @@ local uses_linter = profile == "diagnostics" or profile == "c-diagnostics"
 if uses_linter then
   local lint = require("lint")
   local linter_name
+  local linter_namespace
   local process_directory = vim.env.TEMP or vim.env.TMP or vim.uv.cwd()
 
   if profile == "diagnostics" then
@@ -777,15 +787,20 @@ if uses_linter then
       require("lint.parser"), vim.diagnostic.severity)
   end
 
+  linter_namespace = lint.get_namespace(linter_name)
+  local function get_linter_diagnostics()
+    return vim.diagnostic.get(0, { namespace = linter_namespace })
+  end
+
   linter_diagnostics_ready = function()
     return linter_readiness.evaluate(
       profile,
-      vim.diagnostic.get(0),
+      get_linter_diagnostics(),
       vim.diagnostic.severity
     )
   end
   linter_failure_details = function()
-    local diagnostics = vim.diagnostic.get(0)
+    local diagnostics = get_linter_diagnostics()
     local observed = {}
     for _, diagnostic in ipairs(diagnostics) do
       observed[#observed + 1] = string.format(
@@ -797,11 +812,14 @@ if uses_linter then
       )
     end
     local running = lint.get_running(0)
+    local still_running = vim.tbl_contains(running, linter_name)
     return string.format(
-      "observed %d diagnostics (%s); active linters: %s",
+      "configured linter %s (%s); observed %d diagnostics (%s); process still active: %s",
+      linter_name,
+      tostring(lint.linters[linter_name].cmd),
       #diagnostics,
       #observed > 0 and table.concat(observed, ", ") or "none",
-      #running > 0 and table.concat(running, ", ") or "none"
+      still_running and "yes" or "no"
     )
   end
 
@@ -856,16 +874,6 @@ if uses_linter then
   end
   vim.api.nvim_create_user_command("AccessLinkHumanLint", run_linter, {
     desc = "Run the isolated diagnostic provider",
-  })
-  vim.api.nvim_create_autocmd("BufReadPost", {
-    group = vim.api.nvim_create_augroup("AccessLinkHumanLint", { clear = true }),
-    callback = function(event)
-      vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(event.buf) then
-          vim.api.nvim_buf_call(event.buf, run_linter)
-        end
-      end)
-    end,
   })
 end
 
@@ -1086,7 +1094,10 @@ vim.api.nvim_create_user_command("AccessLinkHumanPreflight", function()
     local attached = vim.wait(provider_timeout_ms, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = "pyright" }) > 0
     end, provider_poll_interval_ms)
-    assert(attached, "Pyright did not attach to the human-test fixture")
+    assert(attached, string.format(
+      "Pyright did not attach to the human-test fixture; command: node %s --stdio",
+      pyright
+    ))
     local client = assert(vim.lsp.get_clients({ bufnr = 0, name = "pyright" })[1])
     assert(client:supports_method("textDocument/completion"),
       "Pyright does not advertise completion support")

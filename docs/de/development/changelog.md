@@ -10,7 +10,14 @@ und Testbuild-Einträge bis zum 5. August 2026.
   gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration führt die
   konkreten Fixture-Repositories statt eines Wildcards auf. Die Vorbereitung
   bricht beim ersten fehlerhaften Werkzeug- oder Profiltest mit dem direkten
-  Grund ab.
+  Grund ab. Vorhandene Pyright-Installationen werden anhand von Paket,
+  Serverdatei und echtem CLI-Aufruf erkannt und direkt über Node gestartet.
+  Die Vorbereitung lädt nur die für die Auswahl benötigten Plugins, startet
+  jeden Linter genau einmal und wertet dessen eigenen Diagnoseraum aus.
+  Der Zustand unterscheidet, welche ausgewählten Profile bereits erfolgreich
+  vorgeprüft wurden.
+  Konkrete Wiederverwendungs-, Aktualisierungs- und Providerfehler ersetzen
+  mehrdeutige Sammelmeldungen.
 - Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
   0.99.0 mit Entwicklungsbuild 1.
 - Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche
