@@ -8,8 +8,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 - Repariert die Lazy-Praxistest-Vorbereitung auf gemeinsam genutzten oder
   gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration führt die
-  konkreten Fixture-Repositories statt eines Wildcards auf und die Vorprüfung
-  zeigt bei Fehlern den direkten Grund an.
+  konkreten Fixture-Repositories statt eines Wildcards auf. Die Vorbereitung
+  bricht beim ersten fehlerhaften Werkzeug- oder Profiltest mit dem direkten
+  Grund ab.
 - Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
   0.99.0 mit Entwicklungsbuild 1.
 - Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche

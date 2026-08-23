@@ -249,9 +249,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('"missing_first.*\\[clang-diagnostic-error\\]"', runner)
 		self.assertIn('"missing_second.*\\[clang-diagnostic-error\\]"', runner)
 		self.assertIn('$probe.Text -notmatch "MD025"', runner)
-		self.assertIn('$setupFailures = @(Test-ToolFixtureContracts', runner)
-		self.assertIn('$setupFailures += "profile $($probe.Profile)"', runner)
-		self.assertIn('$setupFailures.Count -gt 0', runner)
+		self.assertEqual(3, runner.count('throw (Get-Message "runner.setup.toolProbeFailed"'))
+		self.assertIn('throw (Get-Message "runner.setup.preflightFailed"', runner)
+		self.assertNotIn("$setupFailures", runner)
+		self.assertNotIn('"runner.setup.failures"', runner)
 		self.assertIn('"markdownlint-cli2@$($dependencies.tools.markdownlintCli2)"', runner)
 		self.assertIn('environmentSha256 = Get-EnvironmentFingerprint', runner)
 		setup_cache = runner[

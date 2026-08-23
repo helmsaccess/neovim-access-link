@@ -271,7 +271,8 @@ unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
 isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam genutzten
 oder gemappten Laufwerken erlaubt die isolierte Git-Konfiguration nur die
-konkreten Fixture-Repositories; Vorprüfungsfehler nennen ihren direkten Grund.
+konkreten Fixture-Repositories. Die Vorbereitung bricht beim ersten
+fehlgeschlagenen Werkzeug- oder Profiltest mit dessen direktem Grund ab.
 Aufbau und sichere Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die

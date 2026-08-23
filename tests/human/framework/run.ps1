@@ -236,7 +236,6 @@ function Test-ToolFixtureContracts {
         [Parameter(Mandatory = $true)][bool]$NeedsClangTidy,
         [Parameter(Mandatory = $true)][bool]$NeedsMarkdownlint
     )
-    $failures = @()
     Write-Step (Get-Message "runner.setup.toolProbes")
 
     if ($NeedsRuff) {
@@ -256,10 +255,9 @@ function Test-ToolFixtureContracts {
             }
         }
         if (-not $valid) {
-            $failures += "Ruff"
-            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+            throw (Get-Message "runner.setup.toolProbeFailed" @(
                 "Ruff", $probe.ExitCode
-            )) -ForegroundColor Red
+            ))
         }
     }
 
@@ -276,10 +274,9 @@ function Test-ToolFixtureContracts {
             $probe.Text, "missing_second.*\[clang-diagnostic-error\]"
         )).Count
         if ($probe.ExitCode -ne 1 -or $first -lt 1 -or $second -lt 1) {
-            $failures += "Clang-Tidy"
-            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+            throw (Get-Message "runner.setup.toolProbeFailed" @(
                 "Clang-Tidy", $probe.ExitCode
-            )) -ForegroundColor Red
+            ))
         }
     }
 
@@ -290,14 +287,11 @@ function Test-ToolFixtureContracts {
             "--config", $configuration, $fixture
         )
         if ($probe.ExitCode -ne 1 -or $probe.Text -notmatch "MD025") {
-            $failures += "markdownlint"
-            Write-Host (Get-Message "runner.setup.toolProbeFailed" @(
+            throw (Get-Message "runner.setup.toolProbeFailed" @(
                 "markdownlint", $probe.ExitCode
-            )) -ForegroundColor Red
+            ))
         }
     }
-
-    return @($failures)
 }
 
 function Invoke-Python {
@@ -1279,10 +1273,10 @@ function Install-TestEnvironment {
             )
         }
     }
-    $setupFailures = @(Test-ToolFixtureContracts `
+    Test-ToolFixtureContracts `
         -NeedsRuff $needsRuff `
         -NeedsClangTidy $needsClangTidy `
-        -NeedsMarkdownlint $needsMarkdownlint)
+        -NeedsMarkdownlint $needsMarkdownlint
     Invoke-TestNvim -Profile "setup" -Headless
     $preflightFixtures = @{
         "native" = "lsp_features.py"
@@ -1304,17 +1298,11 @@ function Install-TestEnvironment {
             Invoke-TestNvim -Profile $probe.Profile `
                 -Fixture (Join-Path $FixturesRoot $probe.Fixture) -Headless -Preflight
         } catch {
-            $setupFailures += "profile $($probe.Profile)"
-            Write-Host (Get-Message "runner.setup.preflightFailed" @(
+            throw (Get-Message "runner.setup.preflightFailed" @(
                 $probe.Profile,
                 $_.Exception.Message
-            )) -ForegroundColor Red
+            ))
         }
-    }
-    if ($setupFailures.Count -gt 0) {
-        throw (Get-Message "runner.setup.failures" @(
-            ($setupFailures -join ", ")
-        ))
     }
     $marker = [PSCustomObject]@{
         schemaVersion = 4

@@ -3038,8 +3038,9 @@ Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
 Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam
 genutzten oder gemappten Laufwerken erlaubt die isolierte
-Git-Konfiguration nur die konkreten Fixture-Repositories;
-Vorprüfungsfehler nennen ihren direkten Grund. Aufbau und sichere
+Git-Konfiguration nur die konkreten Fixture-Repositories. Die
+Vorbereitung bricht beim ersten fehlgeschlagenen Werkzeug- oder
+Profiltest mit dessen direktem Grund ab. Aufbau und sichere
 Tastenbelegung stehen in <a href="human-testing.html">Geführte
 Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
 echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
@@ -6508,8 +6509,9 @@ zum 5. August 2026.</p>
 <ul>
 <li>Repariert die Lazy-Praxistest-Vorbereitung auf gemeinsam genutzten
 oder gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration
-führt die konkreten Fixture-Repositories statt eines Wildcards auf und
-die Vorprüfung zeigt bei Fehlern den direkten Grund an.</li>
+führt die konkreten Fixture-Repositories statt eines Wildcards auf. Die
+Vorbereitung bricht beim ersten fehlerhaften Werkzeug- oder Profiltest
+mit dem direkten Grund ab.</li>
 <li>Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die
 Entwicklungslinie 0.99.0 mit Entwicklungsbuild 1.</li>
 <li>Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche

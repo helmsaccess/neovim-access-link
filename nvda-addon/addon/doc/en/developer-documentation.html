@@ -2917,8 +2917,9 @@ does not require Lazy&#39;s deliberately suppressed UI; it verifies the
 public command and isolated fixture configuration. Fixture repositories
 disable line-ending conversion and irrelevant Git output. On shared or
 mapped drives, the isolated Git configuration permits only the concrete
-fixture repositories; preflight failures name their immediate reason.
-Structure and safe key choices are documented in <a href="human-testing.html">guided practical
+fixture repositories. Preparation stops at the first failed tool or
+profile check and names its immediate reason. Structure and safe key
+choices are documented in <a href="human-testing.html">guided practical
 tests</a>. Optional empty path lists remain real JSON arrays in the
 PowerShell runner; the Lua verifier additionally normalizes older or
 external JSON <code>null</code> before F5 checks the actual Git states.
@@ -6072,8 +6073,8 @@ August 5, 2026.</p>
 <ul>
 <li>Fixes Lazy guided-test preparation on shared or mapped repository
 drives: the isolated Git configuration lists the concrete fixture
-repositories instead of a wildcard, and preflight failures show their
-immediate reason.</li>
+repositories instead of a wildcard. Preparation stops at the first
+failed tool or profile check and shows its immediate reason.</li>
 <li>Starts the 0.99.0 development line with development build 1 after
 the 0.98.0 beta pre-release.</li>
 <li>Simplifies Neovim-plugin runtime state: the public root facade now
