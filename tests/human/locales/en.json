@@ -49,7 +49,7 @@
   "runner.setup.toolProbes": "Checking the real output of every required linter against its test fixture.",
   "runner.setup.toolProbeFailed": "Direct tool probe failed for {0} (exit code {1}).",
   "runner.setup.preflight": "Technical preflight for profile {0}: the required real language or linter data must be ready.",
-  "runner.setup.preflightFailed": "Profile {0} failed technical preflight; the remaining selected profiles will still be checked.",
+  "runner.setup.preflightFailed": "Profile {0} failed technical preflight: {1}. The remaining selected profiles will still be checked.",
   "runner.setup.failures": "Setup or technical preflight failed for: {0}. Every selected profile and tool was checked; see the individual details immediately above.",
   "runner.clean.confirm": "Really remove the isolated test state under tmp/?",
   "runner.clean.complete": "The isolated test state was removed. Result files were retained.",

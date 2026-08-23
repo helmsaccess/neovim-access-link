@@ -253,7 +253,9 @@ window, installation, update, and synchronization; the individual selector
 groups them under plugin management. The headless preflight does not require
 Lazy's deliberately suppressed UI; it verifies the public command and
 isolated fixture configuration. Fixture repositories disable line-ending
-conversion and irrelevant Git output. Structure and safe key choices are
+conversion and irrelevant Git output. On shared or mapped drives, the isolated
+Git configuration permits only the concrete fixture repositories; preflight
+failures name their immediate reason. Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 Optional empty path lists remain real JSON arrays in the PowerShell runner;
 the Lua verifier additionally normalizes older or external JSON `null` before

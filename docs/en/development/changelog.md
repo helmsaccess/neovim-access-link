@@ -6,6 +6,9 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Fixes Lazy guided-test preparation on shared or mapped repository drives:
+  the isolated Git configuration lists the concrete fixture repositories
+  instead of a wildcard, and preflight failures show their immediate reason.
 - Starts the 0.99.0 development line with development build 1 after the 0.98.0
   beta pre-release.
 - Simplifies Neovim-plugin runtime state: the public root facade now composes

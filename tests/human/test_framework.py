@@ -265,6 +265,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('"GIT_CONFIG_GLOBAL"', runner)
 		self.assertIn('$lines = @("[safe]")', runner)
 		self.assertIn("Get-EquivalentPaths -Path $RepositoryRoot", runner)
+		self.assertIn("[string[]]$AdditionalSafeDirectories = @()", runner)
+		self.assertIn("Get-EquivalentPaths -Path $additionalDirectory", runner)
+		self.assertIn("Initialize-TestGitConfig -AdditionalSafeDirectories @(", runner)
+		self.assertNotIn('$wildcard = "$($root.TrimEnd(\'/\'))/*"', runner)
 		self.assertIn('directory = `"$safeDirectory`"', runner)
 		self.assertNotIn('"config", "--global"', runner)
 		self.assertIn("function Invoke-ExternalText", runner)
@@ -277,6 +281,13 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('$head = Invoke-OptionalExternalText', runner)
 		self.assertIn('$status = Invoke-OptionalExternalText', runner)
 		self.assertNotIn('& $git.Source -C $RepositoryRoot', runner)
+		lazy_fixture = runner[
+			runner.index("function Initialize-LazyFixture") : runner.index("function Assert-Definitions")
+		]
+		self.assertLess(
+			lazy_fixture.index("Initialize-TestGitConfig -AdditionalSafeDirectories"),
+			lazy_fixture.index('"init", "--quiet", "--initial-branch=main", $work'),
+		)
 		run_plans = runner[runner.index("function Run-Plans") :]
 		self.assertLess(
 			run_plans.index('$script:SelectedTestIds = @($result.environment.selectedTests)'),

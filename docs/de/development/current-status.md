@@ -269,8 +269,10 @@ Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
 Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort absichtlich
 unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
 isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
-Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
-Tastenbelegung stehen in
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam genutzten
+oder gemappten Laufwerken erlaubt die isolierte Git-Konfiguration nur die
+konkreten Fixture-Repositories; Vorprüfungsfehler nennen ihren direkten Grund.
+Aufbau und sichere Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die
 Lua-Verifikation normalisiert zusätzlich älteres oder fremdes JSON-`null`,

@@ -439,20 +439,19 @@ function Get-TestGitSafeDirectories {
             }
         }
     }
-    foreach ($root in Get-EquivalentPaths -Path $LazySandboxRoot) {
-        $wildcard = "$($root.TrimEnd('/'))/*"
-        if ($directories -notcontains $wildcard) {
-            $directories += $wildcard
-        }
-    }
     return $directories
 }
 
 function Initialize-TestGitConfig {
+    param([string[]]$AdditionalSafeDirectories = @())
     New-Item -ItemType Directory -Path (Split-Path $TestGitConfig -Parent) -Force |
         Out-Null
     $lines = @("[safe]")
-    foreach ($safeDirectory in Get-TestGitSafeDirectories) {
+    $directories = @(Get-TestGitSafeDirectories)
+    foreach ($additionalDirectory in $AdditionalSafeDirectories) {
+        $directories += Get-EquivalentPaths -Path $additionalDirectory
+    }
+    foreach ($safeDirectory in @($directories | Sort-Object -Unique)) {
         if ($safeDirectory.Contains('"')) {
             throw "Test Git safe directory contains an unsupported quote character"
         }
@@ -506,9 +505,22 @@ function Initialize-LazyFixture {
     $origins = Join-Path $sandbox "origins"
     $work = Join-Path $sandbox "source"
     $pluginRoot = Join-Path $sandbox "plugins"
+    $remoteNames = @(
+        "access-link-stable-target",
+        "access-link-install-target",
+        "access-link-update-target",
+        "access-link-stale-target"
+    )
     foreach ($directory in @($origins, $work, $pluginRoot)) {
         New-Item -ItemType Directory -Path $directory -Force | Out-Null
     }
+    Initialize-TestGitConfig -AdditionalSafeDirectories @(
+        $work
+        foreach ($name in $remoteNames) {
+            Join-Path $origins "$name.git"
+            Join-Path $pluginRoot $name
+        }
+    )
 
     $git = Get-RequiredCommand "git" (Get-Message "runner.installGit")
     $null = Invoke-External -Command $git -Arguments @(
@@ -548,12 +560,6 @@ function Initialize-LazyFixture {
         throw "Could not determine Lazy fixture revision B"
     }
 
-    $remoteNames = @(
-        "access-link-stable-target",
-        "access-link-install-target",
-        "access-link-update-target",
-        "access-link-stale-target"
-    )
     $remotePaths = @{}
     foreach ($name in $remoteNames) {
         $remote = Join-Path $origins "$name.git"
@@ -1300,7 +1306,8 @@ function Install-TestEnvironment {
         } catch {
             $setupFailures += "profile $($probe.Profile)"
             Write-Host (Get-Message "runner.setup.preflightFailed" @(
-                $probe.Profile
+                $probe.Profile,
+                $_.Exception.Message
             )) -ForegroundColor Red
         }
     }
