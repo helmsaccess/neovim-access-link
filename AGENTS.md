@@ -79,24 +79,28 @@ take precedence.
   independent with no shared mutable paths, processes, or sessions.
 - Treat restricted-sandbox listener failures as environment limitations; validate affected
   socket, TUI, or session code in a permitted environment before push or release.
-- Before handing changes back to the user, rebuild every affected distributable artifact from
-  the final worktree state. Documentation-only changes require a fresh documentation build;
-  changes only to installable add-on or component code require a fresh `.nvda-addon` build; when
-  both areas changed, rebuild both. Do not rebuild an unaffected artifact merely to refresh it.
+- Development and CI may build packages and rendered documentation only in disposable test
+  directories. Normal development artifacts are created in the synchronized Windows workspace;
+  an explicitly approved release is built from clean Linux `main` with the release builder.
 - Full prerequisites and build checks are documented in `docs/de/development/testing.md`.
 
-## Artifact builds
+## Workspace synchronization and artifact builds
 
-- Use the developer scripts under `tools/`; do not invoke root-level `build.py` or `build.cmd`,
-  which are parameterless convenience entry points for end users building on Windows.
-- Run `tools/build_documentation.sh [HTML_OUTPUT_DIR] [ARCHIVE_OUTPUT_DIR]` to generate all eight
-  localized HTML files, synchronize the installed copies, and create the documentation ZIP.
-  The optional directories default to `build/docs` and `dist`.
-- Run `python3 tools/build_nvda_addon.py` without arguments to create the `.nvda-addon` in `dist`.
-  It also builds and embeds the server-component package. When documentation and add-on content
-  both changed, build documentation first so the add-on contains the final HTML.
-- `python3 tools/build_user_package.py` takes no arguments and creates the standalone server-
-  component archive in `dist`; normally let the add-on builder invoke it.
+- The Linux checkout is the development source of truth. Configure its persistent Windows-visible
+  worktree with `python3 tools/windows_workspace_sync.py configure /nfs/src/neovim-access-link`.
+  Git hooks then mirror committed branches and the selected branch asynchronously. Synchronization
+  updates only Git-managed state and must abort on tracked target changes or untracked collisions;
+  never clean, reset, or replace ignored virtual environments, human-test state, or build output.
+  Linked Linux worktrees share one serialized queue; the most recent triggering worktree selects
+  the target branch. Rerun `configure` after changing the synchronization tool or its hooks.
+- Use `bash tools/build_documentation.sh --test-only` only for disposable documentation validation.
+  Package tests may call Python builders with explicit temporary output directories.
+- Create development artifacts from the synchronized Windows worktree with parameterless
+  `build.cmd`. For an explicitly approved release state with `development_build = None`, use
+  parameterless `python3 tools/build_release.py` from clean Linux `main`. Both entry points reuse
+  the same isolated renderer and packagers, verify a stable source snapshot, and publish exactly
+  the matching add-on and documentation ZIP to `dist`. Do not invoke internal builders directly
+  for publication.
 
 ## Git, versioning, and releases
 
@@ -127,6 +131,8 @@ take precedence.
 - Release only from an explicitly approved, clean `main`: push the release commit and its existing
   `v<VERSION>` tag first, and require `gh release create --verify-tag` rather than allowing GitHub
   to create a tag implicitly.
+- Build the final two assets on Linux with `python3 tools/build_release.py` before tagging. Require
+  the release metadata, clean `main`, final test results, and exact expected asset names.
 - Use title `Neovim Access Link <VERSION>`. Versions below `1.0.0` are published with
   `--prerelease --latest=false`; versions from `1.0.0` onward are regular releases with `--latest`.
 - Attach exactly `dist/NeovimAccessLink-<VERSION>.nvda-addon` and

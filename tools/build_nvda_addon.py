@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.metadata
 import importlib.util
 import json
@@ -20,9 +21,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import buildVars
-from tools.gettext_catalog import compile_catalogs
-from tools.sync_installed_documentation import validate_documents
+import buildVars  # noqa: E402
+from tools.documentation_layout import (  # noqa: E402
+    install_generated_documentation,
+    validate_installed_documents,
+)
+from tools.gettext_catalog import compile_catalogs  # noqa: E402
 
 PROTOCOL_MODULES = (
     "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
@@ -174,15 +178,18 @@ def copy_python_files(source: pathlib.Path, destination: pathlib.Path, names: tu
         shutil.copy2(source / name, destination / name)
 
 
-def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
+def build(
+    output_directory: pathlib.Path,
+    documentation_directory: pathlib.Path | None = None,
+) -> pathlib.Path:
     metadata = buildVars.manifest()
     artifact_version = buildVars.artifact_version()
-    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output_root = pathlib.Path(output_directory)
     output = output_root / f"{metadata['name']}-{artifact_version}.nvda-addon"
     output.parent.mkdir(parents=True, exist_ok=True)
     msgpack_distribution = importlib.metadata.distribution("msgpack")
-    if msgpack_distribution.version != "1.1.1":
-        raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack_distribution.version}")
+    if msgpack_distribution.version != "1.1.2":
+        raise RuntimeError(f"msgpack 1.1.2 required, found {msgpack_distribution.version}")
     msgpack_source = pathlib.Path(msgpack_distribution.locate_file("msgpack"))
     with tempfile.TemporaryDirectory(
         dir=output.parent,
@@ -194,7 +201,13 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         write_manifest(stage / "manifest.ini")
         shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
         shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
-        validate_documents(stage / "doc")
+        if documentation_directory is not None:
+            shutil.rmtree(stage / "doc")
+            install_generated_documentation(
+                pathlib.Path(documentation_directory),
+                stage / "doc",
+            )
+        validate_installed_documents(stage / "doc")
         staged_manifest = validate_manifest(stage / "manifest.ini")
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
@@ -225,7 +238,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         package_builder = importlib.util.module_from_spec(package_spec)
         package_spec.loader.exec_module(package_builder)
         package_builder.linux_component_config()
-        server_output = output_root if output_directory is None else temporary_root / "server-package"
+        server_output = temporary_root / "server-package"
         server_package = package_builder.build(output_directory=server_output)
         resources = plugin / "resources"
         resources.mkdir(exist_ok=True)
@@ -246,7 +259,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         license_source = find_msgpack_license(msgpack_distribution)
         shutil.copy2(license_source, plugin / "vendor" / "MSGPACK-LICENSE.txt")
         (plugin / "vendor" / "THIRD_PARTY_NOTICES.txt").write_text(
-            "msgpack-python 1.1.1, Apache License 2.0, https://msgpack.org/\n",
+            "msgpack-python 1.1.2, Apache License 2.0, https://msgpack.org/\n",
             encoding="utf-8",
         )
         forbidden = list(stage.rglob("*.so")) + list(stage.rglob("*.pyc"))
@@ -270,6 +283,14 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
     return output
 
 
-if __name__ == "__main__":
-    result = build()
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-directory", type=pathlib.Path, required=True)
+    parser.add_argument("--documentation-directory", type=pathlib.Path, required=True)
+    arguments = parser.parse_args()
+    result = build(arguments.output_directory, arguments.documentation_directory)
     print(f"built {result} ({result.stat().st_size} bytes)")
+
+
+if __name__ == "__main__":
+    main()

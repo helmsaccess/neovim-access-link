@@ -19,7 +19,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import buildVars
+import buildVars  # noqa: E402
 
 COMPONENT_CONFIG = ROOT / "neovim-plugin" / "config" / "linux-components.json"
 
@@ -86,10 +86,10 @@ def create_portable_zipapp(source: pathlib.Path, destination: pathlib.Path) -> N
             archive.writestr(info, module.read_bytes(), compresslevel=9)
 
 
-def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
+def build(output_directory: pathlib.Path) -> pathlib.Path:
     version = project_version()
     linux_component_config()
-    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output_root = pathlib.Path(output_directory)
     output = output_root / f"{buildVars.product_slug()}-{version}-user.tar.gz"
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
@@ -109,8 +109,8 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             application / "nvim_nvda_protocol",
         )
         msgpack = importlib.metadata.distribution("msgpack")
-        if msgpack.version != "1.1.1":
-            raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack.version}")
+        if msgpack.version != "1.1.2":
+            raise RuntimeError(f"msgpack 1.1.2 required, found {msgpack.version}")
         copy_portable_python_package(
             pathlib.Path(msgpack.locate_file("msgpack")),
             application / "msgpack",
@@ -150,4 +150,4 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
 
 
 if __name__ == "__main__":
-    print(build())
+    raise SystemExit("This internal builder requires an explicit temporary output directory")

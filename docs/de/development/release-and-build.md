@@ -46,12 +46,12 @@ werden nicht aus Branchname oder bisherigem Verlauf abgeleitet.
 
 ## Prüfung und Build
 
-Vor einem auslieferbaren Build wird der endgültige Worktree geprüft:
+Der Linux-Checkout ist die Quelle der Entwicklung. Dort laufen Tests und
+Dokumentationsprüfungen ausschließlich mit automatisch gelöschten Ausgaben:
 
 ```bash
 python3 tools/run_tests.py all
-python3 tools/build_nvda_addon.py
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
 `all` führt sichere, SSH- und Socketphasen nacheinander aus; die Umgebung muss
@@ -59,26 +59,100 @@ Listener und kurzlebige Neovim-Prozesse erlauben. In eingeschränkten
 Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
 [Teststrategie](testing.md) getrennt ausgeführt.
 
-Der Add-on-Build prüft Manifest, acht installierte lokalisierte HTML-Dokumente,
+Pakettests bauen das Add-on in ihrem temporären Testverzeichnis und prüfen
+Manifest, acht installierte lokalisierte HTML-Dokumente,
 gebündelte Komponenten, Abhängigkeiten und Archivinhalt. Der
 Manifestvertrag folgt der Feldmenge des offiziellen NVDA-AddonTemplates:
 Alle zutreffenden Felder müssen als getrimmte Skalare vorliegen; unbekannte,
 leere oder fehlerhaft formatierte Angaben, eine fehlende englische
 Standardhilfe und unvollständige Lokalisierungsmanifeste brechen den Build ab.
 Ein Feld darf nur entfallen, wenn es für das Projekt tatsächlich nicht
-zutrifft. Der
-Dokumentationsbuild synchronisiert ausführbare Beispiele,
+zutrifft. Die temporäre Dokumentationsprüfung synchronisiert ausführbare Beispiele,
 prüft Markdown- und HTML-Links, die deutsche und englische Struktur sowie
 Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
-HTML-Dokumente. Er übernimmt dieselben Ergebnisse unter neutralen Dateinamen
-in `nvda-addon/addon/doc/de` und `doc/en`; CI lehnt veraltete Kopien ab.
+HTML-Dokumente, bevor sie wieder gelöscht werden. CI veröffentlicht oder
+aktualisiert dabei keine Endanwenderartefakte.
 
-`build.cmd` ist ein zusätzlicher, parameterloser Komfortweg für Windows-Nutzer,
-die einen aktuellen Entwicklungsbuild aus einem Quellcode-Download erzeugen.
-Er benötigt Python 3.10 oder neuer und eine Internetverbindung, richtet die
-festgelegten Buildabhängigkeiten ausschließlich in einem temporären
-Python-Environment ein und legt das `.nvda-addon` in `dist` ab. Der validierte
-Entwickler- und CI-Prozess oben bleibt davon unberührt.
+Normale Entwicklungsartefakte entstehen im synchronisierten Windows-Worktree
+durch das parameterlose `build.cmd`. Das Skript setzt ein aktuelles Python 3,
+Git for Windows mit Bash und eine Internetverbindung voraus. Es richtet die
+festgelegten Python-Abhängigkeiten temporär ein, lädt den offiziellen
+Pandoc-Windows-Binärbuild 3.1.11.1 nur dann in denselben temporären Bereich,
+wenn kein lokales Pandoc der kompatiblen Reihe 3.1 vorhanden ist, und prüft
+dann dessen SHA-256. Eine lokale abweichende Version wird weder verwendet noch
+verändert. Branch, Commit und Synchronisierungsstand werden vor und nach dem
+Build verglichen.
+
+Windows-Entwicklungs- und Linux-Releasebuild verwenden denselben isolierten
+Kernablauf. Er
+rendert alle acht Dokumente, baut daraus Add-on und Dokumentations-ZIP, prüft
+die exakt erwarteten Namen und verschiebt erst danach diese beiden Dateien
+nach `dist`. Ein gleichzeitiger Quellwechsel bricht vor der Veröffentlichung
+der Dateien ab.
+
+## Synchronisierter Windows-Worktree
+
+`/nfs/src/neovim-access-link` ist der über SMB als Windows-Laufwerk sichtbare,
+dauerhafte Test- und Build-Worktree. Einmalig wird er vom Linux-Checkout aus
+eingerichtet:
+
+```bash
+python3 tools/windows_workspace_sync.py configure /nfs/src/neovim-access-link
+```
+
+Danach übertragen lokale Git-Hooks Änderungen an Branch-Refs im Hintergrund.
+Erstellung, Löschung und Wechsel von Branches sowie nicht vorwärts gerichtete
+Commitänderungen werden gespiegelt. Der Ziel-Checkout verwendet einen eigenen
+Staging-Ref-Namensraum und `--no-overwrite-ignore`. Die Synchronisierung
+verändert ausschließlich versionierte Dateien und Git-Refs; ignorierte oder
+sonstige unversionierte virtuelle Umgebungen, Human-Test-Zustände,
+Werkzeuginstallationen und Buildausgaben bleiben bestehen. Änderungen an
+versionierten Zieldateien oder eine Namenskollision mit einer unversionierten
+Datei führen zum Abbruch. Ein manueller Wiederholungslauf ist möglich mit:
+
+```bash
+python3 tools/windows_workspace_sync.py sync
+```
+
+Verknüpfte Linux-Worktrees desselben Repositorys teilen sich eine serialisierte
+Warteschlange. Der zuletzt auslösende Worktree bestimmt den ausgecheckten
+Zielbranch; sämtliche lokalen Branch-Refs werden unabhängig davon gespiegelt.
+Die Hooks und der Worker liegen als branchunabhängige Laufzeitkopie im
+gemeinsamen Git-Verwaltungsverzeichnis. Nach Änderungen am
+Synchronisierungswerkzeug oder seinen Hooks muss `configure` erneut laufen.
+
+## Releasebuild auf Linux
+
+Der endgültige, später getaggte und auf GitHub veröffentlichte Stand wird im
+Linux-Checkout gebaut. Nach vollständiger Prüfung, der Freigabe der
+Release-Metadaten und dem Merge auf `main` wird ausgeführt:
+
+```bash
+python3 tools/build_release.py
+```
+
+Der parameterlose Befehl akzeptiert ausschließlich einen sauberen
+`main`-Worktree mit `development_build = None`. Er lädt den offiziellen
+Pandoc-3.1.11.1-Linux-Binärbuild in ein temporäres Verzeichnis, prüft dessen
+SHA-256 und verwendet wie der Windows-Einstiegspunkt eine temporäre
+Python-Umgebung mit den festgelegten Buildabhängigkeiten. Vor und nach dem
+Build werden Branch, Commit und versionierte Sauberkeit verglichen. Nur das
+Add-on und das Dokumentations-ZIP des unveränderten Stands gelangen nach
+`dist`; Pandoc, Umgebung und Zwischenprodukte werden anschließend entfernt.
+
+Im Windows-Worktree heißen die beiden Dateien
+`NeovimAccessLink-<artifact_version>.nvda-addon` und
+`neovim-access-link-<artifact_version>-documentation.zip`; bei einem
+Entwicklungsstand enthält `<artifact_version>` `-dev.N` sowie nach Möglichkeit
+Branch- und Commitmetadaten. Der Linux-Releasebuild verwendet dagegen die
+reine Produktversion, beispielsweise `NeovimAccessLink-0.99.0.nvda-addon`.
+
+Der erfolgreiche Build verändert keine versionierte Datei. Anschließend wird
+genau sein `HEAD` als `vMAJOR.MINOR.PATCH` getaggt, Commit und Tag werden nach
+Freigabe gepusht und die beiden Dateien aus dem Linux-`dist` mit
+`gh release create --verify-tag` veröffentlicht. `build.cmd` ist kein
+Releaseursprung, sondern erzeugt vorab die entsprechenden versionierten
+Entwicklungsartefakte für die praktische Windows-Prüfung.
 
 ## Releasevorbereitung
 
@@ -94,7 +168,8 @@ Stand:
    vorherigen veröffentlichten Version;
 3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
    Dokumentation;
-4. erfolgreiche vollständige Tests und frisch gebaute Artefakte;
+4. erfolgreiche vollständige Tests und mit `tools/build_release.py` frisch
+   aus diesem Linux-Stand gebaute Artefakte;
 5. einen Commit und ein annotiertes oder leichtgewichtiges Tag `vMAJOR.MINOR.PATCH`
    auf genau diesem Commit.
 

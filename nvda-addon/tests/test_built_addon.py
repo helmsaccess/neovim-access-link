@@ -143,11 +143,11 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_msgpack_license_is_found_in_flat_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
-        expected = root / "msgpack-1.1.1.dist-info" / "COPYING"
+        expected = root / "msgpack-1.1.2.dist-info" / "COPYING"
         expected.parent.mkdir()
         expected.write_text("license", encoding="utf-8")
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 
@@ -155,11 +155,11 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_msgpack_license_is_found_in_wheel_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
-        expected = root / "msgpack-1.1.1.dist-info" / "licenses" / "COPYING"
+        expected = root / "msgpack-1.1.2.dist-info" / "licenses" / "COPYING"
         expected.parent.mkdir(parents=True)
         expected.write_text("license", encoding="utf-8")
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 
@@ -168,7 +168,7 @@ class BuiltAddonTests(unittest.TestCase):
     def test_msgpack_license_requires_one_supported_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 

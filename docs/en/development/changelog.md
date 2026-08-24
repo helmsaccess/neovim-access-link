@@ -6,6 +6,26 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Separates Linux development from the Windows distributable build. An
+  asynchronous, fail-closed Git-ref synchronizer keeps the NFS- and SMB-visible
+  Windows worktree current across branch creation, deletion, switching, and
+  non-fast-forward commit changes while changing versioned files only. Ignored
+  virtual environments, human-test state, tools, and build output remain in
+  place; target edits or untracked name collisions stop synchronization.
+  Linked Linux worktrees share one serialized queue. CI and normal Linux
+  development render or package only in temporary test directories.
+  Parameterless Windows `build.cmd` produces development artifacts from
+  synchronization state verified before and after the build. A shared
+  isolated core lets `tools/build_release.py` produce exactly the later tagged
+  add-on and documentation ZIP from clean Linux `main` and approved release
+  metadata. The obsolete standalone generated-to-installed documentation sync
+  command is replaced by an internal layout library; the unused, undocumented
+  Windows helper for uploading NVDA logs is removed as well. The Windows build
+  uses an installed Pandoc from the 3.1 series or downloads the verified
+  3.1.11.1 binary into its temporary build directory only. MessagePack 1.1.2
+  replaces the source-identical 1.1.1 so current Python 3.14 build
+  environments can use an official wheel. This installable state is
+  development build 6.
 - Fixes Lazy guided-test preparation on shared or mapped repository drives:
   the isolated Git configuration lists the concrete fixture repositories
   instead of a wildcard. Preparation stops at the first failed tool or profile

@@ -40,7 +40,7 @@ about every newer or similar platform.
 Complete local verification requires:
 
 - Python 3;
-- `msgpack` exactly 1.1.1 for protocol tests and package builds;
+- `msgpack` exactly 1.1.2 for protocol tests and package builds;
 - ConfigObj 5.0.8 for NVDA-compatible manifest validation during the add-on
   build;
 - Pexpect 4.9.0 for bridge and TUI integration tests;
@@ -76,9 +76,8 @@ ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 tools/run_tests.py all-safe
 tools/run_tests.py ssh
-python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 git diff --check
 ```
 
@@ -106,10 +105,13 @@ selection without running it.
 | `all-safe` | complete listener-free suite; an alias of `safe` |
 | `all` | every group in separate `all-safe`, `ssh`, and `socket` phases |
 
-The add-on build is itself part of verification: package tests inspect the
-actual generated archive rather than only the source tree. See
-[testing.md](testing.md) for isolation, sandbox boundaries, and the properties
-proved by each suite.
+Package tests create and inspect the add-on only in temporary directories.
+The developer subsequently creates development artifacts with `build.cmd` in
+the synchronized Windows worktree. An explicitly approved release state is
+instead built from clean Linux `main` with `python3 tools/build_release.py`.
+See [testing.md](testing.md) and [release-and-build.md](release-and-build.md)
+for isolation, synchronization, sandbox boundaries, and the properties proved
+by each suite.
 
 ## Where a change starts
 

@@ -6,6 +6,28 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Trennt Linux-Entwicklung und Windows-Auslieferungsbuild. Ein asynchroner,
+  abbrechender Git-Ref-Abgleich hält den über NFS und SMB sichtbaren
+  Windows-Worktree einschließlich Branch-Erstellung, -Löschung, -Wechsel und
+  nicht vorwärts gerichteter Commitänderungen aktuell, verändert aber nur
+  versionierte Dateien. Ignorierte virtuelle Umgebungen, Human-Test-Zustände,
+  Werkzeuge und Buildausgaben bleiben erhalten; Zieländerungen oder
+  unversionierte Namenskollisionen brechen ab. Verknüpfte Linux-Worktrees
+  teilen eine serialisierte Warteschlange. CI und normale Linux-Entwicklung
+  rendern oder paketieren nur in temporären Testverzeichnissen. Das
+  parameterlose Windows-`build.cmd` erzeugt Entwicklungsartefakte aus einem
+  vor und nach dem Build geprüften Synchronisierungsstand. Ein gemeinsamer
+  isolierter Kern erzeugt mit `tools/build_release.py` aus sauberem
+  Linux-`main` und freigegebenen Release-Metadaten genau das später getaggte
+  Add-on und Dokumentations-ZIP. Der veraltete eigenständige Abgleich
+  generierter und installierter Dokumentation entfällt zugunsten einer reinen
+  internen Layoutbibliothek; der ungenutzte, undokumentierte Windows-Helfer
+  zum Hochladen von NVDA-Logs entfällt ebenfalls. Der Windows-Build verwendet
+  ein vorhandenes Pandoc der Reihe 3.1 oder lädt die geprüfte Version 3.1.11.1
+  nur in sein temporäres Buildverzeichnis. MessagePack 1.1.2 ersetzt die
+  quellgleiche Version 1.1.1, damit aktuelle Python-3.14-Buildumgebungen ein
+  offizielles Binärpaket verwenden. Dieser installierbare Stand ist
+  Entwicklungsbuild 6.
 - Repariert die Lazy-Praxistest-Vorbereitung auf gemeinsam genutzten oder
   gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration führt die
   konkreten Fixture-Repositories statt eines Wildcards auf. Die Vorbereitung

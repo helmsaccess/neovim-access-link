@@ -45,12 +45,12 @@ from branch name or prior history.
 
 ## Validation and build
 
-Before a distributable build, validate the final worktree:
+The Linux checkout is the development source of truth. Tests and documentation
+validation there use automatically discarded output only:
 
 ```bash
 python3 tools/run_tests.py all
-python3 tools/build_nvda_addon.py
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
 `all` runs safe, SSH, and socket phases sequentially; the environment must
@@ -58,25 +58,92 @@ permit listeners and disposable Neovim processes. In restricted environments,
 run `all-safe`, `ssh`, and `socket` separately as described by the [test
 strategy](testing.md).
 
-The add-on build validates the manifest, eight installed localized HTML
+Package tests build the add-on in their temporary test directory and validate
+the manifest, eight installed localized HTML
 documents, bundled components, dependencies, and archive contents. The
 manifest contract follows the official NVDA AddonTemplate field set: every
 applicable field must be a trimmed scalar; unknown, empty, or malformed
 metadata, missing default English help, and incomplete localization manifests
 stop the build. A field may be omitted only when it is genuinely inapplicable
-to the project. The
-documentation build synchronizes executable examples,
+to the project. The temporary documentation check synchronizes executable examples,
 checks Markdown and HTML links, German/English structure, and each output's
 language, title, and description, and creates eight HTML documents.
-It copies the same results under neutral names in
-`nvda-addon/addon/doc/de` and `doc/en`; CI rejects stale copies.
+Those files are deleted afterwards; CI does not publish or refresh end-user
+artifacts.
 
-`build.cmd` is an additional parameterless convenience path for Windows users
-who want to build the current development state from a source download. It
-requires Python 3.10 or newer and an internet connection, installs the
-pinned build dependencies only in a temporary Python environment, and writes
-the `.nvda-addon` to `dist`. It does not replace or alter the validated
-developer and CI process above.
+Normal development artifacts are created in the synchronized Windows worktree
+with parameterless `build.cmd`. It requires a current Python 3, Git for Windows
+with Bash, and an Internet connection. It installs pinned Python dependencies
+temporarily. It uses an installed Pandoc from the compatible 3.1 series or
+downloads the official Pandoc 3.1.11.1 Windows binary into the same temporary
+area and verifies its SHA-256. An incompatible local version is neither used
+nor changed. Branch, commit, and synchronization state are compared before
+and after the build.
+
+The Windows development and Linux release builds use the same isolated core.
+It renders all eight documents, builds the add-on and documentation ZIP from
+them, validates the exact expected names, and only then moves those two files
+to `dist`. A concurrent source change stops publication of the files.
+
+## Synchronized Windows worktree
+
+`/nfs/src/neovim-access-link` is the persistent test and build worktree exposed
+to Windows as an SMB drive. Configure it once from the Linux checkout:
+
+```bash
+python3 tools/windows_workspace_sync.py configure /nfs/src/neovim-access-link
+```
+
+Local Git hooks then transfer branch-ref changes in the background. Branch
+creation, deletion, and switching, including non-fast-forward commit changes,
+are mirrored. The target checkout uses a separate staging-ref namespace and
+`--no-overwrite-ignore`. Synchronization changes only versioned files and Git
+refs; ignored or otherwise untracked virtual environments, human-test state,
+tool installations, and build output remain in place. A versioned target edit
+or a name collision with an untracked file stops synchronization. Retry it
+manually with:
+
+```bash
+python3 tools/windows_workspace_sync.py sync
+```
+
+Linked Linux worktrees of the same repository share one serialized queue. The
+most recently triggering worktree selects the checked-out target branch while
+all local branch refs are mirrored independently. Hooks and the worker run
+from a branch-independent copy in the shared Git administration directory.
+Run `configure` again after changing the synchronization tool or its hooks.
+
+## Linux release build
+
+The final state that will be tagged and published on GitHub is built in the
+Linux checkout. After complete validation, approval of release metadata, and
+the merge to `main`, run:
+
+```bash
+python3 tools/build_release.py
+```
+
+The parameterless command accepts only a clean `main` worktree with
+`development_build = None`. It downloads the official Pandoc 3.1.11.1 Linux
+binary into temporary storage, verifies its SHA-256, and uses the same
+temporary Python environment with pinned build dependencies as the Windows
+entry point. Branch, commit, and versioned cleanliness are compared before
+and after the build. Only the add-on and documentation ZIP from the unchanged
+state reach `dist`; Pandoc, the environment, and intermediate output are then
+removed.
+
+In the Windows worktree the two files are named
+`NeovimAccessLink-<artifact_version>.nvda-addon` and
+`neovim-access-link-<artifact_version>-documentation.zip`. For a development
+state, `<artifact_version>` contains `-dev.N` and, when available, branch and
+commit metadata. The Linux release build instead uses the plain product
+version, for example `NeovimAccessLink-0.99.0.nvda-addon`.
+
+The successful build changes no versioned file. Tag exactly its `HEAD` as
+`vMAJOR.MINOR.PATCH`, push the commit and tag after approval, and publish the
+two files from the Linux `dist` with `gh release create --verify-tag`.
+`build.cmd` is not the release origin; it produces the corresponding versioned
+development artifacts for prior practical Windows validation.
 
 ## Release preparation
 
@@ -90,7 +157,8 @@ An approved version requires one coherent state containing:
    change since the immediately preceding published release;
 3. current status, compatible metadata, and complete German/English
    documentation;
-4. successful full tests and freshly built artifacts;
+4. successful full tests and artifacts freshly built from this Linux state
+   with `tools/build_release.py`;
 5. one commit and an annotated or lightweight `vMAJOR.MINOR.PATCH` tag on that
    exact commit.
 

@@ -107,7 +107,7 @@ virtual screen column; UTF-8 routing remains correct.
 
 ## Build and documentation dependencies
 
-MessagePack Python 1.1.1 is bundled into the add-on and Linux component
+MessagePack Python 1.1.2 is bundled into the add-on and Linux component
 package. The Linux target therefore needs no separate MessagePack or pynvim
 package.
 

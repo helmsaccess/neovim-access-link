@@ -27,7 +27,7 @@ Nach Änderungen sichtbarer Texte ist aus der Repositorywurzel auszuführen:
 ```bash
 python3 tools/gettext_catalog.py update
 python3 tools/gettext_catalog.py check
-python3 tools/build_nvda_addon.py
+python3 tools/run_tests.py package
 ```
 
 `update` extrahiert ausschließlich literale Nachrichten und erhält vorhandene
@@ -37,7 +37,9 @@ Unübersetzte Einträge sind zulässig und fallen absichtlich auf Englisch
 zurück. Der MO-Compiler lässt sie dafür wie GNU `msgfmt` aus der Binärdatei
 weg; eine leere Übersetzung darf niemals einen sichtbaren Text entfernen. Der
 Build kompiliert deterministisch mit der Python-Standardbibliothek;
-GNU-gettext-Werkzeuge sind keine Buildabhängigkeit.
+GNU-gettext-Werkzeuge sind keine Buildabhängigkeit. Entwicklungsartefakte
+entstehen mit `build.cmd` im synchronisierten Windows-Worktree; das
+auslieferbare Release-Add-on entsteht mit `tools/build_release.py` auf Linux.
 
 Der erste Werkzeugstand verarbeitet einfache Nachrichten mit benannten
 `str.format`-Feldern. Echte Pluralformen (`ngettext`) und kontextabhängige

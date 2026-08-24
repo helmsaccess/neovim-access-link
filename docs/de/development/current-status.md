@@ -1,7 +1,7 @@
 # Aktueller Status
 
-Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
+Stand: 24. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
+`buildVars.py` erzeugt Artefakte als 0.99.0-dev.6 mit Branch- und
 Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
 veröffentlichte Pre-Release ist 0.98.0.
 Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
@@ -68,10 +68,15 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   tatsächlichen Store-Veröffentlichung 0.96.0. Der Paketbuild verwirft fehlende,
   leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
-- Der Dokumentationsjob verwendet wie der lokale Referenzbuild den offiziellen
-  Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten Archiv. Das
-  Buildskript lehnt abweichend paketierte Builds derselben Version ab. Dadurch
-  bleibt die eingecheckte installierte HTML-Hilfe reproduzierbar.
+- Dokumentationsjob und Linux-Releasebuild verwenden den jeweiligen offiziellen
+  Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten Archiv. Der
+  Windows-Entwicklungsbuild akzeptiert ein lokales Pandoc der Reihe 3.1 und
+  verwendet andernfalls den geprüften Binärbuild nur temporär. CI und normale
+  Linux-Entwicklung validieren nur in temporären Verzeichnissen. `build.cmd`
+  erzeugt Entwicklungsartefakte im synchronisierten Windows-Worktree;
+  `tools/build_release.py` erzeugt die
+  später veröffentlichten Assets ausschließlich aus sauberem Linux-`main`
+  mit freigegebenen Release-Metadaten.
 - `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
   Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
   außerhalb eines passenden fokussierten Controls bleibt der native
@@ -214,10 +219,15 @@ einer echten getesteten Lua-Datei und wird identisch in beide Handbücher
 synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
 deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
 Markdownlinks, generierte HTML-Ziele sowie Sprach-, Titel- und
-Beschreibungsmetadaten. GitHub Actions führt diesen Build als eigenen Job aus.
-Windows-Nutzer können zusätzlich mit `build.cmd` parameterlos einen aktuellen
-Entwicklungsstand bauen. Der Wrapper verwendet nur ein temporäres
-Python-Environment und lässt den regulären Build- und CI-Weg unverändert.
+Beschreibungsmetadaten. GitHub Actions führt diese temporäre Validierung als
+eigenen Job aus. Git-Hooks spiegeln Branch-Erstellung, -Löschung, -Wechsel und
+Commitänderungen in den dauerhaften, über SMB sichtbaren Windows-Worktree,
+ohne ignorierte virtuelle Umgebungen, Human-Test-Zustände oder Buildausgaben zu
+verändern. Verknüpfte Linux-Worktrees teilen dabei eine serialisierte
+Warteschlange. `build.cmd` prüft diesen Synchronisierungsstand vor und nach dem
+parameterlosen Windows-Entwicklungsbuild. Derselbe isolierte Kern prüft beim
+Linux-Releasebuild Branch, Commit und Sauberkeit vor und nach dem Build und
+veröffentlicht genau Add-on und Dokumentations-ZIP nach `dist`.
 
 ## Prüfnachweis
 

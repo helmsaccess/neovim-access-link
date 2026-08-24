@@ -161,39 +161,43 @@ Terminal, and Braille output remains a separate acceptance activity.
 
 ## Build verification
 
-After a change to installable code, rebuild the add-on from the final worktree:
-
-```bash
-python3 tools/build_nvda_addon.py
-```
-
-Package tests open the actual `.nvda-addon` and strictly check base and
+Package tests build the add-on with an explicit temporary output directory,
+open the actual `.nvda-addon`, and strictly check base and
 localization manifests against the applicable official NVDA AddonTemplate
 fields, plus
 resources, all eight localized installed HTML documents, bundled Linux
 components, licenses, translation catalog, and forbidden files. An earlier
-archive is not evidence for later source changes.
+archive is not evidence for later source changes. The Linux development
+checkout receives neither a distributable add-on nor persistent build output.
 
-After documentation changes, rebuild documentation:
+After documentation changes, render and validate the complete documentation in
+temporary storage:
 
 ```bash
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
-The local reference build and the CI job use the official Pandoc 3.1.11.1
-binary build. The build script rejects repackaged builds because they can
-produce different syntax highlighting despite reporting the same Pandoc
-version. CI downloads the official archive with a pinned SHA-256 digest.
+The Linux release build and CI validation job use the respective official
+Pandoc 3.1.11.1 binary from an archive with a pinned SHA-256 digest. The
+Windows development build uses an installed Pandoc from the 3.1 series; when
+it is missing or its major or minor version differs, the build uses only the
+verified official 3.1.11.1 binary in its temporary build directory. A
+different local installation remains unchanged.
 
 The build checks the canonical Lua example, German and English source files
 and heading structures, local Markdown links, generated HTML targets,
-language, title, and description metadata, and the eight expected files in the
-ZIP. The same results are synchronized for installed help; CI rejects stale
-copies. Historical archives explicitly excluded from current documentation are
+language, title, and description metadata, and the eight expected documents.
+The script deletes its output after validation; CI publishes no end-user
+artifact. Historical archives explicitly excluded from current documentation are
 validated but not included in HTML.
 
-When work changes both installable code and documentation, build both
-artifacts from the same final worktree.
+After complete validation, `build.cmd` creates development artifacts in the
+synchronized Windows worktree. The approved Linux state creates the later
+published release artifacts with `python3 tools/build_release.py`. Both entry
+points use the same isolated core and build the add-on and documentation ZIP
+from one stable branch and commit. See [release, version, and build
+process](release-and-build.md) for safe Git synchronization, prerequisites,
+and stop conditions.
 
 ## Practical testing
 

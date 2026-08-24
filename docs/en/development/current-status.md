@@ -1,7 +1,7 @@
 # Current status
 
-Status date: August 14, 2026. The source tree develops the 0.99.0 line;
-`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
+Status date: August 24, 2026. The source tree develops the 0.99.0 line;
+`buildVars.py` generates artifacts as 0.99.0-dev.6 with branch and commit
 metadata and sets the manifest update channel to beta. The current published
 pre-release is 0.98.0. The
 project does not infer a higher stability classification from test coverage or
@@ -62,10 +62,15 @@ therefore names NVDA 2026.2 as last tested. See
   remains 0.96.0 until an actual Store publication. The package build
   rejects missing, empty, unknown, or malformed template fields and verifies
   the default English help plus the German localization manifest.
-- The documentation job and local reference build use the official
-  Pandoc 3.1.11.1 binary from an archive with a verified digest. The build
-  script rejects differently packaged builds of the same version, keeping the
-  checked-in installed HTML reproducible.
+- The documentation job and Linux release build use the respective official
+  Pandoc 3.1.11.1 binary from an archive with a verified digest. The Windows
+  development build accepts an installed Pandoc from the 3.1 series and
+  otherwise uses the verified binary temporarily. CI and normal Linux
+  development validate in temporary directories only. `build.cmd` creates
+  development artifacts in the synchronized Windows worktree;
+  `tools/build_release.py` creates the later
+  published assets only from clean Linux `main` with approved release
+  metadata.
 - `NVDA+Alt+N` is the default activation gesture and remains reassignable in
   Input Gestures. It continues to belong to the Windows Terminal AppModule;
   outside a matching focused control, the native keyboard path remains intact.
@@ -199,11 +204,15 @@ validated HTML files. The copyable Neovim example comes from one real tested
 Lua file and is synchronized identically into both manuals.
 The documentation build also checks complete German and English source sets,
 parallel heading structures, Markdown links, generated HTML targets, and
-language, title, and description metadata. GitHub Actions runs this build as a
-dedicated job.
-Windows users can additionally run parameterless `build.cmd` to build the
-current development state. The wrapper uses only a temporary Python environment
-and leaves the regular build and CI path unchanged.
+language, title, and description metadata. GitHub Actions runs this temporary
+validation as a dedicated job. Git hooks mirror branch creation, deletion,
+switching, and commit changes into the persistent SMB-visible Windows worktree
+without changing ignored virtual environments, human-test state, or build
+output. Linked Linux worktrees share one serialized queue. `build.cmd` checks
+that synchronization state before and after the parameterless Windows
+development build. The same isolated core checks branch, commit, and
+cleanliness before and after the Linux release build and publishes exactly the
+add-on and documentation ZIP to `dist`.
 
 ## Verification evidence
 

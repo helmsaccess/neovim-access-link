@@ -112,7 +112,7 @@ Bildschirmspalte verändern; die UTF-8-Routingposition bleibt korrekt.
 
 ## Build- und Dokumentationsabhängigkeiten
 
-MessagePack Python 1.1.1 wird in Add-on und Linux-Komponentenpaket gebündelt.
+MessagePack Python 1.1.2 wird in Add-on und Linux-Komponentenpaket gebündelt.
 Das Linux-Ziel benötigt deshalb kein separates MessagePack- oder pynvim-Paket.
 
 Python 3, ConfigObj und Pandoc werden nur für Tests oder Builds verwendet.

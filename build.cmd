@@ -19,7 +19,7 @@ python -c "import sys" >nul 2>nul
 if not errorlevel 1 goto usePython
 
 :pythonMissing
-echo Python 3.10 or newer was not found. Install Python and try again.
+echo A current Python 3 was not found. Install Python and try again.
 set "buildExit=1"
 goto finish
 

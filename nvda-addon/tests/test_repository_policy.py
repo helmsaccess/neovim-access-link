@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import hashlib
+import io
+import json
 import os
 import pathlib
 import runpy
+import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import unittest
+import zipfile
 from unittest import mock
 
+import buildVars
+from tools import distribution_build, documentation_archive
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 MAX_AGENTS_BYTES = 12 * 1024
@@ -53,36 +61,326 @@ def discover_agents_paths() -> set[pathlib.Path]:
 
 
 class RepositoryPolicyTests(unittest.TestCase):
-    def test_optional_windows_build_uses_an_isolated_temporary_environment(self) -> None:
+    def test_platform_builds_prepare_only_verified_pandoc_executables(self) -> None:
+        archive_bytes = io.BytesIO()
+        with zipfile.ZipFile(archive_bytes, "w") as archive:
+            archive.writestr(distribution_build.PANDOC_WINDOWS_MEMBER, b"windows pandoc")
+        payload = archive_bytes.getvalue()
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                distribution_build,
+                "PANDOC_WINDOWS_SHA256",
+                hashlib.sha256(payload).hexdigest(),
+            ),
+            mock.patch.object(
+                distribution_build.urllib.request,
+                "urlopen",
+                return_value=io.BytesIO(payload),
+            ),
+            mock.patch.object(distribution_build.shutil, "which", return_value=None),
+        ):
+            pandoc = distribution_build.prepare_windows_pandoc(pathlib.Path(directory))
+            self.assertEqual(b"windows pandoc", pandoc.read_bytes())
+            self.assertEqual("pandoc.exe", pandoc.name)
+
+        archive_bytes = io.BytesIO()
+        with tarfile.open(fileobj=archive_bytes, mode="w:gz") as archive:
+            payload_info = tarfile.TarInfo(distribution_build.PANDOC_LINUX_MEMBER)
+            payload_info.size = len(b"linux pandoc")
+            archive.addfile(payload_info, io.BytesIO(b"linux pandoc"))
+        payload = archive_bytes.getvalue()
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                distribution_build,
+                "PANDOC_LINUX_SHA256",
+                hashlib.sha256(payload).hexdigest(),
+            ),
+            mock.patch.object(
+                distribution_build.urllib.request,
+                "urlopen",
+                return_value=io.BytesIO(payload),
+            ),
+        ):
+            pandoc = distribution_build.prepare_linux_pandoc(pathlib.Path(directory))
+            self.assertEqual(b"linux pandoc", pandoc.read_bytes())
+            self.assertTrue(pandoc.stat().st_mode & 0o100)
+
+    def test_windows_build_reuses_only_major_minor_compatible_local_pandoc(self) -> None:
+        compatible = pathlib.Path("C:/Tools/Pandoc/pandoc.exe")
+        with (
+            mock.patch.object(distribution_build.shutil, "which", return_value=str(compatible)),
+            mock.patch.object(
+                distribution_build.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess((), 0, "pandoc 3.1.9\n", ""),
+            ),
+            mock.patch.object(distribution_build, "_download_verified") as download,
+        ):
+            self.assertEqual(
+                compatible,
+                distribution_build.prepare_windows_pandoc(pathlib.Path("unused")),
+            )
+        download.assert_not_called()
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(distribution_build.shutil, "which", return_value=str(compatible)),
+            mock.patch.object(
+                distribution_build.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess((), 0, "pandoc 3.2.0\n", ""),
+            ),
+            mock.patch.object(distribution_build, "_download_verified") as download,
+            mock.patch.object(zipfile, "ZipFile", side_effect=zipfile.BadZipFile("test stop")),
+            self.assertRaisesRegex(RuntimeError, "archive is invalid"),
+        ):
+            distribution_build.prepare_windows_pandoc(pathlib.Path(directory))
+        download.assert_called_once()
+
+    def test_documentation_archive_contains_exactly_eight_reproducible_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source = root / "documentation"
+            source.mkdir()
+            for index, path in enumerate(documentation_archive.expected_sources(source)):
+                path.write_text(f"document {index}\n", encoding="utf-8")
+            first = documentation_archive.build(source, root / "first")
+            second = documentation_archive.build(source, root / "second")
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            with zipfile.ZipFile(first) as archive:
+                self.assertEqual(
+                    [path.name for path in documentation_archive.expected_sources(source)],
+                    archive.namelist(),
+                )
+
+    def test_windows_build_snapshot_requires_management_and_matching_success_status(self) -> None:
         namespace = runpy.run_path(
             str(REPOSITORY_ROOT / "build.py"),
-            run_name="optional_windows_build_test",
+            run_name="managed_windows_snapshot_test",
         )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = pathlib.Path(directory) / "repository"
+            subprocess.run(
+                ("git", "init", "--initial-branch=main", str(repository)),
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ("git", "-C", str(repository), "config", "user.name", "Test User"),
+                check=True,
+            )
+            subprocess.run(
+                ("git", "-C", str(repository), "config", "user.email", "test@example.invalid"),
+                check=True,
+            )
+            (repository / "tracked.txt").write_text("state\n", encoding="utf-8")
+            subprocess.run(
+                ("git", "-C", str(repository), "add", "tracked.txt"),
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ("git", "-C", str(repository), "commit", "-m", "State"),
+                check=True,
+                capture_output=True,
+            )
+            globals_ = namespace["_workspace_snapshot"].__globals__
+            with mock.patch.dict(globals_, {"ROOT": repository}):
+                with self.assertRaisesRegex(RuntimeError, "not managed"):
+                    namespace["_workspace_snapshot"]()
+                branch = "main"
+                commit = subprocess.run(
+                    ("git", "-C", str(repository), "rev-parse", "HEAD"),
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+                state_directory = repository / ".git" / namespace["SYNC_STATE_DIRECTORY"]
+                state_directory.mkdir()
+                (state_directory / namespace["SYNC_MANAGED_MARKER"]).write_text(
+                    "managed\n",
+                    encoding="utf-8",
+                )
+                status_path = state_directory / namespace["SYNC_STATUS_NAME"]
+                status_path.write_text(
+                    json.dumps(
+                        {
+                            "branch": branch,
+                            "commit": commit,
+                            "success": True,
+                            "updatedAt": "sync-token",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                managed = namespace["_workspace_snapshot"]()
+                self.assertTrue(managed.managed)
+                self.assertEqual("sync-token", managed.synchronization_token)
+                status_path.write_text(
+                    json.dumps({"branch": "other", "commit": commit, "success": True}),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(RuntimeError, "differs"):
+                    namespace["_workspace_snapshot"]()
+
+    def test_shared_distribution_build_uses_an_isolated_temporary_environment(self) -> None:
         environment_builder = mock.Mock()
-        with (
-            mock.patch.object(namespace["sys"], "argv", ["build.py"]),
-            mock.patch.object(namespace["venv"], "EnvBuilder", return_value=environment_builder),
-            mock.patch.object(namespace["subprocess"], "run") as run,
-            mock.patch("builtins.print"),
-        ):
-            namespace["build"]()
+        artifact_version = buildVars.artifact_version()
+        product_slug = buildVars.product_slug()
+
+        def complete_build(command, **_kwargs):
+            command = tuple(str(value) for value in command)
+            if "--output-directory" in command:
+                output = pathlib.Path(command[command.index("--output-directory") + 1])
+                (output / f"NeovimAccessLink-{artifact_version}.nvda-addon").write_bytes(b"addon")
+            elif command[-2].endswith("documentation") and command[-1].endswith("artifacts"):
+                pathlib.Path(
+                    command[-1],
+                    f"{product_slug}-{artifact_version}-documentation.zip",
+                ).write_bytes(b"docs")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            snapshot = mock.Mock(return_value=distribution_build.SourceSnapshot("main", "a" * 40))
+            with (
+                mock.patch.object(
+                    distribution_build.venv,
+                    "EnvBuilder",
+                    return_value=environment_builder,
+                ),
+                mock.patch.object(
+                    distribution_build.subprocess,
+                    "run",
+                    side_effect=complete_build,
+                ) as run,
+                mock.patch.object(buildVars, "artifact_version", return_value=artifact_version),
+                mock.patch.object(buildVars, "product_slug", return_value=product_slug),
+                mock.patch.object(distribution_build, "_publish", return_value=()),
+                mock.patch.object(sys.modules["builtins"], "print"),
+            ):
+                distribution_build.build_distributions(
+                    root,
+                    bash=pathlib.Path("/bin/bash"),
+                    snapshot=snapshot,
+                    prepare_pandoc=lambda _root: pathlib.Path("/tmp/pandoc"),
+                    temporary_prefix="test-distributable-",
+                )
 
         environment = environment_builder.create.call_args.args[0]
         self.assertFalse(environment.exists())
-        self.assertEqual(2, run.call_count)
+        self.assertEqual(4, run.call_count)
         install_command = run.call_args_list[0].args[0]
-        build_command = run.call_args_list[1].args[0]
+        documentation_command = run.call_args_list[1].args[0]
+        build_command = run.call_args_list[2].args[0]
         self.assertIn("--isolated", install_command)
         self.assertIn("--no-input", install_command)
         self.assertEqual(
-            str(REPOSITORY_ROOT / "tools/requirements-build.txt"),
+            str(root / "tools/requirements-build.txt"),
             install_command[-1],
         )
-        self.assertEqual(
-            str(REPOSITORY_ROOT / "tools/build_nvda_addon.py"),
-            build_command[-1],
-        )
+        self.assertIn("--output-only", documentation_command)
+        self.assertEqual(str(root / "tools/build_nvda_addon.py"), build_command[1])
+        self.assertIn("--documentation-directory", build_command)
         self.assertEqual("1", run.call_args_list[0].kwargs["env"]["PYTHONNOUSERSITE"])
+        self.assertEqual(2, snapshot.call_count)
+
+    def test_windows_and_linux_entry_points_share_the_distribution_builder(self) -> None:
+        windows = runpy.run_path(str(REPOSITORY_ROOT / "build.py"), run_name="windows_build_test")
+        linux = runpy.run_path(
+            str(REPOSITORY_ROOT / "tools/build_release.py"),
+            run_name="linux_release_build_test",
+        )
+        windows_builder = mock.Mock(return_value=())
+        linux_builder = mock.Mock(return_value=())
+        with (
+            mock.patch.object(windows["sys"], "argv", ["build.py"]),
+            mock.patch.dict(
+                windows["build"].__globals__,
+                {
+                    "_require_windows": mock.Mock(),
+                    "_find_bash": mock.Mock(return_value=pathlib.Path("/bin/bash")),
+                },
+            ),
+            mock.patch.object(
+                windows["distribution_build"],
+                "build_distributions",
+                windows_builder,
+            ),
+        ):
+            windows["build"]()
+        with (
+            mock.patch.object(linux["sys"], "argv", ["build_release.py"]),
+            mock.patch.object(linux["os"], "name", "posix"),
+            mock.patch.dict(
+                linux["build"].__globals__,
+                {"_find_bash": mock.Mock(return_value=pathlib.Path("/bin/bash"))},
+            ),
+            mock.patch.object(
+                linux["distribution_build"],
+                "build_distributions",
+                linux_builder,
+            ),
+        ):
+            linux["build"]()
+        self.assertIs(
+            windows_builder.call_args.kwargs["prepare_pandoc"],
+            distribution_build.prepare_windows_pandoc,
+        )
+        self.assertIs(
+            linux_builder.call_args.kwargs["prepare_pandoc"],
+            distribution_build.prepare_linux_pandoc,
+        )
+
+    def test_documentation_layout_is_an_internal_library(self) -> None:
+        self.assertFalse((REPOSITORY_ROOT / "tools/sync_installed_documentation.py").exists())
+        self.assertTrue((REPOSITORY_ROOT / "tools/documentation_layout.py").is_file())
+        for caller in ("build_nvda_addon.py", "documentation_archive.py"):
+            text = (REPOSITORY_ROOT / "tools" / caller).read_text(encoding="utf-8")
+            self.assertIn("documentation_layout", text)
+
+    def test_linux_release_snapshot_requires_release_metadata_clean_main(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = pathlib.Path(directory) / "repository"
+            subprocess.run(
+                ("git", "init", "--initial-branch=main", str(repository)),
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(("git", "-C", str(repository), "config", "user.name", "Test"), check=True)
+            subprocess.run(
+                ("git", "-C", str(repository), "config", "user.email", "test@example.invalid"),
+                check=True,
+            )
+            tracked = repository / "tracked.txt"
+            tracked.write_text("clean\n", encoding="utf-8")
+            subprocess.run(("git", "-C", str(repository), "add", "tracked.txt"), check=True)
+            subprocess.run(
+                ("git", "-C", str(repository), "commit", "-m", "Initial"),
+                check=True,
+                capture_output=True,
+            )
+            with self.assertRaisesRegex(RuntimeError, "development_build"):
+                distribution_build.release_source_snapshot(repository)
+            with mock.patch.object(buildVars, "development_build", None):
+                snapshot = distribution_build.release_source_snapshot(repository)
+                self.assertEqual("main", snapshot.branch)
+                subprocess.run(
+                    ("git", "-C", str(repository), "switch", "-c", "feature"),
+                    check=True,
+                    capture_output=True,
+                )
+                with self.assertRaisesRegex(RuntimeError, "from main"):
+                    distribution_build.release_source_snapshot(repository)
+                subprocess.run(
+                    ("git", "-C", str(repository), "switch", "main"),
+                    check=True,
+                    capture_output=True,
+                )
+                tracked.write_text("dirty\n", encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, "changes to versioned files"):
+                    distribution_build.release_source_snapshot(repository)
 
     def test_optional_windows_launcher_is_parameterless_and_keeps_results_visible(self) -> None:
         launcher = (REPOSITORY_ROOT / "build.cmd").read_text(encoding="utf-8")
@@ -91,6 +389,20 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("python build.py", launcher)
         self.assertIn("pause", launcher)
         self.assertNotIn("tools\\build_nvda_addon.py", launcher)
+
+    def test_windows_workspace_hooks_only_queue_safe_versioned_state_sync(self) -> None:
+        synchronizer = (REPOSITORY_ROOT / "tools/windows_workspace_sync.py").read_text(encoding="utf-8")
+        self.assertIn('"--no-overwrite-ignore"', synchronizer)
+        self.assertIn("refs/nal-sync/heads", synchronizer)
+        self.assertIn('"--prune"', synchronizer)
+        for forbidden in ('"clean"', '"reset", "--hard"', '"--discard-changes"'):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, synchronizer)
+        for hook_name in ("post-checkout", "reference-transaction"):
+            hook = REPOSITORY_ROOT / ".githooks" / hook_name
+            with self.subTest(hook=hook_name):
+                self.assertTrue(hook.is_file())
+                self.assertTrue(os.access(hook, os.X_OK))
 
     def test_documentation_example_sync_tool_updates_marked_blocks(self) -> None:
         namespace = runpy.run_path(
@@ -271,8 +583,9 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_ci_builds_the_complete_documentation_set(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(encoding="utf-8")
-        self.assertEqual(1, workflow.count("run: bash tools/build_documentation.sh"))
+        self.assertEqual(1, workflow.count("run: bash tools/build_documentation.sh --test-only"))
         self.assertIn("German and English documentation build", workflow)
+        self.assertNotIn("git diff --exit-code -- nvda-addon/addon/doc", workflow)
 
     def test_ci_pins_real_completion_plugin_matrix(self) -> None:
         workflow = (REPOSITORY_ROOT / ".github/workflows/repository-tests.yml").read_text(encoding="utf-8")

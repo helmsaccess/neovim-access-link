@@ -108,10 +108,8 @@ jobs:
           echo "$PANDOC_SHA256  $PANDOC_ARCHIVE" | sha256sum --check -
           tar --extract --gzip --file "$PANDOC_ARCHIVE"
           echo "$PWD/pandoc-$PANDOC_VERSION/bin" >> "$GITHUB_PATH"
-      - name: Build and validate all documentation artifacts
-        run: bash tools/build_documentation.sh
-      - name: Confirm installed documentation is current
-        run: git diff --exit-code -- nvda-addon/addon/doc
+      - name: Render and validate all documentation in temporary storage
+        run: bash tools/build_documentation.sh --test-only
 
   human-test-runner-windows:
     name: Guided human-test runner on Windows PowerShell

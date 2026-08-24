@@ -119,12 +119,13 @@ Follow the [English Quick Guide](docs/en/manual/quick-guide.md) or
 [German Quick Guide](docs/de/manual/quick-guide.md) for the exact accessible
 steps.
 
-Windows users who want a current development build can download or clone the
-source, install Python 3.10 or newer, and double-click `build.cmd`. The launcher
-downloads pinned build dependencies into a temporary environment and puts
-the resulting `.nvda-addon` in `dist`; it does not change the system Python
-environment. An internet connection is required while dependencies are
-installed.
+Project development builds are created in the synchronized Windows worktree:
+install a current Python 3 and double-click `build.cmd`. The launcher uses an
+installed Pandoc from the compatible 3.1 series or downloads the verified
+3.1.11.1 binary into a temporary environment. It also installs pinned Python
+build dependencies there and puts the matching `.nvda-addon` and documentation
+ZIP in `dist`; system installations remain unchanged. An internet connection
+is required when temporary tools must be downloaded.
 
 ## Compatibility and status
 

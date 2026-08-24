@@ -41,7 +41,7 @@ Sie ist ein Testnachweis und keine pauschale Aussage über jede neuere oder
 Für die vollständige lokale Prüfung werden benötigt:
 
 - Python 3;
-- `msgpack` exakt in Version 1.1.1 für Protokolltests und Paketbau;
+- `msgpack` exakt in Version 1.1.2 für Protokolltests und Paketbau;
 - ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im Add-on-Build;
 - Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
 - Ruff 0.15.4 entsprechend `tools/requirements-linter-ci.txt`;
@@ -77,9 +77,8 @@ ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 tools/run_tests.py all-safe
 tools/run_tests.py ssh
-python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 git diff --check
 ```
 
@@ -107,10 +106,13 @@ Auswahl ohne Ausführung.
 | `all-safe` | vollständige listenerfreie Suite; Alias von `safe` |
 | `all` | alle Gruppen in getrennten Phasen: `all-safe`, `ssh`, `socket` |
 
-Der Add-on-Build ist selbst Teil der Prüfung: Pakettests untersuchen das
-tatsächlich erzeugte Archiv und nicht nur den Quellbaum. Details zu Isolation,
-Sandbox-Grenzen und den nachgewiesenen Eigenschaften stehen in
-[testing.md](testing.md).
+Pakettests erzeugen und untersuchen das Add-on ausschließlich in temporären
+Verzeichnissen. Entwicklungsartefakte baut der Entwickler anschließend mit
+`build.cmd` im synchronisierten Windows-Worktree. Ein ausdrücklich
+freigegebener Releasezustand wird dagegen mit `python3 tools/build_release.py`
+aus sauberem Linux-`main` gebaut. Details zu Isolation, Synchronisierung und
+Sandbox-Grenzen stehen in [testing.md](testing.md) und
+[release-and-build.md](release-and-build.md).
 
 ## Wo eine Änderung beginnt
 

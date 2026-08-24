@@ -166,43 +166,48 @@ NVDA-, Windows-Terminal- und Brailleausgabe bleibt eine gesonderte Abnahme.
 
 ## Buildprüfung
 
-Nach Codeänderungen an installierbarem Inhalt wird das Add-on aus dem
-endgültigen Worktree neu gebaut:
-
-```bash
-python3 tools/build_nvda_addon.py
-```
-
-Pakettests öffnen das tatsächliche `.nvda-addon` und prüfen Basis- und
+Pakettests bauen das Add-on mit einem expliziten temporären
+Ausgabeverzeichnis, öffnen das tatsächliche `.nvda-addon` und prüfen Basis- und
 Lokalisierungsmanifest streng gegen die zutreffenden Felder des offiziellen
 NVDA-AddonTemplates sowie
 Ressourcen, alle acht lokalisierten installierten HTML-Dokumente, gebündelte
 Linux-Komponenten, Lizenzen, Übersetzungskatalog und verbotene Dateien. Ein
-vorher gebautes Archiv ist kein Nachweis für spätere
-Quelländerungen.
+vorher gebautes Archiv ist kein Nachweis für spätere Quelländerungen. Der
+Linux-Entwicklungscheckout erhält dabei weder ein auslieferbares Add-on noch
+dauerhafte Buildausgaben.
 
-Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:
+Nach Dokumentationsänderungen wird die vollständige Dokumentation temporär
+gerendert und geprüft:
 
 ```bash
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
-Der lokale Referenzbuild und der CI-Job verwenden den offiziellen Binärbuild
-von Pandoc 3.1.11.1. Das Buildskript lehnt anders paketierte Builds ab, weil
-diese trotz gleicher Pandoc-Version abweichendes Syntax-Highlighting erzeugen
-können. CI lädt das offizielle Archiv mit festgelegter SHA-256-Prüfsumme.
+Linux-Releasebuild und CI-Prüfjob verwenden den jeweiligen offiziellen
+Binärbuild von Pandoc 3.1.11.1 aus einem Archiv mit festgelegter
+SHA-256-Prüfsumme. Der Windows-Entwicklungsbuild verwendet ein vorhandenes
+Pandoc der Reihe 3.1; fehlt es oder weichen Major- oder Minor-Version ab, nutzt
+er ebenfalls nur den prüfsummengesicherten offiziellen Binärbuild 3.1.11.1 in
+seinem temporären Buildverzeichnis. Eine andere lokale Version bleibt
+unverändert.
 
 Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche und
 englische Quelldateien und Überschriftenstrukturen, lokale Markdownlinks,
 generierte HTML-Ziele, Sprach-, Titel- und Beschreibungsmetadaten sowie die
-acht erwarteten Dokumente im ZIP. Dieselben Ergebnisse werden für die
-installierte Hilfe synchronisiert; CI weist veraltete Kopien zurück.
+acht erwarteten Dokumente. Das Skript löscht seine Ausgaben nach der Prüfung;
+CI veröffentlicht keine Endanwenderartefakte.
 Historische Archive, die ausdrücklich nicht
 zur aktuellen Dokumentation gehören, werden validiert, aber nicht in das HTML
 aufgenommen.
 
-Ändert eine Arbeit sowohl installierbaren Inhalt als auch Dokumentation,
-werden beide Artefakte aus demselben finalen Worktree erzeugt.
+Nach vollständiger Prüfung erzeugt `build.cmd` im synchronisierten
+Windows-Worktree die Entwicklungsartefakte. Der freigegebene Linux-Stand
+erzeugt mit `python3 tools/build_release.py` die später veröffentlichten
+Releaseartefakte. Beide Einstiegspunkte verwenden denselben isolierten Kern
+und bauen Add-on und Dokumentations-ZIP aus einem stabilen Branch- und
+Commitstand. Details zu sicherer Git-Synchronisierung,
+Werkzeugvoraussetzungen und Abbruchbedingungen stehen unter
+[Release-, Versions- und Buildprozess](release-and-build.md).
 
 ## Praktische Prüfung
 
