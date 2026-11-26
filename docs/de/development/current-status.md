@@ -9,6 +9,7 @@ veröffentlichte Pre-Release ist 0.98.0.
 [Versions- und Releaseleitfaden](release-and-build.md) regelt die
 Releaseprüfungen, datierte zweisprachige Changelogs und die getrennte
 Veröffentlichung auf GitHub und im Store.
+Pull Requests enthalten ein englisches Changelog zum gesamten Diff.
 
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften
 Stands. [Architektur](architecture.md) und

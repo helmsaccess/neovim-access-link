@@ -8,6 +8,7 @@ The latest published pre-release is 0.98.0.
 Changes enter `main` through pull requests. The
 [version and release guide](release-and-build.md) defines the release checks,
 dated bilingual changelogs and separate GitHub and Store publication steps.
+Pull requests include an English changelog covering the full diff.
 
 This page is the compact snapshot of implemented and verified behavior. See
 [architecture](architecture.md) and the [feature matrix](accessibility.md) for

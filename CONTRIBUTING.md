@@ -17,7 +17,8 @@ changed, the architecture documents, and the test strategy.
    Run the `ssh` and `socket` groups separately when applicable.
 4. Push the working branch and open a GitHub pull request targeting `main`.
    Keep it focused and explain the problem, the change, test results, and
-   specific risks or gaps. Link related issues and use a draft while work is incomplete.
+   specific risks or gaps. Curate an English changelog covering the complete
+   diff against the base. Link related issues and use a draft while work is incomplete.
 5. Address blocking feedback and resolve review discussions. Before merging,
    all required CI checks must pass. Ask for an independent review when an
    eligible reviewer is available, and always follow the repository's configured approvals.
@@ -27,6 +28,10 @@ preparation, goes through a pull request. Direct pushes to `main` are
 prohibited. Maintainer approval is required to merge. Prefer squash merge
 for incremental commits that form one change. Preserve individually
 reviewable commits when they carry useful standalone history.
+
+Coding agents push validated working branches to GitHub independently. The
+repository owner explicitly approves each pull request opened by an agent,
+including drafts. This approval is separate from merge or publication approval.
 
 For maintainers, use a [GitHub ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
 or [branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)

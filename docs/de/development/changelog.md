@@ -9,7 +9,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Benötigt Pull Requests für Änderungen an `main`, auch zur Releasevorbereitung.
   Dokumentiert semantische Produktversionen, datierte Changelogs,
   GitHub-Releaseentwürfe und die Store-Upgradebasis. Der Paketbuild erkennt
-  die neuen Überschriften und funktioniert mit leerem unveröffentlichtem Abschnitt.
+  die neuen Überschriften und funktioniert mit leerem unveröffentlichtem
+  Abschnitt. Die PR-Vorlage verlangt ein Changelog zum gesamten Diff.
 - Verwendet SCons für den Add-on-Build und das Gettext-Template. Basismanifest
   und Sprachmanifeste folgen der Vorlagenstruktur des NVDA-AddonTemplates.
   Name und Beschreibung im Sprachmanifest stammen aus dem Gettext-Katalog.

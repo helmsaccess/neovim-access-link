@@ -39,12 +39,16 @@
   development workflows, or release state. Use the linked architecture, ADRs, and
   protocol/security references when changing those boundaries.
 - Use a focused working branch and make focused English commits after validation.
-  Ordinary pushes of working branches to GitHub are authorized. Keep private paths, hosts,
-  usernames, credentials, and secrets out of commits and pull requests.
+  Push the validated working branch to the matching GitHub branch on your own initiative,
+  without asking again. Keep private paths, hosts, usernames, credentials, and secrets out of
+  commits and pull requests.
 - Bring every change to `main` through a GitHub pull request, including hotfixes and release
   preparation. Direct pushes to `main` and destructive Git operations are prohibited.
   Follow [CONTRIBUTING.md](CONTRIBUTING.md) for self-review, validation, review and CI gates.
-  Merging, tagging and publishing still require explicit approval.
+  Obtain the user's explicit approval for each pull request before opening it, including drafts.
+  Branch push approval does not authorize a pull request. Give each approved pull request a
+  curated English changelog covering the complete diff against its base. Merging, tagging and
+  publishing still require separate explicit approval.
 - The user owns product version, release channel, stability, and publication. Set
   `development_build = 1` for the first changed installable state on each non-release branch.
   Increment only for subsequent changed installable states. Use SemVer for product changes,

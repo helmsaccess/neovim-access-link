@@ -2,6 +2,11 @@
 
 What problem does this solve, and what changes? Link the related issue when available.
 
+## Changelog
+
+<!-- Group notable changes across the complete diff against the base branch.
+     Call out user-visible changes, compatibility, and workflow changes where relevant. -->
+
 ## Verification
 
 <!-- List the checks you ran and their results. Explain any relevant check
