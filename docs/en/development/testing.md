@@ -36,11 +36,13 @@ separate temporary directories.
 | `all-safe` | `unit`, `package`, and listener-free `lua` |
 | `all` | `all-safe`, then `ssh` and `socket` in separate phases |
 
-Without a group argument, the runner uses the safe preset. `-j N` limits
-parallelism, and `--list` shows selection without running it. Every isolated
-job runs in its own process group. After 180 seconds, the complete group,
-including Neovim and helper processes it started, is terminated and the job is
-reported as failed. The real-TUI send
+Without a group argument, the runner uses the safe preset. The default number
+of parallel jobs follows the logical processors available to Python. Use `-j N`
+to set the limit for a run. Package tests use up to twelve independent shards.
+Each shard builds its own package. Use `--list` to inspect the selection
+without running it. Every isolated job runs in its own process group. After
+180 seconds, the runner terminates the entire group, including Neovim and
+helper processes it started, and reports the job as failed. The real-TUI send
 helper additionally bounds pseudo-terminal draining to one second and 8 MiB
 per physical-key step.
 The compact output also reports skipped cases and Python warnings per job and

@@ -37,11 +37,14 @@ in getrennten temporären Verzeichnissen aus.
 | `all-safe` | `unit`, `package` und listenerfreies `lua` |
 | `all` | `all-safe`, danach `ssh` und `socket` in getrennten Phasen |
 
-Ohne Gruppenargument entspricht der Runner dem sicheren Preset. `-j N`
-begrenzt Parallelität; `--list` zeigt die Auswahl, ohne sie auszuführen. Jeder
-isolierte Job läuft in einer eigenen Prozessgruppe. Nach 180 Sekunden wird die
-vollständige Gruppe einschließlich gestarteter Neovim- und Hilfsprozesse
-beendet und der Job als fehlgeschlagen gemeldet.
+Ohne Gruppenargument entspricht der Runner dem sicheren Preset. Standardmäßig
+richtet sich die Zahl paralleler Jobs nach den für Python verfügbaren logischen
+Prozessoren. `-j N` setzt die Grenze für einen Lauf. Die Pakettests verteilen
+sich auf bis zu zwölf unabhängige Blöcke. Jeder Block baut sein eigenes Paket.
+`--list` zeigt die Auswahl, ohne sie auszuführen. Jeder isolierte Job läuft in
+einer eigenen Prozessgruppe. Nach 180 Sekunden beendet der Runner die gesamte
+Gruppe einschließlich gestarteter Neovim- und Hilfsprozesse und meldet den
+Job als fehlgeschlagen.
 Die reale TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
 eine Sekunde und 8 MiB je physischem Tastenschritt.
 Die kompakte Ausgabe nennt für jeden Job und in der Gesamtsumme auch

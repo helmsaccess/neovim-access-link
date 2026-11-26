@@ -6,6 +6,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Richtet parallele Testläufe an den verfügbaren logischen Prozessoren aus.
+  Bis zu zwölf isolierte Blöcke verkürzen die Pakettests auf Rechnern mit
+  vielen Kernen. `-j` bleibt die Grenze pro Lauf.
 - Ermöglicht die lokale Windows-Entwicklung mit Git-Abgleich über `origin`.
   `build.cmd` verwendet einen sauberen lokalen Branch. Die Python- und
   Lua-Tests unterstützen native Windows-Pfade und Testprozesse. Der Windows-

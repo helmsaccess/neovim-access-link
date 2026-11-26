@@ -30,7 +30,8 @@ PYTHON_TEST_PATH = os.pathsep.join(
         "nvda-addon/tests",
     )
 )
-DEFAULT_JOBS = min(8, os.cpu_count() or 1)
+DEFAULT_JOBS = getattr(os, "process_cpu_count", os.cpu_count)() or 1
+MAX_PACKAGE_SHARDS = 12
 JOB_TIMEOUT_SECONDS = 180
 UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
@@ -176,7 +177,7 @@ def validate_inventory(configured: tuple[Job, ...]) -> None:
         raise RuntimeError(f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}")
 
 
-def jobs() -> tuple[Job, ...]:
+def jobs(workers: int) -> tuple[Job, ...]:
     result: list[Job] = []
     for file_name in (
         "test_braille_exploration.py",
@@ -239,7 +240,7 @@ def jobs() -> tuple[Job, ...]:
             "addon",
             "nvda-addon/tests/test_built_addon.py",
             "BuiltAddonTests",
-            2,
+            min(workers, MAX_PACKAGE_SHARDS),
         )
     )
     for file_name in (
@@ -454,7 +455,7 @@ def main() -> int:
     if arguments.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
     groups = selected_groups(tuple(arguments.groups or ("safe",)))
-    selected = tuple(job for job in jobs() if job.group in groups)
+    selected = tuple(job for job in jobs(arguments.jobs) if job.group in groups)
     if os.name == "nt" and "socket" in groups:
         selected = tuple(
             job for job in selected

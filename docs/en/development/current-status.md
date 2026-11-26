@@ -219,7 +219,9 @@ Linux release artifacts and places the add-on and documentation ZIP in `dist`.
 Automated suites cover protocol and bounds, bridge, local and SSH clients,
 multiple instances, focus and fail-open behavior, editor and presentation
 planning, Lua with real headless Neovim processes, package contents,
-localization, and documentation links. Pinned runs use Neovim 0.10.1 or 0.12.3
+localization, and documentation links. The test runner uses the logical
+processors available to Python and distributes package tests across up to
+twelve isolated shards. Pinned runs use Neovim 0.10.1 or 0.12.3
 according to their purpose and exercise real completion, LSP, diagnostic, and
 linter paths. The Clang-Tidy profile invokes the pinned binary directly, fixes
 the language mode and supplied test configuration explicitly, and merges

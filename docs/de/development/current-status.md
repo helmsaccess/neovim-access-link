@@ -234,7 +234,9 @@ Linux-Releaseartefakte und legt Add-on und Dokumentations-ZIP in `dist` ab.
 Automatisierte Suiten prüfen Protokoll und Begrenzungen, Bridge, lokale und
 SSH-Clients, mehrere Instanzen, Fokus und Fail-open-Verhalten, Editor- und
 Präsentationsplanung, Lua mit echten headless-Neovim-Prozessen, Paketinhalt,
-Lokalisierung sowie Dokumentationslinks. Gepinnte Läufe verwenden je nach
+Lokalisierung sowie Dokumentationslinks. Der Test-Runner nutzt die für Python
+verfügbaren logischen Prozessoren und verteilt die Pakettests auf bis zu zwölf
+isolierte Blöcke. Gepinnte Läufe verwenden je nach
 Testzweck Neovim 0.10.1 oder 0.12.3 und reale Completion-, LSP-, Diagnose- und
 Linterpfade. Das Clang-Tidy-Profil verwendet direkt das gepinnte Programm,
 legt C11 sowie die mitgelieferte Testkonfiguration explizit fest und führt

@@ -6,6 +6,9 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Scales parallel test runs to the available logical processors. Up to twelve
+  isolated shards speed up package tests on many-core machines. `-j` still
+  sets the limit for each run.
 - Enables local Windows development with Git fetches from `origin`. `build.cmd`
   uses a clean local branch. Python and Lua tests support native Windows paths
   and test processes. The Windows socket run checks the local TCP path.
