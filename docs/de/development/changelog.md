@@ -6,6 +6,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Verwendet SCons für den Add-on-Build und das Gettext-Template. Basismanifest
+  und Sprachmanifeste folgen der Vorlagenstruktur des NVDA-AddonTemplates.
+  Name und Beschreibung im Sprachmanifest stammen aus dem Gettext-Katalog.
 - Begrenzt Verbindungsaufbau und Empfang im gemeinsamen Neovim-RPC-Client.
   Ungültige RPC-Nachrichten lösen einen Disconnect aus. Controls werden erst
   über den geprüften, registrierten Kanal gesendet.

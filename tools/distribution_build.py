@@ -237,9 +237,10 @@ def build_distributions(
 		print(f"Building {buildVars.addon_info['summary']}...", flush=True)
 		subprocess.run(
 			(
-				str(python), str(root / "tools" / "build_nvda_addon.py"),
-				"--output-directory", str(artifacts),
-				"--documentation-directory", str(documentation),
+				str(python), "-m", "SCons", "-Q", "addon",
+				f"OUTPUT_DIRECTORY={artifacts}",
+				f"DOCUMENTATION_DIRECTORY={documentation}",
+				f"SCONS_STATE_DIRECTORY={temporary_root / 'scons'}",
 			),
 			cwd=root,
 			env=child_environment,

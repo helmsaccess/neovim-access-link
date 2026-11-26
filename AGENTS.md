@@ -22,6 +22,8 @@
   artifacts. Use disposable output directories for tests. See the
   [development setup](docs/en/development/getting-started.md) and
   [build and release guide](docs/en/development/release-and-build.md).
+- Use `python -m SCons` for a standalone package check and `python -m SCons pot`
+  for the gettext template. Keep the NVDA manifest templates aligned with upstream.
 - Keep project tools, temporary sources, reproductions, and reports in `../nal-aux/`.
   Check `../nvda-shared-aux/` before web research for reusable NVDA references.
 

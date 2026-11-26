@@ -206,8 +206,9 @@ class RepositoryPolicyTests(unittest.TestCase):
 
         def complete_build(command, **_kwargs):
             command = tuple(str(value) for value in command)
-            if "--output-directory" in command:
-                output = pathlib.Path(command[command.index("--output-directory") + 1])
+            if command[1:4] == ("-m", "SCons", "-Q"):
+                output_variable = next(value for value in command if value.startswith("OUTPUT_DIRECTORY="))
+                output = pathlib.Path(output_variable.split("=", 1)[1])
                 (output / f"NeovimAccessLink-{artifact_version}.nvda-addon").write_bytes(b"addon")
             elif command[-2].endswith("documentation") and command[-1].endswith("artifacts"):
                 pathlib.Path(
@@ -255,10 +256,32 @@ class RepositoryPolicyTests(unittest.TestCase):
             install_command[-1],
         )
         self.assertIn("--output-only", documentation_command)
-        self.assertEqual(str(root / "tools/build_nvda_addon.py"), build_command[1])
-        self.assertIn("--documentation-directory", build_command)
+        self.assertEqual(("-m", "SCons", "-Q", "addon"), build_command[1:5])
+        self.assertIn("DOCUMENTATION_DIRECTORY", {str(value).split("=")[0] for value in build_command[5:]})
         self.assertEqual("1", run.call_args_list[0].kwargs["env"]["PYTHONNOUSERSITE"])
         self.assertEqual(2, snapshot.call_count)
+
+    def test_scons_builds_and_reuses_an_isolated_addon(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            artifacts = root / "addon archive"
+            command = (
+                sys.executable, "-m", "SCons", "-Q", "addon",
+                f"OUTPUT_DIRECTORY={artifacts}",
+                f"SCONS_STATE_DIRECTORY={root / 'signatures'}",
+            )
+            first = subprocess.run(command, cwd=REPOSITORY_ROOT, capture_output=True, text=True, check=False)
+            self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+            (artifact,) = artifacts.iterdir()
+            with zipfile.ZipFile(artifact) as archive:
+                self.assertIsNone(archive.testzip())
+                self.assertIn("doc/en/readme.html", archive.namelist())
+                self.assertIn("locale/de/manifest.ini", archive.namelist())
+                self.assertIn("locale/de/LC_MESSAGES/nvda.mo", archive.namelist())
+                self.assertFalse(any(path.endswith((".po", ".pot")) for path in archive.namelist()))
+            second = subprocess.run(command, cwd=REPOSITORY_ROOT, capture_output=True, text=True, check=False)
+            self.assertEqual(0, second.returncode, second.stdout + second.stderr)
+            self.assertIn("up to date", second.stdout)
 
     def test_windows_and_linux_entry_points_share_the_distribution_builder(self) -> None:
         windows = runpy.run_path(str(REPOSITORY_ROOT / "build.py"), run_name="windows_build_test")

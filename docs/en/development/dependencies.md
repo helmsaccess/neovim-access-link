@@ -14,9 +14,9 @@ tools.
 
 ## Build dependencies
 
-Build-only tools include Python 3, ConfigObj for NVDA-compatible manifest
-validation, and Pandoc for standalone HTML documentation. They are not runtime
-dependencies of the installed add-on or plugin. Dependency additions require
+Build-only tools include Python 3, SCons for the build target, ConfigObj for
+NVDA-compatible manifest validation, and Pandoc for HTML documentation.
+Dependency additions require
 documented purpose, license, maintenance, size, latency, and packaging impact.
 
 ## Authoritative sources and validation

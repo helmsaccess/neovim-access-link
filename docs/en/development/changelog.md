@@ -6,6 +6,9 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Uses SCons for the add-on build and gettext template. Base and localized
+  manifests follow the NVDA AddonTemplate layout. The gettext catalog supplies
+  the localized manifest name and description.
 - Bounds connection setup and reads in the shared Neovim RPC client. Invalid
   RPC messages cause a disconnect. Controls use the verified, registered
   channel.

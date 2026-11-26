@@ -11,6 +11,7 @@ Versionsdaten. Sie enthält:
 - Vergleichsversion des zuletzt im NVDA Add-on Store veröffentlichten Stands;
 - minimale und zuletzt getestete NVDA-Version;
 - Projektadresse, Standardhilfedatei und englisches Manifest-Changelog.
+- Quelladresse, Lizenzkennung und Lizenzadresse für den NVDA Add-on Store.
 
 `store_version()` liefert ausschließlich `MAJOR.MINOR.PATCH` für Manifest und
 NVDA Add-on Store. `artifact_version()` ergänzt bei Entwicklungsständen
@@ -46,8 +47,9 @@ werden nicht aus Branchname oder bisherigem Verlauf abgeleitet.
 
 ## Prüfung und Build
 
-Der Linux-Checkout ist die Quelle der Entwicklung. Dort laufen Tests und
-Dokumentationsprüfungen ausschließlich mit automatisch gelöschten Ausgaben:
+Entwickelt wird im lokalen Windows-Checkout. Linux deckt zusätzlich Unix-Sockets,
+PTY und SSH-Zielsysteme ab. Tests und Dokumentationsprüfungen verwenden temporäre
+Ausgaben:
 
 ```bash
 python3 tools/run_tests.py all
@@ -58,6 +60,14 @@ bash tools/build_documentation.sh --test-only
 Listener und kurzlebige Neovim-Prozesse erlauben. In eingeschränkten
 Umgebungen werden `all-safe`, `ssh` und `socket` entsprechend der
 [Teststrategie](testing.md) getrennt ausgeführt.
+
+Der Build folgt dem offiziellen NVDA-AddonTemplate mit `sconstruct`, getrennten
+Vorlagen für das Basismanifest und übersetzte Manifeste, dem Ziel `pot` und
+Gettext-Katalogen unter `nvda-addon/addon/locale/`. Ein direkter Aufruf von
+`python -m SCons` erzeugt ein Prüfarchiv unter `build/scons/` mit den im Checkout
+vorhandenen HTML-Dateien. `build.cmd` und der Linux-Releasebuilder übergeben
+SCons frisch gerenderte Dokumentation und halten ihre Zwischendateien getrennt.
+[NVDA AddonTemplate](https://github.com/nvdaaddons/AddonTemplate/tree/30318eae085fa81fe3a39045956c7a0516a0f981)
 
 Pakettests bauen das Add-on in ihrem temporären Testverzeichnis und prüfen
 Manifest, acht installierte lokalisierte HTML-Dokumente,

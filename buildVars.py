@@ -15,10 +15,18 @@ release_channel = "beta"
 # changelog therefore includes every published product section after this base.
 manifest_changelog_base_version = "0.96.0"
 
+
+def _(message: str) -> str:
+    """Mark manifest text for gettext extraction without loading translations."""
+    return message
+
+
 addon_info = {
     "name": "NeovimAccessLink",
-    "summary": "Neovim Access Link",
-    "description": (
+    # Translators: Add-on display name shown by NVDA.
+    "summary": _("Neovim Access Link"),
+    # Translators: Add-on description shown by NVDA.
+    "description": _(
         "Accessible Neovim integration for NVDA with structured speech, sound, and Braille feedback "
         "for editing, navigation, and spelling suggestions. Supports separate local Windows and "
         "remote SSH sessions across Windows Terminal windows, tabs, and panes."
@@ -29,6 +37,11 @@ addon_info = {
     "minimumNVDAVersion": "2026.1",
     "lastTestedNVDAVersion": "2026.3",
     "updateChannel": release_channel,
+}
+addon_store_info = {
+    "sourceURL": "https://github.com/helmsaccess/neovim-access-link",
+    "license": "GPL-2.0-only",
+    "licenseURL": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
 }
 
 _ROOT = Path(__file__).resolve().parent

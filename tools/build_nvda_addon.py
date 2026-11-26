@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gettext
 import importlib.metadata
 import importlib.util
 import json
@@ -78,26 +79,29 @@ def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathl
     return existing[0]
 
 
-def _manifest_text(manifest: dict[str, str]) -> str:
-    lines = []
-    for key, value in manifest.items():
-        if "\n" in value:
-            if '"""' in value:
-                raise RuntimeError(f"manifest field {key} contains an unsupported triple quote")
-            rendered = f'"""{value}"""'
-        else:
-            rendered = json.dumps(value, ensure_ascii=False)
-        lines.append(f"{key} = {rendered}\n")
-    return "".join(lines)
+def _manifest_value(key: str, value: str) -> str:
+    if "\n" not in value:
+        return json.dumps(value, ensure_ascii=False)
+    if '"""' in value:
+        raise RuntimeError(f"manifest field {key} contains an unsupported triple quote")
+    return f'"""{value}"""'
 
 
-def write_manifest(path: pathlib.Path, manifest: dict[str, str] | None = None) -> None:
-    """Generate one NVDA manifest from central or localized product metadata."""
-    value = buildVars.manifest() if manifest is None else manifest
-    path.write_text(
-        _manifest_text(value),
-        encoding="utf-8",
-    )
+def write_manifest(
+    path: pathlib.Path,
+    manifest: dict[str, str],
+    *,
+    template: pathlib.Path | None = None,
+) -> None:
+    """Render serialized NVDA fields into a base or localized manifest."""
+    values = {key: _manifest_value(key, value) for key, value in manifest.items()}
+    if template is None:
+        text = "".join(f"{key} = {value}\n" for key, value in values.items())
+    else:
+        text = template.read_text(encoding="utf-8").format_map(
+            {f"addon_{key}": value for key, value in values.items()}
+        )
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def validate_manifest(path: pathlib.Path) -> ConfigObj:
@@ -198,9 +202,12 @@ def build(
         temporary_root = pathlib.Path(temporary)
         stage = temporary_root / "stage"
         stage.mkdir()
-        write_manifest(stage / "manifest.ini")
+        write_manifest(stage / "manifest.ini", metadata, template=ROOT / "manifest.ini.tpl")
         shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
-        shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
+        shutil.copytree(
+            ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("*.po", "*.pot"),
+        )
         if documentation_directory is not None:
             shutil.rmtree(stage / "doc")
             install_generated_documentation(
@@ -211,17 +218,21 @@ def build(
         staged_manifest = validate_manifest(stage / "manifest.ini")
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
-        compile_catalogs(stage / "locale")
-        for translated_manifest in sorted((ROOT / "nvda-addon" / "locale").glob("*/manifest.ini")):
-            language = translated_manifest.parent.name
-            destination = stage / "locale" / language / "manifest.ini"
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            localized = ConfigObj(str(translated_manifest), encoding="utf-8", list_values=True)
-            localized["changelog"] = buildVars.manifest_changelog(language)
-            write_manifest(destination, dict(localized))
+        for catalog in compile_catalogs(stage / "locale"):
+            locale = catalog.parent.parent
+            language = locale.name
+            destination = locale / "manifest.ini"
+            with catalog.open("rb") as stream:
+                translations = gettext.GNUTranslations(stream)
+            localized = {key: translations.gettext(metadata[key]) for key in ("summary", "description")}
+            changelog = ROOT / "docs" / language / "development" / "changelog.md"
+            localized["changelog"] = (
+                buildVars.manifest_changelog(language) if changelog.is_file() else metadata["changelog"]
+            )
+            write_manifest(destination, localized, template=ROOT / "manifest-translated.ini.tpl")
             staged_localized = validate_localized_manifest(destination, language)
-            if staged_localized.get("changelog") != buildVars.manifest_changelog(language):
-                raise RuntimeError(f"localized changelog differs from {language} source")
+            if dict(staged_localized) != localized:
+                raise RuntimeError(f"localized manifest differs from {language} metadata")
         plugin = stage / "globalPlugins" / metadata["name"]
         (plugin / "build_info.py").write_text(
             f"ARTIFACT_VERSION = {artifact_version!r}\n",

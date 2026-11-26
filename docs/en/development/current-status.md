@@ -32,6 +32,11 @@ as its minimum. See [compatibility](compatibility.md) for details.
 
 ## Implemented end-to-end path
 
+The Windows development build and Linux release builder use SCons for the
+add-on. The base manifest, localized manifests, and gettext sources follow the
+NVDA AddonTemplate layout. Documentation and Linux component builds remain
+separate steps.
+
 The shared Neovim RPC client validates message structures and bounds setup,
 its receive buffer, and pending notifications. Controls use the verified and
 registered channel.

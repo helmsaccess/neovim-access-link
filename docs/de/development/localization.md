@@ -15,10 +15,11 @@ Dateiinhalte, Namen, Pfade und fremde Neovim-Meldungen werden nicht übersetzt.
 
 ## Dateien und Arbeitsablauf
 
-- `nvda-addon/locale/NeovimAccessLink.pot` ist die extrahierte Vorlage.
-- `nvda-addon/locale/de/LC_MESSAGES/nvda.po` ist der deutsche Quellkatalog.
-- `nvda-addon/locale/de/manifest.ini` lokalisiert die von NVDA vor dem Laden
-  des Python-Codes angezeigten Manifestfelder.
+- `nvda-addon/addon/locale/NeovimAccessLink.pot` ist die extrahierte Vorlage.
+- `nvda-addon/addon/locale/de/LC_MESSAGES/nvda.po` enthält auch den Add-on-Namen
+  und die Beschreibung. Der Build verwendet die übersetzten Werte im Manifest.
+- Den deutschen Manifest-Changelog bezieht der Build aus dem deutschen
+  Entwickler-Changelog.
 - Das `.nvda-addon` enthält nur `locale/de/LC_MESSAGES/nvda.mo` und das
   übersetzte Manifest, nicht PO oder POT.
 
@@ -29,6 +30,8 @@ python3 tools/gettext_catalog.py update
 python3 tools/gettext_catalog.py check
 python3 tools/run_tests.py package
 ```
+
+`python -m SCons pot` aktualisiert ausschließlich die extrahierte Vorlage.
 
 `update` extrahiert ausschließlich literale Nachrichten und erhält vorhandene
 Übersetzungen. `check` verlangt für jeden Quelltext genau einen PO-Eintrag,

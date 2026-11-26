@@ -15,9 +15,9 @@ lokale Compilerwerkzeuge.
 
 ## Buildabhängigkeiten
 
-Python 3, ConfigObj für die NVDA-kompatible Manifestprüfung und Pandoc für die
-eigenständige HTML-Dokumentation werden nur beim Build verwendet. Sie sind
-keine Laufzeitabhängigkeiten des installierten Add-ons oder Plugins.
+Python 3, SCons für das Buildziel, ConfigObj für die NVDA-kompatible
+Manifestprüfung und Pandoc für die HTML-Dokumentation werden beim Build
+verwendet. Add-on und Plugin benötigen sie im Betrieb nicht.
 
 Neue Abhängigkeiten benötigen einen dokumentierten Zweck sowie eine Prüfung
 von Lizenz, Wartung, Größe, Latenz und Paketierung.

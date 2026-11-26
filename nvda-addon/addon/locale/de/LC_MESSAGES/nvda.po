@@ -4,6 +4,7 @@
 msgid ""
 msgstr "Project-Id-Version: Neovim Access Link\nReport-Msgid-Bugs-To: https://github.com/helmsaccess/neovim-access-link/issues\nPO-Revision-Date: 2026-07-18 00:00+0200\nLast-Translator: Neovim Access Link contributors\nLanguage-Team: German\nLanguage: de\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#. Translators: Reports a backup created before replacing an existing Neovim configuration.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1289
 #, python-brace-format
 msgid "  Existing configuration backup: {path}"
@@ -43,6 +44,7 @@ msgstr "&Dateigrenzen:"
 msgid "&Global action feedback:"
 msgstr "&Globale Aktionsrückmeldung:"
 
+#. Translators: Opens component installation and update choices.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:823
 msgid "&Install or update components..."
 msgstr "Komponenten &installieren oder aktualisieren..."
@@ -51,10 +53,12 @@ msgstr "Komponenten &installieren oder aktualisieren..."
 msgid "&Line navigation:"
 msgstr "&Zeilennavigation:"
 
+#. Translators: Opens the installed quick guide in a web browser.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:828
 msgid "&Quick Guide"
 msgstr "&Kurzanleitung"
 
+#. Translators: Opens component removal choices.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:825
 msgid "&Remove components..."
 msgstr "Komponenten &entfernen..."
@@ -67,6 +71,7 @@ msgstr "Verbindung &entfernen"
 msgid "&Replacing text:"
 msgstr "Text &ersetzen:"
 
+#. Translators: Opens the add-on settings category.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:821
 msgid "&Settings..."
 msgstr "&Einstellungen..."
@@ -97,18 +102,26 @@ msgstr "1 Puffer geändert"
 msgid "1 changed buffer remains unsaved"
 msgstr "1 geänderter Puffer ist noch ungespeichert"
 
+#. Translators: A native incremental substitute preview affects one line.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1074
 msgid "1 line affected"
 msgstr "1 Zeile betroffen"
 
+#. Translators: Added to a replacement result when one line changed.
 #: nvda-addon/core/nvim_nvda_core/speech.py:717
 msgid "1 line changed"
 msgstr "1 Zeile geändert"
 
+#. Translators: Confirmation shown after selecting targets for component removal.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1360
 #, python-brace-format
 msgid "Access Link will remove its installed Neovim plugin and, on Linux targets, its bridge.\n\nNeovim configuration and configuration backups will not be changed. If a configuration explicitly loads Access Link, for example through lazy.nvim, remove or disable that entry manually.\n\nSelected targets: {count}. Continue?"
 msgstr "Access Link entfernt sein installiertes Neovim-Plugin und auf Linux-Zielen zusätzlich die Bridge.\n\nNeovim-Konfiguration und Konfigurationssicherungen werden nicht verändert. Lädt eine Konfiguration Access Link ausdrücklich, zum Beispiel über lazy.nvim, entfernen oder deaktivieren Sie diesen Eintrag manuell.\n\nAusgewählte Ziele: {count}. Fortfahren?"
+
+#. Translators: Add-on description shown by NVDA.
+#: buildVars.py:29
+msgid "Accessible Neovim integration for NVDA with structured speech, sound, and Braille feedback for editing, navigation, and spelling suggestions. Supports separate local Windows and remote SSH sessions across Windows Terminal windows, tabs, and panes."
+msgstr "Barrierefreie Neovim-Integration für NVDA mit strukturiertem Sprach-, Klang- und Braillefeedback für Bearbeitung, Navigation und Rechtschreibvorschläge. Unterstützt getrennte lokale Windows- und entfernte SSH-Sitzungen in Windows-Terminal-Fenstern, -Tabs und -Panes."
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:344
 msgid "Activate Neovim accessibility before connecting a terminal"
@@ -170,10 +183,12 @@ msgstr "Blockgerät"
 msgid "Both Speech and Tones"
 msgstr "Sprache und Töne"
 
+#. Translators: Name of the Braille settings tab.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:295 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:302
 msgid "Braille"
 msgstr "Braille"
 
+#. Translators: Spoken when Braille display navigation follows the editor cursor again.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:115
 msgid "Braille cursor mode"
 msgstr "Braille-Cursormodus"
@@ -182,10 +197,13 @@ msgstr "Braille-Cursormodus"
 msgid "Braille display follows the &speech exploration mode position"
 msgstr "Braillezeile folgt der &Position des Sprachexplorationsmodus"
 
+#. Translators: Spoken when Braille display navigation stops moving the editor cursor.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:112
 msgid "Braille exploration mode"
 msgstr "Braille-Explorationsmodus"
 
+#. Translators: Spoken when Braille exploration cannot be used in this context.
+#. Translators: Spoken when switching the Braille navigation mode failed.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:108 nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:125
 msgid "Braille exploration mode unavailable"
 msgstr "Braille-Explorationsmodus nicht verfügbar"
@@ -218,6 +236,7 @@ msgstr "Wort ändern (cw)"
 msgid "changed"
 msgstr "geändert"
 
+#. Translators: The add-on bounded its observation of lines changed by a replacement.
 #: nvda-addon/core/nvim_nvda_core/speech.py:727
 msgid "changed line count incomplete"
 msgstr "Anzahl geänderter Zeilen unvollständig"
@@ -267,6 +286,7 @@ msgstr "Befehlszeilenmodus"
 msgid "Configure a Neovim connection before using {key} pairing"
 msgstr "Konfigurieren Sie eine Neovim-Verbindung, bevor Sie die Zuordnung mit {key} verwenden"
 
+#. Translators: Title of the destructive component-removal confirmation.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1370
 msgid "Confirm Neovim component removal"
 msgstr "Entfernen der Neovim-Komponenten bestätigen"
@@ -295,6 +315,7 @@ msgstr "Verbindungsname:"
 msgid "Connection remembered for this terminal tab until NVDA exits"
 msgstr "Verbindung für diesen Terminal-Tab bis zum Beenden von NVDA gemerkt"
 
+#. Translators: Name of the connection settings tab.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:297 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:303
 msgid "Connections"
 msgstr "Verbindungen"
@@ -351,6 +372,7 @@ msgstr "Zuletzt in Neovim kopierten Text in die Windows-Zwischenablage übertrag
 msgid "Copy the active Neovim Visual selection to the Windows clipboard"
 msgstr "Aktive visuelle Neovim-Auswahl in die Windows-Zwischenablage übertragen"
 
+#. Translators: Copies this computer's complete Neovim configuration to Linux targets.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:999
 msgid "Copy this computer's Neovim configuration to selected Linux connections"
 msgstr "Neovim-Konfiguration dieses Computers auf ausgewählte Linux-Verbindungen kopieren"
@@ -483,6 +505,7 @@ msgstr "Ausgewählte Neovim-Verbindungsinstanz trennen"
 msgid "disconnected"
 msgstr "getrennt"
 
+#. Translators: Component installer option that leaves all Neovim configuration unchanged.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:995
 msgid "Do not change Neovim configuration"
 msgstr "Neovim-Konfiguration nicht ändern"
@@ -550,6 +573,7 @@ msgstr "fehlgeschlagen"
 msgid "Failed: {count}"
 msgstr "Fehlgeschlagen: {count}"
 
+#. Translators: Name of the sound and speech feedback settings tab.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:291 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:300
 msgid "Feedback"
 msgstr "Rückmeldung"
@@ -615,6 +639,7 @@ msgstr "Temporäre Neovim-Verbindung für das fokussierte Terminal vergessen"
 msgid "function"
 msgstr "Funktion"
 
+#. Translators: Name of the general settings tab.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:289 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:299
 msgid "General"
 msgstr "Allgemein"
@@ -623,6 +648,7 @@ msgstr "Allgemein"
 msgid "Global action feedback"
 msgstr "Globale Aktionsrückmeldung"
 
+#. Translators: Reported when text contains a grammar error.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:481
 msgid "grammar error"
 msgstr "Grammatikfehler"
@@ -659,6 +685,7 @@ msgstr "Einfügemodus"
 msgid "Install or update Neovim components"
 msgstr "Neovim-Komponenten installieren oder aktualisieren"
 
+#. Translators: Component installer option that creates a basic Neovim configuration.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:997
 msgid "Install the basic Neovim configuration with lazy.nvim and Oil"
 msgstr "Neovim-Grundkonfiguration mit lazy.nvim und Oil installieren"
@@ -683,6 +710,7 @@ msgstr "ungültige Cursorposition"
 msgid "keyword"
 msgstr "Schlüsselwort"
 
+#. Translators: Context label for the lazy.nvim plugin-manager window.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1517 nvda-addon/core/nvim_nvda_core/speech.py:1549
 msgid "lazy.nvim plugin manager"
 msgstr "lazy.nvim-Plugin-Manager"
@@ -707,6 +735,7 @@ msgstr "Zeile und Cursorzeichen"
 msgid "line break"
 msgstr "Zeilenumbruch"
 
+#. Translators: Reported when the cursor reaches the end of a line.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:357
 msgid "line end"
 msgstr "Zeilenende"
@@ -719,6 +748,7 @@ msgstr "Nur Zeile"
 msgid "line separator"
 msgstr "Zeilentrenner"
 
+#. Translators: Reported when the cursor reaches the start of a line.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:354
 msgid "line start"
 msgstr "Zeilenanfang"
@@ -754,6 +784,7 @@ msgstr "Lokale Neovim-Sitzung"
 msgid "Local Neovim, {session}"
 msgstr "Lokales Neovim, {session}"
 
+#. Translators: Names of Neovim's two native search-result lists.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1091 nvda-addon/core/nvim_nvda_core/speech.py:1395 nvda-addon/core/nvim_nvda_core/speech.py:1467
 msgid "location list"
 msgstr "Positionsliste"
@@ -771,6 +802,7 @@ msgstr "Lokale Neovim-Sitzungen werden gesucht"
 msgid "Looking for Neovim sessions on {name}"
 msgstr "Neovim-Sitzungen auf {name} werden gesucht"
 
+#. Translators: Followed by a comma-separated list of attached LSP server names.
 #: nvda-addon/core/nvim_nvda_core/speech.py:666
 #, python-brace-format
 msgid "LSP clients: {clients}"
@@ -800,10 +832,12 @@ msgstr "Marke {name}, {text}"
 msgid "marked"
 msgstr "markiert"
 
+#. Translators: Neovim found more search matches than its configured count limit.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1047
 msgid "match count incomplete"
 msgstr "Trefferzahl unvollständig"
 
+#. Translators: Neovim stopped counting search matches at its time limit.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1044
 msgid "match count timed out"
 msgstr "Zeitlimit der Trefferzählung erreicht"
@@ -872,9 +906,15 @@ msgstr "Mehrere Neovim-Sitzungen auf {name} gefunden; Sitzungsauswahl wird geöf
 msgid "named pipe"
 msgstr "benannte Pipe"
 
+#. Translators: Name of the navigation-detail settings tab.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:293 nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:301
 msgid "Navigation"
 msgstr "Navigation"
+
+#. Translators: Add-on display name shown by NVDA.
+#: buildVars.py:27
+msgid "Neovim Access Link"
+msgstr "Neovim Access Link"
 
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/connection_workflow.py:100
 msgid "Neovim accessibility failed; normal terminal output restored"
@@ -935,10 +975,12 @@ msgstr "Ergebnisse der Aktualisierung von Neovim-Komponenten"
 msgid "Neovim configuration"
 msgstr "Neovim-Konfiguration"
 
+#. Translators: Explains what removal deliberately leaves for the user to maintain.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1466
 msgid "Neovim configuration and configuration backups were not changed. Remove or disable any explicit Access Link plugin entry there if it is no longer needed."
 msgstr "Neovim-Konfiguration und Konfigurationssicherungen wurden nicht verändert. Entfernen oder deaktivieren Sie dort einen ausdrücklichen Access-Link-Plugin-Eintrag, wenn er nicht mehr benötigt wird."
 
+#. Translators: Label for choosing whether the installer changes Neovim configuration.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:984
 msgid "Neovim configuration:"
 msgstr "Neovim-Konfiguration:"
@@ -1020,6 +1062,7 @@ msgstr "Neovim-SSH-Passwort"
 msgid "Neovim {connection}"
 msgstr "Neovim {connection}"
 
+#. Translators: Reported after navigation crosses onto another line.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:361
 msgid "new line"
 msgstr "neue Zeile"
@@ -1045,6 +1088,7 @@ msgstr "Keine Ansage"
 msgid "No completion or hover documentation available"
 msgstr "Keine Completion- oder Hover-Dokumentation verfügbar"
 
+#. Translators: Completion menu state in which the user's original text is retained.
 #: nvda-addon/core/nvim_nvda_core/speech.py:529
 msgid "No completion selected"
 msgstr "Kein Vervollständigungsvorschlag ausgewählt"
@@ -1073,6 +1117,7 @@ msgstr "Keine Linux-Verbindung ausgewählt"
 msgid "No local Neovim accessibility session was found. Install the local components and restart Neovim"
 msgstr "Keine lokale Sitzung für Neovim-Barrierefreiheit gefunden. Installieren Sie die lokalen Komponenten und starten Sie Neovim neu"
 
+#. Translators: Reported by the explicit LSP status command for the current buffer.
 #: nvda-addon/core/nvim_nvda_core/speech.py:669
 msgid "No LSP client attached"
 msgstr "Kein LSP-Client verbunden"
@@ -1089,10 +1134,12 @@ msgstr "Für dieses Terminal ist keine Neovim-Verbindungsinstanz ausgewählt"
 msgid "No parameters in this signature"
 msgstr "Keine Parameter in dieser Signatur"
 
+#. Translators: A native incremental substitute preview currently changes no text.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1064
 msgid "no preview changes"
 msgstr "keine Änderungen in der Vorschau"
 
+#. Translators: Spoken when an incremental or completed search has no match.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1029
 msgid "no search match"
 msgstr "kein Suchtreffer"
@@ -1150,10 +1197,12 @@ msgstr "Operator"
 msgid "operator-pending mode"
 msgstr "Operator-ausstehend-Modus"
 
+#. Translators: Reported when moving out of text containing a grammar error.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:475
 msgid "out of grammar error"
 msgstr "Grammatikfehler-Ende"
 
+#. Translators: Reported when moving out of text containing a spelling error.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:478
 msgid "out of spelling error"
 msgstr "Rechtschreibfehler-Ende"
@@ -1172,6 +1221,7 @@ msgstr "Absatztrenner"
 msgid "Parameter {index} of {count}: {parameter}"
 msgstr "Parameter {index} von {count}: {parameter}"
 
+#. Translators: Brief automatic announcement while typing one function argument.
 #: nvda-addon/core/nvim_nvda_core/speech.py:992
 #, python-brace-format
 msgid "parameter {index} of {count}: {parameter}"
@@ -1182,6 +1232,7 @@ msgstr "Parameter {index} von {count}: {parameter}"
 msgid "parameter {parameter}"
 msgstr "Parameter {parameter}"
 
+#. Translators: Brief automatic announcement while typing the only function argument.
 #: nvda-addon/core/nvim_nvda_core/speech.py:999
 #, python-brace-format
 msgid "parameter: {parameter}"
@@ -1203,6 +1254,7 @@ msgstr "Text aus der Windows-Zwischenablage in den aktiven Neovim-Puffer einfüg
 msgid "Pasted into Neovim"
 msgstr "In Neovim eingefügt"
 
+#. Translators: The native replacement preview exceeded the bounded comparison.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1080
 msgid "preview count incomplete"
 msgstr "Zählung der betroffenen Zeilen unvollständig"
@@ -1219,10 +1271,12 @@ msgstr "Datei mit privatem Schlüssel (optional):"
 msgid "property"
 msgstr "Eigenschaft"
 
+#. Translators: Names of Neovim's two native search-result lists.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1091 nvda-addon/core/nvim_nvda_core/speech.py:1397 nvda-addon/core/nvim_nvda_core/speech.py:1469
 msgid "quickfix"
 msgstr "Fehlerliste"
 
+#. Translators: Input Help description for reading completion or LSP hover details.
 #: nvda-addon/addon/appModules/windowsterminal.py:649
 msgid "Read documentation for the selected Neovim completion item or LSP hover"
 msgstr "Dokumentation für den ausgewählten Neovim-Completion-Eintrag oder LSP-Hover lesen"
@@ -1258,6 +1312,7 @@ msgstr "Neovim-Komponenten werden von {count} Zielen entfernt"
 msgid "rename"
 msgstr "Umbenennen"
 
+#. Translators: A native LSP rename request was canceled.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1147
 msgid "rename canceled"
 msgstr "Umbenennung abgebrochen"
@@ -1271,6 +1326,7 @@ msgstr "Umbenennung abgeschlossen; 1 Puffer geändert"
 msgid "rename completed; {count} buffers changed"
 msgstr "Umbenennung abgeschlossen; {count} Puffer geändert"
 
+#. Translators: A rename request ended, but Access Link observed no buffer edits.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1150
 msgid "rename request completed; no buffer changes observed"
 msgstr "Umbenennungsanfrage abgeschlossen; keine Pufferänderungen beobachtet"
@@ -1292,6 +1348,7 @@ msgstr "Diesen Treffer ersetzen? Y ja, N nein, A alle, Q beenden, L letzter Tref
 msgid "replaced {text}"
 msgstr "{text} ersetzt"
 
+#. Translators: Prefix for Neovim's native live :substitute preview.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1083
 #, python-brace-format
 msgid "replacement preview, {result}"
@@ -1309,6 +1366,7 @@ msgstr "Wiederherstellen"
 msgid "restored"
 msgstr "wiederhergestellt"
 
+#. Translators: Position of the current item in a Neovim result list.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1916
 #, python-brace-format
 msgid "result {index} of {count}"
@@ -1351,14 +1409,18 @@ msgstr "Gespeicherte Verbindungen wurden geändert; Neovim-Verbindungen werden e
 msgid "Saved SSH connections"
 msgstr "Gespeicherte SSH-Verbindungen"
 
+#. Translators: Neovim is visually highlighting all matches after a completed search.
+#. Translators: Neovim is visually highlighting all matches of the current search.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1050 nvda-addon/core/nvim_nvda_core/speech.py:683
 msgid "search highlighting active"
 msgstr "Suchhervorhebung aktiv"
 
+#. Translators: Neovim stopped visually highlighting matches of the current search.
 #: nvda-addon/core/nvim_nvda_core/speech.py:686
 msgid "search highlighting cleared"
 msgstr "Suchhervorhebung aufgehoben"
 
+#. Translators: Prefix for a match preview while a search pattern is being typed.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1054
 #, python-brace-format
 msgid "search preview, {result}"
@@ -1417,10 +1479,12 @@ msgstr "Servername, Adresse oder SSH-Alias:"
 msgid "Session focus"
 msgstr "Sitzungsfokus"
 
+#. Translators: Input Help description for held diagnostic inspection.
 #: nvda-addon/addon/appModules/windowsterminal.py:762
 msgid "Show diagnostics while the NVDA key remains pressed"
 msgstr "Diagnosen anzeigen, solange die NVDA-Taste gedrückt bleibt"
 
+#. Translators: Input Help description for held callable parameter inspection.
 #: nvda-addon/addon/appModules/windowsterminal.py:753
 msgid "Show function parameters while the NVDA key remains pressed"
 msgstr "Funktionsparameter anzeigen, solange die NVDA-Taste gedrückt bleibt"
@@ -1429,6 +1493,7 @@ msgstr "Funktionsparameter anzeigen, solange die NVDA-Taste gedrückt bleibt"
 msgid "Sign-in method:"
 msgstr "Anmeldemethode:"
 
+#. Translators: Prefix when the language server changed the active function overload.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1012
 #, python-brace-format
 msgid "signature {index} of {count}"
@@ -1447,6 +1512,7 @@ msgstr "Snippet"
 msgid "socket"
 msgstr "Socket"
 
+#. Translators: A completion provider name, for example "source pyright".
 #: nvda-addon/core/nvim_nvda_core/speech.py:951
 #, python-brace-format
 msgid "source {source}"
@@ -1473,10 +1539,12 @@ msgstr "Sprachexplorationsmodus"
 msgid "Speech exploration mode release"
 msgstr "Abschluss des Sprachexplorationsmodus"
 
+#. Translators: Input Help description for speech exploration without moving Neovim's real cursor.
 #: nvda-addon/addon/appModules/windowsterminal.py:26
 msgid "Speech exploration mode: read Neovim text without moving the cursor"
 msgstr "Sprachexplorationsmodus: Neovim-Text lesen, ohne den Cursor zu bewegen"
 
+#. Translators: Reported when text contains a spelling error.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:484
 msgid "spelling error"
 msgstr "Rechtschreibfehler"
@@ -1485,6 +1553,7 @@ msgstr "Rechtschreibfehler"
 msgid "Spelling suggestions"
 msgstr "Rechtschreibvorschläge"
 
+#. Translators: Briefly spoken when Neovim opens a list of spelling corrections.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_presentation.py:92
 msgid "Spelling suggestions available"
 msgstr "Rechtschreibvorschläge verfügbar"
@@ -1583,6 +1652,7 @@ msgstr "Der aktive Neovim-Zustand ist unvollständig; versuchen Sie es erneut"
 msgid "The basic configuration applies to every selected target. Copying transfers the complete local Windows configuration only to selected Linux connections. Existing target configuration is backed up first. Windows-specific paths and directly executed scripts may need adjustment on Linux. With lazy.nvim, the installed Access Link copy must be listed explicitly as a local plugin. Review the local configuration for secrets before copying it."
 msgstr "Die Grundkonfiguration gilt für alle ausgewählten Ziele. Beim Kopieren wird die vollständige lokale Windows-Konfiguration nur auf ausgewählte Linux-Verbindungen übertragen. Eine vorhandene Konfiguration auf dem Ziel wird vorher gesichert. Windows-spezifische Pfade und direkt ausgeführte Skripte müssen unter Linux möglicherweise angepasst werden. Bei lazy.nvim muss die installierte Access-Link-Kopie ausdrücklich als lokales Plugin aufgeführt sein. Prüfen Sie die lokale Konfiguration vor dem Kopieren auf Zugangsdaten."
 
+#. Translators: A requested basic init.lua could not be installed safely.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:1190
 msgid "The basic Neovim configuration could not be installed"
 msgstr "Die Neovim-Grundkonfiguration konnte nicht installiert werden"
@@ -1677,6 +1747,7 @@ msgstr "Für die Erkennung gilt NVDAs Zeitlimit für Mehrfachbetätigung aus den
 msgid "To install or update components, use the add-on command in NVDA's {name} menu and select this computer or saved Linux connections."
 msgstr "Verwenden Sie zum Installieren oder Aktualisieren von Komponenten den Add-on-Befehl im NVDA-Menü {name} und wählen Sie diesen Computer oder gespeicherte Linux-Verbindungen aus."
 
+#. Translators: Input Help description for switching Braille display navigation modes.
 #: nvda-addon/addon/appModules/windowsterminal.py:638
 msgid "Toggle Braille navigation between Braille cursor mode and Braille exploration mode"
 msgstr "Braillezeilen-Navigation zwischen Braille-Cursormodus und Braille-Explorationsmodus umschalten"
@@ -1738,6 +1809,7 @@ msgstr "Neovim-Komponenten werden auf {count} Zielen aktualisiert"
 msgid "Use OpenSSH setup (recommended: keys, ssh-agent or SSH config)"
 msgstr "OpenSSH-Einrichtung verwenden (empfohlen: Schlüssel, ssh-agent oder SSH-Konfiguration)"
 
+#. Translators: Opens the installed user manual in a web browser.
 #: nvda-addon/addon/globalPlugins/NeovimAccessLink/nvda_ui.py:830
 msgid "User &Manual"
 msgstr "Benutzer&handbuch"
@@ -1783,6 +1855,7 @@ msgstr "Wort und Cursorzeichen"
 msgid "Word only"
 msgstr "Nur Wort"
 
+#. Translators: Neovim continued a search at the opposite end of the buffer.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1040
 msgid "wrapped"
 msgstr "am anderen Pufferende fortgesetzt"
@@ -1836,11 +1909,13 @@ msgstr "{count} Dateimanageraktionen abgeschlossen"
 msgid "{count} items {action}"
 msgstr "{count} Elemente {action}"
 
+#. Translators: A native substitute preview; count is the affected line count.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1077
 #, python-brace-format
 msgid "{count} lines affected"
 msgstr "{count} Zeilen betroffen"
 
+#. Translators: Added to a replacement result; count is the changed line count.
 #: nvda-addon/core/nvim_nvda_core/speech.py:720
 #, python-brace-format
 msgid "{count} lines changed"
@@ -1871,36 +1946,43 @@ msgstr "{label}, Sitzung {position} von {total}"
 msgid "{label}, started {started}"
 msgstr "{label}, gestartet {started}"
 
+#. Translators: A substitute confirmation with its source line and position.
 #: nvda-addon/core/nvim_nvda_core/speech.py:553
 #, python-brace-format
 msgid "{line}, line {lineNumber}, column {column}, {prompt}"
 msgstr "{line}, Zeile {lineNumber}, Spalte {column}, {prompt}"
 
+#. Translators: A named Neovim result list contains one result.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1101
 #, python-brace-format
 msgid "{listName}, 1 result"
 msgstr "{listName}, 1 Treffer"
 
+#. Translators: A named Neovim result list contains no results.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1098
 #, python-brace-format
 msgid "{listName}, no results"
 msgstr "{listName}, keine Treffer"
 
+#. Translators: A named Neovim result list and its result count.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1104
 #, python-brace-format
 msgid "{listName}, {count} results"
 msgstr "{listName}, {count} Treffer"
 
+#. Translators: Completion is neutral; the manager window contains the actual result.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1567
 #, python-brace-format
 msgid "{manager}: {operation} finished; check the plugin manager for results"
 msgstr "{manager}: {operation} beendet; Ergebnisse im Plugin-Manager prüfen"
 
+#. Translators: A plugin-manager operation has begun; both placeholders are localized.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1561
 #, python-brace-format
 msgid "{manager}: {operation} started"
 msgstr "{manager}: {operation} gestartet"
 
+#. Translators: Joins two related status details into one concise announcement.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1125 nvda-addon/core/nvim_nvda_core/speech.py:1139 nvda-addon/core/nvim_nvda_core/speech.py:1171
 #, python-brace-format
 msgid "{message}; {detail}"
@@ -1951,6 +2033,7 @@ msgstr "{severity}, Diagnose {index} von {count}: {message}"
 msgid "{subject} {outcome}"
 msgstr "{subject} {outcome}"
 
+#. Translators: Adds the selected result position to a result-list summary.
 #: nvda-addon/core/nvim_nvda_core/speech.py:1110
 #, python-brace-format
 msgid "{summary}, result {index} of {count}"

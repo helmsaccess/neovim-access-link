@@ -35,6 +35,11 @@ Details stehen in [Kompatibilität](compatibility.md).
 
 ## Implementierter Gesamtpfad
 
+Windows-Entwicklungsbuild und Linux-Releasebuilder verwenden SCons für das
+Add-on. Basismanifest, Sprachmanifeste und Gettext-Quellen folgen der Struktur
+des NVDA-AddonTemplates. Der Dokumentations- und der Linux-Komponentenbuild
+bleiben eigenständige Schritte.
+
 Der gemeinsame Neovim-RPC-Client prüft Nachrichtenstrukturen und begrenzt
 Verbindungsaufbau, Empfangspuffer und vorläufige Benachrichtigungen. Controls
 werden über den verifizierten und registrierten Kanal gesendet.
