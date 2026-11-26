@@ -145,14 +145,25 @@ local real_channel = event_channel.new({
   on_disconnect = function(reason) real_disconnect = reason end,
 })
 local python = vim.env.NAL_TEST_PYTHON or (vim.fn.has("win32") == 1 and "python" or "python3")
-local rpc_job = vim.fn.jobstart({ python, "-c", "import sys; sys.stdin.buffer.read()" }, { rpc = true })
+local rpc_job_ready = false
+local rpc_job = vim.fn.jobstart({
+  python, "-u", "-c", "import sys; print('ready', file=sys.stderr); sys.stdin.buffer.read()",
+}, {
+  rpc = true,
+  on_stderr = function(_, data)
+    for _, line in ipairs(data) do
+      if vim.trim(line) == "ready" then rpc_job_ready = true end
+    end
+  end,
+})
 assert(rpc_job > 0, "disposable RPC job starts")
+assert(vim.wait(5000, function() return rpc_job_ready end), "disposable RPC job is ready")
 real_channel.connect(rpc_job)
 equal(false, real_channel.emit("modeChanged", "serializationFailure"),
   "real serialization failure rejects event")
 equal("notificationFailure", real_disconnect, "real serialization failure fails open")
 equal(false, real_channel.is_connected(), "real serialization failure clears plugin channel")
-equal(0, vim.fn.jobwait({ rpc_job }, 500)[1], "real serialization failure closes RPC transport")
+equal(0, vim.fn.jobwait({ rpc_job }, 3000)[1], "real serialization failure closes RPC transport")
 
 print(string.format("event channel assertions: %d", assertions))
 vim.cmd("qa!")
