@@ -158,12 +158,14 @@ local rpc_job = vim.fn.jobstart({
 })
 assert(rpc_job > 0, "disposable RPC job starts")
 assert(vim.wait(5000, function() return rpc_job_ready end), "disposable RPC job is ready")
+equal(-1, vim.fn.jobwait({ rpc_job }, 0)[1], "RPC peer is still waiting on its input")
 real_channel.connect(rpc_job)
 equal(false, real_channel.emit("modeChanged", "serializationFailure"),
   "real serialization failure rejects event")
 equal("notificationFailure", real_disconnect, "real serialization failure fails open")
 equal(false, real_channel.is_connected(), "real serialization failure clears plugin channel")
-equal(0, vim.fn.jobwait({ rpc_job }, 3000)[1], "real serialization failure closes RPC transport")
+local exit_status = vim.fn.jobwait({ rpc_job }, 3000)[1]
+assert(exit_status >= 0, "real serialization failure closes RPC transport, job status " .. exit_status)
 
 print(string.format("event channel assertions: %d", assertions))
 vim.cmd("qa!")
