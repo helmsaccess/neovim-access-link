@@ -21,8 +21,14 @@ An isolated Windows run with NVDA 2026.3.1 checked packaged add-on startup
 and import of its Windows Terminal AppModule. The Lua suite and local
 loopback TCP test passed with native Neovim 0.12.6. The packaged NVDA client
 also authenticated to an isolated Neovim instance and received its full state.
-Focus switching, speech, and physical Braille output still need a practical
-run with this version pair.
+An interactive Windows 11 24H2 guest also confirmed F12 pairing, editing,
+separate panes, tab and window switching, and recovery of the remaining pane
+after an editor exited. The run used Windows Terminal 1.25.3131.0,
+NVDA 2026.3.1, and Neovim 0.12.6. The same sequence passed with NVDA
+2026.1.1 and Neovim 0.10.1. Both NVDA versions passed
+package installation and removal as well as digital checks for speech,
+40 Braille cells, and tone requests. Audible output and physical Braille
+devices are outside the scope of these automated runs.
 
 Neovim 0.10.1 is the provisional minimum. Newer optional APIs are used only
 after a feature check. On Neovim 0.10, the plugin creates a silent `<Ignore>`

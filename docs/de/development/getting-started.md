@@ -43,6 +43,7 @@ Für die vollständige lokale Prüfung werden benötigt:
 - Python 3;
 - `msgpack` exakt in Version 1.1.2 für Protokolltests und Paketbau;
 - ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im Add-on-Build;
+- SCons 4.11.1 für das NVDA-Paket und das Gettext-Template;
 - Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
 - Ruff 0.15.4 entsprechend `tools/requirements-linter-ci.txt`;
 - Neovim für die echten Lua-Suiten;
@@ -76,6 +77,12 @@ python tools/run_tests.py all-safe
 python tools/run_tests.py ssh
 python tools/run_tests.py socket
 ```
+
+Auf einer frischen Windows-Installation zuerst `nvim --version` prüfen.
+Endet die offizielle x64-Ausgabe mit dem Ladefehler `0xc0000135`, kann die
+Microsoft Visual C++ v14 Redistributable für x64 erforderlich sein.
+[Neovim-Installation](https://neovim.io/doc/install/)
+[Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
 
 Unter Windows prüft `socket` den nativen Loopback-Listener. Die Unix-
 Socket- und PTY-Tests werden auf Linux ausgeführt. Für den Entwicklungsbuild

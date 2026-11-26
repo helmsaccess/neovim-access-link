@@ -11,6 +11,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
   Name und Beschreibung im Sprachmanifest stammen aus dem Gettext-Katalog.
 - Vereinheitlicht ZIP-Metadaten und die Zeilenenden gebündelter Python-Dateien,
   damit Windows und Linux dieselben Paketdaten verarbeiten.
+- Prüft F12-Zuordnung, Editieren, Panes, Tabs, Fensterwechsel und
+  Wiederherstellung nach dem Beenden eines Editors auf einem aktiven
+  Windows-Gastdesktop mit den aktuellen und den Mindestversionen von NVDA
+  und Neovim. Die Windows-Einrichtung beschreibt die optionale
+  Visual-C++-Laufzeit für ein frisches System.
 - Begrenzt Verbindungsaufbau und Empfang im gemeinsamen Neovim-RPC-Client.
   Ungültige RPC-Nachrichten lösen einen Disconnect aus. Controls werden erst
   über den geprüften, registrierten Kanal gesendet.

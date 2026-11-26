@@ -25,10 +25,14 @@ disconnected SSH snapshots caused no false reconnections.
 On Windows, the packaged add-on started in an isolated NVDA 2026.3.1 profile.
 The NVDA integration and Windows Terminal AppModule loaded successfully.
 Neovim 0.12.6 passed the Lua and local TCP tests. The packaged NVDA client
-received an authenticated full state. Practical focus switching, audible
-speech, and physical Braille output still need testing on these
-versions. The manifest lists NVDA 2026.3 as last tested and retains 2026.1
-as its minimum. See [compatibility](compatibility.md) for details.
+received an authenticated full state. An automated run on an active Windows 11
+guest desktop with NVDA 2026.3.1, Windows Terminal 1.25, and Neovim 0.12.6
+confirmed F12, editing, separate panes, tab and window switching, and focus
+recovery after an editor exited. The same scenario passed with NVDA 2026.1.1
+and Neovim 0.10.1. Digital speech, Braille cells, and tone
+requests were captured in NVDA 2026.1.1 and 2026.3.1.
+The manifest lists NVDA 2026.3 as last tested and retains 2026.1 as its minimum.
+See [compatibility](compatibility.md) for details.
 
 ## Implemented end-to-end path
 

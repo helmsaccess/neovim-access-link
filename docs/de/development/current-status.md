@@ -28,9 +28,14 @@ Unter Windows startete das gebaute Add-on in einem isolierten Profil mit
 NVDA 2026.3.1. Die NVDA-Integration und das Windows-Terminal-AppModule
 ließen sich laden. Neovim 0.12.6 bestand die Lua- und lokalen TCP-Tests. Der
 paketierte NVDA-Client empfing den authentifizierten vollständigen Zustand.
-Fokuswechsel, hörbare Ausgabe und physische Braille-Ausgabe wurden mit
-diesen Versionen noch nicht praktisch geprüft. Das Manifest führt 2026.3
-als zuletzt getestete NVDA-Version und behält 2026.1 als Mindestversion.
+Ein automatisierter Lauf auf einem aktiven Windows-11-Gastdesktop mit
+NVDA 2026.3.1, Windows Terminal 1.25 und Neovim 0.12.6 bestätigte F12,
+Eingabe, getrennte Panes, Tab- und Fensterwechsel sowie die Wiederherstellung
+nach Beenden eines Editors. Derselbe Ablauf bestand mit NVDA 2026.1.1 und
+Neovim 0.10.1. Digitale Sprache, Braillezellen und
+Tonanforderungen wurden in NVDA 2026.1.1 und 2026.3.1 erfasst.
+Das Manifest führt 2026.3 als zuletzt getestete NVDA-Version und behält
+2026.1 als Mindestversion.
 Details stehen in [Kompatibilität](compatibility.md).
 
 ## Implementierter Gesamtpfad

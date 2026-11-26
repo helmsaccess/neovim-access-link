@@ -11,6 +11,10 @@ test-build entries through August 5, 2026.
   the localized manifest name and description.
 - Normalizes ZIP metadata and bundled Python line endings so Windows and Linux
   builds use the same package data.
+- Verifies F12 pairing, editing, panes, tabs, window switching, and recovery
+  after an editor exits on an active Windows guest desktop with current and
+  minimum NVDA and Neovim versions. The Windows setup records the optional
+  Visual C++ runtime needed on a fresh system.
 - Bounds connection setup and reads in the shared Neovim RPC client. Invalid
   RPC messages cause a disconnect. Controls use the verified, registered
   channel.

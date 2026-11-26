@@ -93,6 +93,14 @@ dort sinnvoll, wo alle drei Phasen zulässig sind.
 
 ## Zuordnung nach Änderung
 
+Prüfe Betriebssystemfokus und Tastengesten in einem interaktiven, isolierten
+Windows-Desktop. Ein Windows-Gast kann Win32-Vordergrund, UI-Automation-Fokus
+und Tasten über das virtuelle Tastaturgerät prüfen. Der lokale Prüfaufbau unter
+`../nal-aux/tools/windows-focus-vm/` verwendet eine separate NVDA-Konfiguration
+und ein portables Windows Terminal. Prüfcode in der portablen NVDA-Ausgabe
+nutzt explizite Fehlerbedingungen. NVDA startet Python mit Optimierung und
+lässt `assert`-Anweisungen weg.
+
 | Änderung | Erforderliche Schwerpunkte |
 |---|---|
 | Protokollfeld oder Steuerbefehl | Validator, Codec, Bridge, lokaler Client, Capability-Negativpfad, Lua und Sicherheitsdokumentation |

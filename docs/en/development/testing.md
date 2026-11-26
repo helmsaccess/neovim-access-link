@@ -89,6 +89,13 @@ allowed.
 
 ## Mapping changes to tests
 
+Check operating-system focus and key gestures on an interactive, isolated
+Windows desktop. A Windows guest can observe Win32 foreground, UI Automation
+focus, and keys from a virtual keyboard device. The local harness under
+`../nal-aux/tools/windows-focus-vm/` uses a separate NVDA configuration and
+portable Windows Terminal. Use explicit failure checks in the portable NVDA
+test code. NVDA runs Python with optimization and omits `assert` statements.
+
 | Change | Required emphasis |
 |---|---|
 | Protocol field or control | validator, codec, bridge, local client, capability-negative path, Lua, and security documentation |

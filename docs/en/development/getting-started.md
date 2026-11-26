@@ -43,6 +43,7 @@ Complete local verification requires:
 - `msgpack` exactly 1.1.2 for protocol tests and package builds;
 - ConfigObj 5.0.8 for NVDA-compatible manifest validation during the add-on
   build;
+- SCons 4.11.1 for the NVDA package and gettext template;
 - Pexpect 4.9.0 for bridge and TUI integration tests;
 - Ruff 0.15.4 as pinned by `tools/requirements-linter-ci.txt`;
 - Neovim for real Lua suites;
@@ -75,6 +76,12 @@ python tools/run_tests.py all-safe
 python tools/run_tests.py ssh
 python tools/run_tests.py socket
 ```
+
+Run `nvim --version` first on a fresh Windows installation. If the official
+x64 build exits with loader error `0xc0000135`, it may require the Microsoft
+Visual C++ v14 Redistributable for x64.
+[Neovim installation](https://neovim.io/doc/install/)
+[Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
 
 On Windows, `socket` checks the native loopback listener. Run the Unix socket
 and PTY tests on Linux. Run `.\build.cmd` from a clean branch to build

@@ -22,8 +22,14 @@ paketierten Add-ons und den Import seines Windows-Terminal-AppModules.
 Mit nativem Neovim 0.12.6 bestanden die Lua-Suite und der lokale
 Loopback-TCP-Test. Der paketierte NVDA-Client authentifizierte sich außerdem
 bei einer isolierten Neovim-Instanz und empfing ihren vollständigen Zustand.
-Fokuswechsel, Sprache und physische Braille-Ausgabe stehen mit diesem
-Versionspaar noch zur praktischen Prüfung aus.
+Ein Windows-11-24H2-Gast mit interaktivem Desktop bestätigte außerdem
+F12-Zuordnung, Editieren, getrennte Panes, Tab- und Fensterwechsel sowie
+die Rückkehr zum verbleibenden Pane nach dem Beenden eines Editors. Der
+Lauf verwendete Windows Terminal 1.25.3131.0, NVDA 2026.3.1 und Neovim
+0.12.6. Dieselbe Folge bestand mit NVDA 2026.1.1 und Neovim 0.10.1.
+Beide NVDA-Versionen bestanden Paketinstallation und -entfernung sowie digitale Prüfungen
+für Sprache, 40 Braillezellen und Tonanforderungen. Hörbare Ausgabe und
+physische Braille-Geräte liegen außerhalb dieser automatisierten Läufe.
 
 Neovim 0.10.1 ist die vorläufige Mindestversion. Neuere optionale APIs werden
 nur nach Featureprüfung verwendet. Unter Neovim 0.10 richtet das Plugin für
