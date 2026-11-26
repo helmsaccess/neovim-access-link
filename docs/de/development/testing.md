@@ -80,9 +80,11 @@ Unix-Sockets und kurzlebige Neovim-Prozesse erlaubt:
 python3 tools/run_tests.py socket
 ```
 
-Unter Windows führt der Runner in dieser Gruppe die native Loopback-TCP-
-Spezifikation aus. Für die vollständige Gruppe mit Unix-Sockets und Pexpect-PTY
-wird ein Linux-Checkout benötigt.
+Unter Windows führt der Runner in dieser Gruppe die lokalen TCP-Tests aus.
+Sie prüfen die Sitzungsregistrierung und einen echten Neovim-Prozess mit
+authentifiziertem Anfangszustand und Cursor-Routing über den Python-Client.
+Für die vollständige Gruppe mit Unix-Sockets und Pexpect-PTY wird ein
+Linux-Checkout benötigt.
 
 In einer eingeschränkten Sandbox ist ein Listenerfehler eine
 Umgebungsbegrenzung, kein erfolgreicher Test. Die Socketphase wird dann in

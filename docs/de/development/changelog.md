@@ -6,6 +6,13 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Begrenzt Verbindungsaufbau und Empfang im gemeinsamen Neovim-RPC-Client.
+  Ungültige RPC-Nachrichten lösen einen Disconnect aus. Controls werden erst
+  über den geprüften, registrierten Kanal gesendet.
+- Prüft den lokalen Python-Client gegen echtes Neovim einschließlich
+  Sitzungsanmeldung, vollständigem Zustand und Cursor-Routing.
+- Beendet den eigenen SSH-Prozess bei Protokollfehlern und beim Abbruch
+  während des Prozessstarts, bevor eine weitere Verbindung aufgebaut wird.
 - Richtet parallele Testläufe an den verfügbaren logischen Prozessoren aus.
   Bis zu zwölf isolierte Blöcke verkürzen die Pakettests auf Rechnern mit
   vielen Kernen. `-j` bleibt die Grenze pro Lauf.

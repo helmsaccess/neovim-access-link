@@ -524,10 +524,12 @@ class RepositoryPolicyTests(unittest.TestCase):
             source=pathlib.Path(__file__),
         )
         with tempfile.TemporaryDirectory() as directory:
-            result = runner["run_job"](job, pathlib.Path(directory) / "job", 0.1)
+            result = runner["run_job"](job, pathlib.Path(directory) / "job", 3.0)
 
         self.assertEqual(124, result.returncode)
-        child_pid = int(result.output.splitlines()[0])
+        pid_line = result.output.splitlines()[0]
+        self.assertTrue(pid_line.isdecimal(), result.output)
+        child_pid = int(pid_line)
         deadline = time.monotonic() + 1
         while time.monotonic() < deadline:
             try:

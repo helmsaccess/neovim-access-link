@@ -32,6 +32,11 @@ as its minimum. See [compatibility](compatibility.md) for details.
 
 ## Implemented end-to-end path
 
+The shared Neovim RPC client validates message structures and bounds setup,
+its receive buffer, and pending notifications. Controls use the verified and
+registered channel.
+Failed SSH attempts reap their own process before a retry.
+
 ### Installation, connections, and ownership boundaries
 
 - The `.nvda-addon` contains the NVDA integration, Neovim plugin, and a

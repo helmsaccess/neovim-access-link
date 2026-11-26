@@ -35,6 +35,12 @@ Details stehen in [Kompatibilität](compatibility.md).
 
 ## Implementierter Gesamtpfad
 
+Der gemeinsame Neovim-RPC-Client prüft Nachrichtenstrukturen und begrenzt
+Verbindungsaufbau, Empfangspuffer und vorläufige Benachrichtigungen. Controls
+werden über den verifizierten und registrierten Kanal gesendet.
+Fehlgeschlagene SSH-Versuche räumen ihren eigenen Prozess vor einem erneuten
+Verbindungsversuch auf.
+
 ### Installation, Verbindung und Besitzgrenzen
 
 - Das `.nvda-addon` enthält NVDA-Integration, Neovim-Plugin und ein rootloses

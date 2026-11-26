@@ -332,10 +332,13 @@ class WindowsWorkspaceSyncTests(unittest.TestCase):
 			run_git(self.source, "add", "tracked.txt")
 			run_git(self.source, "commit", "-m", f"Background {index}")
 		expected = run_git(self.source, "rev-parse", "HEAD")
-		deadline = time.monotonic() + 8
+		state_directory = workspace_sync._state_directory(self.source)
+		request_path = state_directory / "request.json"
+		deadline = time.monotonic() + 15
 		while time.monotonic() < deadline:
 			if (
-				run_git(self.target, "branch", "--show-current") == "background-burst"
+				not request_path.exists()
+				and run_git(self.target, "branch", "--show-current") == "background-burst"
 				and run_git(self.target, "rev-parse", "HEAD") == expected
 			):
 				break

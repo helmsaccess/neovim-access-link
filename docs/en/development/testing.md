@@ -77,9 +77,10 @@ Unix sockets, and short-lived Neovim processes:
 python3 tools/run_tests.py socket
 ```
 
-On Windows the runner executes the native loopback TCP specification in
-this group. Use a Linux checkout for the complete group with Unix sockets and
-Pexpect PTYs.
+On Windows the runner executes the local TCP tests in this group. They verify
+session registration and a real Neovim process with authenticated initial
+state and cursor routing through the Python client. Use a Linux checkout for
+the complete group with Unix sockets and Pexpect PTYs.
 
 In a restricted sandbox, a listener failure is an environment limitation, not
 a passing test. Run the socket phase later in a permitted environment.

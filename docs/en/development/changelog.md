@@ -6,6 +6,13 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Bounds connection setup and reads in the shared Neovim RPC client. Invalid
+  RPC messages cause a disconnect. Controls use the verified, registered
+  channel.
+- Exercises the local Python client against real Neovim, including session
+  registration, full state, and cursor routing.
+- Reaps the SSH process after protocol errors and cancellation during process
+  startup before attempting another connection.
 - Scales parallel test runs to the available logical processors. Up to twelve
   isolated shards speed up package tests on many-core machines. `-j` still
   sets the limit for each run.

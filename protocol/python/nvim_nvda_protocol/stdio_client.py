@@ -64,23 +64,27 @@ class SshStdioClient:
         with self._process_lock:
             process = self._process
         if process is not None:
-            try:
-                if process.stdin:
-                    process.stdin.close()
-            except OSError:
-                pass
-            try:
-                process.terminate()
-                process.wait(timeout=2.0)
-            except (OSError, subprocess.TimeoutExpired):
-                try:
-                    process.kill()
-                except OSError:
-                    pass
+            self._terminate_process(process)
         if self._thread is not None:
             self._thread.join(timeout=2.0)
             if self._thread.is_alive():
                 raise RuntimeError("SSH stdio client thread did not stop")
+
+    @staticmethod
+    def _terminate_process(process: subprocess.Popen) -> None:
+        if process.poll() is not None:
+            return
+        try:
+            process.terminate()
+            process.wait(timeout=0.5)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+                process.wait(timeout=0.5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        except OSError:
+            pass
 
     def send_control(self, kind: str, payload: dict[str, Any]) -> bool:
         with self._process_lock:
@@ -100,6 +104,7 @@ class SshStdioClient:
     def _run(self) -> None:
         backoff = ExponentialBackoff()
         while not self._stop.is_set():
+            process = None
             self.on_connection_state("connecting")
             command = self._build_command()
             self.on_diagnostic("sshProcessStart", {"target": self.ssh_target})
@@ -110,6 +115,8 @@ class SshStdioClient:
                     env=self._build_environment(),
                 )
                 with self._process_lock:
+                    if self._stop.is_set():
+                        return
                     self._process = process
                 threading.Thread(target=self._read_stderr, args=(process,), daemon=True).start()
                 self._receive(process)
@@ -119,6 +126,8 @@ class SshStdioClient:
             finally:
                 with self._process_lock:
                     self._process = None
+                if process is not None:
+                    self._terminate_process(process)
             if not self._stop.is_set():
                 self.on_connection_state("disconnected")
                 self._stop.wait(backoff.next_delay())
@@ -167,6 +176,8 @@ class SshStdioClient:
             prefix.extend(data)
             if len(prefix) > 65_536:
                 raise ProtocolError("stdio marker not found within startup output limit")
+        if self._stop.is_set():
+            return
         marker_end = prefix.index(STDIO_MARKER) + len(STDIO_MARKER)
         decoder = FrameDecoder()
         tracker = SessionTracker()
@@ -184,7 +195,7 @@ class SshStdioClient:
                     if event["type"] == "connectionStateChanged":
                         connection = event["payload"].get("connection")
                         state = connection.get("neovim") if isinstance(connection, dict) else None
-                        if state not in {"connected", "disconnected"}:
+                        if not isinstance(state, str) or state not in {"connected", "disconnected"}:
                             raise ProtocolError("invalid Neovim connection state")
                         if state == "disconnected":
                             if not disconnected_reported:
@@ -243,7 +254,7 @@ class SshStdioClient:
         payload = event["payload"]
         connection = payload.get("connection")
         state = connection.get("neovim") if isinstance(connection, dict) else None
-        if state not in {"connected", "disconnected"}:
+        if not isinstance(state, str) or state not in {"connected", "disconnected"}:
             raise ProtocolError("invalid Neovim connection state in fullState")
         return state
 

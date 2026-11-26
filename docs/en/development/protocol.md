@@ -42,6 +42,12 @@ length framing do not exist on this segment. Notifications are still converted
 to the same protocol-v2 envelope and validated with the same event types and
 1 MiB limit before NVDA receives them. Users cannot configure a host or port.
 
+The shared MessagePack-RPC client for loopback and Unix sockets bounds its
+receive buffer and holds up to 64 notifications during connection setup. It
+validates RPC message structures, times out setup requests, and accepts outbound
+controls after identity verification and channel registration. Normal idle
+periods keep the connection open.
+
 ## Framing and envelope
 
 An SSH message is a four-byte unsigned big-endian length followed by one
