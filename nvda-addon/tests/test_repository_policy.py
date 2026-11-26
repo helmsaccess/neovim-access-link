@@ -275,10 +275,14 @@ class RepositoryPolicyTests(unittest.TestCase):
             (artifact,) = artifacts.iterdir()
             with zipfile.ZipFile(artifact) as archive:
                 self.assertIsNone(archive.testzip())
+                self.assertTrue(all(entry.create_system == 3 for entry in archive.infolist()))
                 self.assertIn("doc/en/readme.html", archive.namelist())
                 self.assertIn("locale/de/manifest.ini", archive.namelist())
                 self.assertIn("locale/de/LC_MESSAGES/nvda.mo", archive.namelist())
                 self.assertFalse(any(path.endswith((".po", ".pot")) for path in archive.namelist()))
+                root_plugin = "globalPlugins/NeovimAccessLink"
+                for relative in ("build_info.py", "vendor/msgpack/fallback.py", "vendor/MSGPACK-LICENSE.txt"):
+                    self.assertNotIn(b"\r\n", archive.read(f"{root_plugin}/{relative}"))
             second = subprocess.run(command, cwd=REPOSITORY_ROOT, capture_output=True, text=True, check=False)
             self.assertEqual(0, second.returncode, second.stdout + second.stderr)
             self.assertIn("up to date", second.stdout)

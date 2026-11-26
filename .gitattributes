@@ -1,0 +1,2 @@
+# Keep text sources identical across Windows and Linux packaging checkouts.
+* text=auto eol=lf

@@ -23,11 +23,11 @@ from tools.build_nvda_addon import (
     LOCALIZED_MANIFEST_FIELDS,
     NVDA_TEMPLATE_MANIFEST_FIELDS,
     build,
-    find_msgpack_license,
     validate_localized_manifest,
     validate_manifest,
     write_manifest,
 )
+from tools.build_user_package import find_msgpack_license
 from tools import build_user_package
 import buildVars
 
@@ -4225,6 +4225,7 @@ class BuiltAddonTests(unittest.TestCase):
             resource = "globalPlugins/NeovimAccessLink/resources/"
             config_bytes = archive.read(resource + "linux-components.json")
             package_bytes = archive.read(resource + "server-user.tar.gz")
+            vendor_license = archive.read("globalPlugins/NeovimAccessLink/vendor/MSGPACK-LICENSE.txt")
             addon_names = archive.namelist()
         self.assertIn(resource + "neovim-plugin/plugin/nvim_nvda.lua", addon_names)
         self.assertIn(resource + "neovim-plugin/lua/nvim_nvda/session.lua", addon_names)
@@ -4256,6 +4257,10 @@ class BuiltAddonTests(unittest.TestCase):
                 member for member in regular_members if member.name.endswith("/install.py")
             )
             self.assertEqual(0o755, bridge_member.mode)
+            with zipfile.ZipFile(io.BytesIO(package.extractfile(bridge_member).read())) as bundle:
+                self.assertEqual(vendor_license, bundle.read("MSGPACK-LICENSE.txt"))
+                self.assertIn(b"Apache License 2.0", bundle.read("THIRD_PARTY_NOTICES.txt"))
+                self.assertNotIn(b"\r\n", bundle.read("msgpack/fallback.py"))
             self.assertEqual(0o755, installer_member.mode)
             self.assertTrue(all(member.uid == member.gid == 0 for member in package.getmembers()))
             self.assertTrue(all(member.mtime == 0 for member in package.getmembers()))

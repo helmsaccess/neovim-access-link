@@ -5,8 +5,6 @@ from __future__ import annotations
 
 import argparse
 import gettext
-import importlib.metadata
-import importlib.util
 import json
 import pathlib
 import re
@@ -23,6 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import buildVars  # noqa: E402
+from tools import build_user_package  # noqa: E402
 from tools.documentation_layout import (  # noqa: E402
     install_generated_documentation,
     validate_installed_documents,
@@ -58,25 +57,6 @@ NVDA_TEMPLATE_MANIFEST_FIELDS = frozenset({
 })
 LOCALIZED_MANIFEST_FIELDS = frozenset({"summary", "description", "changelog"})
 MULTILINE_MANIFEST_FIELDS = frozenset({"description", "changelog"})
-
-
-def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathlib.Path:
-    distribution_directory = f"msgpack-{distribution.version}.dist-info"
-    candidates = (
-        pathlib.Path(distribution.locate_file(pathlib.Path(distribution_directory) / "COPYING")),
-        pathlib.Path(
-            distribution.locate_file(
-                pathlib.Path(distribution_directory) / "licenses" / "COPYING"
-            )
-        ),
-    )
-    existing = tuple(path for path in candidates if path.is_file())
-    if len(existing) != 1:
-        raise RuntimeError(
-            "expected exactly one msgpack COPYING file in a supported distribution layout, "
-            f"found {existing!r}"
-        )
-    return existing[0]
 
 
 def _manifest_value(key: str, value: str) -> str:
@@ -191,10 +171,6 @@ def build(
     output_root = pathlib.Path(output_directory)
     output = output_root / f"{metadata['name']}-{artifact_version}.nvda-addon"
     output.parent.mkdir(parents=True, exist_ok=True)
-    msgpack_distribution = importlib.metadata.distribution("msgpack")
-    if msgpack_distribution.version != "1.1.2":
-        raise RuntimeError(f"msgpack 1.1.2 required, found {msgpack_distribution.version}")
-    msgpack_source = pathlib.Path(msgpack_distribution.locate_file("msgpack"))
     with tempfile.TemporaryDirectory(
         dir=output.parent,
         prefix=f".{output.name}.",
@@ -237,24 +213,17 @@ def build(
         (plugin / "build_info.py").write_text(
             f"ARTIFACT_VERSION = {artifact_version!r}\n",
             encoding="utf-8",
+            newline="\n",
         )
         core = plugin / "core"
         copy_python_files(ROOT / "protocol" / "python" / "nvim_nvda_protocol", core, PROTOCOL_MODULES)
         copy_python_files(ROOT / "nvda-addon" / "core" / "nvim_nvda_core", core, CORE_MODULES)
-        package_spec = importlib.util.spec_from_file_location(
-            "nvim_nvda_build_user_package", ROOT / "tools" / "build_user_package.py"
-        )
-        if package_spec is None or package_spec.loader is None:
-            raise RuntimeError("cannot load rootless package builder")
-        package_builder = importlib.util.module_from_spec(package_spec)
-        package_spec.loader.exec_module(package_builder)
-        package_builder.linux_component_config()
         server_output = temporary_root / "server-package"
-        server_package = package_builder.build(output_directory=server_output)
+        server_package = build_user_package.build(output_directory=server_output)
         resources = plugin / "resources"
         resources.mkdir(exist_ok=True)
         shutil.copy2(server_package, resources / "server-user.tar.gz")
-        shutil.copy2(package_builder.COMPONENT_CONFIG, resources / "linux-components.json")
+        shutil.copy2(build_user_package.COMPONENT_CONFIG, resources / "linux-components.json")
         shutil.copytree(
             ROOT / "neovim-plugin", resources / "neovim-plugin",
             ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc"),
@@ -263,16 +232,7 @@ def build(
             ROOT / "examples" / "neovim-starter" / "init.lua",
             resources / "starter-init.lua",
         )
-        vendor = plugin / "vendor" / "msgpack"
-        vendor.mkdir(parents=True)
-        for source in msgpack_source.glob("*.py"):
-            shutil.copy2(source, vendor / source.name)
-        license_source = find_msgpack_license(msgpack_distribution)
-        shutil.copy2(license_source, plugin / "vendor" / "MSGPACK-LICENSE.txt")
-        (plugin / "vendor" / "THIRD_PARTY_NOTICES.txt").write_text(
-            "msgpack-python 1.1.2, Apache License 2.0, https://msgpack.org/\n",
-            encoding="utf-8",
-        )
+        build_user_package.bundle_msgpack(plugin / "vendor")
         forbidden = list(stage.rglob("*.so")) + list(stage.rglob("*.pyc"))
         if forbidden:
             raise RuntimeError(f"non-portable files in add-on: {forbidden}")
@@ -286,6 +246,7 @@ def build(
             for source in sorted(path for path in stage.rglob("*") if path.is_file()):
                 relative = source.relative_to(stage).as_posix()
                 info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
+                info.create_system = 3
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
                 archive.writestr(info, source.read_bytes(), compresslevel=9)

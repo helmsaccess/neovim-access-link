@@ -39,6 +39,8 @@ Windows-Entwicklungsbuild und Linux-Releasebuilder verwenden SCons für das
 Add-on. Basismanifest, Sprachmanifeste und Gettext-Quellen folgen der Struktur
 des NVDA-AddonTemplates. Der Dokumentations- und der Linux-Komponentenbuild
 bleiben eigenständige Schritte.
+Paketmetadaten und Zeilenenden der gebündelten Python-Quellen sind
+plattformunabhängig.
 
 Der gemeinsame Neovim-RPC-Client prüft Nachrichtenstrukturen und begrenzt
 Verbindungsaufbau, Empfangspuffer und vorläufige Benachrichtigungen. Controls
