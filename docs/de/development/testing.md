@@ -77,6 +77,10 @@ Unix-Sockets und kurzlebige Neovim-Prozesse erlaubt:
 python3 tools/run_tests.py socket
 ```
 
+Unter Windows führt der Runner in dieser Gruppe die native Loopback-TCP-
+Spezifikation aus. Für die vollständige Gruppe mit Unix-Sockets und Pexpect-PTY
+wird ein Linux-Checkout benötigt.
+
 In einer eingeschränkten Sandbox ist ein Listenerfehler eine
 Umgebungsbegrenzung, kein erfolgreicher Test. Die Socketphase wird dann in
 einer erlaubten Umgebung nachgeholt. `python3 tools/run_tests.py all` ist nur
@@ -186,10 +190,8 @@ bash tools/build_documentation.sh --test-only
 Linux-Releasebuild und CI-Prüfjob verwenden den jeweiligen offiziellen
 Binärbuild von Pandoc 3.1.11.1 aus einem Archiv mit festgelegter
 SHA-256-Prüfsumme. Der Windows-Entwicklungsbuild verwendet ein vorhandenes
-Pandoc der Reihe 3.1; fehlt es oder weichen Major- oder Minor-Version ab, nutzt
-er ebenfalls nur den prüfsummengesicherten offiziellen Binärbuild 3.1.11.1 in
-seinem temporären Buildverzeichnis. Eine andere lokale Version bleibt
-unverändert.
+Pandoc 3.1.11.1 mit den erwarteten Buildmerkmalen. Sonst lädt er den
+prüfsummengesicherten offiziellen Binärbuild in sein temporäres Buildverzeichnis.
 
 Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche und
 englische Quelldateien und Überschriftenstrukturen, lokale Markdownlinks,
@@ -200,13 +202,12 @@ Historische Archive, die ausdrücklich nicht
 zur aktuellen Dokumentation gehören, werden validiert, aber nicht in das HTML
 aufgenommen.
 
-Nach vollständiger Prüfung erzeugt `build.cmd` im synchronisierten
-Windows-Worktree die Entwicklungsartefakte. Der freigegebene Linux-Stand
+Nach vollständiger Prüfung erzeugt `build.cmd` im lokalen
+Windows-Checkout die Entwicklungsartefakte. Der freigegebene Linux-Stand
 erzeugt mit `python3 tools/build_release.py` die später veröffentlichten
 Releaseartefakte. Beide Einstiegspunkte verwenden denselben isolierten Kern
 und bauen Add-on und Dokumentations-ZIP aus einem stabilen Branch- und
-Commitstand. Details zu sicherer Git-Synchronisierung,
-Werkzeugvoraussetzungen und Abbruchbedingungen stehen unter
+Commitstand. Details zu Werkzeugvoraussetzungen und Abbruchbedingungen stehen unter
 [Release-, Versions- und Buildprozess](release-and-build.md).
 
 ## Praktische Prüfung

@@ -1,7 +1,8 @@
-local root = vim.fn.getcwd()
+local root = vim.fs.normalize(vim.fn.getcwd())
 if vim.loader and vim.loader.enable then vim.loader.enable(false) end
 package.path = root .. "/neovim-plugin/lua/?.lua;" .. root .. "/neovim-plugin/lua/?/init.lua;" .. package.path
-assert(package.searchpath("nvim_nvda.session", package.path) == root .. "/neovim-plugin/lua/nvim_nvda/session.lua",
+assert(vim.fs.normalize(assert(package.searchpath("nvim_nvda.session", package.path)))
+  == root .. "/neovim-plugin/lua/nvim_nvda/session.lua",
   "test checkout is first on package.path")
 
 local function truth(value, label)

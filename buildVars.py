@@ -9,7 +9,7 @@ from pathlib import Path
 
 product_version = "0.99.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 6
+development_build: int | None = 1
 release_channel = "beta"
 # The Add-on Store currently upgrades this release from 0.96.0. The manifest
 # changelog therefore includes every published product section after this base.
@@ -27,7 +27,7 @@ addon_info = {
     "url": "https://github.com/helmsaccess/neovim-access-link",
     "docFileName": "readme.html",
     "minimumNVDAVersion": "2026.1",
-    "lastTestedNVDAVersion": "2026.2",
+    "lastTestedNVDAVersion": "2026.3",
     "updateChannel": release_channel,
 }
 

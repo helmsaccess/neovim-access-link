@@ -9,13 +9,20 @@ every user setting or presentation.
 | Component | Reference state |
 |---|---|
 | Windows | Windows 11 25H2, 64-bit |
-| NVDA | Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest minimum 2026.1, last tested 2026.2 |
+| NVDA | Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest minimum 2026.1, last tested 2026.3 |
 | Terminal frontend | Windows Terminal 1.24.x |
 | Local Neovim | 0.12.3 practical; 0.10.1 automated |
 | SSH client | OpenSSH for Windows 9.5p2 with key-based login |
 | Linux | Rocky Linux 10.2, kernel 6.12.0-211.28.1.el10_2 |
 | Remote Neovim | 0.10.1 and 0.12.3 |
 | Linux bridge | Python 3.12.13 in the reference environment |
+
+An isolated Windows run with NVDA 2026.3.1 checked packaged add-on startup
+and import of its Windows Terminal AppModule. The Lua suite and local
+loopback TCP test passed with native Neovim 0.12.6. The packaged NVDA client
+also authenticated to an isolated Neovim instance and received its full state.
+Focus switching, speech, and physical Braille output still need a practical
+run with this version pair.
 
 Neovim 0.10.1 is the provisional minimum. Newer optional APIs are used only
 after a feature check. On Neovim 0.10, the plugin creates a silent `<Ignore>`

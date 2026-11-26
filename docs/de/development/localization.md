@@ -38,7 +38,7 @@ zurück. Der MO-Compiler lässt sie dafür wie GNU `msgfmt` aus der Binärdatei
 weg; eine leere Übersetzung darf niemals einen sichtbaren Text entfernen. Der
 Build kompiliert deterministisch mit der Python-Standardbibliothek;
 GNU-gettext-Werkzeuge sind keine Buildabhängigkeit. Entwicklungsartefakte
-entstehen mit `build.cmd` im synchronisierten Windows-Worktree; das
+entstehen mit `build.cmd` im lokalen Windows-Checkout; das
 auslieferbare Release-Add-on entsteht mit `tools/build_release.py` auf Linux.
 
 Der erste Werkzeugstand verarbeitet einfache Nachrichten mit benannten

@@ -9,6 +9,14 @@ import braille as nvdaBraille
 import config
 import core
 
+try:
+	from braille.regions.base import Region
+	from braille.regions.textInfo import TextInfoRegion
+except ModuleNotFoundError as error:
+	if error.name != "braille.regions":
+		raise
+	from braille import Region, TextInfoRegion
+
 from .core.braille import BraillePlan, plan_braille, source_offset_for_expanded
 from .adapter_ports import BrailleAdapterPort
 from .service_registry import get_terminal_integration_service
@@ -87,7 +95,7 @@ def numbered_choice_message_text(
 	):
 		return text
 	try:
-		region = nvdaBraille.Region()
+		region = Region()
 		region.rawText = text
 		region.update()
 		content_cell_count = len(region.brailleCells)
@@ -146,7 +154,7 @@ def present_numbered_choice_message(text: str, *, start_cell: int) -> object | N
 	return message_token
 
 
-class DeveloperContextMessageRegion(nvdaBraille.Region):
+class DeveloperContextMessageRegion(Region):
 	"""Keep one held developer message pageable inside its owned NVDA buffer."""
 
 	def __init__(self, text: str, handler: object):
@@ -154,7 +162,7 @@ class DeveloperContextMessageRegion(nvdaBraille.Region):
 		self.rawText = text
 		self._handler = handler
 		self._pageIndex = 0
-		translated = nvdaBraille.Region()
+		translated = Region()
 		translated.rawText = text
 		translated.update()
 		self._allBrailleCells = tuple(translated.brailleCells)
@@ -342,7 +350,7 @@ def position_numbered_choice(
 	)
 
 
-class StructuredLineRegion(nvdaBraille.TextInfoRegion):
+class StructuredLineRegion(TextInfoRegion):
 	"""Let NVDA translate and decorate one structured Neovim line."""
 
 	def __init__(self, obj):
@@ -370,7 +378,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 		self._apply_plan(plan, session_plan)
 		# TextInfoRegion supplies NVDA's public caret-following contract, while
 		# the semantic text itself comes from Neovim rather than an NVDA TextInfo.
-		nvdaBraille.Region.update(self)
+		Region.update(self)
 		if session_plan is not None and session_plan.numbered_choice and service is not None:
 			try:
 				positioned_plan = position_numbered_choice(
@@ -385,7 +393,7 @@ class StructuredLineRegion(nvdaBraille.TextInfoRegion):
 			if positioned_plan is not plan:
 				plan = positioned_plan
 				self._apply_plan(plan, session_plan)
-				nvdaBraille.Region.update(self)
+				Region.update(self)
 		if session_plan is not None and session_plan.preserve_viewport:
 			# NVDA's public TextInfoRegion contract marks a pending caret update
 			# when native terminal events arrive. In Braille exploration, the

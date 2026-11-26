@@ -144,7 +144,8 @@ local real_channel = event_channel.new({
   decorate = function() end,
   on_disconnect = function(reason) real_disconnect = reason end,
 })
-local rpc_job = vim.fn.jobstart({ "cat" }, { rpc = true })
+local python = vim.env.NAL_TEST_PYTHON or (vim.fn.has("win32") == 1 and "python" or "python3")
+local rpc_job = vim.fn.jobstart({ python, "-c", "import sys; sys.stdin.buffer.read()" }, { rpc = true })
 assert(rpc_job > 0, "disposable RPC job starts")
 real_channel.connect(rpc_job)
 equal(false, real_channel.emit("modeChanged", "serializationFailure"),

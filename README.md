@@ -119,20 +119,20 @@ Follow the [English Quick Guide](docs/en/manual/quick-guide.md) or
 [German Quick Guide](docs/de/manual/quick-guide.md) for the exact accessible
 steps.
 
-Project development builds are created in the synchronized Windows worktree:
-install a current Python 3 and double-click `build.cmd`. The launcher uses an
-installed Pandoc from the compatible 3.1 series or downloads the verified
-3.1.11.1 binary into a temporary environment. It also installs pinned Python
-build dependencies there and puts the matching `.nvda-addon` and documentation
-ZIP in `dist`; system installations remain unchanged. An internet connection
-is required when temporary tools must be downloaded.
+From a clean local Windows branch, run `build.cmd` with current Python 3
+and Git Bash available. The build uses Pandoc 3.1.11.1 and pinned Python
+dependencies, and places the matching add-on and documentation ZIP in `dist`.
+See [development setup](docs/en/development/getting-started.md) for the test
+environment and the [build guide](docs/en/development/release-and-build.md)
+for prerequisites.
 
 ## Compatibility and status
 
 The confirmed reference environment uses Windows 11, NVDA 2026.1.x, Windows
 Terminal, local Windows Neovim 0.12.3, and Neovim 0.10.1 or 0.12.3 on Rocky
 Linux 10 over Windows OpenSSH. Local Neovim 0.10.1 remains covered by
-automated tests.
+automated tests. A separate Windows check starts the packaged add-on in
+NVDA 2026.3.1 and exercises Neovim 0.12.6 with automated Lua and TCP tests.
 
 Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See

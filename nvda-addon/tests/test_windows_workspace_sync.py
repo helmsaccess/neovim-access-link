@@ -9,7 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools import windows_workspace_sync as workspace_sync
+if os.name != "nt":
+	from tools import windows_workspace_sync as workspace_sync
 
 
 def run_git(repository: Path, *arguments: str) -> str:
@@ -26,6 +27,7 @@ def write(path: Path, content: str) -> None:
 	path.write_text(content, encoding="utf-8")
 
 
+@unittest.skipIf(os.name == "nt", "legacy workspace sync uses Linux file locks")
 class WindowsWorkspaceSyncTests(unittest.TestCase):
 	def setUp(self) -> None:
 		self.temporary = tempfile.TemporaryDirectory(prefix="nal-windows-workspace-")

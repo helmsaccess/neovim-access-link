@@ -1,11 +1,9 @@
 # Aktueller Status
 
-Stand: 24. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.6 mit Branch- und
-Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
+Stand: 26. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
+`buildVars.py` erzeugt die Versionskennung aus Entwicklungsbuildnummer,
+Branch und Commit und setzt den Manifest-Update-Kanal auf Beta. Der zuletzt
 veröffentlichte Pre-Release ist 0.98.0.
-Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
-Stabilitätseinstufung ab.
 
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften
 Stands. [Architektur](architecture.md) und
@@ -24,10 +22,16 @@ NVDA 2026.2beta10 umfasste automatische F12-Bindungen, häufige Wechsel zwischen
 lokalem und entferntem Pane sowie einem weiteren Windows-Terminal-Fenster, das
 Beenden und erneute Starten des entfernten Neovim und natives Tippecho außerhalb
 der aktiven Sitzung. Die Bindungen blieben getrennt und aktiv; getrennte
-SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus. Das Manifest
-nennt deshalb 2026.2 als zuletzt getestete NVDA-Version.
-Die vollständigen Plattform- und Versionsgrenzen stehen in
-[Kompatibilität](compatibility.md).
+SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus.
+
+Unter Windows startete das gebaute Add-on in einem isolierten Profil mit
+NVDA 2026.3.1. Die NVDA-Integration und das Windows-Terminal-AppModule
+ließen sich laden. Neovim 0.12.6 bestand die Lua- und lokalen TCP-Tests. Der
+paketierte NVDA-Client empfing den authentifizierten vollständigen Zustand.
+Fokuswechsel, hörbare Ausgabe und physische Braille-Ausgabe wurden mit
+diesen Versionen noch nicht praktisch geprüft. Das Manifest führt 2026.3
+als zuletzt getestete NVDA-Version und behält 2026.1 als Mindestversion.
+Details stehen in [Kompatibilität](compatibility.md).
 
 ## Implementierter Gesamtpfad
 
@@ -70,10 +74,10 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
 - Dokumentationsjob und Linux-Releasebuild verwenden den jeweiligen offiziellen
   Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten Archiv. Der
-  Windows-Entwicklungsbuild akzeptiert ein lokales Pandoc der Reihe 3.1 und
+  Windows-Entwicklungsbuild akzeptiert ein lokales Pandoc 3.1.11.1 und
   verwendet andernfalls den geprüften Binärbuild nur temporär. CI und normale
   Linux-Entwicklung validieren nur in temporären Verzeichnissen. `build.cmd`
-  erzeugt Entwicklungsartefakte im synchronisierten Windows-Worktree;
+  erzeugt Entwicklungsartefakte im lokalen Windows-Checkout;
   `tools/build_release.py` erzeugt die
   später veröffentlichten Assets ausschließlich aus sauberem Linux-`main`
   mit freigegebenen Release-Metadaten.
@@ -220,14 +224,10 @@ synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
 deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
 Markdownlinks, generierte HTML-Ziele sowie Sprach-, Titel- und
 Beschreibungsmetadaten. GitHub Actions führt diese temporäre Validierung als
-eigenen Job aus. Git-Hooks spiegeln Branch-Erstellung, -Löschung, -Wechsel und
-Commitänderungen in den dauerhaften, über SMB sichtbaren Windows-Worktree,
-ohne ignorierte virtuelle Umgebungen, Human-Test-Zustände oder Buildausgaben zu
-verändern. Verknüpfte Linux-Worktrees teilen dabei eine serialisierte
-Warteschlange. `build.cmd` prüft diesen Synchronisierungsstand vor und nach dem
-parameterlosen Windows-Entwicklungsbuild. Derselbe isolierte Kern prüft beim
-Linux-Releasebuild Branch, Commit und Sauberkeit vor und nach dem Build und
-veröffentlicht genau Add-on und Dokumentations-ZIP nach `dist`.
+eigenen Job aus. Die Entwicklung erfolgt im lokalen Windows-Checkout mit
+normalem Git-Abgleich. `build.cmd` prüft Branch, Commit und versionierte
+Sauberkeit vor und nach dem Build. Derselbe isolierte Kern erstellt auch die
+Linux-Releaseartefakte und legt Add-on und Dokumentations-ZIP in `dist` ab.
 
 ## Prüfnachweis
 

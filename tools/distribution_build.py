@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import re
 import shutil
 import subprocess
 import tarfile
@@ -31,7 +30,6 @@ PANDOC_LINUX_URL = (
 )
 PANDOC_LINUX_SHA256 = "07635f6953201ee261bf90e821b8fe36c045e5a6fbae2ae6b1c2127715432942"
 PANDOC_LINUX_MEMBER = "pandoc-3.1.11.1/bin/pandoc"
-PANDOC_MAJOR_MINOR = tuple(int(part) for part in PANDOC_VERSION.split(".")[:2])
 
 
 @dataclass(frozen=True)
@@ -53,6 +51,21 @@ def _run_git(root: Path, *arguments: str) -> str:
 	return completed.stdout.strip()
 
 
+def _clean_source_snapshot(root: Path, branch: str) -> SourceSnapshot:
+	commit = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+	if _run_git(root, "status", "--porcelain=v1", "--untracked-files=no"):
+		raise RuntimeError("the source worktree has changes to versioned files")
+	return SourceSnapshot(branch, commit)
+
+
+def development_source_snapshot(root: Path) -> SourceSnapshot:
+	"""Return a clean local development snapshot without a sync dependency."""
+	if buildVars.development_build is None:
+		raise RuntimeError("Windows development assets require a development build number")
+	branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+	return _clean_source_snapshot(root, branch)
+
+
 def release_source_snapshot(root: Path) -> SourceSnapshot:
 	"""Return one clean main-branch release snapshot."""
 	if buildVars.development_build is not None:
@@ -60,10 +73,7 @@ def release_source_snapshot(root: Path) -> SourceSnapshot:
 	branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if branch != "main":
 		raise RuntimeError(f"Linux release assets must be built from main, not {branch!r}")
-	commit = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
-	if _run_git(root, "status", "--porcelain=v1", "--untracked-files=no"):
-		raise RuntimeError("the Linux release worktree has changes to versioned files")
-	return SourceSnapshot(branch, commit)
+	return _clean_source_snapshot(root, branch)
 
 
 def expected_artifact_names() -> frozenset[str]:
@@ -109,15 +119,16 @@ def _compatible_local_pandoc() -> Path | None:
 		)
 	except (OSError, subprocess.TimeoutExpired):
 		return None
-	first_line = completed.stdout.splitlines()[0] if completed.returncode == 0 and completed.stdout else ""
-	match = re.fullmatch(r"pandoc\s+(\d+)\.(\d+)(?:\..*)?", first_line.strip())
-	if match is None:
+	if completed.returncode != 0:
 		return None
-	version = (int(match.group(1)), int(match.group(2)))
-	if version != PANDOC_MAJOR_MINOR:
+	lines = completed.stdout.splitlines()
+	if (
+		len(lines) < 2
+		or lines[0] not in {f"pandoc {PANDOC_VERSION}", f"pandoc.exe {PANDOC_VERSION}"}
+		or lines[1] != "Features: +server +lua"
+	):
 		print(
-			f"Ignoring local Pandoc {match.group(1)}.{match.group(2)}; "
-			f"the build requires {PANDOC_MAJOR_MINOR[0]}.{PANDOC_MAJOR_MINOR[1]}.x.",
+			f"Ignoring local Pandoc; the build requires the official {PANDOC_VERSION} binary.",
 			flush=True,
 		)
 		return None

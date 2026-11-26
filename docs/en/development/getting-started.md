@@ -60,9 +60,30 @@ dependencies as well.
 Pure Python and Lua tests do not import NVDA. NVDA-facing tests use controlled
 test doubles and additionally inspect the built add-on.
 
+### Set up a Windows checkout
+
+Work in a local Windows checkout and compare existing branches with
+`git fetch origin`. Make Git for Windows with Bash, a current Python 3,
+and native `nvim.exe` available. Install the test dependencies into a
+separate Python environment:
+
+```powershell
+python -m venv ..\nal-aux\tools\python\windows-development
+& ..\nal-aux\tools\python\windows-development\Scripts\Activate.ps1
+python -m pip install -r tools/requirements-ci.txt ruff==0.15.4
+python tools/run_tests.py all-safe
+python tools/run_tests.py ssh
+python tools/run_tests.py socket
+```
+
+On Windows, `socket` checks the native loopback listener. Run the Unix socket
+and PTY tests on Linux. Run `.\build.cmd` from a clean branch to build
+development artifacts.
+
 ## First checkout verification
 
-For fast feedback without package builds or real listeners:
+On Linux, this command gives fast feedback without package builds or real
+listeners:
 
 ```bash
 tools/run_tests.py quick
@@ -107,10 +128,10 @@ selection without running it.
 
 Package tests create and inspect the add-on only in temporary directories.
 The developer subsequently creates development artifacts with `build.cmd` in
-the synchronized Windows worktree. An explicitly approved release state is
+the local Windows checkout. An explicitly approved release state is
 instead built from clean Linux `main` with `python3 tools/build_release.py`.
 See [testing.md](testing.md) and [release-and-build.md](release-and-build.md)
-for isolation, synchronization, sandbox boundaries, and the properties proved
+for isolation, sandbox boundaries, and the properties proved
 by each suite.
 
 ## Where a change starts

@@ -37,7 +37,7 @@ are allowed and intentionally fall back to English. The MO compiler omits them
 from the binary just like GNU `msgfmt`; an empty translation must never remove
 visible text. The build compiles catalogs deterministically with the Python
 standard library, so GNU gettext tools are not a build dependency. Development
-artifacts are created with `build.cmd` in the synchronized Windows worktree;
+artifacts are created with `build.cmd` in the local Windows checkout;
 the distributable release add-on is created with `tools/build_release.py` on
 Linux.
 

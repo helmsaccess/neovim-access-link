@@ -6,26 +6,21 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
-- Separates Linux development from the Windows distributable build. An
-  asynchronous, fail-closed Git-ref synchronizer keeps the NFS- and SMB-visible
-  Windows worktree current across branch creation, deletion, switching, and
-  non-fast-forward commit changes while changing versioned files only. Ignored
-  virtual environments, human-test state, tools, and build output remain in
-  place; target edits or untracked name collisions stop synchronization.
-  Linked Linux worktrees share one serialized queue. CI and normal Linux
-  development render or package only in temporary test directories.
-  Parameterless Windows `build.cmd` produces development artifacts from
-  synchronization state verified before and after the build. A shared
-  isolated core lets `tools/build_release.py` produce exactly the later tagged
-  add-on and documentation ZIP from clean Linux `main` and approved release
-  metadata. The obsolete standalone generated-to-installed documentation sync
-  command is replaced by an internal layout library; the unused, undocumented
-  Windows helper for uploading NVDA logs is removed as well. The Windows build
-  uses an installed Pandoc from the 3.1 series or downloads the verified
-  3.1.11.1 binary into its temporary build directory only. MessagePack 1.1.2
-  replaces the source-identical 1.1.1 so current Python 3.14 build
-  environments can use an official wheel. This installable state is
-  development build 6.
+- Enables local Windows development with Git fetches from `origin`. `build.cmd`
+  uses a clean local branch. Python and Lua tests support native Windows paths
+  and test processes. The Windows socket run checks the local TCP path.
+  Unix socket and PTY tests run on Linux.
+
+- Uses the current NVDA imports for Braille regions and retains the fallback
+  for NVDA 2026.1. The built add-on starts on NVDA 2026.3.1. Lua and Windows
+  TCP tests use Neovim 0.12.6.
+- Builds the add-on and documentation ZIP through a shared isolated core.
+  The Windows build recognizes official Pandoc 3.1.11.1 with Windows line
+  endings. The Linux release build uses an approved clean `main` snapshot.
+  The earlier Git-ref synchronizer was part of the Linux development workflow.
+  MessagePack 1.1.2 provides official wheels for Python 3.14.
+- Replaces the standalone generated-to-installed documentation sync with an
+  internal layout library and removes the unused Windows NVDA log uploader.
 - Fixes Lazy guided-test preparation on shared or mapped repository drives:
   the isolated Git configuration lists the concrete fixture repositories
   instead of a wildcard. Preparation stops at the first failed tool or profile

@@ -1,30 +1,17 @@
 #!/usr/bin/env python3
-"""Build development artifacts in the synchronized Windows workspace."""
+"""Build development artifacts from a local Windows Git checkout."""
 
 from __future__ import annotations
 
-import json
 import os
 import pathlib
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
 
 from tools import distribution_build
 
 ROOT = pathlib.Path(__file__).resolve().parent
-SYNC_STATE_DIRECTORY = "nal-windows-sync"
-SYNC_MANAGED_MARKER = "nal-windows-sync-managed"
-SYNC_STATUS_NAME = "nal-windows-sync-status.json"
-
-
-@dataclass(frozen=True)
-class WorkspaceSnapshot:
-	branch: str
-	commit: str
-	managed: bool
-	synchronization_token: str = ""
 
 
 def _require_windows() -> None:
@@ -33,49 +20,6 @@ def _require_windows() -> None:
 			"development artifacts are built on Windows; "
 			"Linux release assets use tools/build_release.py"
 		)
-
-
-def _run_git(*arguments: str) -> str:
-	completed = subprocess.run(
-		("git", "-C", str(ROOT), *arguments),
-		check=False,
-		capture_output=True,
-		text=True,
-	)
-	if completed.returncode != 0:
-		detail = completed.stderr.strip() or completed.stdout.strip() or "Git command failed"
-		raise RuntimeError(detail)
-	return completed.stdout.strip()
-
-
-def _workspace_snapshot() -> WorkspaceSnapshot:
-	branch = _run_git("symbolic-ref", "--quiet", "--short", "HEAD")
-	commit = _run_git("rev-parse", "--verify", "HEAD^{commit}")
-	tracked_changes = _run_git("status", "--porcelain=v1", "--untracked-files=no")
-	if tracked_changes:
-		raise RuntimeError("the Windows workspace has changes to versioned files")
-	state_directory = pathlib.Path(
-		_run_git("rev-parse", "--path-format=absolute", "--git-path", SYNC_STATE_DIRECTORY)
-	)
-	marker = state_directory / SYNC_MANAGED_MARKER
-	if not marker.is_file():
-		raise RuntimeError("the Windows workspace is not managed by the Linux synchronization tool")
-	status_path = state_directory / SYNC_STATUS_NAME
-	try:
-		status = json.loads(status_path.read_text(encoding="utf-8"))
-	except (OSError, json.JSONDecodeError) as error:
-		raise RuntimeError(f"the Windows workspace synchronization status is unavailable: {error}") from error
-	if not status.get("success"):
-		raise RuntimeError(
-			"the Windows workspace is not synchronized successfully: "
-			f"{status.get('error') or 'unknown synchronization failure'}"
-		)
-	if status.get("branch") != branch or status.get("commit") != commit:
-		raise RuntimeError("the Windows workspace branch or commit differs from its synchronization status")
-	token = status.get("updatedAt")
-	if not isinstance(token, str) or not token:
-		raise RuntimeError("the Windows workspace synchronization status has no update token")
-	return WorkspaceSnapshot(branch, commit, True, token)
 
 
 def _find_bash() -> pathlib.Path:
@@ -99,7 +43,7 @@ def build() -> None:
 	distribution_build.build_distributions(
 		ROOT,
 		bash=_find_bash(),
-		snapshot=_workspace_snapshot,
+		snapshot=lambda: distribution_build.development_source_snapshot(ROOT),
 		prepare_pandoc=distribution_build.prepare_windows_pandoc,
 		temporary_prefix="windows-distributable-",
 	)

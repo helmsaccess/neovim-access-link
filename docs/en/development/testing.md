@@ -75,6 +75,10 @@ Unix sockets, and short-lived Neovim processes:
 python3 tools/run_tests.py socket
 ```
 
+On Windows the runner executes the native loopback TCP specification in
+this group. Use a Linux checkout for the complete group with Unix sockets and
+Pexpect PTYs.
+
 In a restricted sandbox, a listener failure is an environment limitation, not
 a passing test. Run the socket phase later in a permitted environment.
 `python3 tools/run_tests.py all` is appropriate only where all three phases are
@@ -179,10 +183,9 @@ bash tools/build_documentation.sh --test-only
 
 The Linux release build and CI validation job use the respective official
 Pandoc 3.1.11.1 binary from an archive with a pinned SHA-256 digest. The
-Windows development build uses an installed Pandoc from the 3.1 series; when
-it is missing or its major or minor version differs, the build uses only the
-verified official 3.1.11.1 binary in its temporary build directory. A
-different local installation remains unchanged.
+Windows development build uses installed Pandoc 3.1.11.1 with the expected
+build features. Otherwise it downloads the verified official binary into its
+temporary build directory.
 
 The build checks the canonical Lua example, German and English source files
 and heading structures, local Markdown links, generated HTML targets,
@@ -192,12 +195,11 @@ artifact. Historical archives explicitly excluded from current documentation are
 validated but not included in HTML.
 
 After complete validation, `build.cmd` creates development artifacts in the
-synchronized Windows worktree. The approved Linux state creates the later
+local Windows checkout. The approved Linux state creates the later
 published release artifacts with `python3 tools/build_release.py`. Both entry
 points use the same isolated core and build the add-on and documentation ZIP
 from one stable branch and commit. See [release, version, and build
-process](release-and-build.md) for safe Git synchronization, prerequisites,
-and stop conditions.
+process](release-and-build.md) for prerequisites and stop conditions.
 
 ## Practical testing
 

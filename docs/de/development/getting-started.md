@@ -61,9 +61,30 @@ NVDA selbst wird für die reinen Python- und Lua-Tests nicht importiert. Die
 NVDA-nahen Tests verwenden kontrollierte Testdoubles und prüfen zusätzlich den
 Inhalt des gebauten Add-ons.
 
+### Windows-Checkout einrichten
+
+In einem lokalen Windows-Checkout arbeiten und vorhandene Branches mit
+`git fetch origin` abgleichen. Git für Windows mit Bash, ein aktuelles
+Python 3 und ein natives `nvim.exe` müssen erreichbar sein. Die Python-
+Testabhängigkeiten lassen sich in einer separaten Umgebung installieren:
+
+```powershell
+python -m venv ..\nal-aux\tools\python\windows-development
+& ..\nal-aux\tools\python\windows-development\Scripts\Activate.ps1
+python -m pip install -r tools/requirements-ci.txt ruff==0.15.4
+python tools/run_tests.py all-safe
+python tools/run_tests.py ssh
+python tools/run_tests.py socket
+```
+
+Unter Windows prüft `socket` den nativen Loopback-Listener. Die Unix-
+Socket- und PTY-Tests werden auf Linux ausgeführt. Für den Entwicklungsbuild
+aus einem sauberen Branch `.\build.cmd` ausführen.
+
 ## Erste Prüfung eines Checkouts
 
-Für eine schnelle Rückmeldung ohne Paketbau und echte Listener:
+Auf Linux liefert dieser Befehl eine schnelle Rückmeldung ohne Paketbau und
+echte Listener:
 
 ```bash
 tools/run_tests.py quick
@@ -108,9 +129,9 @@ Auswahl ohne Ausführung.
 
 Pakettests erzeugen und untersuchen das Add-on ausschließlich in temporären
 Verzeichnissen. Entwicklungsartefakte baut der Entwickler anschließend mit
-`build.cmd` im synchronisierten Windows-Worktree. Ein ausdrücklich
+`build.cmd` im lokalen Windows-Checkout. Ein ausdrücklich
 freigegebener Releasezustand wird dagegen mit `python3 tools/build_release.py`
-aus sauberem Linux-`main` gebaut. Details zu Isolation, Synchronisierung und
+aus sauberem Linux-`main` gebaut. Details zu Isolation und
 Sandbox-Grenzen stehen in [testing.md](testing.md) und
 [release-and-build.md](release-and-build.md).
 

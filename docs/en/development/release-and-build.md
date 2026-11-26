@@ -71,47 +71,19 @@ language, title, and description, and creates eight HTML documents.
 Those files are deleted afterwards; CI does not publish or refresh end-user
 artifacts.
 
-Normal development artifacts are created in the synchronized Windows worktree
-with parameterless `build.cmd`. It requires a current Python 3, Git for Windows
-with Bash, and an Internet connection. It installs pinned Python dependencies
-temporarily. It uses an installed Pandoc from the compatible 3.1 series or
-downloads the official Pandoc 3.1.11.1 Windows binary into the same temporary
-area and verifies its SHA-256. An incompatible local version is neither used
-nor changed. Branch, commit, and synchronization state are compared before
-and after the build.
+Build development artifacts with parameterless `build.cmd` from a clean
+local Windows branch with a development build number. The build uses Python 3,
+Git Bash, and an Internet connection for the pinned Python dependencies.
+Provide Git Bash via `PATH`, the default Git for Windows installation, or
+`NAL_GIT_BASH`. The build uses an installed Pandoc 3.1.11.1 or
+downloads the official Windows 3.1.11.1 binary temporarily and verifies its
+SHA-256.
 
-The Windows development and Linux release builds use the same isolated core.
-It renders all eight documents, builds the add-on and documentation ZIP from
-them, validates the exact expected names, and only then moves those two files
-to `dist`. A concurrent source change stops publication of the files.
-
-## Synchronized Windows worktree
-
-`/nfs/src/neovim-access-link` is the persistent test and build worktree exposed
-to Windows as an SMB drive. Configure it once from the Linux checkout:
-
-```bash
-python3 tools/windows_workspace_sync.py configure /nfs/src/neovim-access-link
-```
-
-Local Git hooks then transfer branch-ref changes in the background. Branch
-creation, deletion, and switching, including non-fast-forward commit changes,
-are mirrored. The target checkout uses a separate staging-ref namespace and
-`--no-overwrite-ignore`. Synchronization changes only versioned files and Git
-refs; ignored or otherwise untracked virtual environments, human-test state,
-tool installations, and build output remain in place. A versioned target edit
-or a name collision with an untracked file stops synchronization. Retry it
-manually with:
-
-```bash
-python3 tools/windows_workspace_sync.py sync
-```
-
-Linked Linux worktrees of the same repository share one serialized queue. The
-most recently triggering worktree selects the checked-out target branch while
-all local branch refs are mirrored independently. Hooks and the worker run
-from a branch-independent copy in the shared Git administration directory.
-Run `configure` again after changing the synchronization tool or its hooks.
+The Windows development build and Linux release build render all eight HTML
+documents and package them through the same isolated core. They verify the
+branch, commit, and cleanliness of tracked files before and after the build.
+The add-on and documentation ZIP reach `dist` after these checks pass and
+their names match. Use `git fetch origin` to compare with an existing repository.
 
 ## Linux release build
 
@@ -154,7 +126,7 @@ An approved version requires one coherent state containing:
    `buildVars.py`;
 2. current release and changelog links in `README.md` plus German and English
    version sections curated from the unreleased entries and containing every
-   change since the immediately preceding published release;
+   change since the immediately preceding published release, with the unreleased section reset;
 3. current status, compatible metadata, and complete German/English
    documentation;
 4. successful full tests and artifacts freshly built from this Linux state
@@ -176,10 +148,25 @@ published.
 
 ## GitHub and Add-on Store
 
-A GitHub pre-release is created from the authorized tag, uses an English
-release description, and contains exactly the two assets listed below. Verify
-the tag target, pre-release flag, asset names, and downloads on GitHub after
-publication.
+After explicit approval, build the prepared release commit on clean Linux
+`main` and push the commit and its existing tag to GitHub first. Before
+publication, verify the built base and localized manifests against the current
+official NVDA AddonTemplate. Every applicable field must contain a valid
+value. Write English notes covering changes since the previous published
+version, compatibility and testing limits, tag-pinned documentation links,
+and the purpose of both downloads. Keep the temporary file under `../nal-aux/`.
+
+```bash
+gh release create "v<VERSION>" "dist/NeovimAccessLink-<VERSION>.nvda-addon" \
+  "dist/neovim-access-link-<VERSION>-documentation.zip" \
+  --repo helmsaccess/neovim-access-link --verify-tag --fail-on-no-commits \
+  --title "Neovim Access Link <VERSION>" --notes-file "<RELEASE_NOTES_FILE>" <STATUS_FLAGS>
+```
+
+Use `--prerelease --latest=false` below 1.0.0 and `--latest` from 1.0.0.
+The add-on embeds the server package. After publication, verify the tag
+target, title, draft, prerelease and latest status, notes, exact two asset
+names, and successful downloads.
 
 Submission to the NVDA Add-on Store is a separate operation in the add-on
 datastore. It points to an already published, immutable revision and follows

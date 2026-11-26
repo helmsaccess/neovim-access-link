@@ -167,9 +167,11 @@ command -v "$pandoc_command" >/dev/null || {
   exit 1
 }
 mapfile -t pandoc_info < <("$pandoc_command" --version)
-if [[ "${pandoc_info[0]:-}" != "pandoc 3.1.11.1" \
-  && "${pandoc_info[0]:-}" != "pandoc.exe 3.1.11.1" \
-  || "${pandoc_info[1]:-}" != "Features: +server +lua" ]]; then
+pandoc_version="${pandoc_info[0]:-}"
+pandoc_features="${pandoc_info[1]:-}"
+if [[ "${pandoc_version%$'\r'}" != "pandoc 3.1.11.1" \
+  && "${pandoc_version%$'\r'}" != "pandoc.exe 3.1.11.1" \
+  || "${pandoc_features%$'\r'}" != "Features: +server +lua" ]]; then
   echo "error: the official Pandoc 3.1.11.1 build is required for reproducible HTML" >&2
   exit 1
 fi

@@ -60,6 +60,6 @@
 - Update relevant indexes and release references, and validate both Markdown source links and
   generated HTML links. Keep one real H1 per source; fenced examples do not count as headings.
 - Validate all eight German and English HTML documents with
-  `bash tools/build_documentation.sh --test-only`. Use `build.cmd` for synchronized Windows development
+  `bash tools/build_documentation.sh --test-only`. Use `build.cmd` for local Windows development
   artifacts and `python3 tools/build_release.py` on clean Linux `main` for an approved release;
   both create distributable documentation through the shared isolated build path.

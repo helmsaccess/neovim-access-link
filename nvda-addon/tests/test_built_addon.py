@@ -13302,6 +13302,24 @@ class BuiltAddonTests(unittest.TestCase):
         self.assertEqual(["ä", "x"], self.spelled)
         plugin.terminate()
 
+    def test_braille_regions_use_current_nvda_modules_when_available(self) -> None:
+        import braille
+
+        class Region(braille.Region):
+            pass
+
+        class TextInfoRegion(Region):
+            pass
+
+        with mock.patch.dict(sys.modules, {
+            "braille.regions.base": types.SimpleNamespace(Region=Region),
+            "braille.regions.textInfo": types.SimpleNamespace(TextInfoRegion=TextInfoRegion),
+        }):
+            from globalPlugins.NeovimAccessLink import nvda_braille
+
+            self.assertIs(nvda_braille.DeveloperContextMessageRegion.__base__, Region)
+            self.assertIs(nvda_braille.StructuredLineRegion.__base__, TextInfoRegion)
+
     def test_structured_braille_region_preserves_indent_cursor_and_selection(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin
         from globalPlugins.NeovimAccessLink.nvda_braille import StructuredLineRegion

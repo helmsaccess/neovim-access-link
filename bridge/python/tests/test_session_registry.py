@@ -14,6 +14,7 @@ from nvim_nvda_bridge.session_registry import (
 )
 
 
+@unittest.skipUnless(os.name == "posix", "remote session registry uses Unix ownership and PID probes")
 class SessionRegistryTests(unittest.TestCase):
     def test_noninteractive_ssh_recovers_owned_system_runtime_directory(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=True), \

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import io
-import json
 import os
 import pathlib
 import runpy
@@ -105,16 +104,19 @@ class RepositoryPolicyTests(unittest.TestCase):
         ):
             pandoc = distribution_build.prepare_linux_pandoc(pathlib.Path(directory))
             self.assertEqual(b"linux pandoc", pandoc.read_bytes())
-            self.assertTrue(pandoc.stat().st_mode & 0o100)
+            if os.name == "posix":
+                self.assertTrue(pandoc.stat().st_mode & 0o100)
 
-    def test_windows_build_reuses_only_major_minor_compatible_local_pandoc(self) -> None:
+    def test_windows_build_reuses_local_pandoc_only_when_it_matches_the_renderer(self) -> None:
         compatible = pathlib.Path("C:/Tools/Pandoc/pandoc.exe")
         with (
             mock.patch.object(distribution_build.shutil, "which", return_value=str(compatible)),
             mock.patch.object(
                 distribution_build.subprocess,
                 "run",
-                return_value=subprocess.CompletedProcess((), 0, "pandoc 3.1.9\n", ""),
+                return_value=subprocess.CompletedProcess(
+                    (), 0, "pandoc.exe 3.1.11.1\r\nFeatures: +server +lua\r\n", "",
+                ),
             ),
             mock.patch.object(distribution_build, "_download_verified") as download,
         ):
@@ -130,7 +132,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             mock.patch.object(
                 distribution_build.subprocess,
                 "run",
-                return_value=subprocess.CompletedProcess((), 0, "pandoc 3.2.0\n", ""),
+                return_value=subprocess.CompletedProcess((), 0, "pandoc 3.1.9\nFeatures: +server +lua\n", ""),
             ),
             mock.patch.object(distribution_build, "_download_verified") as download,
             mock.patch.object(zipfile, "ZipFile", side_effect=zipfile.BadZipFile("test stop")),
@@ -155,15 +157,11 @@ class RepositoryPolicyTests(unittest.TestCase):
                     archive.namelist(),
                 )
 
-    def test_windows_build_snapshot_requires_management_and_matching_success_status(self) -> None:
-        namespace = runpy.run_path(
-            str(REPOSITORY_ROOT / "build.py"),
-            run_name="managed_windows_snapshot_test",
-        )
+    def test_windows_build_snapshot_accepts_clean_local_development_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = pathlib.Path(directory) / "repository"
             subprocess.run(
-                ("git", "init", "--initial-branch=main", str(repository)),
+                ("git", "init", "--initial-branch=feature", str(repository)),
                 check=True,
                 capture_output=True,
             )
@@ -186,44 +184,20 @@ class RepositoryPolicyTests(unittest.TestCase):
                 check=True,
                 capture_output=True,
             )
-            globals_ = namespace["_workspace_snapshot"].__globals__
-            with mock.patch.dict(globals_, {"ROOT": repository}):
-                with self.assertRaisesRegex(RuntimeError, "not managed"):
-                    namespace["_workspace_snapshot"]()
-                branch = "main"
-                commit = subprocess.run(
-                    ("git", "-C", str(repository), "rev-parse", "HEAD"),
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                ).stdout.strip()
-                state_directory = repository / ".git" / namespace["SYNC_STATE_DIRECTORY"]
-                state_directory.mkdir()
-                (state_directory / namespace["SYNC_MANAGED_MARKER"]).write_text(
-                    "managed\n",
-                    encoding="utf-8",
-                )
-                status_path = state_directory / namespace["SYNC_STATUS_NAME"]
-                status_path.write_text(
-                    json.dumps(
-                        {
-                            "branch": branch,
-                            "commit": commit,
-                            "success": True,
-                            "updatedAt": "sync-token",
-                        }
-                    ),
-                    encoding="utf-8",
-                )
-                managed = namespace["_workspace_snapshot"]()
-                self.assertTrue(managed.managed)
-                self.assertEqual("sync-token", managed.synchronization_token)
-                status_path.write_text(
-                    json.dumps({"branch": "other", "commit": commit, "success": True}),
-                    encoding="utf-8",
-                )
-                with self.assertRaisesRegex(RuntimeError, "differs"):
-                    namespace["_workspace_snapshot"]()
+            with mock.patch.object(buildVars, "development_build", 1):
+                snapshot = distribution_build.development_source_snapshot(repository)
+                self.assertEqual("feature", snapshot.branch)
+                self.assertRegex(snapshot.commit, r"^[0-9a-f]{40}$")
+                (repository / "scratch.txt").write_text("local scratch\n", encoding="utf-8")
+                self.assertEqual(snapshot, distribution_build.development_source_snapshot(repository))
+                (repository / "tracked.txt").write_text("modified\n", encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, "changes to versioned files"):
+                    distribution_build.development_source_snapshot(repository)
+
+    def test_windows_build_snapshot_rejects_release_metadata(self) -> None:
+        with mock.patch.object(buildVars, "development_build", None):
+            with self.assertRaisesRegex(RuntimeError, "development build number"):
+                distribution_build.development_source_snapshot(REPOSITORY_ROOT)
 
     def test_shared_distribution_build_uses_an_isolated_temporary_environment(self) -> None:
         environment_builder = mock.Mock()

@@ -12,7 +12,7 @@ local function equal(expected, actual, label)
   ))
 end
 
-local python = vim.fn.exepath("python3")
+local python = vim.env.NAL_TEST_PYTHON or vim.fn.exepath(vim.fn.has("win32") == 1 and "python" or "python3")
 equal(true, python ~= "", "Python interpreter is available")
 local server = root .. "/neovim-plugin/tests/fixtures/lsp_test_server.py"
 equal(1, vim.fn.filereadable(server), "test LSP server exists")

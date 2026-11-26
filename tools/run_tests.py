@@ -378,7 +378,10 @@ def run_job(
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment.pop("PYTHONPYCACHEPREFIX", None)
     environment["TMPDIR"] = str(temporary)
+    environment["TEMP"] = str(temporary)
+    environment["TMP"] = str(temporary)
     environment["XDG_RUNTIME_DIR"] = str(runtime)
+    environment["NAL_TEST_PYTHON"] = sys.executable
     environment.setdefault("PYTHONWARNINGS", "default")
     started = time.monotonic()
     try:
@@ -452,6 +455,12 @@ def main() -> int:
         raise SystemExit("--jobs must be at least 1")
     groups = selected_groups(tuple(arguments.groups or ("safe",)))
     selected = tuple(job for job in jobs() if job.group in groups)
+    if os.name == "nt" and "socket" in groups:
+        selected = tuple(
+            job for job in selected
+            if job.group != "socket" or job.source.name == "local_windows_session_spec.lua"
+        )
+        print("Windows socket phase runs the loopback session spec; Unix PTY and socket tests require Linux.")
     if arguments.list:
         for job in selected:
             print(f"{job.group:7} {job.name}")
@@ -471,7 +480,7 @@ def main() -> int:
     separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
     if len(separated_batches) > 1:
         batches = separated_batches
-    if socket_jobs:
+    if socket_jobs and os.name != "nt":
         validate_socket_path_budget(ROOT)
     temporary_parent = ROOT / "tmp"
     temporary_parent.mkdir(parents=True, exist_ok=True)

@@ -29,7 +29,7 @@ Entwicklungsstände sammeln abgeschlossene Änderungen unter `Unveröffentlicht`
 beziehungsweise `Unreleased`; ihre Manifeste verwenden diesen Abschnitt. Bei
 der Release-Festlegung werden die Einträge redaktionell in den neuen deutschen
 und englischen Versionsabschnitt übernommen. Dieser beschreibt nur Änderungen
-seit der unmittelbar vorherigen veröffentlichten Version; anschließend bleiben
+seit der unmittelbar vorherigen veröffentlichten Version und zurückgesetztem unveröffentlichtem Abschnitt; anschließend bleiben
 die unveröffentlichten Abschnitte für die nächste Entwicklungslinie leer. Der
 Build wählt den Abschnitt aus, verändert aber keine Changelog-Quelle.
 
@@ -73,53 +73,19 @@ Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
 HTML-Dokumente, bevor sie wieder gelöscht werden. CI veröffentlicht oder
 aktualisiert dabei keine Endanwenderartefakte.
 
-Normale Entwicklungsartefakte entstehen im synchronisierten Windows-Worktree
-durch das parameterlose `build.cmd`. Das Skript setzt ein aktuelles Python 3,
-Git for Windows mit Bash und eine Internetverbindung voraus. Es richtet die
-festgelegten Python-Abhängigkeiten temporär ein, lädt den offiziellen
-Pandoc-Windows-Binärbuild 3.1.11.1 nur dann in denselben temporären Bereich,
-wenn kein lokales Pandoc der kompatiblen Reihe 3.1 vorhanden ist, und prüft
-dann dessen SHA-256. Eine lokale abweichende Version wird weder verwendet noch
-verändert. Branch, Commit und Synchronisierungsstand werden vor und nach dem
-Build verglichen.
+Normale Entwicklungsartefakte entstehen mit dem parameterlosen `build.cmd`
+aus einem sauberen, lokal ausgecheckten Windows-Branch mit Entwicklungsbuildnummer.
+Python 3, Git Bash und eine Internetverbindung für die gepinnten
+Python-Abhängigkeiten werden benötigt. Git Bash über `PATH`, die
+Standardinstallation von Git für Windows oder `NAL_GIT_BASH` bereitstellen.
+Der Build verwendet ein lokales Pandoc 3.1.11.1 oder lädt den offiziellen
+Windows-Binärbuild 3.1.11.1 temporär und prüft dessen SHA-256.
 
-Windows-Entwicklungs- und Linux-Releasebuild verwenden denselben isolierten
-Kernablauf. Er
-rendert alle acht Dokumente, baut daraus Add-on und Dokumentations-ZIP, prüft
-die exakt erwarteten Namen und verschiebt erst danach diese beiden Dateien
-nach `dist`. Ein gleichzeitiger Quellwechsel bricht vor der Veröffentlichung
-der Dateien ab.
-
-## Synchronisierter Windows-Worktree
-
-`/nfs/src/neovim-access-link` ist der über SMB als Windows-Laufwerk sichtbare,
-dauerhafte Test- und Build-Worktree. Einmalig wird er vom Linux-Checkout aus
-eingerichtet:
-
-```bash
-python3 tools/windows_workspace_sync.py configure /nfs/src/neovim-access-link
-```
-
-Danach übertragen lokale Git-Hooks Änderungen an Branch-Refs im Hintergrund.
-Erstellung, Löschung und Wechsel von Branches sowie nicht vorwärts gerichtete
-Commitänderungen werden gespiegelt. Der Ziel-Checkout verwendet einen eigenen
-Staging-Ref-Namensraum und `--no-overwrite-ignore`. Die Synchronisierung
-verändert ausschließlich versionierte Dateien und Git-Refs; ignorierte oder
-sonstige unversionierte virtuelle Umgebungen, Human-Test-Zustände,
-Werkzeuginstallationen und Buildausgaben bleiben bestehen. Änderungen an
-versionierten Zieldateien oder eine Namenskollision mit einer unversionierten
-Datei führen zum Abbruch. Ein manueller Wiederholungslauf ist möglich mit:
-
-```bash
-python3 tools/windows_workspace_sync.py sync
-```
-
-Verknüpfte Linux-Worktrees desselben Repositorys teilen sich eine serialisierte
-Warteschlange. Der zuletzt auslösende Worktree bestimmt den ausgecheckten
-Zielbranch; sämtliche lokalen Branch-Refs werden unabhängig davon gespiegelt.
-Die Hooks und der Worker liegen als branchunabhängige Laufzeitkopie im
-gemeinsamen Git-Verwaltungsverzeichnis. Nach Änderungen am
-Synchronisierungswerkzeug oder seinen Hooks muss `configure` erneut laufen.
+Windows-Entwicklungsbuild und Linux-Releasebuild rendern die acht HTML-Dateien
+und verpacken sie über denselben isolierten Kern. Branch, Commit und Sauberkeit
+der versionierten Dateien werden vor und nach dem Build geprüft. Erst danach
+gelangen das Add-on und das Dokumentations-ZIP mit den erwarteten Namen nach
+`dist`. Für den Abgleich mit einem vorhandenen Repository dient `git fetch origin`.
 
 ## Releasebuild auf Linux
 
@@ -165,7 +131,7 @@ Stand:
 2. aktuellen Release- und Changeloglink in `README.md` sowie einen aus den
    unveröffentlichten Einträgen redaktionell erstellten deutschen und
    englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar
-   vorherigen veröffentlichten Version;
+   vorherigen veröffentlichten Version und zurückgesetztem unveröffentlichtem Abschnitt;
 3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
    Dokumentation;
 4. erfolgreiche vollständige Tests und mit `tools/build_release.py` frisch
@@ -189,10 +155,26 @@ veröffentlichten Tag.
 
 ## GitHub und Add-on Store
 
-Ein GitHub-Pre-Release wird aus dem freigegebenen Tag erstellt, erhält die
-englische Releasebeschreibung und genau die beiden unten genannten Assets.
-Danach werden Tagziel, Pre-Release-Markierung, Assetnamen und Downloads auf
-GitHub erneut geprüft.
+Nach ausdrücklicher Freigabe den vorbereiteten Release-Commit auf sauberem
+Linux-`main` bauen und Commit sowie vorhandenes Tag zuerst zu GitHub pushen.
+Vor der Veröffentlichung die gebauten Basis- und Lokalmanifeste gegen das
+aktuelle offizielle NVDA AddonTemplate prüfen. Jedes zutreffende Feld muss
+gültig und befüllt sein. Die englischen Versionshinweise fassen die Änderungen
+seit der letzten veröffentlichten Version zusammen, nennen Prüf- und
+Kompatibilitätsgrenzen, verlinken Dokumentation am Tag und erklären beide
+Downloads. Die temporäre Datei liegt unter `../nal-aux/`.
+
+```bash
+gh release create "v<VERSION>" "dist/NeovimAccessLink-<VERSION>.nvda-addon" \
+  "dist/neovim-access-link-<VERSION>-documentation.zip" \
+  --repo helmsaccess/neovim-access-link --verify-tag --fail-on-no-commits \
+  --title "Neovim Access Link <VERSION>" --notes-file "<RELEASE_NOTES_FILE>" <STATUS_FLAGS>
+```
+
+Für Versionen unter 1.0.0 gelten `--prerelease --latest=false`, ab 1.0.0
+`--latest`. Das Serverpaket steckt bereits im Add-on. Danach Tagziel, Titel,
+Entwurfs-, Pre-Release- und Latest-Status, Hinweise, die beiden Dateinamen und
+deren Downloads prüfen.
 
 Die Einreichung in den NVDA Add-on Store ist ein getrennter Vorgang im
 Add-on-Datastore. Sie verweist auf einen bereits veröffentlichten,
