@@ -9,7 +9,7 @@ every user setting or presentation.
 | Component | Reference state |
 |---|---|
 | Windows | Windows 11 25H2, 64-bit |
-| NVDA | Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest minimum 2026.1, last tested 2026.3 |
+| NVDA | Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest minimum 2026.1, last tested 2026.3.1 |
 | Terminal frontend | Windows Terminal 1.24.x |
 | Local Neovim | 0.12.3 practical; 0.10.1 automated |
 | SSH client | OpenSSH for Windows 9.5p2 with key-based login |

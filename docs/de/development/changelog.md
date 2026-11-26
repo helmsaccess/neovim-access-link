@@ -6,6 +6,7 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Führt die in den Windows-Prüfungen verwendete NVDA-API 2026.3.1 als zuletzt getestet im Manifest.
 - Benötigt Pull Requests für Änderungen an `main`, auch zur Releasevorbereitung.
   Dokumentiert semantische Produktversionen, datierte Changelogs,
   GitHub-Releaseentwürfe und die Store-Upgradebasis. Der Paketbuild erkennt

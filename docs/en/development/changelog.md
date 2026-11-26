@@ -6,6 +6,7 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Set the manifest's last-tested NVDA API to 2026.3.1, the version used in the Windows checks.
 - Requires pull requests for changes to `main`, including release preparation.
   Documents semantic product versions, dated changelogs, GitHub release
   drafts and the Store upgrade baseline. Packaging accepts the new headings

@@ -40,7 +40,7 @@ Eingabe, getrennte Panes, Tab- und Fensterwechsel sowie die Wiederherstellung
 nach Beenden eines Editors. Derselbe Ablauf bestand mit NVDA 2026.1.1 und
 Neovim 0.10.1. Digitale Sprache, Braillezellen und
 Tonanforderungen wurden in NVDA 2026.1.1 und 2026.3.1 erfasst.
-Das Manifest führt 2026.3 als zuletzt getestete NVDA-Version und behält
+Das Manifest führt 2026.3.1 als zuletzt getestete NVDA-Version und behält
 2026.1 als Mindestversion.
 Details stehen in [Kompatibilität](compatibility.md).
 

@@ -36,7 +36,7 @@ confirmed F12, editing, separate panes, tab and window switching, and focus
 recovery after an editor exited. The same scenario passed with NVDA 2026.1.1
 and Neovim 0.10.1. Digital speech, Braille cells, and tone
 requests were captured in NVDA 2026.1.1 and 2026.3.1.
-The manifest lists NVDA 2026.3 as last tested and retains 2026.1 as its minimum.
+The manifest lists NVDA 2026.3.1 as last tested and retains 2026.1 as its minimum.
 See [compatibility](compatibility.md) for details.
 
 ## Implemented end-to-end path
