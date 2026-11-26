@@ -19,19 +19,35 @@ when available, branch and commit metadata for filenames, diagnostic reports,
 and bundled components. The installed manifest is generated from these values
 and the matching changelog sections during the build and is not maintained
 separately. The German localization manifest receives the same sections from
-the German changelog. For a release, `manifest_changelog()` combines every
-version section after `manifest_changelog_base_version` through the current
-version. The Store manifest therefore describes the exact upgrade from the
-last version published there; update the base after an actual Store
-publication when preparing the next release.
+the German changelog. For releases, `manifest_changelog()` combines the sections after
+`manifest_changelog_base_version` through the current version. Verify that
+baseline against the actual Store version from which the intended audience
+upgrades. For stable releases, use the preceding stable Store version even
+if a newer beta exists. For the first stable release, choose the oldest
+published predecessor covered by the intended upgrade path. Include relevant
+changes from intermediate betas and GitHub-only releases.
 
-Development states collect completed changes under `Unveröffentlicht` and
-`Unreleased`; their manifests use that section. When a release is set, those
-entries are curated into the new German and English version sections. Each
-section describes only changes since the immediately preceding published
-version, after which the unreleased sections remain empty for the next
-development line. The build selects the section but never edits a changelog
-source.
+## Version and changelog policy
+
+Use [SemVer](https://semver.org/spec/v2.0.0.html) for product versions. PATCH
+covers compatible fixes and MINOR covers compatible features and
+deprecations. From 1.0.0, MAJOR covers breaks in promised compatibility,
+including supported platforms, durable settings and the protocol between
+separately upgradable components. Before 1.0.0, use MINOR for deliberate
+compatibility breaks and explain them in the release notes. Define the
+supported versions and upgrade behavior before approving 1.0.0.
+
+The user approves the product version and channel. Reserve a unique numeric
+version across channels and check Git tags, GitHub releases and NVDA Store
+entries before release. [NVDA Store version and channel rules](https://github.com/nvaccess/addon-datastore/blob/master/docs/design/jsonMetadata.md)
+
+Record notable changes in both changelogs under `Unveröffentlicht` and
+`Unreleased` in the same change. Explain their effects and group entries
+where useful under Added, Changed, Deprecated, Removed, Fixed and Security.
+For a release, curate the changes since the preceding release on the same
+line under `## [X.Y.Z] - YYYY-MM-DD`, link the version to its tag and reset
+both unreleased sections. An empty unreleased section produces a localized
+placeholder in development manifests. [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Development states
 
@@ -120,67 +136,59 @@ state, `<artifact_version>` contains `-dev.N` and, when available, branch and
 commit metadata. The Linux release build instead uses the plain product
 version, for example `NeovimAccessLink-0.99.0.nvda-addon`.
 
-The successful build changes no versioned file. Tag exactly its `HEAD` as
-`vMAJOR.MINOR.PATCH`, push the commit and tag after approval, and publish the
-two files from the Linux `dist` with `gh release create --verify-tag`.
-`build.cmd` is not the release origin; it produces the corresponding versioned
-development artifacts for prior practical Windows validation.
+A successful build leaves tracked files unchanged. Use local Windows
+development artifacts from `build.cmd` with isolated NVDA profiles.
+The build suffix distinguishes packages and diagnostics. NVDA sees the
+numeric manifest version, so upgrade tests need different numeric versions.
 
 ## Release preparation
 
-An approved version requires one coherent state containing:
+1. Prepare the release in a GitHub pull request targeting `main`. Set the
+   approved version, channel, Store baseline and `development_build = None`
+   in `buildVars.py`. Set the NVDA API minimum to the supported minimum and
+   the last-tested API according to successful tests. Stable releases need
+   a stable NVDA API.
+2. Finalize both changelogs, README release links, and the German and English
+   status and compatibility pages. Merge only with approval and passing
+   required checks.
+3. Run the full tests and `python3 tools/build_release.py` on clean Linux
+   `main` at the merged commit. Validate the base and localized manifests
+   against the current NVDA AddonTemplate and verify both artifacts and
+   the applicable install and upgrade paths.
+4. After approval, create an annotated `vMAJOR.MINOR.PATCH` tag at exactly
+   the built commit and push that tag. The commit reaches GitHub `main`
+   through the pull request. Confirm the remote tag target before drafting
+   the release.
 
-1. product version, manifest update channel,
-   `manifest_changelog_base_version`, and `development_build = None` in
-   `buildVars.py`;
-2. current release and changelog links in `README.md` plus German and English
-   version sections curated from the unreleased entries and containing every
-   change since the immediately preceding published release, with the unreleased section reset;
-3. current status, compatible metadata, and complete German/English
-   documentation;
-4. successful full tests and artifacts freshly built from this Linux state
-   with `tools/build_release.py`;
-5. one commit and an annotated or lightweight `vMAJOR.MINOR.PATCH` tag on that
-   exact commit.
-
-Push, tag, and GitHub publication require explicit approval. Before tagging,
-verify that the worktree, version, README links, and artifact names agree.
-
-## Stop conditions
-
-Stop before tagging or publication when tests or builds fail, the worktree
-contains unexpected changes, version and links disagree, an artifact was not
-built from the tagged revision, or a required practical check remains open. Do
-not silently move an existing tag. After the user's decision, a correction
-gets a new product version or an explicitly rebuilt tag that has not been
-published.
+Stop on failed checks, missing approval, a previously used version or a
+mismatch between tag, manifests, links and assets. Keep published tags and
+assets immutable. Package corrections receive a new version.
 
 ## GitHub and Add-on Store
 
-After explicit approval, build the prepared release commit on clean Linux
-`main` and push the commit and its existing tag to GitHub first. Before
-publication, verify the built base and localized manifests against the current
-official NVDA AddonTemplate. Every applicable field must contain a valid
-value. Write English notes covering changes since the previous published
-version, compatibility and testing limits, tag-pinned documentation links,
-and the purpose of both downloads. Keep the temporary file under `../nal-aux/`.
+After publication approval, create a draft against the existing tag. Derive
+English notes from the changelog since the previous GitHub release on the
+same line. Include compatibility, migration, verification limits and
+tag-pinned documentation links. Keep the notes file under `../nal-aux/`.
 
 ```bash
 gh release create "v<VERSION>" "dist/NeovimAccessLink-<VERSION>.nvda-addon" \
   "dist/neovim-access-link-<VERSION>-documentation.zip" \
-  --repo helmsaccess/neovim-access-link --verify-tag --fail-on-no-commits \
+  --repo helmsaccess/neovim-access-link --draft --verify-tag --fail-on-no-commits \
   --title "Neovim Access Link <VERSION>" --notes-file "<RELEASE_NOTES_FILE>" <STATUS_FLAGS>
 ```
 
-Use `--prerelease --latest=false` below 1.0.0 and `--latest` from 1.0.0.
-The add-on embeds the server package. After publication, verify the tag
-target, title, draft, prerelease and latest status, notes, exact two asset
-names, and successful downloads.
+Use `--prerelease --latest=false` for previews, `--latest` for the current
+stable line and `--latest=false` for older stable maintenance releases.
+Check the draft's tag, notes, file names and SHA-256 of both downloads before
+publishing. Verify the public release afterward. Use
+[immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+as repository protection.
 
-Submission to the NVDA Add-on Store is a separate operation in the add-on
-datastore. It points to an already published, immutable revision and follows
-the datastore's current submission checks. Do not replace its tag or assets
-after a store submission; publish a new product version for a correction.
+Store submission requires separate approval. Use the direct HTTPS URL
+and SHA-256 of the verified published add-on. Confirm the actual Store entry
+before using it as a baseline. Experimental NVDA API versions require a
+beta or dev Store channel. [NVDA Store submission guide](https://github.com/nvaccess/addon-datastore/blob/master/docs/submitters/submissionGuide.md)
 
 ## Publication artifacts
 

@@ -6,6 +6,10 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Requires pull requests for changes to `main`, including release preparation.
+  Documents semantic product versions, dated changelogs, GitHub release
+  drafts and the Store upgrade baseline. Packaging accepts the new headings
+  and can build from an empty unreleased section.
 - Uses SCons for the add-on build and gettext template. Base and localized
   manifests follow the NVDA AddonTemplate layout. The gettext catalog supplies
   the localized manifest name and description.

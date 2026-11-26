@@ -19,20 +19,38 @@ NVDA Add-on Store. `artifact_version()` ergänzt bei Entwicklungsständen
 Diagnosebericht und gebündelte Komponenten. Das installierte Manifest wird
 beim Build aus diesen Werten und den passenden Changelogabschnitten erzeugt
 und nicht separat gepflegt. Das deutsche Lokalisierungsmanifest erhält
-dieselben Abschnitte aus dem deutschen Changelog. Bei einem Release verbindet
-`manifest_changelog()` alle Versionsabschnitte nach
-`manifest_changelog_base_version` bis einschließlich der aktuellen Version.
-Damit beschreibt das Store-Manifest genau das Upgrade vom zuletzt dort
-veröffentlichten Stand; die Vergleichsversion wird nach einer tatsächlichen
-Store-Veröffentlichung für den nächsten Release aktualisiert.
+dieselben Abschnitte aus dem deutschen Changelog. `manifest_changelog()` verbindet bei einem Release die Abschnitte nach
+`manifest_changelog_base_version` bis zur aktuellen Version. Die Basis im
+Store für den vorgesehenen Upgrade-Pfad prüfen. Bei stabilen Releases zählt
+die vorige stabile Store-Version, auch wenn eine neuere Beta existiert.
+Für den ersten stabilen Release die älteste veröffentlichte Version wählen,
+für die der vorgesehene Upgrade-Pfad gilt. Relevante Änderungen aus
+zwischenzeitlichen Betas und reinen GitHub-Releases einbeziehen.
 
-Entwicklungsstände sammeln abgeschlossene Änderungen unter `Unveröffentlicht`
-beziehungsweise `Unreleased`; ihre Manifeste verwenden diesen Abschnitt. Bei
-der Release-Festlegung werden die Einträge redaktionell in den neuen deutschen
-und englischen Versionsabschnitt übernommen. Dieser beschreibt nur Änderungen
-seit der unmittelbar vorherigen veröffentlichten Version und zurückgesetztem unveröffentlichtem Abschnitt; anschließend bleiben
-die unveröffentlichten Abschnitte für die nächste Entwicklungslinie leer. Der
-Build wählt den Abschnitt aus, verändert aber keine Changelog-Quelle.
+## Regeln für Version und Changelog
+
+Produktversionen folgen [SemVer](https://semver.org/spec/v2.0.0.html).
+PATCH steht für kompatible Korrekturen und MINOR für kompatible Funktionen
+und angekündigte Abkündigungen. Ab 1.0.0 steht MAJOR für Brüche zugesagter
+Kompatibilität, etwa bei unterstützten Plattformen, dauerhaft gespeicherten
+Einstellungen oder dem Protokoll zwischen separat aktualisierbaren Komponenten.
+Vor 1.0.0 einen bewussten Kompatibilitätsbruch mit MINOR kennzeichnen und in
+den Release Notes erläutern. Vor der Freigabe von 1.0.0 unterstützte
+Versionen und Upgrade-Verhalten festlegen.
+
+Der Nutzer gibt Produktversion und Kanal frei. Die numerische Version muss
+über alle Kanäle hinweg eindeutig sein. Vor der Freigabe Git-Tags,
+GitHub-Releases und Einträge im NVDA Store abgleichen.
+[Versions- und Kanalregeln des NVDA Stores](https://github.com/nvaccess/addon-datastore/blob/master/docs/design/jsonMetadata.md)
+
+Relevante Änderungen im selben Stand in beide Changelogs unter
+`Unveröffentlicht` und `Unreleased` aufnehmen. Auswirkungen beschreiben und
+bei Bedarf nach Neu, Geändert, Veraltet, Entfernt, Behoben und Sicherheit
+gliedern. Zum Release die Änderungen seit dem vorigen Release derselben
+Linie unter `## [X.Y.Z] - YYYY-MM-DD` zusammenfassen, die Version mit ihrem
+Tag verlinken und beide unveröffentlichten Abschnitte leeren. Ein leerer
+Abschnitt ergibt einen lokalisierten Hinweis in Entwicklungsmanifesten.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Entwicklungsstände
 
@@ -123,74 +141,62 @@ Entwicklungsstand enthält `<artifact_version>` `-dev.N` sowie nach Möglichkeit
 Branch- und Commitmetadaten. Der Linux-Releasebuild verwendet dagegen die
 reine Produktversion, beispielsweise `NeovimAccessLink-0.99.0.nvda-addon`.
 
-Der erfolgreiche Build verändert keine versionierte Datei. Anschließend wird
-genau sein `HEAD` als `vMAJOR.MINOR.PATCH` getaggt, Commit und Tag werden nach
-Freigabe gepusht und die beiden Dateien aus dem Linux-`dist` mit
-`gh release create --verify-tag` veröffentlicht. `build.cmd` ist kein
-Releaseursprung, sondern erzeugt vorab die entsprechenden versionierten
-Entwicklungsartefakte für die praktische Windows-Prüfung.
+Ein erfolgreicher Build verändert keine versionierte Datei. Lokale
+Windows-Entwicklungsartefakte aus `build.cmd` in isolierten NVDA-Profilen
+testen. Der Build-Zusatz unterscheidet Pakete und Diagnoseausgaben. NVDA
+sieht die numerische Manifestversion, daher benötigen Upgradetests
+unterschiedliche numerische Versionen.
 
 ## Releasevorbereitung
 
-Eine freigegebene Version benötigt in einem gemeinsamen, nachvollziehbaren
-Stand:
+1. Den Release in einem GitHub-Pull-Request gegen `main` vorbereiten.
+   Freigegebene Version, Kanal, Store-Basis und `development_build = None`
+   in `buildVars.py` setzen. Die minimale NVDA-API entspricht der
+   Support-Untergrenze. Die zuletzt getestete API richtet sich nach
+   erfolgreichen Tests. Stabile Releases benötigen eine stabile NVDA-API.
+2. Beide Changelogs, die Release-Links im README und die deutschen und
+   englischen Status- und Kompatibilitätsseiten abschließen. Den PR nach
+   Freigabe und erfolgreichen erforderlichen Prüfungen zusammenführen.
+3. Aus sauberem Linux-`main` am gemergten Commit die vollständigen Tests
+   und `python3 tools/build_release.py` ausführen. Basis- und Lokalmanifeste
+   gegen das aktuelle NVDA AddonTemplate prüfen und beide Artefakte sowie
+   die relevanten Installations- und Upgrade-Pfade verifizieren.
+4. Nach Freigabe ein annotiertes Tag `vMAJOR.MINOR.PATCH` auf exakt dem
+   gebauten Commit setzen und dieses Tag pushen. Der Commit gelangt per
+   Pull Request auf GitHub-`main`. Vor dem Entwurf das entfernte Tag-Ziel
+   prüfen.
 
-1. Produktversion, Manifest-Update-Kanal,
-   `manifest_changelog_base_version` und `development_build = None` in
-   `buildVars.py`;
-2. aktuellen Release- und Changeloglink in `README.md` sowie einen aus den
-   unveröffentlichten Einträgen redaktionell erstellten deutschen und
-   englischen Versionsabschnitt mit allen Änderungen seit der unmittelbar
-   vorherigen veröffentlichten Version und zurückgesetztem unveröffentlichtem Abschnitt;
-3. aktuellen Status, kompatible Metadaten und vollständige Deutsch/Englisch-
-   Dokumentation;
-4. erfolgreiche vollständige Tests und mit `tools/build_release.py` frisch
-   aus diesem Linux-Stand gebaute Artefakte;
-5. einen Commit und ein annotiertes oder leichtgewichtiges Tag `vMAJOR.MINOR.PATCH`
-   auf genau diesem Commit.
-
-Push, Tag und GitHub-Veröffentlichung erfolgen nur nach ausdrücklicher
-Freigabe. Vor dem Tag wird geprüft, dass Worktree, Version, README-Links und
-Artefaktnamen zusammenpassen.
-
-## Abbruchbedingungen
-
-Die Freigabe wird vor Tag oder Veröffentlichung abgebrochen, wenn Tests oder
-Builds fehlschlagen, der Worktree unerwartete Änderungen enthält, Version und
-Links nicht zusammenpassen, ein Artefakt nicht aus dem getaggten Stand stammt
-oder eine erforderliche praktische Prüfung offen ist. Ein vorhandener Tag wird
-nicht still verschoben; eine Korrektur erhält nach Entscheidung des Nutzers
-eine neue Produktversion oder einen ausdrücklich neu aufgebauten, noch nicht
-veröffentlichten Tag.
+Bei fehlgeschlagenen Prüfungen, fehlender Freigabe, einer bereits verwendeten
+Version oder Abweichungen zwischen Tag, Manifesten, Links und Dateien
+abbrechen. Veröffentlichte Tags und Dateien bleiben unveränderlich.
+Paketkorrekturen erhalten eine neue Version.
 
 ## GitHub und Add-on Store
 
-Nach ausdrücklicher Freigabe den vorbereiteten Release-Commit auf sauberem
-Linux-`main` bauen und Commit sowie vorhandenes Tag zuerst zu GitHub pushen.
-Vor der Veröffentlichung die gebauten Basis- und Lokalmanifeste gegen das
-aktuelle offizielle NVDA AddonTemplate prüfen. Jedes zutreffende Feld muss
-gültig und befüllt sein. Die englischen Versionshinweise fassen die Änderungen
-seit der letzten veröffentlichten Version zusammen, nennen Prüf- und
-Kompatibilitätsgrenzen, verlinken Dokumentation am Tag und erklären beide
-Downloads. Die temporäre Datei liegt unter `../nal-aux/`.
+Nach Veröffentlichungsfreigabe einen Entwurf für das vorhandene Tag anlegen.
+Englische Hinweise aus dem Changelog seit dem vorigen GitHub-Release
+derselben Linie ableiten. Kompatibilität, Migration, Prüfgrenzen und
+Dokumentationslinks am Tag aufnehmen. Die Notizdatei liegt unter `../nal-aux/`.
 
 ```bash
 gh release create "v<VERSION>" "dist/NeovimAccessLink-<VERSION>.nvda-addon" \
   "dist/neovim-access-link-<VERSION>-documentation.zip" \
-  --repo helmsaccess/neovim-access-link --verify-tag --fail-on-no-commits \
+  --repo helmsaccess/neovim-access-link --draft --verify-tag --fail-on-no-commits \
   --title "Neovim Access Link <VERSION>" --notes-file "<RELEASE_NOTES_FILE>" <STATUS_FLAGS>
 ```
 
-Für Versionen unter 1.0.0 gelten `--prerelease --latest=false`, ab 1.0.0
-`--latest`. Das Serverpaket steckt bereits im Add-on. Danach Tagziel, Titel,
-Entwurfs-, Pre-Release- und Latest-Status, Hinweise, die beiden Dateinamen und
-deren Downloads prüfen.
+Vorschauen verwenden `--prerelease --latest=false`, die aktuelle stabile
+Linie `--latest` und ältere stabile Wartungsreleases `--latest=false`.
+Im Entwurf Tag-Ziel, Hinweise, Dateinamen und SHA-256 beider Downloads
+prüfen. Danach den öffentlichen Release kontrollieren. Als Repository-Schutz
+[unveränderliche Releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+nutzen.
 
-Die Einreichung in den NVDA Add-on Store ist ein getrennter Vorgang im
-Add-on-Datastore. Sie verweist auf einen bereits veröffentlichten,
-unveränderlichen Stand und folgt dessen aktueller Einreichungsprüfung. Nach
-einer Store-Einreichung werden Tag und Assets nicht ersetzt; eine Korrektur
-erhält eine neue Produktversion.
+Die Store-Einreichung benötigt eine eigene Freigabe. Die direkte HTTPS-URL
+und den SHA-256 des geprüften veröffentlichten Add-ons verwenden. Den
+tatsächlichen Store-Eintrag bestätigen, bevor er als Basis dient.
+Experimentelle NVDA-API-Versionen erfordern im Store den Kanal Beta oder Dev.
+[NVDA-Einreichungsregeln](https://github.com/nvaccess/addon-datastore/blob/master/docs/submitters/submissionGuide.md)
 
 ## Veröffentlichungsartefakte
 

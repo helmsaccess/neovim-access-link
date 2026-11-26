@@ -5,6 +5,11 @@ Stand: 26. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
 Branch und Commit und setzt den Manifest-Update-Kanal auf Beta. Der zuletzt
 veröffentlichte Pre-Release ist 0.98.0.
 
+Änderungen gelangen per Pull Request nach `main`. Der
+[Versions- und Releaseleitfaden](release-and-build.md) regelt die
+Releaseprüfungen, datierte zweisprachige Changelogs und die getrennte
+Veröffentlichung auf GitHub und im Store.
+
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften
 Stands. [Architektur](architecture.md) und
 [Funktionsmatrix](accessibility.md) erklären Details; das

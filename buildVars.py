@@ -9,10 +9,10 @@ from pathlib import Path
 
 product_version = "0.99.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 3
+development_build: int | None = 1
 release_channel = "beta"
-# The Add-on Store currently upgrades this release from 0.96.0. The manifest
-# changelog therefore includes every published product section after this base.
+# Store upgrade baseline for the intended channel. For a stable release,
+# confirm the previous stable Store version before preparing the release.
 manifest_changelog_base_version = "0.96.0"
 
 
@@ -46,12 +46,21 @@ addon_store_info = {
 
 _ROOT = Path(__file__).resolve().parent
 _CHANGELOG_HEADINGS = {"de": "Unveröffentlicht", "en": "Unreleased"}
+_EMPTY_DEVELOPMENT_CHANGELOG = {
+    "de": "Keine unveröffentlichten Änderungen aufgeführt.",
+    "en": "No unreleased changes listed.",
+}
+_PRODUCT_VERSION = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
+_RELEASE_HEADING = re.compile(
+    rf"##\s+(?:\[({_PRODUCT_VERSION})\][ \t]+-[ \t]+[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}"
+    rf"(?:[ \t]+\[YANKED\])?|({_PRODUCT_VERSION})(?:\s+\([^)]*\))?)\s*"
+)
+_VERSION_LINK = re.compile(rf"\s{{0,3}}\[(?:{_PRODUCT_VERSION}|Unreleased|Unveröffentlicht)\]:\s+.*")
 
 
 def store_version() -> str:
     """Return the normal numeric product version exposed to the NVDA Store."""
-    if re.fullmatch(r"\d+\.\d+\.\d+", product_version) is None:
-        raise ValueError("product_version must contain three numeric components")
+    _version_tuple(product_version)
     return product_version
 
 
@@ -95,6 +104,11 @@ def product_slug() -> str:
     return "-".join(word.lower() for word in words)
 
 
+def _release_heading_version(line: str) -> str | None:
+    match = _RELEASE_HEADING.fullmatch(line)
+    return (match[1] or match[2]) if match else None
+
+
 def _changelog_section(language: str, heading: str) -> str:
     if language not in _CHANGELOG_HEADINGS:
         raise ValueError(f"unsupported changelog language: {language}")
@@ -104,7 +118,7 @@ def _changelog_section(language: str, heading: str) -> str:
         (
             index + 1
             for index, line in enumerate(lines)
-            if re.fullmatch(rf"##\s+{re.escape(heading)}(?:\s+\([^)]*\))?\s*", line)
+            if line.rstrip() == f"## {heading}" or _release_heading_version(line) == heading
         ),
         None,
     )
@@ -114,8 +128,10 @@ def _changelog_section(language: str, heading: str) -> str:
         (index for index in range(start, len(lines)) if lines[index].startswith("## ")),
         len(lines),
     )
-    value = "\n".join(lines[start:end]).strip()
+    value = "\n".join(line for line in lines[start:end] if not _VERSION_LINK.fullmatch(line)).strip()
     if not value:
+        if heading == _CHANGELOG_HEADINGS[language]:
+            return _EMPTY_DEVELOPMENT_CHANGELOG[language]
         raise ValueError(f"empty {heading!r} section in {path}")
     return value
 
@@ -133,7 +149,7 @@ def changelog(language: str = "en") -> str:
 
 
 def _version_tuple(value: str) -> tuple[int, int, int]:
-    if re.fullmatch(r"\d+\.\d+\.\d+", value) is None:
+    if re.fullmatch(_PRODUCT_VERSION, value) is None:
         raise ValueError(f"invalid product version: {value!r}")
     return tuple(int(part) for part in value.split("."))
 
@@ -148,9 +164,9 @@ def manifest_changelog(language: str = "en") -> str:
         raise ValueError("manifest changelog base must precede the release version")
     path = _ROOT / "docs" / language / "development" / "changelog.md"
     headings = (
-        match.group(1)
+        version
         for line in path.read_text(encoding="utf-8").splitlines()
-        if (match := re.fullmatch(r"##\s+(\d+\.\d+\.\d+)(?:\s+\([^)]*\))?\s*", line))
+        if (version := _release_heading_version(line)) is not None
     )
     versions = [
         heading

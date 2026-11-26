@@ -38,11 +38,16 @@
   and changelog pages for changes to behavior, support, architecture, compatibility,
   development workflows, or release state. Use the linked architecture, ADRs, and
   protocol/security references when changing those boundaries.
-- Use a focused branch for substantial work and make focused English commits after validation.
-  Never run destructive Git operations or push, merge, tag, or publish without explicit approval.
-  Keep private paths, hosts, usernames, credentials, and secrets out of commits.
+- Use a focused working branch and make focused English commits after validation.
+  Ordinary pushes of working branches to GitHub are authorized. Keep private paths, hosts,
+  usernames, credentials, and secrets out of commits and pull requests.
+- Bring every change to `main` through a GitHub pull request, including hotfixes and release
+  preparation. Direct pushes to `main` and destructive Git operations are prohibited.
+  Follow [CONTRIBUTING.md](CONTRIBUTING.md) for self-review, validation, review and CI gates.
+  Merging, tagging and publishing still require explicit approval.
 - The user owns product version, release channel, stability, and publication. Set
   `development_build = 1` for the first changed installable state on each non-release branch.
-  Increment only for subsequent changed installable states. Follow the
-  [release contract](docs/en/development/release-and-build.md#github-and-add-on-store)
-  for explicitly authorized publication.
+  Increment only for subsequent changed installable states. Use SemVer for product changes,
+  keep the NVDA manifest version numeric, and curate both unreleased changelogs into dated
+  sections at release. Follow the [version and release guide](docs/en/development/release-and-build.md)
+  for channel selection, Store upgrade notes, and explicitly authorized publication.

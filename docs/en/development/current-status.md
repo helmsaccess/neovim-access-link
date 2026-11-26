@@ -5,6 +5,10 @@ Status date: November 26, 2026. The source tree develops the 0.99.0 line.
 number, branch, and commit and sets the manifest update channel to beta.
 The latest published pre-release is 0.98.0.
 
+Changes enter `main` through pull requests. The
+[version and release guide](release-and-build.md) defines the release checks,
+dated bilingual changelogs and separate GitHub and Store publication steps.
+
 This page is the compact snapshot of implemented and verified behavior. See
 [architecture](architecture.md) and the [feature matrix](accessibility.md) for
 detail, the [changelog](changelog.md) for completed changes, and the

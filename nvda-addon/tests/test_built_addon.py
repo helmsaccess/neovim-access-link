@@ -1153,6 +1153,44 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
             self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
 
+    def test_manifest_accepts_dated_release_headings_and_empty_development_sections(self) -> None:
+        root = pathlib.Path(self.temporary.name) / "versioned-changelogs"
+        for language, heading in (("en", "Unreleased"), ("de", "Unveröffentlicht")):
+            path = root / "docs" / language / "development" / "changelog.md"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                f"# Changelog\n\n## {heading}\n\n"
+                f"## [1.0.0] - 2026-11-26\n\n- Final {language}\n\n"
+                "## 0.100.0 (Beta)\n\n- Preview\n\n"
+                "## 0.98.0\n\n- Store baseline\n\n"
+                "[1.0.0]: https://example.invalid/releases/tag/v1.0.0\n",
+                encoding="utf-8",
+            )
+        with (
+            mock.patch.object(buildVars, "_ROOT", root),
+            mock.patch.object(buildVars, "product_version", "1.0.0"),
+            mock.patch.object(buildVars, "manifest_changelog_base_version", "0.98.0"),
+        ):
+            with mock.patch.object(buildVars, "development_build", 1):
+                self.assertEqual(buildVars.manifest()["changelog"], "No unreleased changes listed.")
+                self.assertEqual(
+                    buildVars.manifest_changelog("de"), "Keine unveröffentlichten Änderungen aufgeführt."
+                )
+            with mock.patch.object(buildVars, "development_build", None):
+                for language in ("en", "de"):
+                    self.assertEqual(buildVars.changelog(language), f"- Final {language}")
+                    self.assertEqual(
+                        buildVars.manifest_changelog(language),
+                        f"1.0.0\n\n- Final {language}\n\n0.100.0\n\n- Preview",
+                    )
+            self.assertEqual(buildVars._changelog_section("en", "0.98.0"), "- Store baseline")
+
+    def test_product_version_requires_canonical_numeric_semver(self) -> None:
+        for version in ("01.0.0", "1.00.0", "1.0.01", "１.０.０", "1.0", "1.0.0-beta.1"):
+            with self.subTest(version=version), mock.patch.object(buildVars, "product_version", version):
+                with self.assertRaisesRegex(ValueError, "invalid product version"):
+                    buildVars.manifest()
+
     def test_localized_manifest_validator_rejects_incomplete_or_extra_fields(self) -> None:
         path = pathlib.Path(self.temporary.name) / "localized-manifest.ini"
         valid = {

@@ -161,8 +161,9 @@ menu. The same sources are available here:
 ## Contributing, security, and license
 
 Bug reports, practical testing, documentation improvements, and focused code
-reviews are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting
-changes and [SECURITY.md](SECURITY.md) for private security reports.
+reviews are welcome. Submit changes to `main` through a GitHub pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the review workflow and
+[SECURITY.md](SECURITY.md) for private security reports.
 
 Neovim Access Link is licensed under `GPL-2.0-only`. See
 [LICENSE](LICENSE). Contributors additionally grant the project maintainer the
