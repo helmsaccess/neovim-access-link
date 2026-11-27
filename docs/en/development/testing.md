@@ -256,7 +256,7 @@ audit. If C1 passes in Windows and WASAPI but the QEMU recording lacks its
 start marker, the lab restarts its guest and repeats the affected audio
 setting once. The audit reprocesses the rejected recording and the new full
 recording with the original requirements.
-For a C1 QEMU calibration marker with a short timing slip, the verifier can
+For a C1 or D1 QEMU calibration marker with a short timing slip, the verifier can
 identify the marker from four of five disjoint waveform segments. Each
 segment must correlate by at least 0.92 and their implied starts must fall
 within 26 ms. It records the segment count and spread. The verifier uses

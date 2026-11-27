@@ -252,7 +252,7 @@ def main():
 
     from guided_jobs import AUDIO, cards
     from run_c1_audio import verify_recording as verify_completion_pcm
-    from run_external_diagnostic_audio import verify_recording as verify_diagnostic_pcm
+    from run_external_diagnostic_audio import D1_QEMU_MARKER_METHOD, verify_recording as verify_diagnostic_pcm
     from run_guided_suite import read_json, require, verify_case
     from verify_c1_pair import QEMU_C1_MARKER_METHOD, QEMU_START_MARKER_LOSS, lost_qemu_start_marker
 
@@ -345,7 +345,10 @@ def main():
                 if case == "D1":
                     guest = read_json(workspace / f"run-{run_id}.json")
                     verify_d1_actions(guest["diagnosticAudio"], log)
-                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
+                    method = proof.get("markerMethod")
+                    require(method in (None, D1_QEMU_MARKER_METHOD), f"Unknown PCM calibration method for {recording.name}")
+                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted,
+                                                     qemu_markers=method is not None)
                     captures.append(verify_capture_result(recording, proof, measured))
                 else:
                     def assess(path, *, qemu_c1=False):

@@ -85,7 +85,7 @@ lie outside these digital measurements.
 C1 requires both WASAPI and QEMU PCM evidence. C2, C3, D3 and D4 require
 the WASAPI render endpoint. Their QEMU recordings and any rejected checks
 are retained in the reports for diagnosis. D1 requires QEMU PCM evidence.
-The C1 QEMU verifier can identify a calibration marker through four of five
+The C1 and D1 QEMU verifier can identify a calibration marker through four of five
 disjoint segments with a correlation of at least 0.92 and at most 26 ms of
 spread. It checks the full waveforms of the feature tones and the separate
 WASAPI capture.

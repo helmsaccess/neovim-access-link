@@ -16,7 +16,7 @@ und Testbuild-Einträge bis zum 5. August 2026.
   frisch gestarteten Gast einmal und prüft beide Versuche nach. Der
   Actions-Job führt unabhängige Fälle nach einem Fehler weiter aus und fährt
   seinen Testgast nach der Suite herunter.
-- Prüft C1-QEMU-Referenzmarken anhand getrennter Wellenformabschnitte mit
+- Prüft QEMU-Referenzmarken für C1 und D1 anhand getrennter Wellenformabschnitte mit
   begrenztem Zeitversatz und ergänzt Gegenproben für Rauschen, unvollständige
   und verschobene Marken sowie doppelte Signale.
 - Startet den verwalteten Gast zwischen den unabhängigen P2-Fixtures neu

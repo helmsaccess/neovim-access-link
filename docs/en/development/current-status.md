@@ -295,7 +295,7 @@ The GitHub-hosted S1 check has also verified native focus and keyboard input.
 The private lab keeps the independent WASAPI and QEMU checks for C1, audits
 any replay caused by a missing QEMU start marker, and runs independent cases
 even if an earlier case fails.
-The C1 QEMU calibration verifier checks disjoint waveform segments when
+The QEMU calibration verifier for C1 and D1 checks disjoint waveform segments when
 timing slips affect a calibration signal. Application cues and the separate
 WASAPI capture are checked against complete waveforms.
 The managed test guest starts fresh for the second P2 fixture.

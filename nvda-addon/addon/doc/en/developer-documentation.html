@@ -2936,29 +2936,29 @@ verifies the guest logs, package hash, and PCM recordings. The
 GitHub-hosted S1 check has also verified native focus and keyboard
 input. The private lab keeps the independent WASAPI and QEMU checks for
 C1, audits any replay caused by a missing QEMU start marker, and runs
-independent cases even if an earlier case fails. The C1 QEMU calibration
-verifier checks disjoint waveform segments when timing slips affect a
-calibration signal. Application cues and the separate WASAPI capture are
-checked against complete waveforms. The managed test guest starts fresh
-for the second P2 fixture. Guided practical tests isolate the remaining
-perceptual checks for speech, Braille, sounds, focus, and response time.
-Their technical preflight confirms real provider data and task-specific
-isolated key control. The compatibility suite also includes four
-lazy.nvim tasks with fully local Git fixtures for its window,
-installation, update, and synchronization; the individual selector
-groups them under plugin management. The headless preflight does not
-require Lazy&#39;s deliberately suppressed UI; it verifies the public
-command and isolated fixture configuration. When Lazy redraws the same
-plugin row, the speech planner suppresses an extra character
-announcement from the restored cursor column. Explicit character and
-word navigation remain audible. Fixture repositories disable line-ending
-conversion and irrelevant Git output. On shared or mapped drives, the
-isolated Git configuration permits only the concrete fixture
-repositories. Preparation stops at the first failed tool or profile
-check and names its immediate reason. It verifies and reuses matching
-pinned tools and only the plugin revisions required by the selection.
-Saved state records the profiles that passed preflight, so a new
-selection is not skipped because other profiles passed. Pyright runs
+independent cases even if an earlier case fails. The QEMU calibration
+verifier for C1 and D1 checks disjoint waveform segments when timing
+slips affect a calibration signal. Application cues and the separate
+WASAPI capture are checked against complete waveforms. The managed test
+guest starts fresh for the second P2 fixture. Guided practical tests
+isolate the remaining perceptual checks for speech, Braille, sounds,
+focus, and response time. Their technical preflight confirms real
+provider data and task-specific isolated key control. The compatibility
+suite also includes four lazy.nvim tasks with fully local Git fixtures
+for its window, installation, update, and synchronization; the
+individual selector groups them under plugin management. The headless
+preflight does not require Lazy&#39;s deliberately suppressed UI; it
+verifies the public command and isolated fixture configuration. When
+Lazy redraws the same plugin row, the speech planner suppresses an extra
+character announcement from the restored cursor column. Explicit
+character and word navigation remain audible. Fixture repositories
+disable line-ending conversion and irrelevant Git output. On shared or
+mapped drives, the isolated Git configuration permits only the concrete
+fixture repositories. Preparation stops at the first failed tool or
+profile check and names its immediate reason. It verifies and reuses
+matching pinned tools and only the plugin revisions required by the
+selection. Saved state records the profiles that passed preflight, so a
+new selection is not skipped because other profiles passed. Pyright runs
 directly through Node. Direct tool failures include tool output; linter
 failures name the configured provider and whether its process is still
 running. Structure and safe key choices are documented in <a href="human-testing.html">guided practical
@@ -5412,16 +5412,17 @@ still fails the complete audit. If C1 passes in Windows and WASAPI but
 the QEMU recording lacks its start marker, the lab restarts its guest
 and repeats the affected audio setting once. The audit reprocesses the
 rejected recording and the new full recording with the original
-requirements. For a C1 QEMU calibration marker with a short timing slip,
-the verifier can identify the marker from four of five disjoint waveform
-segments. Each segment must correlate by at least 0.92 and their implied
-starts must fall within 26 ms. It records the segment count and spread.
-The verifier uses full-waveform checks for the application cues and the
-independent WASAPI recording. The managed lab restarts the guest between
-the two independent P2 fixtures. If QEMU exits before the guest reports
-desktop readiness, the lab detects the exit and starts the same guest
-once again. The full guest suite has been verified locally. Running it
-through Actions requires a provisioned private lab runner.</p>
+requirements. For a C1 or D1 QEMU calibration marker with a short timing
+slip, the verifier can identify the marker from four of five disjoint
+waveform segments. Each segment must correlate by at least 0.92 and
+their implied starts must fall within 26 ms. It records the segment
+count and spread. The verifier uses full-waveform checks for the
+application cues and the independent WASAPI recording. The managed lab
+restarts the guest between the two independent P2 fixtures. If QEMU
+exits before the guest reports desktop readiness, the lab detects the
+exit and starts the same guest once again. The full guest suite has been
+verified locally. Running it through Actions requires a provisioned
+private lab runner.</p>
 </section>
 <section id="docs__en__development__testingmd__build-verification" class="level3">
 <h3>Build verification</h3>
@@ -6393,9 +6394,9 @@ permits one replay with a fresh lab guest after the guest and WASAPI
 checks pass, and audits both attempts. The Actions job runs independent
 cases after a failure and shuts down its own test guest after the
 suite.</p></li>
-<li><p>Verifies C1 QEMU calibration markers with bounded matches across
-disjoint waveform segments and adds controls for noise, partial and
-misaligned markers, and duplicates.</p></li>
+<li><p>Verifies C1 and D1 QEMU calibration markers with bounded matches
+across disjoint waveform segments and adds controls for noise, partial
+and misaligned markers, and duplicates.</p></li>
 <li><p>Restarts the managed guest between the independent P2 fixtures
 and detects a QEMU exit while waiting for desktop readiness.</p></li>
 <li><p>Adds optional guided desktop and audio test groups with an

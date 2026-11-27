@@ -50,7 +50,7 @@ def verify_recording(recording, references, *, muted, qemu_c1=False):
         str(references), "--c1-timeline",
     )
     if qemu_c1:
-        verifier += ("--qemu-c1-markers",)
+        verifier += ("--qemu-calibration-markers",)
     checked = subprocess.run(
         (*verifier, "--c1-muted" if muted else "--negative-controls"),
         capture_output=True, encoding="utf-8",

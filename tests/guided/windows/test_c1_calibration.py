@@ -7,7 +7,7 @@ import wave
 import numpy as np
 
 from prepare_audio_calibration import marker
-from verify_audio_capture import RATE, find_matches, find_qemu_c1_markers
+from verify_audio_capture import RATE, find_matches, find_qemu_calibration_markers
 
 
 NAME = "before-selection"
@@ -36,26 +36,34 @@ class CalibrationTests(unittest.TestCase):
     def test_recovers_a_marker_from_five_real_segments(self):
         waveform = capture(self.template, self.jitter)
         self.assertEqual(find_matches(waveform, self.template, NAME), [])
-        matched, = find_qemu_c1_markers(waveform, self.template, NAME)
+        matched, = find_qemu_calibration_markers(waveform, self.template, NAME)
         self.assertEqual(matched.calibration_segments, 5)
         self.assertEqual(matched.drift_samples, 209)
 
     def test_rejects_noise_and_a_different_real_marker(self):
         noise = np.random.default_rng(79).normal(0, 5000, RATE)
-        self.assertEqual(find_qemu_c1_markers(noise, self.template, NAME), [])
+        self.assertEqual(find_qemu_calibration_markers(noise, self.template, NAME), [])
         different = np.pad(reference(1130), (1000, 1000))
-        self.assertEqual(find_qemu_c1_markers(different, self.template, NAME), [])
+        self.assertEqual(find_qemu_calibration_markers(different, self.template, NAME), [])
 
     def test_rejects_too_few_segments_and_incompatible_shifts(self):
         for shifts in (self.jitter[:3], (0, 1440, 2880, 4320, 5760)):
             with self.subTest(shifts=shifts):
                 waveform = capture(self.template, shifts)
-                self.assertEqual(find_qemu_c1_markers(waveform, self.template, NAME), [])
+                self.assertEqual(find_qemu_calibration_markers(waveform, self.template, NAME), [])
 
     def test_distinguishes_a_clean_and_a_jittered_copy(self):
         jittered = capture(self.template, self.jitter)
         mixed = np.concatenate((jittered, np.zeros(1000), self.template, np.zeros(1000)))
-        self.assertEqual(len(find_qemu_c1_markers(mixed, self.template, NAME)), 2)
+        self.assertEqual(len(find_qemu_calibration_markers(mixed, self.template, NAME)), 2)
+
+    def test_keeps_repeated_diagnostic_action_markers_distinct(self):
+        template = reference(5150)
+        full = np.pad(template, (2000, 1000))
+        jittered = capture(template, self.jitter)
+        matches = sorted(find_qemu_calibration_markers(np.concatenate((full, jittered)), template, "action"),
+                         key=lambda match: match.start)
+        self.assertEqual([match.calibration_segments for match in matches], [0, 5])
 
 
 if __name__ == "__main__":

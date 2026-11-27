@@ -10,11 +10,16 @@ from run_c1_audio import capture
 from run_focus_test import ROOT, image, run_media, wait_for_desktop
 
 
-def verify_recording(recording, references, run_id, case, *, muted):
+D1_QEMU_MARKER_METHOD = "d1-calibration-segments-v1"
+
+
+def verify_recording(recording, references, run_id, case, *, muted, qemu_markers=False):
     command = (
         sys.executable, str(SOURCES / "verify_audio_capture.py"), str(recording), str(references),
         "--diagnostic-trace", str(ROOT / f"run-{run_id}.json"),
     )
+    if qemu_markers:
+        command += ("--qemu-calibration-markers",)
     checked = subprocess.run(
         (*command, "--diagnostics-muted" if muted else "--negative-controls"),
         capture_output=True, encoding="utf-8",

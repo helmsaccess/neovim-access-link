@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from run_c1_audio import capture
-from run_external_diagnostic_audio import verify_recording
+from run_external_diagnostic_audio import D1_QEMU_MARKER_METHOD, verify_recording
 from run_focus_test import image, run_media, wait_for_desktop
 
 
@@ -32,11 +32,11 @@ def main() -> int:
     if not ok:
         return 1
     try:
-        report = {"ok": True, **verify_recording(recording, references, run_id, "D1", muted=args.muted)}
+        report = {"ok": True, **verify_recording(recording, references, run_id, "D1", muted=args.muted, qemu_markers=True)}
     except RuntimeError as error:
         report = {"ok": False, "error": str(error)}
     report.update(guestRun=run_id, case="D1", muted=args.muted, captureEndpoint="QEMU audio output",
-                  captureFile=recording.name)
+                  captureFile=recording.name, markerMethod=D1_QEMU_MARKER_METHOD)
     content = json.dumps(report, indent=2)
     recording.with_suffix(".verification.json").write_text(content + "\n", encoding="utf-8")
     print(content)

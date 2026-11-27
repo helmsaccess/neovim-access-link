@@ -317,7 +317,7 @@ Der GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
 bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen mit
 WASAPI und QEMU bei und prüft Wiederholungen bei fehlender QEMU-Startmarke
 nach. Unabhängige Fälle laufen auch nach einem früheren Fallfehler weiter.
-Bei Zeitversatz in einem C1-QEMU-Referenzsignal prüft der Prüfer getrennte
+Bei Zeitversatz in einem QEMU-Referenzsignal für C1 oder D1 prüft der Prüfer getrennte
 Wellenformabschnitte. Hinweistöne der Anwendung und die separate
 WASAPI-Aufnahme werden anhand vollständiger Wellenformen geprüft.
 Für die zweite P2-Fixture startet der verwaltete Testgast frisch.

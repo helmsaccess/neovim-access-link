@@ -12,7 +12,7 @@ import numpy as np
 RATE = 24_000
 CUES = ("open", "close", "warning", "error", "none")
 C1_SEQUENCE = ("before-open", "open", "before-selection", "before-accept", "close")
-C1_CALIBRATION = {"begin", "before-open", "before-selection", "before-accept", "end"}
+CALIBRATION_MARKERS = {"begin", "before-open", "before-selection", "before-accept", "action", "end"}
 MIN_CORRELATION = 0.85
 MIN_RENDERED_RMS = 32
 QUIET_WINDOW_RMS = 64
@@ -68,13 +68,13 @@ def find_matches(recording: np.ndarray, template: np.ndarray, cue: str, *, thres
     return results
 
 
-def find_qemu_c1_markers(recording, template, name):
+def find_qemu_calibration_markers(recording, template, name):
     width = len(template)
     segment = 36 * RATE // 1000
     offsets = [milliseconds * RATE // 1000 for milliseconds in (30, 105, 180, 255, 330)]
     drift = 26 * RATE // 1000
     if width < offsets[-1] + segment:
-        raise ValueError("The C1 calibration reference lacks the expected waveform segments")
+        raise ValueError("The calibration reference lacks the expected waveform segments")
     matches = find_matches(recording, template, name)
     # Each segment must individually match the real PCM. The bounded spread of
     # their implied marker starts allows a short QEMU timing slip between them.
@@ -101,9 +101,9 @@ def find_qemu_c1_markers(recording, template, name):
 
 
 def check_sequence(recording: np.ndarray, templates: dict[str, np.ndarray],
-                   expected: tuple[str, ...], *, qemu_c1=False) -> list[Match]:
+                   expected: tuple[str, ...], *, qemu_markers=False) -> list[Match]:
     def matches(samples, name):
-        matcher = find_qemu_c1_markers if qemu_c1 and name in C1_CALIBRATION else find_matches
+        matcher = find_qemu_calibration_markers if qemu_markers and name in CALIBRATION_MARKERS else find_matches
         return matcher(samples, templates[name], name)
 
     markers = [matches(recording, name) for name in ("begin", "end")]
@@ -145,7 +145,7 @@ def check_sequence(recording: np.ndarray, templates: dict[str, np.ndarray],
 
 
 def check_negative_controls(recording: np.ndarray, templates: dict[str, np.ndarray],
-                            expected: tuple[str, ...], found: list[Match], *, qemu_c1=False) -> list[str]:
+                            expected: tuple[str, ...], found: list[Match], *, qemu_markers=False) -> list[str]:
     cues = [match for match in found if match.cue in CUES]
     if len(cues) < 2:
         raise ValueError("The negative controls need at least two rendered cues")
@@ -179,7 +179,7 @@ def check_negative_controls(recording: np.ndarray, templates: dict[str, np.ndarr
     }
     for name, (signal, reason) in controls.items():
         try:
-            check_sequence(signal, templates, expected, qemu_c1=qemu_c1)
+            check_sequence(signal, templates, expected, qemu_markers=qemu_markers)
         except ValueError as error:
             if str(error).startswith(reason):
                 continue
@@ -225,15 +225,14 @@ def main() -> None:
     parser.add_argument("--negative-controls", action="store_true")
     parser.add_argument("--c1-timeline", action="store_true")
     parser.add_argument("--c1-muted", action="store_true")
-    parser.add_argument("--qemu-c1-markers", action="store_true")
+    parser.add_argument("--qemu-calibration-markers", "--qemu-c1-markers", dest="qemu_markers", action="store_true")
     parser.add_argument("--diagnostic-trace", "--d1-trace", dest="diagnostic_trace", type=Path)
     parser.add_argument("--diagnostics-muted", "--d1-muted", dest="diagnostics_muted", action="store_true")
     arguments = parser.parse_args()
     if arguments.c1_muted and (not arguments.c1_timeline or arguments.negative_controls):
         parser.error("The muted control needs the timeline without the waveform mutations")
-    if arguments.qemu_c1_markers and not arguments.c1_timeline:
-        parser.error("Segmented QEMU markers require the native C1 timeline")
     expected = C1_SEQUENCE if arguments.c1_timeline else tuple(arguments.expected)
+    case = None
     if arguments.diagnostic_trace:
         trace = json.loads(arguments.diagnostic_trace.read_text(encoding="utf-8"))
         actions = trace.get("diagnosticAudio", [])
@@ -262,6 +261,8 @@ def main() -> None:
         )
     if arguments.diagnostics_muted and (not arguments.diagnostic_trace or arguments.negative_controls):
         parser.error("The muted diagnostic control requires a trace without waveform mutations")
+    if arguments.qemu_markers and not (arguments.c1_timeline or case == "D1"):
+        parser.error("Segmented QEMU markers require the native C1 or D1 timeline")
     if arguments.c1_muted:
         expected = tuple(name for name in expected if name not in CUES)
     names = tuple(dict.fromkeys(("begin", *CUES, *expected, "end")))
@@ -271,7 +272,7 @@ def main() -> None:
     }
     try:
         recording = read_pcm(arguments.capture)
-        matches = check_sequence(recording, templates, expected, qemu_c1=arguments.qemu_c1_markers)
+        matches = check_sequence(recording, templates, expected, qemu_markers=arguments.qemu_markers)
         quiet = check_c1_quiet_intervals(
             recording, matches, muted=arguments.c1_muted,
         ) if arguments.c1_timeline else {}
@@ -281,7 +282,7 @@ def main() -> None:
                 for i, (start, end) in enumerate(zip(matches[1:], matches[2:]), start=1)
             })
         controls = check_negative_controls(recording, templates, expected, matches,
-                                          qemu_c1=arguments.qemu_c1_markers) if arguments.negative_controls else []
+                                          qemu_markers=arguments.qemu_markers) if arguments.negative_controls else []
     except ValueError as error:
         parser.exit(1, str(error) + "\n")
     measured = []
