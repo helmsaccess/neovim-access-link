@@ -17,7 +17,8 @@ detail, the [changelog](changelog.md) for completed changes, and the
 
 The [guided workflow socket tests](testing.md#guided-workflows-over-real-neovim-rpc)
 exercise Neovim mappings, real providers and the authenticated protocol with
-Neovim 0.12.x. Windows focus and NVDA presentation have separate evidence.
+Neovim 0.12.x. They verify the data delivered for held signatures and
+diagnostics. Windows focus and NVDA presentation have separate evidence.
 
 ## Reference environment
 

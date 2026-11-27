@@ -192,7 +192,8 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
         self.assertEqual("pyright", package["name"])
         self.assertEqual(DEPENDENCIES["tools"]["pyright"], package["version"])
         self.assertEqual("langserver.index.js", executable.name)
-        self.assertIsNotNone(shutil.which("node"))
+        if shutil.which("node") is None:
+            self.skipTest("put Node.js on PATH for the pinned Pyright server")
         return executable
 
     def wait_for_pyright(self, endpoint: tuple[str, int], *, attached: bool = True) -> None:
@@ -245,7 +246,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
             self.assertEqual("connected", states.get(timeout=6))
             read_through("fullState")
             observed.clear()
-            yield endpoint, press, read_through, observed
+            yield endpoint, press, read_through, observed, client
         finally:
             client.stop()
 
@@ -253,7 +254,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
         incomplete = remove_matches_from_second_buffer
         with self.open_guided_editor(
             "L6", remove_matches_from_second_buffer=incomplete,
-        ) as (editor, fixture, original, (endpoint, press, read_through, observed)):
+        ) as (editor, fixture, original, (endpoint, press, read_through, observed, _)):
             press("<F3>")
             summary = read_through("replacementPerformed")
             expected_count = 1 if incomplete else 2
@@ -303,7 +304,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_l4_search_quickfix_and_confirmed_replacement(self) -> None:
         with self.open_guided_editor(
             "L4",
-        ) as (editor, fixture, original, (endpoint, press, read_through, observed)):
+        ) as (editor, fixture, original, (endpoint, press, read_through, observed, _)):
             pattern = "calculate_tip"
             press("/" + pattern)
             preview = read_through("searchMatchChanged", fields={"searchPattern": pattern, "searchPreview": True})
@@ -386,7 +387,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_l1_reports_only_attached_pyright(self) -> None:
         with self.open_guided_editor(
             "L1", pyright=self.pinned_pyright(),
-        ) as (editor, _, _, (endpoint, press, read_through, _)):
+        ) as (editor, _, _, (endpoint, press, read_through, _, _)):
             self.wait_for_pyright(endpoint)
             press("<F3>")
             live = read_through("lspStatus")
@@ -404,7 +405,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_l5_renames_with_pinned_pyright(self) -> None:
         with self.open_guided_editor(
             "L5", pyright=self.pinned_pyright(),
-        ) as (editor, fixture, original, (endpoint, press, read_through, observed)):
+        ) as (editor, fixture, original, (endpoint, press, read_through, observed, _)):
             self.wait_for_pyright(endpoint)
             initial = request(endpoint, "nvim_call_function", ["bufnr", ["%"]])
             position = request(endpoint, "nvim_win_get_cursor", [0])
@@ -447,7 +448,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_l2_follows_real_signature_help(self) -> None:
         with self.open_guided_editor(
             "L2", pyright=self.pinned_pyright(),
-        ) as (editor, _, _, (endpoint, press, read_through, observed)):
+        ) as (editor, _, _, (endpoint, press, read_through, observed, _)):
             self.wait_for_pyright(endpoint)
             request(endpoint, "nvim_exec_lua", [
                 "vim.g.guided_signatures_completed = 0;"
@@ -500,7 +501,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_c1_navigates_and_accepts_native_pyright_completion(self) -> None:
         with self.open_guided_editor(
             "C1", pyright=self.pinned_pyright(),
-        ) as (editor, _, _, (endpoint, press, read_through, observed)):
+        ) as (editor, _, _, (endpoint, press, read_through, observed, _)):
             self.wait_for_pyright(endpoint)
             press("<F3>")
             read_through("modeChanged", fields={"mode": "insert"})
@@ -540,21 +541,85 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
             self.assertEqual(1, emitted.count("menuClosed"), emitted)
             press("<Esc><F10>")
             self.assertEqual(0, editor.wait(timeout=6))
-    def test_guided_d1_navigates_real_ruff_diagnostics(self) -> None:
+
+    def context_snapshot(self, endpoint: tuple[str, int], request_id: int) -> dict:
+        return request(endpoint, "nvim_exec_lua", [
+            "local id = ...; local cursor = vim.api.nvim_win_get_cursor(0);"
+            "return {requestId = id, bufferId = vim.api.nvim_get_current_buf(),"
+            "windowId = vim.api.nvim_get_current_win(), tabpageId = vim.api.nvim_get_current_tabpage(),"
+            "changedtick = vim.api.nvim_buf_get_changedtick(0), line = cursor[1], byteColumn = cursor[2]}",
+            [request_id],
+        ])
+
+    def test_guided_l3_queries_real_pyright_without_moving_cursor(self) -> None:
+        with self.open_guided_editor("L3", pyright=self.pinned_pyright()) as (editor, _, _, capture):
+            endpoint, press, read_through, _, client = capture
+            self.wait_for_pyright(endpoint)
+            line = request(endpoint, "nvim_get_current_line", [])
+            name = line.index("calculate_total")
+            opening = line.index("(", name)
+            closing = line.index(")", opening)
+            expected = request(endpoint, "nvim_exec_lua", [
+                "local column = ...; local client = vim.lsp.get_clients({bufnr = 0, name = 'pyright'})[1];"
+                "local params = vim.lsp.util.make_position_params(0, client.offset_encoding);"
+                "params.position.character = column;"
+                "local reply = assert(client:request_sync('textDocument/signatureHelp', params, 1500, 0));"
+                "return assert(reply.result).signatures", [opening + 1],
+            ])
+            self.assertEqual(2, len(expected))
+            self.assertEqual({"float", "str"}, {item["label"].rsplit(" -> ", 1)[1] for item in expected})
+            expected_signatures = {}
+            for item in expected:
+                label = item["label"]
+                documentation = item.get("documentation") or ""
+                if isinstance(documentation, dict):
+                    documentation = documentation["value"]
+                expected_signatures[label] = documentation
+            for request_id, (column, move) in enumerate((
+                (name, None), (name, None),
+                (opening, "opening parenthesis"), (closing, "closing parenthesis"),
+            ), start=1):
+                if move:
+                    press("<F4>")
+                    read_through("messageReceived", message_contains=move)
+                snapshot = self.context_snapshot(endpoint, request_id)
+                self.assertEqual(column, snapshot["byteColumn"])
+                self.assertTrue(client.send_control("callableContextRequest", snapshot))
+                result = read_through("callableContextResult", fields=snapshot)
+                self.assertTrue(result["ok"], result)
+                self.assertCountEqual(
+                    [item["label"] for item in expected], [item["signature"] for item in result["items"]],
+                )
+                for signature in result["items"]:
+                    self.assertEqual(expected_signatures[signature["signature"]], signature["documentation"])
+                    self.assertEqual(
+                        ["price", "quantity", "discount"],
+                        [parameter.split(":", 1)[0] for parameter in signature["parameters"]],
+                    )
+                self.assertEqual(snapshot, self.context_snapshot(endpoint, request_id))
+            press("<F10>")
+            self.assertEqual(0, editor.wait(timeout=6))
+
+    def pinned_ruff(self) -> Path:
         if not os.environ.get("NAL_GUIDED_NVIM_LINT"):
             self.skipTest("set NAL_GUIDED_NVIM_LINT to the pinned nvim-lint checkout")
         ruff_path = shutil.which("ruff")
-        self.assertIsNotNone(ruff_path)
+        if ruff_path is None:
+            self.skipTest("put the pinned Ruff executable on PATH")
         version = subprocess.check_output((ruff_path, "--version"), text=True).strip()
         self.assertEqual("ruff " + DEPENDENCIES["tools"]["ruff"], version)
+        return Path(ruff_path)
+
+    def test_guided_d1_navigates_real_ruff_diagnostics(self) -> None:
+        ruff_path = self.pinned_ruff()
         with self.open_guided_editor(
-            "D1", pyright=self.pinned_pyright(), linter=Path(ruff_path),
-        ) as (editor, fixture, original, (endpoint, press, read_through, observed)):
+            "D1", pyright=self.pinned_pyright(), linter=ruff_path,
+        ) as (editor, fixture, original, (endpoint, press, read_through, observed, _)):
             self.wait_for_pyright(endpoint)
             press("<F6>")
             read_through("messageReceived", message_contains="Diagnostics ready")
             direct = subprocess.run(
-                (ruff_path, "check", "--isolated", "--output-format=json", "diagnostics.py"),
+                (str(ruff_path), "check", "--isolated", "--no-cache", "--output-format=json", "diagnostics.py"),
                 cwd=fixture, check=False, capture_output=True, text=True, encoding="utf-8", timeout=10,
             )
             self.assertEqual(1, direct.returncode)
@@ -600,12 +665,52 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
             self.assertEqual(0, editor.wait(timeout=6))
             self.assertEqual(original["diagnostics.py"], (fixture / "diagnostics.py").read_bytes())
 
+    def test_guided_d2_queries_both_ruff_findings_and_rejects_a_stale_snapshot(self) -> None:
+        ruff = self.pinned_ruff()
+        with self.open_guided_editor("D2", pyright=self.pinned_pyright(), linter=ruff) as (editor, fixture, _, capture):
+            endpoint, press, read_through, _, client = capture
+            self.wait_for_pyright(endpoint)
+            press("<F6>")
+            read_through("messageReceived", message_contains="Diagnostics ready")
+            press("<F7>")
+            read_through("diagnosticMoved")
+            direct = subprocess.run(
+                (str(ruff), "check", "--isolated", "--no-cache", "--output-format=json", "diagnostics.py"),
+                cwd=fixture, check=False, capture_output=True, text=True, encoding="utf-8", timeout=10,
+            )
+            self.assertEqual(1, direct.returncode)
+            expected = [item for item in json.loads(direct.stdout) if item["code"] == "F401"]
+            self.assertEqual(2, len(expected))
+            self.assertIn("os.path", expected[0]["message"])
+            self.assertIn("os.sep", expected[1]["message"])
+
+            snapshot = self.context_snapshot(endpoint, 1)
+            stale = {**snapshot, "requestId": 2, "changedtick": snapshot["changedtick"] + 1}
+            self.assertTrue(client.send_control("diagnosticContextRequest", stale))
+            result = read_through("diagnosticContextResult", fields=stale)
+            self.assertFalse(result["ok"])
+            self.assertEqual("invalidOrStaleRequest", result["resultCode"])
+            self.assertFalse(result["items"])
+            self.assertTrue(client.send_control("diagnosticContextRequest", snapshot))
+            result = read_through("diagnosticContextResult", fields=snapshot)
+            self.assertTrue(result["ok"], result)
+            items = [item for item in result["items"] if item["source"].casefold() == "ruff"]
+            self.assertEqual([
+                (item["message"], item["location"]["row"], item["location"]["column"] - 1,
+                 item["end_location"]["column"] - 1, index == 0)
+                for index, item in enumerate(expected)
+            ], [(item["message"], item["line"], item["byteColumn"], item["endByteColumn"], item["atCursor"])
+                for item in items])
+            self.assertEqual(snapshot, self.context_snapshot(endpoint, 1))
+            press("<F10>")
+            self.assertEqual(0, editor.wait(timeout=6))
+
     def test_guided_d3_clang_tidy_reports_and_wraps_real_errors(self) -> None:
         tool = self.external_linter("NAL_GUIDED_CLANG_TIDY")
         version = subprocess.check_output((str(tool), "--version"), text=True)
         self.assertIn("version " + DEPENDENCIES["tools"]["clangTidy"], version)
         with self.open_guided_editor("D3", linter=tool) as (editor, fixture, original, capture):
-            endpoint, press, read_through, observed = capture
+            endpoint, press, read_through, observed, _ = capture
             press("<F2>")
             instruction = read_through("messageReceived", message_contains="Test ID D3.")["message"]
             self.assertTrue(instruction.startswith("Test ID D3."))
@@ -651,7 +756,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
     def test_guided_d4_markdownlint_reports_without_editing(self) -> None:
         tool = self.external_linter("NAL_GUIDED_MARKDOWNLINT")
         with self.open_guided_editor("D4", linter=tool) as (editor, fixture, original, capture):
-            endpoint, press, read_through, observed = capture
+            endpoint, press, read_through, observed, _ = capture
             press("<F6>")
             read_through("messageReceived", message_contains="Diagnostics ready")
             probe = subprocess.run(
@@ -690,7 +795,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
             self.skipTest("set NAL_GUIDED_LAZY to the pinned lazy.nvim checkout")
         lazy = Path(configured).resolve(strict=True)
         with self.open_guided_editor("P1", lazy=lazy) as (editor, _, _, capture):
-            endpoint, press, read_through, _ = capture
+            endpoint, press, read_through, _, _ = capture
             buffer_number = "return vim.api.nvim_get_current_buf()"
             original = request(endpoint, "nvim_exec_lua", [buffer_number, []])
             with socket.create_connection(endpoint, timeout=2) as ui:
@@ -782,7 +887,7 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
 
     def verify_plugin_completion(self, test_id: str, visible: str, items: str, label: str) -> None:
         with self.open_guided_editor(test_id, pyright=self.pinned_pyright()) as (editor, _, _, capture):
-            endpoint, press, read_through, observed = capture
+            endpoint, press, read_through, observed, _ = capture
             self.wait_for_pyright(endpoint)
             press("<F3>")
             read_through("modeChanged", fields={"mode": "insert"})

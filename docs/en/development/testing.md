@@ -101,13 +101,18 @@ or path is missing. Set these variables before running the socket phase:
 
 | Variable or executable | Expected dependency | Cases |
 | --- | --- | --- |
-| `NAL_GUIDED_PYRIGHT` and `node` on `PATH` | Pyright's `langserver.index.js` and Node.js | L1, L2, L5, C1–C3, D1 |
+| `NAL_GUIDED_PYRIGHT` and `node` on `PATH` | Pyright's `langserver.index.js` and Node.js | L1–L3, L5, C1–C3, D1, D2 |
 | `NAL_GUIDED_COMPLETION_ROOT` | Parent directory of the pinned Git checkouts `nvimCmp`, `cmpNvimLsp` and `blinkCmp` | C2, C3 |
-| `NAL_GUIDED_NVIM_LINT` | Pinned nvim-lint Git checkout | D1, D3, D4 |
-| `ruff` on `PATH` | Pinned Ruff executable | D1 |
+| `NAL_GUIDED_NVIM_LINT` | Pinned nvim-lint Git checkout | D1–D4 |
+| `ruff` on `PATH` | Pinned Ruff executable | D1, D2 |
 | `NAL_GUIDED_CLANG_TIDY` | Pinned Clang-Tidy executable | D3 |
 | `NAL_GUIDED_MARKDOWNLINT` | Pinned markdownlint-cli2 executable or Windows command wrapper | D4 |
 | `NAL_GUIDED_LAZY` | Pinned lazy.nvim Git checkout | P1 |
+
+L3 and D2 verify the context data supplied to NVDA. They compare the real
+provider results, correlate requests with the editor snapshot, and check
+that the query leaves the cursor unchanged. D2 also submits a stale
+snapshot and requires an explicit rejection.
 
 For P1, a separate client attaches using `nvim_ui_attach` and receives the
 real Neovim redraw stream. The test also reads native buffer state and checks

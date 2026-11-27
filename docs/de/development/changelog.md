@@ -6,10 +6,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
-- Prüft geführte Suche, Ersetzung, LSP, Completion, Diagnosen und das Lazy-Fenster über echte
-  Neovim-Eingabe und authentifiziertes RPC. Ergänzt Gegenproben für
-  unvollständige Ersetzung und Lazy-Git-Prüfungen. Korrigiert den Cursorweg
-  über ein Dezimalargument in Aufgabe L2.
+- Prüft geführte Suche, Ersetzung, LSP, Completion, Diagnosen und das
+  Lazy-Fenster über echte Neovim-Eingabe und authentifiziertes RPC. Prüft
+  Signatur- und Diagnosekontext ohne Cursorbewegung. Ergänzt Gegenproben für
+  unvollständige Ersetzung, veralteten Diagnosekontext und Lazy-Git-Prüfungen.
+  Korrigiert den Cursorweg über ein Dezimalargument in Aufgabe L2.
 - Führt die in den Windows-Prüfungen verwendete NVDA-API 2026.3.1 als zuletzt getestet im Manifest.
 - Benötigt Pull Requests für Änderungen an `main`, auch zur Releasevorbereitung.
   Dokumentiert semantische Produktversionen, datierte Changelogs,

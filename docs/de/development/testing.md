@@ -106,13 +106,18 @@ ein benötigtes Werkzeug oder ein Pfad fehlt. Setze vor der Socketphase:
 
 | Variable oder Programm | Erwartete Abhängigkeit | Fälle |
 | --- | --- | --- |
-| `NAL_GUIDED_PYRIGHT` und `node` im `PATH` | Pyrights `langserver.index.js` und Node.js | L1, L2, L5, C1–C3, D1 |
+| `NAL_GUIDED_PYRIGHT` und `node` im `PATH` | Pyrights `langserver.index.js` und Node.js | L1–L3, L5, C1–C3, D1, D2 |
 | `NAL_GUIDED_COMPLETION_ROOT` | Elternverzeichnis der fixierten Git-Checkouts `nvimCmp`, `cmpNvimLsp` und `blinkCmp` | C2, C3 |
-| `NAL_GUIDED_NVIM_LINT` | Fixierter Git-Checkout von nvim-lint | D1, D3, D4 |
-| `ruff` im `PATH` | Fixiertes Ruff-Programm | D1 |
+| `NAL_GUIDED_NVIM_LINT` | Fixierter Git-Checkout von nvim-lint | D1–D4 |
+| `ruff` im `PATH` | Fixiertes Ruff-Programm | D1, D2 |
 | `NAL_GUIDED_CLANG_TIDY` | Fixiertes Clang-Tidy-Programm | D3 |
 | `NAL_GUIDED_MARKDOWNLINT` | Fixiertes markdownlint-cli2-Programm oder Windows-Befehlswrapper | D4 |
 | `NAL_GUIDED_LAZY` | Fixierter Git-Checkout von lazy.nvim | P1 |
+
+L3 und D2 prüfen die für NVDA bereitgestellten Kontextdaten. Sie vergleichen
+die echten Provider-Ergebnisse, ordnen Anfragen dem Editorzustand zu und
+prüfen, dass die Abfrage den Cursor unverändert lässt. D2 schickt zusätzlich
+einen veralteten Editorzustand und erwartet eine explizite Ablehnung.
 
 Für P1 verbindet sich ein separater Client über `nvim_ui_attach` und empfängt
 Neovims echte UI-Zeichenereignisse. Die Prüfung liest auch den nativen

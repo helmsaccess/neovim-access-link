@@ -19,7 +19,8 @@ Stands. [Architektur](architecture.md) und
 
 Die [Sockettests für geführte Abläufe](testing.md#geführte-abläufe-über-echtes-neovim-rpc)
 prüfen Neovim-Tastenbelegungen, echte Provider und das authentifizierte
-Protokoll mit Neovim 0.12.x. Für Windows-Fokus und NVDA-Ausgabe gelten
+Protokoll mit Neovim 0.12.x. Sie prüfen die gelieferten Daten für gehaltene
+Signaturen und Diagnosen. Für Windows-Fokus und NVDA-Ausgabe gelten
 getrennte Nachweise.
 
 ## Referenzumgebung
