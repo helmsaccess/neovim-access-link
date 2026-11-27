@@ -10,6 +10,7 @@ MARKERS = ("begin", "before-open", "before-selection", "before-accept", "end")
 WITH_CUES = ("begin", "before-open", "open", "before-selection", "before-accept", "close", "end")
 MUTATIONS = {"muted cue", "duplicated cue", "reordered cues", "missing render marker"}
 SELECTION = [0, 1, 2, -1, 0, -1, 2]
+QEMU_START_MARKER_LOSS = "Expected one render marker at each end, found [0, 1]"
 
 
 def read_json(path):
@@ -19,6 +20,12 @@ def read_json(path):
 def require(condition, explanation):
     if not condition:
         raise ValueError(explanation)
+
+
+def lost_qemu_start_marker(proof, run_id, *, muted):
+    return (proof["ok"] is True and proof["captureEndpoint"] == "Windows WASAPI loopback"
+            and proof["guestRun"] == run_id and proof["muted"] is muted and proof["profile"] == "native"
+            and proof["qemuCapture"] == {"ok": False, "error": QEMU_START_MARKER_LOSS})
 
 
 def check_run(proof_path, *, muted, workspace=None):

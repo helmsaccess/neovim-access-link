@@ -15,7 +15,7 @@ import sys
 import uuid
 
 from guided_jobs import AUDIO, DESKTOP, NATIVE_CONTROLS, Job, cards, jobs
-from verify_c1_pair import compare as compare_c1
+from verify_c1_pair import compare as compare_c1, lost_qemu_start_marker
 from verify_lazy_pair import compare as compare_lazy
 
 
@@ -34,7 +34,7 @@ def require(condition, reason):
 
 
 @contextmanager
-def exclusive_guest(workspace, port):
+def exclusive_guest(workspace, port, *, stop_after=None):
     import msvcrt
 
     with (workspace / f"guided-suite-{port}.lock").open("a+b") as handle:
@@ -43,7 +43,11 @@ def exclusive_guest(workspace, port):
             msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
         except OSError as error:
             raise RuntimeError(f"A suite already owns the Windows guest on port {port}") from error
-        yield
+        try:
+            yield
+        finally:
+            if stop_after is not None:
+                stop_after.shutdown()
 
 
 def run_job(job: Job, env, observed):
@@ -79,6 +83,23 @@ def observed_failure(workspace, run_ids):
             if observed.get("ok") is False and "steps" in observed:
                 return True
     return False
+
+
+def repeat_c1_calibration(job, env, ids, workspace, output, digest, retries):
+    mode = "muted" if job.muted else "positive"
+    recording = output / f"C1-{mode}.wav"
+    proof = recording.with_suffix(".verification.json")
+    run_id = ids[-1]
+    if not lost_qemu_start_marker(read_json(proof), run_id, muted=job.muted):
+        return
+    require(guest_run(workspace, run_id, digest)["ok"] is True,
+            "The Windows guest failed before the QEMU calibration could be repeated")
+    archived = recording.with_stem(f"{recording.stem}-rejected-{run_id}")
+    recording.rename(archived)
+    proof.rename(archived.with_suffix(".verification.json"))
+    retries[mode] = {"run": ids.pop(), "recording": archived.name}
+    print(f"Repeating C1 {mode} after the QEMU capture lost its start marker; saved {run_id}.", flush=True)
+    run_job(job, env, ids)
 
 
 def verify_case(case, run_ids, workspace, output, candidate_hash):
@@ -156,7 +177,8 @@ def run_suite(args, selected):
     started = datetime.now(timezone.utc).isoformat()
     summary = {"started": started, "candidate": {"name": addon.name, "sha256": digest},
                "cases": {case: {"status": "pending"} for case in selected}}
-    with exclusive_guest(workspace, port):
+    stop_after = guest if os.environ.get("NAL_TEST_STOP_GUEST_AFTER_SUITE") == "1" else None
+    with exclusive_guest(workspace, port, stop_after=stop_after):
         output.mkdir()
         report_path = output / "summary.json"
         print(f"Evidence directory: {output}", flush=True)
@@ -164,6 +186,7 @@ def run_suite(args, selected):
             ids = []
             interruptions = []
             partial_audio = []
+            calibration_retries = {}
             try:
                 for job in steps:
                     if guest is not None:
@@ -185,14 +208,20 @@ def run_suite(args, selected):
                                 partial_audio.append(partial.name)
                         guest.ready(SOURCES)
                         run_job(job, env, ids)
+                    if case == "C1":
+                        repeat_c1_calibration(job, env, ids, workspace, output, digest, calibration_retries)
                 verify_case(case, ids, workspace, output, digest)
             except (KeyError, OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
                 summary["cases"][case] = {"status": "failed", "runs": ids, "interruptedRuns": interruptions,
                                           "partialAudio": partial_audio, "error": str(error)}
+                if calibration_retries:
+                    summary["cases"][case]["calibrationRetries"] = calibration_retries
                 report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
                 raise
             summary["cases"][case] = {"status": "passed", "runs": ids, "interruptedRuns": interruptions,
                                       "partialAudio": partial_audio}
+            if calibration_retries:
+                summary["cases"][case]["calibrationRetries"] = calibration_retries
             report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return report_path
 

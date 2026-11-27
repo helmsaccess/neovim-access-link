@@ -51,6 +51,7 @@ try {
     $digest = (Get-FileHash -LiteralPath $addon.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 
     $phase = 'Windows VM suite'
+    $env:NAL_TEST_STOP_GUEST_AFTER_SUITE = '1'
     $filter = 'guided-suite-*'
     $previous = @(Get-ChildItem -LiteralPath $workspace.FullName -Directory -Filter $filter | Select-Object -ExpandProperty Name)
     & $python tools/run_tests.py guided-desktop guided-audio --guided-config $config.FullName --guided-addon $addon.FullName >> $log 2>&1

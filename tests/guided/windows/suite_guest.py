@@ -1,5 +1,6 @@
 """Start only the configured disposable Windows guest when its process has stopped."""
 
+from contextlib import suppress
 from pathlib import Path
 import subprocess
 import sys
@@ -62,6 +63,20 @@ class RestartableGuest:
 
     def stopped(self):
         return not self.monitor_matches() and not self.process_exists()
+
+    def shutdown(self):
+        if self.stopped():
+            return
+        for command, timeout in (("system_powerdown", 90), ("quit", 20)):
+            if self.monitor_matches():
+                with suppress(EOFError, OSError), Qmp(self.port) as monitor:
+                    monitor.execute(command)
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                if self.stopped():
+                    return
+                time.sleep(2)
+        raise TimeoutError("The isolated guest did not stop after the suite")
 
     def ready(self, sources):
         if self.stopped():

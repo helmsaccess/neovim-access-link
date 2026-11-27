@@ -3054,32 +3054,35 @@ passenden Schnittstellen beobachtet. Die Gruppen werden ausdrücklich
 gestartet. Für alle 18 Aufgaben liegen vollständige Gastnachweise
 einschließlich Gegenproben vor. Das Referenzprofil verwendete NVDA
 2026.3.1, Neovim 0.12.6 und Windows Terminal 1.25.3131.0. Der <a href="#docs__de__development__testingmd__teststrategie">Abschlussprüfer</a>
-verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen. Geführte
-Praxistests isolieren die verbleibende Wahrnehmungsprüfung von Sprache,
-Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
-bestätigt reale Providerdaten und die für die jeweilige Aufgabe
-isolierte Tastensteuerung. Die Kompatibilitätssuite enthält zusätzlich
-vier lazy.nvim- Aufgaben mit vollständig lokalen Git-Fixtures für
-Fenster, Installation, Aktualisierung und Synchronisierung; die
-Einzelauswahl gruppiert sie unter Plugin-Verwaltung. Die
-Headless-Vorprüfung verlangt keine dort absichtlich unterdrückte
-Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
-Fixture-Konfiguration. Beim Neuzeichnen derselben Plugin-Zeile
-unterdrückt der Sprachplaner eine zusätzliche Buchstabenansage durch die
-verschobene Cursorspalte. Gezielte Zeichen- und Wortnavigation bleibt
-hörbar. Die Fixture-Repositories deaktivieren Zeilenendenkonvertierung
-und unnötige Git-Ausgaben. Auf gemeinsam genutzten oder gemappten
-Laufwerken erlaubt die isolierte Git-Konfiguration nur die konkreten
-Fixture-Repositories. Die Vorbereitung bricht beim ersten
-fehlgeschlagenen Werkzeug- oder Profiltest mit dessen direktem Grund ab.
-Sie prüft und verwendet vorhandene festgelegte Werkzeuge und nur die für
-die Auswahl benötigten Plugin-Revisionen weiter. Der gespeicherte
-Zustand nennt die bereits erfolgreich vorgeprüften Profile; eine neue
-Auswahl wird nicht aufgrund anderer bestandener Profile übersprungen.
-Pyright läuft direkt über Node. Direkte Werkzeugfehler enthalten die
-Werkzeugausgabe; Linterfehler nennen den konfigurierten Provider und ob
-dessen Prozess noch läuft. Aufbau und sichere Tastenbelegung stehen in
-<a href="human-testing.html">Geführte
+verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen. Der
+GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
+bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen
+mit WASAPI und QEMU bei und prüft Wiederholungen bei fehlender
+QEMU-Startmarke nach. Geführte Praxistests isolieren die verbleibende
+Wahrnehmungsprüfung von Sprache, Braille, Klängen, Fokus und
+Reaktionszeit. Ihre technische Vorprüfung bestätigt reale Providerdaten
+und die für die jeweilige Aufgabe isolierte Tastensteuerung. Die
+Kompatibilitätssuite enthält zusätzlich vier lazy.nvim- Aufgaben mit
+vollständig lokalen Git-Fixtures für Fenster, Installation,
+Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie
+unter Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort
+absichtlich unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen
+Befehl und die isolierte Fixture-Konfiguration. Beim Neuzeichnen
+derselben Plugin-Zeile unterdrückt der Sprachplaner eine zusätzliche
+Buchstabenansage durch die verschobene Cursorspalte. Gezielte Zeichen-
+und Wortnavigation bleibt hörbar. Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam
+genutzten oder gemappten Laufwerken erlaubt die isolierte
+Git-Konfiguration nur die konkreten Fixture-Repositories. Die
+Vorbereitung bricht beim ersten fehlgeschlagenen Werkzeug- oder
+Profiltest mit dessen direktem Grund ab. Sie prüft und verwendet
+vorhandene festgelegte Werkzeuge und nur die für die Auswahl benötigten
+Plugin-Revisionen weiter. Der gespeicherte Zustand nennt die bereits
+erfolgreich vorgeprüften Profile; eine neue Auswahl wird nicht aufgrund
+anderer bestandener Profile übersprungen. Pyright läuft direkt über
+Node. Direkte Werkzeugfehler enthalten die Werkzeugausgabe; Linterfehler
+nennen den konfigurierten Provider und ob dessen Prozess noch läuft.
+Aufbau und sichere Tastenbelegung stehen in <a href="human-testing.html">Geführte
 Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
 echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
 oder fremdes JSON-<code>null</code>, bevor F5 die tatsächlichen
@@ -5787,9 +5790,14 @@ Standardbranch. Der eigene Windows-Runner ist auf das private Repository
 beschränkt. Der Workflow benötigt keine GitHub-gehosteten Minuten.
 Rohprotokolle, Gastmedien und Audiomitschnitte bleiben im Labor.
 Einrichtung und Aufruf stehen in
-<code>tests/guided/windows/README.md</code>. Der vollständige Gastlauf
-ist lokal bestätigt. Der Actions-Aufruf setzt einen bereitgestellten
-privaten Labor-Runner voraus.</p>
+<code>tests/guided/windows/README.md</code>. Das Labor fährt seinen Gast
+am Ende der Suite herunter. Wenn C1 im Gast und in WASAPI besteht, aber
+die Startmarke in der QEMU-Aufnahme fehlt, wird die betroffene
+Audioeinstellung einmal wiederholt. Der Abschlussprüfer wertet die
+verworfene und die neue vollständige Aufzeichnung mit denselben
+Anforderungen aus. Der vollständige Gastlauf ist lokal bestätigt. Der
+Actions-Aufruf setzt einen bereitgestellten privaten Labor-Runner
+voraus.</p>
 </section>
 <section id="docs__de__development__testingmd__buildprüfung" class="level3">
 <h3>Buildprüfung</h3>
@@ -6827,6 +6835,10 @@ endgültige Codeanalyse und der Reaudit bleiben als historische Berichte
 erhalten. GitHub Actions prüft den Windows-Desktop getrennt vom
 vollständigen Gastlauf, den ein privates Testlabor per
 wiederverwendbarem Workflow ausführt.</p></li>
+<li><p>Bewahrt in C1 eine Aufnahme mit fehlender QEMU-Startmarke auf,
+wiederholt den betroffenen Ablauf nach bestandener Gast- und
+WASAPI-Prüfung einmal und prüft beide Versuche nach. Der Actions-Job
+fährt seinen Testgast nach der Suite herunter.</p></li>
 <li><p>Führt die geführten Aufgaben in optionale Desktop- und
 Audiogruppen mit isolierter Windows-VM und überprüften Gegenproben
 über.</p></li>

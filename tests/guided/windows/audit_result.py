@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 
 
 def verify_serial_log(workspace, run_id, candidate):
@@ -253,6 +254,7 @@ def main():
     from run_c1_audio import verify_recording as verify_completion_pcm
     from run_external_diagnostic_audio import verify_recording as verify_diagnostic_pcm
     from run_guided_suite import read_json, require, verify_case
+    from verify_c1_pair import QEMU_START_MARKER_LOSS, lost_qemu_start_marker
 
     with args.addon.open("rb") as package:
         actual = hashlib.file_digest(package, "sha256").hexdigest()
@@ -279,6 +281,36 @@ def main():
         ids = observed["runs"]
         verify_case(case, ids, workspace, output, actual)
         logs = [verify_serial_log(workspace, run_id, candidate) for run_id in ids]
+        retries = observed.get("calibrationRetries", {})
+        require(not retries or (case == "C1" and retries.keys() <= {"positive", "muted"}),
+                f"Unexpected QEMU calibration retries for {case}")
+        checked_retries = []
+        for mode, retry in retries.items():
+            run_id = retry["run"]
+            muted = mode == "muted"
+            name = f"C1-{mode}-rejected-{run_id}.wav"
+            require(re.fullmatch(r"[a-f0-9]{12}", run_id) and retry["recording"] == name and run_id not in ids,
+                    "C1 calibration retries must refer to a distinct recorded guest run")
+            recording = output / name
+            proof = read_json(recording.with_suffix(".verification.json"))
+            require(lost_qemu_start_marker(proof, run_id, muted=muted), "Unexpected C1 calibration retry reason")
+            guest_log = verify_serial_log(workspace, run_id, candidate)
+            guest = read_json(workspace / f"run-{run_id}.json")
+            require(guest["ok"] is True and guest["steps"][0].startswith("c1_"),
+                    "C1 calibration retry does not have a passing C1 guest trace")
+            transfer = guest["wasapiCapture"]
+            endpoint = verify_wasapi_transfer(workspace, run_id, transfer, guest_log)
+            require(proof["captureFile"] == endpoint.name, "C1 retry WASAPI artifact does not match the guest run")
+            wasapi = verify_capture_result(endpoint, proof, verify_completion_pcm(endpoint, args.references, muted=muted))
+            try:
+                verify_completion_pcm(recording, args.references, muted=muted)
+            except RuntimeError as error:
+                require(str(error) == QEMU_START_MARKER_LOSS, "C1 retry QEMU rejection changed during audit")
+            else:
+                raise ValueError("C1 retry QEMU capture passed the original oracle")
+            with recording.open("rb") as stream:
+                rejected = {"file": name, "sha256": hashlib.file_digest(stream, "sha256").hexdigest()}
+            checked_retries.append({"run": run_id, "mode": mode, "wasapi": wasapi, "rejectedQemu": rejected})
         if case in {"L1", "L2", "L4", "L5", "L6"}:
             fixtures = checkout / "tests/human/fixtures"
             reports = [read_json(workspace / f"run-{run_id}.json")["lspEvidence"] for run_id in ids]
@@ -340,11 +372,14 @@ def main():
         result = {"status": "verified", "runs": ids, "pcmRechecked": captures}
         if rejected_qemu:
             result["rejectedQemu"] = rejected_qemu
+        if checked_retries:
+            result["calibrationRetries"] = checked_retries
         return result
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         outcomes = dict(zip(expected, pool.map(audit, expected), strict=True))
     executed = [run for outcome in outcomes.values() for run in outcome.get("runs", ())]
+    executed.extend(retry["run"] for outcome in outcomes.values() for retry in outcome.get("calibrationRetries", ()))
     require(len(executed) == len(set(executed)), "The same guest run was credited more than once")
     complete = all(outcome["status"] == "verified" for outcome in outcomes.values())
     print(json.dumps({"complete": complete, "candidate": candidate, "cases": outcomes}, indent=2))

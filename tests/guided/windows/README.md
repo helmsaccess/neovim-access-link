@@ -85,6 +85,10 @@ lie outside these digital measurements.
 C1 requires both WASAPI and QEMU PCM evidence. C2, C3, D3 and D4 require
 the WASAPI render endpoint. Their QEMU recordings and any rejected checks
 are retained in the reports for diagnosis. D1 requires QEMU PCM evidence.
+If C1 passes in the guest and the complete WASAPI recording but QEMU misses
+only its start marker, the suite repeats that audio setting once. It archives
+the rejected recording, report and source run. Both independent recordings
+of the repeated run must satisfy the original checks.
 
 ```powershell
 python tests/guided/windows/audit_result.py . $summary $addon $audioReferences --complete
