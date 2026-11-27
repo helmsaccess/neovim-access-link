@@ -316,7 +316,7 @@ verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen.
 Der GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
 bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen mit
 WASAPI und QEMU bei und prüft Wiederholungen bei fehlender QEMU-Startmarke
-nach.
+nach. Unabhängige Fälle laufen auch nach einem früheren Fallfehler weiter.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte

@@ -85,7 +85,7 @@ def observed_failure(workspace, run_ids):
     return False
 
 
-def repeat_c1_calibration(job, env, ids, workspace, output, digest, retries):
+def repeat_c1_calibration(job, env, ids, workspace, output, digest, retries, *, guest=None):
     mode = "muted" if job.muted else "positive"
     recording = output / f"C1-{mode}.wav"
     proof = recording.with_suffix(".verification.json")
@@ -99,6 +99,9 @@ def repeat_c1_calibration(job, env, ids, workspace, output, digest, retries):
     proof.rename(archived.with_suffix(".verification.json"))
     retries[mode] = {"run": ids.pop(), "recording": archived.name}
     print(f"Repeating C1 {mode} after the QEMU capture lost its start marker; saved {run_id}.", flush=True)
+    if guest is not None:
+        guest.shutdown()
+        guest.ready(SOURCES)
     run_job(job, env, ids)
 
 
@@ -178,6 +181,7 @@ def run_suite(args, selected):
     summary = {"started": started, "candidate": {"name": addon.name, "sha256": digest},
                "cases": {case: {"status": "pending"} for case in selected}}
     stop_after = guest if os.environ.get("NAL_TEST_STOP_GUEST_AFTER_SUITE") == "1" else None
+    continue_after_failure = os.environ.get("NAL_TEST_CONTINUE_GUIDED_CASES") == "1"
     with exclusive_guest(workspace, port, stop_after=stop_after):
         output.mkdir()
         report_path = output / "summary.json"
@@ -209,7 +213,7 @@ def run_suite(args, selected):
                         guest.ready(SOURCES)
                         run_job(job, env, ids)
                     if case == "C1":
-                        repeat_c1_calibration(job, env, ids, workspace, output, digest, calibration_retries)
+                        repeat_c1_calibration(job, env, ids, workspace, output, digest, calibration_retries, guest=guest)
                 verify_case(case, ids, workspace, output, digest)
             except (KeyError, OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
                 summary["cases"][case] = {"status": "failed", "runs": ids, "interruptedRuns": interruptions,
@@ -217,7 +221,10 @@ def run_suite(args, selected):
                 if calibration_retries:
                     summary["cases"][case]["calibrationRetries"] = calibration_retries
                 report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-                raise
+                if not continue_after_failure:
+                    raise
+                print(f"Failed {case}: {error}", flush=True)
+                continue
             summary["cases"][case] = {"status": "passed", "runs": ids, "interruptedRuns": interruptions,
                                       "partialAudio": partial_audio}
             if calibration_retries:
@@ -247,7 +254,11 @@ def main():
             return
         if args.config is None or args.addon is None:
             parser.error("--config and --addon are required for an actual suite run")
-        print(f"Passed: {run_suite(args, selected)}")
+        report_path = run_suite(args, selected)
+        failed = [case for case, result in read_json(report_path)["cases"].items() if result["status"] != "passed"]
+        if failed:
+            parser.exit(1, f"Guided suite failed for {', '.join(failed)}. Evidence: {report_path}\n")
+        print(f"Passed: {report_path}")
     except (KeyError, OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
         parser.exit(1, f"Guided suite failed: {error}\n")
 

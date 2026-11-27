@@ -12,9 +12,10 @@ und Testbuild-Einträge bis zum 5. August 2026.
   GitHub Actions prüft den Windows-Desktop getrennt vom vollständigen
   Gastlauf, den ein privates Testlabor per wiederverwendbarem Workflow ausführt.
 - Bewahrt in C1 eine Aufnahme mit fehlender QEMU-Startmarke auf, wiederholt
-  den betroffenen Ablauf nach bestandener Gast- und WASAPI-Prüfung einmal und
-  prüft beide Versuche nach. Der Actions-Job fährt seinen Testgast nach der
-  Suite herunter.
+  den betroffenen Ablauf nach bestandener Gast- und WASAPI-Prüfung mit einem
+  frisch gestarteten Gast einmal und prüft beide Versuche nach. Der
+  Actions-Job führt unabhängige Fälle nach einem Fehler weiter aus und fährt
+  seinen Testgast nach der Suite herunter.
 - Führt die geführten Aufgaben in optionale Desktop- und Audiogruppen
   mit isolierter Windows-VM und überprüften Gegenproben über.
 - Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage

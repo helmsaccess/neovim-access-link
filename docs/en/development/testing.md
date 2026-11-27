@@ -250,10 +250,12 @@ restricted to the private repository. The job uses the project's own Windows
 runner, so it consumes zero GitHub-hosted minutes. Raw logs, guest media, and
 recordings stay in the lab. See `tests/guided/windows/README.md` for setup and
 invocation.
-The lab stops its own guest at the end of the suite. If C1 passes in Windows
-and WASAPI but the QEMU recording lacks its start marker, the affected audio
-setting is run once again. The audit reprocesses both the rejected recording
-and the new full recording with the original requirements.
+The lab runs the remaining independent cases after a case failure and stops
+its own guest at the end of the suite. A failed case still fails the complete
+audit. If C1 passes in Windows and WASAPI but the QEMU recording lacks its
+start marker, the lab restarts its guest and repeats the affected audio
+setting once. The audit reprocesses the rejected recording and the new full
+recording with the original requirements.
 The full guest suite has been verified locally. Running it through Actions
 requires a provisioned private lab runner.
 

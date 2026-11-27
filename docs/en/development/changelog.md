@@ -12,8 +12,9 @@ test-build entries through August 5, 2026.
   desktop separately from the complete guest suite, which a private lab runs
   through a reusable workflow.
 - Preserves a C1 recording with a missing QEMU start marker, permits one
-  replay after the guest and WASAPI checks pass, and audits both attempts.
-  The Actions job shuts down its own test guest after the suite.
+  replay with a fresh lab guest after the guest and WASAPI checks pass, and
+  audits both attempts. The Actions job runs independent cases after a failure
+  and shuts down its own test guest after the suite.
 - Adds optional guided desktop and audio test groups with an isolated
   Windows guest and verified controls.
 - Announces the expanded or collapsed state of a lazy.nvim entry without

@@ -52,10 +52,11 @@ try {
 
     $phase = 'Windows VM suite'
     $env:NAL_TEST_STOP_GUEST_AFTER_SUITE = '1'
+    $env:NAL_TEST_CONTINUE_GUIDED_CASES = '1'
     $filter = 'guided-suite-*'
     $previous = @(Get-ChildItem -LiteralPath $workspace.FullName -Directory -Filter $filter | Select-Object -ExpandProperty Name)
     & $python tools/run_tests.py guided-desktop guided-audio --guided-config $config.FullName --guided-addon $addon.FullName >> $log 2>&1
-    if ($LASTEXITCODE -ne 0) { throw 'The Windows VM suite failed.' }
+    $suiteExit = $LASTEXITCODE
     $outputs = @(Get-ChildItem -LiteralPath $workspace.FullName -Directory -Filter $filter |
         Where-Object { $_.Name -cmatch '^guided-suite-[a-f0-9]{12}$' -and $_.Name -notin $previous })
     if ($outputs.Count -ne 1) { throw 'The suite did not produce one new evidence directory.' }
@@ -65,10 +66,14 @@ try {
     $raw = & $python tests/guided/windows/audit_result.py . $summary $addon.FullName $references.FullName --complete 2>> $log
     $auditExit = $LASTEXITCODE
     $raw | Add-Content -LiteralPath $log
+    if ($raw) {
+        $audit = ($raw -join "`n") | ConvertFrom-Json
+        $cases = @($audit.cases.PSObject.Properties)
+        $passedCount = @($cases | Where-Object { $_.Value.status -ceq 'verified' }).Count
+        "Rechecked $passedCount of $($cases.Count) guided Windows VM cases." | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+    }
     if ($auditExit -ne 0) { throw 'The complete evidence audit failed.' }
-    $audit = ($raw -join "`n") | ConvertFrom-Json
-    $cases = @($audit.cases.PSObject.Properties)
-    if ($audit.complete -ne $true -or $audit.candidate.sha256 -cne $digest -or
+    if ($suiteExit -ne 0 -or $audit.complete -ne $true -or $audit.candidate.sha256 -cne $digest -or
         !$cases.Count -or @($cases | Where-Object { $_.Value.status -cne 'verified' }).Count) {
         throw 'The evidence audit did not verify every case against the expected package.'
     }

@@ -292,8 +292,9 @@ reference profile used NVDA 2026.3.1, Neovim 0.12.6, and Windows Terminal 1.25.3
 The [result audit](testing.md#guided-windows-and-audio-checks) verifies the guest
 logs, package hash, and PCM recordings.
 The GitHub-hosted S1 check has also verified native focus and keyboard input.
-The private lab keeps the independent WASAPI and QEMU checks for C1 and
-audits any replay caused by a missing QEMU start marker.
+The private lab keeps the independent WASAPI and QEMU checks for C1, audits
+any replay caused by a missing QEMU start marker, and runs independent cases
+even if an earlier case fails.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility

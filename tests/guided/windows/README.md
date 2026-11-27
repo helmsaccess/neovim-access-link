@@ -86,7 +86,8 @@ C1 requires both WASAPI and QEMU PCM evidence. C2, C3, D3 and D4 require
 the WASAPI render endpoint. Their QEMU recordings and any rejected checks
 are retained in the reports for diagnosis. D1 requires QEMU PCM evidence.
 If C1 passes in the guest and the complete WASAPI recording but QEMU misses
-only its start marker, the suite repeats that audio setting once. It archives
+only its start marker, the suite repeats that audio setting once. The
+restartable lab uses a fresh guest process for that repeat. It archives
 the rejected recording, report and source run. Both independent recordings
 of the repeated run must satisfy the original checks.
 
@@ -144,6 +145,7 @@ jobs:
 
 A passing lab job requires `audit_result.py --complete` to verify every
 case against the built package. The GitHub job summary reports the source
-commit and package hash. The local lab log and per-run directories hold
+commit and package hash on success. On failure it continues independent
+cases and reports how many the final audit verified. The local lab log and per-run directories hold
 the diagnostic details. GitHub-hosted runner checks have separate job
 names and report their directly observed behavior.

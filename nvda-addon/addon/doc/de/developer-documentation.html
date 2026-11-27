@@ -3058,7 +3058,8 @@ verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen. Der
 GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
 bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen
 mit WASAPI und QEMU bei und prüft Wiederholungen bei fehlender
-QEMU-Startmarke nach. Geführte Praxistests isolieren die verbleibende
+QEMU-Startmarke nach. Unabhängige Fälle laufen auch nach einem früheren
+Fallfehler weiter. Geführte Praxistests isolieren die verbleibende
 Wahrnehmungsprüfung von Sprache, Braille, Klängen, Fokus und
 Reaktionszeit. Ihre technische Vorprüfung bestätigt reale Providerdaten
 und die für die jeweilige Aufgabe isolierte Tastensteuerung. Die
@@ -5790,14 +5791,16 @@ Standardbranch. Der eigene Windows-Runner ist auf das private Repository
 beschränkt. Der Workflow benötigt keine GitHub-gehosteten Minuten.
 Rohprotokolle, Gastmedien und Audiomitschnitte bleiben im Labor.
 Einrichtung und Aufruf stehen in
-<code>tests/guided/windows/README.md</code>. Das Labor fährt seinen Gast
-am Ende der Suite herunter. Wenn C1 im Gast und in WASAPI besteht, aber
-die Startmarke in der QEMU-Aufnahme fehlt, wird die betroffene
-Audioeinstellung einmal wiederholt. Der Abschlussprüfer wertet die
-verworfene und die neue vollständige Aufzeichnung mit denselben
-Anforderungen aus. Der vollständige Gastlauf ist lokal bestätigt. Der
-Actions-Aufruf setzt einen bereitgestellten privaten Labor-Runner
-voraus.</p>
+<code>tests/guided/windows/README.md</code>. Das Labor führt nach einem
+fehlgeschlagenen Fall die übrigen unabhängigen Fälle aus und fährt
+seinen Gast am Ende der Suite herunter. Ein fehlgeschlagener Fall lässt
+die vollständige Nachprüfung scheitern. Wenn C1 im Gast und in WASAPI
+besteht, aber die Startmarke in der QEMU-Aufnahme fehlt, startet das
+Labor den Gast neu und wiederholt die betroffene Audioeinstellung
+einmal. Der Abschlussprüfer wertet die verworfene und die neue
+vollständige Aufzeichnung mit denselben Anforderungen aus. Der
+vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
+einen bereitgestellten privaten Labor-Runner voraus.</p>
 </section>
 <section id="docs__de__development__testingmd__buildprüfung" class="level3">
 <h3>Buildprüfung</h3>
@@ -6837,8 +6840,9 @@ vollständigen Gastlauf, den ein privates Testlabor per
 wiederverwendbarem Workflow ausführt.</p></li>
 <li><p>Bewahrt in C1 eine Aufnahme mit fehlender QEMU-Startmarke auf,
 wiederholt den betroffenen Ablauf nach bestandener Gast- und
-WASAPI-Prüfung einmal und prüft beide Versuche nach. Der Actions-Job
-fährt seinen Testgast nach der Suite herunter.</p></li>
+WASAPI-Prüfung mit einem frisch gestarteten Gast einmal und prüft beide
+Versuche nach. Der Actions-Job führt unabhängige Fälle nach einem Fehler
+weiter aus und fährt seinen Testgast nach der Suite herunter.</p></li>
 <li><p>Führt die geführten Aufgaben in optionale Desktop- und
 Audiogruppen mit isolierter Windows-VM und überprüften Gegenproben
 über.</p></li>

@@ -265,11 +265,13 @@ vom Standardbranch. Der eigene Windows-Runner ist auf das private Repository
 beschränkt. Der Workflow benötigt keine GitHub-gehosteten Minuten.
 Rohprotokolle, Gastmedien und Audiomitschnitte bleiben im Labor.
 Einrichtung und Aufruf stehen in `tests/guided/windows/README.md`.
-Das Labor fährt seinen Gast am Ende der Suite herunter. Wenn C1 im Gast und
-in WASAPI besteht, aber die Startmarke in der QEMU-Aufnahme fehlt, wird die
-betroffene Audioeinstellung einmal wiederholt. Der Abschlussprüfer wertet
-die verworfene und die neue vollständige Aufzeichnung mit denselben
-Anforderungen aus.
+Das Labor führt nach einem fehlgeschlagenen Fall die übrigen unabhängigen
+Fälle aus und fährt seinen Gast am Ende der Suite herunter. Ein
+fehlgeschlagener Fall lässt die vollständige Nachprüfung scheitern. Wenn C1
+im Gast und in WASAPI besteht, aber die Startmarke in der QEMU-Aufnahme fehlt,
+startet das Labor den Gast neu und wiederholt die betroffene Audioeinstellung
+einmal. Der Abschlussprüfer wertet die verworfene und die neue vollständige
+Aufzeichnung mit denselben Anforderungen aus.
 Der vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
 einen bereitgestellten privaten Labor-Runner voraus.
 
