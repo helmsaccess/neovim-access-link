@@ -387,14 +387,14 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('text(diagnostic.message):find("MD025"', readiness)
 		self.assertIn('return { 3, 0 }', configuration)
 		self.assertNotIn('return { 3, 2 }', configuration)
-		self.assertIn('reportUnusedImport = "none"', configuration)
+		self.assertIn('disableTaggedHints = profile == "diagnostics"', configuration)
 		self.assertIn('cmd = { "node", pyright, "--stdio" }', configuration)
 		self.assertIn(
 			'"Pyright did not attach to the human-test fixture; command: node %s --stdio"',
 			configuration,
 		)
 		self.assertEqual(
-			{"typeCheckingMode": "strict"},
+			{"typeCheckingMode": "strict", "reportUnusedImport": "none"},
 			json.loads(
 				(HUMAN_ROOT / "fixtures" / "pyrightconfig.json").read_text(encoding="utf-8")
 			),

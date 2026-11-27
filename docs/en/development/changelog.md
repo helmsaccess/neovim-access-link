@@ -6,6 +6,9 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Waits for Ruff and Pyright in the guided Python diagnostic tests. The
+  fixture leaves import warnings to Ruff so late Pyright results cannot
+  change the navigation order after the readiness announcement.
 - Exercises guided search, replacement, LSP, completion, diagnostics and the
   Lazy window through actual Neovim input and authenticated RPC. Verifies
   signature and diagnostic context without moving the cursor. Adds negative

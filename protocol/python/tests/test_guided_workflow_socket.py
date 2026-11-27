@@ -631,6 +631,16 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
                 "return vim.tbl_map(function(d)"
                 " return {d.source, tostring(d.code), d.lnum + 1, d.col, d.message} end, vim.diagnostic.get(0))", [],
             ])
+            pyright_diagnostics = {
+                (code, line) for source, code, line, _, _ in diagnostics if source == "Pyright"
+            }
+            self.assertEqual({
+                ("reportAssignmentType", 3),
+                ("reportOperatorIssue", 4),
+                ("reportUnknownArgumentType", 4),
+                ("reportUndefinedVariable", 5),
+                ("reportUnknownArgumentType", 5),
+            }, pyright_diagnostics)
             self.assertEqual(expected_ruff, sorted(
                 (code, line, column) for source, code, line, column, _ in diagnostics if source.casefold() == "ruff"
             ))

@@ -6,6 +6,9 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Wartet in den geführten Python-Diagnosetests auf Ruff und Pyright. Die
+  Fixture überlässt Importwarnungen Ruff, sodass verspätete Pyright-Befunde
+  die Reihenfolge nach der Bereitschaftsmeldung nicht verändern.
 - Prüft geführte Suche, Ersetzung, LSP, Completion, Diagnosen und das
   Lazy-Fenster über echte Neovim-Eingabe und authentifiziertes RPC. Prüft
   Signatur- und Diagnosekontext ohne Cursorbewegung. Ergänzt Gegenproben für

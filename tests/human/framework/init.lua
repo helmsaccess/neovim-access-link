@@ -720,13 +720,11 @@ if uses_pyright then
     capabilities = capabilities,
     root_markers = { "pyrightconfig.json" },
     settings = {
+      pyright = { disableTaggedHints = profile == "diagnostics" },
       python = {
         analysis = {
           autoSearchPaths = true,
           diagnosticMode = "openFilesOnly",
-          diagnosticSeverityOverrides = {
-            reportUnusedImport = "none",
-          },
           typeCheckingMode = "strict",
           useLibraryCodeForTypes = true,
         },
@@ -793,11 +791,25 @@ if uses_linter then
   end
 
   linter_diagnostics_ready = function()
-    return linter_readiness.evaluate(
+    local ready, count, first = linter_readiness.evaluate(
       profile,
       get_linter_diagnostics(),
       vim.diagnostic.severity
     )
+    if ready and profile == "diagnostics" then
+      local expected = {
+        reportAssignmentType = true,
+        reportOperatorIssue = true,
+        reportUndefinedVariable = true,
+      }
+      for _, diagnostic in ipairs(vim.diagnostic.get(0)) do
+        if diagnostic.source == "Pyright" then
+          expected[diagnostic.code or ""] = nil
+        end
+      end
+      ready = next(expected) == nil
+    end
+    return ready, count, first
   end
   linter_failure_details = function()
     local diagnostics = get_linter_diagnostics()
