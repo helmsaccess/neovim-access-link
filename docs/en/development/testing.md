@@ -32,6 +32,8 @@ separate temporary directories.
 | `lua` | headless-Neovim specifications without listeners |
 | `ssh` | mocked SSH, Askpass, command, and failure paths |
 | `socket` | real disposable TUI, RPC, TCP, and Unix-socket cases |
+| `guided-desktop` | Windows VM with focus, speech, and Braille checks |
+| `guided-audio` | Windows VM with PCM recordings and muted controls |
 | `quick` | fast feedback; `unit` only |
 | `all-safe` | `unit`, `package`, and listener-free `lua` |
 | `all` | `all-safe`, then `ssh` and `socket` in separate phases |
@@ -127,12 +129,29 @@ These checks cover the Neovim and protocol portions of the tasks. Windows
 focus, NVDA's speech and Braille output, and physical perception require
 separate observations. See the [guided test scope](human-testing.md).
 
+### Guided Windows and audio checks
+
+The optional groups run serially in an isolated Windows guest. `--list`
+shows case IDs. Repeat `--guided-case` to limit a run to selected cases.
+
+```powershell
+python tools/run_tests.py guided-desktop guided-audio --list
+python tools/run_tests.py guided-desktop guided-audio --guided-config $labConfig --guided-addon $addon
+```
+
+`tests/guided/windows/README.md` describes VM configuration, tools, and
+evidence. VM data stays in the local auxiliary workspace. Guest reports
+record the package checksum and cleanup acknowledgement. The checks observe
+digital Braille patterns, sequences sent to the speech synthesizer, and
+rendered audio. Device-specific Braille perception, acoustic intelligibility,
+and subjective latency lie outside these measurements.
+
 ## Mapping changes to tests
 
 Check operating-system focus and key gestures on an interactive, isolated
 Windows desktop. A Windows guest can observe Win32 foreground, UI Automation
-focus, and keys from a virtual keyboard device. The local harness under
-`../nal-aux/tools/windows-focus-vm/` uses a separate NVDA configuration and
+focus, and keys from a virtual keyboard device. The harness under
+`tests/guided/windows/` uses a separate NVDA configuration and
 portable Windows Terminal. Use explicit failure checks in the portable NVDA
 test code. NVDA runs Python with optimization and omits `assert` statements.
 

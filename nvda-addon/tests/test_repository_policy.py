@@ -490,6 +490,26 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertNotIn("socket", presets["all-safe"])
         self.assertEqual(("unit", "package", "lua", "ssh", "socket"), presets["all"])
 
+    def test_guided_groups_list_all_cases_without_a_guest(self) -> None:
+        command = (sys.executable, str(REPOSITORY_ROOT / "tools/run_tests.py"))
+        result = subprocess.run(
+            (*command, "guided-desktop", "guided-audio", "--list"),
+            cwd=REPOSITORY_ROOT, check=True, capture_output=True, text=True, timeout=20,
+        )
+        listed = dict(line.split() for line in result.stdout.splitlines())
+        self.assertEqual(len(result.stdout.splitlines()), len(listed))
+        self.assertEqual({"C1", "C2", "C3", "D1", "D3", "D4"},
+                         {case for case, group in listed.items() if group == "audio"})
+        self.assertEqual({"L1", "L2", "L3", "L4", "L5", "L6", "D2", "S1", "P1", "P2", "P3", "P4"},
+                         {case for case, group in listed.items() if group == "desktop"})
+
+        invalid = subprocess.run(
+            (*command, "guided-audio", "--list", "--guided-case", "P4"),
+            cwd=REPOSITORY_ROOT, capture_output=True, text=True, timeout=20,
+        )
+        self.assertNotEqual(0, invalid.returncode)
+        self.assertIn("outside the group", invalid.stderr)
+
     def test_runner_keeps_nested_ci_socket_paths_below_the_unix_limit(self) -> None:
         runner = runpy.run_path(
             str(REPOSITORY_ROOT / "tools/run_tests.py"),

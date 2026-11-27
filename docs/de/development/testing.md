@@ -33,6 +33,8 @@ in getrennten temporären Verzeichnissen aus.
 | `lua` | Headless-Neovim-Spezifikationen ohne Listener |
 | `ssh` | simulierte SSH-, Askpass-, Kommando- und Fehlerpfade |
 | `socket` | echte wegwerfbare TUI-, RPC-, TCP- und Unix-Socket-Fälle |
+| `guided-desktop` | Windows-VM mit Fokus-, Sprach- und Brailleprüfungen |
+| `guided-audio` | Windows-VM mit PCM-Aufnahmen und Stumm-Gegenproben |
 | `quick` | schnelle Rückmeldung; nur `unit` |
 | `all-safe` | `unit`, `package` und listenerfreies `lua` |
 | `all` | `all-safe`, danach `ssh` und `socket` in getrennten Phasen |
@@ -135,13 +137,32 @@ Windows-Fokus, NVDA-Sprach- und Brailleausgabe und physische Wahrnehmung
 erfordern getrennte Beobachtungen. Siehe den
 [Umfang der geführten Tests](human-testing.md).
 
+### Geführte Windows- und Audio-Prüfungen
+
+Die optionalen Gruppen laufen nacheinander auf einem isolierten
+Windows-Gast. `--list` zeigt die Aufgaben-IDs. `--guided-case` beschränkt
+einen Lauf auf bestimmte Aufgaben und kann mehrfach angegeben werden.
+
+```powershell
+python tools/run_tests.py guided-desktop guided-audio --list
+python tools/run_tests.py guided-desktop guided-audio --guided-config $labConfig --guided-addon $addon
+```
+
+`tests/guided/windows/README.md` beschreibt VM-Konfiguration, Werkzeuge
+und Belege. Die VM-Daten bleiben im lokalen Hilfsverzeichnis. Ein
+Gastbericht weist Paketprüfsumme und Aufräumquittung aus. Die Prüfungen
+erfassen digitale Braille-Punktmuster, die an die Sprachsynthese
+übergebenen Sequenzen und gerenderte Audiosignale. Gerätespezifische
+Braille-Wahrnehmung, akustische Verständlichkeit und subjektive Latenz
+liegen außerhalb dieser Messung.
+
 ## Zuordnung nach Änderung
 
 Prüfe Betriebssystemfokus und Tastengesten in einem interaktiven, isolierten
 Windows-Desktop. Ein Windows-Gast kann Win32-Vordergrund, UI-Automation-Fokus
-und Tasten über das virtuelle Tastaturgerät prüfen. Der lokale Prüfaufbau unter
-`../nal-aux/tools/windows-focus-vm/` verwendet eine separate NVDA-Konfiguration
-und ein portables Windows Terminal. Prüfcode in der portablen NVDA-Ausgabe
+und Tasten über das virtuelle Tastaturgerät prüfen. Der Prüfcode unter
+`tests/guided/windows/` verwendet eine separate NVDA-Konfiguration und ein
+portables Windows Terminal. Prüfcode in der portablen NVDA-Ausgabe
 nutzt explizite Fehlerbedingungen. NVDA startet Python mit Optimierung und
 lässt `assert`-Anweisungen weg.
 

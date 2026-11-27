@@ -304,6 +304,11 @@ begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.
 Listenerfreie, SSH- und echte Sockettests laufen getrennt. Einzelheiten und
 Befehle stehen in [Teststrategie](testing.md).
+`guided-desktop` und `guided-audio` führen die 18 geführten Aufgaben
+mit mechanisch prüfbaren Erwartungen im isolierten Windows-Gast aus.
+Tatsächlicher Fokus, NVDA-Sprachausgabe, digitale Braille-Zellen und
+gerenderte Audiosignale werden an den jeweils passenden Schnittstellen
+beobachtet. Die Gruppen werden ausdrücklich gestartet.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte

@@ -6,6 +6,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Führt die geführten Aufgaben in optionale Desktop- und Audiogruppen
+  mit isolierter Windows-VM und überprüften Gegenproben über.
 - Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage
   ohne zusätzliche Buchstabenansage durch die verschobene Cursorspalte aus.
 - Öffnet in Aufgabe L4 die Quickfix-Liste bereits mit F3. Ein

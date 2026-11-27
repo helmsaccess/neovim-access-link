@@ -36,6 +36,7 @@ JOB_TIMEOUT_SECONDS = 180
 UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
 GROUPS = ("unit", "package", "lua", "ssh", "socket")
+GUIDED_GROUPS = {"guided-desktop": "desktop", "guided-audio": "audio"}
 PRESETS = {
     "quick": ("unit",),
     "safe": ("unit", "package", "lua"),
@@ -433,7 +434,7 @@ def run_job(
 
 
 def parse_args() -> argparse.Namespace:
-    names = (*GROUPS, *PRESETS)
+    names = (*GROUPS, *PRESETS, *GUIDED_GROUPS)
     parser = argparse.ArgumentParser(
         description="Run independent test processes in parallel. The default preset is 'safe'.",
     )
@@ -452,7 +453,30 @@ def parse_args() -> argparse.Namespace:
         help=f"maximum parallel processes (default: {DEFAULT_JOBS})",
     )
     parser.add_argument("--list", action="store_true", help="list selected jobs without running them")
-    return parser.parse_args()
+    parser.add_argument("--guided-config", type=Path, help="local Windows VM and tool configuration")
+    parser.add_argument("--guided-addon", type=Path, help="built .nvda-addon for the Windows guided groups")
+    parser.add_argument("--guided-case", action="append", default=[], help="limit the guided groups to these case IDs")
+    arguments = parser.parse_args()
+    if (set(arguments.groups or ()) & GUIDED_GROUPS.keys()) and not arguments.list:
+        if arguments.guided_config is None or arguments.guided_addon is None:
+            parser.error("guided groups require --guided-config and --guided-addon")
+    return arguments
+
+
+def run_guided_groups(arguments: argparse.Namespace, groups: tuple[str, ...]) -> int:
+    command = [
+        sys.executable, str(ROOT / "tests/guided/windows/run_guided_suite.py"), "--checkout", str(ROOT),
+    ]
+    if len(groups) == 1:
+        command.extend(("--group", GUIDED_GROUPS[groups[0]]))
+    if arguments.list:
+        command.append("--list")
+    else:
+        command.extend(("--config", str(arguments.guided_config.resolve()),
+                        "--addon", str(arguments.guided_addon.resolve())))
+    for case in arguments.guided_case:
+        command.extend(("--case", case))
+    return subprocess.run(command, cwd=ROOT, check=False).returncode
 
 
 def main() -> int:
@@ -460,6 +484,10 @@ def main() -> int:
     if arguments.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
     groups = selected_groups(tuple(arguments.groups or ("safe",)))
+    guided = tuple(group for group in groups if group in GUIDED_GROUPS)
+    groups = tuple(group for group in groups if group in GROUPS)
+    if not groups:
+        return run_guided_groups(arguments, guided)
     selected = tuple(job for job in jobs(arguments.jobs) if job.group in groups)
     if os.name == "nt" and "socket" in groups:
         selected = tuple(
@@ -472,8 +500,8 @@ def main() -> int:
     if arguments.list:
         for job in selected:
             print(f"{job.group:7} {job.name}")
-        print(f"{len(selected)} jobs; groups: {', '.join(groups)}")
-        return 0
+        print(f"{len(selected)} jobs; groups: {', '.join(groups)}", flush=True)
+        return run_guided_groups(arguments, guided) if guided else 0
 
     print(
         f"Running {len(selected)} isolated jobs from groups {', '.join(groups)} "
@@ -555,9 +583,10 @@ def main() -> int:
         return 1
     print(
         f"\nOK: {len(results)} jobs, {tests} unittest cases, "
-        f"{skipped} skipped, {warnings} warnings in {elapsed:.2f}s"
+        f"{skipped} skipped, {warnings} warnings in {elapsed:.2f}s",
+        flush=True,
     )
-    return 0
+    return run_guided_groups(arguments, guided) if guided else 0
 
 
 if __name__ == "__main__":

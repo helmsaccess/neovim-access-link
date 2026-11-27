@@ -6,6 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Adds optional guided desktop and audio test groups with an isolated
+  Windows guest and verified controls.
 - Announces the expanded or collapsed state of a lazy.nvim entry without
   spelling an extra character when the redraw restores the cursor column.
 - Opens the Quickfix list on F3 in guided task L4. A regression test

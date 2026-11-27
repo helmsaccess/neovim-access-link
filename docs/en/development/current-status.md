@@ -283,6 +283,10 @@ This permits cold Windows and network-drive starts without waiting forever for
 a stalled provider.
 Listener-free, SSH, and real socket tests run separately. See the
 [test strategy](testing.md) for commands and detail.
+`guided-desktop` and `guided-audio` exercise the 18 guided cases and their
+mechanically verifiable expectations in an isolated Windows guest. They
+observe actual focus, NVDA speech output, digital Braille cells, and rendered
+audio at their respective interfaces. Both groups run on explicit request.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility
