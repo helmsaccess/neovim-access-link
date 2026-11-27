@@ -6,6 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Opens the Quickfix list on F3 in guided task L4. A regression test
+  checks that the first result receives focus.
 - Waits for Ruff and Pyright in the guided Python diagnostic tests. The
   fixture leaves import warnings to Ruff so late Pyright results cannot
   change the navigation order after the readiness announcement.

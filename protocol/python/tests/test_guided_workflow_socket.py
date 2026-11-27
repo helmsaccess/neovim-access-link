@@ -324,12 +324,19 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
                 if pattern in line
             )
             self.assertEqual(len(expected), result["itemCount"])
+            self.assertEqual("quickfix", result["windowType"])
+            self.assertEqual(1, result["resultIndex"])
             items = request(endpoint, "nvim_exec_lua", [
                 "return vim.tbl_map(function(q) return {"
                 "vim.fs.basename(vim.api.nvim_buf_get_name(q.bufnr)), q.lnum, q.col"
                 "} end, vim.fn.getqflist())", [],
             ])
             self.assertEqual(expected, sorted(tuple(item) for item in items))
+            quickfix_window = request(endpoint, "nvim_call_function", ["getqflist", [{"winid": 1}]])["winid"]
+            self.assertGreater(quickfix_window, 0)
+            self.assertEqual(quickfix_window, request(endpoint, "nvim_exec_lua", [
+                "return vim.api.nvim_get_current_win()", [],
+            ]))
 
             for key, indexes, boundary in (
                 ("<F4>", [2, 3, 4], "Already at the last Quickfix result."),
@@ -341,6 +348,14 @@ class GuidedWorkflowSocketTests(unittest.TestCase):
                     while request(endpoint, "nvim_call_function", ["getqflist", [{"idx": 0}]])["idx"] != index:
                         self.assertLess(time.monotonic(), deadline, f"{key} did not select Quickfix item {index}")
                         time.sleep(0.02)
+                    selected = read_through(
+                        ("cursorMoved", "lineChanged", "contextChanged"),
+                        fields={"windowType": "quickfix", "resultIndex": index},
+                    )
+                    self.assertEqual(quickfix_window, selected["windowId"])
+                    self.assertEqual(quickfix_window, request(endpoint, "nvim_exec_lua", [
+                        "return vim.api.nvim_get_current_win()", [],
+                    ]))
                 press(key)
                 read_through("messageReceived", message_contains=boundary)
                 self.assertEqual(indexes[-1], request(endpoint, "nvim_call_function", [

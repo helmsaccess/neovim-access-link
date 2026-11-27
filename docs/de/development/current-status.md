@@ -189,8 +189,9 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   Neovims interne Bufferwechsel erscheinen nicht als Fokuswechsel.
   Automatisierte Tests decken Quickfix-Dateien, gelistete Buffer und
   Argumentdateien einschließlich eines zunächst ungeladenen Argumentbuffers
-  ab. Die geführten L4- und L6-Abläufe sind noch nicht vollständig praktisch
-  unter Windows/NVDA abgenommen.
+  ab. Ein nativer Neovim-Test bestätigt, dass F3 in L4 die Quickfix-Liste
+  mit dem ersten Treffer öffnet. Die praktische Abnahme von L4 und L6
+  unter Windows/NVDA steht aus.
 - Diagnosen aus `vim.diagnostic` lassen sich nach aktueller, vorheriger,
   nächster, erster und letzter Position lesen. Gehaltene Diagnoseansichten,
   Fehler-, Warn- und Leerbestätigungsklänge verwenden denselben validierten

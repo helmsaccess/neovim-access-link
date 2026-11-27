@@ -116,8 +116,11 @@ truthy(vim.wait(1000, function()
 end, 10), "L4 F3 emits the production native result-list event")
 truthy(native_events[#native_events].payload.itemCount == 4,
   "L4 project search has four deterministic fixture results")
+local quickfix = vim.fn.getqflist({ idx = 0, size = 0, winid = 1 })
+truthy(quickfix.idx == 1 and quickfix.winid == vim.api.nvim_get_current_win(),
+  "L4 F3 opens the Quickfix window on the first result")
 l4_mappings["<F4>"].callback()
-local quickfix = vim.fn.getqflist({ idx = 0, size = 0 })
+quickfix = vim.fn.getqflist({ idx = 0, size = 0 })
 local window = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1] or {}
 truthy(quickfix.idx == 2 and window.quickfix == 1,
   "L4 F4 selects the second result in the open Quickfix list")

@@ -567,7 +567,9 @@ elseif step_id == "status-presentation" then
   end, { desc = "Access Link human test: LSP status" })
 elseif step_id == "native-search-replacement" then
   vim.keymap.set("n", "<F3>", function()
-    run_observed_native_command("vimgrep /calculate_tip/gj *.py", true)
+    if run_observed_native_command("vimgrep /calculate_tip/gj *.py", true) then
+      vim.cmd.copen()
+    end
   end, { desc = "Access Link human test: project search into Quickfix" })
   vim.keymap.set("n", "<F4>", function()
     move_in_quickfix("cnext")

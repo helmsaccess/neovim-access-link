@@ -173,8 +173,9 @@ tab changes, plus structured Neovim messages.
   observed changed and unsaved buffers; Neovim's internal buffer visits do not
   appear as focus changes. Automated tests cover Quickfix files, listed
   buffers, and argument files, including an initially unloaded argument
-  buffer. Guided L4 and L6 have not yet received complete practical acceptance
-  under Windows/NVDA.
+  buffer. A native Neovim test checks that F3 in L4 opens the Quickfix list
+  on the first result. Practical acceptance of L4 and L6 under Windows/NVDA
+  is pending.
 - Diagnostics from `vim.diagnostic` can be read at the current, previous, next,
   first, and last position. Held diagnostic views and error, warning, and
   empty-result cues use the same validated data path.
