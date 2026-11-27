@@ -9,7 +9,7 @@ from pathlib import Path
 
 product_version = "0.99.0"
 # Set to ``None`` only for a user-approved release artifact.
-development_build: int | None = 3
+development_build: int | None = 1
 release_channel = "beta"
 # Store upgrade baseline for the intended channel. For a stable release,
 # confirm the previous stable Store version before preparing the release.

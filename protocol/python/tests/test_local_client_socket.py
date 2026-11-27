@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,42 @@ def request(endpoint: tuple[str, int], method: str, arguments: list):
     raise EOFError(f"Neovim closed without answering {method}")
 
 
+@contextmanager
+def open_editor(scratch: Path, env: dict, arguments: list, *, cwd: Path | None = None):
+    log_path = scratch / "nvim.log"
+    with log_path.open("wb") as log, subprocess.Popen(
+        ("nvim", "--headless", "-n", "-i", "NONE", *arguments),
+        env=env, cwd=cwd, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+    ) as editor:
+        try:
+            registry = scratch / "nvim-nvda" / "sessions"
+            deadline = time.monotonic() + 6
+            while True:
+                entries = list(registry.glob(f"{editor.pid}-*.json"))
+                if len(entries) > 1:
+                    raise AssertionError(f"Expected a single Neovim session, got {len(entries)}")
+                if entries:
+                    try:
+                        contents = entries[0].read_text(encoding="utf-8")
+                    except (FileNotFoundError, PermissionError):
+                        # Windows can see the record before the publisher releases its file handle.
+                        pass
+                    else:
+                        break
+                if editor.poll() is not None or time.monotonic() >= deadline:
+                    raise AssertionError(f"No readable Neovim registration: {log_path.read_text(errors='replace')}")
+                time.sleep(0.05)
+            yield editor, json.loads(contents)
+        finally:
+            if editor.poll() is None:
+                editor.terminate()
+                try:
+                    editor.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    editor.kill()
+                    editor.wait(timeout=3)
+
+
 class LocalClientSocketTests(unittest.TestCase):
     def test_authenticated_neovim_state_and_cursor_routing(self) -> None:
         with tempfile.TemporaryDirectory(prefix="local-rpc-") as directory:
@@ -52,27 +89,8 @@ class LocalClientSocketTests(unittest.TestCase):
                 "vim.cmd('runtime plugin/nvim_nvda.lua')\n",
                 encoding="utf-8",
             )
-            log_path = scratch / "nvim.log"
-            with log_path.open("wb") as log, subprocess.Popen(
-                ("nvim", "--headless", "-u", str(init), "-n", "-i", "NONE"),
-                env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-            ) as editor:
-                try:
-                    registry = scratch / "nvim-nvda" / "sessions"
-                    deadline = time.monotonic() + 6
-                    while not (entries := list(registry.glob(f"{editor.pid}-*.json"))):
-                        if editor.poll() is not None or time.monotonic() >= deadline:
-                            self.fail(f"Neovim did not register: {log_path.read_text(errors='replace')}")
-                        time.sleep(0.05)
-                    self.assertEqual(len(entries), 1)
-                    session = json.loads(entries[0].read_text(encoding="utf-8"))
-                    self.verify_client(session)
-                finally:
-                    editor.terminate()
-                    try:
-                        editor.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        editor.kill()
+            with open_editor(scratch, env, ["-u", str(init)]) as (_, session):
+                self.verify_client(session)
 
     def verify_client(self, session: dict) -> None:
         endpoint = (session["host"], session["port"])

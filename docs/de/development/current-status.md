@@ -1,6 +1,6 @@
 # Aktueller Status
 
-Stand: 26. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
+Stand: 27. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
 `buildVars.py` erzeugt die Versionskennung aus Entwicklungsbuildnummer,
 Branch und Commit und setzt den Manifest-Update-Kanal auf Beta. Der zuletzt
 veröffentlichte Pre-Release ist 0.98.0.
@@ -16,6 +16,11 @@ Stands. [Architektur](architecture.md) und
 [Funktionsmatrix](accessibility.md) erklären Details; das
 [Changelog](changelog.md) beschreibt abgeschlossene Änderungen und der
 [Plan](plan.md) künftige Arbeit.
+
+Die [Sockettests für geführte Abläufe](testing.md#geführte-abläufe-über-echtes-neovim-rpc)
+prüfen Neovim-Tastenbelegungen, echte Provider und das authentifizierte
+Protokoll mit Neovim 0.12.x. Für Windows-Fokus und NVDA-Ausgabe gelten
+getrennte Nachweise.
 
 ## Referenzumgebung
 

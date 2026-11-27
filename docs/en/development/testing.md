@@ -87,6 +87,41 @@ a passing test. Run the socket phase later in a permitted environment.
 `python3 tools/run_tests.py all` is appropriate only where all three phases are
 allowed.
 
+### Guided workflows over real Neovim RPC
+
+With Neovim 0.12.x on `PATH`, the socket phase also loads the guided test
+profile in fresh editors. It queues the actual mapped keys using `nvim_input`
+and receives semantic events through the authenticated production client.
+Assertions cross-check events with native buffer, cursor, quickfix, diagnostic
+and completion state, external linter output, or unchanged fixture files.
+
+L4 and L6 need only Neovim. The other cases use versions from
+`tests/human/dependencies.json` and skip with a reason if a required tool
+or path is missing. Set these variables before running the socket phase:
+
+| Variable or executable | Expected dependency | Cases |
+| --- | --- | --- |
+| `NAL_GUIDED_PYRIGHT` and `node` on `PATH` | Pyright's `langserver.index.js` and Node.js | L1, L2, L5, C1–C3, D1 |
+| `NAL_GUIDED_COMPLETION_ROOT` | Parent directory of the pinned Git checkouts `nvimCmp`, `cmpNvimLsp` and `blinkCmp` | C2, C3 |
+| `NAL_GUIDED_NVIM_LINT` | Pinned nvim-lint Git checkout | D1, D3, D4 |
+| `ruff` on `PATH` | Pinned Ruff executable | D1 |
+| `NAL_GUIDED_CLANG_TIDY` | Pinned Clang-Tidy executable | D3 |
+| `NAL_GUIDED_MARKDOWNLINT` | Pinned markdownlint-cli2 executable or Windows command wrapper | D4 |
+| `NAL_GUIDED_LAZY` | Pinned lazy.nvim Git checkout | P1 |
+
+For P1, a separate client attaches using `nvim_ui_attach` and receives the
+real Neovim redraw stream. The test also reads native buffer state and checks
+the semantic command bar and expanded state through the production client.
+For P2–P4, `bash tools/test_lazy_plugin.sh PATH_TO_PINNED_LAZY_NVIM` runs the
+real Lazy commands with disposable local Git repositories. It checks the
+operation lifecycle and then checks Git revisions and removal independently.
+The fixture verifier must also detect a real rollback and, for Sync, a
+reintroduced stale directory.
+
+These checks cover the Neovim and protocol portions of the tasks. Windows
+focus, NVDA's speech and Braille output, and physical perception require
+separate observations. See the [guided test scope](human-testing.md).
+
 ## Mapping changes to tests
 
 Check operating-system focus and key gestures on an interactive, isolated

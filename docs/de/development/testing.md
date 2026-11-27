@@ -91,6 +91,45 @@ Umgebungsbegrenzung, kein erfolgreicher Test. Die Socketphase wird dann in
 einer erlaubten Umgebung nachgeholt. `python3 tools/run_tests.py all` ist nur
 dort sinnvoll, wo alle drei Phasen zulässig sind.
 
+### Geführte Abläufe über echtes Neovim-RPC
+
+Mit Neovim 0.12.x im `PATH` lädt die Socketphase zusätzlich das geführte
+Testprofil in frischen Editoren. Sie reiht über `nvim_input` die tatsächlich
+belegten Tasten ein und empfängt semantische Ereignisse über den
+authentifizierten Produktivclient. Die Prüfungen gleichen die Ereignisse mit
+nativen Puffer-, Cursor-, Quickfix-, Diagnose- und Completion-Zuständen,
+externen Linter-Ausgaben oder unveränderten Testdateien ab.
+
+L4 und L6 benötigen nur Neovim. Die weiteren Fälle verwenden Versionen aus
+`tests/human/dependencies.json` und werden mit Begründung übersprungen, wenn
+ein benötigtes Werkzeug oder ein Pfad fehlt. Setze vor der Socketphase:
+
+| Variable oder Programm | Erwartete Abhängigkeit | Fälle |
+| --- | --- | --- |
+| `NAL_GUIDED_PYRIGHT` und `node` im `PATH` | Pyrights `langserver.index.js` und Node.js | L1, L2, L5, C1–C3, D1 |
+| `NAL_GUIDED_COMPLETION_ROOT` | Elternverzeichnis der fixierten Git-Checkouts `nvimCmp`, `cmpNvimLsp` und `blinkCmp` | C2, C3 |
+| `NAL_GUIDED_NVIM_LINT` | Fixierter Git-Checkout von nvim-lint | D1, D3, D4 |
+| `ruff` im `PATH` | Fixiertes Ruff-Programm | D1 |
+| `NAL_GUIDED_CLANG_TIDY` | Fixiertes Clang-Tidy-Programm | D3 |
+| `NAL_GUIDED_MARKDOWNLINT` | Fixiertes markdownlint-cli2-Programm oder Windows-Befehlswrapper | D4 |
+| `NAL_GUIDED_LAZY` | Fixierter Git-Checkout von lazy.nvim | P1 |
+
+Für P1 verbindet sich ein separater Client über `nvim_ui_attach` und empfängt
+Neovims echte UI-Zeichenereignisse. Die Prüfung liest auch den nativen
+Pufferzustand und prüft Befehlsleiste und Aufklappzustand über den
+Produktivclient.
+Für P2–P4 führt `bash tools/test_lazy_plugin.sh PFAD_ZU_FIXIERTEM_LAZY_NVIM`
+die echten Lazy-Befehle mit temporären lokalen Git-Repositories aus. Die
+Prüfung erfasst den Operationsablauf und kontrolliert Git-Revisionen und
+Entfernung unabhängig davon. Der Prüfer muss auch einen tatsächlichen
+Rücksprung auf einen älteren Commit und bei Sync ein erneut vorhandenes
+veraltetes Verzeichnis erkennen.
+
+Diese Prüfungen decken die Neovim- und Protokollanteile der Aufgaben ab.
+Windows-Fokus, NVDA-Sprach- und Brailleausgabe und physische Wahrnehmung
+erfordern getrennte Beobachtungen. Siehe den
+[Umfang der geführten Tests](human-testing.md).
+
 ## Zuordnung nach Änderung
 
 Prüfe Betriebssystemfokus und Tastengesten in einem interaktiven, isolierten

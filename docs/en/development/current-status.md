@@ -1,6 +1,6 @@
 # Current status
 
-Status date: November 26, 2026. The source tree develops the 0.99.0 line.
+Status date: November 27, 2026. The source tree develops the 0.99.0 line.
 `buildVars.py` derives the version identifier from the development build
 number, branch, and commit and sets the manifest update channel to beta.
 The latest published pre-release is 0.98.0.
@@ -14,6 +14,10 @@ This page is the compact snapshot of implemented and verified behavior. See
 [architecture](architecture.md) and the [feature matrix](accessibility.md) for
 detail, the [changelog](changelog.md) for completed changes, and the
 [plan](plan.md) for future work.
+
+The [guided workflow socket tests](testing.md#guided-workflows-over-real-neovim-rpc)
+exercise Neovim mappings, real providers and the authenticated protocol with
+Neovim 0.12.x. Windows focus and NVDA presentation have separate evidence.
 
 ## Reference environment
 

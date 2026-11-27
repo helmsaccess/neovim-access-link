@@ -299,6 +299,10 @@ def jobs(workers: int) -> tuple[Job, ...]:
     result.extend(
         (
             python_file("socket", "protocol", "protocol/python/tests/test_local_client_socket.py"),
+            *python_shards(
+                "socket", "protocol", "protocol/python/tests/test_guided_workflow_socket.py",
+                "GuidedWorkflowSocketTests", min(4, workers),
+            ),
             lua_spec("socket", "neovim-plugin/tests/local_windows_session_spec.lua"),
             lua_spec("socket", "neovim-plugin/tests/session_registry_spec.lua"),
         )
@@ -461,7 +465,7 @@ def main() -> int:
         selected = tuple(
             job for job in selected
             if job.group != "socket" or job.source.name in {
-                "local_windows_session_spec.lua", "test_local_client_socket.py",
+                "local_windows_session_spec.lua", "test_local_client_socket.py", "test_guided_workflow_socket.py",
             }
         )
         print("Windows socket phase runs local loopback checks; Unix PTY and socket tests require Linux.")

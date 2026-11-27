@@ -10,6 +10,10 @@ Start with the German or English tester documentation:
 - `docs/de/development/human-testing.md`
 - `docs/en/development/human-testing.md`
 
+The [developer test guide](../../docs/en/development/testing.md#guided-workflows-over-real-neovim-rpc)
+describes the automated Neovim and protocol checks that complement these
+tasks.
+
 The Windows entry point is `framework/run.ps1`. Each pending task gets a fresh
 isolated `framework/init.lua` session through `nvim -u`, and F2 repeats the
 short test ID, purpose, numbered steps, and pass condition inside Neovim. The

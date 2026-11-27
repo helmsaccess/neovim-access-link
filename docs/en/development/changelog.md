@@ -6,6 +6,10 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Exercises guided search, replacement, LSP, completion, diagnostics and the Lazy window
+  through actual Neovim input and authenticated RPC. Adds negative controls
+  for incomplete replacement and Lazy Git verification. Corrects the L2
+  instructions for moving past a decimal argument.
 - Set the manifest's last-tested NVDA API to 2026.3.1, the version used in the Windows checks.
 - Requires pull requests for changes to `main`, including release preparation.
   Documents semantic product versions, dated changelogs, GitHub release
