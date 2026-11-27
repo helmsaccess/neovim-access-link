@@ -6,6 +6,8 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Announces the expanded or collapsed state of a lazy.nvim entry without
+  spelling an extra character when the redraw restores the cursor column.
 - Opens the Quickfix list on F3 in guided task L4. A regression test
   checks that the first result receives focus.
 - Waits for Ruff and Pyright in the guided Python diagnostic tests. The

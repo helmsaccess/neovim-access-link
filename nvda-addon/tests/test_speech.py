@@ -845,6 +845,24 @@ class SpeechPlannerTests(unittest.TestCase):
         self.assertEqual("eingeklappt", collapsed.text)
         self.assertIsNone(collapsed.braille_message)
 
+    def test_lazy_redraw_does_not_spell_the_restored_plugin_row_cursor(self) -> None:
+        planner = SpeechPlanner()
+        row = dict(
+            line="    ○ access-link-stable-target ", row=11, bufferId=2, windowId=10,
+            tabpageId=20, buftype="nofile", filetype="lazy", pluginManagerEntryExpanded=True,
+        )
+        planner.plan(event("fullState", **row, byte_column=0))
+        self.assertEqual([], planner.plan(event("cursorMoved", **row, byte_column=8)))
+
+        collapsed = {**row, "pluginManagerEntryExpanded": False}
+        actions = planner.plan(event("diagnosticChanged", **collapsed, byte_column=8))
+        self.assertEqual(["collapsed"], [action.text for action in actions])
+        self.assertIsNone(actions[0].braille_message)
+
+        actions = planner.plan(event("characterMoved", **collapsed, byte_column=9))
+        self.assertEqual(["c"], [action.text for action in actions])
+        self.assertTrue(actions[0].spelling)
+
     def test_invalid_plugin_manager_data_fails_open(self) -> None:
         planner = SpeechPlanner()
         for payload in (

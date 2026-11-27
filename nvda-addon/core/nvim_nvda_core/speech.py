@@ -421,13 +421,7 @@ class SpeechPlanner:
             pass
         elif kind == "cursorMoved" and self._consume_context_cursor(state):
             pass
-        elif (
-            kind == "cursorMoved"
-            and self._plugin_manager_name(state) is not None
-            and state.get("cursor") == (self._previous or {}).get("cursor")
-        ):
-            # Lazy redraws can publish a cursor event without moving the
-            # cursor. The preceding semantic state transition is authoritative.
+        elif kind == "cursorMoved" and self._plugin_manager_cursor_redraw(state):
             pass
         elif kind in {
             "cursorMoved", "characterMoved", "wordMoved", "lineChanged",
@@ -1568,6 +1562,26 @@ class SpeechPlanner:
                 "{manager}: {operation} finished; check the plugin manager for results"
             ).format(manager=manager, operation=operation_text)
         return SpeechAction(text, Priority.STATUS, interrupt=True, braille_message=text)
+
+    def _plugin_manager_cursor_redraw(self, state: dict[str, Any]) -> bool:
+        if self._plugin_manager_name(state) is None:
+            return False
+        previous = self._previous or {}
+        cursor = state.get("cursor")
+        previous_cursor = previous.get("cursor")
+        if cursor == previous_cursor:
+            return True
+        # Lazy restores the cursor column while redrawing the same plugin row.
+        # Explicit character and word navigation have their own event types.
+        context = self._context_identity(state)
+        return (
+            isinstance(cursor, dict) and isinstance(previous_cursor, dict)
+            and cursor.get("line") == previous_cursor.get("line")
+            and isinstance(state.get("pluginManagerEntryExpanded"), bool)
+            and isinstance(previous.get("pluginManagerEntryExpanded"), bool)
+            and state.get("lineText") == previous.get("lineText")
+            and context is not None and context == self._context_identity(previous)
+        )
 
     def _plugin_manager_entry_transition(
         self, state: dict[str, Any],

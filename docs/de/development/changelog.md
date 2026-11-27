@@ -6,6 +6,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage
+  ohne zusätzliche Buchstabenansage durch die verschobene Cursorspalte aus.
 - Öffnet in Aufgabe L4 die Quickfix-Liste bereits mit F3. Ein
   Regressionstest prüft den Fokus auf den ersten Treffer.
 - Wartet in den geführten Python-Diagnosetests auf Ruff und Pyright. Die

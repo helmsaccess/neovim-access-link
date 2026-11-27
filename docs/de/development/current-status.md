@@ -312,7 +312,10 @@ Aufgaben mit vollständig lokalen Git-Fixtures für Fenster, Installation,
 Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
 Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort absichtlich
 unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
-isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
+isolierte Fixture-Konfiguration. Beim Neuzeichnen derselben Plugin-Zeile
+unterdrückt der Sprachplaner eine zusätzliche Buchstabenansage durch die
+verschobene Cursorspalte. Gezielte Zeichen- und Wortnavigation bleibt hörbar.
+Die Fixture-Repositories deaktivieren
 Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam genutzten
 oder gemappten Laufwerken erlaubt die isolierte Git-Konfiguration nur die
 konkreten Fixture-Repositories. Die Vorbereitung bricht beim ersten

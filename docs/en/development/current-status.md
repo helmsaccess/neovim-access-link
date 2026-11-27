@@ -290,7 +290,10 @@ suite also includes four lazy.nvim tasks with fully local Git fixtures for its
 window, installation, update, and synchronization; the individual selector
 groups them under plugin management. The headless preflight does not require
 Lazy's deliberately suppressed UI; it verifies the public command and
-isolated fixture configuration. Fixture repositories disable line-ending
+isolated fixture configuration. When Lazy redraws the same plugin row, the
+speech planner suppresses an extra character announcement from the restored
+cursor column. Explicit character and word navigation remain audible.
+Fixture repositories disable line-ending
 conversion and irrelevant Git output. On shared or mapped drives, the isolated
 Git configuration permits only the concrete fixture repositories. Preparation
 stops at the first failed tool or profile check and names its immediate reason.
