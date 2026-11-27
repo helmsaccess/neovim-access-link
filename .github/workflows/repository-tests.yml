@@ -147,6 +147,8 @@ jobs:
       - name: Validate plans, fingerprints, and result assessment
         shell: powershell
         run: python -m unittest tests.human.test_framework
+      - name: Verify the desktop and audio case inventory
+        run: python tools/run_tests.py guided-desktop guided-audio --list
 
   completion-plugins:
     name: Completion APIs (${{ matrix.name }})

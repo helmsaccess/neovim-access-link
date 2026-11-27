@@ -3,7 +3,7 @@ name: Hosted Windows focus checks
 on:
   push:
     paths:
-      - .github/workflows/guided-hosted-probe.yml
+      - .github/workflows/guided-windows-hosted.yml
       - tests/guided/windows/probe-host.ps1
       - tests/guided/windows/hosted_focus_*.py
       - nvda-addon/**
@@ -13,7 +13,7 @@ on:
       - tools/requirements-ci.txt
   pull_request:
     paths:
-      - .github/workflows/guided-hosted-probe.yml
+      - .github/workflows/guided-windows-hosted.yml
       - tests/guided/windows/probe-host.ps1
       - tests/guided/windows/hosted_focus_*.py
       - nvda-addon/**
@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   probe:
+    name: NVDA and Windows Terminal focus
     runs-on: windows-2025
     timeout-minutes: 15
     steps:
