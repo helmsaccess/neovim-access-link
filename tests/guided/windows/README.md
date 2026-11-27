@@ -44,7 +44,7 @@ python tests/guided/windows/run_focus_test.py $addon --nvda $nvdaArchive --nvim 
 python tests/guided/windows/prepare_audio_calibration.py .
 ```
 
-Use the generated audio reference directory in the configuration. For C1,
+Use the generated audio reference directory in the configuration. For C1–C3,
 build the WASAPI recorder from the pinned NAudio packages with
 `build-wasapi-probe.ps1 -PackageDirectory $wasapiDirectory`.
 
@@ -82,6 +82,10 @@ actions again with the feature tones disabled and must fail the normal cue
 oracle. Physical Braille feel, acoustic perception and subjective latency
 lie outside these digital measurements.
 
+C1 requires both WASAPI and QEMU PCM evidence. C2 and C3 require the
+WASAPI render endpoint. Their QEMU recordings and any rejected checks
+are retained in the reports for diagnosis.
+
 ```powershell
 python tests/guided/windows/audit_result.py . $summary $addon $audioReferences --complete
 ```
@@ -89,10 +93,18 @@ python tests/guided/windows/audit_result.py . $summary $addon $audioReferences -
 The audit compares completed cases with their original serial logs, checks
 the candidate hash, and reprocesses the PCM recordings. It compares the
 recomputed audio measurements with the original reports and records the
-SHA-256 of each verified waveform. For C1 it also checks the WASAPI size
+SHA-256 of each verified waveform. For C1–C3 it also checks the WASAPI size
 and hash against the guest transfer. The audit rechecks the observed
 Braille pages and editor cursor in L3, Quickfix results and edited
 buffers against the source fixtures in L4–L6, all eleven diagnostics
 actions and their recording markers in D1, the held and released Braille
 frames in D2, and the effect of omitting F10 in S1. `--complete` returns
 a failure if any of the 18 cases is missing, pending, or failed.
+
+After a failure, preserve the original evidence and rerun the remaining
+cards with `--guided-case`. Auditing both runs requires the same package
+and VM workspace. Each card can have one passing result.
+
+```powershell
+python tests/guided/windows/audit_result.py . $summary $addon $audioReferences --additional-summary $continuation --complete
+```

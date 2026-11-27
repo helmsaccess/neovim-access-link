@@ -121,6 +121,11 @@ def verify_case(case, run_ids, workspace, output, candidate_hash):
                 f"{case} changed its observable guest behavior with the sound setting")
         if case == "C1":
             compare_c1(positive_path, muted_path, workspace=workspace)
+        elif case.startswith("C"):
+            require(all(proof["captureEndpoint"] == "Windows WASAPI loopback"
+                        and proof["captureFile"] == run["wasapiCapture"]["file"]
+                        for proof, run in zip((positive, muted), observed, strict=True)),
+                    f"{case} lacks matching Windows render endpoint evidence")
 
 
 def run_suite(args, selected):

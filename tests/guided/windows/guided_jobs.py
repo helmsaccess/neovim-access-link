@@ -56,10 +56,11 @@ def jobs(case, *, addon, checkout, tools, output, reuse):
     if case.startswith("C"):
         script = "run_c1_audio.py"
         arguments = (*audio, tools["node"], tools["pyright"], tools["references"])
-        options = ("--wasapi-tools", tools["wasapi"]) if case == "C1" else (
-            "--completion-profile", {"C2": "cmp", "C3": "blink"}[case],
-            "--completion-plugins", tools["completionPlugins"], "--completion-git-bin", tools["providerGitBin"],
-        )
+        options = ("--wasapi-tools", tools["wasapi"])
+        if case != "C1":
+            options += ("--completion-profile", {"C2": "cmp", "C3": "blink"}[case],
+                        "--completion-plugins", tools["completionPlugins"],
+                        "--completion-git-bin", tools["providerGitBin"])
     elif case == "D1":
         script = "run_d1_audio.py"
         arguments = (*audio, tools["node"], tools["pyright"], tools["ruff"],

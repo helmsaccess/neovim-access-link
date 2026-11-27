@@ -240,12 +240,13 @@ def main():
     parser.add_argument("summary", type=Path)
     parser.add_argument("addon", type=Path)
     parser.add_argument("references", type=Path)
+    parser.add_argument("--additional-summary", action="append", type=Path, default=[],
+                        help="Include a separate case selection from the same workspace and candidate")
     parser.add_argument("--complete", action="store_true", help="Require every guided case to have passed")
     args = parser.parse_args()
     checkout = args.checkout.resolve(strict=True)
     summary = args.summary.resolve(strict=True)
-    output = summary.parent
-    workspace = output.parent
+    workspace = summary.parent.parent
     os.environ["NAL_TEST_WORK_DIR"] = str(workspace)
 
     from guided_jobs import AUDIO, cards
@@ -253,22 +254,31 @@ def main():
     from run_external_diagnostic_audio import verify_recording as verify_diagnostic_pcm
     from run_guided_suite import read_json, require, verify_case
 
-    recorded = read_json(summary)
     with args.addon.open("rb") as package:
         actual = hashlib.file_digest(package, "sha256").hexdigest()
-    require(recorded["candidate"]["sha256"] == actual and recorded["candidate"]["name"] == args.addon.name,
-            "The suite summary does not match the supplied package")
+    candidate = {"name": args.addon.name, "sha256": actual}
     expected = cards(checkout)
-    states = recorded["cases"]
-    require(set(states) <= set(expected), "The suite summary contains an unknown guided case")
+    states = {}
+    for source in (summary, *args.additional_summary):
+        source = source.resolve(strict=True)
+        require(source.parent.parent == workspace, "The suite summaries must use the same VM workspace")
+        recorded = read_json(source)
+        require(recorded["candidate"] == candidate, "The suite summary does not match the supplied package")
+        require(set(recorded["cases"]) <= set(expected), "The suite summary contains an unknown guided case")
+        for case, observation in recorded["cases"].items():
+            previous = states.get(case, ({"status": "missing"}, None))[0]["status"]
+            current = observation["status"]
+            require(previous != "passed" or current != "passed", f"More than one passing summary for {case}")
+            if current == "passed" or previous in {"missing", "pending"}:
+                states[case] = observation, source.parent
 
     def audit(case):
-        observed = states.get(case, {})
+        observed, output = states.get(case, ({}, None))
         if observed.get("status") != "passed":
             return {"status": observed.get("status", "missing")}
         ids = observed["runs"]
         verify_case(case, ids, workspace, output, actual)
-        logs = [verify_serial_log(workspace, run_id, recorded["candidate"]) for run_id in ids]
+        logs = [verify_serial_log(workspace, run_id, candidate) for run_id in ids]
         if case in {"L1", "L2", "L4", "L5", "L6"}:
             fixtures = checkout / "tests/human/fixtures"
             reports = [read_json(workspace / f"run-{run_id}.json")["lspEvidence"] for run_id in ids]
@@ -293,35 +303,47 @@ def main():
             verify_d2_keys(logs[0])
             verify_d2_frames(guest["heldDiagnosticEvidence"])
         captures = []
+        rejected_qemu = []
         if case in AUDIO:
             for run_id, mode, log in zip(ids, ("positive", "muted"), logs, strict=True):
                 recording = output / f"{case}-{mode}.wav"
                 proof = read_json(recording.with_suffix(".verification.json"))
                 muted = mode == "muted"
                 if case.startswith("C"):
-                    measured = verify_completion_pcm(recording, args.references, muted=muted)
-                else:
-                    if case == "D1":
-                        guest = read_json(workspace / f"run-{run_id}.json")
-                        verify_d1_actions(guest["diagnosticAudio"], log)
-                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
-                captures.append(verify_capture_result(recording, proof["qemuCapture"] if case == "C1" else proof,
-                                                      measured))
-                if case == "C1":
+                    qemu = proof["qemuCapture"]
+                    try:
+                        measured = verify_completion_pcm(recording, args.references, muted=muted)
+                    except RuntimeError as error:
+                        require(case != "C1" and qemu["ok"] is False and qemu["error"] == str(error),
+                                f"QEMU capture outcome changed for {recording.name}: {error}")
+                        rejected_qemu.append({"file": recording.name, "error": str(error)})
+                    else:
+                        require(qemu["ok"] is True, f"QEMU capture outcome changed for {recording.name}")
+                        captures.append(verify_capture_result(recording, qemu, measured))
+
                     guest = read_json(workspace / f"run-{run_id}.json")
                     transfer = guest["wasapiCapture"]
                     endpoint = verify_wasapi_transfer(workspace, run_id, transfer, log)
                     assessed = verify_completion_pcm(endpoint, args.references, muted=muted)
                     captures.append(verify_capture_result(endpoint, proof, assessed))
                     require(captures[-1]["sha256"] == transfer["sha256"], "The WASAPI PCM changed after transfer")
-        return {"status": "verified", "runs": ids, "pcmRechecked": captures}
+                else:
+                    if case == "D1":
+                        guest = read_json(workspace / f"run-{run_id}.json")
+                        verify_d1_actions(guest["diagnosticAudio"], log)
+                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
+                    captures.append(verify_capture_result(recording, proof, measured))
+        result = {"status": "verified", "runs": ids, "pcmRechecked": captures}
+        if rejected_qemu:
+            result["rejectedQemu"] = rejected_qemu
+        return result
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         outcomes = dict(zip(expected, pool.map(audit, expected), strict=True))
     executed = [run for outcome in outcomes.values() for run in outcome.get("runs", ())]
     require(len(executed) == len(set(executed)), "The same guest run was credited more than once")
     complete = all(outcome["status"] == "verified" for outcome in outcomes.values())
-    print(json.dumps({"complete": complete, "candidate": recorded["candidate"], "cases": outcomes}, indent=2))
+    print(json.dumps({"complete": complete, "candidate": candidate, "cases": outcomes}, indent=2))
     return 1 if args.complete and not complete else 0
 
 
