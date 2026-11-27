@@ -479,6 +479,8 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
                     release_held(held)
                     if candidate is not None and not provenance_seen:
                         raise RuntimeError(f"Guest run {run_id} did not verify the candidate hash")
+                if line.startswith("NAL_CLEAN ") and result is not None:
+                    result["copyCleanup"] = line.removeprefix("NAL_CLEAN ")
                 if line == f"NAL_END {run_id}":
                     if result is None:
                         raise RuntimeError(f"Guest run {run_id} ended without a result")

@@ -65,7 +65,12 @@ function Remove-RunToolCopies([string]$Workspace, [string]$RunPath, [string]$Run
             if ($resolvedCopy -ne $copy -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
                 throw 'Disposable tool copy is outside its run directory'
             }
-            Remove-Item -LiteralPath $resolvedCopy -Recurse -Force
+            try {
+                Remove-Item -LiteralPath $resolvedCopy -Recurse -Force -ErrorAction Stop
+            } catch [System.UnauthorizedAccessException], [System.IO.IOException] {
+                # Windows can keep an accessibility DLL mapped after NVDA exits.
+                $folder
+            }
         }
     }
 }
@@ -537,7 +542,11 @@ exit /b %editorStatus%
     }
     Get-Process -Name WindowsTerminal,nvim -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$run\*" } | Stop-Process -ErrorAction SilentlyContinue
     if ($discardCopies -and $completed) {
-        Remove-RunToolCopies $WorkDir $run.FullName $runId
-        $Serial.WriteLine('NAL_CLEAN finished run tool and fixture copies removed')
+        $deferred = @(Remove-RunToolCopies $WorkDir $run.FullName $runId)
+        if ($deferred.Count) {
+            $Serial.WriteLine("NAL_CLEAN deferred tool and fixture copies: $($deferred -join ', ')")
+        } else {
+            $Serial.WriteLine('NAL_CLEAN finished run tool and fixture copies removed')
+        }
     }
 }
