@@ -166,6 +166,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if hasattr(self, "diagnostic_audio"):
             result["diagnosticAudio"] = self.diagnostic_audio
             result["diagnosticCase"] = os.environ["ACCESS_LINK_HUMAN_TEST_ID"]
+        if hasattr(self, "held_diagnostic_evidence"):
+            result["heldDiagnosticEvidence"] = self.held_diagnostic_evidence
         if hasattr(self, "signature_evidence"):
             result["signatureEvidence"] = self.signature_evidence
         if hasattr(self, "completion_evidence"):
@@ -1448,7 +1450,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         baseline = self.cells[-1]
         if len(baseline[0]) != 80 or not any(baseline[0]):
             raise AssertionError(baseline)
-        cursor = self.audio_editor_state()
+        def cursor_position():
+            state = self.audio_editor_state()
+            return {key: state.get(key) for key in ("row", "byteColumn", "cursorMoves")}
+
+        def output_frame(frame, position):
+            return {"cells": frame[0], "text": frame[1], "cursor": position}
+
+        cursor = cursor_position()
+        self.held_diagnostic_evidence = {"initial": output_frame(baseline, cursor), "held": []}
         for name, action, index in (
             ("held_path", "d2-begin", 0), ("next_sep", "d2-next", 1), ("previous_path", "d2-previous", 0),
         ):
@@ -1459,25 +1469,40 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             expected_frame = (tuple(dots + [0] * (80 - len(dots))), display)
             self.cells.clear()
             self.press(action)
-            yield f"d2_{name}_renders_complete_dot_pattern", lambda: (
-                any(actual == expected_frame[0] and text.strip() == display for actual, text in self.cells)
-                and all(self.audio_editor_state().get(key) == cursor[key]
-                        for key in ("row", "byteColumn", "cursorMoves"))
-            )
+
+            def held_frame_matches():
+                position = cursor_position()
+                frame = next((item for item in self.cells if item[0] == expected_frame[0]
+                              and item[1].strip() == display), None)
+                if frame is None or position != cursor:
+                    return False
+                self.held_diagnostic_evidence["held"].append({"key": action, **output_frame(frame, position)})
+                return True
+
+            yield f"d2_{name}_renders_complete_dot_pattern", held_frame_matches
         self.cells.clear()
         self.press("d2-release")
-        yield "d2_key_up_restores_identical_braille_cells", lambda: (
-            bool(self.cells) and self.cells[-1] == baseline
-            and all(self.audio_editor_state().get(key) == cursor[key]
-                    for key in ("row", "byteColumn", "cursorMoves"))
-        )
+
+        def restored_frame_matches():
+            position = cursor_position()
+            if not self.cells or self.cells[-1] != baseline or position != cursor:
+                return False
+            self.held_diagnostic_evidence["restored"] = output_frame(self.cells[-1], position)
+            return True
+
+        yield "d2_key_up_restores_identical_braille_cells", restored_frame_matches
         self.cells.clear()
         self.press("d2-next")
-        yield "d2_same_key_without_modifier_moves_editor", lambda: (
-            (state := self.audio_editor_state()).get("row") == cursor["row"] + 1
-            and state.get("cursorMoves", 0) > cursor["cursorMoves"]
-            and bool(self.cells) and not self.cells[-1][1].strip()
-        )
+
+        def native_move_matches():
+            position = cursor_position()
+            if (position["row"] != cursor["row"] + 1 or position["cursorMoves"] <= cursor["cursorMoves"]
+                    or not self.cells or self.cells[-1][1].strip()):
+                return False
+            self.held_diagnostic_evidence["nativeMove"] = output_frame(self.cells[-1], position)
+            return True
+
+        yield "d2_same_key_without_modifier_moves_editor", native_move_matches
         self.press("guided-exit")
         yield "d2_editor_exited_cleanly", lambda: self.audio_editor_state().get("exitCode") == 0
 

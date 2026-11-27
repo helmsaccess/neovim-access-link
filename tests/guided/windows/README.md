@@ -81,3 +81,18 @@ control, the suite verifies both outcomes. Audio controls execute the
 actions again with the feature tones disabled and must fail the normal cue
 oracle. Physical Braille feel, acoustic perception and subjective latency
 lie outside these digital measurements.
+
+```powershell
+python tests/guided/windows/audit_result.py . $summary $addon $audioReferences --complete
+```
+
+The audit compares completed cases with their original serial logs, checks
+the candidate hash, and reprocesses the PCM recordings. It compares the
+recomputed audio measurements with the original reports and records the
+SHA-256 of each verified waveform. For C1 it also checks the WASAPI size
+and hash against the guest transfer. The audit rechecks the observed
+Braille pages and editor cursor in L3, Quickfix results and edited
+buffers against the source fixtures in L4–L6, all eleven diagnostics
+actions and their recording markers in D1, the held and released Braille
+frames in D2, and the effect of omitting F10 in S1. `--complete` returns
+a failure if any of the 18 cases is missing, pending, or failed.
