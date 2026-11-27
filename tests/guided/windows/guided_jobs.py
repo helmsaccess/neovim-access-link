@@ -70,7 +70,9 @@ def jobs(case, *, addon, checkout, tools, output, reuse):
         script = "run_external_diagnostic_audio.py"
         linter = tools["clangTidy"] if case == "D3" else tools["markdownModules"]
         arguments = (case, *audio, linter, tools["lint"], tools["providerGitBin"], tools["references"])
-        options = () if case == "D3" else ("--node", tools["node"])
+        options = ("--wasapi-tools", tools["wasapi"])
+        if case == "D4":
+            options += ("--node", tools["node"])
     common = (*options, "--reuse-run", reuse)
     return (
         Job(script, (*arguments, output / f"{case}-positive.wav", *common)),

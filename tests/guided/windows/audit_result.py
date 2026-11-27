@@ -309,10 +309,20 @@ def main():
                 recording = output / f"{case}-{mode}.wav"
                 proof = read_json(recording.with_suffix(".verification.json"))
                 muted = mode == "muted"
-                if case.startswith("C"):
+                if case == "D1":
+                    guest = read_json(workspace / f"run-{run_id}.json")
+                    verify_d1_actions(guest["diagnosticAudio"], log)
+                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
+                    captures.append(verify_capture_result(recording, proof, measured))
+                else:
+                    def assess(path):
+                        if case.startswith("C"):
+                            return verify_completion_pcm(path, args.references, muted=muted)
+                        return verify_diagnostic_pcm(path, args.references, run_id, case, muted=muted)
+
                     qemu = proof["qemuCapture"]
                     try:
-                        measured = verify_completion_pcm(recording, args.references, muted=muted)
+                        measured = assess(recording)
                     except RuntimeError as error:
                         require(case != "C1" and qemu["ok"] is False and qemu["error"] == str(error),
                                 f"QEMU capture outcome changed for {recording.name}: {error}")
@@ -324,15 +334,9 @@ def main():
                     guest = read_json(workspace / f"run-{run_id}.json")
                     transfer = guest["wasapiCapture"]
                     endpoint = verify_wasapi_transfer(workspace, run_id, transfer, log)
-                    assessed = verify_completion_pcm(endpoint, args.references, muted=muted)
+                    assessed = assess(endpoint)
                     captures.append(verify_capture_result(endpoint, proof, assessed))
                     require(captures[-1]["sha256"] == transfer["sha256"], "The WASAPI PCM changed after transfer")
-                else:
-                    if case == "D1":
-                        guest = read_json(workspace / f"run-{run_id}.json")
-                        verify_d1_actions(guest["diagnosticAudio"], log)
-                    measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
-                    captures.append(verify_capture_result(recording, proof, measured))
         result = {"status": "verified", "runs": ids, "pcmRechecked": captures}
         if rejected_qemu:
             result["rejectedQemu"] = rejected_qemu
