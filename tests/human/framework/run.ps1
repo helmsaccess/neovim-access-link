@@ -956,13 +956,15 @@ function Show-Menu {
 function Get-Nvim {
     $nvim = Get-RequiredCommand "nvim" (Get-Message "runner.installNeovim")
     $global:LASTEXITCODE = 0
-    $version = [string](& $nvim --version | Select-Object -First 1)
-    if ($LASTEXITCODE -ne 0 -or $version.Trim() -notmatch "^NVIM v0\.12\.") {
-        throw (Get-Message "runner.neovimVersion" @($version.Trim()))
+    $versionOutput = @(& $nvim --version)
+    $exitCode = $LASTEXITCODE
+    $version = if ($versionOutput.Count) { ([string]$versionOutput[0]).Trim() } else { "" }
+    if ($exitCode -ne 0 -or $version -notmatch "^NVIM v0\.12\.") {
+        throw (Get-Message "runner.neovimVersion" @($version))
     }
     return [PSCustomObject]@{
         Command = $nvim
-        Version = $version.Trim()
+        Version = $version
     }
 }
 

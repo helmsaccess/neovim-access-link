@@ -138,9 +138,11 @@ if ($toolSource) {
 $terminal = Get-ChildItem (Join-Path $run 'terminal') -Filter WindowsTerminal.exe -Recurse | Select-Object -First 1
 $terminal.DirectoryName | ForEach-Object { New-Item -Path (Join-Path $_ '.portable') -ItemType File -Force | Out-Null }
 $nvim = Get-ChildItem (Join-Path $run 'editor') -Filter nvim.exe -Recurse | Select-Object -First 1
-$version = & $nvim.FullName --version | Select-Object -First 1
-if ($LASTEXITCODE -ne 0 -or $version -notmatch '^NVIM v') {
-    throw "Neovim failed to start with $LASTEXITCODE"
+$versionOutput = @(& $nvim.FullName --version)
+$versionExit = $LASTEXITCODE
+$version = if ($versionOutput.Count) { [string]$versionOutput[0] } else { '' }
+if ($versionExit -ne 0 -or $version -notmatch '^NVIM v') {
+    throw "Neovim failed to start with $versionExit"
 }
 $Serial.WriteLine("NAL_SETUP $version")
 $pathBeforeTest = $env:Path
