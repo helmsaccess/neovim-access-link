@@ -5,7 +5,7 @@ on:
     paths:
       - .github/workflows/guided-windows-hosted.yml
       - tests/guided/windows/probe-host.ps1
-      - tests/guided/windows/hosted_focus_*.py
+      - tests/guided/windows/**
       - nvda-addon/**
       - SConstruct
       - buildVars.py
@@ -15,7 +15,7 @@ on:
     paths:
       - .github/workflows/guided-windows-hosted.yml
       - tests/guided/windows/probe-host.ps1
-      - tests/guided/windows/hosted_focus_*.py
+      - tests/guided/windows/**
       - nvda-addon/**
       - SConstruct
       - buildVars.py
@@ -29,7 +29,7 @@ jobs:
   probe:
     name: NVDA and Windows Terminal focus
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -54,3 +54,13 @@ jobs:
       - name: Verify the packaged NVDA AppModule and terminal keyboard focus
         shell: pwsh
         run: python tests/guided/windows/hosted_focus_smoke.py --addon $env:NAL_HOSTED_ADDON
+      - name: Verify S1 with native keyboard input and the omitted-F10 control
+        shell: pwsh
+        run: python tests/guided/windows/hosted_s1.py --addon $env:NAL_HOSTED_ADDON --output "$env:RUNNER_TEMP\nal-s1-evidence"
+      - name: Save native S1 evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: hosted-s1-evidence
+          path: ${{ runner.temp }}/nal-s1-evidence/
+          retention-days: 7

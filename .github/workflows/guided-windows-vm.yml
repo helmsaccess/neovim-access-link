@@ -7,35 +7,16 @@ permissions:
   contents: read
 
 jobs:
-  authorize:
-    name: Check the private caller
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Require a protected manual dispatch from the same owner
-        shell: bash
-        env:
-          CALLER_REPOSITORY: ${{ github.repository }}
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
-          CALLER_PRIVATE: ${{ github.event.repository.private }}
-          CALLER_VISIBILITY: ${{ github.event.repository.visibility }}
-          CALLER_EVENT: ${{ github.event_name }}
-          CALLER_REF_TYPE: ${{ github.ref_type }}
-          CALLER_REF_PROTECTED: ${{ github.ref_protected }}
-        run: |
-          caller_owner=${CALLER_REPOSITORY%%/*}
-          workflow_owner=${WORKFLOW_REPOSITORY%%/*}
-          if [[ "$CALLER_PRIVATE" != true || "$CALLER_VISIBILITY" != private ||
-                "$CALLER_EVENT" != workflow_dispatch || "$CALLER_REF_TYPE" != branch ||
-                "$CALLER_REF_PROTECTED" != true || -z "$workflow_owner" ||
-                "${caller_owner,,}" != "${workflow_owner,,}" ]]; then
-            echo 'The Windows VM suite requires a protected, manually dispatched workflow in a private repository owned by the same account.' >&2
-            exit 1
-          fi
-
   guided:
     name: Verify all guided Windows VM cases
-    needs: authorize
+    if: >-
+      github.repository == 'helmsaccess/neovim-access-link-test-lab' &&
+      github.event.repository.private == true &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref_type == 'branch' &&
+      github.ref_name == github.event.repository.default_branch &&
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner
     runs-on: [self-hosted, Windows, X64, nal-guided-vm]
     timeout-minutes: 480
     concurrency:

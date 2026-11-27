@@ -1,4 +1,4 @@
-param([string]$Source, [string]$WorkDir, [IO.Ports.SerialPort]$Serial)
+param([string]$Source, [string]$WorkDir, [object]$Serial, [switch]$HostedDesktop)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -115,7 +115,9 @@ if ($env:USERNAME -eq 'NalDesktopTest') {
 }
 $build = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
 $Serial.WriteLine("NAL_SETUP Windows build $($build.CurrentBuildNumber).$($build.UBR), image state $imageState")
-Get-Process -Name sysprep -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() | Out-Null }
+if (-not $HostedDesktop) {
+    Get-Process -Name sysprep -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() | Out-Null }
+}
 $redist = Join-Path $Source 'vc-redist.x64.exe'
 if (Test-Path -LiteralPath $redist) {
     $Serial.WriteLine('NAL_SETUP Visual C++ runtime')
@@ -458,6 +460,9 @@ exit /b %editorStatus%
     $last = 0
     $stopAt = [DateTime]::UtcNow.AddMinutes(9)
     while ([DateTime]::UtcNow -lt $stopAt) {
+        if ($HostedDesktop -and (Test-Path -LiteralPath (Join-Path $WorkDir "cancel-$runId"))) {
+            throw 'Hosted desktop test was cancelled by its driver'
+        }
         if (Test-Path -LiteralPath $events) {
             $lines = @(Get-Content -LiteralPath $events)
             while ($last -lt $lines.Count) {

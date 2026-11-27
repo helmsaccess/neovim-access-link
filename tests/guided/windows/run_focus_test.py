@@ -6,14 +6,12 @@ import json
 import os
 from pathlib import Path
 import re
+from shutil import copyfile
 import subprocess
 import time
 import uuid
 from zipfile import ZIP_DEFLATED, ZipFile
 
-import pycdlib
-
-from guest_signin import GuestSignIn
 from lab_paths import SOURCES, WORKSPACE as ROOT
 from qmp import PORT, Qmp
 from receive_wasapi import LoopbackRecording
@@ -241,7 +239,7 @@ def image(package, nvda_archive, nvim_archive, reuse_run, redistributable, uiacc
           l3=False, l3_no_pan=False, s1_no_f10=False, completion_tools=None,
           clang_tools=None, markdown_tools=None, external_diagnostics_muted=False,
           native_lsp=None, lsp_hints_disabled=False, lsp_missing_reference=False, l4_abort=False,
-          lazy_tools=None, lazy_skip_operation=False, wasapi_tools=None):
+          lazy_tools=None, lazy_skip_operation=False, wasapi_tools=None, *, stage_directory=False):
     run_id = uuid.uuid4().hex[:12]
     with package.open("rb") as candidate:
         provenance = {"name": package.name, "sha256": hashlib.file_digest(candidate, "sha256").hexdigest()}
@@ -350,6 +348,15 @@ def image(package, nvda_archive, nvim_archive, reuse_run, redistributable, uiacc
         names["GUIDED.ZIP"] = ("guided.zip", guided)
     run_id_file = ROOT / f"run-{run_id}.txt"
     run_id_file.write_text(run_id + "\n", encoding="ascii")
+    if stage_directory:
+        staged = ROOT / f"payload-{run_id}"
+        staged.mkdir()
+        for name, path in names.values():
+            copyfile((path or run_id_file).resolve(strict=True), staged / name)
+        return run_id, staged
+
+    import pycdlib
+
     iso = pycdlib.PyCdlib()
     iso.new(interchange_level=3, joliet=3, vol_ident="NALPAYLOAD")
     for short, (name, path) in names.items():
@@ -383,25 +390,47 @@ def drive_keys(keyboard, action, held):
             time.sleep(0.16)
 
 
-def release_held(held):
-    if held:
+class QemuTransport:
+    serial = SERIAL
+
+    @staticmethod
+    def check_health(run_id):
+        try:
+            with Qmp() as guest:
+                status = guest.execute("query-status")["status"]
+        except (OSError, EOFError) as error:
+            raise RuntimeError(f"QEMU stopped responding during guest run {run_id}") from error
+        if status != "running":
+            raise RuntimeError(f"QEMU reported {status} during guest run {run_id}")
+
+    @staticmethod
+    def drive(action, held):
+        with Qmp() as keyboard:
+            drive_keys(keyboard, action, held)
+
+    @staticmethod
+    def release(held):
+        if not held:
+            return
         with Qmp() as keyboard:
             for code in sorted(held):
                 keyboard.key_transition(code, down=False)
                 held.remove(code)
 
 
-def monitor(run_id, offset, candidate=None, *, wasapi=False):
+def monitor(run_id, offset, candidate=None, *, wasapi=False, transport=None):
+    if transport is None:
+        transport = QemuTransport()
     held = set()
     try:
-        return monitor_output(run_id, offset, held, candidate, wasapi=wasapi)
+        return monitor_output(run_id, offset, held, candidate, wasapi=wasapi, transport=transport)
     except BaseException:
         with suppress(OSError, EOFError):
-            release_held(held)
+            transport.release(held)
         raise
 
 
-def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
+def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False, transport):
     end = time.monotonic() + 28 * 60
     capture = ROOT / f"run-{run_id}.log"
     report_path = ROOT / f"run-{run_id}.json"
@@ -412,7 +441,7 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
     loopback_saved = False
     result = None
     next_status_probe = time.monotonic() + 15
-    with SERIAL.open("rb", buffering=0) as stream, capture.open("w", encoding="utf-8") as log:
+    with transport.serial.open("rb", buffering=0) as stream, capture.open("w", encoding="utf-8") as log:
         stream.seek(offset)
         pending = b""
         while time.monotonic() < end:
@@ -420,13 +449,7 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
             if not incoming:
                 if time.monotonic() >= next_status_probe:
                     next_status_probe = time.monotonic() + 15
-                    try:
-                        with Qmp() as guest:
-                            status = guest.execute("query-status")["status"]
-                    except (OSError, EOFError) as error:
-                        raise RuntimeError(f"QEMU stopped responding during guest run {run_id}") from error
-                    if status != "running":
-                        raise RuntimeError(f"QEMU reported {status} during guest run {run_id}")
+                    transport.check_health(run_id)
                 time.sleep(0.5)
                 continue
             pending += incoming
@@ -466,8 +489,7 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
                     provenance_seen = True
                 if line.startswith("NAL_KEY "):
                     action = line.removeprefix("NAL_KEY ")
-                    with Qmp() as keyboard:
-                        drive_keys(keyboard, action, held)
+                    transport.drive(action, held)
                 if line.startswith("NAL_RESULT "):
                     if result is not None:
                         raise RuntimeError(f"The guest reported multiple results for {run_id}")
@@ -476,7 +498,7 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
                     if provenance_seen:
                         result["candidate"] = candidate
                     report_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
-                    release_held(held)
+                    transport.release(held)
                     if candidate is not None and not provenance_seen:
                         raise RuntimeError(f"Guest run {run_id} did not verify the candidate hash")
                 if line.startswith("NAL_CLEAN ") and result is not None:
@@ -496,6 +518,8 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False):
 
 
 def wait_for_desktop(seconds):
+    from guest_signin import GuestSignIn
+
     serial = SERIAL
     deadline = time.monotonic() + seconds
     next_signin_probe = time.monotonic() + 60
@@ -536,6 +560,25 @@ def run_media(run_id, media, *, wasapi=False):
             report["observedGuestResult"] = json.loads(path.read_text(encoding="utf-8"))
         path.write_text(json.dumps(report, indent=2), encoding="utf-8")
         raise
+
+
+def record_s1_pair(run_id, control_id, control_passed):
+    result = json.loads((ROOT / f"run-{control_id}.json").read_text(encoding="utf-8"))
+    expected_step = "s1_guided_f10_restores_original_powershell"
+    evidence = result.get("focusEvidence", {})
+    native_probe = result.get("nativeProbe") or {}
+    rejected_at_restore = (
+        not control_passed and result.get("guestCleanupCompleted")
+        and result.get("pending") == expected_step
+        and result.get("steps", [])[-2:] == ["s1_return_restores_bound_tab", "s1_control_keeps_bound_editor"]
+        and evidence.get("omittedF10") is True and evidence.get("editorStillBound") is True
+        and native_probe.get("terminalFocused") is True and native_probe.get("titleMatches") is True
+        and native_probe.get("nativeEvents") is False
+    )
+    pair = {"ok": bool(rejected_at_restore), "positive": run_id, "control": control_id,
+            "expectedControlFailure": expected_step, "observedControlFailure": result.get("pending")}
+    (ROOT / f"s1-pair-{run_id}.json").write_text(json.dumps(pair, indent=2), encoding="utf-8")
+    return pair
 
 
 def main():
@@ -650,22 +693,7 @@ def main():
             values.guided_root, s1_no_f10=True,
         )
         control_passed = run_media(control_id, control_media)
-        result = json.loads((ROOT / f"run-{control_id}.json").read_text(encoding="utf-8"))
-        expected_step = "s1_guided_f10_restores_original_powershell"
-        evidence = result.get("focusEvidence", {})
-        native_probe = result.get("nativeProbe") or {}
-        rejected_at_restore = (
-            not control_passed and result.get("guestCleanupCompleted")
-            and result.get("pending") == expected_step
-            and result.get("steps", [])[-2:] == ["s1_return_restores_bound_tab", "s1_control_keeps_bound_editor"]
-            and evidence.get("omittedF10") is True and evidence.get("editorStillBound") is True
-            and native_probe.get("terminalFocused") is True and native_probe.get("titleMatches") is True
-            and native_probe.get("nativeEvents") is False
-        )
-        pair = {"ok": bool(rejected_at_restore), "positive": run_id, "control": control_id,
-                "expectedControlFailure": expected_step, "observedControlFailure": result.get("pending")}
-        (ROOT / f"s1-pair-{run_id}.json").write_text(json.dumps(pair, indent=2), encoding="utf-8")
-        return 0 if rejected_at_restore else 1
+        return 0 if record_s1_pair(run_id, control_id, control_passed)["ok"] else 1
     if not values.l3_with_control:
         return 0
 
