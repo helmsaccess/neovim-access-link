@@ -262,6 +262,9 @@ segment must correlate by at least 0.92 and their implied starts must fall
 within 26 ms. It records the segment count and spread. The verifier uses
 full-waveform checks for the application cues and the independent WASAPI
 recording.
+The managed lab restarts the guest between the two independent P2 fixtures.
+If QEMU exits before the guest reports desktop readiness, the lab detects
+the exit and starts the same guest once again.
 The full guest suite has been verified locally. Running it through Actions
 requires a provisioned private lab runner.
 

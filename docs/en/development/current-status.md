@@ -298,6 +298,7 @@ even if an earlier case fails.
 The C1 QEMU calibration verifier checks disjoint waveform segments when
 timing slips affect a calibration signal. Application cues and the separate
 WASAPI capture are checked against complete waveforms.
+The managed test guest starts fresh for the second P2 fixture.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility

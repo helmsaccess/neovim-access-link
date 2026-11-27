@@ -278,6 +278,9 @@ Jeder Abschnitt muss mindestens 0,92 Korrelation erreichen. Die daraus
 ermittelten Startzeiten dürfen höchstens 26 ms auseinanderliegen. Der Bericht
 hält Abschnittszahl und Zeitspanne fest. Für die Hinweistöne der Anwendung
 und die unabhängige WASAPI-Aufnahme prüft er die vollständigen Wellenformen.
+Das verwaltete Labor startet den Gast zwischen den beiden unabhängigen
+P2-Fixtures neu. Wenn QEMU vor dem Bereitschaftssignal des Desktops endet,
+erkennt das Labor den Abbruch und startet denselben Gast einmal erneut.
 Der vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
 einen bereitgestellten privaten Labor-Runner voraus.
 

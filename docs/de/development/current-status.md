@@ -320,6 +320,7 @@ nach. Unabhängige Fälle laufen auch nach einem früheren Fallfehler weiter.
 Bei Zeitversatz in einem C1-QEMU-Referenzsignal prüft der Prüfer getrennte
 Wellenformabschnitte. Hinweistöne der Anwendung und die separate
 WASAPI-Aufnahme werden anhand vollständiger Wellenformen geprüft.
+Für die zweite P2-Fixture startet der verwaltete Testgast frisch.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte

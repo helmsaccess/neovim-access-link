@@ -18,6 +18,8 @@ test-build entries through August 5, 2026.
 - Verifies C1 QEMU calibration markers with bounded matches across disjoint
   waveform segments and adds controls for noise, partial and misaligned
   markers, and duplicates.
+- Restarts the managed guest between the independent P2 fixtures and
+  detects a QEMU exit while waiting for desktop readiness.
 - Adds optional guided desktop and audio test groups with an isolated
   Windows guest and verified controls.
 - Announces the expanded or collapsed state of a lazy.nvim entry without

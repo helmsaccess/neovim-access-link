@@ -517,12 +517,13 @@ def monitor_output(run_id, offset, held, candidate=None, *, wasapi=False, transp
     raise TimeoutError(f"No {missing} for {run_id}")
 
 
-def wait_for_desktop(seconds):
+def wait_for_desktop(seconds, *, check_machine=False):
     from guest_signin import GuestSignIn
 
     serial = SERIAL
     deadline = time.monotonic() + seconds
     next_signin_probe = time.monotonic() + 60
+    next_health_probe = time.monotonic() + 15
     profile = ROOT / "guest-signin-profile.json"
     signin = None
     while True:
@@ -531,6 +532,9 @@ def wait_for_desktop(seconds):
         now = time.monotonic()
         if now >= deadline:
             raise TimeoutError("The Windows guest has not reported an interactive audit desktop")
+        if check_machine and now >= next_health_probe:
+            QemuTransport.check_health("desktop startup")
+            next_health_probe = now + 15
         if now >= next_signin_probe:
             next_signin_probe = now + 12
             if signin is None and profile.is_file():

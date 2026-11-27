@@ -192,8 +192,10 @@ def run_suite(args, selected):
             partial_audio = []
             calibration_retries = {}
             try:
-                for job in steps:
+                for index, job in enumerate(steps):
                     if guest is not None:
+                        if case == "P2" and index == 1:
+                            guest.shutdown()
                         guest.ready(SOURCES)
                     start = len(ids)
                     try:

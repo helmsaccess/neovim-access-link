@@ -19,6 +19,8 @@ und Testbuild-Einträge bis zum 5. August 2026.
 - Prüft C1-QEMU-Referenzmarken anhand getrennter Wellenformabschnitte mit
   begrenztem Zeitversatz und ergänzt Gegenproben für Rauschen, unvollständige
   und verschobene Marken sowie doppelte Signale.
+- Startet den verwalteten Gast zwischen den unabhängigen P2-Fixtures neu
+  und erkennt ein QEMU-Ende beim Warten auf die Desktop-Bereitschaft.
 - Führt die geführten Aufgaben in optionale Desktop- und Audiogruppen
   mit isolierter Windows-VM und überprüften Gegenproben über.
 - Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage

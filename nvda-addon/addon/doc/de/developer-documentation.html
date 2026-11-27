@@ -3062,7 +3062,8 @@ QEMU-Startmarke nach. Unabhängige Fälle laufen auch nach einem früheren
 Fallfehler weiter. Bei Zeitversatz in einem C1-QEMU-Referenzsignal prüft
 der Prüfer getrennte Wellenformabschnitte. Hinweistöne der Anwendung und
 die separate WASAPI-Aufnahme werden anhand vollständiger Wellenformen
-geprüft. Geführte Praxistests isolieren die verbleibende
+geprüft. Für die zweite P2-Fixture startet der verwaltete Testgast
+frisch. Geführte Praxistests isolieren die verbleibende
 Wahrnehmungsprüfung von Sprache, Braille, Klängen, Fokus und
 Reaktionszeit. Ihre technische Vorprüfung bestätigt reale Providerdaten
 und die für die jeweilige Aufgabe isolierte Tastensteuerung. Die
@@ -5808,9 +5809,12 @@ erkennen. Jeder Abschnitt muss mindestens 0,92 Korrelation erreichen.
 Die daraus ermittelten Startzeiten dürfen höchstens 26 ms
 auseinanderliegen. Der Bericht hält Abschnittszahl und Zeitspanne fest.
 Für die Hinweistöne der Anwendung und die unabhängige WASAPI-Aufnahme
-prüft er die vollständigen Wellenformen. Der vollständige Gastlauf ist
-lokal bestätigt. Der Actions-Aufruf setzt einen bereitgestellten
-privaten Labor-Runner voraus.</p>
+prüft er die vollständigen Wellenformen. Das verwaltete Labor startet
+den Gast zwischen den beiden unabhängigen P2-Fixtures neu. Wenn QEMU vor
+dem Bereitschaftssignal des Desktops endet, erkennt das Labor den
+Abbruch und startet denselben Gast einmal erneut. Der vollständige
+Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt einen
+bereitgestellten privaten Labor-Runner voraus.</p>
 </section>
 <section id="docs__de__development__testingmd__buildprüfung" class="level3">
 <h3>Buildprüfung</h3>
@@ -6857,6 +6861,9 @@ weiter aus und fährt seinen Testgast nach der Suite herunter.</p></li>
 Wellenformabschnitte mit begrenztem Zeitversatz und ergänzt Gegenproben
 für Rauschen, unvollständige und verschobene Marken sowie doppelte
 Signale.</p></li>
+<li><p>Startet den verwalteten Gast zwischen den unabhängigen
+P2-Fixtures neu und erkennt ein QEMU-Ende beim Warten auf die
+Desktop-Bereitschaft.</p></li>
 <li><p>Führt die geführten Aufgaben in optionale Desktop- und
 Audiogruppen mit isolierter Windows-VM und überprüften Gegenproben
 über.</p></li>

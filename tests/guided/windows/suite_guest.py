@@ -79,17 +79,24 @@ class RestartableGuest:
         raise TimeoutError("The isolated guest did not stop after the suite")
 
     def ready(self, sources):
-        if self.stopped():
-            command = ("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                       "-File", self.launcher, "-DiskName", self.disk.name, "-BootMedia", self.boot.name,
-                       "-QmpPort", str(self.port))
-            if self.audio:
-                command += ("-AudioCapture",)
-            subprocess.run(command, cwd=self.workspace, env=self.env, check=True, timeout=60)
-        deadline = time.monotonic() + 45
-        while not self.monitor_matches():
-            if time.monotonic() >= deadline:
-                raise TimeoutError("The expected QEMU guest did not acknowledge its test media")
-            time.sleep(1)
-        subprocess.run((sys.executable, "-c", "from run_focus_test import wait_for_desktop; wait_for_desktop(720)"),
-                       cwd=sources, env=self.env, check=True, timeout=740)
+        for attempt in range(2):
+            if self.stopped():
+                command = ("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                           "-File", self.launcher, "-DiskName", self.disk.name, "-BootMedia", self.boot.name,
+                           "-QmpPort", str(self.port))
+                if self.audio:
+                    command += ("-AudioCapture",)
+                subprocess.run(command, cwd=self.workspace, env=self.env, check=True, timeout=60)
+            deadline = time.monotonic() + 45
+            while not self.monitor_matches():
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("The expected QEMU guest did not acknowledge its test media")
+                time.sleep(1)
+            wait_for_desktop = "from run_focus_test import wait_for_desktop; wait_for_desktop(720, check_machine=True)"
+            result = subprocess.run((sys.executable, "-c", wait_for_desktop),
+                                    cwd=sources, env=self.env, timeout=740)
+            if result.returncode == 0:
+                return
+            if attempt or not self.stopped():
+                result.check_returncode()
+            print("The isolated guest stopped before desktop readiness; starting it once again.", flush=True)
