@@ -2,21 +2,21 @@
 
 ## Zweck und Umfang
 
-Diese Praxistests prüfen einen fertigen Neovim-Access-Link-Build nur dort, wo
-ein automatisierter Test nicht zuverlässig entscheiden kann: reale
-NVDA-Sprache, hörbare Klänge, eine physische Braillezeile, gehaltene
-NVDA-Gesten und den tatsächlichen Fokus in Windows Terminal. Eine Aufgabe
-bündelt zusammengehörige Wahrnehmungen derselben Bedienhandlung, damit Neovim
-nicht allein für Sprache und Klänge zweimal mit derselben Fixture gestartet
-werden muss. LSP-Antworten, Diagnosebereiche,
-Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
-überlassen.
+Die 18 Aufgabenkarten beschreiben reproduzierbare Bedienabläufe für einen
+fertigen Neovim-Access-Link-Build. Die Testgruppen `guided-desktop` und
+`guided-audio` führen die technisch prüfbaren Teile aller Karten in einem
+isolierten Windows-Gast aus. Sie erfassen unter anderem Windows-Fokus,
+gehaltene NVDA-Gesten, Sprachsequenzen vor der Synthese, digitale
+Braille-Zellen und gerenderte Audiosignale. `tests/guided/windows/README.md`
+beschreibt den automatisierten Lauf und seine Nachweise.
 
-Die automatische Parameteraufgabe beurteilt deshalb nur, ob reale
-Pyright-Übergänge verständlich und ohne störende Verzögerung gesprochen werden
-und die Braillezeile beim Quelltext bleibt. Resolver, Verschachtelung,
-Überladungen, Rückkehr in einen bereits ausgefüllten Parameter,
-Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
+Der interaktive Runner bleibt für Fragen zur subjektiven Sprach- und
+Klangwahrnehmung, Reaktionszeit und Bedienung einer physischen Braillezeile
+verfügbar. Eine Karte bündelt zusammengehörige Beobachtungen derselben
+Bedienhandlung. Bei automatischen Parameterhinweisen prüfen die Tests echte
+Pyright-Übergänge, die gesprochene Sequenz und die Quelltextzeile in Braille.
+Resolver, Verschachtelung, Überladungen, Rückkehr in einen bereits ausgefüllten
+Parameter, Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
 automatisierte Regressionen.
 
 Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
@@ -256,8 +256,9 @@ normaler `WorkspaceEdit`-Handler besitzen weiterhin die Umbenennung. Jeder
 Druck auf `F4` gibt die nächste tatsächlich geänderte Referenzzeile aus, ohne
 den aktuellen Puffer zu wechseln. Ein automatisierter TUI-/RPC-Test führt
 diese physischen Funktionstasten mit einem deterministischen Test-Sprachserver
-aus und schließt zusätzliche Text-, Cursor- und Kontextmeldungen aus. Der
-geführte Test bewertet nur noch Sprache und Reaktionszeit unter Windows/NVDA.
+aus und schließt zusätzliche Text-, Cursor- und Kontextmeldungen aus.
+Der geführte Gasttest erfasst die NVDA-Sprachsequenzen bei der Umbenennung
+mit echtem Pyright.
 
 L6 ergänzt L4 um Neovims Bufferliste. Die zweite Datei ist vor der Interaktion
 geladen und ausdrücklich gelistet; `F3` lässt Neovim `bufdo` über beide Dateien
@@ -460,7 +461,7 @@ Die kompakte Implementierung liegt unter `tests/human/`:
 | `dependencies.json` | festgelegte Fremdversionen und Revisionen |
 | `framework/` | Runner, Validator und isolierte Neovim-Konfiguration |
 
-Eine neue menschliche Aufgabe erhält eine der vier festen Kategorien und
+Eine neue menschliche Aufgabe erhält eine der fünf festen Kategorien und
 benötigt einen Grund, der nicht zuverlässig
 automatisierbar ist, und verweist auf verwandte automatisierte Evidenz. Kann
 Code das Ergebnis eindeutig entscheiden, gehört der Fall in einen
@@ -471,6 +472,6 @@ python3 tests/human/framework/validate.py plans
 python3 tools/run_tests.py quick
 ```
 
-GitHub Actions führt den PowerShell-Runner zusätzlich unter Windows aus. Das
-findet PowerShell-spezifische Parser- und Laufzeitfehler, erklärt aber niemals
-Sprache, Klänge, Braille oder Fokus als menschlich bestanden.
+GitHub Actions prüft im Repository-Workflow den PowerShell-Runner unter
+Windows mit Definitionen und Trockenläufen. Die Ergebnisse der
+automatisierten Gasttests stehen in separaten Berichten.

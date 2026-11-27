@@ -168,19 +168,22 @@ problems</a></li>
 <h2>Guided practical tests with NVDA</h2>
 <section id="purpose-and-scope" class="level3">
 <h3>Purpose and scope</h3>
-<p>These practical tests check a finished Neovim Access Link build only
-where an automated test cannot decide reliably: real NVDA speech,
-audible sounds, a physical Braille display, held NVDA gestures, and
-actual focus in Windows Terminal. One task combines related perceptions
-of the same interaction, so Neovim does not have to start twice with the
-same fixture merely to separate speech from sounds. LSP responses,
-diagnostic ranges, jump targets, adapter state, and file formats remain
-the responsibility of automated tests.</p>
-<p>The automatic-parameter task therefore assesses only whether real
-Pyright transitions are spoken clearly without disruptive delay and
-whether Braille stays on source text. Resolver behavior, nesting,
-overloads, returning to an already filled parameter, deduplication,
-bounds, and stale replies have separate automated regressions.</p>
+<p>The 18 task cards describe reproducible interactions with a finished
+Neovim Access Link build. The <code>guided-desktop</code> and
+<code>guided-audio</code> test groups run the technically verifiable
+parts of every card in an isolated Windows guest. They capture Windows
+focus, held NVDA gestures, speech sequences before synthesis, digital
+Braille cells, and rendered audio signals.
+<code>tests/guided/windows/README.md</code> describes the automated run
+and its evidence.</p>
+<p>The interactive runner remains available for questions about
+subjective speech and sound perception, response time, and using a
+physical Braille display. A card groups related observations of the same
+interaction. For automatic parameter hints, the tests check real Pyright
+transitions, the speech sequence, and the source line in Braille.
+Resolver behavior, nesting, overloads, returning to an already filled
+parameter, deduplication, bounds, and stale replies have separate
+automated regressions.</p>
 <p>The fixtures nevertheless provide deliberate real choices: at least
 three completion candidates, two function signatures with three
 parameters each, and two diagnostics on the first diagnostic line. Thus,
@@ -641,8 +644,8 @@ the rename. Each press of <code>F4</code> reports the next reference row
 that was actually changed without switching the current buffer. An
 automated TUI/RPC test drives those physical function keys with a
 deterministic test language server and excludes additional text, cursor,
-and context reports. The guided test is left to assess only speech and
-perceived latency under Windows/NVDA.</p>
+and context reports. The guided guest test captures NVDA speech
+sequences during the rename with real Pyright.</p>
 <p>L6 complements L4 with Neovim&#39;s buffer list. The second file is
 loaded and explicitly listed before interaction; <code>F3</code> lets
 Neovim run <code>bufdo</code> across both files. Access Link should
@@ -958,15 +961,15 @@ preflight is a setup problem, not a human test failure.</p>
 </tr>
 </tbody>
 </table>
-<p>A new human task receives one of the four fixed categories and needs
+<p>A new human task receives one of the five fixed categories and needs
 a reason that cannot be automated reliably and a link to related
 automated evidence. If code can decide the result unambiguously, the
 case belongs in an automated test. Validate definitions with:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tests/human/framework/validate.py plans</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py quick</span></code></pre></div>
-<p>GitHub Actions also executes the PowerShell runner on Windows. This
-finds PowerShell-specific parser and runtime errors, but never declares
-speech, sounds, Braille, or focus as having passed a human check.</p>
+<p>The GitHub Actions repository workflow checks the PowerShell runner
+on Windows using definitions and dry runs. The automated guest tests
+write separate reports.</p>
 </section>
 </section>
 </body>

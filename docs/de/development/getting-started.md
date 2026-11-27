@@ -23,8 +23,9 @@ Bibliotheken innerhalb dieser Prozesse, keine weiteren Dienste. Die
 
 ## Laufzeitvoraussetzungen
 
-Für den Windows-Betrieb werden Windows 11, NVDA 2026.1.x, Windows Terminal und
-entweder lokales Neovim oder Windows OpenSSH benötigt.
+Für den Windows-Betrieb werden Windows 11, NVDA ab 2026.1, Windows Terminal
+und entweder lokales Neovim oder Windows OpenSSH benötigt. Die zuletzt
+getestete NVDA-Version ist 2026.3.1.
 
 Ein entferntes Linux-Ziel benötigt Neovim 0.10.1 oder einen nachweislich
 kompatiblen neueren Stand, `python3`, einen erreichbaren SSH-Dienst und ein

@@ -6,6 +6,11 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Aktualisiert die NVDA- und Neovim-Referenzstände und dokumentiert die
+  bestätigten Windows-Gastprüfungen für alle 18 geführten Fälle. Die endgültige
+  Codeanalyse und der Reaudit bleiben als historische Berichte erhalten.
+  GitHub Actions prüft den Windows-Desktop getrennt vom vollständigen
+  Gastlauf, den ein privates Testlabor per wiederverwendbarem Workflow ausführt.
 - Führt die geführten Aufgaben in optionale Desktop- und Audiogruppen
   mit isolierter Windows-VM und überprüften Gegenproben über.
 - Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage

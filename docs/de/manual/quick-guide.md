@@ -18,7 +18,7 @@ ist Rocky Linux 10.2; weitere Linux-Systeme sind nicht praktisch bestätigt.
 Erforderlich sind:
 
 - Windows 11;
-- NVDA 2026.1.x;
+- NVDA ab 2026.1 (zuletzt getestet mit 2026.3.1);
 - Windows Terminal;
 - Neovim 0.10.1 oder neuer.
 

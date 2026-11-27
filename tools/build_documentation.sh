@@ -87,7 +87,6 @@ developer_sources=(
   docs/de/development/dependencies.md
   docs/de/development/plan.md
   docs/de/development/changelog.md
-  docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/de/development/global-plugin-appmodule-audit-2026-08-04.md
 )
@@ -149,7 +148,6 @@ developer_en_sources=(
   docs/en/development/dependencies.md
   docs/en/development/plan.md
   docs/en/development/changelog.md
-  docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/en/development/global-plugin-appmodule-audit-2026-08-04.md
 )

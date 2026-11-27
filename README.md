@@ -128,11 +128,11 @@ for prerequisites.
 
 ## Compatibility and status
 
-The confirmed reference environment uses Windows 11, NVDA 2026.1.x, Windows
-Terminal, local Windows Neovim 0.12.3, and Neovim 0.10.1 or 0.12.3 on Rocky
-Linux 10 over Windows OpenSSH. Local Neovim 0.10.1 remains covered by
-automated tests. A separate Windows check starts the packaged add-on in
-NVDA 2026.3.1 and exercises Neovim 0.12.6 with automated Lua and TCP tests.
+Automated local reference runs used Windows 11 24H2, NVDA 2026.3.1, Windows
+Terminal 1.25.3131.0, and Neovim 0.12.6. The add-on requires at least NVDA
+2026.1. Local Neovim 0.10.1 remains covered by automated tests. The remote
+path was confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2 over
+Windows OpenSSH.
 
 Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See

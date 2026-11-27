@@ -23,8 +23,9 @@ maps them to source paths.
 
 ## Runtime prerequisites
 
-Windows operation requires Windows 11, NVDA 2026.1.x, Windows Terminal, and
-either local Neovim or Windows OpenSSH.
+Windows operation requires Windows 11, NVDA 2026.1 or later, Windows Terminal,
+and either local Neovim or Windows OpenSSH. The last tested NVDA version is
+2026.3.1.
 
 A remote Linux target needs Neovim 0.10.1 or a verified compatible later
 version, `python3`, a reachable SSH service, and writable `~/.local`. The

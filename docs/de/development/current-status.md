@@ -26,7 +26,7 @@ getrennte Nachweise.
 
 ## Referenzumgebung
 
-Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA 2026.1.1,
+Der frühere lokale und SSH-Referenzlauf wurde mit Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim 0.10.1 und 0.12.3
 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2 geprüft. Lokales
 Windows-Neovim, Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung
@@ -308,7 +308,11 @@ Befehle stehen in [Teststrategie](testing.md).
 mit mechanisch prüfbaren Erwartungen im isolierten Windows-Gast aus.
 Tatsächlicher Fokus, NVDA-Sprachausgabe, digitale Braille-Zellen und
 gerenderte Audiosignale werden an den jeweils passenden Schnittstellen
-beobachtet. Die Gruppen werden ausdrücklich gestartet.
+beobachtet. Die Gruppen werden ausdrücklich gestartet. Für alle 18 Aufgaben
+liegen vollständige Gastnachweise einschließlich Gegenproben vor. Das
+Referenzprofil verwendete NVDA 2026.3.1, Neovim 0.12.6 und Windows
+Terminal 1.25.3131.0. Der [Abschlussprüfer](testing.md#geführte-windows--und-audio-prüfungen)
+verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte

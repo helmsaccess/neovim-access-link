@@ -1,9 +1,9 @@
 # Guided human tests
 
-This directory contains the small set of checks that need a real NVDA,
-Windows Terminal, sound output, or physical Braille display. It is not a
-second automated test suite and must not duplicate behavior that Python or Lua
-can decide reliably.
+This directory defines the shared test cards and isolates their Neovim
+profiles. The [Windows guest suite](../guided/windows/README.md) executes
+the digitally observable checks for all 18 cards. The accessible runner
+also lets people follow the cards for subjective or hardware-specific checks.
 
 Start with the German or English tester documentation:
 
@@ -32,8 +32,8 @@ dependencies and run results stay in the ignored repository `tmp/` directory.
 
 The required `smoke` suite contains native LSP, search/replacement, completion,
 Python diagnostic presentation, and focus/fail-open checks. The `compatibility`
-suite contains short nvim-cmp, blink.cmp, C/Clang-Tidy, and
-Markdown/markdownlint checks.
+suite contains short nvim-cmp, blink.cmp, C/Clang-Tidy, Markdown/markdownlint,
+and lazy.nvim checks.
 The interactive category selector and short IDs such as `-TestId D3` can run
 any task individually. The longer `plan.step` names remain accepted as
 compatibility aliases. Result schema 4 records the exact short IDs on both the
@@ -43,13 +43,13 @@ machine-checkable.
 ## Adding a test
 
 Add a human step only when its expected outcome depends on real perception or
-hardware. Every step must name a `manualReason` and related automated evidence.
+hardware. Every step must name its `manualReasons` and related automated evidence.
 If a protocol value, range, event order, provider result, or adapter state can
 be asserted in code, add an automated regression test instead.
 
 Every step has a globally unique, immutable two-character `testId`: `L` for
-language intelligence, `C` for completion, `D` for diagnostics, or `S` for
-session integration, followed by one uppercase alphanumeric character. Never
+language intelligence, `C` for completion, `D` for diagnostics, `S` for
+session integration, or `P` for plugin management, followed by one uppercase alphanumeric character. Never
 renumber or reuse a published ID. Every step belongs to one of the fixed
 user-facing categories. Plans may
 select only one of the fixed profiles implemented by `init.lua`.

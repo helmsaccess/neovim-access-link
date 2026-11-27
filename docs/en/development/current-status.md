@@ -23,7 +23,7 @@ Pyright. Windows focus and NVDA presentation have separate evidence.
 
 ## Reference environment
 
-The main practical path has been exercised with Windows 11 25H2, NVDA 2026.1.1,
+The earlier local and SSH reference run used Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim 0.10.1 and 0.12.3 on
 Rocky Linux 10.2 through OpenSSH for Windows 9.5p2. Local Windows Neovim, Linux
 Neovim over SSH, and tmux inside an SSH session are covered. The final field
@@ -287,6 +287,10 @@ Listener-free, SSH, and real socket tests run separately. See the
 mechanically verifiable expectations in an isolated Windows guest. They
 observe actual focus, NVDA speech output, digital Braille cells, and rendered
 audio at their respective interfaces. Both groups run on explicit request.
+All 18 cases have complete guest evidence, including controls. The reference
+profile used NVDA 2026.3.1, Neovim 0.12.6, and Windows Terminal 1.25.3131.0.
+The [result audit](testing.md#guided-windows-and-audio-checks) verifies the guest
+logs, package hash, and PCM recordings.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility

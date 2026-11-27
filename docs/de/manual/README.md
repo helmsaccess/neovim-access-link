@@ -28,12 +28,11 @@ Access Link unterstützt derzeit:
 - Dateiverwaltung mit Oil; weitere Dateimanager besitzen automatisiert
   geprüfte Adapter.
 
-Praktisch bestätigt ist die Referenzumgebung Windows 11 25H2, NVDA 2026.1.1,
-Windows Terminal 1.24.x und lokales Neovim 0.12.3. Der entfernte Pfad ist mit
-Neovim 0.10.1 und 0.12.3 auf Rocky Linux 10.2 bestätigt. Die vollständigen
-F12-, Merk- und Fokuspfade wurden zusätzlich mit NVDA 2026.2beta10 geprüft;
-das Manifest nennt NVDA 2026.2 als zuletzt getestet. Die vollständigen
-Nachweise und offenen Prüfbereiche stehen in der
+Automatisierte lokale Referenzläufe verwendeten Windows 11 24H2, NVDA 2026.3.1,
+Windows Terminal 1.25.3131.0 und Neovim 0.12.6. Der entfernte Pfad ist mit
+Neovim 0.10.1 und 0.12.3 auf Rocky Linux 10.2 bestätigt. Das Manifest nennt
+NVDA 2026.1 als Mindestversion und 2026.3.1 als zuletzt getestete Version.
+Die Nachweise und offenen Prüfbereiche stehen in der
 [Kompatibilitätsübersicht](../development/compatibility.md).
 
 Andere Terminalprogramme, grafische Neovim-Oberflächen, portable

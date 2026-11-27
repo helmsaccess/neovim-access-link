@@ -2,19 +2,19 @@
 
 ## Purpose and scope
 
-These practical tests check a finished Neovim Access Link build only where an
-automated test cannot decide reliably: real NVDA speech, audible sounds, a
-physical Braille display, held NVDA gestures, and actual focus in Windows
-Terminal. One task combines related perceptions of the same interaction, so
-Neovim does not have to start twice with the same fixture merely to separate
-speech from sounds. LSP responses,
-diagnostic ranges, jump targets, adapter state, and file formats remain the
-responsibility of automated tests.
+The 18 task cards describe reproducible interactions with a finished Neovim
+Access Link build. The `guided-desktop` and `guided-audio` test groups run the
+technically verifiable parts of every card in an isolated Windows guest. They
+capture Windows focus, held NVDA gestures, speech sequences before synthesis,
+digital Braille cells, and rendered audio signals.
+`tests/guided/windows/README.md` describes the automated run and its evidence.
 
-The automatic-parameter task therefore assesses only whether real Pyright
-transitions are spoken clearly without disruptive delay and whether Braille
-stays on source text. Resolver behavior, nesting, overloads, returning to an
-already filled parameter, deduplication, bounds, and stale replies have
+The interactive runner remains available for questions about subjective speech
+and sound perception, response time, and using a physical Braille display.
+A card groups related observations of the same interaction. For automatic
+parameter hints, the tests check real Pyright transitions, the speech sequence,
+and the source line in Braille. Resolver behavior, nesting, overloads, returning
+to an already filled parameter, deduplication, bounds, and stale replies have
 separate automated regressions.
 
 The fixtures nevertheless provide deliberate real choices: at least three
@@ -243,8 +243,8 @@ therefore accepts only the new name; Neovim, Pyright, and Neovim's normal
 the next reference row that was actually changed without switching the current
 buffer. An automated TUI/RPC test drives those physical function keys with a
 deterministic test language server and excludes additional text, cursor, and
-context reports. The guided test is left to assess only speech and perceived
-latency under Windows/NVDA.
+context reports. The guided guest test captures NVDA speech sequences during
+the rename with real Pyright.
 
 L6 complements L4 with Neovim's buffer list. The second file is loaded and
 explicitly listed before interaction; `F3` lets Neovim run `bufdo` across both
@@ -433,7 +433,7 @@ The compact implementation lives below `tests/human/`:
 | `dependencies.json` | pinned third-party versions and revisions |
 | `framework/` | runner, validator, and isolated Neovim configuration |
 
-A new human task receives one of the four fixed categories and needs a reason
+A new human task receives one of the five fixed categories and needs a reason
 that cannot be automated reliably and a link
 to related automated evidence. If code can decide the result unambiguously,
 the case belongs in an automated test. Validate definitions with:
@@ -443,6 +443,6 @@ python3 tests/human/framework/validate.py plans
 python3 tools/run_tests.py quick
 ```
 
-GitHub Actions also executes the PowerShell runner on Windows. This finds
-PowerShell-specific parser and runtime errors, but never declares speech,
-sounds, Braille, or focus as having passed a human check.
+The GitHub Actions repository workflow checks the PowerShell runner on Windows
+using definitions and dry runs. The automated guest tests write separate
+reports.

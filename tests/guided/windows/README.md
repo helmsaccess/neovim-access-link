@@ -108,3 +108,38 @@ and VM workspace. Each card can have one passing result.
 ```powershell
 python tests/guided/windows/audit_result.py . $summary $addon $audioReferences --additional-summary $continuation --complete
 ```
+
+## Run the complete suite through GitHub Actions
+
+Use a disposable Windows lab host associated only with a private caller
+repository under the same owner. Give its runner the `nal-guided-vm` label.
+Provision the same offline QEMU guest, pinned tools and reference audio as
+for a local run. The desktop and WASAPI render endpoint belong to the guest.
+On the lab host set `NAL_GUIDED_CI_CONFIG` to the absolute path of the
+approved lab JSON and `NAL_GUIDED_CI_PYTHON` to the absolute path of the
+Python executable with the pinned requirements installed. Provide the
+normal Windows build tools and PowerShell 7 to the runner account. Keep
+the VM files, raw evidence and guest credentials on the lab host.
+
+Create this dispatcher on the default branch of the private lab repository
+and substitute the reviewed 40-character commit SHA. Only the repository
+owner can dispatch this job. Use a repository-scoped runner under a dedicated
+standard Windows account, registered for a single job with `--ephemeral`.
+The executor checks out that same revision to build the add-on and run its
+tests. This workflow uses no GitHub-hosted runner or artifact uploads.
+
+```yaml
+name: Run the isolated Windows lab
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  lab:
+    uses: helmsaccess/neovim-access-link/.github/workflows/guided-windows-vm.yml@REVIEWED_SHA
+```
+
+A passing lab job requires `audit_result.py --complete` to verify every
+case against the built package. The GitHub job summary reports the source
+commit and package hash. The local lab log and per-run directories hold
+the diagnostic details. GitHub-hosted runner checks have separate job
+names and report their directly observed behavior.

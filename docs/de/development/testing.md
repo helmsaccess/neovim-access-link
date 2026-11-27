@@ -243,8 +243,26 @@ Die Jobs sind bewusst getrennt:
 - echte TUI-, TCP- und Unix-Socket-Fälle;
 - Build und Linkprüfung aller acht Dokumentationsdateien.
 
-Ein grüner Matrixjob bestätigt nur seinen benannten Vertrag. Praktische
-NVDA-, Windows-Terminal- und Brailleausgabe bleibt eine gesonderte Abnahme.
+Ein grüner Matrixjob bestätigt den jeweils benannten Vertrag. Der gesamte
+Desktop- und Audionachweis verwendet den isolierten Windows-Gast.
+
+Der gehostete Workflow `.github/workflows/guided-windows-hosted.yml`
+baut das Add-on, lädt es in portabler NVDA und prüft das fokussierte
+`TermControl`-Steuerelement sowie die Tastatureingabe bis zum
+Konsolenprozess. Der gemessene `windows-2025`-Runner hatte keinen
+WASAPI-Standardausgang. Die Gastaufnahmen verwenden den Render-Endpunkt
+im Windows-Gast. [Gehosteter NVDA-Fokustest](https://github.com/helmsaccess/neovim-access-link/actions/runs/45998314584)
+
+Der wiederverwendbare Workflow `.github/workflows/guided-windows-vm.yml`
+führt alle 18 Fälle und die vollständige Nachprüfung in einem vorbereiteten
+Windows-Labor aus. Ein privates Repository desselben Besitzers bindet den
+Workflow an eine geprüfte Commit-SHA. Nur der Besitzer startet ihn manuell
+vom Standardbranch. Der eigene Windows-Runner ist auf das private Repository
+beschränkt. Der Workflow benötigt keine GitHub-gehosteten Minuten.
+Rohprotokolle, Gastmedien und Audiomitschnitte bleiben im Labor.
+Einrichtung und Aufruf stehen in `tests/guided/windows/README.md`.
+Der vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
+einen bereitgestellten privaten Labor-Runner voraus.
 
 ## Buildprüfung
 

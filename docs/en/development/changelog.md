@@ -6,6 +6,11 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Updates the NVDA and Neovim reference versions and documents the verified
+  Windows guest checks for all 18 guided cases. The final analysis and re-audit
+  remain available as historical reports. GitHub Actions checks the Windows
+  desktop separately from the complete guest suite, which a private lab runs
+  through a reusable workflow.
 - Adds optional guided desktop and audio test groups with an isolated
   Windows guest and verified controls.
 - Announces the expanded or collapsed state of a lazy.nvim entry without
