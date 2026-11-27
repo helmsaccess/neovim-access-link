@@ -380,12 +380,16 @@ try {
         $shell = Join-Path $PSHOME 'powershell.exe'
         $settingsDir = New-Item -ItemType Directory -Force -Path (Join-Path $terminal.DirectoryName 'settings')
         $profileId = '{31c41e6a-b8d8-403b-9706-d742ca145db4}'
+        $nativeSetup = 'Import-Module PSReadLine'
+        if ($env:ACCESS_LINK_HUMAN_TEST_ID -eq 'S1') {
+            $nativeSetup += '; function global:prompt { ''PS > '' }'
+        }
         @{
             defaultProfile = $profileId
             profiles = @{ list = @(@{
                 guid = $profileId
                 name = 'NAL Unclaimed PowerShell'
-                commandline = "$shell -NoLogo -NoProfile -NoExit -Command `"Import-Module PSReadLine`""
+                commandline = "$shell -NoLogo -NoProfile -NoExit -Command `"$nativeSetup`""
                 tabTitle = 'NAL Unclaimed PowerShell'
                 suppressApplicationTitle = $true
             }) }
@@ -397,6 +401,9 @@ try {
         $wrapper = Join-Path $guided 'start.ps1'
         @'
 Import-Module PSReadLine
+if ($env:ACCESS_LINK_HUMAN_TEST_ID -eq 'S1') {
+    function global:prompt { 'PS > ' }
+}
 Set-Location -LiteralPath $env:NAL_FOCUS_GUIDED_ROOT
 & $env:NAL_FOCUS_GUIDED_NVIM --cmd 'lua vim.opt.runtimepath:prepend(vim.env.NAL_FOCUS_RUNTIME)' -u init.lua -i NONE -n $env:NAL_FOCUS_EDITOR_FILE
 '@ | Set-Content -LiteralPath $wrapper -Encoding ascii

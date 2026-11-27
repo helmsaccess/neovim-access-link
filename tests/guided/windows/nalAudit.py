@@ -1685,7 +1685,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self.press("guided-native-tab")
         yield "s1_unclaimed_powershell_gets_focus", lambda: (
             winUser.getForegroundWindow() == original_hwnd
-            and self.native_powershell(native_title, "PS ", previous=first)
+            and self.native_powershell(native_title, "PS > ", previous=first)
         )
         self.expected_window_title = None
         self.speech.clear()
@@ -1724,7 +1724,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         else:
             self.press("guided-exit")
         yield "s1_guided_f10_restores_original_powershell", lambda: (
-            winUser.getForegroundWindow() == original_hwnd and self.native_powershell(title, "PS ")
+            winUser.getForegroundWindow() == original_hwnd and self.native_powershell(title, "PS > ")
         )
         self.speech.clear()
         self.cells.clear()
