@@ -50,6 +50,10 @@ try {
     if ($addon.PSIsContainer) { throw 'The development package must be a file.' }
     $digest = (Get-FileHash -LiteralPath $addon.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 
+    $phase = 'PCM calibration controls'
+    & $python tests/guided/windows/test_c1_calibration.py >> $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw 'The QEMU calibration controls failed.' }
+
     $phase = 'Windows VM suite'
     $env:NAL_TEST_STOP_GUEST_AFTER_SUITE = '1'
     $env:NAL_TEST_CONTINUE_GUIDED_CASES = '1'

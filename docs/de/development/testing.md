@@ -272,6 +272,12 @@ im Gast und in WASAPI besteht, aber die Startmarke in der QEMU-Aufnahme fehlt,
 startet das Labor den Gast neu und wiederholt die betroffene Audioeinstellung
 einmal. Der Abschlussprüfer wertet die verworfene und die neue vollständige
 Aufzeichnung mit denselben Anforderungen aus.
+Bei einem kurzen Zeitversatz in einer C1-QEMU-Referenzmarke kann der Prüfer
+die Marke anhand von vier von fünf getrennten Wellenformabschnitten erkennen.
+Jeder Abschnitt muss mindestens 0,92 Korrelation erreichen. Die daraus
+ermittelten Startzeiten dürfen höchstens 26 ms auseinanderliegen. Der Bericht
+hält Abschnittszahl und Zeitspanne fest. Für die Hinweistöne der Anwendung
+und die unabhängige WASAPI-Aufnahme prüft er die vollständigen Wellenformen.
 Der vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
 einen bereitgestellten privaten Labor-Runner voraus.
 

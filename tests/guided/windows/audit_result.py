@@ -254,7 +254,7 @@ def main():
     from run_c1_audio import verify_recording as verify_completion_pcm
     from run_external_diagnostic_audio import verify_recording as verify_diagnostic_pcm
     from run_guided_suite import read_json, require, verify_case
-    from verify_c1_pair import QEMU_START_MARKER_LOSS, lost_qemu_start_marker
+    from verify_c1_pair import QEMU_C1_MARKER_METHOD, QEMU_START_MARKER_LOSS, lost_qemu_start_marker
 
     with args.addon.open("rb") as package:
         actual = hashlib.file_digest(package, "sha256").hexdigest()
@@ -303,7 +303,8 @@ def main():
             require(proof["captureFile"] == endpoint.name, "C1 retry WASAPI artifact does not match the guest run")
             wasapi = verify_capture_result(endpoint, proof, verify_completion_pcm(endpoint, args.references, muted=muted))
             try:
-                verify_completion_pcm(recording, args.references, muted=muted)
+                verify_completion_pcm(recording, args.references, muted=muted,
+                                      qemu_c1=proof["qemuCapture"].get("markerMethod") == QEMU_C1_MARKER_METHOD)
             except RuntimeError as error:
                 require(str(error) == QEMU_START_MARKER_LOSS, "C1 retry QEMU rejection changed during audit")
             else:
@@ -347,14 +348,17 @@ def main():
                     measured = verify_diagnostic_pcm(recording, args.references, run_id, case, muted=muted)
                     captures.append(verify_capture_result(recording, proof, measured))
                 else:
-                    def assess(path):
+                    def assess(path, *, qemu_c1=False):
                         if case.startswith("C"):
-                            return verify_completion_pcm(path, args.references, muted=muted)
+                            return verify_completion_pcm(path, args.references, muted=muted, qemu_c1=qemu_c1)
                         return verify_diagnostic_pcm(path, args.references, run_id, case, muted=muted)
 
                     qemu = proof["qemuCapture"]
+                    method = qemu.get("markerMethod")
+                    require(method is None or (case == "C1" and method == QEMU_C1_MARKER_METHOD),
+                            f"Unknown PCM calibration method for {recording.name}")
                     try:
-                        measured = assess(recording)
+                        measured = assess(recording, qemu_c1=method is not None)
                     except RuntimeError as error:
                         require(case != "C1" and qemu["ok"] is False and qemu["error"] == str(error),
                                 f"QEMU capture outcome changed for {recording.name}: {error}")

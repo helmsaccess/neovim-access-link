@@ -12,6 +12,7 @@ import numpy as np
 RATE = 24_000
 CUES = ("open", "close", "warning", "error", "none")
 C1_SEQUENCE = ("before-open", "open", "before-selection", "before-accept", "close")
+C1_CALIBRATION = {"begin", "before-open", "before-selection", "before-accept", "end"}
 MIN_CORRELATION = 0.85
 MIN_RENDERED_RMS = 32
 QUIET_WINDOW_RMS = 64
@@ -23,6 +24,8 @@ class Match:
     start: int
     end: int
     correlation: float
+    calibration_segments: int = 0
+    drift_samples: int = 0
 
 
 def read_pcm(path: Path) -> np.ndarray:
@@ -38,7 +41,7 @@ def read_pcm(path: Path) -> np.ndarray:
     return np.interp(positions, np.arange(signal.size), signal)
 
 
-def find_matches(recording: np.ndarray, template: np.ndarray, cue: str) -> list[Match]:
+def find_matches(recording: np.ndarray, template: np.ndarray, cue: str, *, threshold=MIN_CORRELATION) -> list[Match]:
     width = len(template)
     if width > len(recording):
         return []
@@ -58,16 +61,52 @@ def find_matches(recording: np.ndarray, template: np.ndarray, cue: str) -> list[
     while score.size:
         start = int(np.argmax(score))
         best = float(score[start])
-        if best < MIN_CORRELATION:
+        if best < threshold:
             break
         results.append(Match(cue, start, start + width, best))
         score[max(0, start - width // 2):start + width // 2] = 0
     return results
 
 
+def find_qemu_c1_markers(recording, template, name):
+    width = len(template)
+    segment = 36 * RATE // 1000
+    offsets = [milliseconds * RATE // 1000 for milliseconds in (30, 105, 180, 255, 330)]
+    drift = 26 * RATE // 1000
+    if width < offsets[-1] + segment:
+        raise ValueError("The C1 calibration reference lacks the expected waveform segments")
+    matches = find_matches(recording, template, name)
+    # Each segment must individually match the real PCM. The bounded spread of
+    # their implied marker starts allows a short QEMU timing slip between them.
+    hits = sorted((hit.start - offset, index, hit.correlation)
+                  for index, offset in enumerate(offsets)
+                  for hit in find_matches(recording, template[offset:offset + segment], name, threshold=0.92))
+    for first, (origin, _, _) in enumerate(hits):
+        nearby = {}
+        for position in range(first, len(hits)):
+            start, index, score = hits[position]
+            if start - origin > drift:
+                break
+            if index not in nearby or score > nearby[index][1]:
+                nearby[index] = (start, score)
+        if len(nearby) < 4:
+            continue
+        starts = sorted(item[0] for item in nearby.values())
+        start, end = starts[0], starts[-1] + width
+        if start < 0 or end > len(recording) or any(abs(item.start - start) <= drift for item in matches):
+            continue
+        matches.append(Match(name, start, end, min(item[1] for item in nearby.values()),
+                             len(nearby), starts[-1] - start))
+    return matches
+
+
 def check_sequence(recording: np.ndarray, templates: dict[str, np.ndarray],
-                   expected: tuple[str, ...]) -> list[Match]:
-    markers = [find_matches(recording, templates[name], name) for name in ("begin", "end")]
+                   expected: tuple[str, ...], *, qemu_c1=False) -> list[Match]:
+    def matches(samples, name):
+        matcher = find_qemu_c1_markers if qemu_c1 and name in C1_CALIBRATION else find_matches
+        return matcher(samples, templates[name], name)
+
+    markers = [matches(recording, name) for name in ("begin", "end")]
     if any(len(matches) != 1 for matches in markers):
         raise ValueError(f"Expected one render marker at each end, found {[len(items) for items in markers]}")
     begin, end = (matches[0] for matches in markers)
@@ -76,10 +115,11 @@ def check_sequence(recording: np.ndarray, templates: dict[str, np.ndarray],
 
     interior = recording[begin.end:end.start]
     events = [
-        Match(match.cue, match.start + begin.end, match.end + begin.end, match.correlation)
-        for name, template in templates.items()
+        Match(match.cue, match.start + begin.end, match.end + begin.end, match.correlation,
+              match.calibration_segments, match.drift_samples)
+        for name in templates
         if name not in {"begin", "end"}
-        for match in find_matches(interior, template, name)
+        for match in matches(interior, name)
     ]
     selected = []
     for event in sorted(events, key=lambda item: item.correlation, reverse=True):
@@ -105,7 +145,7 @@ def check_sequence(recording: np.ndarray, templates: dict[str, np.ndarray],
 
 
 def check_negative_controls(recording: np.ndarray, templates: dict[str, np.ndarray],
-                            expected: tuple[str, ...], found: list[Match]) -> list[str]:
+                            expected: tuple[str, ...], found: list[Match], *, qemu_c1=False) -> list[str]:
     cues = [match for match in found if match.cue in CUES]
     if len(cues) < 2:
         raise ValueError("The negative controls need at least two rendered cues")
@@ -139,7 +179,7 @@ def check_negative_controls(recording: np.ndarray, templates: dict[str, np.ndarr
     }
     for name, (signal, reason) in controls.items():
         try:
-            check_sequence(signal, templates, expected)
+            check_sequence(signal, templates, expected, qemu_c1=qemu_c1)
         except ValueError as error:
             if str(error).startswith(reason):
                 continue
@@ -185,11 +225,14 @@ def main() -> None:
     parser.add_argument("--negative-controls", action="store_true")
     parser.add_argument("--c1-timeline", action="store_true")
     parser.add_argument("--c1-muted", action="store_true")
+    parser.add_argument("--qemu-c1-markers", action="store_true")
     parser.add_argument("--diagnostic-trace", "--d1-trace", dest="diagnostic_trace", type=Path)
     parser.add_argument("--diagnostics-muted", "--d1-muted", dest="diagnostics_muted", action="store_true")
     arguments = parser.parse_args()
     if arguments.c1_muted and (not arguments.c1_timeline or arguments.negative_controls):
         parser.error("The muted control needs the timeline without the waveform mutations")
+    if arguments.qemu_c1_markers and not arguments.c1_timeline:
+        parser.error("Segmented QEMU markers require the native C1 timeline")
     expected = C1_SEQUENCE if arguments.c1_timeline else tuple(arguments.expected)
     if arguments.diagnostic_trace:
         trace = json.loads(arguments.diagnostic_trace.read_text(encoding="utf-8"))
@@ -228,7 +271,7 @@ def main() -> None:
     }
     try:
         recording = read_pcm(arguments.capture)
-        matches = check_sequence(recording, templates, expected)
+        matches = check_sequence(recording, templates, expected, qemu_c1=arguments.qemu_c1_markers)
         quiet = check_c1_quiet_intervals(
             recording, matches, muted=arguments.c1_muted,
         ) if arguments.c1_timeline else {}
@@ -237,14 +280,18 @@ def main() -> None:
                 f"action {i}": (start.end, end.start)
                 for i, (start, end) in enumerate(zip(matches[1:], matches[2:]), start=1)
             })
-        controls = check_negative_controls(recording, templates, expected, matches) if arguments.negative_controls else []
+        controls = check_negative_controls(recording, templates, expected, matches,
+                                          qemu_c1=arguments.qemu_c1_markers) if arguments.negative_controls else []
     except ValueError as error:
         parser.exit(1, str(error) + "\n")
-    print(json.dumps({"matches": [
-        {"cue": item.cue, "seconds": round(item.start / RATE, 4),
-         "correlation": round(item.correlation, 4)}
-        for item in matches
-    ], "quietIntervalsPeakRms": quiet, "rejectedControls": controls}, indent=2))
+    measured = []
+    for item in matches:
+        event = {"cue": item.cue, "seconds": round(item.start / RATE, 4), "correlation": round(item.correlation, 4)}
+        if item.calibration_segments:
+            event["calibrationSegments"] = item.calibration_segments
+            event["driftMs"] = round(1000 * item.drift_samples / RATE, 3)
+        measured.append(event)
+    print(json.dumps({"matches": measured, "quietIntervalsPeakRms": quiet, "rejectedControls": controls}, indent=2))
 
 
 if __name__ == "__main__":

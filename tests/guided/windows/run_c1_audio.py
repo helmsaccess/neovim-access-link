@@ -10,6 +10,7 @@ import sys
 from qmp import Qmp
 from lab_paths import SOURCES
 from run_focus_test import ROOT, image, run_media, wait_for_desktop
+from verify_c1_pair import QEMU_C1_MARKER_METHOD
 
 
 def monitor(qmp: Qmp, command: str) -> str:
@@ -43,11 +44,13 @@ def capture(path: Path):
         stop_capture()
 
 
-def verify_recording(recording, references, *, muted):
+def verify_recording(recording, references, *, muted, qemu_c1=False):
     verifier = (
         sys.executable, str(SOURCES / "verify_audio_capture.py"), str(recording),
         str(references), "--c1-timeline",
     )
+    if qemu_c1:
+        verifier += ("--qemu-c1-markers",)
     checked = subprocess.run(
         (*verifier, "--c1-muted" if muted else "--negative-controls"),
         capture_output=True, encoding="utf-8",
@@ -103,17 +106,20 @@ def main() -> int:
     if not passed:
         return 1
 
-    def check(path):
+    def check(path, *, qemu_c1=False):
         try:
-            return {"ok": True, **verify_recording(path, references, muted=arguments.muted)}
+            result = {"ok": True, **verify_recording(path, references, muted=arguments.muted, qemu_c1=qemu_c1)}
         except RuntimeError as error:
-            return {"ok": False, "error": str(error)}
+            result = {"ok": False, "error": str(error)}
+        if qemu_c1:
+            result["markerMethod"] = QEMU_C1_MARKER_METHOD
+        return result
 
     if wasapi:
         endpoint = ROOT / f"wasapi-{run_id}.wav"
         report = {
             **check(endpoint), "captureEndpoint": "Windows WASAPI loopback",
-            "captureFile": endpoint.name, "qemuCapture": check(recording),
+            "captureFile": endpoint.name, "qemuCapture": check(recording, qemu_c1=arguments.completion_profile is None),
         }
     else:
         report = {**check(recording), "captureEndpoint": "QEMU audio output", "captureFile": recording.name}

@@ -15,6 +15,9 @@ test-build entries through August 5, 2026.
   replay with a fresh lab guest after the guest and WASAPI checks pass, and
   audits both attempts. The Actions job runs independent cases after a failure
   and shuts down its own test guest after the suite.
+- Verifies C1 QEMU calibration markers with bounded matches across disjoint
+  waveform segments and adds controls for noise, partial and misaligned
+  markers, and duplicates.
 - Adds optional guided desktop and audio test groups with an isolated
   Windows guest and verified controls.
 - Announces the expanded or collapsed state of a lazy.nvim entry without

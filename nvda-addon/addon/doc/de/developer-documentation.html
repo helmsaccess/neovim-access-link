@@ -3059,7 +3059,10 @@ GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
 bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen
 mit WASAPI und QEMU bei und prüft Wiederholungen bei fehlender
 QEMU-Startmarke nach. Unabhängige Fälle laufen auch nach einem früheren
-Fallfehler weiter. Geführte Praxistests isolieren die verbleibende
+Fallfehler weiter. Bei Zeitversatz in einem C1-QEMU-Referenzsignal prüft
+der Prüfer getrennte Wellenformabschnitte. Hinweistöne der Anwendung und
+die separate WASAPI-Aufnahme werden anhand vollständiger Wellenformen
+geprüft. Geführte Praxistests isolieren die verbleibende
 Wahrnehmungsprüfung von Sprache, Braille, Klängen, Fokus und
 Reaktionszeit. Ihre technische Vorprüfung bestätigt reale Providerdaten
 und die für die jeweilige Aufgabe isolierte Tastensteuerung. Die
@@ -5798,9 +5801,16 @@ die vollständige Nachprüfung scheitern. Wenn C1 im Gast und in WASAPI
 besteht, aber die Startmarke in der QEMU-Aufnahme fehlt, startet das
 Labor den Gast neu und wiederholt die betroffene Audioeinstellung
 einmal. Der Abschlussprüfer wertet die verworfene und die neue
-vollständige Aufzeichnung mit denselben Anforderungen aus. Der
-vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
-einen bereitgestellten privaten Labor-Runner voraus.</p>
+vollständige Aufzeichnung mit denselben Anforderungen aus. Bei einem
+kurzen Zeitversatz in einer C1-QEMU-Referenzmarke kann der Prüfer die
+Marke anhand von vier von fünf getrennten Wellenformabschnitten
+erkennen. Jeder Abschnitt muss mindestens 0,92 Korrelation erreichen.
+Die daraus ermittelten Startzeiten dürfen höchstens 26 ms
+auseinanderliegen. Der Bericht hält Abschnittszahl und Zeitspanne fest.
+Für die Hinweistöne der Anwendung und die unabhängige WASAPI-Aufnahme
+prüft er die vollständigen Wellenformen. Der vollständige Gastlauf ist
+lokal bestätigt. Der Actions-Aufruf setzt einen bereitgestellten
+privaten Labor-Runner voraus.</p>
 </section>
 <section id="docs__de__development__testingmd__buildprüfung" class="level3">
 <h3>Buildprüfung</h3>
@@ -6843,6 +6853,10 @@ wiederholt den betroffenen Ablauf nach bestandener Gast- und
 WASAPI-Prüfung mit einem frisch gestarteten Gast einmal und prüft beide
 Versuche nach. Der Actions-Job führt unabhängige Fälle nach einem Fehler
 weiter aus und fährt seinen Testgast nach der Suite herunter.</p></li>
+<li><p>Prüft C1-QEMU-Referenzmarken anhand getrennter
+Wellenformabschnitte mit begrenztem Zeitversatz und ergänzt Gegenproben
+für Rauschen, unvollständige und verschobene Marken sowie doppelte
+Signale.</p></li>
 <li><p>Führt die geführten Aufgaben in optionale Desktop- und
 Audiogruppen mit isolierter Windows-VM und überprüften Gegenproben
 über.</p></li>
