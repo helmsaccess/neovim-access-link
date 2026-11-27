@@ -7,9 +7,11 @@ from ctypes import wintypes
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
+import time
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from audit_result import verify_s1_focus, verify_serial_log
@@ -39,6 +41,7 @@ S1_ACTIONS = {
     "guided-first-line", "toggle", "guided-claim", "guided-native-tab",
     "guided-new-tab-edit", "guided-first-tab", "guided-exit", "guided-returned-edit",
 }
+NVDA_KEY_TRACE = re.compile(r"^Input: kb(?:\([^)]*\))?:(\S+)$", re.MULTILINE)
 
 
 class S1Keyboard(WindowsDesktop):
@@ -109,14 +112,27 @@ class S1Keyboard(WindowsDesktop):
             flags = 0x0008 | int(code in {"insert", "left"} or scan >> 8 == 0xE0)
             downs.append(Input(1, InputData(keyboard=KeyboardInput(0, scan & 0xFF, flags, 0, 0))))
             ups.append(Input(1, InputData(keyboard=KeyboardInput(0, scan & 0xFF, flags | 0x0002, 0, 0))))
-        events = (Input * (2 * len(codes)))(*downs, *reversed(ups))
         if self.target() != hwnd or self.user.GetForegroundWindow() != hwnd:
             raise RuntimeError("Refusing keyboard input because the test terminal no longer owns foreground")
+        events = (Input * len(downs))(*downs)
+        pressed = self.user.SendInput(len(events), events, ctypes.sizeof(Input))
+        try:
+            if pressed != len(events):
+                raise RuntimeError("SendInput did not press the complete keyboard chord")
+            # Match the VM's key hold. NVDA temporarily ignores injected keys while
+            # suppressing the menu action of Alt in a handled gesture.
+            time.sleep(0.09)
+        finally:
+            if pressed:
+                self.release_keys(tuple(reversed(ups[:pressed])))
+
+    def release_keys(self, releases):
+        events = (Input * len(releases))(*releases)
         sent = self.user.SendInput(len(events), events, ctypes.sizeof(Input))
         if sent != len(events):
-            for event in reversed(ups[:min(sent, len(events) - sent)]):
+            for event in releases[sent:]:
                 self.user.SendInput(1, ctypes.byref(event), ctypes.sizeof(Input))
-            raise RuntimeError("SendInput did not deliver the complete keyboard chord")
+            raise RuntimeError("SendInput did not release the complete keyboard chord")
 
 
 class HostedTransport:
@@ -199,6 +215,16 @@ def run_card(work, run_id, source, terminal_image, *, monitor, drive_keys):
     return passed, report, verify_serial_log(work, run_id, candidate)
 
 
+def check_function_keys(work, run_id, *, exit_editor):
+    nvda_log = work / run_id / "nvda.log"
+    observed = NVDA_KEY_TRACE.findall(nvda_log.read_text(encoding="utf-8"))
+    function_keys = [key for key in observed if key.rsplit("+", 1)[-1] in {"f10", "f12"}]
+    (work / f"nvda-function-keys-{run_id}.log").write_text("\n".join(function_keys) + "\n", encoding="ascii")
+    expected = ["f12", "f10"] if exit_editor else ["f12"]
+    if function_keys != expected:
+        raise RuntimeError(f"NVDA saw function-key gestures {function_keys}; expected {expected}")
+
+
 def exercise(work, addon):
     os.environ["NAL_TEST_WORK_DIR"] = str(work)
     from run_focus_test import drive_keys, image, monitor, record_s1_pair
@@ -212,6 +238,7 @@ def exercise(work, addon):
     )
     if not passed:
         raise RuntimeError(f"Hosted S1 positive failed at {positive_report.get('pending')}")
+    check_function_keys(work, positive, exit_editor=True)
     control, source = image(*inputs, s1_no_f10=True, stage_directory=True)
     passed, control_report, control_log = run_card(
         work, control, source, terminal_image, monitor=monitor, drive_keys=drive_keys,
@@ -220,6 +247,7 @@ def exercise(work, addon):
     if not pair["ok"]:
         raise RuntimeError("Hosted S1 did not reject the omitted F10 at the expected step")
     verify_s1_focus(positive_report, control_report, positive_log, control_log)
+    check_function_keys(work, control, exit_editor=False)
     pair["inputBackend"] = "Win32 SendInput on the interactive Windows desktop"
     (work / f"s1-pair-{positive}.json").write_text(json.dumps(pair, indent=2), encoding="utf-8")
     return pair
@@ -245,7 +273,8 @@ def main():
         try:
             result = exercise(work, args.addon.resolve(strict=True))
         finally:
-            for pattern in ("run-*.log", "run-*.json", "s1-pair-*.json", "launcher-*.log", "serial-*.log"):
+            for pattern in ("run-*.log", "run-*.json", "s1-pair-*.json", "launcher-*.log", "serial-*.log",
+                            "nvda-function-keys-*.log"):
                 for item in work.glob(pattern):
                     shutil.copyfile(item, output / item.name)
     print(json.dumps(result, indent=2))
