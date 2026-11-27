@@ -1,11 +1,15 @@
 # Aktueller Status
 
-Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-`buildVars.py` erzeugt Artefakte als 0.99.0-dev.3 mit Branch- und
-Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der aktuelle
+Stand: 27. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
+`buildVars.py` erzeugt die Versionskennung aus Entwicklungsbuildnummer,
+Branch und Commit und setzt den Manifest-Update-Kanal auf Beta. Der zuletzt
 veröffentlichte Pre-Release ist 0.98.0.
-Das Projekt leitet aus Testumfang oder Funktionsmenge keine höhere
-Stabilitätseinstufung ab.
+
+Änderungen gelangen per Pull Request nach `main`. Der
+[Versions- und Releaseleitfaden](release-and-build.md) regelt die
+Releaseprüfungen, datierte zweisprachige Changelogs und die getrennte
+Veröffentlichung auf GitHub und im Store.
+Pull Requests enthalten ein englisches Changelog zum gesamten Diff.
 
 Diese Seite ist die kompakte Momentaufnahme des implementierten und geprüften
 Stands. [Architektur](architecture.md) und
@@ -13,9 +17,16 @@ Stands. [Architektur](architecture.md) und
 [Changelog](changelog.md) beschreibt abgeschlossene Änderungen und der
 [Plan](plan.md) künftige Arbeit.
 
+Die [Sockettests für geführte Abläufe](testing.md#geführte-abläufe-über-echtes-neovim-rpc)
+prüfen Neovim-Tastenbelegungen, echte Provider und das authentifizierte
+Protokoll mit Neovim 0.12.x. Sie prüfen die gelieferten Daten für gehaltene
+Signaturen und Diagnosen. Die Python-Diagnoseaufgaben warten auf die
+Befunde von Ruff und Pyright. Für Windows-Fokus und NVDA-Ausgabe gelten
+getrennte Nachweise.
+
 ## Referenzumgebung
 
-Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA 2026.1.1,
+Der frühere lokale und SSH-Referenzlauf wurde mit Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim 0.10.1 und 0.12.3
 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2 geprüft. Lokales
 Windows-Neovim, Linux-Neovim über SSH und tmux innerhalb einer SSH-Sitzung
@@ -24,12 +35,36 @@ NVDA 2026.2beta10 umfasste automatische F12-Bindungen, häufige Wechsel zwischen
 lokalem und entferntem Pane sowie einem weiteren Windows-Terminal-Fenster, das
 Beenden und erneute Starten des entfernten Neovim und natives Tippecho außerhalb
 der aktiven Sitzung. Die Bindungen blieben getrennt und aktiv; getrennte
-SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus. Das Manifest
-nennt deshalb 2026.2 als zuletzt getestete NVDA-Version.
-Die vollständigen Plattform- und Versionsgrenzen stehen in
-[Kompatibilität](compatibility.md).
+SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus.
+
+Unter Windows startete das gebaute Add-on in einem isolierten Profil mit
+NVDA 2026.3.1. Die NVDA-Integration und das Windows-Terminal-AppModule
+ließen sich laden. Neovim 0.12.6 bestand die Lua- und lokalen TCP-Tests. Der
+paketierte NVDA-Client empfing den authentifizierten vollständigen Zustand.
+Ein automatisierter Lauf auf einem aktiven Windows-11-Gastdesktop mit
+NVDA 2026.3.1, Windows Terminal 1.25 und Neovim 0.12.6 bestätigte F12,
+Eingabe, getrennte Panes, Tab- und Fensterwechsel sowie die Wiederherstellung
+nach Beenden eines Editors. Derselbe Ablauf bestand mit NVDA 2026.1.1 und
+Neovim 0.10.1. Digitale Sprache, Braillezellen und
+Tonanforderungen wurden in NVDA 2026.1.1 und 2026.3.1 erfasst.
+Das Manifest führt 2026.3.1 als zuletzt getestete NVDA-Version und behält
+2026.1 als Mindestversion.
+Details stehen in [Kompatibilität](compatibility.md).
 
 ## Implementierter Gesamtpfad
+
+Windows-Entwicklungsbuild und Linux-Releasebuilder verwenden SCons für das
+Add-on. Basismanifest, Sprachmanifeste und Gettext-Quellen folgen der Struktur
+des NVDA-AddonTemplates. Der Dokumentations- und der Linux-Komponentenbuild
+bleiben eigenständige Schritte.
+Paketmetadaten und Zeilenenden der gebündelten Python-Quellen sind
+plattformunabhängig.
+
+Der gemeinsame Neovim-RPC-Client prüft Nachrichtenstrukturen und begrenzt
+Verbindungsaufbau, Empfangspuffer und vorläufige Benachrichtigungen. Controls
+werden über den verifizierten und registrierten Kanal gesendet.
+Fehlgeschlagene SSH-Versuche räumen ihren eigenen Prozess vor einem erneuten
+Verbindungsversuch auf.
 
 ### Installation, Verbindung und Besitzgrenzen
 
@@ -68,10 +103,15 @@ Die vollständigen Plattform- und Versionsgrenzen stehen in
   tatsächlichen Store-Veröffentlichung 0.96.0. Der Paketbuild verwirft fehlende,
   leere, unbekannte oder fehlerhaft formatierte Templatefelder und prüft die
   englische Standardhilfe sowie das deutsche Lokalisierungsmanifest.
-- Der Dokumentationsjob verwendet wie der lokale Referenzbuild den offiziellen
-  Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten Archiv. Das
-  Buildskript lehnt abweichend paketierte Builds derselben Version ab. Dadurch
-  bleibt die eingecheckte installierte HTML-Hilfe reproduzierbar.
+- Dokumentationsjob und Linux-Releasebuild verwenden den jeweiligen offiziellen
+  Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten Archiv. Der
+  Windows-Entwicklungsbuild akzeptiert ein lokales Pandoc 3.1.11.1 und
+  verwendet andernfalls den geprüften Binärbuild nur temporär. CI und normale
+  Linux-Entwicklung validieren nur in temporären Verzeichnissen. `build.cmd`
+  erzeugt Entwicklungsartefakte im lokalen Windows-Checkout;
+  `tools/build_release.py` erzeugt die
+  später veröffentlichten Assets ausschließlich aus sauberem Linux-`main`
+  mit freigegebenen Release-Metadaten.
 - `NVDA+Alt+N` ist die voreingestellte, im Tastenbefehlsdialog änderbare
   Aktivierungsgeste. Sie gehört weiterhin dem Windows-Terminal-AppModule;
   außerhalb eines passenden fokussierten Controls bleibt der native
@@ -149,8 +189,9 @@ Tabwechsel sowie strukturierte Neovim-Meldungen ab.
   Neovims interne Bufferwechsel erscheinen nicht als Fokuswechsel.
   Automatisierte Tests decken Quickfix-Dateien, gelistete Buffer und
   Argumentdateien einschließlich eines zunächst ungeladenen Argumentbuffers
-  ab. Die geführten L4- und L6-Abläufe sind noch nicht vollständig praktisch
-  unter Windows/NVDA abgenommen.
+  ab. Ein nativer Neovim-Test bestätigt, dass F3 in L4 die Quickfix-Liste
+  mit dem ersten Treffer öffnet. Die praktische Abnahme von L4 und L6
+  unter Windows/NVDA steht aus.
 - Diagnosen aus `vim.diagnostic` lassen sich nach aktueller, vorheriger,
   nächster, erster und letzter Position lesen. Gehaltene Diagnoseansichten,
   Fehler-, Warn- und Leerbestätigungsklänge verwenden denselben validierten
@@ -214,17 +255,20 @@ einer echten getesteten Lua-Datei und wird identisch in beide Handbücher
 synchronisiert. Der Dokumentationsbuild prüft außerdem die vollständigen
 deutschen und englischen Dateisätze, parallele Überschriftenstrukturen,
 Markdownlinks, generierte HTML-Ziele sowie Sprach-, Titel- und
-Beschreibungsmetadaten. GitHub Actions führt diesen Build als eigenen Job aus.
-Windows-Nutzer können zusätzlich mit `build.cmd` parameterlos einen aktuellen
-Entwicklungsstand bauen. Der Wrapper verwendet nur ein temporäres
-Python-Environment und lässt den regulären Build- und CI-Weg unverändert.
+Beschreibungsmetadaten. GitHub Actions führt diese temporäre Validierung als
+eigenen Job aus. Die Entwicklung erfolgt im lokalen Windows-Checkout mit
+normalem Git-Abgleich. `build.cmd` prüft Branch, Commit und versionierte
+Sauberkeit vor und nach dem Build. Derselbe isolierte Kern erstellt auch die
+Linux-Releaseartefakte und legt Add-on und Dokumentations-ZIP in `dist` ab.
 
 ## Prüfnachweis
 
 Automatisierte Suiten prüfen Protokoll und Begrenzungen, Bridge, lokale und
 SSH-Clients, mehrere Instanzen, Fokus und Fail-open-Verhalten, Editor- und
 Präsentationsplanung, Lua mit echten headless-Neovim-Prozessen, Paketinhalt,
-Lokalisierung sowie Dokumentationslinks. Gepinnte Läufe verwenden je nach
+Lokalisierung sowie Dokumentationslinks. Der Test-Runner nutzt die für Python
+verfügbaren logischen Prozessoren und verteilt die Pakettests auf bis zu zwölf
+isolierte Blöcke. Gepinnte Läufe verwenden je nach
 Testzweck Neovim 0.10.1 oder 0.12.3 und reale Completion-, LSP-, Diagnose- und
 Linterpfade. Das Clang-Tidy-Profil verwendet direkt das gepinnte Programm,
 legt C11 sowie die mitgelieferte Testkonfiguration explizit fest und führt
@@ -260,6 +304,23 @@ begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte Starts auf Windows
 und Netzlaufwerken zulässig, ohne einen hängenden Provider unbegrenzt abzuwarten.
 Listenerfreie, SSH- und echte Sockettests laufen getrennt. Einzelheiten und
 Befehle stehen in [Teststrategie](testing.md).
+`guided-desktop` und `guided-audio` führen die 18 geführten Aufgaben
+mit mechanisch prüfbaren Erwartungen im isolierten Windows-Gast aus.
+Tatsächlicher Fokus, NVDA-Sprachausgabe, digitale Braille-Zellen und
+gerenderte Audiosignale werden an den jeweils passenden Schnittstellen
+beobachtet. Die Gruppen werden ausdrücklich gestartet. Für alle 18 Aufgaben
+liegen vollständige Gastnachweise einschließlich Gegenproben vor. Das
+Referenzprofil verwendete NVDA 2026.3.1, Neovim 0.12.6 und Windows
+Terminal 1.25.3131.0. Der [Abschlussprüfer](testing.md#geführte-windows--und-audio-prüfungen)
+verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen.
+Der GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
+bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen mit
+WASAPI und QEMU bei und prüft Wiederholungen bei fehlender QEMU-Startmarke
+nach. Unabhängige Fälle laufen auch nach einem früheren Fallfehler weiter.
+Bei Zeitversatz in einem QEMU-Referenzsignal für C1 oder D1 prüft der Prüfer getrennte
+Wellenformabschnitte. Hinweistöne der Anwendung und die separate
+WASAPI-Aufnahme werden anhand vollständiger Wellenformen geprüft.
+Für die zweite P2-Fixture startet der verwaltete Testgast frisch.
 Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
 Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische Vorprüfung
 bestätigt reale Providerdaten und die für die jeweilige Aufgabe isolierte
@@ -268,9 +329,21 @@ Aufgaben mit vollständig lokalen Git-Fixtures für Fenster, Installation,
 Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie unter
 Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort absichtlich
 unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die
-isolierte Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
-Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
-Tastenbelegung stehen in
+isolierte Fixture-Konfiguration. Beim Neuzeichnen derselben Plugin-Zeile
+unterdrückt der Sprachplaner eine zusätzliche Buchstabenansage durch die
+verschobene Cursorspalte. Gezielte Zeichen- und Wortnavigation bleibt hörbar.
+Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam genutzten
+oder gemappten Laufwerken erlaubt die isolierte Git-Konfiguration nur die
+konkreten Fixture-Repositories. Die Vorbereitung bricht beim ersten
+fehlgeschlagenen Werkzeug- oder Profiltest mit dessen direktem Grund ab.
+Sie prüft und verwendet vorhandene festgelegte Werkzeuge und nur die für die
+Auswahl benötigten Plugin-Revisionen weiter. Der gespeicherte Zustand nennt die
+bereits erfolgreich vorgeprüften Profile; eine neue Auswahl wird nicht aufgrund
+anderer bestandener Profile übersprungen. Pyright läuft direkt über Node.
+Direkte Werkzeugfehler enthalten die Werkzeugausgabe; Linterfehler nennen den
+konfigurierten Provider und ob dessen Prozess noch läuft.
+Aufbau und sichere Tastenbelegung stehen in
 [Geführte Praxistests](human-testing.md).
 Optionale leere Pfadlisten bleiben im PowerShell-Runner echte JSON-Arrays; die
 Lua-Verifikation normalisiert zusätzlich älteres oder fremdes JSON-`null`,

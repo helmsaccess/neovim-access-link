@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import unittest
+from unittest import mock
 
 from nvim_nvda_protocol import FrameDecoder, MessageFactory, ProtocolError, SshStdioClient, encode_frame
 from nvim_nvda_protocol.stdio_client import STDIO_MARKER
@@ -28,6 +29,46 @@ class ReadOneOnly(io.BytesIO):
 
 
 class SshStdioClientTests(unittest.TestCase):
+    def test_protocol_failure_reaps_ssh_before_retry(self) -> None:
+        states = []
+
+        def state_changed(state):
+            states.append(state)
+            if state == "disconnected":
+                client._stop.set()
+
+        client = SshStdioClient("example-host", lambda _event: None, state_changed)
+        process = mock.Mock()
+        process.poll.return_value = None
+        process.stderr = None
+        with (
+            mock.patch("nvim_nvda_protocol.stdio_client.subprocess.Popen", return_value=process),
+            mock.patch.object(client, "_receive", side_effect=ProtocolError("invalid frame")),
+        ):
+            client._run()
+        self.assertEqual(["connecting", "disconnected"], states)
+        process.terminate.assert_called_once_with()
+        process.wait.assert_called_once_with(timeout=0.5)
+        self.assertIsNone(client._process)
+
+    def test_stop_during_spawn_does_not_start_reading_ssh(self) -> None:
+        client = SshStdioClient("example-host", lambda _event: None, lambda _state: None)
+        process = mock.Mock()
+        process.poll.return_value = None
+
+        def spawn(*_args, **_kwargs):
+            client._stop.set()
+            return process
+
+        with (
+            mock.patch("nvim_nvda_protocol.stdio_client.subprocess.Popen", side_effect=spawn),
+            mock.patch.object(client, "_receive") as receive,
+        ):
+            client._run()
+        receive.assert_not_called()
+        process.terminate.assert_called_once_with()
+        self.assertIsNone(client._process)
+
     def test_rejects_nonzero_initial_full_state_and_requests_resync(self) -> None:
         events: list[dict] = []
         states: list[str] = []
@@ -168,6 +209,7 @@ class SshStdioClientTests(unittest.TestCase):
             {},
             {"connection": None},
             {"connection": {"neovim": "unknown"}},
+            {"connection": {"neovim": []}},
         ):
             with self.subTest(payload=payload):
                 full_state = MessageFactory().create("fullState", payload)
@@ -192,7 +234,7 @@ class SshStdioClientTests(unittest.TestCase):
                 }),
                 factory.create(
                     "connectionStateChanged",
-                    {"connection": {"neovim": "unknown"}},
+                    {"connection": {"neovim": []}},
                 ),
             )
         )

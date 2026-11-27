@@ -23,8 +23,9 @@ maps them to source paths.
 
 ## Runtime prerequisites
 
-Windows operation requires Windows 11, NVDA 2026.1.x, Windows Terminal, and
-either local Neovim or Windows OpenSSH.
+Windows operation requires Windows 11, NVDA 2026.1 or later, Windows Terminal,
+and either local Neovim or Windows OpenSSH. The last tested NVDA version is
+2026.3.1.
 
 A remote Linux target needs Neovim 0.10.1 or a verified compatible later
 version, `python3`, a reachable SSH service, and writable `~/.local`. The
@@ -40,9 +41,10 @@ about every newer or similar platform.
 Complete local verification requires:
 
 - Python 3;
-- `msgpack` exactly 1.1.1 for protocol tests and package builds;
+- `msgpack` exactly 1.1.2 for protocol tests and package builds;
 - ConfigObj 5.0.8 for NVDA-compatible manifest validation during the add-on
   build;
+- SCons 4.11.1 for the NVDA package and gettext template;
 - Pexpect 4.9.0 for bridge and TUI integration tests;
 - Ruff 0.15.4 as pinned by `tools/requirements-linter-ci.txt`;
 - Neovim for real Lua suites;
@@ -60,9 +62,36 @@ dependencies as well.
 Pure Python and Lua tests do not import NVDA. NVDA-facing tests use controlled
 test doubles and additionally inspect the built add-on.
 
+### Set up a Windows checkout
+
+Work in a local Windows checkout and compare existing branches with
+`git fetch origin`. Make Git for Windows with Bash, a current Python 3,
+and native `nvim.exe` available. Install the test dependencies into a
+separate Python environment:
+
+```powershell
+python -m venv ..\nal-aux\tools\python\windows-development
+& ..\nal-aux\tools\python\windows-development\Scripts\Activate.ps1
+python -m pip install -r tools/requirements-ci.txt ruff==0.15.4
+python tools/run_tests.py all-safe
+python tools/run_tests.py ssh
+python tools/run_tests.py socket
+```
+
+Run `nvim --version` first on a fresh Windows installation. If the official
+x64 build exits with loader error `0xc0000135`, it may require the Microsoft
+Visual C++ v14 Redistributable for x64.
+[Neovim installation](https://neovim.io/doc/install/)
+[Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
+
+On Windows, `socket` checks the native loopback listener. Run the Unix socket
+and PTY tests on Linux. Run `.\build.cmd` from a clean branch to build
+development artifacts.
+
 ## First checkout verification
 
-For fast feedback without package builds or real listeners:
+On Linux, this command gives fast feedback without package builds or real
+listeners:
 
 ```bash
 tools/run_tests.py quick
@@ -76,9 +105,8 @@ ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 tools/run_tests.py all-safe
 tools/run_tests.py ssh
-python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 git diff --check
 ```
 
@@ -106,10 +134,13 @@ selection without running it.
 | `all-safe` | complete listener-free suite; an alias of `safe` |
 | `all` | every group in separate `all-safe`, `ssh`, and `socket` phases |
 
-The add-on build is itself part of verification: package tests inspect the
-actual generated archive rather than only the source tree. See
-[testing.md](testing.md) for isolation, sandbox boundaries, and the properties
-proved by each suite.
+Package tests create and inspect the add-on only in temporary directories.
+The developer subsequently creates development artifacts with `build.cmd` in
+the local Windows checkout. An explicitly approved release state is
+instead built from clean Linux `main` with `python3 tools/build_release.py`.
+See [testing.md](testing.md) and [release-and-build.md](release-and-build.md)
+for isolation, sandbox boundaries, and the properties proved
+by each suite.
 
 ## Where a change starts
 

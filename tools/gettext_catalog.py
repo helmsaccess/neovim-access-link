@@ -24,13 +24,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import buildVars
+import buildVars  # noqa: E402
 
 
 PRODUCT_NAME = buildVars.addon_info["summary"]
-LOCALE_ROOT = ROOT / "nvda-addon" / "locale"
+LOCALE_ROOT = ROOT / "nvda-addon" / "addon" / "locale"
 POT_PATH = LOCALE_ROOT / "NeovimAccessLink.pot"
 SOURCE_PATHS = (
+    ROOT / "buildVars.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "composition.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "connection_dialogs.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "connection_workflow.py",
@@ -48,6 +49,7 @@ SOURCE_PATHS = (
 class Message:
     msgid: str
     msgstr: str = ""
+    comments: set[str] = field(default_factory=set)
     references: set[str] = field(default_factory=set)
     flags: set[str] = field(default_factory=set)
 
@@ -73,7 +75,9 @@ def _translation_argument(call: ast.Call) -> ast.AST | None:
 def extract_messages(paths: Iterable[Path] = SOURCE_PATHS) -> dict[str, Message]:
     messages: dict[str, Message] = {}
     for path in paths:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        source = path.read_text(encoding="utf-8")
+        source_lines = source.splitlines()
+        tree = ast.parse(source, filename=str(path))
         relative = path.relative_to(ROOT).as_posix()
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
@@ -83,6 +87,10 @@ def extract_messages(paths: Iterable[Path] = SOURCE_PATHS) -> dict[str, Message]
             if msgid is None or not msgid:
                 continue
             message = messages.setdefault(msgid, Message(msgid))
+            if node.lineno > 1:
+                previous = source_lines[node.lineno - 2].strip()
+                if previous.startswith("# Translators:"):
+                    message.comments.add(previous.removeprefix("# "))
             message.references.add(f"{relative}:{node.lineno}")
             if _format_fields(msgid):
                 message.flags.add("python-brace-format")
@@ -146,6 +154,7 @@ def render_catalog(
     ]
     for msgid in sorted(messages, key=lambda value: (value.casefold(), value)):
         message = messages[msgid]
+        result.extend(f"#. {comment}" for comment in sorted(message.comments))
         if message.references:
             result.append("#: " + " ".join(sorted(message.references)))
         if message.flags:

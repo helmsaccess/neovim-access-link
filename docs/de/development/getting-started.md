@@ -23,8 +23,9 @@ Bibliotheken innerhalb dieser Prozesse, keine weiteren Dienste. Die
 
 ## Laufzeitvoraussetzungen
 
-Für den Windows-Betrieb werden Windows 11, NVDA 2026.1.x, Windows Terminal und
-entweder lokales Neovim oder Windows OpenSSH benötigt.
+Für den Windows-Betrieb werden Windows 11, NVDA ab 2026.1, Windows Terminal
+und entweder lokales Neovim oder Windows OpenSSH benötigt. Die zuletzt
+getestete NVDA-Version ist 2026.3.1.
 
 Ein entferntes Linux-Ziel benötigt Neovim 0.10.1 oder einen nachweislich
 kompatiblen neueren Stand, `python3`, einen erreichbaren SSH-Dienst und ein
@@ -41,8 +42,9 @@ Sie ist ein Testnachweis und keine pauschale Aussage über jede neuere oder
 Für die vollständige lokale Prüfung werden benötigt:
 
 - Python 3;
-- `msgpack` exakt in Version 1.1.1 für Protokolltests und Paketbau;
+- `msgpack` exakt in Version 1.1.2 für Protokolltests und Paketbau;
 - ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im Add-on-Build;
+- SCons 4.11.1 für das NVDA-Paket und das Gettext-Template;
 - Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;
 - Ruff 0.15.4 entsprechend `tools/requirements-linter-ci.txt`;
 - Neovim für die echten Lua-Suiten;
@@ -61,9 +63,36 @@ NVDA selbst wird für die reinen Python- und Lua-Tests nicht importiert. Die
 NVDA-nahen Tests verwenden kontrollierte Testdoubles und prüfen zusätzlich den
 Inhalt des gebauten Add-ons.
 
+### Windows-Checkout einrichten
+
+In einem lokalen Windows-Checkout arbeiten und vorhandene Branches mit
+`git fetch origin` abgleichen. Git für Windows mit Bash, ein aktuelles
+Python 3 und ein natives `nvim.exe` müssen erreichbar sein. Die Python-
+Testabhängigkeiten lassen sich in einer separaten Umgebung installieren:
+
+```powershell
+python -m venv ..\nal-aux\tools\python\windows-development
+& ..\nal-aux\tools\python\windows-development\Scripts\Activate.ps1
+python -m pip install -r tools/requirements-ci.txt ruff==0.15.4
+python tools/run_tests.py all-safe
+python tools/run_tests.py ssh
+python tools/run_tests.py socket
+```
+
+Auf einer frischen Windows-Installation zuerst `nvim --version` prüfen.
+Endet die offizielle x64-Ausgabe mit dem Ladefehler `0xc0000135`, kann die
+Microsoft Visual C++ v14 Redistributable für x64 erforderlich sein.
+[Neovim-Installation](https://neovim.io/doc/install/)
+[Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
+
+Unter Windows prüft `socket` den nativen Loopback-Listener. Die Unix-
+Socket- und PTY-Tests werden auf Linux ausgeführt. Für den Entwicklungsbuild
+aus einem sauberen Branch `.\build.cmd` ausführen.
+
 ## Erste Prüfung eines Checkouts
 
-Für eine schnelle Rückmeldung ohne Paketbau und echte Listener:
+Auf Linux liefert dieser Befehl eine schnelle Rückmeldung ohne Paketbau und
+echte Listener:
 
 ```bash
 tools/run_tests.py quick
@@ -77,9 +106,8 @@ ruff check --config 'include = ["nvda-addon/tests/**/*.py"]' .
 ruff format --check .
 tools/run_tests.py all-safe
 tools/run_tests.py ssh
-python3 tools/build_nvda_addon.py
 python3 tools/gettext_catalog.py check
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 git diff --check
 ```
 
@@ -107,10 +135,13 @@ Auswahl ohne Ausführung.
 | `all-safe` | vollständige listenerfreie Suite; Alias von `safe` |
 | `all` | alle Gruppen in getrennten Phasen: `all-safe`, `ssh`, `socket` |
 
-Der Add-on-Build ist selbst Teil der Prüfung: Pakettests untersuchen das
-tatsächlich erzeugte Archiv und nicht nur den Quellbaum. Details zu Isolation,
-Sandbox-Grenzen und den nachgewiesenen Eigenschaften stehen in
-[testing.md](testing.md).
+Pakettests erzeugen und untersuchen das Add-on ausschließlich in temporären
+Verzeichnissen. Entwicklungsartefakte baut der Entwickler anschließend mit
+`build.cmd` im lokalen Windows-Checkout. Ein ausdrücklich
+freigegebener Releasezustand wird dagegen mit `python3 tools/build_release.py`
+aus sauberem Linux-`main` gebaut. Details zu Isolation und
+Sandbox-Grenzen stehen in [testing.md](testing.md) und
+[release-and-build.md](release-and-build.md).
 
 ## Wo eine Änderung beginnt
 

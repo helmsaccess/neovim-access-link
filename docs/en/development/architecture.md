@@ -511,10 +511,10 @@ symmetrically reset only the affected runtime or all owned runtimes,
 respectively. Command-line and direct-terminal modes are excluded.
 
 `StructuredLineRegion` is not a parallel Braille implementation. It subclasses
-NVDA's public `braille.TextInfoRegion` extension point so
+NVDA's public `TextInfoRegion` extension point so
 `braille.handler.handleCaretMove` can trigger normal caret following and
 `scrollToCursorOrSelection`. Because its text comes semantically from Neovim,
-its update calls the public `braille.Region.update()` base method directly. It
+its update calls the public `Region.update()` base method directly. It
 sets only documented raw text, cursor, selection, and region fields and leaves translation, Unicode
 normalization, cursor shape, selection dots, viewport, and display driver to
 NVDA. Public `brailleToRawPos` maps a physical routing cell back into the

@@ -26,7 +26,6 @@ local targets = {
   ["accessibility.md"] = "#docs__de__development__accessibilitymd__funktions--und-accessibility-matrix",
   ["release-and-build.md"] = "#docs__de__development__release-and-buildmd__release--versions--und-buildprozess",
   ["nvda-2026.1-api-notes.md"] = "#docs__de__development__nvda-20261-api-notesmd__nvda-api-grenzen",
-  ["quality-review-global-plugin-slimming-2026-07-19.md"] = "#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung",
   ["code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md"] = "#docs__de__development__code-analysis-global-plugin-slimming-v0942-2026-07-21md__anhang-b-codeanalyse-von-featureglobal-plugin-slimming-gegenüber-v0942",
   ["global-plugin-appmodule-audit-2026-08-04.md"] = "#docs__de__development__global-plugin-appmodule-audit-2026-08-04md__anhang-c-reaudit-von-globalplugin-windows-terminal-appmodule-und-gemeinsamen-diensten",
   ["../global-plugin-appmodule-audit-2026-08-04.md"] = "#docs__de__development__global-plugin-appmodule-audit-2026-08-04md__anhang-c-reaudit-von-globalplugin-windows-terminal-appmodule-und-gemeinsamen-diensten",

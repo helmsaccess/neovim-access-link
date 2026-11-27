@@ -1,0 +1,36 @@
+name: Guided Windows VM tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  guided:
+    name: Verify all guided Windows VM cases
+    if: >-
+      github.repository == 'helmsaccess/neovim-access-link-test-lab' &&
+      github.event.repository.private == true &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref_type == 'branch' &&
+      github.ref_name == github.event.repository.default_branch &&
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner
+    runs-on: [self-hosted, Windows, X64, nal-guided-vm]
+    timeout-minutes: 480
+    concurrency:
+      group: nal-guided-windows-vm
+      cancel-in-progress: false
+    steps:
+      - name: Check out the reviewed test revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+      - name: Build, run and audit the Windows VM suite
+        shell: pwsh
+        env:
+          NAL_GUIDED_CI_SOURCE_SHA: ${{ job.workflow_sha }}
+        run: .\tests\guided\windows\invoke_ci.ps1

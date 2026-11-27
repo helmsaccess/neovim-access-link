@@ -230,7 +230,8 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertLess(runner.index("Get-FileHash -LiteralPath $archive"), runner.index('"-xzf"'))
 		self.assertIn('"data\\nvim-data\\site\\pack\\core\\opt"', runner)
 		self.assertIn('"config\\nvim\\nvim-pack-lock.json"', runner)
-		self.assertGreaterEqual(runner.count('schemaVersion = 4'), 2)
+		self.assertIn('schemaVersion = 5', runner)
+		self.assertIn('schemaVersion = 4', runner)
 		self.assertIn('[string[]]$TestId = @()', runner)
 		self.assertIn('selectedTests = @(', runner)
 		self.assertIn('function Select-CustomTests', runner)
@@ -249,11 +250,34 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('"missing_first.*\\[clang-diagnostic-error\\]"', runner)
 		self.assertIn('"missing_second.*\\[clang-diagnostic-error\\]"', runner)
 		self.assertIn('$probe.Text -notmatch "MD025"', runner)
-		self.assertIn('$setupFailures = @(Test-ToolFixtureContracts', runner)
-		self.assertIn('$setupFailures += "profile $($probe.Profile)"', runner)
-		self.assertIn('$setupFailures.Count -gt 0', runner)
+		self.assertEqual(3, runner.count('throw (Get-Message "runner.setup.toolProbeFailed"'))
+		self.assertIn('throw (Get-Message "runner.setup.preflightFailed"', runner)
+		self.assertNotIn("$setupFailures", runner)
+		self.assertNotIn('"runner.setup.failures"', runner)
 		self.assertIn('"markdownlint-cli2@$($dependencies.tools.markdownlintCli2)"', runner)
 		self.assertIn('environmentSha256 = Get-EnvironmentFingerprint', runner)
+		self.assertIn('function Test-PyrightPackageCurrent', runner)
+		self.assertIn('$PyrightRoot "langserver.index.js"', runner)
+		self.assertIn('$result.Text.Trim() -eq "pyright $Version"', runner)
+		self.assertNotIn('pyright-langserver.cmd', runner)
+		pyright_installer = runner[
+			runner.index("function Install-PyrightPackage") : runner.index(
+				"function Test-PyrightPackageCurrent"
+			)
+		]
+		self.assertLess(
+			pyright_installer.index("Test-PyrightPackageCurrent"),
+			pyright_installer.index('Get-RequiredCommand "npm"'),
+		)
+		self.assertIn('function Get-ManagedPluginRequirements', runner)
+		self.assertIn('"ACCESS_LINK_HUMAN_SETUP_PROFILES"', runner)
+		self.assertIn('(@(Get-SelectedProfiles) -join ",")', runner)
+		self.assertIn('Get-Message "runner.setup.missing" @($script:SetupIssue)', runner)
+		self.assertIn('$preparedProfiles -notcontains $_', runner)
+		self.assertIn('profiles = @($profiles | Sort-Object -Unique)', runner)
+		self.assertIn(
+			'if (-not ($NeedsRuff -or $NeedsClangTidy -or $NeedsMarkdownlint))', runner
+		)
 		setup_cache = runner[
 			runner.index("function Test-SetupCurrent") : runner.index(
 				"function Install-TestEnvironment"
@@ -265,6 +289,10 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('"GIT_CONFIG_GLOBAL"', runner)
 		self.assertIn('$lines = @("[safe]")', runner)
 		self.assertIn("Get-EquivalentPaths -Path $RepositoryRoot", runner)
+		self.assertIn("[string[]]$AdditionalSafeDirectories = @()", runner)
+		self.assertIn("Get-EquivalentPaths -Path $additionalDirectory", runner)
+		self.assertIn("Initialize-TestGitConfig -AdditionalSafeDirectories @(", runner)
+		self.assertNotIn('$wildcard = "$($root.TrimEnd(\'/\'))/*"', runner)
 		self.assertIn('directory = `"$safeDirectory`"', runner)
 		self.assertNotIn('"config", "--global"', runner)
 		self.assertIn("function Invoke-ExternalText", runner)
@@ -277,6 +305,13 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('$head = Invoke-OptionalExternalText', runner)
 		self.assertIn('$status = Invoke-OptionalExternalText', runner)
 		self.assertNotIn('& $git.Source -C $RepositoryRoot', runner)
+		lazy_fixture = runner[
+			runner.index("function Initialize-LazyFixture") : runner.index("function Assert-Definitions")
+		]
+		self.assertLess(
+			lazy_fixture.index("Initialize-TestGitConfig -AdditionalSafeDirectories"),
+			lazy_fixture.index('"init", "--quiet", "--initial-branch=main", $work'),
+		)
 		run_plans = runner[runner.index("function Run-Plans") :]
 		self.assertLess(
 			run_plans.index('$script:SelectedTestIds = @($result.environment.selectedTests)'),
@@ -289,6 +324,7 @@ class HumanTestFrameworkTests(unittest.TestCase):
 
 	def test_test_neovim_repeats_one_task_and_starts_diagnostics_on_error(self) -> None:
 		configuration = (HUMAN_ROOT / "framework" / "init.lua").read_text(encoding="utf-8")
+		self.assertNotIn('profile == "setup" or profile == "diagnostics"', configuration)
 		readiness = (HUMAN_ROOT / "framework" / "linter_readiness.lua").read_text(
 			encoding="utf-8"
 		)
@@ -315,7 +351,13 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertEqual(5, configuration.count("vim.wait(provider_timeout_ms"))
 		self.assertIn("return linter_diagnostics_ready()", configuration)
 		self.assertIn("local linter_failure_details = nil", configuration)
-		self.assertIn('"observed %d diagnostics (%s); active linters: %s"', configuration)
+		self.assertIn('lint.get_namespace(linter_name)', configuration)
+		self.assertIn('vim.diagnostic.get(0, { namespace = linter_namespace })', configuration)
+		self.assertIn(
+			'"configured linter %s (%s); observed %d diagnostics (%s); process still active: %s"',
+			configuration,
+		)
+		self.assertNotIn('vim.api.nvim_create_autocmd("BufReadPost"', configuration)
 		self.assertIn("move_to_primary_linter_diagnostic()", configuration)
 		self.assertIn("linter_readiness.primary(", configuration)
 		self.assertIn('require("nvim_nvda.diagnostics").snapshot_values(', configuration)
@@ -345,7 +387,18 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertIn('text(diagnostic.message):find("MD025"', readiness)
 		self.assertIn('return { 3, 0 }', configuration)
 		self.assertNotIn('return { 3, 2 }', configuration)
-		self.assertIn('reportUnusedImport = "none"', configuration)
+		self.assertIn('disableTaggedHints = profile == "diagnostics"', configuration)
+		self.assertIn('cmd = { "node", pyright, "--stdio" }', configuration)
+		self.assertIn(
+			'"Pyright did not attach to the human-test fixture; command: node %s --stdio"',
+			configuration,
+		)
+		self.assertEqual(
+			{"typeCheckingMode": "strict", "reportUnusedImport": "none"},
+			json.loads(
+				(HUMAN_ROOT / "fixtures" / "pyrightconfig.json").read_text(encoding="utf-8")
+			),
+		)
 		self.assertNotIn("warning_starts_at_cursor", configuration)
 		self.assertIn('prepare_insert_probe("completion_probe = calculate_")', configuration)
 		self.assertIn('vim.api.nvim_win_set_cursor(0, { 2, 0 })', configuration)
@@ -553,14 +606,15 @@ class HumanTestFrameworkTests(unittest.TestCase):
 		self.assertNotEqual(fingerprint, validator.definition_fingerprint())
 		with mock.patch.object(validator, "_sha256_tree", return_value="fingerprint") as digest:
 			self.assertEqual("fingerprint", validator.environment_fingerprint())
-			self.assertEqual(
-				{
-					validator.DEPENDENCIES_PATH,
-					validator.HUMAN_ROOT / "framework" / "init.lua",
-					validator.HUMAN_ROOT / "framework" / "linter_readiness.lua",
-				},
-				set(digest.call_args.args[1]),
-			)
+			expected = {
+				validator.DEPENDENCIES_PATH,
+				validator.HUMAN_ROOT / "framework" / "completion_parentheses.lua",
+				validator.HUMAN_ROOT / "framework" / "init.lua",
+				validator.HUMAN_ROOT / "framework" / "lazy_fixture.lua",
+				validator.HUMAN_ROOT / "framework" / "linter_readiness.lua",
+			}
+			expected.update(path for path in validator.FIXTURES_ROOT.rglob("*") if path.is_file())
+			self.assertEqual(expected, set(digest.call_args.args[1]))
 		runner = (HUMAN_ROOT / "framework" / "run.ps1").read_text(encoding="utf-8")
 		self.assertIn('Invoke-PythonText @($ValidatorPath, "environment-fingerprint")', runner)
 

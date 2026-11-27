@@ -8,13 +8,38 @@ changed, the architecture documents, and the test strategy.
 
 ## Contribution workflow
 
-1. Create a focused branch from the current default branch.
-2. Keep unrelated cleanup out of the change.
-3. Add or update tests and German and English documentation as appropriate.
-4. Run the relevant Python, Lua, packaging, and documentation checks from
-   `docs/en/development/testing.md`. Run the `ssh` and `socket` groups as
-   separate phases when they apply.
-5. Open a pull request describing behavior, risks, tests, and known limits.
+1. Create a focused working branch from current `main`. Keep unrelated
+   cleanup out of the diff and use English for commits and pull requests.
+2. Add the relevant tests and update the German and English documentation
+   and changelogs. Follow the [version and release guide](docs/en/development/release-and-build.md)
+   for release preparation.
+3. Review your own diff and run the relevant [checks](docs/en/development/testing.md).
+   Run the `ssh` and `socket` groups separately when applicable.
+4. Push the working branch and open a GitHub pull request targeting `main`.
+   Keep it focused and explain the problem, the change, test results, and
+   specific risks or gaps. Curate an English changelog covering the complete
+   diff against the base. Link related issues and use a draft while work is incomplete.
+5. Address blocking feedback and resolve review discussions. Before merging,
+   all required CI checks must pass. Ask for an independent review when an
+   eligible reviewer is available, and always follow the repository's configured approvals.
+
+Every change to `main`, including a documentation fix, hotfix, or release
+preparation, goes through a pull request. Direct pushes to `main` are
+prohibited. Maintainer approval is required to merge. Prefer squash merge
+for incremental commits that form one change. Preserve individually
+reviewable commits when they carry useful standalone history.
+
+Coding agents push validated working branches to GitHub independently. The
+repository owner explicitly approves each pull request opened by an agent,
+including drafts. This approval is separate from merge or publication approval.
+
+For maintainers, use a [GitHub ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+or [branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+on `main` to require a pull request, resolved conversations, and the checks
+that run on every PR. Block force pushes and deletion and apply the PR rule
+to administrators. Require an independent approval once the project has a
+second eligible reviewer. Keep path-filtered jobs out of the global required
+check list unless a check always reports a result.
 
 Do not submit passwords, tokens, private editor text, real infrastructure
 names, personal diagnostic paths, or artifacts from ignored `tmp/`.

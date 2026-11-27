@@ -555,11 +555,11 @@ beziehungsweise alle besessenen Runtimes symmetrisch zurück.
 Befehlszeilen- und direkter Terminalmodus sind ausgeschlossen.
 
 `StructuredLineRegion` ist keine parallele Brailleimplementierung. Sie
-unterklasst NVDAs öffentliche Erweiterungsstelle `braille.TextInfoRegion`,
+unterklasst NVDAs öffentliche Erweiterungsstelle `TextInfoRegion`,
 damit `braille.handler.handleCaretMove` den üblichen Cursor-Nachlauf und
 `scrollToCursorOrSelection` auslösen kann. Weil ihr Text semantisch aus Neovim
 kommt, ruft ihre Aktualisierung gezielt die öffentliche Basismethode
-`braille.Region.update()` auf. Sie setzt nur deren dokumentierte Rohtext-,
+`Region.update()` auf. Sie setzt nur deren dokumentierte Rohtext-,
 Cursor-, Auswahl- und Regionsfelder und
 überlässt Übersetzung, Unicode-Normalisierung, Cursorform, Auswahlpunkte,
 Scrollfenster und Displaytreiber vollständig NVDA. Die öffentliche

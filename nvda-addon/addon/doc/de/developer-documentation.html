@@ -251,7 +251,11 @@ für Entwicklung und Tests</a>
 <li><a href="#docs__de__development__getting-startedmd__was-tatsächlich-läuft" id="toc-docs__de__development__getting-startedmd__was-tatsächlich-läuft">Was
 tatsächlich läuft</a></li>
 <li><a href="#docs__de__development__getting-startedmd__laufzeitvoraussetzungen" id="toc-docs__de__development__getting-startedmd__laufzeitvoraussetzungen">Laufzeitvoraussetzungen</a></li>
-<li><a href="#docs__de__development__getting-startedmd__entwicklungswerkzeuge" id="toc-docs__de__development__getting-startedmd__entwicklungswerkzeuge">Entwicklungswerkzeuge</a></li>
+<li><a href="#docs__de__development__getting-startedmd__entwicklungswerkzeuge" id="toc-docs__de__development__getting-startedmd__entwicklungswerkzeuge">Entwicklungswerkzeuge</a>
+<ul>
+<li><a href="#docs__de__development__getting-startedmd__windows-checkout-einrichten" id="toc-docs__de__development__getting-startedmd__windows-checkout-einrichten">Windows-Checkout
+einrichten</a></li>
+</ul></li>
 <li><a href="#docs__de__development__getting-startedmd__erste-prüfung-eines-checkouts" id="toc-docs__de__development__getting-startedmd__erste-prüfung-eines-checkouts">Erste
 Prüfung eines Checkouts</a></li>
 <li><a href="#docs__de__development__getting-startedmd__wo-eine-änderung-beginnt" id="toc-docs__de__development__getting-startedmd__wo-eine-änderung-beginnt">Wo
@@ -449,7 +453,13 @@ und Evidenzarten</a></li>
 <li><a href="#docs__de__development__testingmd__testgruppen-und-presets" id="toc-docs__de__development__testingmd__testgruppen-und-presets">Testgruppen
 und Presets</a></li>
 <li><a href="#docs__de__development__testingmd__empfohlener-ablauf" id="toc-docs__de__development__testingmd__empfohlener-ablauf">Empfohlener
-Ablauf</a></li>
+Ablauf</a>
+<ul>
+<li><a href="#docs__de__development__testingmd__geführte-abläufe-über-echtes-neovim-rpc" id="toc-docs__de__development__testingmd__geführte-abläufe-über-echtes-neovim-rpc">Geführte
+Abläufe über echtes Neovim-RPC</a></li>
+<li><a href="#docs__de__development__testingmd__geführte-windows--und-audio-prüfungen" id="toc-docs__de__development__testingmd__geführte-windows--und-audio-prüfungen">Geführte
+Windows- und Audio-Prüfungen</a></li>
+</ul></li>
 <li><a href="#docs__de__development__testingmd__zuordnung-nach-änderung" id="toc-docs__de__development__testingmd__zuordnung-nach-änderung">Zuordnung
 nach Änderung</a></li>
 <li><a href="#docs__de__development__testingmd__spezialisierte-vertragsprüfungen" id="toc-docs__de__development__testingmd__spezialisierte-vertragsprüfungen">Spezialisierte
@@ -480,11 +490,14 @@ Versions- und Buildprozess</a>
 <ul>
 <li><a href="#docs__de__development__release-and-buildmd__zentrale-metadaten" id="toc-docs__de__development__release-and-buildmd__zentrale-metadaten">Zentrale
 Metadaten</a></li>
+<li><a href="#docs__de__development__release-and-buildmd__regeln-für-version-und-changelog" id="toc-docs__de__development__release-and-buildmd__regeln-für-version-und-changelog">Regeln
+für Version und Changelog</a></li>
 <li><a href="#docs__de__development__release-and-buildmd__entwicklungsstände" id="toc-docs__de__development__release-and-buildmd__entwicklungsstände">Entwicklungsstände</a></li>
 <li><a href="#docs__de__development__release-and-buildmd__prüfung-und-build" id="toc-docs__de__development__release-and-buildmd__prüfung-und-build">Prüfung
 und Build</a></li>
+<li><a href="#docs__de__development__release-and-buildmd__releasebuild-auf-linux" id="toc-docs__de__development__release-and-buildmd__releasebuild-auf-linux">Releasebuild
+auf Linux</a></li>
 <li><a href="#docs__de__development__release-and-buildmd__releasevorbereitung" id="toc-docs__de__development__release-and-buildmd__releasevorbereitung">Releasevorbereitung</a></li>
-<li><a href="#docs__de__development__release-and-buildmd__abbruchbedingungen" id="toc-docs__de__development__release-and-buildmd__abbruchbedingungen">Abbruchbedingungen</a></li>
 <li><a href="#docs__de__development__release-and-buildmd__github-und-add-on-store" id="toc-docs__de__development__release-and-buildmd__github-und-add-on-store">GitHub
 und Add-on Store</a></li>
 <li><a href="#docs__de__development__release-and-buildmd__veröffentlichungsartefakte" id="toc-docs__de__development__release-and-buildmd__veröffentlichungsartefakte">Veröffentlichungsartefakte</a></li>
@@ -564,71 +577,6 @@ für neue Funktionen</a></li>
 (Beta-Veröffentlichung)</a></li>
 <li><a href="#docs__de__development__changelogmd__08935-beta-veröffentlichung" id="toc-docs__de__development__changelogmd__08935-beta-veröffentlichung">0.89.35
 (Beta-Veröffentlichung)</a></li>
-</ul></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung">Anhang
-A: Qualitätsreview der Global-Plugin-Verschlankung</a>
-<ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__warum-dieser-bericht-existiert" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__warum-dieser-bericht-existiert">Warum
-dieser Bericht existiert</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vergleichsbasis-und-umfang" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vergleichsbasis-und-umfang">Vergleichsbasis
-und Umfang</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kurzfassung" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kurzfassung">Kurzfassung</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__bewertung-nach-qualitätsbereich" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__bewertung-nach-qualitätsbereich">Bewertung
-nach Qualitätsbereich</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__direkt-behobene-befunde" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__direkt-behobene-befunde">Direkt
-behobene Befunde</a>
-<ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__strukturierte-braille-overlayklasse-wurde-nicht-eingesetzt" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__strukturierte-braille-overlayklasse-wurde-nicht-eingesetzt">Strukturierte
-Braille-Overlayklasse wurde nicht eingesetzt</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__technischer-umfang-des-f12-deciders-war-zu-absolut-beschrieben" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__technischer-umfang-des-f12-deciders-war-zu-absolut-beschrieben">Technischer
-Umfang des F12-Deciders war zu absolut beschrieben</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kleine-konventionsbereinigungen" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kleine-konventionsbereinigungen">Kleine
-Konventionsbereinigungen</a></li>
-</ul></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__verbleibende-befunde" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__verbleibende-befunde">Verbleibende
-Befunde</a>
-<ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__1-mittel-die-minimalrolle-des-global-plugins-ist-noch-nicht-erreicht" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__1-mittel-die-minimalrolle-des-global-plugins-ist-noch-nicht-erreicht">1.
-Mittel: Die Minimalrolle des Global Plugins ist noch nicht
-erreicht</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__2-mittel-nvda-übersetzerkommentare-fehlen" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__2-mittel-nvda-übersetzerkommentare-fehlen">2.
-Mittel: NVDA-Übersetzerkommentare fehlen</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__3-niedrig-parallele-built-add-on-tests-verwenden-denselben-zielpfad" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__3-niedrig-parallele-built-add-on-tests-verwenden-denselben-zielpfad">3.
-Niedrig: Parallele Built-Add-on-Tests verwenden denselben
-Zielpfad</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__4-niedrig-ci-prüft-derzeit-nur-nvda-python-stil" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__4-niedrig-ci-prüft-derzeit-nur-nvda-python-stil">4.
-Niedrig: CI prüft derzeit nur NVDA-Python-Stil</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__5-niedrig-aus-main-geerbt-vimregion-ist-in-neovim-012-veraltet" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__5-niedrig-aus-main-geerbt-vimregion-ist-in-neovim-012-veraltet">5.
-Niedrig, aus <code>main</code> geerbt: <code>vim.region</code> ist in
-Neovim 0.12 veraltet</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__6-niedrig-sehr-spät-gesetzte-insert-f12-belegungen-sind-ein-randfall" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__6-niedrig-sehr-spät-gesetzte-insert-f12-belegungen-sind-ein-randfall">6.
-Niedrig: Sehr spät gesetzte Insert-F12-Belegungen sind ein
-Randfall</a></li>
-</ul></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__positive-detailbefunde" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__positive-detailbefunde">Positive
-Detailbefunde</a>
-<ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__ereignisbesitz-und-fail-open" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__ereignisbesitz-und-fail-open">Ereignisbesitz
-und Fail-open</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__threading-und-latenz" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__threading-und-latenz">Threading
-und Latenz</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__nvda-api-und-python-stil" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__nvda-api-und-python-stil">NVDA-API
-und Python-Stil</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__sicherheit" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__sicherheit">Sicherheit</a></li>
-</ul></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__prüfnachweise-am-abschlussstand" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__prüfnachweise-am-abschlussstand">Prüfnachweise
-am Abschlussstand</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__praktische-nachweise-und-grenzen" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__praktische-nachweise-und-grenzen">Praktische
-Nachweise und Grenzen</a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__handlungsempfehlung-und-reihenfolge" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__handlungsempfehlung-und-reihenfolge">Handlungsempfehlung
-und Reihenfolge</a>
-<ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vor-einer-zusammenführung-mit-main" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vor-einer-zusammenführung-mit-main">Vor
-einer Zusammenführung mit <code>main</code></a></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__danach-in-getrennten-folgeschritten" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__danach-in-getrennten-folgeschritten">Danach
-in getrennten Folgeschritten</a></li>
-</ul></li>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__schlussfolgerung" id="toc-docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__schlussfolgerung">Schlussfolgerung</a></li>
 </ul></li>
 <li><a href="#docs__de__development__code-analysis-global-plugin-slimming-v0942-2026-07-21md__anhang-b-codeanalyse-von-featureglobal-plugin-slimming-gegenüber-v0942" id="toc-docs__de__development__code-analysis-global-plugin-slimming-v0942-2026-07-21md__anhang-b-codeanalyse-von-featureglobal-plugin-slimming-gegenüber-v0942">Anhang
 B: Codeanalyse von <code>feature/global-plugin-slimming</code> gegenüber
@@ -902,11 +850,6 @@ Empfehlungen. Sie stehen am Ende der gebauten Entwicklerdokumentation
 und ersetzen weder die aktuelle Architektur noch Status, Plan oder
 Code.</p>
 <ul>
-<li><a href="#docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung">Anhang
-A: Qualitätsreview der Global-Plugin-Verschlankung vom 19. Juli 2026,
-20:04:03 CEST</a> – Zwischenreview des Featurebranches gegen
-<code>main</code>, einschließlich behobener Regressionen und damaliger
-Restrisiken.</li>
 <li><a href="#docs__de__development__code-analysis-global-plugin-slimming-v0942-2026-07-21md__anhang-b-codeanalyse-von-featureglobal-plugin-slimming-gegenüber-v0942">Anhang
 B: Codeanalyse des abgeschlossenen Featurestands gegenüber
 <code>v0.94.2</code> vom 21. Juli 2026, 01:11:58 CEST</a> – quantitative
@@ -920,7 +863,8 @@ der Kompositionswurzel zu diesem Zeitpunkt.</li>
 </ul>
 <p>Die ausführliche Zwischenbuild-Historie bleibt als
 <code>changelog-history.md</code> im Repository archiviert und ist nicht
-Teil der aktuellen Entwicklerdokumentation.</p>
+Teil der aktuellen Entwicklerdokumentation. Das frühere Zwischenreview
+vom 19. Juli bleibt im Git-Verlauf abrufbar.</p>
 </section>
 </section>
 </div>
@@ -1940,18 +1884,18 @@ zurück. Befehlszeilen- und direkter Terminalmodus sind
 ausgeschlossen.</p>
 <p><code>StructuredLineRegion</code> ist keine parallele
 Brailleimplementierung. Sie unterklasst NVDAs öffentliche
-Erweiterungsstelle <code>braille.TextInfoRegion</code>, damit
+Erweiterungsstelle <code>TextInfoRegion</code>, damit
 <code>braille.handler.handleCaretMove</code> den üblichen
 Cursor-Nachlauf und <code>scrollToCursorOrSelection</code> auslösen
 kann. Weil ihr Text semantisch aus Neovim kommt, ruft ihre
 Aktualisierung gezielt die öffentliche Basismethode
-<code>braille.Region.update()</code> auf. Sie setzt nur deren
-dokumentierte Rohtext-, Cursor-, Auswahl- und Regionsfelder und
-überlässt Übersetzung, Unicode-Normalisierung, Cursorform,
-Auswahlpunkte, Scrollfenster und Displaytreiber vollständig NVDA. Die
-öffentliche <code>brailleToRawPos</code>-Abbildung führt eine physische
-Routingzelle zurück in den neutralen Plan. Für Review-Tether wirft das
-Overlay wie von <code>braille.getFocusRegions</code> vorgesehen
+<code>Region.update()</code> auf. Sie setzt nur deren dokumentierte
+Rohtext-, Cursor-, Auswahl- und Regionsfelder und überlässt Übersetzung,
+Unicode-Normalisierung, Cursorform, Auswahlpunkte, Scrollfenster und
+Displaytreiber vollständig NVDA. Die öffentliche
+<code>brailleToRawPos</code>-Abbildung führt eine physische Routingzelle
+zurück in den neutralen Plan. Für Review-Tether wirft das Overlay wie
+von <code>braille.getFocusRegions</code> vorgesehen
 <code>NotImplementedError</code>, damit NVDA seinen nativen Pfad
 verwendet.</p>
 <p>Da NVDAs nativer <code>gainFocus</code> vor der asynchronen
@@ -2393,30 +2337,35 @@ Präsentationsdienste, Ressourcen und Übersetzungskataloge</td>
 </tr>
 <tr class="odd">
 <td><code>tools/</code></td>
-<td>reproduzierbare Paket-, Dokumentations-, Katalog- und
-Testwerkzeuge</td>
-<td><code>run_tests.py</code>, <code>build_nvda_addon.py</code>,
-<code>build_user_package.py</code>, <code>build_documentation.sh</code>,
+<td>reproduzierbare Paket-, Dokumentations-, Katalog-,
+Synchronisierungs- und Testwerkzeuge</td>
+<td><code>run_tests.py</code>, <code>windows_workspace_sync.py</code>,
+<code>build_release.py</code>, <code>distribution_build.py</code>,
+<code>build_documentation.sh</code>,
 <code>test_neovim_plugin.sh</code></td>
 </tr>
 <tr class="even">
 <td><code>tests/human/</code></td>
-<td>kleine geführte Praxistests für reale NVDA-, Audio-, Braille- und
-Fokusgrenzen</td>
+<td>gemeinsame Testkarten und isolierte Neovim-Profile</td>
 <td><code>framework/run.ps1</code>, <code>framework/validate.py</code>,
 <code>plans/</code></td>
 </tr>
 <tr class="odd">
+<td><code>tests/guided/windows/</code></td>
+<td>automatisierte Desktop- und Audioprüfungen im Windows-Gast</td>
+<td><code>run_guided_suite.py</code>, <code>audit_result.py</code></td>
+</tr>
+<tr class="even">
 <td><code>docs/de/manual/</code></td>
 <td>deutsche Anwenderdokumentation</td>
 <td><code>README.md</code>, <code>quick-guide.md</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>docs/de/development/</code></td>
 <td>deutsche Entwicklererklärung, Referenz und Nachweise</td>
 <td>diese Datei und die Übersicht <code>README.md</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>docs/en/</code></td>
 <td>englische Anwender- und Entwicklerdokumentation</td>
 <td><code>README.md</code></td>
@@ -2480,9 +2429,11 @@ Sequenzen und Clients.</li>
 stdio-Transport.</li>
 <li><code>nvda-addon/tests/</code> prüft Core, Speech/Braille,
 Paketinhalt und NVDA-nahe Adapter mit Testdoubles.</li>
-<li><code>tests/human/</code> enthält nur praktisch wahrnehmbare
-Assertions; Pläne, Übersetzungen und JSON-Ergebnisvertrag werden
-automatisiert validiert.</li>
+<li><code>tests/human/</code> enthält Karten, Übersetzungen und
+isolierte Profile für den automatisierten Gastlauf und den geführten
+PowerShell-Runner.</li>
+<li><code>tests/guided/windows/</code> prüft die digital beobachtbaren
+Erwartungen der Karten mit echtem Windows-Fokus und NVDA-Ausgabe.</li>
 </ul>
 <p>Die Auswahl und Ausführung der Suiten steht in <a href="#docs__de__development__testingmd__teststrategie">testing.md</a>.</p>
 </section>
@@ -2532,8 +2483,9 @@ ordnet die Quellpfade zu.</p>
 </section>
 <section id="docs__de__development__getting-startedmd__laufzeitvoraussetzungen" class="level3">
 <h3>Laufzeitvoraussetzungen</h3>
-<p>Für den Windows-Betrieb werden Windows 11, NVDA 2026.1.x, Windows
-Terminal und entweder lokales Neovim oder Windows OpenSSH benötigt.</p>
+<p>Für den Windows-Betrieb werden Windows 11, NVDA ab 2026.1, Windows
+Terminal und entweder lokales Neovim oder Windows OpenSSH benötigt. Die
+zuletzt getestete NVDA-Version ist 2026.3.1.</p>
 <p>Ein entferntes Linux-Ziel benötigt Neovim 0.10.1 oder einen
 nachweislich kompatiblen neueren Stand, <code>python3</code>, einen
 erreichbaren SSH-Dienst und ein beschreibbares Benutzerverzeichnis unter
@@ -2550,10 +2502,11 @@ oder ähnliche Plattform.</p>
 <p>Für die vollständige lokale Prüfung werden benötigt:</p>
 <ul>
 <li>Python 3;</li>
-<li><code>msgpack</code> exakt in Version 1.1.1 für Protokolltests und
+<li><code>msgpack</code> exakt in Version 1.1.2 für Protokolltests und
 Paketbau;</li>
 <li>ConfigObj 5.0.8 für die NVDA-kompatible Manifestprüfung im
 Add-on-Build;</li>
+<li>SCons 4.11.1 für das NVDA-Paket und das Gettext-Template;</li>
 <li>Pexpect 4.9.0 für die Bridge- und TUI-Integrationstests;</li>
 <li>Ruff 0.15.4 entsprechend
 <code>tools/requirements-linter-ci.txt</code>;</li>
@@ -2573,24 +2526,47 @@ versioniert.</p>
 <p>NVDA selbst wird für die reinen Python- und Lua-Tests nicht
 importiert. Die NVDA-nahen Tests verwenden kontrollierte Testdoubles und
 prüfen zusätzlich den Inhalt des gebauten Add-ons.</p>
+<section id="docs__de__development__getting-startedmd__windows-checkout-einrichten" class="level4">
+<h4>Windows-Checkout einrichten</h4>
+<p>In einem lokalen Windows-Checkout arbeiten und vorhandene Branches
+mit <code>git fetch origin</code> abgleichen. Git für Windows mit Bash,
+ein aktuelles Python 3 und ein natives <code>nvim.exe</code> müssen
+erreichbar sein. Die Python- Testabhängigkeiten lassen sich in einer
+separaten Umgebung installieren:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m venv <span class="op">..</span>\nal-aux\tools\python\windows-development</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="op">..</span>\nal-aux\tools\python\windows-development\Scripts\Activate<span class="op">.</span><span class="fu">ps1</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>python <span class="op">-</span>m pip install <span class="op">-</span>r tools<span class="op">/</span>requirements-ci<span class="op">.</span><span class="fu">txt</span> ruff<span class="op">==</span><span class="dv">0.15</span><span class="op">.</span><span class="dv">4</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">python</span> tools<span class="op">/</span>run_tests<span class="op">.</span><span class="fu">py</span> all-safe</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>python tools<span class="op">/</span>run_tests<span class="op">.</span><span class="fu">py</span> ssh</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>python tools<span class="op">/</span>run_tests<span class="op">.</span><span class="fu">py</span> socket</span></code></pre></div>
+<p>Auf einer frischen Windows-Installation zuerst
+<code>nvim --version</code> prüfen. Endet die offizielle x64-Ausgabe mit
+dem Ladefehler <code>0xc0000135</code>, kann die Microsoft Visual C++
+v14 Redistributable für x64 erforderlich sein. <a href="https://neovim.io/doc/install/">Neovim-Installation</a> <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/">Microsoft
+Visual C++ Redistributable</a></p>
+<p>Unter Windows prüft <code>socket</code> den nativen
+Loopback-Listener. Die Unix- Socket- und PTY-Tests werden auf Linux
+ausgeführt. Für den Entwicklungsbuild aus einem sauberen Branch
+<code>.\build.cmd</code> ausführen.</p>
+</section>
 </section>
 <section id="docs__de__development__getting-startedmd__erste-prüfung-eines-checkouts" class="level3">
 <h3>Erste Prüfung eines Checkouts</h3>
-<p>Für eine schnelle Rückmeldung ohne Paketbau und echte Listener:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> quick</span></code></pre></div>
+<p>Auf Linux liefert dieser Befehl eine schnelle Rückmeldung ohne
+Paketbau und echte Listener:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> quick</span></code></pre></div>
 <p>Der normale vollständige, sandbox-taugliche Ablauf ist:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> all-safe</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> ssh</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> tools/build_documentation.sh <span class="at">--test-only</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Echte lokale Listener und Unix-Sockets benötigen eine geeignete
 Umgebung und laufen deshalb separat:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> socket</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/run_tests.py</span> socket</span></code></pre></div>
 <p><code>tools/run_tests.py all</code> führt die sandbox-taugliche, die
 simulierte SSH- und die Socket-Phase nacheinander aus. Ohne
 Gruppenargument entspricht der Runner dem Preset <code>safe</code>.
@@ -2645,10 +2621,14 @@ Verbindung</td>
 </tr>
 </tbody>
 </table>
-<p>Der Add-on-Build ist selbst Teil der Prüfung: Pakettests untersuchen
-das tatsächlich erzeugte Archiv und nicht nur den Quellbaum. Details zu
-Isolation, Sandbox-Grenzen und den nachgewiesenen Eigenschaften stehen
-in <a href="#docs__de__development__testingmd__teststrategie">testing.md</a>.</p>
+<p>Pakettests erzeugen und untersuchen das Add-on ausschließlich in
+temporären Verzeichnissen. Entwicklungsartefakte baut der Entwickler
+anschließend mit <code>build.cmd</code> im lokalen Windows-Checkout. Ein
+ausdrücklich freigegebener Releasezustand wird dagegen mit
+<code>python3 tools/build_release.py</code> aus sauberem
+Linux-<code>main</code> gebaut. Details zu Isolation und Sandbox-Grenzen
+stehen in <a href="#docs__de__development__testingmd__teststrategie">testing.md</a>
+und <a href="#docs__de__development__release-and-buildmd__release--versions--und-buildprozess">release-and-build.md</a>.</p>
 </section>
 <section id="docs__de__development__getting-startedmd__wo-eine-änderung-beginnt" class="level3">
 <h3>Wo eine Änderung beginnt</h3>
@@ -2740,36 +2720,68 @@ Tests.</p>
 <div id="docs__de__development__current-statusmd">
 <section id="docs__de__development__current-statusmd__aktueller-status" class="level2">
 <h2>Aktueller Status</h2>
-<p>Stand: 14. August 2026. Der Quellstand entwickelt die Linie 0.99.0;
-<code>buildVars.py</code> erzeugt Artefakte als 0.99.0-dev.3 mit Branch-
-und Commitmetadaten und setzt den Update-Kanal im Manifest auf Beta. Der
-aktuelle veröffentlichte Pre-Release ist 0.98.0. Das Projekt leitet aus
-Testumfang oder Funktionsmenge keine höhere Stabilitätseinstufung
-ab.</p>
+<p>Stand: 27. November 2026. Der Quellstand entwickelt die Linie 0.99.0.
+<code>buildVars.py</code> erzeugt die Versionskennung aus
+Entwicklungsbuildnummer, Branch und Commit und setzt den
+Manifest-Update-Kanal auf Beta. Der zuletzt veröffentlichte Pre-Release
+ist 0.98.0.</p>
+<p>Änderungen gelangen per Pull Request nach <code>main</code>. Der <a href="#docs__de__development__release-and-buildmd__release--versions--und-buildprozess">Versions-
+und Releaseleitfaden</a> regelt die Releaseprüfungen, datierte
+zweisprachige Changelogs und die getrennte Veröffentlichung auf GitHub
+und im Store. Pull Requests enthalten ein englisches Changelog zum
+gesamten Diff.</p>
 <p>Diese Seite ist die kompakte Momentaufnahme des implementierten und
 geprüften Stands. <a href="#docs__de__development__architecturemd__architektur">Architektur</a>
 und <a href="#docs__de__development__accessibilitymd__funktions--und-accessibility-matrix">Funktionsmatrix</a>
 erklären Details; das <a href="#docs__de__development__changelogmd__changelog">Changelog</a>
 beschreibt abgeschlossene Änderungen und der <a href="#docs__de__development__planmd__aktiver-plan">Plan</a> künftige
 Arbeit.</p>
+<p>Die <a href="#docs__de__development__testingmd__teststrategie">Sockettests für
+geführte Abläufe</a> prüfen Neovim-Tastenbelegungen, echte Provider und
+das authentifizierte Protokoll mit Neovim 0.12.x. Sie prüfen die
+gelieferten Daten für gehaltene Signaturen und Diagnosen. Die
+Python-Diagnoseaufgaben warten auf die Befunde von Ruff und Pyright. Für
+Windows-Fokus und NVDA-Ausgabe gelten getrennte Nachweise.</p>
 <section id="docs__de__development__current-statusmd__referenzumgebung" class="level3">
 <h3>Referenzumgebung</h3>
-<p>Der hauptsächliche praktische Pfad wurde mit Windows 11 25H2, NVDA
-2026.1.1, Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie Neovim
-0.10.1 und 0.12.3 auf Rocky Linux 10.2 über OpenSSH für Windows 9.5p2
-geprüft. Lokales Windows-Neovim, Linux-Neovim über SSH und tmux
+<p>Der frühere lokale und SSH-Referenzlauf wurde mit Windows 11 25H2,
+NVDA 2026.1.1, Windows Terminal 1.24.x, lokalem Neovim 0.12.3 sowie
+Neovim 0.10.1 und 0.12.3 auf Rocky Linux 10.2 über OpenSSH für Windows
+9.5p2 geprüft. Lokales Windows-Neovim, Linux-Neovim über SSH und tmux
 innerhalb einer SSH-Sitzung sind abgedeckt. Der abschließende Feldtest
 des Entwicklungsbuilds 3 unter NVDA 2026.2beta10 umfasste automatische
 F12-Bindungen, häufige Wechsel zwischen lokalem und entferntem Pane
 sowie einem weiteren Windows-Terminal-Fenster, das Beenden und erneute
 Starten des entfernten Neovim und natives Tippecho außerhalb der aktiven
 Sitzung. Die Bindungen blieben getrennt und aktiv; getrennte
-SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus. Das
-Manifest nennt deshalb 2026.2 als zuletzt getestete NVDA-Version. Die
-vollständigen Plattform- und Versionsgrenzen stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
+SSH-Zustandsabbilder lösten keine falschen Wiederverbindungen aus.</p>
+<p>Unter Windows startete das gebaute Add-on in einem isolierten Profil
+mit NVDA 2026.3.1. Die NVDA-Integration und das
+Windows-Terminal-AppModule ließen sich laden. Neovim 0.12.6 bestand die
+Lua- und lokalen TCP-Tests. Der paketierte NVDA-Client empfing den
+authentifizierten vollständigen Zustand. Ein automatisierter Lauf auf
+einem aktiven Windows-11-Gastdesktop mit NVDA 2026.3.1, Windows Terminal
+1.25 und Neovim 0.12.6 bestätigte F12, Eingabe, getrennte Panes, Tab-
+und Fensterwechsel sowie die Wiederherstellung nach Beenden eines
+Editors. Derselbe Ablauf bestand mit NVDA 2026.1.1 und Neovim 0.10.1.
+Digitale Sprache, Braillezellen und Tonanforderungen wurden in NVDA
+2026.1.1 und 2026.3.1 erfasst. Das Manifest führt 2026.3.1 als zuletzt
+getestete NVDA-Version und behält 2026.1 als Mindestversion. Details
+stehen in <a href="#docs__de__development__compatibilitymd__kompatibilität">Kompatibilität</a>.</p>
 </section>
 <section id="docs__de__development__current-statusmd__implementierter-gesamtpfad" class="level3">
 <h3>Implementierter Gesamtpfad</h3>
+<p>Windows-Entwicklungsbuild und Linux-Releasebuilder verwenden SCons
+für das Add-on. Basismanifest, Sprachmanifeste und Gettext-Quellen
+folgen der Struktur des NVDA-AddonTemplates. Der Dokumentations- und der
+Linux-Komponentenbuild bleiben eigenständige Schritte. Paketmetadaten
+und Zeilenenden der gebündelten Python-Quellen sind
+plattformunabhängig.</p>
+<p>Der gemeinsame Neovim-RPC-Client prüft Nachrichtenstrukturen und
+begrenzt Verbindungsaufbau, Empfangspuffer und vorläufige
+Benachrichtigungen. Controls werden über den verifizierten und
+registrierten Kanal gesendet. Fehlgeschlagene SSH-Versuche räumen ihren
+eigenen Prozess vor einem erneuten Verbindungsversuch auf.</p>
 <section id="docs__de__development__current-statusmd__installation-verbindung-und-besitzgrenzen" class="level4">
 <h4>Installation, Verbindung und Besitzgrenzen</h4>
 <ul>
@@ -2812,11 +2824,15 @@ einer tatsächlichen Store-Veröffentlichung 0.96.0. Der Paketbuild
 verwirft fehlende, leere, unbekannte oder fehlerhaft formatierte
 Templatefelder und prüft die englische Standardhilfe sowie das deutsche
 Lokalisierungsmanifest.</li>
-<li>Der Dokumentationsjob verwendet wie der lokale Referenzbuild den
+<li>Dokumentationsjob und Linux-Releasebuild verwenden den jeweiligen
 offiziellen Pandoc-3.1.11.1-Binärbuild aus einem prüfsummengesicherten
-Archiv. Das Buildskript lehnt abweichend paketierte Builds derselben
-Version ab. Dadurch bleibt die eingecheckte installierte HTML-Hilfe
-reproduzierbar.</li>
+Archiv. Der Windows-Entwicklungsbuild akzeptiert ein lokales Pandoc
+3.1.11.1 und verwendet andernfalls den geprüften Binärbuild nur
+temporär. CI und normale Linux-Entwicklung validieren nur in temporären
+Verzeichnissen. <code>build.cmd</code> erzeugt Entwicklungsartefakte im
+lokalen Windows-Checkout; <code>tools/build_release.py</code> erzeugt
+die später veröffentlichten Assets ausschließlich aus sauberem
+Linux-<code>main</code> mit freigegebenen Release-Metadaten.</li>
 <li><code>NVDA+Alt+N</code> ist die voreingestellte, im
 Tastenbefehlsdialog änderbare Aktivierungsgeste. Sie gehört weiterhin
 dem Windows-Terminal-AppModule; außerhalb eines passenden fokussierten
@@ -2900,9 +2916,10 @@ Mehrbuffer-Ersetzungen erhalten eine einzige Zusammenfassung
 beobachteter geänderter und ungespeicherter Buffer; Neovims interne
 Bufferwechsel erscheinen nicht als Fokuswechsel. Automatisierte Tests
 decken Quickfix-Dateien, gelistete Buffer und Argumentdateien
-einschließlich eines zunächst ungeladenen Argumentbuffers ab. Die
-geführten L4- und L6-Abläufe sind noch nicht vollständig praktisch unter
-Windows/NVDA abgenommen.</li>
+einschließlich eines zunächst ungeladenen Argumentbuffers ab. Ein
+nativer Neovim-Test bestätigt, dass F3 in L4 die Quickfix-Liste mit dem
+ersten Treffer öffnet. Die praktische Abnahme von L4 und L6 unter
+Windows/NVDA steht aus.</li>
 <li>Diagnosen aus <code>vim.diagnostic</code> lassen sich nach
 aktueller, vorheriger, nächster, erster und letzter Position lesen.
 Gehaltene Diagnoseansichten, Fehler-, Warn- und Leerbestätigungsklänge
@@ -2975,11 +2992,12 @@ Lua-Datei und wird identisch in beide Handbücher synchronisiert. Der
 Dokumentationsbuild prüft außerdem die vollständigen deutschen und
 englischen Dateisätze, parallele Überschriftenstrukturen, Markdownlinks,
 generierte HTML-Ziele sowie Sprach-, Titel- und Beschreibungsmetadaten.
-GitHub Actions führt diesen Build als eigenen Job aus. Windows-Nutzer
-können zusätzlich mit <code>build.cmd</code> parameterlos einen
-aktuellen Entwicklungsstand bauen. Der Wrapper verwendet nur ein
-temporäres Python-Environment und lässt den regulären Build- und CI-Weg
-unverändert.</p>
+GitHub Actions führt diese temporäre Validierung als eigenen Job aus.
+Die Entwicklung erfolgt im lokalen Windows-Checkout mit normalem
+Git-Abgleich. <code>build.cmd</code> prüft Branch, Commit und
+versionierte Sauberkeit vor und nach dem Build. Derselbe isolierte Kern
+erstellt auch die Linux-Releaseartefakte und legt Add-on und
+Dokumentations-ZIP in <code>dist</code> ab.</p>
 </section>
 </section>
 <section id="docs__de__development__current-statusmd__prüfnachweis" class="level3">
@@ -2988,7 +3006,9 @@ unverändert.</p>
 lokale und SSH-Clients, mehrere Instanzen, Fokus und
 Fail-open-Verhalten, Editor- und Präsentationsplanung, Lua mit echten
 headless-Neovim-Prozessen, Paketinhalt, Lokalisierung sowie
-Dokumentationslinks. Gepinnte Läufe verwenden je nach Testzweck Neovim
+Dokumentationslinks. Der Test-Runner nutzt die für Python verfügbaren
+logischen Prozessoren und verteilt die Pakettests auf bis zu zwölf
+isolierte Blöcke. Gepinnte Läufe verwenden je nach Testzweck Neovim
 0.10.1 oder 0.12.3 und reale Completion-, LSP-, Diagnose- und
 Linterpfade. Das Clang-Tidy-Profil verwendet direkt das gepinnte
 Programm, legt C11 sowie die mitgelieferte Testkonfiguration explizit
@@ -3026,18 +3046,48 @@ einheitliche, begrenzte Wartezeit von 60 Sekunden. Damit bleiben kalte
 Starts auf Windows und Netzlaufwerken zulässig, ohne einen hängenden
 Provider unbegrenzt abzuwarten. Listenerfreie, SSH- und echte
 Sockettests laufen getrennt. Einzelheiten und Befehle stehen in <a href="#docs__de__development__testingmd__teststrategie">Teststrategie</a>.
-Geführte Praxistests isolieren die verbleibende Wahrnehmungsprüfung von
-Sprache, Braille, Klängen, Fokus und Reaktionszeit. Ihre technische
-Vorprüfung bestätigt reale Providerdaten und die für die jeweilige
-Aufgabe isolierte Tastensteuerung. Die Kompatibilitätssuite enthält
-zusätzlich vier lazy.nvim- Aufgaben mit vollständig lokalen Git-Fixtures
-für Fenster, Installation, Aktualisierung und Synchronisierung; die
-Einzelauswahl gruppiert sie unter Plugin-Verwaltung. Die
-Headless-Vorprüfung verlangt keine dort absichtlich unterdrückte
-Lazy-Oberfläche; sie prüft den öffentlichen Befehl und die isolierte
-Fixture-Konfiguration. Die Fixture-Repositories deaktivieren
-Zeilenendenkonvertierung und unnötige Git-Ausgaben. Aufbau und sichere
-Tastenbelegung stehen in <a href="human-testing.html">Geführte
+<code>guided-desktop</code> und <code>guided-audio</code> führen die 18
+geführten Aufgaben mit mechanisch prüfbaren Erwartungen im isolierten
+Windows-Gast aus. Tatsächlicher Fokus, NVDA-Sprachausgabe, digitale
+Braille-Zellen und gerenderte Audiosignale werden an den jeweils
+passenden Schnittstellen beobachtet. Die Gruppen werden ausdrücklich
+gestartet. Für alle 18 Aufgaben liegen vollständige Gastnachweise
+einschließlich Gegenproben vor. Das Referenzprofil verwendete NVDA
+2026.3.1, Neovim 0.12.6 und Windows Terminal 1.25.3131.0. Der <a href="#docs__de__development__testingmd__teststrategie">Abschlussprüfer</a>
+verifiziert Gastprotokolle, Paketprüfsumme und PCM-Aufnahmen. Der
+GitHub-gehostete S1-Test hat auch nativen Fokus und Tastatureingabe
+bestätigt. Das private Labor behält für C1 die unabhängigen Prüfungen
+mit WASAPI und QEMU bei und prüft Wiederholungen bei fehlender
+QEMU-Startmarke nach. Unabhängige Fälle laufen auch nach einem früheren
+Fallfehler weiter. Bei Zeitversatz in einem QEMU-Referenzsignal für C1
+oder D1 prüft der Prüfer getrennte Wellenformabschnitte. Hinweistöne der
+Anwendung und die separate WASAPI-Aufnahme werden anhand vollständiger
+Wellenformen geprüft. Für die zweite P2-Fixture startet der verwaltete
+Testgast frisch. Geführte Praxistests isolieren die verbleibende
+Wahrnehmungsprüfung von Sprache, Braille, Klängen, Fokus und
+Reaktionszeit. Ihre technische Vorprüfung bestätigt reale Providerdaten
+und die für die jeweilige Aufgabe isolierte Tastensteuerung. Die
+Kompatibilitätssuite enthält zusätzlich vier lazy.nvim- Aufgaben mit
+vollständig lokalen Git-Fixtures für Fenster, Installation,
+Aktualisierung und Synchronisierung; die Einzelauswahl gruppiert sie
+unter Plugin-Verwaltung. Die Headless-Vorprüfung verlangt keine dort
+absichtlich unterdrückte Lazy-Oberfläche; sie prüft den öffentlichen
+Befehl und die isolierte Fixture-Konfiguration. Beim Neuzeichnen
+derselben Plugin-Zeile unterdrückt der Sprachplaner eine zusätzliche
+Buchstabenansage durch die verschobene Cursorspalte. Gezielte Zeichen-
+und Wortnavigation bleibt hörbar. Die Fixture-Repositories deaktivieren
+Zeilenendenkonvertierung und unnötige Git-Ausgaben. Auf gemeinsam
+genutzten oder gemappten Laufwerken erlaubt die isolierte
+Git-Konfiguration nur die konkreten Fixture-Repositories. Die
+Vorbereitung bricht beim ersten fehlgeschlagenen Werkzeug- oder
+Profiltest mit dessen direktem Grund ab. Sie prüft und verwendet
+vorhandene festgelegte Werkzeuge und nur die für die Auswahl benötigten
+Plugin-Revisionen weiter. Der gespeicherte Zustand nennt die bereits
+erfolgreich vorgeprüften Profile; eine neue Auswahl wird nicht aufgrund
+anderer bestandener Profile übersprungen. Pyright läuft direkt über
+Node. Direkte Werkzeugfehler enthalten die Werkzeugausgabe; Linterfehler
+nennen den konfigurierten Provider und ob dessen Prozess noch läuft.
+Aufbau und sichere Tastenbelegung stehen in <a href="human-testing.html">Geführte
 Praxistests</a>. Optionale leere Pfadlisten bleiben im PowerShell-Runner
 echte JSON-Arrays; die Lua-Verifikation normalisiert zusätzlich älteres
 oder fremdes JSON-<code>null</code>, bevor F5 die tatsächlichen
@@ -3143,20 +3193,23 @@ Darstellung.</p>
 <tbody>
 <tr class="odd">
 <td>Windows</td>
-<td>Windows 11 25H2, 64 Bit</td>
+<td>Windows 11 24H2, 64 Bit im Gast; Windows 11 25H2 im früheren
+Feldtest</td>
 </tr>
 <tr class="even">
 <td>NVDA</td>
-<td>Hauptpfad 2026.1.1; F12-/Fokus-Feldtest 2026.2beta10;
-Manifestminimum 2026.1, zuletzt getestet 2026.2</td>
+<td>2026.3.1 im vollständigen Windows-Gastlauf; 2026.1.1 für Paket und
+Fokus; Manifestminimum 2026.1</td>
 </tr>
 <tr class="odd">
 <td>Terminalfrontend</td>
-<td>Windows Terminal 1.24.x</td>
+<td>Windows Terminal 1.25.3131.0 im Gast; 1.24.x im früheren
+Feldtest</td>
 </tr>
 <tr class="even">
 <td>Lokales Neovim</td>
-<td>0.12.3 praktisch; 0.10.1 automatisiert</td>
+<td>0.12.6 im vollständigen Windows-Gastlauf; 0.10.1 im
+Mindestversionslauf</td>
 </tr>
 <tr class="odd">
 <td>SSH-Client</td>
@@ -3176,6 +3229,23 @@ Manifestminimum 2026.1, zuletzt getestet 2026.2</td>
 </tr>
 </tbody>
 </table>
+<p>Ein isolierter Windows-Lauf mit NVDA 2026.3.1 prüfte den Start des
+paketierten Add-ons und den Import seines Windows-Terminal-AppModules.
+Mit nativem Neovim 0.12.6 bestanden die Lua-Suite und der lokale
+Loopback-TCP-Test. Der paketierte NVDA-Client authentifizierte sich
+außerdem bei einer isolierten Neovim-Instanz und empfing ihren
+vollständigen Zustand. Ein Windows-11-24H2-Gast mit interaktivem Desktop
+bestätigte außerdem F12-Zuordnung, Editieren, getrennte Panes, Tab- und
+Fensterwechsel sowie die Rückkehr zum verbleibenden Pane nach dem
+Beenden eines Editors. Der Lauf verwendete Windows Terminal 1.25.3131.0,
+NVDA 2026.3.1 und Neovim 0.12.6. Dieselbe Folge bestand mit NVDA
+2026.1.1 und Neovim 0.10.1. Beide NVDA-Versionen bestanden
+Paketinstallation und -entfernung sowie digitale Prüfungen für Sprache,
+40 Braillezellen und Tonanforderungen. Hörbare Ausgabe und physische
+Braille-Geräte lagen außerhalb dieser Fokusläufe. Der vollständige
+Gastlauf prüfte alle 18 geführten Fälle einschließlich aufgezeichneter
+PCM-Signale. Verständlichkeit und taktile Lesbarkeit liegen außerhalb
+dieser Messungen.</p>
 <p>Neovim 0.10.1 ist die vorläufige Mindestversion. Neuere optionale
 APIs werden nur nach Featureprüfung verwendet. Unter Neovim 0.10 richtet
 das Plugin für ein unbelegtes F12 im Insert-Modus eine stille
@@ -3247,8 +3317,8 @@ weiterhin keinen Erfolg ab. Die geführten P1- bis P4-Abläufe bestätigten
 im Windows-/NVDA-Referenzpfad Fenster und Zeilennavigation,
 Sprachexploration, Braillemarker sowie die drei isolierten
 Verwaltungsabläufe praktisch.</p>
-<p>Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3,
-führt aber keine praktische NVDA-Abnahme aus.</p>
+<p>Der gehostete GitHub-Windows-Job validiert den geführten Runner mit
+Neovim 0.12.3. Der vollständige NVDA-Gastlauf folgt der <a href="#docs__de__development__testingmd__teststrategie">Teststrategie</a>.</p>
 <p>Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten
 und werden nicht ausgeliefert. Sprachen sind nicht im Add-on fest
 verdrahtet. Ein weiterer Sprachserver oder Linter gilt erst dann als
@@ -3281,7 +3351,7 @@ UTF-8-Routingposition bleibt korrekt.</p>
 </section>
 <section id="docs__de__development__compatibilitymd__build--und-dokumentationsabhängigkeiten" class="level3">
 <h3>Build- und Dokumentationsabhängigkeiten</h3>
-<p>MessagePack Python 1.1.1 wird in Add-on und Linux-Komponentenpaket
+<p>MessagePack Python 1.1.2 wird in Add-on und Linux-Komponentenpaket
 gebündelt. Das Linux-Ziel benötigt deshalb kein separates MessagePack-
 oder pynvim-Paket.</p>
 <p>Python 3, ConfigObj und Pandoc werden nur für Tests oder Builds
@@ -3325,21 +3395,24 @@ Neovim-Meldungen werden nicht übersetzt.</p>
 <section id="docs__de__development__localizationmd__dateien-und-arbeitsablauf" class="level3">
 <h3>Dateien und Arbeitsablauf</h3>
 <ul>
-<li><code>nvda-addon/locale/NeovimAccessLink.pot</code> ist die
+<li><code>nvda-addon/addon/locale/NeovimAccessLink.pot</code> ist die
 extrahierte Vorlage.</li>
-<li><code>nvda-addon/locale/de/LC_MESSAGES/nvda.po</code> ist der
-deutsche Quellkatalog.</li>
-<li><code>nvda-addon/locale/de/manifest.ini</code> lokalisiert die von
-NVDA vor dem Laden des Python-Codes angezeigten Manifestfelder.</li>
+<li><code>nvda-addon/addon/locale/de/LC_MESSAGES/nvda.po</code> enthält
+auch den Add-on-Namen und die Beschreibung. Der Build verwendet die
+übersetzten Werte im Manifest.</li>
+<li>Den deutschen Manifest-Changelog bezieht der Build aus dem deutschen
+Entwickler-Changelog.</li>
 <li>Das <code>.nvda-addon</code> enthält nur
 <code>locale/de/LC_MESSAGES/nvda.mo</code> und das übersetzte Manifest,
 nicht PO oder POT.</li>
 </ul>
 <p>Nach Änderungen sichtbarer Texte ist aus der Repositorywurzel
 auszuführen:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py update</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py update</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/gettext_catalog.py check</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py package</span></code></pre></div>
+<p><code>python -m SCons pot</code> aktualisiert ausschließlich die
+extrahierte Vorlage.</p>
 <p><code>update</code> extrahiert ausschließlich literale Nachrichten
 und erhält vorhandene Übersetzungen. <code>check</code> verlangt für
 jeden Quelltext genau einen PO-Eintrag, weist veraltete Einträge ab und
@@ -3348,7 +3421,10 @@ zulässig und fallen absichtlich auf Englisch zurück. Der MO-Compiler
 lässt sie dafür wie GNU <code>msgfmt</code> aus der Binärdatei weg; eine
 leere Übersetzung darf niemals einen sichtbaren Text entfernen. Der
 Build kompiliert deterministisch mit der Python-Standardbibliothek;
-GNU-gettext-Werkzeuge sind keine Buildabhängigkeit.</p>
+GNU-gettext-Werkzeuge sind keine Buildabhängigkeit.
+Entwicklungsartefakte entstehen mit <code>build.cmd</code> im lokalen
+Windows-Checkout; das auslieferbare Release-Add-on entsteht mit
+<code>tools/build_release.py</code> auf Linux.</p>
 <p>Der erste Werkzeugstand verarbeitet einfache Nachrichten mit
 benannten <code>str.format</code>-Feldern. Echte Pluralformen
 (<code>ngettext</code>) und kontextabhängige Übersetzungen
@@ -4024,6 +4100,12 @@ Neovim oder tmux.</p>
 <p>Protokollnachrichten sind größenbegrenzt, schemageprüft und an
 Sitzung sowie Sequenz gebunden. Eingehende Daten werden nicht ausgeführt
 und gewähren keinen allgemeinen Neovim-RPC-Zugang.</p>
+<p>Der RPC-Client begrenzt Empfangspuffer, ausstehende
+Benachrichtigungen beim Aufbau und Wartezeiten für RPC-Aufbauanfragen.
+Ungültige RPC-Nachrichten beenden die Verbindung. Controls sind nach
+Prüfung der Sitzung und der Kanalregistrierung verfügbar.</p>
+<p>Bei einem SSH-Protokollfehler räumt der Client seinen eigenen
+OpenSSH-Prozess vor dem nächsten Verbindungsversuch auf.</p>
 <p>Auf dem SSH-Pfad authentifiziert nur ein gültiges
 <code>fullState</code> mit dem ausdrücklichen Lebenszykluszustand
 <code>connection.neovim=connected</code> die Accessibility-Sitzung.
@@ -4175,7 +4257,7 @@ schläft nicht und führt kein I/O aus.</p>
 <p><code>tools/latency/serialization_benchmark.py</code> vergleicht
 MessagePack und kompaktes JSON mit einem repräsentativen
 Zustandsereignis:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/latency/serialization_benchmark.py</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/latency/serialization_benchmark.py</span></code></pre></div>
 <p>Ergebnisse werden nur zusammen mit Plattform, Versionen, Transport,
 Workload, Stichprobenzahl, Perzentilen und Fehlern interpretiert. Die
 Mikrobenchmarks, die zur ursprünglichen Wahl des semantischen Lua-Pfads
@@ -4263,6 +4345,13 @@ entfallen auf diesem lokalen Teilstück; Ereignisse werden jedoch vor der
 Übergabe an NVDA mit demselben v2-Envelope, denselben Typen und
 demselben 1-MiB-Limit validiert. Freie Host- oder Portkonfiguration ist
 nicht vorgesehen.</p>
+<p>Der gemeinsame MessagePack-RPC-Client für Loopback und Unix-Sockets
+beschränkt den Empfangspuffer und hält während des Verbindungsaufbaus
+höchstens 64 Benachrichtigungen zurück. Er prüft
+RPC-Nachrichtenstrukturen, begrenzt Aufbauanfragen zeitlich und
+akzeptiert ausgehende Controls erst nach Identitätsprüfung und
+Kanalregistrierung. Normale Leerlaufphasen halten die Verbindung
+offen.</p>
 </section>
 </section>
 <section id="docs__de__development__protocolmd__framing-und-envelope" class="level3">
@@ -4449,19 +4538,19 @@ Accessibility-Sitzung.</p>
 <p>Es gibt keinen Aushandlungs-Handshake.
 <code>fullState.payload._transport</code> beschreibt den tatsächlich
 gestarteten v2-Transport:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;ssh-stdio&quot;</span><span class="fu">,</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;heartbeat&quot;</span><span class="ot">,</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;resync&quot;</span><span class="ot">,</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;semanticEvents&quot;</span><span class="ot">,</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;cursorRouting&quot;</span><span class="ot">,</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;accessibleMenus&quot;</span><span class="ot">,</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;focusContext&quot;</span><span class="ot">,</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;clipboardTransfer&quot;</span><span class="ot">,</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;terminalControl&quot;</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;ssh-stdio&quot;</span><span class="fu">,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;heartbeat&quot;</span><span class="ot">,</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;resync&quot;</span><span class="ot">,</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;semanticEvents&quot;</span><span class="ot">,</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;cursorRouting&quot;</span><span class="ot">,</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;accessibleMenus&quot;</span><span class="ot">,</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;focusContext&quot;</span><span class="ot">,</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;clipboardTransfer&quot;</span><span class="ot">,</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;terminalControl&quot;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Lokal lautet <code>kind</code> <code>windows-loopback-tcp</code>; die
 Fähigkeiten entsprechen der Liste ohne <code>heartbeat</code>.
 <code>exploration</code> wird nur ergänzt, wenn das verbundene
@@ -5378,6 +5467,14 @@ führt unabhängige Jobs in getrennten temporären Verzeichnissen aus.</p>
 <td>echte wegwerfbare TUI-, RPC-, TCP- und Unix-Socket-Fälle</td>
 </tr>
 <tr class="even">
+<td><code>guided-desktop</code></td>
+<td>Windows-VM mit Fokus-, Sprach- und Brailleprüfungen</td>
+</tr>
+<tr class="odd">
+<td><code>guided-audio</code></td>
+<td>Windows-VM mit PCM-Aufnahmen und Stumm-Gegenproben</td>
+</tr>
+<tr class="even">
 <td><code>quick</code></td>
 <td>schnelle Rückmeldung; nur <code>unit</code></td>
 </tr>
@@ -5394,42 +5491,158 @@ führt unabhängige Jobs in getrennten temporären Verzeichnissen aus.</p>
 </tbody>
 </table>
 <p>Ohne Gruppenargument entspricht der Runner dem sicheren Preset.
-<code>-j N</code> begrenzt Parallelität; <code>--list</code> zeigt die
-Auswahl, ohne sie auszuführen. Jeder isolierte Job läuft in einer
-eigenen Prozessgruppe. Nach 180 Sekunden wird die vollständige Gruppe
-einschließlich gestarteter Neovim- und Hilfsprozesse beendet und der Job
-als fehlgeschlagen gemeldet. Die reale TUI-Sendehilfe begrenzt das
-Leeren des Pseudoterminals zusätzlich auf eine Sekunde und 8 MiB je
-physischem Tastenschritt. Die kompakte Ausgabe nennt für jeden Job und
-in der Gesamtsumme auch übersprungene Fälle und Python-Warnungen. Für
-jeden Fund folgt eine <code>SKIP</code>- oder <code>WARN</code>-Zeile
-mit Job und Grund beziehungsweise Warntext; ein grüner Lauf mit
-<code>0 skipped, 0 warnings</code> belegt damit ausdrücklich, dass
-nichts verborgen übersprungen oder gewarnt wurde.</p>
+Standardmäßig richtet sich die Zahl paralleler Jobs nach den für Python
+verfügbaren logischen Prozessoren. <code>-j N</code> setzt die Grenze
+für einen Lauf. Die Pakettests verteilen sich auf bis zu zwölf
+unabhängige Blöcke. Jeder Block baut sein eigenes Paket.
+<code>--list</code> zeigt die Auswahl, ohne sie auszuführen. Jeder
+isolierte Job läuft in einer eigenen Prozessgruppe. Nach 180 Sekunden
+beendet der Runner die gesamte Gruppe einschließlich gestarteter Neovim-
+und Hilfsprozesse und meldet den Job als fehlgeschlagen. Die reale
+TUI-Sendehilfe begrenzt das Leeren des Pseudoterminals zusätzlich auf
+eine Sekunde und 8 MiB je physischem Tastenschritt. Die kompakte Ausgabe
+nennt für jeden Job und in der Gesamtsumme auch übersprungene Fälle und
+Python-Warnungen. Für jeden Fund folgt eine <code>SKIP</code>- oder
+<code>WARN</code>-Zeile mit Job und Grund beziehungsweise Warntext; ein
+grüner Lauf mit <code>0 skipped, 0 warnings</code> belegt damit
+ausdrücklich, dass nichts verborgen übersprungen oder gewarnt wurde.</p>
 </section>
 <section id="docs__de__development__testingmd__empfohlener-ablauf" class="level3">
 <h3>Empfohlener Ablauf</h3>
 <p>Während einer Änderung:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py quick</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py quick</span></code></pre></div>
 <p>Vor einem Commit mindestens die betroffene Gruppe und danach den
 sicheren Gesamtpfad:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check .</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> check <span class="at">--config</span> <span class="st">&#39;include = [&quot;nvda-addon/tests/**/*.py&quot;]&#39;</span> .</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ruff</span> format <span class="at">--check</span> .</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all-safe</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py ssh</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
 <p>Sockettests benötigen eine Umgebung, die Loopback-Listener, private
 Unix-Sockets und kurzlebige Neovim-Prozesse erlaubt:</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py socket</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py socket</span></code></pre></div>
+<p>Unter Windows führt der Runner in dieser Gruppe die lokalen TCP-Tests
+aus. Sie prüfen die Sitzungsregistrierung und einen echten
+Neovim-Prozess mit authentifiziertem Anfangszustand und Cursor-Routing
+über den Python-Client. Für die vollständige Gruppe mit Unix-Sockets und
+Pexpect-PTY wird ein Linux-Checkout benötigt.</p>
 <p>In einer eingeschränkten Sandbox ist ein Listenerfehler eine
 Umgebungsbegrenzung, kein erfolgreicher Test. Die Socketphase wird dann
 in einer erlaubten Umgebung nachgeholt.
 <code>python3 tools/run_tests.py all</code> ist nur dort sinnvoll, wo
 alle drei Phasen zulässig sind.</p>
+<section id="docs__de__development__testingmd__geführte-abläufe-über-echtes-neovim-rpc" class="level4">
+<h4>Geführte Abläufe über echtes Neovim-RPC</h4>
+<p>Mit Neovim 0.12.x im <code>PATH</code> lädt die Socketphase
+zusätzlich das geführte Testprofil in frischen Editoren. Sie reiht über
+<code>nvim_input</code> die tatsächlich belegten Tasten ein und empfängt
+semantische Ereignisse über den authentifizierten Produktivclient. Die
+Prüfungen gleichen die Ereignisse mit nativen Puffer-, Cursor-,
+Quickfix-, Diagnose- und Completion-Zuständen, externen Linter-Ausgaben
+oder unveränderten Testdateien ab.</p>
+<p>L4 und L6 benötigen nur Neovim. Die weiteren Fälle verwenden
+Versionen aus <code>tests/human/dependencies.json</code> und werden mit
+Begründung übersprungen, wenn ein benötigtes Werkzeug oder ein Pfad
+fehlt. Setze vor der Socketphase:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variable oder Programm</th>
+<th>Erwartete Abhängigkeit</th>
+<th>Fälle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>NAL_GUIDED_PYRIGHT</code> und <code>node</code> im
+<code>PATH</code></td>
+<td>Pyrights <code>langserver.index.js</code> und Node.js</td>
+<td>L1–L3, L5, C1–C3, D1, D2</td>
+</tr>
+<tr class="even">
+<td><code>NAL_GUIDED_COMPLETION_ROOT</code></td>
+<td>Elternverzeichnis der fixierten Git-Checkouts <code>nvimCmp</code>,
+<code>cmpNvimLsp</code> und <code>blinkCmp</code></td>
+<td>C2, C3</td>
+</tr>
+<tr class="odd">
+<td><code>NAL_GUIDED_NVIM_LINT</code></td>
+<td>Fixierter Git-Checkout von nvim-lint</td>
+<td>D1–D4</td>
+</tr>
+<tr class="even">
+<td><code>ruff</code> im <code>PATH</code></td>
+<td>Fixiertes Ruff-Programm</td>
+<td>D1, D2</td>
+</tr>
+<tr class="odd">
+<td><code>NAL_GUIDED_CLANG_TIDY</code></td>
+<td>Fixiertes Clang-Tidy-Programm</td>
+<td>D3</td>
+</tr>
+<tr class="even">
+<td><code>NAL_GUIDED_MARKDOWNLINT</code></td>
+<td>Fixiertes markdownlint-cli2-Programm oder
+Windows-Befehlswrapper</td>
+<td>D4</td>
+</tr>
+<tr class="odd">
+<td><code>NAL_GUIDED_LAZY</code></td>
+<td>Fixierter Git-Checkout von lazy.nvim</td>
+<td>P1</td>
+</tr>
+</tbody>
+</table>
+<p>L3 und D2 prüfen die für NVDA bereitgestellten Kontextdaten. Sie
+vergleichen die echten Provider-Ergebnisse, ordnen Anfragen dem
+Editorzustand zu und prüfen, dass die Abfrage den Cursor unverändert
+lässt. D2 schickt zusätzlich einen veralteten Editorzustand und erwartet
+eine explizite Ablehnung.</p>
+<p>Für P1 verbindet sich ein separater Client über
+<code>nvim_ui_attach</code> und empfängt Neovims echte
+UI-Zeichenereignisse. Die Prüfung liest auch den nativen Pufferzustand
+und prüft Befehlsleiste und Aufklappzustand über den Produktivclient.
+Für P2–P4 führt
+<code>bash tools/test_lazy_plugin.sh PFAD_ZU_FIXIERTEM_LAZY_NVIM</code>
+die echten Lazy-Befehle mit temporären lokalen Git-Repositories aus. Die
+Prüfung erfasst den Operationsablauf und kontrolliert Git-Revisionen und
+Entfernung unabhängig davon. Der Prüfer muss auch einen tatsächlichen
+Rücksprung auf einen älteren Commit und bei Sync ein erneut vorhandenes
+veraltetes Verzeichnis erkennen.</p>
+<p>Diese Prüfungen decken die Neovim- und Protokollanteile der Aufgaben
+ab. Windows-Fokus, NVDA-Sprach- und Brailleausgabe und physische
+Wahrnehmung erfordern getrennte Beobachtungen. Siehe den <a href="human-testing.html">Umfang der geführten
+Tests</a>.</p>
+</section>
+<section id="docs__de__development__testingmd__geführte-windows--und-audio-prüfungen" class="level4">
+<h4>Geführte Windows- und Audio-Prüfungen</h4>
+<p>Die optionalen Gruppen laufen nacheinander auf einem isolierten
+Windows-Gast. <code>--list</code> zeigt die Aufgaben-IDs.
+<code>--guided-case</code> beschränkt einen Lauf auf bestimmte Aufgaben
+und kann mehrfach angegeben werden.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>python tools<span class="op">/</span>run_tests<span class="op">.</span><span class="fu">py</span> guided-desktop guided-audio <span class="op">--</span>list</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>python tools<span class="op">/</span>run_tests<span class="op">.</span><span class="fu">py</span> guided-desktop guided-audio <span class="op">--</span>guided-config <span class="va">$labConfig</span> <span class="op">--</span>guided-addon <span class="va">$addon</span></span></code></pre></div>
+<p><code>tests/guided/windows/README.md</code> beschreibt
+VM-Konfiguration, Werkzeuge und Belege. Die VM-Daten bleiben im lokalen
+Hilfsverzeichnis. Ein Gastbericht weist Paketprüfsumme und
+Aufräumquittung aus. Die Prüfungen erfassen digitale
+Braille-Punktmuster, die an die Sprachsynthese übergebenen Sequenzen und
+gerenderte Audiosignale. Gerätespezifische Braille-Wahrnehmung,
+akustische Verständlichkeit und subjektive Latenz liegen außerhalb
+dieser Messung.</p>
+</section>
 </section>
 <section id="docs__de__development__testingmd__zuordnung-nach-änderung" class="level3">
 <h3>Zuordnung nach Änderung</h3>
+<p>Prüfe Betriebssystemfokus und Tastengesten in einem interaktiven,
+isolierten Windows-Desktop. Ein Windows-Gast kann Win32-Vordergrund,
+UI-Automation-Fokus und Tasten über das virtuelle Tastaturgerät prüfen.
+Der Prüfcode unter <code>tests/guided/windows/</code> verwendet eine
+separate NVDA-Konfiguration und ein portables Windows Terminal. Prüfcode
+in der portablen NVDA-Ausgabe nutzt explizite Fehlerbedingungen. NVDA
+startet Python mit Optimierung und lässt <code>assert</code>-Anweisungen
+weg.</p>
 <table>
 <thead>
 <tr class="header">
@@ -5558,40 +5771,87 @@ Aktualisierungs- und Synchronisierungsvorgängen;</li>
 <li>echte TUI-, TCP- und Unix-Socket-Fälle;</li>
 <li>Build und Linkprüfung aller acht Dokumentationsdateien.</li>
 </ul>
-<p>Ein grüner Matrixjob bestätigt nur seinen benannten Vertrag.
-Praktische NVDA-, Windows-Terminal- und Brailleausgabe bleibt eine
-gesonderte Abnahme.</p>
+<p>Ein grüner Matrixjob bestätigt den jeweils benannten Vertrag. Der
+gesamte Desktop- und Audionachweis verwendet den isolierten
+Windows-Gast.</p>
+<p>Der gehostete Workflow
+<code>.github/workflows/guided-windows-hosted.yml</code> baut das
+Add-on, lädt es in portabler NVDA und prüft das fokussierte
+<code>TermControl</code>-Steuerelement sowie die Tastatureingabe bis zum
+Konsolenprozess. S1 prüft zusätzlich, dass F12 den Editor bindet und F10
+im ursprünglichen PowerShell-Tab native Terminalereignisse, Eingabe am
+Cursor und digitale Brailleausgabe wiederherstellt. In der Gegenprobe
+fehlt F10, sodass die Prüfung genau an diesem Schritt scheitern muss.
+Der gemessene <code>windows-2025</code>-Runner hatte keinen
+WASAPI-Standardausgang. Die Gastaufnahmen verwenden den Render-Endpunkt
+im Windows-Gast. <a href="https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969">Gehostete
+NVDA-Fokus- und S1-Nachweise</a></p>
+<p>Der wiederverwendbare Workflow
+<code>.github/workflows/guided-windows-vm.yml</code> führt alle 18 Fälle
+und die vollständige Nachprüfung in einem vorbereiteten Windows-Labor
+aus. Ein privates Repository desselben Besitzers bindet den Workflow an
+eine geprüfte Commit-SHA. Nur der Besitzer startet ihn manuell vom
+Standardbranch. Der eigene Windows-Runner ist auf das private Repository
+beschränkt. Der Workflow benötigt keine GitHub-gehosteten Minuten.
+Rohprotokolle, Gastmedien und Audiomitschnitte bleiben im Labor.
+Einrichtung und Aufruf stehen in
+<code>tests/guided/windows/README.md</code>. Das Labor führt nach einem
+fehlgeschlagenen Fall die übrigen unabhängigen Fälle aus und fährt
+seinen Gast am Ende der Suite herunter. Ein fehlgeschlagener Fall lässt
+die vollständige Nachprüfung scheitern. Wenn C1 im Gast und in WASAPI
+besteht, aber die Startmarke in der QEMU-Aufnahme fehlt, startet das
+Labor den Gast neu und wiederholt die betroffene Audioeinstellung
+einmal. Der Abschlussprüfer wertet die verworfene und die neue
+vollständige Aufzeichnung mit denselben Anforderungen aus. Bei einem
+kurzen Zeitversatz in einer QEMU-Referenzmarke für C1 oder D1 kann der
+Prüfer die Marke anhand von vier von fünf getrennten
+Wellenformabschnitten erkennen. Jeder Abschnitt muss mindestens 0,92
+Korrelation erreichen. Die daraus ermittelten Startzeiten dürfen
+höchstens 26 ms auseinanderliegen. Der Bericht hält Abschnittszahl und
+Zeitspanne fest. Für die Hinweistöne der Anwendung und die unabhängige
+WASAPI-Aufnahme prüft er die vollständigen Wellenformen. Das verwaltete
+Labor startet den Gast zwischen den beiden unabhängigen P2-Fixtures neu.
+Wenn QEMU vor dem Bereitschaftssignal des Desktops endet, erkennt das
+Labor den Abbruch und startet denselben Gast einmal erneut. Der
+vollständige Gastlauf ist lokal bestätigt. Der Actions-Aufruf setzt
+einen bereitgestellten privaten Labor-Runner voraus.</p>
 </section>
 <section id="docs__de__development__testingmd__buildprüfung" class="level3">
 <h3>Buildprüfung</h3>
-<p>Nach Codeänderungen an installierbarem Inhalt wird das Add-on aus dem
-endgültigen Worktree neu gebaut:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span></code></pre></div>
-<p>Pakettests öffnen das tatsächliche <code>.nvda-addon</code> und
+<p>Pakettests bauen das Add-on mit einem expliziten temporären
+Ausgabeverzeichnis, öffnen das tatsächliche <code>.nvda-addon</code> und
 prüfen Basis- und Lokalisierungsmanifest streng gegen die zutreffenden
 Felder des offiziellen NVDA-AddonTemplates sowie Ressourcen, alle acht
 lokalisierten installierten HTML-Dokumente, gebündelte
 Linux-Komponenten, Lizenzen, Übersetzungskatalog und verbotene Dateien.
 Ein vorher gebautes Archiv ist kein Nachweis für spätere
-Quelländerungen.</p>
-<p>Nach Dokumentationsänderungen wird die Dokumentation neu gebaut:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
-<p>Der lokale Referenzbuild und der CI-Job verwenden den offiziellen
-Binärbuild von Pandoc 3.1.11.1. Das Buildskript lehnt anders paketierte
-Builds ab, weil diese trotz gleicher Pandoc-Version abweichendes
-Syntax-Highlighting erzeugen können. CI lädt das offizielle Archiv mit
-festgelegter SHA-256-Prüfsumme.</p>
+Quelländerungen. Der Linux-Entwicklungscheckout erhält dabei weder ein
+auslieferbares Add-on noch dauerhafte Buildausgaben.</p>
+<p>Nach Dokumentationsänderungen wird die vollständige Dokumentation
+temporär gerendert und geprüft:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> tools/build_documentation.sh <span class="at">--test-only</span></span></code></pre></div>
+<p>Linux-Releasebuild und CI-Prüfjob verwenden den jeweiligen
+offiziellen Binärbuild von Pandoc 3.1.11.1 aus einem Archiv mit
+festgelegter SHA-256-Prüfsumme. Der Windows-Entwicklungsbuild verwendet
+ein vorhandenes Pandoc 3.1.11.1 mit den erwarteten Buildmerkmalen. Sonst
+lädt er den prüfsummengesicherten offiziellen Binärbuild in sein
+temporäres Buildverzeichnis.</p>
 <p>Der Build prüft die kanonische Lua-Beispielkonfiguration, deutsche
 und englische Quelldateien und Überschriftenstrukturen, lokale
 Markdownlinks, generierte HTML-Ziele, Sprach-, Titel- und
-Beschreibungsmetadaten sowie die acht erwarteten Dokumente im ZIP.
-Dieselben Ergebnisse werden für die installierte Hilfe synchronisiert;
-CI weist veraltete Kopien zurück. Historische Archive, die ausdrücklich
-nicht zur aktuellen Dokumentation gehören, werden validiert, aber nicht
-in das HTML aufgenommen.</p>
-<p>Ändert eine Arbeit sowohl installierbaren Inhalt als auch
-Dokumentation, werden beide Artefakte aus demselben finalen Worktree
-erzeugt.</p>
+Beschreibungsmetadaten sowie die acht erwarteten Dokumente. Das Skript
+löscht seine Ausgaben nach der Prüfung; CI veröffentlicht keine
+Endanwenderartefakte. Historische Archive, die ausdrücklich nicht zur
+aktuellen Dokumentation gehören, werden validiert, aber nicht in das
+HTML aufgenommen.</p>
+<p>Nach vollständiger Prüfung erzeugt <code>build.cmd</code> im lokalen
+Windows-Checkout die Entwicklungsartefakte. Der freigegebene Linux-Stand
+erzeugt mit <code>python3 tools/build_release.py</code> die später
+veröffentlichten Releaseartefakte. Beide Einstiegspunkte verwenden
+denselben isolierten Kern und bauen Add-on und Dokumentations-ZIP aus
+einem stabilen Branch- und Commitstand. Details zu
+Werkzeugvoraussetzungen und Abbruchbedingungen stehen unter <a href="#docs__de__development__release-and-buildmd__release--versions--und-buildprozess">Release-,
+Versions- und Buildprozess</a>.</p>
 </section>
 <section id="docs__de__development__testingmd__praktische-prüfung" class="level3">
 <h3>Praktische Prüfung</h3>
@@ -5946,6 +6206,8 @@ Stands;</li>
 <li>minimale und zuletzt getestete NVDA-Version;</li>
 <li>Projektadresse, Standardhilfedatei und englisches
 Manifest-Changelog.</li>
+<li>Quelladresse, Lizenzkennung und Lizenzadresse für den NVDA Add-on
+Store.</li>
 </ul>
 <p><code>store_version()</code> liefert ausschließlich
 <code>MAJOR.MINOR.PATCH</code> für Manifest und NVDA Add-on Store.
@@ -5955,22 +6217,40 @@ für Dateinamen, Diagnosebericht und gebündelte Komponenten. Das
 installierte Manifest wird beim Build aus diesen Werten und den
 passenden Changelogabschnitten erzeugt und nicht separat gepflegt. Das
 deutsche Lokalisierungsmanifest erhält dieselben Abschnitte aus dem
-deutschen Changelog. Bei einem Release verbindet
-<code>manifest_changelog()</code> alle Versionsabschnitte nach
-<code>manifest_changelog_base_version</code> bis einschließlich der
-aktuellen Version. Damit beschreibt das Store-Manifest genau das Upgrade
-vom zuletzt dort veröffentlichten Stand; die Vergleichsversion wird nach
-einer tatsächlichen Store-Veröffentlichung für den nächsten Release
-aktualisiert.</p>
-<p>Entwicklungsstände sammeln abgeschlossene Änderungen unter
-<code>Unveröffentlicht</code> beziehungsweise <code>Unreleased</code>;
-ihre Manifeste verwenden diesen Abschnitt. Bei der Release-Festlegung
-werden die Einträge redaktionell in den neuen deutschen und englischen
-Versionsabschnitt übernommen. Dieser beschreibt nur Änderungen seit der
-unmittelbar vorherigen veröffentlichten Version; anschließend bleiben
-die unveröffentlichten Abschnitte für die nächste Entwicklungslinie
-leer. Der Build wählt den Abschnitt aus, verändert aber keine
-Changelog-Quelle.</p>
+deutschen Changelog. <code>manifest_changelog()</code> verbindet bei
+einem Release die Abschnitte nach
+<code>manifest_changelog_base_version</code> bis zur aktuellen Version.
+Die Basis im Store für den vorgesehenen Upgrade-Pfad prüfen. Bei
+stabilen Releases zählt die vorige stabile Store-Version, auch wenn eine
+neuere Beta existiert. Für den ersten stabilen Release die älteste
+veröffentlichte Version wählen, für die der vorgesehene Upgrade-Pfad
+gilt. Relevante Änderungen aus zwischenzeitlichen Betas und reinen
+GitHub-Releases einbeziehen.</p>
+</section>
+<section id="docs__de__development__release-and-buildmd__regeln-für-version-und-changelog" class="level3">
+<h3>Regeln für Version und Changelog</h3>
+<p>Produktversionen folgen <a href="https://semver.org/spec/v2.0.0.html">SemVer</a>. PATCH steht für
+kompatible Korrekturen und MINOR für kompatible Funktionen und
+angekündigte Abkündigungen. Ab 1.0.0 steht MAJOR für Brüche zugesagter
+Kompatibilität, etwa bei unterstützten Plattformen, dauerhaft
+gespeicherten Einstellungen oder dem Protokoll zwischen separat
+aktualisierbaren Komponenten. Vor 1.0.0 einen bewussten
+Kompatibilitätsbruch mit MINOR kennzeichnen und in den Release Notes
+erläutern. Vor der Freigabe von 1.0.0 unterstützte Versionen und
+Upgrade-Verhalten festlegen.</p>
+<p>Der Nutzer gibt Produktversion und Kanal frei. Die numerische Version
+muss über alle Kanäle hinweg eindeutig sein. Vor der Freigabe Git-Tags,
+GitHub-Releases und Einträge im NVDA Store abgleichen. <a href="https://github.com/nvaccess/addon-datastore/blob/master/docs/design/jsonMetadata.md">Versions-
+und Kanalregeln des NVDA Stores</a></p>
+<p>Relevante Änderungen im selben Stand in beide Changelogs unter
+<code>Unveröffentlicht</code> und <code>Unreleased</code> aufnehmen.
+Auswirkungen beschreiben und bei Bedarf nach Neu, Geändert, Veraltet,
+Entfernt, Behoben und Sicherheit gliedern. Zum Release die Änderungen
+seit dem vorigen Release derselben Linie unter
+<code>## [X.Y.Z] - YYYY-MM-DD</code> zusammenfassen, die Version mit
+ihrem Tag verlinken und beide unveröffentlichten Abschnitte leeren. Ein
+leerer Abschnitt ergibt einen lokalisierten Hinweis in
+Entwicklungsmanifesten. <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a></p>
 </section>
 <section id="docs__de__development__release-and-buildmd__entwicklungsstände" class="level3">
 <h3>Entwicklungsstände</h3>
@@ -5986,83 +6266,136 @@ Verlauf abgeleitet.</p>
 </section>
 <section id="docs__de__development__release-and-buildmd__prüfung-und-build" class="level3">
 <h3>Prüfung und Build</h3>
-<p>Vor einem auslieferbaren Build wird der endgültige Worktree
-geprüft:</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_nvda_addon.py</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tools/build_documentation.sh</span></span></code></pre></div>
+<p>Entwickelt wird im lokalen Windows-Checkout. Linux deckt zusätzlich
+Unix-Sockets, PTY und SSH-Zielsysteme ab. Tests und
+Dokumentationsprüfungen verwenden temporäre Ausgaben:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/run_tests.py all</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> tools/build_documentation.sh <span class="at">--test-only</span></span></code></pre></div>
 <p><code>all</code> führt sichere, SSH- und Socketphasen nacheinander
 aus; die Umgebung muss Listener und kurzlebige Neovim-Prozesse erlauben.
 In eingeschränkten Umgebungen werden <code>all-safe</code>,
 <code>ssh</code> und <code>socket</code> entsprechend der <a href="#docs__de__development__testingmd__teststrategie">Teststrategie</a>
 getrennt ausgeführt.</p>
-<p>Der Add-on-Build prüft Manifest, acht installierte lokalisierte
-HTML-Dokumente, gebündelte Komponenten, Abhängigkeiten und Archivinhalt.
-Der Manifestvertrag folgt der Feldmenge des offiziellen
-NVDA-AddonTemplates: Alle zutreffenden Felder müssen als getrimmte
-Skalare vorliegen; unbekannte, leere oder fehlerhaft formatierte
-Angaben, eine fehlende englische Standardhilfe und unvollständige
-Lokalisierungsmanifeste brechen den Build ab. Ein Feld darf nur
-entfallen, wenn es für das Projekt tatsächlich nicht zutrifft. Der
-Dokumentationsbuild synchronisiert ausführbare Beispiele, prüft
-Markdown- und HTML-Links, die deutsche und englische Struktur sowie
-Sprache, Titel und Beschreibung der Ausgabedateien und erzeugt acht
-HTML-Dokumente. Er übernimmt dieselben Ergebnisse unter neutralen
-Dateinamen in <code>nvda-addon/addon/doc/de</code> und
-<code>doc/en</code>; CI lehnt veraltete Kopien ab.</p>
-<p><code>build.cmd</code> ist ein zusätzlicher, parameterloser
-Komfortweg für Windows-Nutzer, die einen aktuellen Entwicklungsbuild aus
-einem Quellcode-Download erzeugen. Er benötigt Python 3.10 oder neuer
-und eine Internetverbindung, richtet die festgelegten
-Buildabhängigkeiten ausschließlich in einem temporären
-Python-Environment ein und legt das <code>.nvda-addon</code> in
-<code>dist</code> ab. Der validierte Entwickler- und CI-Prozess oben
-bleibt davon unberührt.</p>
+<p>Der Build folgt dem offiziellen NVDA-AddonTemplate mit
+<code>sconstruct</code>, getrennten Vorlagen für das Basismanifest und
+übersetzte Manifeste, dem Ziel <code>pot</code> und Gettext-Katalogen
+unter <code>nvda-addon/addon/locale/</code>. Ein direkter Aufruf von
+<code>python -m SCons</code> erzeugt ein Prüfarchiv unter
+<code>build/scons/</code> mit den im Checkout vorhandenen HTML-Dateien.
+<code>build.cmd</code> und der Linux-Releasebuilder übergeben SCons
+frisch gerenderte Dokumentation und halten ihre Zwischendateien
+getrennt. <a href="https://github.com/nvdaaddons/AddonTemplate/tree/30318eae085fa81fe3a39045956c7a0516a0f981">NVDA
+AddonTemplate</a></p>
+<p>Pakettests bauen das Add-on in ihrem temporären Testverzeichnis und
+prüfen Manifest, acht installierte lokalisierte HTML-Dokumente,
+gebündelte Komponenten, Abhängigkeiten und Archivinhalt. Der
+Manifestvertrag folgt der Feldmenge des offiziellen NVDA-AddonTemplates:
+Alle zutreffenden Felder müssen als getrimmte Skalare vorliegen;
+unbekannte, leere oder fehlerhaft formatierte Angaben, eine fehlende
+englische Standardhilfe und unvollständige Lokalisierungsmanifeste
+brechen den Build ab. Ein Feld darf nur entfallen, wenn es für das
+Projekt tatsächlich nicht zutrifft. Die temporäre Dokumentationsprüfung
+synchronisiert ausführbare Beispiele, prüft Markdown- und HTML-Links,
+die deutsche und englische Struktur sowie Sprache, Titel und
+Beschreibung der Ausgabedateien und erzeugt acht HTML-Dokumente, bevor
+sie wieder gelöscht werden. CI veröffentlicht oder aktualisiert dabei
+keine Endanwenderartefakte.</p>
+<p>Normale Entwicklungsartefakte entstehen mit dem parameterlosen
+<code>build.cmd</code> aus einem sauberen, lokal ausgecheckten
+Windows-Branch mit Entwicklungsbuildnummer. Python 3, Git Bash und eine
+Internetverbindung für die gepinnten Python-Abhängigkeiten werden
+benötigt. Git Bash über <code>PATH</code>, die Standardinstallation von
+Git für Windows oder <code>NAL_GIT_BASH</code> bereitstellen. Der Build
+verwendet ein lokales Pandoc 3.1.11.1 oder lädt den offiziellen
+Windows-Binärbuild 3.1.11.1 temporär und prüft dessen SHA-256.</p>
+<p>Windows-Entwicklungsbuild und Linux-Releasebuild rendern die acht
+HTML-Dateien und verpacken sie über denselben isolierten Kern. Branch,
+Commit und Sauberkeit der versionierten Dateien werden vor und nach dem
+Build geprüft. Erst danach gelangen das Add-on und das
+Dokumentations-ZIP mit den erwarteten Namen nach <code>dist</code>. Für
+den Abgleich mit einem vorhandenen Repository dient
+<code>git fetch origin</code>.</p>
+</section>
+<section id="docs__de__development__release-and-buildmd__releasebuild-auf-linux" class="level3">
+<h3>Releasebuild auf Linux</h3>
+<p>Der endgültige, später getaggte und auf GitHub veröffentlichte Stand
+wird im Linux-Checkout gebaut. Nach vollständiger Prüfung, der Freigabe
+der Release-Metadaten und dem Merge auf <code>main</code> wird
+ausgeführt:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> tools/build_release.py</span></code></pre></div>
+<p>Der parameterlose Befehl akzeptiert ausschließlich einen sauberen
+<code>main</code>-Worktree mit <code>development_build = None</code>. Er
+lädt den offiziellen Pandoc-3.1.11.1-Linux-Binärbuild in ein temporäres
+Verzeichnis, prüft dessen SHA-256 und verwendet wie der
+Windows-Einstiegspunkt eine temporäre Python-Umgebung mit den
+festgelegten Buildabhängigkeiten. Vor und nach dem Build werden Branch,
+Commit und versionierte Sauberkeit verglichen. Nur das Add-on und das
+Dokumentations-ZIP des unveränderten Stands gelangen nach
+<code>dist</code>; Pandoc, Umgebung und Zwischenprodukte werden
+anschließend entfernt.</p>
+<p>Im Windows-Worktree heißen die beiden Dateien
+<code>NeovimAccessLink-&lt;artifact_version&gt;.nvda-addon</code> und
+<code>neovim-access-link-&lt;artifact_version&gt;-documentation.zip</code>;
+bei einem Entwicklungsstand enthält
+<code>&lt;artifact_version&gt;</code> <code>-dev.N</code> sowie nach
+Möglichkeit Branch- und Commitmetadaten. Der Linux-Releasebuild
+verwendet dagegen die reine Produktversion, beispielsweise
+<code>NeovimAccessLink-0.99.0.nvda-addon</code>.</p>
+<p>Ein erfolgreicher Build verändert keine versionierte Datei. Lokale
+Windows-Entwicklungsartefakte aus <code>build.cmd</code> in isolierten
+NVDA-Profilen testen. Der Build-Zusatz unterscheidet Pakete und
+Diagnoseausgaben. NVDA sieht die numerische Manifestversion, daher
+benötigen Upgradetests unterschiedliche numerische Versionen.</p>
 </section>
 <section id="docs__de__development__release-and-buildmd__releasevorbereitung" class="level3">
 <h3>Releasevorbereitung</h3>
-<p>Eine freigegebene Version benötigt in einem gemeinsamen,
-nachvollziehbaren Stand:</p>
 <ol type="1">
-<li>Produktversion, Manifest-Update-Kanal,
-<code>manifest_changelog_base_version</code> und
-<code>development_build = None</code> in <code>buildVars.py</code>;</li>
-<li>aktuellen Release- und Changeloglink in <code>README.md</code> sowie
-einen aus den unveröffentlichten Einträgen redaktionell erstellten
-deutschen und englischen Versionsabschnitt mit allen Änderungen seit der
-unmittelbar vorherigen veröffentlichten Version;</li>
-<li>aktuellen Status, kompatible Metadaten und vollständige
-Deutsch/Englisch- Dokumentation;</li>
-<li>erfolgreiche vollständige Tests und frisch gebaute Artefakte;</li>
-<li>einen Commit und ein annotiertes oder leichtgewichtiges Tag
-<code>vMAJOR.MINOR.PATCH</code> auf genau diesem Commit.</li>
+<li>Den Release in einem GitHub-Pull-Request gegen <code>main</code>
+vorbereiten. Freigegebene Version, Kanal, Store-Basis und
+<code>development_build = None</code> in <code>buildVars.py</code>
+setzen. Die minimale NVDA-API entspricht der Support-Untergrenze. Die
+zuletzt getestete API richtet sich nach erfolgreichen Tests. Stabile
+Releases benötigen eine stabile NVDA-API.</li>
+<li>Beide Changelogs, die Release-Links im README und die deutschen und
+englischen Status- und Kompatibilitätsseiten abschließen. Den PR nach
+Freigabe und erfolgreichen erforderlichen Prüfungen zusammenführen.</li>
+<li>Aus sauberem Linux-<code>main</code> am gemergten Commit die
+vollständigen Tests und <code>python3 tools/build_release.py</code>
+ausführen. Basis- und Lokalmanifeste gegen das aktuelle NVDA
+AddonTemplate prüfen und beide Artefakte sowie die relevanten
+Installations- und Upgrade-Pfade verifizieren.</li>
+<li>Nach Freigabe ein annotiertes Tag <code>vMAJOR.MINOR.PATCH</code>
+auf exakt dem gebauten Commit setzen und dieses Tag pushen. Der Commit
+gelangt per Pull Request auf GitHub-<code>main</code>. Vor dem Entwurf
+das entfernte Tag-Ziel prüfen.</li>
 </ol>
-<p>Push, Tag und GitHub-Veröffentlichung erfolgen nur nach
-ausdrücklicher Freigabe. Vor dem Tag wird geprüft, dass Worktree,
-Version, README-Links und Artefaktnamen zusammenpassen.</p>
-</section>
-<section id="docs__de__development__release-and-buildmd__abbruchbedingungen" class="level3">
-<h3>Abbruchbedingungen</h3>
-<p>Die Freigabe wird vor Tag oder Veröffentlichung abgebrochen, wenn
-Tests oder Builds fehlschlagen, der Worktree unerwartete Änderungen
-enthält, Version und Links nicht zusammenpassen, ein Artefakt nicht aus
-dem getaggten Stand stammt oder eine erforderliche praktische Prüfung
-offen ist. Ein vorhandener Tag wird nicht still verschoben; eine
-Korrektur erhält nach Entscheidung des Nutzers eine neue Produktversion
-oder einen ausdrücklich neu aufgebauten, noch nicht veröffentlichten
-Tag.</p>
+<p>Bei fehlgeschlagenen Prüfungen, fehlender Freigabe, einer bereits
+verwendeten Version oder Abweichungen zwischen Tag, Manifesten, Links
+und Dateien abbrechen. Veröffentlichte Tags und Dateien bleiben
+unveränderlich. Paketkorrekturen erhalten eine neue Version.</p>
 </section>
 <section id="docs__de__development__release-and-buildmd__github-und-add-on-store" class="level3">
 <h3>GitHub und Add-on Store</h3>
-<p>Ein GitHub-Pre-Release wird aus dem freigegebenen Tag erstellt,
-erhält die englische Releasebeschreibung und genau die beiden unten
-genannten Assets. Danach werden Tagziel, Pre-Release-Markierung,
-Assetnamen und Downloads auf GitHub erneut geprüft.</p>
-<p>Die Einreichung in den NVDA Add-on Store ist ein getrennter Vorgang
-im Add-on-Datastore. Sie verweist auf einen bereits veröffentlichten,
-unveränderlichen Stand und folgt dessen aktueller Einreichungsprüfung.
-Nach einer Store-Einreichung werden Tag und Assets nicht ersetzt; eine
-Korrektur erhält eine neue Produktversion.</p>
+<p>Nach Veröffentlichungsfreigabe einen Entwurf für das vorhandene Tag
+anlegen. Englische Hinweise aus dem Changelog seit dem vorigen
+GitHub-Release derselben Linie ableiten. Kompatibilität, Migration,
+Prüfgrenzen und Dokumentationslinks am Tag aufnehmen. Die Notizdatei
+liegt unter <code>../nal-aux/</code>.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> release create <span class="st">&quot;v&lt;VERSION&gt;&quot;</span> <span class="st">&quot;dist/NeovimAccessLink-&lt;VERSION&gt;.nvda-addon&quot;</span> <span class="dt">\</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;dist/neovim-access-link-&lt;VERSION&gt;-documentation.zip&quot;</span> <span class="dt">\</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repo</span> helmsaccess/neovim-access-link <span class="at">--draft</span> <span class="at">--verify-tag</span> <span class="at">--fail-on-no-commits</span> <span class="dt">\</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">&quot;Neovim Access Link &lt;VERSION&gt;&quot;</span> <span class="at">--notes-file</span> <span class="st">&quot;&lt;RELEASE_NOTES_FILE&gt;&quot;</span> <span class="op">&lt;</span>STATUS_FLAGS<span class="op">&gt;</span></span></code></pre></div>
+<p>Vorschauen verwenden <code>--prerelease --latest=false</code>, die
+aktuelle stabile Linie <code>--latest</code> und ältere stabile
+Wartungsreleases <code>--latest=false</code>. Im Entwurf Tag-Ziel,
+Hinweise, Dateinamen und SHA-256 beider Downloads prüfen. Danach den
+öffentlichen Release kontrollieren. Als Repository-Schutz <a href="https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases">unveränderliche
+Releases</a> nutzen.</p>
+<p>Die Store-Einreichung benötigt eine eigene Freigabe. Die direkte
+HTTPS-URL und den SHA-256 des geprüften veröffentlichten Add-ons
+verwenden. Den tatsächlichen Store-Eintrag bestätigen, bevor er als
+Basis dient. Experimentelle NVDA-API-Versionen erfordern im Store den
+Kanal Beta oder Dev. <a href="https://github.com/nvaccess/addon-datastore/blob/master/docs/submitters/submissionGuide.md">NVDA-Einreichungsregeln</a></p>
 </section>
 <section id="docs__de__development__release-and-buildmd__veröffentlichungsartefakte" class="level3">
 <h3>Veröffentlichungsartefakte</h3>
@@ -6141,9 +6474,13 @@ Gestenzähler oder Timerinternas.</p>
 <section id="docs__de__development__nvda-20261-api-notesmd__öffentliche-brailleverträge" class="level3">
 <h3>Öffentliche Brailleverträge</h3>
 <ul>
-<li><code>braille.TextInfoRegion</code> nimmt am normalen Caret-Nachlauf
-teil. Die Add-on-Region erbt davon, übersetzt semantischen Neovim-Text
-aber über die öffentliche <code>Region.update()</code>-Methode.</li>
+<li>Aktuelle NVDA-Versionen stellen <code>Region</code> und
+<code>TextInfoRegion</code> in <code>braille.regions.base</code> und
+<code>braille.regions.textInfo</code> bereit. Das Add-on greift für NVDA
+2026.1 auf die Klassen aus <code>braille</code> zurück.</li>
+<li><code>TextInfoRegion</code> nimmt am normalen Caret-Nachlauf teil.
+Die Add-on-Region erbt davon, übersetzt semantischen Neovim-Text aber
+über die öffentliche <code>Region.update()</code>-Methode.</li>
 <li><code>Region.rawText</code>, <code>cursorPos</code>,
 <code>selectionStart</code>, <code>selectionEnd</code> und
 <code>brailleToRawPos</code> liefern Text, Cursor, Auswahl und Routing.
@@ -6252,21 +6589,22 @@ stimmen überein.</li>
 <h2>Abhängigkeiten</h2>
 <section id="docs__de__development__dependenciesmd__gebündelte-laufzeitabhängigkeit" class="level3">
 <h3>Gebündelte Laufzeitabhängigkeit</h3>
-<p>MessagePack Python 1.1.1 wird unter der Apache-Lizenz 2.0 für die
+<p>MessagePack Python 1.1.2 wird unter der Apache-Lizenz 2.0 für die
 Kodierung und Dekodierung des Protokolls gebündelt. Quellcode und Lizenz
 werden in das Add-on und das Linux-Komponentenpaket kopiert. Auf dem
 Zielsystem ist deshalb kein separates MessagePack-Paket
 erforderlich.</p>
-<p>Der Add-on-Build akzeptiert genau Version 1.1.1 und übernimmt nur die
+<p>Der Add-on-Build akzeptiert genau Version 1.1.2 und übernimmt nur die
 portablen Python-Dateien und den Lizenztext. Native Bibliotheken und
-Bytecode werden nicht paketiert.</p>
+Bytecode werden nicht paketiert. Version 1.1.2 ändert gegenüber 1.1.1
+nur die bereitgestellten Binärpakete und unterstützt dadurch den
+isolierten Build mit Python 3.14 ohne lokale Compilerwerkzeuge.</p>
 </section>
 <section id="docs__de__development__dependenciesmd__buildabhängigkeiten" class="level3">
 <h3>Buildabhängigkeiten</h3>
-<p>Python 3, ConfigObj für die NVDA-kompatible Manifestprüfung und
-Pandoc für die eigenständige HTML-Dokumentation werden nur beim Build
-verwendet. Sie sind keine Laufzeitabhängigkeiten des installierten
-Add-ons oder Plugins.</p>
+<p>Python 3, SCons für das Buildziel, ConfigObj für die NVDA-kompatible
+Manifestprüfung und Pandoc für die HTML-Dokumentation werden beim Build
+verwendet. Add-on und Plugin benötigen sie im Betrieb nicht.</p>
 <p>Neue Abhängigkeiten benötigen einen dokumentierten Zweck sowie eine
 Prüfung von Lizenz, Wartung, Größe, Latenz und Paketierung.</p>
 </section>
@@ -6275,7 +6613,12 @@ Prüfung von Lizenz, Wartung, Größe, Latenz und Paketierung.</p>
 <p><code>tools/build_nvda_addon.py</code> und
 <code>tools/build_user_package.py</code> legen die akzeptierte
 MessagePack-Version fest und besitzen Auswahl, Lizenzprüfung und
-Paketziele. Die gepinnten Build- und Testwerkzeuge stehen in
+Paketziele. <code>tools/distribution_build.py</code> besitzt den
+gemeinsamen isolierten Windows-/Linux-Buildablauf und die
+prüfsummengesicherten offiziellen Pandoc-Archive; der Windows-Pfad
+akzeptiert außerdem ein lokal verfügbares Pandoc mit passender Major-
+und Minor-Version. Die gepinnten Build- und Testwerkzeuge stehen in
+<code>tools/requirements-build.txt</code>,
 <code>tools/requirements-ci.txt</code>,
 <code>tools/requirements-linter-ci.txt</code> und dem
 Repository-Testworkflow. Pakettests untersuchen die erzeugten Archive;
@@ -6503,21 +6846,122 @@ zum 5. August 2026.</p>
 <section id="docs__de__development__changelogmd__unveröffentlicht" class="level3">
 <h3>Unveröffentlicht</h3>
 <ul>
-<li>Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die
-Entwicklungslinie 0.99.0 mit Entwicklungsbuild 1.</li>
-<li>Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche
-Root-Fassade komponiert jetzt eindeutige Besitzer für Ereigniskanal,
-Eingabe, Completion, Befehlszeile, UI-Prompts, Oil-Bestätigungen und
-Kontextwechsel. Öffentliche RPC-/Adapterfunktionen und semantische
-Ereignisse bleiben unverändert. Ein eigener Verhaltenstest belegt den
-Fail-open-Kanalabbau; der Pakettest prüft identische getestete Module
-statt interner Quelltextfragmente. Dieser installierbare Stand ist
-Entwicklungsbuild 2.</li>
-<li>Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame
+<li><p>Aktualisiert die NVDA- und Neovim-Referenzstände und dokumentiert
+die bestätigten Windows-Gastprüfungen für alle 18 geführten Fälle. Die
+endgültige Codeanalyse und der Reaudit bleiben als historische Berichte
+erhalten. GitHub Actions prüft den Windows-Desktop getrennt vom
+vollständigen Gastlauf, den ein privates Testlabor per
+wiederverwendbarem Workflow ausführt.</p></li>
+<li><p>Bewahrt in C1 eine Aufnahme mit fehlender QEMU-Startmarke auf,
+wiederholt den betroffenen Ablauf nach bestandener Gast- und
+WASAPI-Prüfung mit einem frisch gestarteten Gast einmal und prüft beide
+Versuche nach. Der Actions-Job führt unabhängige Fälle nach einem Fehler
+weiter aus und fährt seinen Testgast nach der Suite herunter.</p></li>
+<li><p>Prüft QEMU-Referenzmarken für C1 und D1 anhand getrennter
+Wellenformabschnitte mit begrenztem Zeitversatz und ergänzt Gegenproben
+für Rauschen, unvollständige und verschobene Marken sowie doppelte
+Signale.</p></li>
+<li><p>Startet den verwalteten Gast zwischen den unabhängigen
+P2-Fixtures neu und erkennt ein QEMU-Ende beim Warten auf die
+Desktop-Bereitschaft.</p></li>
+<li><p>Führt die geführten Aufgaben in optionale Desktop- und
+Audiogruppen mit isolierter Windows-VM und überprüften Gegenproben
+über.</p></li>
+<li><p>Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die
+Zustandsansage ohne zusätzliche Buchstabenansage durch die verschobene
+Cursorspalte aus.</p></li>
+<li><p>Öffnet in Aufgabe L4 die Quickfix-Liste bereits mit F3. Ein
+Regressionstest prüft den Fokus auf den ersten Treffer.</p></li>
+<li><p>Wartet in den geführten Python-Diagnosetests auf Ruff und
+Pyright. Die Fixture überlässt Importwarnungen Ruff, sodass verspätete
+Pyright-Befunde die Reihenfolge nach der Bereitschaftsmeldung nicht
+verändern.</p></li>
+<li><p>Prüft geführte Suche, Ersetzung, LSP, Completion, Diagnosen und
+das Lazy-Fenster über echte Neovim-Eingabe und authentifiziertes RPC.
+Prüft Signatur- und Diagnosekontext ohne Cursorbewegung. Ergänzt
+Gegenproben für unvollständige Ersetzung, veralteten Diagnosekontext und
+Lazy-Git-Prüfungen. Korrigiert den Cursorweg über ein Dezimalargument in
+Aufgabe L2.</p></li>
+<li><p>Führt die in den Windows-Prüfungen verwendete NVDA-API 2026.3.1
+als zuletzt getestet im Manifest.</p></li>
+<li><p>Benötigt Pull Requests für Änderungen an <code>main</code>, auch
+zur Releasevorbereitung. Dokumentiert semantische Produktversionen,
+datierte Changelogs, GitHub-Releaseentwürfe und die Store-Upgradebasis.
+Der Paketbuild erkennt die neuen Überschriften und funktioniert mit
+leerem unveröffentlichtem Abschnitt. Die PR-Vorlage verlangt ein
+Changelog zum gesamten Diff.</p></li>
+<li><p>Verwendet SCons für den Add-on-Build und das Gettext-Template.
+Basismanifest und Sprachmanifeste folgen der Vorlagenstruktur des
+NVDA-AddonTemplates. Name und Beschreibung im Sprachmanifest stammen aus
+dem Gettext-Katalog.</p></li>
+<li><p>Vereinheitlicht ZIP-Metadaten und die Zeilenenden gebündelter
+Python-Dateien, damit Windows und Linux dieselben Paketdaten
+verarbeiten.</p></li>
+<li><p>Prüft F12-Zuordnung, Editieren, Panes, Tabs, Fensterwechsel und
+Wiederherstellung nach dem Beenden eines Editors auf einem aktiven
+Windows-Gastdesktop mit den aktuellen und den Mindestversionen von NVDA
+und Neovim. Die Windows-Einrichtung beschreibt die optionale
+Visual-C++-Laufzeit für ein frisches System.</p></li>
+<li><p>Begrenzt Verbindungsaufbau und Empfang im gemeinsamen
+Neovim-RPC-Client. Ungültige RPC-Nachrichten lösen einen Disconnect aus.
+Controls werden erst über den geprüften, registrierten Kanal
+gesendet.</p></li>
+<li><p>Prüft den lokalen Python-Client gegen echtes Neovim
+einschließlich Sitzungsanmeldung, vollständigem Zustand und
+Cursor-Routing.</p></li>
+<li><p>Beendet den eigenen SSH-Prozess bei Protokollfehlern und beim
+Abbruch während des Prozessstarts, bevor eine weitere Verbindung
+aufgebaut wird.</p></li>
+<li><p>Richtet parallele Testläufe an den verfügbaren logischen
+Prozessoren aus. Bis zu zwölf isolierte Blöcke verkürzen die Pakettests
+auf Rechnern mit vielen Kernen. <code>-j</code> bleibt die Grenze pro
+Lauf.</p></li>
+<li><p>Ermöglicht die lokale Windows-Entwicklung mit Git-Abgleich über
+<code>origin</code>. <code>build.cmd</code> verwendet einen sauberen
+lokalen Branch. Die Python- und Lua-Tests unterstützen native
+Windows-Pfade und Testprozesse. Der Windows- Socketlauf prüft den
+lokalen TCP-Pfad. Unix-Sockets und PTY laufen unter Linux.</p></li>
+<li><p>Verwendet die aktuellen NVDA-Importpfade für Braille-Regionen und
+behält den Rückgriff für NVDA 2026.1 bei. Das gebaute Add-on startet
+unter NVDA 2026.3.1. Die Lua- und Windows-TCP-Tests verwenden Neovim
+0.12.6.</p></li>
+<li><p>Vereinheitlicht Add-on und Dokumentations-ZIP über einen
+isolierten Buildkern. Der Windows-Build erkennt den offiziellen Pandoc
+3.1.11.1 auch bei Windows-Zeilenenden. Der Linux-Releasebuild verwendet
+einen sauberen, freigegebenen <code>main</code>-Stand. Der frühere
+Git-Ref-Abgleich war Bestandteil des Linux-Entwicklungsworkflows.
+MessagePack 1.1.2 stellt offizielle Binärpakete für Python 3.14
+bereit.</p></li>
+<li><p>Ersetzt den separaten Abgleich generierter und installierter
+Dokumentation durch eine interne Layoutbibliothek und entfernt den
+ungenutzten Windows- Helfer zum Hochladen von NVDA-Logs.</p></li>
+<li><p>Repariert die Lazy-Praxistest-Vorbereitung auf gemeinsam
+genutzten oder gemappten Repositorylaufwerken: Die isolierte
+Git-Konfiguration führt die konkreten Fixture-Repositories statt eines
+Wildcards auf. Die Vorbereitung bricht beim ersten fehlerhaften
+Werkzeug- oder Profiltest mit dem direkten Grund ab. Vorhandene
+Pyright-Installationen werden anhand von Paket, Serverdatei und echtem
+CLI-Aufruf erkannt und direkt über Node gestartet. Die Vorbereitung lädt
+nur die für die Auswahl benötigten Plugins, startet jeden Linter genau
+einmal und wertet dessen eigenen Diagnoseraum aus. Der Zustand
+unterscheidet, welche ausgewählten Profile bereits erfolgreich
+vorgeprüft wurden. Konkrete Wiederverwendungs-, Aktualisierungs- und
+Providerfehler ersetzen mehrdeutige Sammelmeldungen.</p></li>
+<li><p>Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die
+Entwicklungslinie 0.99.0 mit Entwicklungsbuild 1.</p></li>
+<li><p>Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die
+öffentliche Root-Fassade komponiert jetzt eindeutige Besitzer für
+Ereigniskanal, Eingabe, Completion, Befehlszeile, UI-Prompts,
+Oil-Bestätigungen und Kontextwechsel. Öffentliche RPC-/Adapterfunktionen
+und semantische Ereignisse bleiben unverändert. Ein eigener
+Verhaltenstest belegt den Fail-open-Kanalabbau; der Pakettest prüft
+identische getestete Module statt interner Quelltextfragmente. Dieser
+installierbare Stand ist Entwicklungsbuild 2.</p></li>
+<li><p>Stabilisiert reale TUI-Regressionstests, indem eine gemeinsame
 Sendehilfe ausstehende PTY-Ausgabe vor jedem physischen Tastenschritt
 leert. Damit blockiert ein voller Test-Ausgabepuffer nicht mehr Neovims
-Eingabepolling.</li>
-<li>Schließt die kritische Nachprüfung des Neovim-Plugin-Refactorings
+Eingabepolling.</p></li>
+<li><p>Schließt die kritische Nachprüfung des Neovim-Plugin-Refactorings
 ab: Der Ereigniskanal schützt nun auch ungültige Snapshots, Payload- und
 Versandfehler. Eingabepräfixe bilden einen einzelnen markierten Zustand,
 sodass gekoppelte <code>g</code>-Befehle nicht als unabhängige Makro-,
@@ -6525,8 +6969,8 @@ Register- oder Editbefehle fehlklassifiziert werden; Reconnects
 verwerfen alte geplante Eingabeereignisse. Regressionstests decken diese
 Übergänge, wiederholtes Setup und begrenzte PTY-Entleerung ab. Der
 Test-Runner begrenzt außerdem jeden isolierten Job. Dieser
-installierbare Stand ist Entwicklungsbuild 3.</li>
-<li>Korrigiert die bei einer unabhängigen Lifecycle-Nachprüfung
+installierbare Stand ist Entwicklungsbuild 3.</p></li>
+<li><p>Korrigiert die bei einer unabhängigen Lifecycle-Nachprüfung
 gefundenen Restlücken: Jeder interne Publikationsfehler schließt jetzt
 auch den realen RPC-Transport. Eine Verbindungsgeneration verwirft
 geplante UI-, Befehlszeilen-, Kontext-, Diagnose- und
@@ -6537,8 +6981,8 @@ UI-Anbindung mehr entfernen. Der Runner beendet bei seinem Zeitlimit die
 vollständige Prozessgruppe statt nur des direkten Testprozesses. Reale
 RPC-, Reconnect-, Menülebenszyklus- und Kindprozess-Regressionstests
 decken diese Grenzen ab. Dieser installierbare Stand ist
-Entwicklungsbuild 4.</li>
-<li>Vereinfacht die Python-Laufzeit des NVDA-Add-ons nach einem
+Entwicklungsbuild 4.</p></li>
+<li><p>Vereinfacht die Python-Laufzeit des NVDA-Add-ons nach einem
 vollständigen Architekturaudit. Das Global Plugin ist von mehr als 3200
 auf wenige Dutzend Zeilen reduziert und verwaltet nur noch die
 Lebensdauer einer transaktional aufgebauten Runtime.
@@ -6551,8 +6995,8 @@ den NVDA-Hauptthread auf Transportabschluss warten zu lassen.
 Architektur-, Rollback-, Nebenläufigkeits- und Besitztests sichern diese
 Grenzen; die Python-Stilprüfung erfasst nun auch sämtliche Add-on-Tests.
 Dieser erste installierbare Stand des neuen Entwicklungszweigs ist
-Entwicklungsbuild 1.</li>
-<li>Härtet den Python-Laufzeitumbau nach einer unabhängigen
+Entwicklungsbuild 1.</p></li>
+<li><p>Härtet den Python-Laufzeitumbau nach einer unabhängigen
 Seniorprüfung. Der <code>ControlDispatcher</code> hält die Reihenfolge
 je Client ein, isoliert unabhängige Clients mit einem festen Workerpool
 und lässt den lokalen RPC-Stopp einen blockierten Socketversand
@@ -6564,8 +7008,8 @@ Lifecycle delegiert den vollständigen Verbindungsabbau an genau einen
 Workflow, während die Zustandsmaschine temporär gemerkter Bindungen
 einen eigenen Controller besitzt. Direkte Queue-, Reihenfolge-,
 Isolation-, Abbruch-, Dialog- und Besitztests decken die neuen Grenzen
-ab. Dieser installierbare Stand ist Entwicklungsbuild 2.</li>
-<li>Verbessert die Rückfrage nach einer temporären F12-Tab-Zuordnung:
+ab. Dieser installierbare Stand ist Entwicklungsbuild 2.</p></li>
+<li><p>Verbessert die Rückfrage nach einer temporären F12-Tab-Zuordnung:
 <code>Ja</code> besitzt wieder den Standardfokus. Ein neues Ankreuzfeld
 speichert die ausdrücklich gewählte Antwort im aktiven
 NVDA-Konfigurationsprofil; die Einstellung
@@ -6574,8 +7018,8 @@ erneutem Fragen, automatischem Merken und automatischem Nichtmerken
 wechseln. Profilwechsel, <code>Ja</code>- und
 <code>Nein</code>-Entscheidungen, Abbruch, Dialogfokus und die
 dialogfreie Wiederverwendung sind durch Pakettests abgedeckt. Dieser
-installierbare Stand ist Entwicklungsbuild 3.</li>
-<li>Behebt einen Fokusrennenfehler der F12-Merkabfrage. Die
+installierbare Stand ist Entwicklungsbuild 3.</p></li>
+<li><p>Behebt einen Fokusrennenfehler der F12-Merkabfrage. Die
 Autorisierung der Dialogentscheidung und die einmalige
 Fokuswiederherstellung besitzen nun getrennte Lebensdauern. Ein
 zwischenzeitlich verbrauchter Fokus-Rücksprung verwirft ein späteres
@@ -6587,8 +7031,8 @@ Frage ab. Der praktische Lauf unter NVDA 2026.2beta10 deckte den Fehler
 auf und prüfte den umgebenden Fokuspfad; das Manifest setzt die zuletzt
 getestete NVDA-Version auf 2026.2. Der korrigierte Build benötigt noch
 den abschließenden manuellen Wiederholungstest. Dieser installierbare
-Stand ist Entwicklungsbuild 1.</li>
-<li>Verhindert falsche SSH-Wiederverbindungen nach dem Beenden der
+Stand ist Entwicklungsbuild 1.</p></li>
+<li><p>Verhindert falsche SSH-Wiederverbindungen nach dem Beenden der
 gebundenen entfernten Neovim-Instanz. Eine weiterlaufende Bridge
 beantwortet fokusbedingte Zustandsabfragen zwar weiterhin, doch ein
 <code>fullState</code> mit <code>connection.neovim=disconnected</code>
@@ -6600,26 +7044,27 @@ anfänglich getrennten Zustand und einen echten späteren Reconnect ab.
 Der praktische Zwei-Pane-Test unter NVDA 2026.2beta10 deckte den Fehler
 auf; der korrigierte Build benötigt noch den manuellen
 Wiederholungstest. Dieser installierbare Stand ist Entwicklungsbuild
-2.</li>
-<li>Entfernt die fehleranfällige Rückfrage nach dem Merken einer neuen
-F12-Zuordnung einschließlich Ankreuzfeld, Profilwert und Einstellung.
-Eine erfolgreiche, noch exakt fokussierte Zuordnung wird jetzt
-automatisch nur für die laufende NVDA-/Windows-Terminal-Sitzung gemerkt;
-der vorhandene Vergessen-Befehl entfernt sie weiterhin vorzeitig.
-Derselbe WT-Pane bleibt auch dann zugeordnet, wenn dessen UIA-Provider
-zwischen den unter NVDA 2026.2beta10 beobachteten Runtime-ID-Formen
-wechselt. Diese Normalisierung verlangt gemeinsam denselben Prozess,
-dasselbe Fensterhandle, dieselbe freigegebene Klasse und dieselben
-Pane-Endkomponenten sowie NVDAs positive UIA-Elementgleichheit; andere
-Panes bleiben getrennt. Direkte und Paketregressionstests decken
-automatisches Merken, Fokusrennen, Aliaswechsel und getrennte Panes ab.
-Der manuelle Wiederholungstest des korrigierten Builds unter NVDA
-2026.2beta10 bestätigte bei häufigen Wechseln zwischen lokalem Pane,
-SSH-Pane und einem weiteren WT-Fenster stabile, getrennte Bindungen,
-natives Tippecho außerhalb der aktiven Sitzung sowie das Ausbleiben
-falscher Wiederverbindungen nach dem Ende von Remote-Neovim. Dieser
-installierbare Stand ist Entwicklungsbuild 3.</li>
-<li>Härtet nach der vollständigen Unit-Test-Nachprüfung die
+2.</p></li>
+<li><p>Entfernt die fehleranfällige Rückfrage nach dem Merken einer
+neuen F12-Zuordnung einschließlich Ankreuzfeld, Profilwert und
+Einstellung. Eine erfolgreiche, noch exakt fokussierte Zuordnung wird
+jetzt automatisch nur für die laufende NVDA-/Windows-Terminal-Sitzung
+gemerkt; der vorhandene Vergessen-Befehl entfernt sie weiterhin
+vorzeitig. Derselbe WT-Pane bleibt auch dann zugeordnet, wenn dessen
+UIA-Provider zwischen den unter NVDA 2026.2beta10 beobachteten
+Runtime-ID-Formen wechselt. Diese Normalisierung verlangt gemeinsam
+denselben Prozess, dasselbe Fensterhandle, dieselbe freigegebene Klasse
+und dieselben Pane-Endkomponenten sowie NVDAs positive
+UIA-Elementgleichheit; andere Panes bleiben getrennt. Direkte und
+Paketregressionstests decken automatisches Merken, Fokusrennen,
+Aliaswechsel und getrennte Panes ab. Der manuelle Wiederholungstest des
+korrigierten Builds unter NVDA 2026.2beta10 bestätigte bei häufigen
+Wechseln zwischen lokalem Pane, SSH-Pane und einem weiteren WT-Fenster
+stabile, getrennte Bindungen, natives Tippecho außerhalb der aktiven
+Sitzung sowie das Ausbleiben falscher Wiederverbindungen nach dem Ende
+von Remote-Neovim. Dieser installierbare Stand ist Entwicklungsbuild
+3.</p></li>
+<li><p>Härtet nach der vollständigen Unit-Test-Nachprüfung die
 Protokollgrenzen. Boolesche und negative Sequenzen oder Zeitstempel
 werden bereits in der Nachrichtenhülle verworfen. Eine neue
 Transport-Sitzung beginnt ausschließlich mit <code>fullState</code> und
@@ -6627,21 +7072,22 @@ Sequenz 0; Resync akzeptiert weder alte Zustandsabbilder noch fremde
 Sitzungen mit fortgesetzter Sequenz. Direkte Grenzwert- und Negativtests
 prüfen außerdem MessagePack-Fragmentierung, Textspalten, Cursor-Routing
 und das Entfernen flüchtiger Ergebnisfelder. Dieser erste installierbare
-Stand des Test-Review-Zweigs ist Entwicklungsbuild 1.</li>
-<li>Schließt die strukturellen Punkte der Unit-Test-Nachprüfung. Direkte
-Tests prüfen die extrahierten NVDA-Runtime-Eigentümer ohne vollständige
-<code>GlobalPlugin</code>-Konstruktion; redundante Paketfälle wurden
-entfernt, während echte Kompositions-, Persistenz- und Fokusverträge
-erhalten bleiben. Architekturregeln verwenden Syntaxbaum-Invarianten
-statt fragiler Quelltexttreffer, Nebenläufigkeitstests Ereignisse statt
-kurzer Wandzeitgrenzen. Mock- und echte TUI-Bridge-Tests sind
-dateibasiert getrennt, der Runner zeigt Skip-Gründe und Warnungen, und
-vier gezielte Mutationen belegen kritische Protokollverträge.</li>
-<li>Korrigiert den eigenen GitHub-Actions-Job für
+Stand des Test-Review-Zweigs ist Entwicklungsbuild 1.</p></li>
+<li><p>Schließt die strukturellen Punkte der Unit-Test-Nachprüfung.
+Direkte Tests prüfen die extrahierten NVDA-Runtime-Eigentümer ohne
+vollständige <code>GlobalPlugin</code>-Konstruktion; redundante
+Paketfälle wurden entfernt, während echte Kompositions-, Persistenz- und
+Fokusverträge erhalten bleiben. Architekturregeln verwenden
+Syntaxbaum-Invarianten statt fragiler Quelltexttreffer,
+Nebenläufigkeitstests Ereignisse statt kurzer Wandzeitgrenzen. Mock- und
+echte TUI-Bridge-Tests sind dateibasiert getrennt, der Runner zeigt
+Skip-Gründe und Warnungen, und vier gezielte Mutationen belegen
+kritische Protokollverträge.</p></li>
+<li><p>Korrigiert den eigenen GitHub-Actions-Job für
 Neovim-0.12-Tutor-Semantik nach der Trennung der Mock- und Socket-Tests.
 Der Job ruft wieder den vorhandenen echten TUI-Test mit seinem aktuellen
 Modul- und Klassennamen auf, statt nach dem erfolgreichen Lua-Test an
-einem veralteten Importpfad abzubrechen.</li>
+einem veralteten Importpfad abzubrechen.</p></li>
 </ul>
 </section>
 <section id="docs__de__development__changelogmd__0980" class="level3">
@@ -6929,509 +7375,6 @@ lokale und entfernte Neovim-Sitzungen.</li>
 Registrierung und gibt sie bei Fehlern fail-open an die native TUI
 zurück.</li>
 </ul>
-</section>
-</section>
-</div>
-<div id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md">
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__anhang-a-qualitätsreview-der-global-plugin-verschlankung" class="level2">
-<h2>Anhang A: Qualitätsreview der Global-Plugin-Verschlankung</h2>
-<p>Reviewdatum: 19. Juli 2026, 20:04:03 CEST (UTC+02:00)</p>
-<p>Vergleich: <code>feature/global-plugin-slimming</code> gegen
-<code>main</code></p>
-<p>Produktstand des geprüften Testbuilds: <code>0.94.2-dev.13</code></p>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__warum-dieser-bericht-existiert" class="level3">
-<h3>Warum dieser Bericht existiert</h3>
-<p>Neovim Access Link besteht auf NVDA-Seite aus einem
-Windows-Terminal-AppModule, einem Global Plugin und gemeinsam genutzten
-Diensten. In einer fachlichen Diskussion zur NVDA-Add-on-Architektur
-wurde zu Recht gefragt, ob das Global Plugin mehr Verantwortung und
-prozessweite Reichweite besitzt als nötig.</p>
-<p>Daraufhin wurde der Featurebranch
-<code>feature/global-plugin-slimming</code> angelegt. Er soll die
-Zuständigkeitsgrenzen an NVDAs übliche Erweiterungspunkte annähern, ohne
-die bereits praktisch bestätigte Zuordnung mehrerer Windows-Terminal-
-Fenster, Tabs und Panes oder das Fail-open-Verhalten zu gefährden.
-Dieses Review wurde vor einer späteren Zusammenführung mit
-<code>main</code> erstellt, um:</p>
-<ol type="1">
-<li>die tatsächlichen Unterschiede zu <code>main</code> zu prüfen;</li>
-<li>Behauptungen der Architekturdokumentation mit dem Code
-abzugleichen;</li>
-<li>Regressionen und unnötige NVDA-weite Eingriffe zu finden;</li>
-<li>verbleibende Arbeit nach Risiko zu ordnen.</li>
-</ol>
-<p>Der Bericht bewertet Quellcode, Tests und dokumentierte
-Praxisergebnisse. Er ist keine Stabilitätsfreigabe und kein Nachweis,
-dass jede Kombination aus NVDA, Windows Terminal, Neovim, SSH, Plugins
-und Braillehardware geprüft wurde.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vergleichsbasis-und-umfang" class="level3">
-<h3>Vergleichsbasis und Umfang</h3>
-<p>Ausgangsbasis des Reviews:</p>
-<ul>
-<li><code>main</code>:
-<code>60569a648d363c1a9acc2872b3c81a148ddb6584</code></li>
-<li>Featurebranch:
-<code>888522c7dc83b9356e9f8596efe22ff8bf9397f9</code></li>
-<li>Unterschied zu diesem Zeitpunkt: 16 Commits, 67 geänderte Dateien,
-7.916 Einfügungen und 4.836 Löschungen</li>
-</ul>
-<p>Während des Reviews wurden die unter „Direkt behobene Befunde“
-beschriebenen Korrekturen für Dev-Build 13 in denselben Featurebranch
-aufgenommen. Die oben genannten Commit-IDs bleiben als reproduzierbare
-Ausgangsbasis erhalten; die Gesamtbewertung und die Liste offener Punkte
-beschreiben den korrigierten Dev-13-Stand.</p>
-<p>Als NVDA-Referenz diente vorrangig der lokale NVDA-Quellstand unter
-<code>/tmp/nvda-source-2026.1.1</code>. Geprüft wurden insbesondere
-NVDAs Entwicklerdokumentation,
-<code>inputCore.decide_executeGesture</code>, die
-Extension-Point-Implementierung, AppModule-Beispiele, Windows-Wrapper
-und die Verwendung des Gesture-Deciders im NVDA-Remote-Code. Zusätzlich
-wurden die Projektquellen, ADRs, Pakettests und die gebauten Artefakte
-untersucht.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kurzfassung" class="level3">
-<h3>Kurzfassung</h3>
-<p>Der Featurebranch ist gegenüber <code>main</code> ein deutlicher
-architektonischer Fortschritt:</p>
-<ul>
-<li>Windows-Terminal-Ereignisse, <code>nextHandler</code>,
-Overlayauswahl und frei belegbare Terminalbefehle gehören nun dem
-AppModule.</li>
-<li>Eigene <code>ctypes</code>-/DLL-Bindings wurden durch vorhandene
-NVDA-Wrapper ersetzt.</li>
-<li>F12 prüft die konkrete AppModule-Instanz, das fokussierte
-TermControl und nach einem Threadwechsel erneut den Fokus.</li>
-<li>UI, Präsentation, Verbindungskoordination und Dienstregistrierung
-sind besser voneinander getrennt.</li>
-<li>Der direkt von NVDA geladene Python-Code folgt NVDAs Stil mit Tabs,
-LF, 110 Zeichen und Ruff 0.14.5.</li>
-<li>Reload, mehrere AppModules, Fokusrennen, Fail-open und F12 sind
-breiter automatisiert geprüft als in <code>main</code>.</li>
-</ul>
-<p>Das Review fand zunächst eine echte Braille-Regression: Das AppModule
-griff auf einen unbeabsichtigten <code>controlTypes</code>-Reexport des
-Global Plugins zu. Nach dessen Entfernung wurde die strukturierte
-Braille-Overlayklasse still nicht mehr eingesetzt. Dev-Build 13 behebt
-dies durch einen direkten Import im AppModule und Tests des
-tatsächlichen NVDA-Overlay-Hooks.</p>
-<p>Die wesentliche verbleibende Architekturarbeit ist kleiner und
-weniger akut: Das Global Plugin ist noch keine minimale
-Kompositionswurzel, sondern weiterhin eine große Fachfassade. Das ist
-keine nachgewiesene Laufzeitregression und soll nur schrittweise
-geändert werden. Außerdem fehlen noch Übersetzerkommentare;
-Buildparallelität und CI-Abdeckung können verbessert werden.</p>
-<p><strong>Empfehlung:</strong> Die Richtung des Branches beibehalten.
-Vor einer Zusammenführung die vollständige serielle Prüfung und einen
-erneuten Windows-/NVDA-Praxistest durchführen. Die weitere Verkleinerung
-des Global Plugins anschließend in kleinen, getrennt testbaren Schritten
-fortsetzen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__bewertung-nach-qualitätsbereich" class="level3">
-<h3>Bewertung nach Qualitätsbereich</h3>
-<table>
-<thead>
-<tr class="header">
-<th>Bereich</th>
-<th>Gegenüber <code>main</code></th>
-<th>Stand am Reviewabschluss</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Besitz von Anwendungsevents</td>
-<td>deutlich besser</td>
-<td>AppModule besitzt Einstieg, Overlayliste und
-<code>nextHandler</code></td>
-</tr>
-<tr class="even">
-<td>Windows-API</td>
-<td>deutlich besser</td>
-<td>NVDA-Wrapper statt eigener DLL-Bindings</td>
-</tr>
-<tr class="odd">
-<td>F12-Abschottung</td>
-<td>deutlich besser</td>
-<td>prozessweiter öffentlicher Decider, aber strikte AppModule-, Fokus-
-und Control-Prüfung</td>
-</tr>
-<tr class="even">
-<td>Fail-open</td>
-<td>besser</td>
-<td>Fehler und unklare Identitäten geben native Verarbeitung frei</td>
-</tr>
-<tr class="odd">
-<td>Reload und Lebenszyklus</td>
-<td>besser</td>
-<td>identitätsgeprüfte Veröffentlichung und frühes Unpublish</td>
-</tr>
-<tr class="even">
-<td>Trennung der Zuständigkeiten</td>
-<td>besser, noch unvollständig</td>
-<td>mehrere Dienste extrahiert; Global Plugin bleibt große
-Fachfassade</td>
-</tr>
-<tr class="odd">
-<td>Braille-Overlayauswahl</td>
-<td>Regression behoben</td>
-<td>echter Hook und Fehlerpfad automatisiert geprüft</td>
-</tr>
-<tr class="even">
-<td>NVDA-Python-Stil</td>
-<td>deutlich besser</td>
-<td>Ruff, EditorConfig und CI-Stilprüfung vorhanden</td>
-</tr>
-<tr class="odd">
-<td>Lokalisierung</td>
-<td>Kataloge konsistent</td>
-<td>Übersetzerkommentare fehlen noch</td>
-</tr>
-<tr class="even">
-<td>Tests</td>
-<td>breiter</td>
-<td>vollständige lokale Suiten bestehen seriell</td>
-</tr>
-<tr class="odd">
-<td>Paketierung</td>
-<td>funktional</td>
-<td>parallele Builds auf denselben Zielpfad bleiben unsicher</td>
-</tr>
-<tr class="even">
-<td>Sicherheit und Threading</td>
-<td>kein neuer kritischer Befund</td>
-<td>I/O bleibt außerhalb des NVDA-Hauptthreads; Gate fällt offen
-aus</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__direkt-behobene-befunde" class="level3">
-<h3>Direkt behobene Befunde</h3>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__strukturierte-braille-overlayklasse-wurde-nicht-eingesetzt" class="level4">
-<h4>Strukturierte Braille-Overlayklasse wurde nicht eingesetzt</h4>
-<p>Vor der Korrektur verwendete
-<code>appModules/windowsterminal.py</code> den Ausdruck
-<code>NeovimAccessLink.controlTypes.Role.TERMINAL</code>. Das
-Global-Plugin-Modul importierte <code>controlTypes</code> nach einer
-Stilbereinigung jedoch nicht mehr. Der dadurch entstehende
-<code>AttributeError</code> wurde absichtlich vom Fail-open-Pfad
-abgefangen. NVDA stürzte deshalb nicht ab und native Terminalausgabe
-blieb verfügbar, aber <code>StructuredTerminalBrailleOverlay</code>
-wurde nicht in NVDAs Overlayklassenliste eingefügt.</p>
-<p>Der Fehler blieb in der bisherigen Suite unsichtbar, weil ein Test
-die Overlayklasse direkt erzeugte, aber keiner den echten
-<code>AppModule.chooseNVDAObjectOverlayClasses</code>-Hook aufrief.</p>
-<p>Dev-Build 13 korrigiert den Besitz der Abhängigkeit:</p>
-<ul>
-<li>Das Windows-Terminal-AppModule importiert <code>controlTypes</code>
-direkt.</li>
-<li>Die Rollenprüfung verwendet
-<code>controlTypes.Role.TERMINAL</code>.</li>
-<li>Ein Regressionstest ruft den echten Hook mit einem passenden und
-einem unpassenden Control auf.</li>
-<li>Ein weiterer Test erzwingt einen Identitätsfehler und bestätigt:
-keine Overlayeinfügung, Gate fail-open, Diagnose vorhanden, keine
-Ausnahme nach außen.</li>
-</ul>
-<p>Damit ist die konkret gefundene Regression automatisiert behoben.
-Eine echte Braillezeile stand für dieses Review nicht zur Verfügung;
-Hardware-, Treiber- und Routingverhalten bleiben daher praktisch
-offen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__technischer-umfang-des-f12-deciders-war-zu-absolut-beschrieben" class="level4">
-<h4>Technischer Umfang des F12-Deciders war zu absolut beschrieben</h4>
-<p>F12 ist kein NVDA-Skript und kein roher globaler Tastatur-Hook. Der
-verwendete <code>inputCore.decide_executeGesture</code>-Extension-Point
-wird von NVDA technisch aber prozessweit aufgerufen, sobald der Callback
-registriert ist.</p>
-<p>Die Dokumentation beschreibt nun präzise:</p>
-<ul>
-<li>Das Windows-Terminal-AppModule besitzt Registrierung und
-Abmeldung.</li>
-<li>Der Callback existiert nur, solange mindestens eine solche
-AppModule-Instanz lebt.</li>
-<li>Andere Tasten kehren ohne Fokusabfrage sofort zurück.</li>
-<li>F12 wird nur bei exakt passender AppModule-Instanz und
-TermControl-Identität ausgewertet.</li>
-<li>Vor der Zuordnung wird derselbe Fokus auf NVDAs Hauptthread erneut
-geprüft.</li>
-<li>Die Originalgeste läuft unverändert weiter.</li>
-</ul>
-<p>Diese Einordnung unterscheidet den öffentlichen NVDA-Extension-Point
-klar von einem selbst installierten systemweiten Tastatur-Hook.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__kleine-konventionsbereinigungen" class="level4">
-<h4>Kleine Konventionsbereinigungen</h4>
-<ul>
-<li>Die dateiweite Ruff-Ausnahme für <code>E402</code> wurde durch
-einzelne, begründete Ausnahmen an den tatsächlich späten Imports
-ersetzt.</li>
-<li><code>AppModule.terminate</code> erwartet beim Abmelden des Deciders
-nicht länger einen von NVDAs <code>HandlerRegistrar.unregister</code>
-nicht verwendeten <code>LookupError</code>.</li>
-<li>Plan, ADRs und Changelog unterscheiden den ursprünglichen Befund vom
-korrigierten Dev-13-Stand.</li>
-</ul>
-</section>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__verbleibende-befunde" class="level3">
-<h3>Verbleibende Befunde</h3>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__1-mittel-die-minimalrolle-des-global-plugins-ist-noch-nicht-erreicht" class="level4">
-<h4>1. Mittel: Die Minimalrolle des Global Plugins ist noch nicht
-erreicht</h4>
-<p>ADR-0004 beschreibt als Ziel ein kleines Global Plugin für wirklich
-globale Registrierung und Lebensdauer. Der Branch nähert sich diesem
-Ziel, erfüllt es aber noch nicht vollständig.</p>
-<p>Messbare Veränderung der Ausgangsbasis:</p>
-<ul>
-<li><code>GlobalPlugin</code>: 3.961 auf 3.556 Zeilen</li>
-<li>Methoden in <code>GlobalPlugin</code>: 154 auf 147</li>
-<li>neue Bausteine: <code>NvdaUiManager</code>,
-<code>NvdaPresentation</code>, <code>ConnectionCoordinator</code> und
-<code>ServiceRegistrar</code></li>
-</ul>
-<p>Das Global Plugin koordiniert weiterhin Claim-Inventar,
-Sitzungsauflösung, Verbindungsdialoge, Instanzwechsel,
-Netzwerkereignisse, Lifecycle-Sweeps, Zwischenablage und Teile der
-Fokuslogik. <code>ServiceRegistrar</code> veröffentlicht noch die
-konkrete Plugininstanz; das AppModule verwendet mehrere private Methoden
-und Attribute dieser Klasse.</p>
-<p>Das ist eine Wartbarkeitsgrenze, kein aktuell nachgewiesener
-Funktionsfehler. Ein großer Umbau wäre riskanter als der jetzige
-Zustand.</p>
-<p><strong>Empfehlung:</strong> Eine kleine benannte Dienstfassade oder
-ein <code>Protocol</code> für das AppModule definieren und danach
-jeweils einen fachlichen Ablauf extrahieren. Mehrfenster-, Tab-, Pane-,
-Reload- und Fail-open-Tests müssen nach jedem Schritt bestehen. Bis zur
-Umsetzung muss die Dokumentation die Minimalrolle als Ziel, nicht als
-bereits abgeschlossenen Zustand bezeichnen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__2-mittel-nvda-übersetzerkommentare-fehlen" class="level4">
-<h4>2. Mittel: NVDA-Übersetzerkommentare fehlen</h4>
-<p>POT und deutsche PO-Datei sind synchron, und die deutschen Formulare
-wurden praktisch angezeigt. Im NVDA-seitigen Quellcode fehlen jedoch die
-bei NVDA üblichen <code># Translators:</code>-Kommentare vor Meldungen,
-Befehlsbeschreibungen und komplexen UI-Texten.</p>
-<p>Dies ist überwiegend geerbter Bestand und keine
-Laufzeitregression.</p>
-<p><strong>Empfehlung:</strong> Zuerst neue oder verschobene Texte
-kommentieren, danach den Bestand mit inhaltlich hilfreichen Kommentaren
-ergänzen. Keine bedeutungslosen Standardkommentare erzeugen.
-Anschließend gettext-, Paket- und Dokumentationstests wiederholen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__3-niedrig-parallele-built-add-on-tests-verwenden-denselben-zielpfad" class="level4">
-<h4>3. Niedrig: Parallele Built-Add-on-Tests verwenden denselben
-Zielpfad</h4>
-<p>Zwei gleichzeitig gestartete Add-on-Suiten können dasselbe Archiv mit
-<code>ZipFile(..., &quot;w&quot;)</code> beschreiben. Im Review entstanden dadurch
-CRC- und <code>BadZipFile</code>-Fehler; die serielle Wiederholung
-bestand vollständig. Der Buildpfad ist bereits in <code>main</code> so
-aufgebaut und daher keine Regression dieses Branches.</p>
-<p><strong>Empfehlung:</strong> Zunächst keine Add-on-Suiten parallel im
-selben Arbeitsbaum starten. Später in eine eindeutige temporäre Datei
-bauen und atomar ersetzen oder pro Testlauf ein separates Artefakt
-verwenden.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__4-niedrig-ci-prüft-derzeit-nur-nvda-python-stil" class="level4">
-<h4>4. Niedrig: CI prüft derzeit nur NVDA-Python-Stil</h4>
-<p>Der neue Workflow ist eng berechtigt, pinnt Abhängigkeiten und prüft
-Ruff 0.14.5. Protokoll-, Bridge-, Add-on-, gettext-, Dokumentations- und
-Neovim-Tests laufen jedoch nicht als GitHub-Merge-Checks.</p>
-<p><strong>Empfehlung:</strong> Suiten schrittweise in CI aufnehmen.
-Built-Add-on-Tests müssen seriell oder mit getrennten Buildpfaden
-laufen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__5-niedrig-aus-main-geerbt-vimregion-ist-in-neovim-012-veraltet" class="level4">
-<h4>5. Niedrig, aus <code>main</code> geerbt: <code>vim.region</code>
-ist in Neovim 0.12 veraltet</h4>
-<p>Die Neovim-0.12.3-Suite besteht, meldet aber für
-<code>neovim-plugin/lua/nvim_nvda/state.lua</code> eine
-Deprecation-Warnung. Vor einer künftigen Kompatibilitätsanhebung sollte
-eine öffentliche Ersatz-API geprüft werden. Eine ungeprüfte Änderung
-gehört nicht in diesen Architekturbranch.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__6-niedrig-sehr-spät-gesetzte-insert-f12-belegungen-sind-ein-randfall" class="level4">
-<h4>6. Niedrig: Sehr spät gesetzte Insert-F12-Belegungen sind ein
-Randfall</h4>
-<p>Das Neovim-Plugin prüft bei <code>setup()</code>, ob Insert-F12
-bereits belegt ist, und erhält vorhandene Benutzermappings. Eine erst
-danach dynamisch gesetzte Belegung, etwa durch ungewöhnliches
-Lazy-Loading, ist nicht abgedeckt. Vor einer Änderung muss ein echter
-Neovim-Test das Zusammenspiel von <code>vim.on_key</code> und dem
-späteren Mapping klären.</p>
-</section>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__positive-detailbefunde" class="level3">
-<h3>Positive Detailbefunde</h3>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__ereignisbesitz-und-fail-open" class="level4">
-<h4>Ereignisbesitz und Fail-open</h4>
-<p>Das AppModule ruft <code>nextHandler</code> selbst auf. Beim
-Fokuswechsel bereitet der gemeinsame Dienst eine unveränderliche
-Entscheidung vor, das AppModule führt NVDAs native Verarbeitung genau
-einmal aus, und der Dienst schließt die strukturierte Behandlung nur bei
-weiterhin passender Generation und Identität ab. Fehler und mehrdeutige
-Terminalidentitäten geben native Verarbeitung frei.</p>
-<p>Der veröffentlichte Dienst wird beim Beenden früh aus dem Registrar
-entfernt. Instanz und Token verhindern, dass ein verspätetes
-<code>terminate</code> einer alten Instanz einen neu veröffentlichten
-Dienst entfernt. Danach werden Gate, Clients, geplante Aufrufe, UI und
-Caches kontrolliert abgebaut.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__threading-und-latenz" class="level4">
-<h4>Threading und Latenz</h4>
-<p>Im Diff wurde kein neuer blockierender Netzwerkpfad auf NVDAs
-Hauptthread gefunden. Lokale und entfernte Sitzungssuche,
-Claim-Wartezeiten sowie Komponenteninstallation laufen in
-Worker-Threads. Ergebnisse, Dialoge, Sprache und Brailleaktualisierung
-kehren über <code>queueHandler</code> oder <code>wx.CallAfter</code> auf
-die passenden UI-Pfade zurück.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__nvda-api-und-python-stil" class="level4">
-<h4>NVDA-API und Python-Stil</h4>
-<p>Fenster- und Prozessprüfung verwenden <code>winUser</code>,
-<code>winBindings</code> und <code>winKernel</code>. Fehler liefern
-einen unklaren Zustand und lösen keine destruktive Bereinigung aus.
-Handle-Cleanup ist ausnahmegesichert und getestet.</p>
-<p>Die NVDA-Stilzone ist auf <code>nvda-addon/addon/**/*.py</code>
-begrenzt. Core, Bridge, Protokoll, Tests und Werkzeuge behalten ihren
-jeweils konsistenten Stil. Damit wird NVDAs Tab-Konvention nicht unnötig
-auf fremde Komponenten übertragen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__sicherheit" class="level4">
-<h4>Sicherheit</h4>
-<p>Im Branch-Diff wurden keine realen Zugangsdaten oder produktiven
-Hostnamen gefunden. Passwörter werden nicht gespeichert.
-Sitzungskennung, Nonce, Sequenznummern, Request-IDs, Größenlimits und
-Fokusidentität bleiben validiert. Die Extraktionen weichen diese Grenzen
-nicht auf.</p>
-</section>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__prüfnachweise-am-abschlussstand" class="level3">
-<h3>Prüfnachweise am Abschlussstand</h3>
-<table>
-<thead>
-<tr class="header">
-<th>Prüfung</th>
-<th>Ergebnis</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>git diff --check</code></td>
-<td>bestanden</td>
-</tr>
-<tr class="even">
-<td>Ruff 0.14.5 <code>check</code></td>
-<td>bestanden</td>
-</tr>
-<tr class="odd">
-<td>Ruff 0.14.5 <code>format --check</code></td>
-<td>bestanden</td>
-</tr>
-<tr class="even">
-<td>Protokolltests</td>
-<td>42 Tests, bestanden</td>
-</tr>
-<tr class="odd">
-<td>Bridge-Tests</td>
-<td>31 Tests, bestanden</td>
-</tr>
-<tr class="even">
-<td>Add-on- und Pakettests, seriell</td>
-<td>316 Tests, bestanden</td>
-</tr>
-<tr class="odd">
-<td>gettext-Katalogprüfung</td>
-<td>bestanden</td>
-</tr>
-<tr class="even">
-<td>deutsche und englische HTML-Dokumentation</td>
-<td>6 Dateien gebaut</td>
-</tr>
-<tr class="odd">
-<td>Neovim-Plugin mit 0.10.1</td>
-<td>bestanden</td>
-</tr>
-<tr class="even">
-<td>Neovim-Plugin mit 0.12.3</td>
-<td>bestanden; <code>vim.region</code>-Warnung</td>
-</tr>
-<tr class="odd">
-<td>Dev-13-Archiv mit <code>unzip -t</code></td>
-<td>bestanden</td>
-</tr>
-</tbody>
-</table>
-<p>Beim Review erzeugtes Dev-Artefakt:</p>
-<pre class="text"><code>NeovimAccessLink-0.94.2-dev.13+feature.global-plugin-slimming.888522c7.nvda-addon
-SHA-256: 9f94446b8eeb0f7bba3d6fc45b60c5f7ea71660105f302f0f3e1971f8959a2d1</code></pre>
-<p>Der Commit-Suffix bezeichnet den Branch-HEAD der Ausgangsbasis. Die
-Dev-13-Datei enthält zusätzlich die während dieses Reviews
-vorbereiteten, damals noch nicht committeden Korrekturen. Nach einem
-späteren Commit muss ein neues Artefakt mit dessen eigener Buildkennung
-erzeugt werden.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__praktische-nachweise-und-grenzen" class="level3">
-<h3>Praktische Nachweise und Grenzen</h3>
-<p>Im Entwicklungsverlauf wurden lokale und entfernte Verbindungen
-gemischt in mehreren Windows-Terminal-Fenstern, Tabs und horizontalen
-sowie vertikalen Panes praktisch verwendet. Fokuswechsel, F12, frei
-belegbare Befehle und die deutsche Oberfläche wurden ohne gemeldeten
-Fehler geprüft.</p>
-<p>Die Dev-13-Korrekturen wurden in diesem Review automatisiert und
-durch den gebauten Paketinhalt geprüft, aber noch nicht erneut unter
-Windows/NVDA praktisch abgenommen. Eine Braillezeile stand nicht zur
-Verfügung. Automatisierte Mocks ersetzen außerdem keine Langzeitprüfung
-mit realem UIA, SSH und Benutzerkonfigurationen.</p>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__handlungsempfehlung-und-reihenfolge" class="level3">
-<h3>Handlungsempfehlung und Reihenfolge</h3>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__vor-einer-zusammenführung-mit-main" class="level4">
-<h4>Vor einer Zusammenführung mit <code>main</code></h4>
-<ol type="1">
-<li>Dev-Build 13 praktisch unter Windows Terminal und NVDA prüfen,
-einschließlich F12, Fokuswechsel, mehreren Tabs/Panes und nativer
-Ausgabe außerhalb der gebundenen Neovim-Controls.</li>
-<li>Wenn Hardware verfügbar ist, Braille-Overlay und Routing praktisch
-prüfen; fehlende Hardware allein blockiert die übrige Architekturprüfung
-nicht, muss aber als Grenze dokumentiert bleiben.</li>
-<li>Nach dem Commit ein neues eindeutig gekennzeichnetes Paket bauen und
-die seriellen Suiten, gettext, Dokumentation und Archivprüfung
-wiederholen.</li>
-<li>Keine weitere große Extraktion in denselben Abnahmeschritt
-aufnehmen.</li>
-</ol>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__danach-in-getrennten-folgeschritten" class="level4">
-<h4>Danach in getrennten Folgeschritten</h4>
-<ol type="1">
-<li>neutrale AppModule-Dienstfassade statt konkreter
-GlobalPlugin-Instanz;</li>
-<li>verbleibende Fachkoordination schrittweise extrahieren;</li>
-<li>Übersetzerkommentare ergänzen;</li>
-<li>atomare beziehungsweise testlaufbezogene Paketbuilds;</li>
-<li>vollständige Suiten in CI;</li>
-<li><code>vim.region</code> und dynamische F12-Mappings separat
-untersuchen.</li>
-</ol>
-</section>
-</section>
-<section id="docs__de__development__quality-review-global-plugin-slimming-2026-07-19md__schlussfolgerung" class="level3">
-<h3>Schlussfolgerung</h3>
-<p><code>feature/global-plugin-slimming</code> folgt NVDAs
-Add-on-Grenzen deutlich besser als der verglichene
-<code>main</code>-Stand. Das AppModule besitzt nun anwendungsspezifische
-Ereignisse und Befehle, der globale Anteil verwendet öffentliche
-NVDA-Schnittstellen enger, und Zuständigkeiten sind nachvollziehbar
-getrennt. Die während des Reviews gefundene Braille-Regression ist in
-Dev-Build 13 korrigiert und durch den tatsächlichen Overlay-Hook
-abgesichert.</p>
-<p>Die Verschlankung ist noch nicht vollständig: Das Global Plugin
-bleibt eine große Fachfassade. Dieser Rest rechtfertigt jedoch keinen
-riskanten Komplettumbau vor der Zusammenführung. Mit einer erneuten
-praktischen Abnahme und kleinen, einzeln testbaren Folgeänderungen ist
-der Branch eine tragfähige Grundlage für ein schmaleres und
-konventionsnäheres NVDA-Add-on.</p>
 </section>
 </section>
 </div>

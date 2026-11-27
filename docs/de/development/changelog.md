@@ -6,6 +6,90 @@ und Testbuild-Einträge bis zum 5. August 2026.
 
 ## Unveröffentlicht
 
+- Aktualisiert die NVDA- und Neovim-Referenzstände und dokumentiert die
+  bestätigten Windows-Gastprüfungen für alle 18 geführten Fälle. Die endgültige
+  Codeanalyse und der Reaudit bleiben als historische Berichte erhalten.
+  GitHub Actions prüft den Windows-Desktop getrennt vom vollständigen
+  Gastlauf, den ein privates Testlabor per wiederverwendbarem Workflow ausführt.
+- Bewahrt in C1 eine Aufnahme mit fehlender QEMU-Startmarke auf, wiederholt
+  den betroffenen Ablauf nach bestandener Gast- und WASAPI-Prüfung mit einem
+  frisch gestarteten Gast einmal und prüft beide Versuche nach. Der
+  Actions-Job führt unabhängige Fälle nach einem Fehler weiter aus und fährt
+  seinen Testgast nach der Suite herunter.
+- Prüft QEMU-Referenzmarken für C1 und D1 anhand getrennter Wellenformabschnitte mit
+  begrenztem Zeitversatz und ergänzt Gegenproben für Rauschen, unvollständige
+  und verschobene Marken sowie doppelte Signale.
+- Startet den verwalteten Gast zwischen den unabhängigen P2-Fixtures neu
+  und erkennt ein QEMU-Ende beim Warten auf die Desktop-Bereitschaft.
+- Führt die geführten Aufgaben in optionale Desktop- und Audiogruppen
+  mit isolierter Windows-VM und überprüften Gegenproben über.
+- Gibt beim Auf- und Zuklappen eines lazy.nvim-Eintrags die Zustandsansage
+  ohne zusätzliche Buchstabenansage durch die verschobene Cursorspalte aus.
+- Öffnet in Aufgabe L4 die Quickfix-Liste bereits mit F3. Ein
+  Regressionstest prüft den Fokus auf den ersten Treffer.
+- Wartet in den geführten Python-Diagnosetests auf Ruff und Pyright. Die
+  Fixture überlässt Importwarnungen Ruff, sodass verspätete Pyright-Befunde
+  die Reihenfolge nach der Bereitschaftsmeldung nicht verändern.
+- Prüft geführte Suche, Ersetzung, LSP, Completion, Diagnosen und das
+  Lazy-Fenster über echte Neovim-Eingabe und authentifiziertes RPC. Prüft
+  Signatur- und Diagnosekontext ohne Cursorbewegung. Ergänzt Gegenproben für
+  unvollständige Ersetzung, veralteten Diagnosekontext und Lazy-Git-Prüfungen.
+  Korrigiert den Cursorweg über ein Dezimalargument in Aufgabe L2.
+- Führt die in den Windows-Prüfungen verwendete NVDA-API 2026.3.1 als zuletzt getestet im Manifest.
+- Benötigt Pull Requests für Änderungen an `main`, auch zur Releasevorbereitung.
+  Dokumentiert semantische Produktversionen, datierte Changelogs,
+  GitHub-Releaseentwürfe und die Store-Upgradebasis. Der Paketbuild erkennt
+  die neuen Überschriften und funktioniert mit leerem unveröffentlichtem
+  Abschnitt. Die PR-Vorlage verlangt ein Changelog zum gesamten Diff.
+- Verwendet SCons für den Add-on-Build und das Gettext-Template. Basismanifest
+  und Sprachmanifeste folgen der Vorlagenstruktur des NVDA-AddonTemplates.
+  Name und Beschreibung im Sprachmanifest stammen aus dem Gettext-Katalog.
+- Vereinheitlicht ZIP-Metadaten und die Zeilenenden gebündelter Python-Dateien,
+  damit Windows und Linux dieselben Paketdaten verarbeiten.
+- Prüft F12-Zuordnung, Editieren, Panes, Tabs, Fensterwechsel und
+  Wiederherstellung nach dem Beenden eines Editors auf einem aktiven
+  Windows-Gastdesktop mit den aktuellen und den Mindestversionen von NVDA
+  und Neovim. Die Windows-Einrichtung beschreibt die optionale
+  Visual-C++-Laufzeit für ein frisches System.
+- Begrenzt Verbindungsaufbau und Empfang im gemeinsamen Neovim-RPC-Client.
+  Ungültige RPC-Nachrichten lösen einen Disconnect aus. Controls werden erst
+  über den geprüften, registrierten Kanal gesendet.
+- Prüft den lokalen Python-Client gegen echtes Neovim einschließlich
+  Sitzungsanmeldung, vollständigem Zustand und Cursor-Routing.
+- Beendet den eigenen SSH-Prozess bei Protokollfehlern und beim Abbruch
+  während des Prozessstarts, bevor eine weitere Verbindung aufgebaut wird.
+- Richtet parallele Testläufe an den verfügbaren logischen Prozessoren aus.
+  Bis zu zwölf isolierte Blöcke verkürzen die Pakettests auf Rechnern mit
+  vielen Kernen. `-j` bleibt die Grenze pro Lauf.
+- Ermöglicht die lokale Windows-Entwicklung mit Git-Abgleich über `origin`.
+  `build.cmd` verwendet einen sauberen lokalen Branch. Die Python- und
+  Lua-Tests unterstützen native Windows-Pfade und Testprozesse. Der Windows-
+  Socketlauf prüft den lokalen TCP-Pfad. Unix-Sockets und PTY laufen unter Linux.
+
+- Verwendet die aktuellen NVDA-Importpfade für Braille-Regionen und behält
+  den Rückgriff für NVDA 2026.1 bei. Das gebaute Add-on startet unter
+  NVDA 2026.3.1. Die Lua- und Windows-TCP-Tests verwenden Neovim 0.12.6.
+- Vereinheitlicht Add-on und Dokumentations-ZIP über einen isolierten
+  Buildkern. Der Windows-Build erkennt den offiziellen Pandoc 3.1.11.1
+  auch bei Windows-Zeilenenden. Der Linux-Releasebuild verwendet einen
+  sauberen, freigegebenen `main`-Stand. Der frühere Git-Ref-Abgleich war
+  Bestandteil des Linux-Entwicklungsworkflows. MessagePack 1.1.2 stellt
+  offizielle Binärpakete für Python 3.14 bereit.
+- Ersetzt den separaten Abgleich generierter und installierter Dokumentation
+  durch eine interne Layoutbibliothek und entfernt den ungenutzten Windows-
+  Helfer zum Hochladen von NVDA-Logs.
+- Repariert die Lazy-Praxistest-Vorbereitung auf gemeinsam genutzten oder
+  gemappten Repositorylaufwerken: Die isolierte Git-Konfiguration führt die
+  konkreten Fixture-Repositories statt eines Wildcards auf. Die Vorbereitung
+  bricht beim ersten fehlerhaften Werkzeug- oder Profiltest mit dem direkten
+  Grund ab. Vorhandene Pyright-Installationen werden anhand von Paket,
+  Serverdatei und echtem CLI-Aufruf erkannt und direkt über Node gestartet.
+  Die Vorbereitung lädt nur die für die Auswahl benötigten Plugins, startet
+  jeden Linter genau einmal und wertet dessen eigenen Diagnoseraum aus.
+  Der Zustand unterscheidet, welche ausgewählten Profile bereits erfolgreich
+  vorgeprüft wurden.
+  Konkrete Wiederverwendungs-, Aktualisierungs- und Providerfehler ersetzen
+  mehrdeutige Sammelmeldungen.
 - Beginnt nach der Beta-Vorabveröffentlichung 0.98.0 die Entwicklungslinie
   0.99.0 mit Entwicklungsbuild 1.
 - Vereinfacht den Laufzeitzustand des Neovim-Plugins: Die öffentliche

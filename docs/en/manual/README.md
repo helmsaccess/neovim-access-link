@@ -28,11 +28,10 @@ Access Link currently supports:
 - file management with Oil; other file managers have automatically tested
   adapters.
 
-The practically confirmed reference environment uses Windows 11 25H2,
-NVDA 2026.1.1, Windows Terminal 1.24.x, and local Neovim 0.12.3. The remote
-path is confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2. See the
-F12, remember, and focus paths were additionally exercised with NVDA
-2026.2beta10; the manifest names NVDA 2026.2 as last tested. See the
+Automated local reference runs used Windows 11 24H2, NVDA 2026.3.1, Windows
+Terminal 1.25.3131.0, and Neovim 0.12.6. The remote path is confirmed with
+Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2. The manifest lists NVDA 2026.1 as
+the minimum and 2026.3.1 as the last tested version. See the
 [compatibility overview](../development/compatibility.md) for complete evidence
 and remaining test coverage.
 

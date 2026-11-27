@@ -19,7 +19,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import buildVars
+import buildVars  # noqa: E402
 
 COMPONENT_CONFIG = ROOT / "neovim-plugin" / "config" / "linux-components.json"
 
@@ -62,10 +62,37 @@ def copy_python_package(source: pathlib.Path, destination: pathlib.Path) -> None
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
 
-def copy_portable_python_package(source: pathlib.Path, destination: pathlib.Path) -> None:
-    destination.mkdir()
+def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathlib.Path:
+    directory = pathlib.Path(f"msgpack-{distribution.version}.dist-info")
+    candidates = (
+        pathlib.Path(distribution.locate_file(directory / "COPYING")),
+        pathlib.Path(distribution.locate_file(directory / "licenses" / "COPYING")),
+    )
+    existing = tuple(path for path in candidates if path.is_file())
+    if len(existing) != 1:
+        raise RuntimeError(
+            "expected exactly one msgpack COPYING file in a supported distribution layout, "
+            f"found {existing!r}"
+        )
+    return existing[0]
+
+
+def bundle_msgpack(destination: pathlib.Path) -> None:
+    distribution = importlib.metadata.distribution("msgpack")
+    if distribution.version != "1.1.2":
+        raise RuntimeError(f"msgpack 1.1.2 required, found {distribution.version}")
+    source = pathlib.Path(distribution.locate_file("msgpack"))
+    modules = destination / "msgpack"
+    modules.mkdir(parents=True)
     for module in sorted(source.glob("*.py")):
-        shutil.copy2(module, destination / module.name)
+        (modules / module.name).write_bytes(module.read_bytes().replace(b"\r\n", b"\n"))
+    license_text = find_msgpack_license(distribution).read_bytes()
+    (destination / "MSGPACK-LICENSE.txt").write_bytes(license_text.replace(b"\r\n", b"\n"))
+    (destination / "THIRD_PARTY_NOTICES.txt").write_text(
+        "msgpack-python 1.1.2, Apache License 2.0, https://msgpack.org/\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def create_portable_zipapp(source: pathlib.Path, destination: pathlib.Path) -> None:
@@ -86,10 +113,10 @@ def create_portable_zipapp(source: pathlib.Path, destination: pathlib.Path) -> N
             archive.writestr(info, module.read_bytes(), compresslevel=9)
 
 
-def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
+def build(output_directory: pathlib.Path) -> pathlib.Path:
     version = project_version()
     linux_component_config()
-    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output_root = pathlib.Path(output_directory)
     output = output_root / f"{buildVars.product_slug()}-{version}-user.tar.gz"
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
@@ -108,16 +135,11 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             ROOT / "protocol" / "python" / "nvim_nvda_protocol",
             application / "nvim_nvda_protocol",
         )
-        msgpack = importlib.metadata.distribution("msgpack")
-        if msgpack.version != "1.1.1":
-            raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack.version}")
-        copy_portable_python_package(
-            pathlib.Path(msgpack.locate_file("msgpack")),
-            application / "msgpack",
-        )
+        bundle_msgpack(application)
         (application / "__main__.py").write_text(
             "from nvim_nvda_bridge.__main__ import main\nraise SystemExit(main())\n",
             encoding="utf-8",
+            newline="\n",
         )
         bridge = package / "bin" / "nvim-nvda-bridge"
         bridge.parent.mkdir(parents=True)
@@ -150,4 +172,4 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
 
 
 if __name__ == "__main__":
-    print(build())
+    raise SystemExit("This internal builder requires an explicit temporary output directory")

@@ -1,4 +1,4 @@
-local root = vim.fn.getcwd()
+local root = vim.fs.normalize(vim.fn.getcwd())
 local example = root .. "/examples/neovim-starter/init.lua"
 local test_root = root .. "/tmp/example-starter-config-" .. vim.fn.getpid()
 local data_path = test_root .. "/data/nvim"

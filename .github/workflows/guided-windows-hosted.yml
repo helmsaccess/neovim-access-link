@@ -1,0 +1,66 @@
+name: Hosted Windows focus checks
+
+on:
+  push:
+    paths:
+      - .github/workflows/guided-windows-hosted.yml
+      - tests/guided/windows/probe-host.ps1
+      - tests/guided/windows/**
+      - nvda-addon/**
+      - SConstruct
+      - buildVars.py
+      - tools/build_nvda_addon.py
+      - tools/requirements-ci.txt
+  pull_request:
+    paths:
+      - .github/workflows/guided-windows-hosted.yml
+      - tests/guided/windows/probe-host.ps1
+      - tests/guided/windows/**
+      - nvda-addon/**
+      - SConstruct
+      - buildVars.py
+      - tools/build_nvda_addon.py
+      - tools/requirements-ci.txt
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: NVDA and Windows Terminal focus
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Inspect Windows desktop and sound prerequisites
+        shell: powershell
+        run: .\tests\guided\windows\probe-host.ps1
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: Build a disposable NVDA package
+        shell: pwsh
+        run: |
+          python -m pip install --requirement tools/requirements-ci.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $output = Join-Path $env:RUNNER_TEMP nal-hosted-package
+          python -m SCons "OUTPUT_DIRECTORY=$output" "SCONS_STATE_DIRECTORY=$output"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $packages = @(Get-ChildItem -LiteralPath $output -File -Filter '*.nvda-addon')
+          if ($packages.Count -ne 1) { throw 'Expected one packaged NVDA add-on' }
+          "NAL_HOSTED_ADDON=$($packages[0].FullName)" | Add-Content -LiteralPath $env:GITHUB_ENV
+      - name: Verify the packaged NVDA AppModule and terminal keyboard focus
+        shell: pwsh
+        run: python tests/guided/windows/hosted_focus_smoke.py --addon $env:NAL_HOSTED_ADDON
+      - name: Verify S1 with native keyboard input and the omitted-F10 control
+        shell: pwsh
+        run: python tests/guided/windows/hosted_s1.py --addon $env:NAL_HOSTED_ADDON --output "$env:RUNNER_TEMP\nal-s1-evidence"
+      - name: Save native S1 evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: hosted-s1-evidence
+          path: ${{ runner.temp }}/nal-s1-evidence/
+          retention-days: 7

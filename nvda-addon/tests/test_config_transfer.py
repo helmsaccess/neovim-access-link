@@ -68,7 +68,7 @@ class ConfigTransferTests(unittest.TestCase):
             self.assertEqual("old module\n", (backup / "lua" / "old.lua").read_text(encoding="utf-8"))
             self.assertFalse((destination / "lua" / "old.lua").exists())
 
-    def test_builder_rejects_missing_entrypoint_links_and_size_limit(self) -> None:
+    def test_builder_rejects_missing_entrypoint_and_size_limits(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
             root = pathlib.Path(directory_name)
             missing = root / "missing-entrypoint"
@@ -76,20 +76,28 @@ class ConfigTransferTests(unittest.TestCase):
             (missing / "module.lua").write_text("return {}", encoding="utf-8")
             self.assertFalse(LocalConfigArchiveBuilder().build(missing).success)
 
-            linked = self.make_source(root)
-            (linked / "linked.lua").symlink_to(linked / "init.lua")
-            self.assertFalse(LocalConfigArchiveBuilder().build(linked).success)
-            (linked / "linked.lua").unlink()
+            source = self.make_source(root)
 
             with mock.patch("nvim_nvda_core.config_transfer.MAX_CONFIG_BYTES", 1):
-                oversized = LocalConfigArchiveBuilder().build(linked)
+                oversized = LocalConfigArchiveBuilder().build(source)
             self.assertFalse(oversized.success)
             self.assertIn("exceeds", oversized.diagnostics)
 
             with mock.patch("nvim_nvda_core.config_transfer.MAX_CONFIG_ENTRIES", 2):
-                too_many_entries = LocalConfigArchiveBuilder().build(linked)
+                too_many_entries = LocalConfigArchiveBuilder().build(source)
             self.assertFalse(too_many_entries.success)
             self.assertIn("more than 2 entries", too_many_entries.diagnostics)
+
+    def test_builder_rejects_symbolic_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory_name:
+            source = self.make_source(pathlib.Path(directory_name))
+            try:
+                (source / "linked.lua").symlink_to(source / "init.lua")
+            except OSError as error:
+                if os.name == "nt" and getattr(error, "winerror", None) == 1314:
+                    self.skipTest("Windows does not grant permission to create symbolic links")
+                raise
+            self.assertFalse(LocalConfigArchiveBuilder().build(source).success)
 
     def test_init_vim_and_empty_directories_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:

@@ -2,19 +2,19 @@
 
 ## Purpose and scope
 
-These practical tests check a finished Neovim Access Link build only where an
-automated test cannot decide reliably: real NVDA speech, audible sounds, a
-physical Braille display, held NVDA gestures, and actual focus in Windows
-Terminal. One task combines related perceptions of the same interaction, so
-Neovim does not have to start twice with the same fixture merely to separate
-speech from sounds. LSP responses,
-diagnostic ranges, jump targets, adapter state, and file formats remain the
-responsibility of automated tests.
+The 18 task cards describe reproducible interactions with a finished Neovim
+Access Link build. The `guided-desktop` and `guided-audio` test groups run the
+technically verifiable parts of every card in an isolated Windows guest. They
+capture Windows focus, held NVDA gestures, speech sequences before synthesis,
+digital Braille cells, and rendered audio signals.
+`tests/guided/windows/README.md` describes the automated run and its evidence.
 
-The automatic-parameter task therefore assesses only whether real Pyright
-transitions are spoken clearly without disruptive delay and whether Braille
-stays on source text. Resolver behavior, nesting, overloads, returning to an
-already filled parameter, deduplication, bounds, and stale replies have
+The interactive runner remains available for questions about subjective speech
+and sound perception, response time, and using a physical Braille display.
+A card groups related observations of the same interaction. For automatic
+parameter hints, the tests check real Pyright transitions, the speech sequence,
+and the source line in Braille. Resolver behavior, nesting, overloads, returning
+to an already filled parameter, deduplication, bounds, and stale replies have
 separate automated regressions.
 
 The fixtures nevertheless provide deliberate real choices: at least three
@@ -243,8 +243,8 @@ therefore accepts only the new name; Neovim, Pyright, and Neovim's normal
 the next reference row that was actually changed without switching the current
 buffer. An automated TUI/RPC test drives those physical function keys with a
 deterministic test language server and excludes additional text, cursor, and
-context reports. The guided test is left to assess only speech and perceived
-latency under Windows/NVDA.
+context reports. The guided guest test captures NVDA speech sequences during
+the rename with real Pyright.
 
 L6 complements L4 with Neovim's buffer list. The second file is loaded and
 explicitly listed before interaction; `F3` lets Neovim run `bufdo` across both
@@ -262,18 +262,22 @@ file. On the first run, it creates an isolated environment below
 | Component | Use |
 | --- | --- |
 | pinned versions of Pyright, Ruff, Clang-Tidy, and markdownlint-cli2 | reproducible LSP and diagnostic responses; only tools required by the selection are installed |
-| pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, and blink.cmp | reproducible provider and completion compatibility |
+| pinned revisions of nvim-lint, nvim-cmp, cmp-nvim-lsp, blink.cmp, and lazy.nvim | reproducible provider, completion, and plugin-management compatibility; only plugins required by the selection are loaded |
 | separate Neovim configuration, data, state, and cache directories | complete isolation from the personal Neovim environment |
 
 Pyright is provided as a pinned npm package archive and verified with SHA-512
 before extraction. This avoids the `npm install` path that can stall in
-mounted directories on Windows.
+mounted directories on Windows. The runner verifies the package version,
+server and CLI files, and a real CLI invocation, then starts the JavaScript
+language server explicitly with Node instead of a Windows batch wrapper.
 
 Later runs compare a separate environment fingerprint, the tool versions
-required by the selection, and all four plugin revisions. Changes only to task
+required by the selection, and the required plugin revisions. Changes only to task
 wording, translations, or result logic therefore do not trigger setup again.
 If the required tools and plugins already match, they are reused without
-package installation. Clang-Tidy and markdownlint are not installed
+package installation. Saved state also records which profiles passed
+preflight; newly selected profiles run their own preflight even when their
+files are already present. Clang-Tidy and markdownlint are not installed
 preemptively for a normal smoke run. Only the technical preflight for actually
 selected profiles is repeated after a relevant runtime change.
 
@@ -285,13 +289,17 @@ preflight requests the three named candidates; signature tasks additionally
 require at least two signatures with three parameters each. In the Python
 diagnostic profile, it requires
 two real Ruff F401 warnings on the first line and at least one Ruff F821 error.
-The C and Markdown profiles require a real Clang-Tidy error and markdownlint
-MD025 warning, respectively. If one profile fails, the runner still checks the
-remaining selected profiles and then summarizes every failure. A human tester
+That readiness check considers only the diagnostic namespace of the linter
+under test, so Pyright diagnostics can neither satisfy nor obscure the Ruff
+result. The C and Markdown profiles require a real Clang-Tidy error and markdownlint
+MD025 warning, respectively. A direct tool failure includes its output; a
+linter failure names the configured provider and whether its process is still
+running. Preparation stops at the first failure. A human tester
 only sees a perception task after these machine-decidable foundations work.
 
 **Set up or repair test dependencies** is the explicit repair operation: it
-reinstalls managed plugin revisions and repeats this preflight. The normal
+reinstalls the managed plugin revisions required by the selection and repeats
+this preflight. The normal
 standard test does not perform this forced reinstall. The personal Neovim
 environment remains untouched.
 Only the test Neovim process uses a temporary global Git configuration that
@@ -425,7 +433,7 @@ The compact implementation lives below `tests/human/`:
 | `dependencies.json` | pinned third-party versions and revisions |
 | `framework/` | runner, validator, and isolated Neovim configuration |
 
-A new human task receives one of the four fixed categories and needs a reason
+A new human task receives one of the five fixed categories and needs a reason
 that cannot be automated reliably and a link
 to related automated evidence. If code can decide the result unambiguously,
 the case belongs in an automated test. Validate definitions with:
@@ -435,6 +443,6 @@ python3 tests/human/framework/validate.py plans
 python3 tools/run_tests.py quick
 ```
 
-GitHub Actions also executes the PowerShell runner on Windows. This finds
-PowerShell-specific parser and runtime errors, but never declares speech,
-sounds, Braille, or focus as having passed a human check.
+The GitHub Actions repository workflow checks the PowerShell runner on Windows
+using definitions and dry runs. The automated guest tests write separate
+reports.

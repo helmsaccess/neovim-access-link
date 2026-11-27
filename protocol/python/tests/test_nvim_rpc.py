@@ -5,7 +5,9 @@ import threading
 import unittest
 from unittest import mock
 
-from nvim_nvda_protocol.nvim_rpc import NvimRpcEndpoint, NvimRpcSource
+import msgpack
+
+from nvim_nvda_protocol.nvim_rpc import NvimRpcEndpoint, NvimRpcSource, _MAX_PENDING_NOTIFICATIONS
 
 
 class NvimRpcSourceIdentityTests(unittest.TestCase):
@@ -46,12 +48,74 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
         connection = mock.Mock()
         with (
             mock.patch("nvim_nvda_protocol.nvim_rpc.socket.socket", return_value=connection) as socket_type,
-            mock.patch.object(source, "_request", side_effect=[(7, {}), "b" * 32]) as request,
+            mock.patch.object(source, "_request", side_effect=[[7, {}], "b" * 32]) as request,
         ):
             source._run()
         self.assertEqual(["connecting", "disconnected"], states)
         socket_type.assert_called_once()
         self.assertEqual(2, request.call_count)
+        connection.close.assert_called_once_with()
+
+    def test_controls_are_rejected_until_the_rpc_channel_is_ready(self) -> None:
+        source = self.make_source()
+        connection = mock.Mock()
+        source._socket = connection
+        self.assertFalse(source.notify("nvim_exec_lua", "return true", []))
+        connection.sendall.assert_not_called()
+
+    def test_setup_request_has_a_deadline_even_while_data_arrives(self) -> None:
+        source = self.make_source()
+        with (
+            mock.patch("nvim_nvda_protocol.nvim_rpc.time.monotonic", side_effect=[0.0, 0.5, 3.0]),
+            mock.patch.object(source, "_send"),
+            mock.patch.object(source, "_feed") as feed,
+            self.assertRaises(TimeoutError),
+        ):
+            source._request("nvim_get_api_info")
+        feed.assert_called_once_with()
+
+    def test_idle_reads_do_not_end_a_ready_connection(self) -> None:
+        source = self.make_source()
+        with (
+            mock.patch.object(source, "_feed", side_effect=[TimeoutError, EOFError]) as feed,
+            self.assertRaises(EOFError),
+        ):
+            source._notifications_loop()
+        self.assertEqual(2, feed.call_count)
+
+    def test_setup_buffers_only_a_bounded_number_of_notifications(self) -> None:
+        source = self.make_source()
+        notification = [2, "nvim_nvda_event", []]
+        with (
+            mock.patch.object(source, "_send"),
+            mock.patch.object(source, "_messages", return_value=iter(
+                [notification] * (_MAX_PENDING_NOTIFICATIONS + 1),
+            )),
+            self.assertRaisesRegex(RuntimeError, "too many notifications"),
+        ):
+            source._request("nvim_get_api_info")
+        self.assertEqual(_MAX_PENDING_NOTIFICATIONS, len(source._pending_notifications))
+
+    def test_invalid_rpc_message_disconnects_without_delivering_an_event(self) -> None:
+        source = self.make_source()
+        states = []
+
+        def state_changed(state):
+            states.append(state)
+            if state == "disconnected":
+                source._stop.set()
+
+        source.on_connection_state = state_changed
+        source.on_event = mock.Mock()
+        connection = mock.Mock()
+        connection.recv.return_value = msgpack.packb(None)
+        with (
+            mock.patch("nvim_nvda_protocol.nvim_rpc.socket.socket", return_value=connection),
+            mock.patch.object(source, "_request", side_effect=[[7, {}], "a" * 32, None]),
+        ):
+            source._run()
+        self.assertEqual(["connecting", "connected", "disconnected"], states)
+        source.on_event.assert_not_called()
         connection.close.assert_called_once_with()
 
     def test_unregistered_explicit_endpoint_skips_registry_identity(self) -> None:
@@ -95,6 +159,7 @@ class NvimRpcSourceIdentityTests(unittest.TestCase):
 
         connection = BlockingSocket()
         source._socket = connection
+        source._ready = True
         notify_thread = threading.Thread(
             target=lambda: notify_result.append(source.notify("nvim_nvda_control", {})),
         )

@@ -42,6 +42,14 @@ Protokollnachrichten sind größenbegrenzt, schemageprüft und an Sitzung sowie
 Sequenz gebunden. Eingehende Daten werden nicht ausgeführt und gewähren keinen
 allgemeinen Neovim-RPC-Zugang.
 
+Der RPC-Client begrenzt Empfangspuffer, ausstehende Benachrichtigungen beim
+Aufbau und Wartezeiten für RPC-Aufbauanfragen. Ungültige RPC-Nachrichten
+beenden die Verbindung. Controls sind nach Prüfung der Sitzung und der
+Kanalregistrierung verfügbar.
+
+Bei einem SSH-Protokollfehler räumt der Client seinen eigenen OpenSSH-Prozess
+vor dem nächsten Verbindungsversuch auf.
+
 Auf dem SSH-Pfad authentifiziert nur ein gültiges `fullState` mit dem
 ausdrücklichen Lebenszykluszustand `connection.neovim=connected` die
 Accessibility-Sitzung. Fehlende, unbekannte oder getrennte Zustände werden vor

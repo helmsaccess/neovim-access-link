@@ -8,14 +8,29 @@ every user setting or presentation.
 
 | Component | Reference state |
 |---|---|
-| Windows | Windows 11 25H2, 64-bit |
-| NVDA | Main path 2026.1.1; F12/focus field test 2026.2beta10; manifest minimum 2026.1, last tested 2026.2 |
-| Terminal frontend | Windows Terminal 1.24.x |
-| Local Neovim | 0.12.3 practical; 0.10.1 automated |
+| Windows | Windows 11 24H2, 64-bit in the guest; Windows 11 25H2 in the earlier field test |
+| NVDA | 2026.3.1 for the full Windows guest suite; 2026.1.1 for package and focus checks; manifest minimum 2026.1 |
+| Terminal frontend | Windows Terminal 1.25.3131.0 in the guest; 1.24.x in the earlier field test |
+| Local Neovim | 0.12.6 for the full Windows guest suite; 0.10.1 for the minimum-version run |
 | SSH client | OpenSSH for Windows 9.5p2 with key-based login |
 | Linux | Rocky Linux 10.2, kernel 6.12.0-211.28.1.el10_2 |
 | Remote Neovim | 0.10.1 and 0.12.3 |
 | Linux bridge | Python 3.12.13 in the reference environment |
+
+An isolated Windows run with NVDA 2026.3.1 checked packaged add-on startup
+and import of its Windows Terminal AppModule. The Lua suite and local
+loopback TCP test passed with native Neovim 0.12.6. The packaged NVDA client
+also authenticated to an isolated Neovim instance and received its full state.
+An interactive Windows 11 24H2 guest also confirmed F12 pairing, editing,
+separate panes, tab and window switching, and recovery of the remaining pane
+after an editor exited. The run used Windows Terminal 1.25.3131.0,
+NVDA 2026.3.1, and Neovim 0.12.6. The same sequence passed with NVDA
+2026.1.1 and Neovim 0.10.1. Both NVDA versions passed
+package installation and removal as well as digital checks for speech,
+40 Braille cells, and tone requests. Audible output and physical Braille
+devices were outside the scope of these focus runs. The full guest suite
+checked all 18 guided cases, including captured PCM signals. Speech
+intelligibility and tactile readability lie outside those measurements.
 
 Neovim 0.10.1 is the provisional minimum. Newer optional APIs are used only
 after a feature check. On Neovim 0.10, the plugin creates a silent `<Ignore>`
@@ -75,8 +90,8 @@ confirmed the window and line navigation, speech exploration, Braille markers,
 and the three isolated management workflows in the Windows/NVDA reference
 path.
 
-The Windows job checks the guided-test runner with Neovim 0.12.3, but does not
-perform practical NVDA acceptance.
+The hosted GitHub Windows job validates the guided runner with Neovim 0.12.3.
+The full NVDA guest suite follows the [test strategy](testing.md).
 
 The checkouts, language runtimes, and tools are test dependencies and are not
 shipped. Languages are not hard-coded into the add-on. Another language server
@@ -107,7 +122,7 @@ virtual screen column; UTF-8 routing remains correct.
 
 ## Build and documentation dependencies
 
-MessagePack Python 1.1.1 is bundled into the add-on and Linux component
+MessagePack Python 1.1.2 is bundled into the add-on and Linux component
 package. The Linux target therefore needs no separate MessagePack or pynvim
 package.
 

@@ -58,16 +58,16 @@ local search = run("<F3>")
 local result_lists = matching(search, "resultListChanged")
 equal(1, #result_lists, "F3 emits one result-list update")
 equal(4, result_lists[1].payload.itemCount, "F3 reports all fixture results")
+equal("quickfix", result_lists[1].payload.windowType, "F3 opens the Quickfix window")
+equal(1, result_lists[1].payload.resultIndex, "F3 opens the first result")
+local quickfix_window = vim.api.nvim_get_current_win()
 equal(0, #matching(search, "commandLineChanged"),
   "F3 does not expose generated command typing")
 
 local next_result = run("<F4>")
-local next_context = matching(next_result, "contextChanged")
-equal(1, #next_context, "F4 coalesces overlapping Quickfix context events")
-equal("quickfix", next_context[1].payload.windowType, "F4 opens Quickfix")
-equal(2, next_context[1].payload.resultIndex, "F4 selects the second result")
-equal(0, #matching(next_result, "cursorMoved"),
-  "F4 emits no redundant character navigation")
+equal(quickfix_window, vim.api.nvim_get_current_win(), "F4 keeps the Quickfix window focused")
+equal(2, vim.fn.getqflist({ idx = 0 }).idx, "F4 selects the second result")
+equal(0, #matching(next_result, "contextChanged"), "F4 does not reopen the Quickfix window")
 
 local previous_result = run("<F5>")
 local previous_list = vim.fn.getqflist({ idx = 0 })

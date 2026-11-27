@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-import importlib.metadata
-import importlib.util
+import argparse
+import gettext
 import json
 import pathlib
 import re
@@ -20,9 +20,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import buildVars
-from tools.gettext_catalog import compile_catalogs
-from tools.sync_installed_documentation import validate_documents
+import buildVars  # noqa: E402
+from tools import build_user_package  # noqa: E402
+from tools.documentation_layout import (  # noqa: E402
+    install_generated_documentation,
+    validate_installed_documents,
+)
+from tools.gettext_catalog import compile_catalogs  # noqa: E402
 
 PROTOCOL_MODULES = (
     "braille_exploration.py", "braille_navigation.py", "braille_routing_actions.py",
@@ -55,45 +59,29 @@ LOCALIZED_MANIFEST_FIELDS = frozenset({"summary", "description", "changelog"})
 MULTILINE_MANIFEST_FIELDS = frozenset({"description", "changelog"})
 
 
-def find_msgpack_license(distribution: importlib.metadata.Distribution) -> pathlib.Path:
-    distribution_directory = f"msgpack-{distribution.version}.dist-info"
-    candidates = (
-        pathlib.Path(distribution.locate_file(pathlib.Path(distribution_directory) / "COPYING")),
-        pathlib.Path(
-            distribution.locate_file(
-                pathlib.Path(distribution_directory) / "licenses" / "COPYING"
-            )
-        ),
-    )
-    existing = tuple(path for path in candidates if path.is_file())
-    if len(existing) != 1:
-        raise RuntimeError(
-            "expected exactly one msgpack COPYING file in a supported distribution layout, "
-            f"found {existing!r}"
+def _manifest_value(key: str, value: str) -> str:
+    if "\n" not in value:
+        return json.dumps(value, ensure_ascii=False)
+    if '"""' in value:
+        raise RuntimeError(f"manifest field {key} contains an unsupported triple quote")
+    return f'"""{value}"""'
+
+
+def write_manifest(
+    path: pathlib.Path,
+    manifest: dict[str, str],
+    *,
+    template: pathlib.Path | None = None,
+) -> None:
+    """Render serialized NVDA fields into a base or localized manifest."""
+    values = {key: _manifest_value(key, value) for key, value in manifest.items()}
+    if template is None:
+        text = "".join(f"{key} = {value}\n" for key, value in values.items())
+    else:
+        text = template.read_text(encoding="utf-8").format_map(
+            {f"addon_{key}": value for key, value in values.items()}
         )
-    return existing[0]
-
-
-def _manifest_text(manifest: dict[str, str]) -> str:
-    lines = []
-    for key, value in manifest.items():
-        if "\n" in value:
-            if '"""' in value:
-                raise RuntimeError(f"manifest field {key} contains an unsupported triple quote")
-            rendered = f'"""{value}"""'
-        else:
-            rendered = json.dumps(value, ensure_ascii=False)
-        lines.append(f"{key} = {rendered}\n")
-    return "".join(lines)
-
-
-def write_manifest(path: pathlib.Path, manifest: dict[str, str] | None = None) -> None:
-    """Generate one NVDA manifest from central or localized product metadata."""
-    value = buildVars.manifest() if manifest is None else manifest
-    path.write_text(
-        _manifest_text(value),
-        encoding="utf-8",
-    )
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def validate_manifest(path: pathlib.Path) -> ConfigObj:
@@ -174,16 +162,15 @@ def copy_python_files(source: pathlib.Path, destination: pathlib.Path, names: tu
         shutil.copy2(source / name, destination / name)
 
 
-def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
+def build(
+    output_directory: pathlib.Path,
+    documentation_directory: pathlib.Path | None = None,
+) -> pathlib.Path:
     metadata = buildVars.manifest()
     artifact_version = buildVars.artifact_version()
-    output_root = ROOT / "dist" if output_directory is None else pathlib.Path(output_directory)
+    output_root = pathlib.Path(output_directory)
     output = output_root / f"{metadata['name']}-{artifact_version}.nvda-addon"
     output.parent.mkdir(parents=True, exist_ok=True)
-    msgpack_distribution = importlib.metadata.distribution("msgpack")
-    if msgpack_distribution.version != "1.1.1":
-        raise RuntimeError(f"msgpack 1.1.1 required, found {msgpack_distribution.version}")
-    msgpack_source = pathlib.Path(msgpack_distribution.locate_file("msgpack"))
     with tempfile.TemporaryDirectory(
         dir=output.parent,
         prefix=f".{output.name}.",
@@ -191,46 +178,52 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
         temporary_root = pathlib.Path(temporary)
         stage = temporary_root / "stage"
         stage.mkdir()
-        write_manifest(stage / "manifest.ini")
+        write_manifest(stage / "manifest.ini", metadata, template=ROOT / "manifest.ini.tpl")
         shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
-        shutil.copytree(ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True)
-        validate_documents(stage / "doc")
+        shutil.copytree(
+            ROOT / "nvda-addon" / "addon", stage, dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("*.po", "*.pot"),
+        )
+        if documentation_directory is not None:
+            shutil.rmtree(stage / "doc")
+            install_generated_documentation(
+                pathlib.Path(documentation_directory),
+                stage / "doc",
+            )
+        validate_installed_documents(stage / "doc")
         staged_manifest = validate_manifest(stage / "manifest.ini")
         if dict(staged_manifest) != metadata:
             raise RuntimeError("generated manifest differs from central product metadata")
-        compile_catalogs(stage / "locale")
-        for translated_manifest in sorted((ROOT / "nvda-addon" / "locale").glob("*/manifest.ini")):
-            language = translated_manifest.parent.name
-            destination = stage / "locale" / language / "manifest.ini"
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            localized = ConfigObj(str(translated_manifest), encoding="utf-8", list_values=True)
-            localized["changelog"] = buildVars.manifest_changelog(language)
-            write_manifest(destination, dict(localized))
+        for catalog in compile_catalogs(stage / "locale"):
+            locale = catalog.parent.parent
+            language = locale.name
+            destination = locale / "manifest.ini"
+            with catalog.open("rb") as stream:
+                translations = gettext.GNUTranslations(stream)
+            localized = {key: translations.gettext(metadata[key]) for key in ("summary", "description")}
+            changelog = ROOT / "docs" / language / "development" / "changelog.md"
+            localized["changelog"] = (
+                buildVars.manifest_changelog(language) if changelog.is_file() else metadata["changelog"]
+            )
+            write_manifest(destination, localized, template=ROOT / "manifest-translated.ini.tpl")
             staged_localized = validate_localized_manifest(destination, language)
-            if staged_localized.get("changelog") != buildVars.manifest_changelog(language):
-                raise RuntimeError(f"localized changelog differs from {language} source")
+            if dict(staged_localized) != localized:
+                raise RuntimeError(f"localized manifest differs from {language} metadata")
         plugin = stage / "globalPlugins" / metadata["name"]
         (plugin / "build_info.py").write_text(
             f"ARTIFACT_VERSION = {artifact_version!r}\n",
             encoding="utf-8",
+            newline="\n",
         )
         core = plugin / "core"
         copy_python_files(ROOT / "protocol" / "python" / "nvim_nvda_protocol", core, PROTOCOL_MODULES)
         copy_python_files(ROOT / "nvda-addon" / "core" / "nvim_nvda_core", core, CORE_MODULES)
-        package_spec = importlib.util.spec_from_file_location(
-            "nvim_nvda_build_user_package", ROOT / "tools" / "build_user_package.py"
-        )
-        if package_spec is None or package_spec.loader is None:
-            raise RuntimeError("cannot load rootless package builder")
-        package_builder = importlib.util.module_from_spec(package_spec)
-        package_spec.loader.exec_module(package_builder)
-        package_builder.linux_component_config()
-        server_output = output_root if output_directory is None else temporary_root / "server-package"
-        server_package = package_builder.build(output_directory=server_output)
+        server_output = temporary_root / "server-package"
+        server_package = build_user_package.build(output_directory=server_output)
         resources = plugin / "resources"
         resources.mkdir(exist_ok=True)
         shutil.copy2(server_package, resources / "server-user.tar.gz")
-        shutil.copy2(package_builder.COMPONENT_CONFIG, resources / "linux-components.json")
+        shutil.copy2(build_user_package.COMPONENT_CONFIG, resources / "linux-components.json")
         shutil.copytree(
             ROOT / "neovim-plugin", resources / "neovim-plugin",
             ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc"),
@@ -239,16 +232,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             ROOT / "examples" / "neovim-starter" / "init.lua",
             resources / "starter-init.lua",
         )
-        vendor = plugin / "vendor" / "msgpack"
-        vendor.mkdir(parents=True)
-        for source in msgpack_source.glob("*.py"):
-            shutil.copy2(source, vendor / source.name)
-        license_source = find_msgpack_license(msgpack_distribution)
-        shutil.copy2(license_source, plugin / "vendor" / "MSGPACK-LICENSE.txt")
-        (plugin / "vendor" / "THIRD_PARTY_NOTICES.txt").write_text(
-            "msgpack-python 1.1.1, Apache License 2.0, https://msgpack.org/\n",
-            encoding="utf-8",
-        )
+        build_user_package.bundle_msgpack(plugin / "vendor")
         forbidden = list(stage.rglob("*.so")) + list(stage.rglob("*.pyc"))
         if forbidden:
             raise RuntimeError(f"non-portable files in add-on: {forbidden}")
@@ -262,6 +246,7 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
             for source in sorted(path for path in stage.rglob("*") if path.is_file()):
                 relative = source.relative_to(stage).as_posix()
                 info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
+                info.create_system = 3
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
                 archive.writestr(info, source.read_bytes(), compresslevel=9)
@@ -270,6 +255,14 @@ def build(output_directory: pathlib.Path | None = None) -> pathlib.Path:
     return output
 
 
-if __name__ == "__main__":
-    result = build()
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-directory", type=pathlib.Path, required=True)
+    parser.add_argument("--documentation-directory", type=pathlib.Path, required=True)
+    arguments = parser.parse_args()
+    result = build(arguments.output_directory, arguments.documentation_directory)
     print(f"built {result} ({result.stat().st_size} bytes)")
+
+
+if __name__ == "__main__":
+    main()

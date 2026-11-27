@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Queue Windows-workspace synchronization after local branch ref changes."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+if len(sys.argv) == 2 and sys.argv[1] == "committed":
+	updates = tuple(line.rsplit(" ", 1)[-1] for line in sys.stdin.read().splitlines())
+	if any(ref_name.startswith("refs/heads/") for ref_name in updates):
+		worktree = Path(
+			subprocess.run(
+				("git", "rev-parse", "--show-toplevel"),
+				check=True,
+				capture_output=True,
+				text=True,
+			).stdout.strip()
+		)
+		tool = Path(__file__).resolve().parents[1] / "tools" / "windows_workspace_sync.py"
+		raise SystemExit(
+			subprocess.run(
+				(
+					sys.executable,
+					str(tool),
+					"request",
+					"--source",
+					str(worktree),
+					"--reason",
+					"reference-transaction",
+				),
+				check=False,
+			).returncode
+		)

@@ -785,7 +785,7 @@ class NvimBridgeSocketTests(unittest.TestCase):
 				self._wait(condition, lambda: any(event["type"] == "fullState" for event in events))
 
 				start = len(events)
-				self._send_tui(process, b"\x1bOR")  # F3: populate Quickfix.
+				self._send_tui(process, b"\x1bOR")  # F3: open Quickfix with the search results.
 				self._wait(
 					condition,
 					lambda: any(event["type"] == "resultListChanged" for event in events[start:]),
@@ -793,41 +793,37 @@ class NvimBridgeSocketTests(unittest.TestCase):
 				search_events = events[start:]
 				result_list = next(event for event in search_events if event["type"] == "resultListChanged")
 				self.assertEqual(4, result_list["payload"]["itemCount"])
+				self.assertEqual(1, result_list["payload"]["resultIndex"])
+				self.assertEqual("quickfix", result_list["payload"]["windowType"])
+				window_id = result_list["payload"]["windowId"]
 
-				start = len(events)
-				self._send_tui(process, b"\x1bOS")  # F4: second result.
 				self._wait(
 					condition,
 					lambda: any(
-						event["type"] == "contextChanged" and event["payload"].get("resultIndex") == 2
+						event["type"] == "contextChanged"
+						and event["payload"].get("resultIndex") == 1
+						and event["payload"].get("windowId") == window_id
 						for event in events[start:]
 					),
 				)
-				self.assertFalse(any(event["type"] == "characterMoved" for event in events[start:]))
 
-				start = len(events)
-				self._send_tui(process, b"\x1bOS")  # F4 again: third result within Quickfix.
-				self._wait(
-					condition,
-					lambda: any(
-						event["type"] == "cursorMoved" and event["payload"].get("resultIndex") == 3
-						for event in events[start:]
-					),
-				)
-				self.assertFalse(any(event["type"] == "contextChanged" for event in events[start:]))
-
-				for expected_index in (2, 1):
+				for key, expected_index in (
+					(b"\x1bOS", 2), (b"\x1bOS", 3), (b"\x1b[15~", 2), (b"\x1b[15~", 1),
+				):
 					start = len(events)
-					self._send_tui(process, b"\x1b[15~")  # F5: previous result within Quickfix.
+					self._send_tui(process, key)
 					self._wait(
 						condition,
 						lambda expected_index=expected_index: any(
 							event["type"] == "cursorMoved"
 							and event["payload"].get("resultIndex") == expected_index
+							and event["payload"].get("windowId") == window_id
 							for event in events[start:]
 						),
 					)
-					self.assertFalse(any(event["type"] == "contextChanged" for event in events[start:]))
+					self.assertFalse(
+						any(event["type"] in {"contextChanged", "characterMoved"} for event in events[start:])
+					)
 
 				start = len(events)
 				self._send_tui(process, b"\x1b[15~")  # F5 again: remain at first result.

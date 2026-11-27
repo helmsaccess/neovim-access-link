@@ -4,14 +4,21 @@ from __future__ import annotations
 
 import socket
 import threading
+import time
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
 import msgpack
 
+from .codec import DEFAULT_MAX_FRAME_BYTES
 from .reconnect import ExponentialBackoff
+
+_IO_TIMEOUT_SECONDS = 1.0
+_REQUEST_TIMEOUT_SECONDS = 2.0
+_READ_BYTES = 65_536
+_MAX_PENDING_NOTIFICATIONS = 64
 
 
 @dataclass(frozen=True)
@@ -61,10 +68,11 @@ class NvimRpcSource:
         self._stop = threading.Event()
         self._socket_lock = threading.Lock()
         self._socket: socket.socket | None = None
+        self._ready = False
         self._thread: threading.Thread | None = None
         self._request_id = 0
         self._send_lock = threading.Lock()
-        self._unpacker = msgpack.Unpacker(raw=False, strict_map_key=False)
+        self._unpacker = self._new_unpacker()
         self._pending_notifications: deque[tuple[str, list[Any]]] = deque()
 
     def start(self) -> None:
@@ -76,6 +84,7 @@ class NvimRpcSource:
         with self._socket_lock:
             connection = self._socket
             self._socket = None
+            self._ready = False
         if connection is not None:
             try:
                 connection.shutdown(socket.SHUT_RDWR)
@@ -87,30 +96,42 @@ class NvimRpcSource:
             if self._thread.is_alive():
                 raise RuntimeError("Neovim RPC thread did not stop")
 
+    @staticmethod
+    def _new_unpacker() -> msgpack.Unpacker:
+        return msgpack.Unpacker(
+            raw=False, strict_map_key=True, max_buffer_size=DEFAULT_MAX_FRAME_BYTES + _READ_BYTES,
+        )
+
     def _run(self) -> None:
         backoff = ExponentialBackoff()
         while not self._stop.is_set():
             identity_rejected = False
+            connection = None
             self.on_connection_state("connecting")
             try:
                 connection = socket.socket(self.endpoint.family, socket.SOCK_STREAM)
-                connection.settimeout(1.0)
+                connection.settimeout(_IO_TIMEOUT_SECONDS)
                 connection.connect(self.endpoint.address)
-                connection.settimeout(None)
                 with self._socket_lock:
                     if self._stop.is_set():
-                        connection.close()
                         raise EOFError("stopped")
                     self._socket = connection
-                self._unpacker = msgpack.Unpacker(raw=False, strict_map_key=False)
+                self._unpacker = self._new_unpacker()
                 self._pending_notifications.clear()
-                channel, _ = self._request("nvim_get_api_info")
+                info = self._request("nvim_get_api_info")
+                if not isinstance(info, list) or len(info) != 2 or type(info[0]) is not int or info[0] < 1:
+                    raise RuntimeError("invalid Neovim RPC channel information")
+                channel = info[0]
                 self._verify_session_identity()
                 self._request(
                     "nvim_exec_lua",
                     "local p=require('nvim_nvda'); p.setup(); p.register_channel(...)",
                     [channel],
                 )
+                with self._socket_lock:
+                    if self._stop.is_set():
+                        raise EOFError("stopped")
+                    self._ready = True
                 backoff.reset()
                 self.on_connection_state("connected")
                 self._notifications_loop()
@@ -119,12 +140,12 @@ class NvimRpcSource:
                 # Reopening the same endpoint would add load without ever
                 # making the unauthenticated session safe to use.
                 identity_rejected = True
-            except (OSError, EOFError, RuntimeError, msgpack.UnpackException):
+            except (OSError, EOFError, RuntimeError, ValueError, msgpack.UnpackException):
                 pass
             finally:
                 with self._socket_lock:
-                    connection = self._socket
                     self._socket = None
+                    self._ready = False
                 if connection is not None:
                     connection.close()
             if not self._stop.is_set():
@@ -156,33 +177,54 @@ class NvimRpcSource:
 
     def notify(self, method: str, *parameters: Any) -> bool:
         with self._socket_lock:
-            connection = self._socket
+            connection = self._socket if self._ready else None
         if connection is None:
             return False
         try:
             self._send([2, method, list(parameters)], connection)
         except (OSError, EOFError):
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
             return False
         return True
 
     def _request(self, method: str, *parameters: Any) -> Any:
+        deadline = time.monotonic() + _REQUEST_TIMEOUT_SECONDS
         self._request_id += 1
         request_id = self._request_id
         self._send([0, request_id, method, list(parameters)])
-        while not self._stop.is_set():
-            for message in self._unpacker:
+        while not self._stop.is_set() and time.monotonic() < deadline:
+            for message in self._messages():
                 if message[0] == 2:
+                    if len(self._pending_notifications) >= _MAX_PENDING_NOTIFICATIONS:
+                        raise RuntimeError("too many notifications during Neovim RPC setup")
                     self._pending_notifications.append((message[1], message[2]))
                 elif message[0] == 1 and message[1] == request_id:
                     if message[2] is not None:
                         raise RuntimeError(str(message[2]))
                     return message[3]
             self._feed()
-        raise EOFError("stopped")
+        raise TimeoutError("Neovim RPC request did not complete")
+
+    def _messages(self) -> Iterator[list[Any]]:
+        for message in self._unpacker:
+            if not isinstance(message, list) or not message or type(message[0]) is not int:
+                raise RuntimeError("invalid Neovim RPC message")
+            kind = message[0]
+            if kind == 2 and len(message) == 3 and isinstance(message[1], str) and isinstance(message[2], list):
+                yield message
+            elif kind in (0, 1) and len(message) == 4 and type(message[1]) is int:
+                yield message
+            else:
+                raise RuntimeError("invalid Neovim RPC message")
 
     def _feed(self) -> None:
-        assert self._socket is not None
-        data = self._socket.recv(65536)
+        connection = self._socket
+        if connection is None:
+            raise EOFError("Neovim RPC socket is not connected")
+        data = connection.recv(_READ_BYTES)
         if not data:
             raise EOFError("Neovim RPC socket closed")
         self._unpacker.feed(data)
@@ -193,10 +235,13 @@ class NvimRpcSource:
                 method, parameters = self._pending_notifications.popleft()
                 self._dispatch(method, parameters)
                 continue
-            for message in self._unpacker:
+            for message in self._messages():
                 if message[0] == 2:
                     self._dispatch(message[1], message[2])
-            self._feed()
+            try:
+                self._feed()
+            except TimeoutError:
+                continue
 
     def _dispatch(self, method: str, parameters: list[Any]) -> None:
         if method != "nvim_nvda_event" or len(parameters) != 1 or not isinstance(parameters[0], dict):

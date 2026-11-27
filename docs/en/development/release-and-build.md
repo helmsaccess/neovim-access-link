@@ -11,6 +11,7 @@ version data. It contains:
 - comparison version last published in the NVDA Add-on Store;
 - minimum and last-tested NVDA versions;
 - project URL, default help file, and English manifest changelog.
+- source URL, license identifier, and license URL for the NVDA Add-on Store.
 
 `store_version()` returns only `MAJOR.MINOR.PATCH` for the manifest and NVDA
 Add-on Store. For development states, `artifact_version()` adds `-dev.N` and,
@@ -18,19 +19,35 @@ when available, branch and commit metadata for filenames, diagnostic reports,
 and bundled components. The installed manifest is generated from these values
 and the matching changelog sections during the build and is not maintained
 separately. The German localization manifest receives the same sections from
-the German changelog. For a release, `manifest_changelog()` combines every
-version section after `manifest_changelog_base_version` through the current
-version. The Store manifest therefore describes the exact upgrade from the
-last version published there; update the base after an actual Store
-publication when preparing the next release.
+the German changelog. For releases, `manifest_changelog()` combines the sections after
+`manifest_changelog_base_version` through the current version. Verify that
+baseline against the actual Store version from which the intended audience
+upgrades. For stable releases, use the preceding stable Store version even
+if a newer beta exists. For the first stable release, choose the oldest
+published predecessor covered by the intended upgrade path. Include relevant
+changes from intermediate betas and GitHub-only releases.
 
-Development states collect completed changes under `Unveröffentlicht` and
-`Unreleased`; their manifests use that section. When a release is set, those
-entries are curated into the new German and English version sections. Each
-section describes only changes since the immediately preceding published
-version, after which the unreleased sections remain empty for the next
-development line. The build selects the section but never edits a changelog
-source.
+## Version and changelog policy
+
+Use [SemVer](https://semver.org/spec/v2.0.0.html) for product versions. PATCH
+covers compatible fixes and MINOR covers compatible features and
+deprecations. From 1.0.0, MAJOR covers breaks in promised compatibility,
+including supported platforms, durable settings and the protocol between
+separately upgradable components. Before 1.0.0, use MINOR for deliberate
+compatibility breaks and explain them in the release notes. Define the
+supported versions and upgrade behavior before approving 1.0.0.
+
+The user approves the product version and channel. Reserve a unique numeric
+version across channels and check Git tags, GitHub releases and NVDA Store
+entries before release. [NVDA Store version and channel rules](https://github.com/nvaccess/addon-datastore/blob/master/docs/design/jsonMetadata.md)
+
+Record notable changes in both changelogs under `Unveröffentlicht` and
+`Unreleased` in the same change. Explain their effects and group entries
+where useful under Added, Changed, Deprecated, Removed, Fixed and Security.
+For a release, curate the changes since the preceding release on the same
+line under `## [X.Y.Z] - YYYY-MM-DD`, link the version to its tag and reset
+both unreleased sections. An empty unreleased section produces a localized
+placeholder in development manifests. [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Development states
 
@@ -45,12 +62,12 @@ from branch name or prior history.
 
 ## Validation and build
 
-Before a distributable build, validate the final worktree:
+Development uses the local Windows checkout. Linux also covers Unix sockets,
+PTYs, and SSH targets. Tests and documentation validation use disposable output:
 
 ```bash
 python3 tools/run_tests.py all
-python3 tools/build_nvda_addon.py
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
 `all` runs safe, SSH, and socket phases sequentially; the environment must
@@ -58,65 +75,120 @@ permit listeners and disposable Neovim processes. In restricted environments,
 run `all-safe`, `ssh`, and `socket` separately as described by the [test
 strategy](testing.md).
 
-The add-on build validates the manifest, eight installed localized HTML
+The build follows the official NVDA AddonTemplate with `sconstruct`, separate
+templates for the base and translated manifests, the `pot` target, and gettext
+catalogs under `nvda-addon/addon/locale/`. Running `python -m SCons` directly
+creates a test archive under `build/scons/` with the HTML files in the checkout.
+`build.cmd` and the Linux release builder give SCons freshly rendered
+documentation and keep their intermediate files isolated.
+[NVDA AddonTemplate](https://github.com/nvdaaddons/AddonTemplate/tree/30318eae085fa81fe3a39045956c7a0516a0f981)
+
+Package tests build the add-on in their temporary test directory and validate
+the manifest, eight installed localized HTML
 documents, bundled components, dependencies, and archive contents. The
 manifest contract follows the official NVDA AddonTemplate field set: every
 applicable field must be a trimmed scalar; unknown, empty, or malformed
 metadata, missing default English help, and incomplete localization manifests
 stop the build. A field may be omitted only when it is genuinely inapplicable
-to the project. The
-documentation build synchronizes executable examples,
+to the project. The temporary documentation check synchronizes executable examples,
 checks Markdown and HTML links, German/English structure, and each output's
 language, title, and description, and creates eight HTML documents.
-It copies the same results under neutral names in
-`nvda-addon/addon/doc/de` and `doc/en`; CI rejects stale copies.
+Those files are deleted afterwards; CI does not publish or refresh end-user
+artifacts.
 
-`build.cmd` is an additional parameterless convenience path for Windows users
-who want to build the current development state from a source download. It
-requires Python 3.10 or newer and an internet connection, installs the
-pinned build dependencies only in a temporary Python environment, and writes
-the `.nvda-addon` to `dist`. It does not replace or alter the validated
-developer and CI process above.
+Build development artifacts with parameterless `build.cmd` from a clean
+local Windows branch with a development build number. The build uses Python 3,
+Git Bash, and an Internet connection for the pinned Python dependencies.
+Provide Git Bash via `PATH`, the default Git for Windows installation, or
+`NAL_GIT_BASH`. The build uses an installed Pandoc 3.1.11.1 or
+downloads the official Windows 3.1.11.1 binary temporarily and verifies its
+SHA-256.
+
+The Windows development build and Linux release build render all eight HTML
+documents and package them through the same isolated core. They verify the
+branch, commit, and cleanliness of tracked files before and after the build.
+The add-on and documentation ZIP reach `dist` after these checks pass and
+their names match. Use `git fetch origin` to compare with an existing repository.
+
+## Linux release build
+
+The final state that will be tagged and published on GitHub is built in the
+Linux checkout. After complete validation, approval of release metadata, and
+the merge to `main`, run:
+
+```bash
+python3 tools/build_release.py
+```
+
+The parameterless command accepts only a clean `main` worktree with
+`development_build = None`. It downloads the official Pandoc 3.1.11.1 Linux
+binary into temporary storage, verifies its SHA-256, and uses the same
+temporary Python environment with pinned build dependencies as the Windows
+entry point. Branch, commit, and versioned cleanliness are compared before
+and after the build. Only the add-on and documentation ZIP from the unchanged
+state reach `dist`; Pandoc, the environment, and intermediate output are then
+removed.
+
+In the Windows worktree the two files are named
+`NeovimAccessLink-<artifact_version>.nvda-addon` and
+`neovim-access-link-<artifact_version>-documentation.zip`. For a development
+state, `<artifact_version>` contains `-dev.N` and, when available, branch and
+commit metadata. The Linux release build instead uses the plain product
+version, for example `NeovimAccessLink-0.99.0.nvda-addon`.
+
+A successful build leaves tracked files unchanged. Use local Windows
+development artifacts from `build.cmd` with isolated NVDA profiles.
+The build suffix distinguishes packages and diagnostics. NVDA sees the
+numeric manifest version, so upgrade tests need different numeric versions.
 
 ## Release preparation
 
-An approved version requires one coherent state containing:
+1. Prepare the release in a GitHub pull request targeting `main`. Set the
+   approved version, channel, Store baseline and `development_build = None`
+   in `buildVars.py`. Set the NVDA API minimum to the supported minimum and
+   the last-tested API according to successful tests. Stable releases need
+   a stable NVDA API.
+2. Finalize both changelogs, README release links, and the German and English
+   status and compatibility pages. Merge only with approval and passing
+   required checks.
+3. Run the full tests and `python3 tools/build_release.py` on clean Linux
+   `main` at the merged commit. Validate the base and localized manifests
+   against the current NVDA AddonTemplate and verify both artifacts and
+   the applicable install and upgrade paths.
+4. After approval, create an annotated `vMAJOR.MINOR.PATCH` tag at exactly
+   the built commit and push that tag. The commit reaches GitHub `main`
+   through the pull request. Confirm the remote tag target before drafting
+   the release.
 
-1. product version, manifest update channel,
-   `manifest_changelog_base_version`, and `development_build = None` in
-   `buildVars.py`;
-2. current release and changelog links in `README.md` plus German and English
-   version sections curated from the unreleased entries and containing every
-   change since the immediately preceding published release;
-3. current status, compatible metadata, and complete German/English
-   documentation;
-4. successful full tests and freshly built artifacts;
-5. one commit and an annotated or lightweight `vMAJOR.MINOR.PATCH` tag on that
-   exact commit.
-
-Push, tag, and GitHub publication require explicit approval. Before tagging,
-verify that the worktree, version, README links, and artifact names agree.
-
-## Stop conditions
-
-Stop before tagging or publication when tests or builds fail, the worktree
-contains unexpected changes, version and links disagree, an artifact was not
-built from the tagged revision, or a required practical check remains open. Do
-not silently move an existing tag. After the user's decision, a correction
-gets a new product version or an explicitly rebuilt tag that has not been
-published.
+Stop on failed checks, missing approval, a previously used version or a
+mismatch between tag, manifests, links and assets. Keep published tags and
+assets immutable. Package corrections receive a new version.
 
 ## GitHub and Add-on Store
 
-A GitHub pre-release is created from the authorized tag, uses an English
-release description, and contains exactly the two assets listed below. Verify
-the tag target, pre-release flag, asset names, and downloads on GitHub after
-publication.
+After publication approval, create a draft against the existing tag. Derive
+English notes from the changelog since the previous GitHub release on the
+same line. Include compatibility, migration, verification limits and
+tag-pinned documentation links. Keep the notes file under `../nal-aux/`.
 
-Submission to the NVDA Add-on Store is a separate operation in the add-on
-datastore. It points to an already published, immutable revision and follows
-the datastore's current submission checks. Do not replace its tag or assets
-after a store submission; publish a new product version for a correction.
+```bash
+gh release create "v<VERSION>" "dist/NeovimAccessLink-<VERSION>.nvda-addon" \
+  "dist/neovim-access-link-<VERSION>-documentation.zip" \
+  --repo helmsaccess/neovim-access-link --draft --verify-tag --fail-on-no-commits \
+  --title "Neovim Access Link <VERSION>" --notes-file "<RELEASE_NOTES_FILE>" <STATUS_FLAGS>
+```
+
+Use `--prerelease --latest=false` for previews, `--latest` for the current
+stable line and `--latest=false` for older stable maintenance releases.
+Check the draft's tag, notes, file names and SHA-256 of both downloads before
+publishing. Verify the public release afterward. Use
+[immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+as repository protection.
+
+Store submission requires separate approval. Use the direct HTTPS URL
+and SHA-256 of the verified published add-on. Confirm the actual Store entry
+before using it as a baseline. Experimental NVDA API versions require a
+beta or dev Store channel. [NVDA Store submission guide](https://github.com/nvaccess/addon-datastore/blob/master/docs/submitters/submissionGuide.md)
 
 ## Publication artifacts
 

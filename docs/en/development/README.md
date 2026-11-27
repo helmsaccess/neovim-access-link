@@ -94,9 +94,6 @@ The reports preserve their comparison basis, measurements, and contemporary
 recommendations. They appear at the end of the built developer documentation
 and replace neither current architecture, status, plan, nor source code.
 
-- [Appendix A: Quality review of Global Plugin slimming, July 19, 2026, 20:04:03 CEST](quality-review-global-plugin-slimming-2026-07-19.md) — an
-  intermediate review of the feature branch against `main`, including fixed
-  regressions and the residual risks known at that time.
 - [Appendix B: Analysis of the completed feature state against `v0.94.2`, July 21, 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) —
   a quantitative and qualitative final assessment of testability,
   maintainability, robustness, and added structural complexity.
@@ -107,3 +104,4 @@ and replace neither current architecture, status, plan, nor source code.
 The detailed intermediate-build history remains archived as
 `changelog-history.md` in the repository and is not part of the current
 developer documentation.
+The July 19 intermediate review remains available in Git history.

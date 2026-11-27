@@ -37,6 +37,13 @@ Protocol messages are size-bounded, schema-validated, and bound to session and
 sequence. Incoming data is not executed and grants no general Neovim RPC
 access.
 
+The RPC client bounds its receive buffer, pending setup notifications, and
+waits for setup requests. Invalid RPC messages close the connection. Controls
+become available after session verification and channel registration.
+
+After an SSH protocol error, the client reaps its own OpenSSH process before
+retrying the connection.
+
 On the SSH path, only a valid `fullState` with the explicit lifecycle state
 `connection.neovim=connected` authenticates the accessibility session.
 Missing, unknown, or disconnected states are rejected before canonical state.

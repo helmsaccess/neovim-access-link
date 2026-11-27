@@ -15,10 +15,11 @@ Dateiinhalte, Namen, Pfade und fremde Neovim-Meldungen werden nicht übersetzt.
 
 ## Dateien und Arbeitsablauf
 
-- `nvda-addon/locale/NeovimAccessLink.pot` ist die extrahierte Vorlage.
-- `nvda-addon/locale/de/LC_MESSAGES/nvda.po` ist der deutsche Quellkatalog.
-- `nvda-addon/locale/de/manifest.ini` lokalisiert die von NVDA vor dem Laden
-  des Python-Codes angezeigten Manifestfelder.
+- `nvda-addon/addon/locale/NeovimAccessLink.pot` ist die extrahierte Vorlage.
+- `nvda-addon/addon/locale/de/LC_MESSAGES/nvda.po` enthält auch den Add-on-Namen
+  und die Beschreibung. Der Build verwendet die übersetzten Werte im Manifest.
+- Den deutschen Manifest-Changelog bezieht der Build aus dem deutschen
+  Entwickler-Changelog.
 - Das `.nvda-addon` enthält nur `locale/de/LC_MESSAGES/nvda.mo` und das
   übersetzte Manifest, nicht PO oder POT.
 
@@ -27,8 +28,10 @@ Nach Änderungen sichtbarer Texte ist aus der Repositorywurzel auszuführen:
 ```bash
 python3 tools/gettext_catalog.py update
 python3 tools/gettext_catalog.py check
-python3 tools/build_nvda_addon.py
+python3 tools/run_tests.py package
 ```
+
+`python -m SCons pot` aktualisiert ausschließlich die extrahierte Vorlage.
 
 `update` extrahiert ausschließlich literale Nachrichten und erhält vorhandene
 Übersetzungen. `check` verlangt für jeden Quelltext genau einen PO-Eintrag,
@@ -37,7 +40,9 @@ Unübersetzte Einträge sind zulässig und fallen absichtlich auf Englisch
 zurück. Der MO-Compiler lässt sie dafür wie GNU `msgfmt` aus der Binärdatei
 weg; eine leere Übersetzung darf niemals einen sichtbaren Text entfernen. Der
 Build kompiliert deterministisch mit der Python-Standardbibliothek;
-GNU-gettext-Werkzeuge sind keine Buildabhängigkeit.
+GNU-gettext-Werkzeuge sind keine Buildabhängigkeit. Entwicklungsartefakte
+entstehen mit `build.cmd` im lokalen Windows-Checkout; das
+auslieferbare Release-Add-on entsteht mit `tools/build_release.py` auf Linux.
 
 Der erste Werkzeugstand verarbeitet einfache Nachrichten mit benannten
 `str.format`-Feldern. Echte Pluralformen (`ngettext`) und kontextabhängige

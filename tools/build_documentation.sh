@@ -2,13 +2,33 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-product_name="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.addon_info["summary"])')"
-product_slug="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.product_slug())')"
-output_dir="${1:-$root/build/docs}"
+python_command="${PYTHON:-python3}"
+pandoc_command="${PANDOC:-pandoc}"
+temporary_root=""
+if [[ "${1:-}" == "--test-only" ]]; then
+  shift
+  temporary_root="$(mktemp -d)"
+  trap 'rm -rf -- "$temporary_root"' EXIT
+  output_dir="$temporary_root/docs"
+elif [[ "${1:-}" == "--output-only" ]]; then
+  shift
+  [[ -n "${1:-}" ]] || {
+    echo "error: --output-only requires an output directory" >&2
+    exit 2
+  }
+  output_dir="$1"
+  shift
+else
+  echo "error: use --test-only for validation or --output-only DIRECTORY for Windows build staging" >&2
+  exit 2
+fi
+if (( $# != 0 )); then
+  echo "error: unexpected arguments: $*" >&2
+  exit 2
+fi
+product_name="$(cd "$root" && "$python_command" -c 'import buildVars; print(buildVars.addon_info["summary"])')"
+product_slug="$(cd "$root" && "$python_command" -c 'import buildVars; print(buildVars.product_slug())')"
 output_dir="$(realpath -m "$output_dir")"
-archive_dir="${2:-$root/dist}"
-archive_dir="$(realpath -m "$archive_dir")"
-artifact_version="$(cd "$root" && python3 -c 'import buildVars; print(buildVars.artifact_version())')"
 
 quick_output="$output_dir/$product_slug-quick-guide-de.html"
 handbook_output="$output_dir/$product_slug-handbook-de.html"
@@ -18,8 +38,6 @@ quick_en_output="$output_dir/$product_slug-quick-guide-en.html"
 handbook_en_output="$output_dir/$product_slug-handbook-en.html"
 developer_en_output="$output_dir/$product_slug-developer-documentation-en.html"
 human_testing_en_output="$output_dir/$product_slug-human-testing-en.html"
-documentation_archive="$archive_dir/$product_slug-$artifact_version-documentation.zip"
-
 quick_sources=(
   docs/de/manual/quick-guide.md
 )
@@ -69,7 +87,6 @@ developer_sources=(
   docs/de/development/dependencies.md
   docs/de/development/plan.md
   docs/de/development/changelog.md
-  docs/de/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/de/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/de/development/global-plugin-appmodule-audit-2026-08-04.md
 )
@@ -131,7 +148,6 @@ developer_en_sources=(
   docs/en/development/dependencies.md
   docs/en/development/plan.md
   docs/en/development/changelog.md
-  docs/en/development/quality-review-global-plugin-slimming-2026-07-19.md
   docs/en/development/code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md
   docs/en/development/global-plugin-appmodule-audit-2026-08-04.md
 )
@@ -144,18 +160,21 @@ human_testing_en_sources=(
   docs/en/development/human-testing.md
 )
 
-command -v pandoc >/dev/null || {
+command -v "$pandoc_command" >/dev/null || {
   echo "error: the official Pandoc 3.1.11.1 build is required" >&2
   exit 1
 }
-mapfile -t pandoc_info < <(pandoc --version)
-if [[ "${pandoc_info[0]:-}" != "pandoc 3.1.11.1" \
-  || "${pandoc_info[1]:-}" != "Features: +server +lua" ]]; then
+mapfile -t pandoc_info < <("$pandoc_command" --version)
+pandoc_version="${pandoc_info[0]:-}"
+pandoc_features="${pandoc_info[1]:-}"
+if [[ "${pandoc_version%$'\r'}" != "pandoc 3.1.11.1" \
+  && "${pandoc_version%$'\r'}" != "pandoc.exe 3.1.11.1" \
+  || "${pandoc_features%$'\r'}" != "Features: +server +lua" ]]; then
   echo "error: the official Pandoc 3.1.11.1 build is required for reproducible HTML" >&2
   exit 1
 fi
 
-python3 "$root/tools/sync_documentation_examples.py" --check
+"$python_command" "$root/tools/sync_documentation_examples.py" --check
 
 validate_source() {
   local source="$1"
@@ -164,7 +183,7 @@ validate_source() {
     echo "error: configured Markdown source is missing: $source" >&2
     exit 1
   }
-  python3 - "$path" <<'PY'
+  "$python_command" - "$path" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -266,7 +285,7 @@ for source in "${quick_sources[@]}" "${handbook_sources[@]}" "${developer_source
   validate_source "$source"
 done
 
-python3 - "$root/docs/de/manual" "$root/docs/en/manual" \
+"$python_command" - "$root/docs/de/manual" "$root/docs/en/manual" \
   "$root/docs/de/development" "$root/docs/en/development" <<'PY'
 from pathlib import Path
 import sys
@@ -374,7 +393,7 @@ validate_html() {
   local expected_language="$2"
   local expected_title="$3"
   local expected_description="$4"
-  python3 - "$output" "$expected_language" "$expected_title" "$expected_description" <<'PY'
+  "$python_command" - "$output" "$expected_language" "$expected_title" "$expected_description" <<'PY'
 from html.parser import HTMLParser
 from pathlib import Path
 import sys
@@ -487,7 +506,7 @@ build_html() {
   elif [[ "$use_link_filter" == "english" ]]; then
     extra+=(--file-scope --lua-filter=docs/english-links.lua)
   fi
-  (cd "$root" && pandoc \
+  (cd "$root" && "$pandoc_command" \
     --from=gfm \
     --to=html5 \
     --standalone \
@@ -549,7 +568,7 @@ build_html \
   en no \
   "${human_testing_en_sources[@]}"
 
-python3 - "$quick_output" "$handbook_output" "$developer_output" \
+"$python_command" - "$quick_output" "$handbook_output" "$developer_output" \
   "$human_testing_output" "$quick_en_output" "$handbook_en_output" \
   "$developer_en_output" "$human_testing_en_output" <<'PY'
 from html.parser import HTMLParser
@@ -638,7 +657,6 @@ validate_required_section \
   "$human_testing_en_output" \
   "guided-practical-tests-with-nvda"
 
-mkdir -p "$archive_dir"
 published_outputs=(
   "$quick_output"
   "$handbook_output"
@@ -649,30 +667,4 @@ published_outputs=(
   "$developer_en_output"
   "$human_testing_en_output"
 )
-python3 "$root/tools/sync_installed_documentation.py" \
-  --source "$output_dir" \
-  --destination "$root/nvda-addon/addon/doc" \
-  --write
-python3 - "$documentation_archive" "${published_outputs[@]}" <<'PY'
-from pathlib import Path
-import sys
-import zipfile
-
-output = Path(sys.argv[1])
-sources = [Path(value) for value in sys.argv[2:]]
-staged = output.with_name(f".{output.name}.tmp")
-with zipfile.ZipFile(
-    staged,
-    "w",
-    compression=zipfile.ZIP_DEFLATED,
-    compresslevel=9,
-) as archive:
-    for source in sources:
-        info = zipfile.ZipInfo(source.name, date_time=(1980, 1, 1, 0, 0, 0))
-        info.compress_type = zipfile.ZIP_DEFLATED
-        info.external_attr = 0o644 << 16
-        archive.writestr(info, source.read_bytes(), compresslevel=9)
-staged.replace(output)
-output.chmod(0o644)
-PY
-echo "built $documentation_archive ($(wc -c < "$documentation_archive") bytes) from ${#published_outputs[@]} HTML files"
+echo "validated ${#published_outputs[@]} documentation files without publishing artifacts"

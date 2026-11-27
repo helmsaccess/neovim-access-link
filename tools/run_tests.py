@@ -30,11 +30,13 @@ PYTHON_TEST_PATH = os.pathsep.join(
         "nvda-addon/tests",
     )
 )
-DEFAULT_JOBS = min(8, os.cpu_count() or 1)
+DEFAULT_JOBS = getattr(os, "process_cpu_count", os.cpu_count)() or 1
+MAX_PACKAGE_SHARDS = 12
 JOB_TIMEOUT_SECONDS = 180
 UNIX_SOCKET_PATH_MAX = 107
 TEMPORARY_NAME_SAMPLE = "tmp12345678"
 GROUPS = ("unit", "package", "lua", "ssh", "socket")
+GUIDED_GROUPS = {"guided-desktop": "desktop", "guided-audio": "audio"}
 PRESETS = {
     "quick": ("unit",),
     "safe": ("unit", "package", "lua"),
@@ -176,7 +178,7 @@ def validate_inventory(configured: tuple[Job, ...]) -> None:
         raise RuntimeError(f"test group inventory mismatch; missing={missing!r}, unexpected={unexpected!r}")
 
 
-def jobs() -> tuple[Job, ...]:
+def jobs(workers: int) -> tuple[Job, ...]:
     result: list[Job] = []
     for file_name in (
         "test_braille_exploration.py",
@@ -230,6 +232,7 @@ def jobs() -> tuple[Job, ...]:
         "test_starter_config.py",
         "test_temporary_binding.py",
         "test_terminal_actions.py",
+        "test_windows_workspace_sync.py",
     ):
         result.append(python_file("unit", "addon", f"nvda-addon/tests/{file_name}"))
     result.extend(
@@ -238,7 +241,7 @@ def jobs() -> tuple[Job, ...]:
             "addon",
             "nvda-addon/tests/test_built_addon.py",
             "BuiltAddonTests",
-            2,
+            min(workers, MAX_PACKAGE_SHARDS),
         )
     )
     for file_name in (
@@ -296,6 +299,11 @@ def jobs() -> tuple[Job, ...]:
     )
     result.extend(
         (
+            python_file("socket", "protocol", "protocol/python/tests/test_local_client_socket.py"),
+            *python_shards(
+                "socket", "protocol", "protocol/python/tests/test_guided_workflow_socket.py",
+                "GuidedWorkflowSocketTests", min(4, workers),
+            ),
             lua_spec("socket", "neovim-plugin/tests/local_windows_session_spec.lua"),
             lua_spec("socket", "neovim-plugin/tests/session_registry_spec.lua"),
         )
@@ -377,7 +385,10 @@ def run_job(
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment.pop("PYTHONPYCACHEPREFIX", None)
     environment["TMPDIR"] = str(temporary)
+    environment["TEMP"] = str(temporary)
+    environment["TMP"] = str(temporary)
     environment["XDG_RUNTIME_DIR"] = str(runtime)
+    environment["NAL_TEST_PYTHON"] = sys.executable
     environment.setdefault("PYTHONWARNINGS", "default")
     started = time.monotonic()
     try:
@@ -423,7 +434,7 @@ def run_job(
 
 
 def parse_args() -> argparse.Namespace:
-    names = (*GROUPS, *PRESETS)
+    names = (*GROUPS, *PRESETS, *GUIDED_GROUPS)
     parser = argparse.ArgumentParser(
         description="Run independent test processes in parallel. The default preset is 'safe'.",
     )
@@ -442,7 +453,30 @@ def parse_args() -> argparse.Namespace:
         help=f"maximum parallel processes (default: {DEFAULT_JOBS})",
     )
     parser.add_argument("--list", action="store_true", help="list selected jobs without running them")
-    return parser.parse_args()
+    parser.add_argument("--guided-config", type=Path, help="local Windows VM and tool configuration")
+    parser.add_argument("--guided-addon", type=Path, help="built .nvda-addon for the Windows guided groups")
+    parser.add_argument("--guided-case", action="append", default=[], help="limit the guided groups to these case IDs")
+    arguments = parser.parse_args()
+    if (set(arguments.groups or ()) & GUIDED_GROUPS.keys()) and not arguments.list:
+        if arguments.guided_config is None or arguments.guided_addon is None:
+            parser.error("guided groups require --guided-config and --guided-addon")
+    return arguments
+
+
+def run_guided_groups(arguments: argparse.Namespace, groups: tuple[str, ...]) -> int:
+    command = [
+        sys.executable, str(ROOT / "tests/guided/windows/run_guided_suite.py"), "--checkout", str(ROOT),
+    ]
+    if len(groups) == 1:
+        command.extend(("--group", GUIDED_GROUPS[groups[0]]))
+    if arguments.list:
+        command.append("--list")
+    else:
+        command.extend(("--config", str(arguments.guided_config.resolve()),
+                        "--addon", str(arguments.guided_addon.resolve())))
+    for case in arguments.guided_case:
+        command.extend(("--case", case))
+    return subprocess.run(command, cwd=ROOT, check=False).returncode
 
 
 def main() -> int:
@@ -450,12 +484,24 @@ def main() -> int:
     if arguments.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
     groups = selected_groups(tuple(arguments.groups or ("safe",)))
-    selected = tuple(job for job in jobs() if job.group in groups)
+    guided = tuple(group for group in groups if group in GUIDED_GROUPS)
+    groups = tuple(group for group in groups if group in GROUPS)
+    if not groups:
+        return run_guided_groups(arguments, guided)
+    selected = tuple(job for job in jobs(arguments.jobs) if job.group in groups)
+    if os.name == "nt" and "socket" in groups:
+        selected = tuple(
+            job for job in selected
+            if job.group != "socket" or job.source.name in {
+                "local_windows_session_spec.lua", "test_local_client_socket.py", "test_guided_workflow_socket.py",
+            }
+        )
+        print("Windows socket phase runs local loopback checks; Unix PTY and socket tests require Linux.")
     if arguments.list:
         for job in selected:
             print(f"{job.group:7} {job.name}")
-        print(f"{len(selected)} jobs; groups: {', '.join(groups)}")
-        return 0
+        print(f"{len(selected)} jobs; groups: {', '.join(groups)}", flush=True)
+        return run_guided_groups(arguments, guided) if guided else 0
 
     print(
         f"Running {len(selected)} isolated jobs from groups {', '.join(groups)} "
@@ -470,7 +516,7 @@ def main() -> int:
     separated_batches = tuple(batch for batch in (safe_jobs, ssh_jobs, socket_jobs) if batch)
     if len(separated_batches) > 1:
         batches = separated_batches
-    if socket_jobs:
+    if socket_jobs and os.name != "nt":
         validate_socket_path_budget(ROOT)
     temporary_parent = ROOT / "tmp"
     temporary_parent.mkdir(parents=True, exist_ok=True)
@@ -537,9 +583,10 @@ def main() -> int:
         return 1
     print(
         f"\nOK: {len(results)} jobs, {tests} unittest cases, "
-        f"{skipped} skipped, {warnings} warnings in {elapsed:.2f}s"
+        f"{skipped} skipped, {warnings} warnings in {elapsed:.2f}s",
+        flush=True,
     )
-    return 0
+    return run_guided_groups(arguments, guided) if guided else 0
 
 
 if __name__ == "__main__":

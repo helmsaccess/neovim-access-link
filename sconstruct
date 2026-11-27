@@ -1,0 +1,87 @@
+"""SCons entry points for the NVDA add-on and its gettext template."""
+
+from pathlib import Path
+import sys
+
+from SCons.Script import Action, Default, Dir, Environment, SConsignFile, Variables
+
+sys.dont_write_bytecode = True
+
+import buildVars  # noqa: E402
+from tools.build_nvda_addon import build  # noqa: E402
+from tools.gettext_catalog import POT_PATH, SOURCE_PATHS, update_template  # noqa: E402
+
+ROOT = Path(Dir("#").abspath)
+DEFAULT_OUTPUT = ROOT / "build" / "scons"
+
+
+def build_addon(target, source, env):
+	documentation = env["DOCUMENTATION_DIRECTORY"]
+	expected = Path(target[0].abspath)
+	built = build(expected.parent, Path(documentation) if documentation else None)
+	if built != expected:
+		raise RuntimeError("the add-on version changed during the SCons build")
+
+
+def build_pot(target, source, env):
+	update_template()
+
+
+def inputs(directory):
+	return sorted(
+		path
+		for path in directory.rglob("*")
+		if path.is_file() and "__pycache__" not in path.parts and path.suffix not in {".pyc", ".pot"}
+	)
+
+
+variables = Variables()
+variables.Add("OUTPUT_DIRECTORY", "Directory for the standalone add-on archive", str(DEFAULT_OUTPUT))
+variables.Add("DOCUMENTATION_DIRECTORY", "Directory with the rendered product documentation", "")
+variables.Add("SCONS_STATE_DIRECTORY", "Directory for the SCons signature database", str(DEFAULT_OUTPUT))
+env = Environment(variables=variables, tools=[])
+
+state_directory = Path(env["SCONS_STATE_DIRECTORY"]).resolve()
+state_directory.mkdir(parents=True, exist_ok=True)
+SConsignFile(str(state_directory / ".sconsign"))
+
+package_inputs = [
+	ROOT / "sconstruct",
+	ROOT / "buildVars.py",
+	ROOT / "LICENSE",
+	ROOT / "manifest.ini.tpl",
+	ROOT / "manifest-translated.ini.tpl",
+	ROOT / "tools" / "build_nvda_addon.py",
+	ROOT / "tools" / "build_user_package.py",
+	ROOT / "tools" / "documentation_layout.py",
+	ROOT / "tools" / "gettext_catalog.py",
+	ROOT / "tools" / "requirements-build.txt",
+	ROOT / "docs" / "de" / "development" / "changelog.md",
+	ROOT / "docs" / "en" / "development" / "changelog.md",
+	*inputs(ROOT / "nvda-addon" / "addon"),
+	*inputs(ROOT / "nvda-addon" / "core"),
+	*inputs(ROOT / "bridge" / "python" / "nvim_nvda_bridge"),
+	*inputs(ROOT / "protocol" / "python" / "nvim_nvda_protocol"),
+	*inputs(ROOT / "neovim-plugin"),
+	ROOT / "examples" / "neovim-starter" / "init.lua",
+	ROOT / "packaging" / "install_user.py",
+]
+if env["DOCUMENTATION_DIRECTORY"]:
+	package_inputs.extend(inputs(Path(env["DOCUMENTATION_DIRECTORY"])))
+
+archive_name = f"{buildVars.addon_info['name']}-{buildVars.artifact_version()}.nvda-addon"
+archive = env.Command(
+	str(Path(env["OUTPUT_DIRECTORY"]).resolve() / archive_name),
+	[str(path) for path in package_inputs],
+	Action(build_addon, "Building $TARGET"),
+)
+env.Depends(archive, env.Value(env["DOCUMENTATION_DIRECTORY"]))
+env.Alias("addon", archive)
+Default(archive)
+
+pot = env.Command(
+	str(POT_PATH),
+	[str(ROOT / "tools" / "gettext_catalog.py"), *(str(path) for path in SOURCE_PATHS)],
+	Action(build_pot, "Extracting $TARGET"),
+)
+env.Alias("pot", pot)

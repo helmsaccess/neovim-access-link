@@ -2,21 +2,21 @@
 
 ## Zweck und Umfang
 
-Diese Praxistests prüfen einen fertigen Neovim-Access-Link-Build nur dort, wo
-ein automatisierter Test nicht zuverlässig entscheiden kann: reale
-NVDA-Sprache, hörbare Klänge, eine physische Braillezeile, gehaltene
-NVDA-Gesten und den tatsächlichen Fokus in Windows Terminal. Eine Aufgabe
-bündelt zusammengehörige Wahrnehmungen derselben Bedienhandlung, damit Neovim
-nicht allein für Sprache und Klänge zweimal mit derselben Fixture gestartet
-werden muss. LSP-Antworten, Diagnosebereiche,
-Sprungziele, Adapterzustände und Dateiformate bleiben automatisierten Tests
-überlassen.
+Die 18 Aufgabenkarten beschreiben reproduzierbare Bedienabläufe für einen
+fertigen Neovim-Access-Link-Build. Die Testgruppen `guided-desktop` und
+`guided-audio` führen die technisch prüfbaren Teile aller Karten in einem
+isolierten Windows-Gast aus. Sie erfassen unter anderem Windows-Fokus,
+gehaltene NVDA-Gesten, Sprachsequenzen vor der Synthese, digitale
+Braille-Zellen und gerenderte Audiosignale. `tests/guided/windows/README.md`
+beschreibt den automatisierten Lauf und seine Nachweise.
 
-Die automatische Parameteraufgabe beurteilt deshalb nur, ob reale
-Pyright-Übergänge verständlich und ohne störende Verzögerung gesprochen werden
-und die Braillezeile beim Quelltext bleibt. Resolver, Verschachtelung,
-Überladungen, Rückkehr in einen bereits ausgefüllten Parameter,
-Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
+Der interaktive Runner bleibt für Fragen zur subjektiven Sprach- und
+Klangwahrnehmung, Reaktionszeit und Bedienung einer physischen Braillezeile
+verfügbar. Eine Karte bündelt zusammengehörige Beobachtungen derselben
+Bedienhandlung. Bei automatischen Parameterhinweisen prüfen die Tests echte
+Pyright-Übergänge, die gesprochene Sequenz und die Quelltextzeile in Braille.
+Resolver, Verschachtelung, Überladungen, Rückkehr in einen bereits ausgefüllten
+Parameter, Deduplizierung, Grenzen und veraltete Antworten besitzen getrennte
 automatisierte Regressionen.
 
 Die Fixtures liefern trotzdem bewusst echte Auswahlmöglichkeiten: mindestens
@@ -256,8 +256,9 @@ normaler `WorkspaceEdit`-Handler besitzen weiterhin die Umbenennung. Jeder
 Druck auf `F4` gibt die nächste tatsächlich geänderte Referenzzeile aus, ohne
 den aktuellen Puffer zu wechseln. Ein automatisierter TUI-/RPC-Test führt
 diese physischen Funktionstasten mit einem deterministischen Test-Sprachserver
-aus und schließt zusätzliche Text-, Cursor- und Kontextmeldungen aus. Der
-geführte Test bewertet nur noch Sprache und Reaktionszeit unter Windows/NVDA.
+aus und schließt zusätzliche Text-, Cursor- und Kontextmeldungen aus.
+Der geführte Gasttest erfasst die NVDA-Sprachsequenzen bei der Umbenennung
+mit echtem Pyright.
 
 L6 ergänzt L4 um Neovims Bufferliste. Die zweite Datei ist vor der Interaktion
 geladen und ausdrücklich gelistet; `F3` lässt Neovim `bufdo` über beide Dateien
@@ -275,18 +276,24 @@ referenzierten Dateien. Beim ersten Lauf richtet er unter
 | Bestandteil | Verwendung |
 | --- | --- |
 | festgelegte Versionen von Pyright, Ruff, Clang-Tidy und markdownlint-cli2 | reproduzierbare LSP- und Diagnoseantworten; installiert werden nur die für die Auswahl benötigten Werkzeuge |
-| festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp und blink.cmp | reproduzierbare Provider- und Completion-Kompatibilität |
+| festgelegte Revisionen von nvim-lint, nvim-cmp, cmp-nvim-lsp, blink.cmp und lazy.nvim | reproduzierbare Provider-, Completion- und Plugin-Verwaltungskompatibilität; geladen werden nur die für die Auswahl benötigten Plugins |
 | eigene Neovim-Konfigurations-, Daten-, Zustands- und Cacheverzeichnisse | vollständige Trennung von der persönlichen Neovim-Umgebung |
 
 Pyright wird als festgelegtes npm-Paketarchiv bereitgestellt und vor dem
 Entpacken mit SHA-512 geprüft. Der Runner vermeidet damit den `npm install`-
-Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann.
+Ablauf, der in eingebundenen Verzeichnissen unter Windows hängen kann. Er
+prüft Paketversion, Server- und CLI-Datei sowie einen echten CLI-Aufruf und
+startet den JavaScript-Sprachserver anschließend ausdrücklich mit Node statt
+über einen Windows-Batch-Wrapper.
 
 Spätere Läufe vergleichen einen getrennten Umgebungsfingerabdruck, die für die
-Auswahl benötigten Werkzeugversionen und die vier Plugin-Revisionen. Änderungen nur
+Auswahl benötigten Werkzeugversionen und Plugin-Revisionen. Änderungen nur
 an Aufgabentexten, Übersetzungen oder Ergebnislogik lösen deshalb keine neue
 Einrichtung aus. Stimmen die benötigten Werkzeuge und Plugins bereits, werden
-sie ohne Paketinstallation wiederverwendet. Clang-Tidy und markdownlint werden
+sie ohne Paketinstallation wiederverwendet. Der gespeicherte Zustand enthält
+zusätzlich die erfolgreich vorgeprüften Profile; neu ausgewählte Profile
+durchlaufen ihre Vorprüfung auch dann, wenn ihre Dateien bereits vorhanden
+sind. Clang-Tidy und markdownlint werden
 bei einem normalen Smoke-Lauf nicht vorsorglich installiert. Nur die
 technische Vorprüfung der tatsächlich ausgewählten Profile wird nach
 relevanten Laufzeitänderungen wiederholt.
@@ -300,15 +307,19 @@ Completion-Profilen fordert die Vorprüfung die drei benannten Kandidaten ab;
 bei den Signaturaufgaben zusätzlich mindestens zwei Signaturen mit jeweils
 drei Parametern. Im Diagnoseprofil
 erwartet sie zwei reale Ruff-F401-Warnungen in der ersten Zeile und mindestens
-einen Ruff-F821-Fehler. Die C- und Markdown-Profile verlangen vorab eine echte
+einen Ruff-F821-Fehler. Dabei betrachtet die Bereitschaftsprüfung nur den
+Diagnoseraum des gerade geprüften Linters; Pyright-Diagnosen können das Ruff-
+Ergebnis weder erfüllen noch verdecken. Die C- und Markdown-Profile verlangen vorab eine echte
 Clang-Tidy-Fehlermeldung beziehungsweise markdownlint-MD025-Warnung. Schlägt
-ein Profil fehl, werden die weiteren ausgewählten Profile trotzdem geprüft;
-der Runner fasst danach alle Fehler zusammen. Ein menschlicher Tester wird erst
+ein direkter Werkzeugtest fehl, zeigt der Runner dessen Ausgabe. Bei einem
+Linterfehler nennt er den konfigurierten Provider und ob dessen Prozess noch
+läuft. Die Vorbereitung bricht beim ersten Fehler ab. Ein menschlicher Tester wird erst
 zu einer Wahrnehmungsaufgabe geführt, wenn diese maschinell entscheidbaren
 Grundlagen funktionieren.
 
 **Testabhängigkeiten einrichten oder reparieren** ist die ausdrückliche
-Reparaturfunktion: Sie installiert die verwalteten Plugin-Revisionen neu und
+Reparaturfunktion: Sie installiert die für die Auswahl benötigten verwalteten
+Plugin-Revisionen neu und
 wiederholt diese Vorprüfung. Der normale Standardtest führt diese erzwungene
 Neuinstallation nicht aus. Die persönliche
 Neovim-Umgebung bleibt auch dabei unberührt. Für Git verwendet allein die
@@ -450,7 +461,7 @@ Die kompakte Implementierung liegt unter `tests/human/`:
 | `dependencies.json` | festgelegte Fremdversionen und Revisionen |
 | `framework/` | Runner, Validator und isolierte Neovim-Konfiguration |
 
-Eine neue menschliche Aufgabe erhält eine der vier festen Kategorien und
+Eine neue menschliche Aufgabe erhält eine der fünf festen Kategorien und
 benötigt einen Grund, der nicht zuverlässig
 automatisierbar ist, und verweist auf verwandte automatisierte Evidenz. Kann
 Code das Ergebnis eindeutig entscheiden, gehört der Fall in einen
@@ -461,6 +472,6 @@ python3 tests/human/framework/validate.py plans
 python3 tools/run_tests.py quick
 ```
 
-GitHub Actions führt den PowerShell-Runner zusätzlich unter Windows aus. Das
-findet PowerShell-spezifische Parser- und Laufzeitfehler, erklärt aber niemals
-Sprache, Klänge, Braille oder Fokus als menschlich bestanden.
+GitHub Actions prüft im Repository-Workflow den PowerShell-Runner unter
+Windows mit Definitionen und Trockenläufen. Die Ergebnisse der
+automatisierten Gasttests stehen in separaten Berichten.

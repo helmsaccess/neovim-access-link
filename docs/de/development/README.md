@@ -99,9 +99,6 @@ Die Berichte bewahren Vergleichsbasis, Messwerte und damalige Empfehlungen.
 Sie stehen am Ende der gebauten Entwicklerdokumentation und ersetzen weder die
 aktuelle Architektur noch Status, Plan oder Code.
 
-- [Anhang A: Qualitätsreview der Global-Plugin-Verschlankung vom 19. Juli 2026, 20:04:03 CEST](quality-review-global-plugin-slimming-2026-07-19.md) –
-  Zwischenreview des Featurebranches gegen `main`, einschließlich behobener
-  Regressionen und damaliger Restrisiken.
 - [Anhang B: Codeanalyse des abgeschlossenen Featurestands gegenüber `v0.94.2` vom 21. Juli 2026, 01:11:58 CEST](code-analysis-global-plugin-slimming-v0.94.2-2026-07-21.md) –
   quantitative und qualitative Abschlussbewertung von Testbarkeit,
   Wartbarkeit, Robustheit und zusätzlicher Strukturkomplexität.
@@ -111,3 +108,4 @@ aktuelle Architektur noch Status, Plan oder Code.
 
 Die ausführliche Zwischenbuild-Historie bleibt als `changelog-history.md` im
 Repository archiviert und ist nicht Teil der aktuellen Entwicklerdokumentation.
+Das frühere Zwischenreview vom 19. Juli bleibt im Git-Verlauf abrufbar.

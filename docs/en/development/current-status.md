@@ -1,20 +1,29 @@
 # Current status
 
-Status date: August 14, 2026. The source tree develops the 0.99.0 line;
-`buildVars.py` generates artifacts as 0.99.0-dev.3 with branch and commit
-metadata and sets the manifest update channel to beta. The current published
-pre-release is 0.98.0. The
-project does not infer a higher stability classification from test coverage or
-feature count.
+Status date: November 27, 2026. The source tree develops the 0.99.0 line.
+`buildVars.py` derives the version identifier from the development build
+number, branch, and commit and sets the manifest update channel to beta.
+The latest published pre-release is 0.98.0.
+
+Changes enter `main` through pull requests. The
+[version and release guide](release-and-build.md) defines the release checks,
+dated bilingual changelogs and separate GitHub and Store publication steps.
+Pull requests include an English changelog covering the full diff.
 
 This page is the compact snapshot of implemented and verified behavior. See
 [architecture](architecture.md) and the [feature matrix](accessibility.md) for
 detail, the [changelog](changelog.md) for completed changes, and the
 [plan](plan.md) for future work.
 
+The [guided workflow socket tests](testing.md#guided-workflows-over-real-neovim-rpc)
+exercise Neovim mappings, real providers and the authenticated protocol with
+Neovim 0.12.x. They verify the data delivered for held signatures and
+diagnostics. The Python diagnostic tasks wait for results from Ruff and
+Pyright. Windows focus and NVDA presentation have separate evidence.
+
 ## Reference environment
 
-The main practical path has been exercised with Windows 11 25H2, NVDA 2026.1.1,
+The earlier local and SSH reference run used Windows 11 25H2, NVDA 2026.1.1,
 Windows Terminal 1.24.x, local Neovim 0.12.3, and Neovim 0.10.1 and 0.12.3 on
 Rocky Linux 10.2 through OpenSSH for Windows 9.5p2. Local Windows Neovim, Linux
 Neovim over SSH, and tmux inside an SSH session are covered. The final field
@@ -22,11 +31,32 @@ test of development build 3 under NVDA 2026.2beta10 covered automatic F12
 bindings, frequent switching between local and remote panes and another
 Windows Terminal window, ending and restarting remote Neovim, and native typing
 echo outside the active session. Bindings remained distinct and active, and
-disconnected SSH snapshots caused no false reconnections. The manifest
-therefore names NVDA 2026.2 as last tested. See
-[compatibility](compatibility.md) for complete platform and version boundaries.
+disconnected SSH snapshots caused no false reconnections.
+
+On Windows, the packaged add-on started in an isolated NVDA 2026.3.1 profile.
+The NVDA integration and Windows Terminal AppModule loaded successfully.
+Neovim 0.12.6 passed the Lua and local TCP tests. The packaged NVDA client
+received an authenticated full state. An automated run on an active Windows 11
+guest desktop with NVDA 2026.3.1, Windows Terminal 1.25, and Neovim 0.12.6
+confirmed F12, editing, separate panes, tab and window switching, and focus
+recovery after an editor exited. The same scenario passed with NVDA 2026.1.1
+and Neovim 0.10.1. Digital speech, Braille cells, and tone
+requests were captured in NVDA 2026.1.1 and 2026.3.1.
+The manifest lists NVDA 2026.3.1 as last tested and retains 2026.1 as its minimum.
+See [compatibility](compatibility.md) for details.
 
 ## Implemented end-to-end path
+
+The Windows development build and Linux release builder use SCons for the
+add-on. The base manifest, localized manifests, and gettext sources follow the
+NVDA AddonTemplate layout. Documentation and Linux component builds remain
+separate steps.
+Package metadata and bundled Python line endings are platform independent.
+
+The shared Neovim RPC client validates message structures and bounds setup,
+its receive buffer, and pending notifications. Controls use the verified and
+registered channel.
+Failed SSH attempts reap their own process before a retry.
 
 ### Installation, connections, and ownership boundaries
 
@@ -62,10 +92,15 @@ therefore names NVDA 2026.2 as last tested. See
   remains 0.96.0 until an actual Store publication. The package build
   rejects missing, empty, unknown, or malformed template fields and verifies
   the default English help plus the German localization manifest.
-- The documentation job and local reference build use the official
-  Pandoc 3.1.11.1 binary from an archive with a verified digest. The build
-  script rejects differently packaged builds of the same version, keeping the
-  checked-in installed HTML reproducible.
+- The documentation job and Linux release build use the respective official
+  Pandoc 3.1.11.1 binary from an archive with a verified digest. The Windows
+  development build accepts an installed Pandoc 3.1.11.1 and
+  otherwise uses the verified binary temporarily. CI and normal Linux
+  development validate in temporary directories only. `build.cmd` creates
+  development artifacts in the local Windows checkout;
+  `tools/build_release.py` creates the later
+  published assets only from clean Linux `main` with approved release
+  metadata.
 - `NVDA+Alt+N` is the default activation gesture and remains reassignable in
   Input Gestures. It continues to belong to the Windows Terminal AppModule;
   outside a matching focused control, the native keyboard path remains intact.
@@ -138,8 +173,9 @@ tab changes, plus structured Neovim messages.
   observed changed and unsaved buffers; Neovim's internal buffer visits do not
   appear as focus changes. Automated tests cover Quickfix files, listed
   buffers, and argument files, including an initially unloaded argument
-  buffer. Guided L4 and L6 have not yet received complete practical acceptance
-  under Windows/NVDA.
+  buffer. A native Neovim test checks that F3 in L4 opens the Quickfix list
+  on the first result. Practical acceptance of L4 and L6 under Windows/NVDA
+  is pending.
 - Diagnostics from `vim.diagnostic` can be read at the current, previous, next,
   first, and last position. Held diagnostic views and error, warning, and
   empty-result cues use the same validated data path.
@@ -199,18 +235,20 @@ validated HTML files. The copyable Neovim example comes from one real tested
 Lua file and is synchronized identically into both manuals.
 The documentation build also checks complete German and English source sets,
 parallel heading structures, Markdown links, generated HTML targets, and
-language, title, and description metadata. GitHub Actions runs this build as a
-dedicated job.
-Windows users can additionally run parameterless `build.cmd` to build the
-current development state. The wrapper uses only a temporary Python environment
-and leaves the regular build and CI path unchanged.
+language, title, and description metadata. GitHub Actions runs this temporary
+validation as a dedicated job. Development uses a local Windows checkout
+and normal Git fetches. `build.cmd` checks the branch, commit, and cleanliness
+of tracked files before and after building. The same isolated core builds
+Linux release artifacts and places the add-on and documentation ZIP in `dist`.
 
 ## Verification evidence
 
 Automated suites cover protocol and bounds, bridge, local and SSH clients,
 multiple instances, focus and fail-open behavior, editor and presentation
 planning, Lua with real headless Neovim processes, package contents,
-localization, and documentation links. Pinned runs use Neovim 0.10.1 or 0.12.3
+localization, and documentation links. The test runner uses the logical
+processors available to Python and distributes package tests across up to
+twelve isolated shards. Pinned runs use Neovim 0.10.1 or 0.12.3
 according to their purpose and exercise real completion, LSP, diagnostic, and
 linter paths. The Clang-Tidy profile invokes the pinned binary directly, fixes
 the language mode and supplied test configuration explicitly, and merges
@@ -245,6 +283,22 @@ This permits cold Windows and network-drive starts without waiting forever for
 a stalled provider.
 Listener-free, SSH, and real socket tests run separately. See the
 [test strategy](testing.md) for commands and detail.
+`guided-desktop` and `guided-audio` exercise the 18 guided cases and their
+mechanically verifiable expectations in an isolated Windows guest. They
+observe actual focus, NVDA speech output, digital Braille cells, and rendered
+audio at their respective interfaces. Both groups run on explicit request.
+All 18 cases have complete guest evidence, including controls. The local VM
+reference profile used NVDA 2026.3.1, Neovim 0.12.6, and Windows Terminal 1.25.3131.0.
+The [result audit](testing.md#guided-windows-and-audio-checks) verifies the guest
+logs, package hash, and PCM recordings.
+The GitHub-hosted S1 check has also verified native focus and keyboard input.
+The private lab keeps the independent WASAPI and QEMU checks for C1, audits
+any replay caused by a missing QEMU start marker, and runs independent cases
+even if an earlier case fails.
+The QEMU calibration verifier for C1 and D1 checks disjoint waveform segments when
+timing slips affect a calibration signal. Application cues and the separate
+WASAPI capture are checked against complete waveforms.
+The managed test guest starts fresh for the second P2 fixture.
 Guided practical tests isolate the remaining perceptual checks for speech,
 Braille, sounds, focus, and response time. Their technical preflight confirms
 real provider data and task-specific isolated key control. The compatibility
@@ -252,8 +306,20 @@ suite also includes four lazy.nvim tasks with fully local Git fixtures for its
 window, installation, update, and synchronization; the individual selector
 groups them under plugin management. The headless preflight does not require
 Lazy's deliberately suppressed UI; it verifies the public command and
-isolated fixture configuration. Fixture repositories disable line-ending
-conversion and irrelevant Git output. Structure and safe key choices are
+isolated fixture configuration. When Lazy redraws the same plugin row, the
+speech planner suppresses an extra character announcement from the restored
+cursor column. Explicit character and word navigation remain audible.
+Fixture repositories disable line-ending
+conversion and irrelevant Git output. On shared or mapped drives, the isolated
+Git configuration permits only the concrete fixture repositories. Preparation
+stops at the first failed tool or profile check and names its immediate reason.
+It verifies and reuses matching pinned tools and only the plugin revisions
+required by the selection. Saved state records the profiles that passed
+preflight, so a new selection is not skipped because other profiles passed.
+Pyright runs directly through Node. Direct tool failures include tool output;
+linter failures name the configured provider and whether its process is still
+running.
+Structure and safe key choices are
 documented in [guided practical tests](human-testing.md).
 Optional empty path lists remain real JSON arrays in the PowerShell runner;
 the Lua verifier additionally normalizes older or external JSON `null` before

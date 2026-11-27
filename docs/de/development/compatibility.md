@@ -8,14 +8,31 @@ ist keine Zusage für jede Benutzereinstellung oder Darstellung.
 
 | Komponente | Referenzstand |
 |---|---|
-| Windows | Windows 11 25H2, 64 Bit |
-| NVDA | Hauptpfad 2026.1.1; F12-/Fokus-Feldtest 2026.2beta10; Manifestminimum 2026.1, zuletzt getestet 2026.2 |
-| Terminalfrontend | Windows Terminal 1.24.x |
-| Lokales Neovim | 0.12.3 praktisch; 0.10.1 automatisiert |
+| Windows | Windows 11 24H2, 64 Bit im Gast; Windows 11 25H2 im früheren Feldtest |
+| NVDA | 2026.3.1 im vollständigen Windows-Gastlauf; 2026.1.1 für Paket und Fokus; Manifestminimum 2026.1 |
+| Terminalfrontend | Windows Terminal 1.25.3131.0 im Gast; 1.24.x im früheren Feldtest |
+| Lokales Neovim | 0.12.6 im vollständigen Windows-Gastlauf; 0.10.1 im Mindestversionslauf |
 | SSH-Client | OpenSSH für Windows 9.5p2 mit schlüsselbasierter Anmeldung |
 | Linux | Rocky Linux 10.2, Kernel 6.12.0-211.28.1.el10_2 |
 | Entferntes Neovim | 0.10.1 und 0.12.3 |
 | Linux-Bridge | Python 3.12.13 in der Referenzumgebung |
+
+Ein isolierter Windows-Lauf mit NVDA 2026.3.1 prüfte den Start des
+paketierten Add-ons und den Import seines Windows-Terminal-AppModules.
+Mit nativem Neovim 0.12.6 bestanden die Lua-Suite und der lokale
+Loopback-TCP-Test. Der paketierte NVDA-Client authentifizierte sich außerdem
+bei einer isolierten Neovim-Instanz und empfing ihren vollständigen Zustand.
+Ein Windows-11-24H2-Gast mit interaktivem Desktop bestätigte außerdem
+F12-Zuordnung, Editieren, getrennte Panes, Tab- und Fensterwechsel sowie
+die Rückkehr zum verbleibenden Pane nach dem Beenden eines Editors. Der
+Lauf verwendete Windows Terminal 1.25.3131.0, NVDA 2026.3.1 und Neovim
+0.12.6. Dieselbe Folge bestand mit NVDA 2026.1.1 und Neovim 0.10.1.
+Beide NVDA-Versionen bestanden Paketinstallation und -entfernung sowie digitale Prüfungen
+für Sprache, 40 Braillezellen und Tonanforderungen. Hörbare Ausgabe und
+physische Braille-Geräte lagen außerhalb dieser Fokusläufe. Der vollständige
+Gastlauf prüfte alle 18 geführten Fälle einschließlich aufgezeichneter
+PCM-Signale. Verständlichkeit und taktile Lesbarkeit liegen außerhalb
+dieser Messungen.
 
 Neovim 0.10.1 ist die vorläufige Mindestversion. Neuere optionale APIs werden
 nur nach Featureprüfung verwendet. Unter Neovim 0.10 richtet das Plugin für
@@ -79,8 +96,8 @@ Die geführten P1- bis P4-Abläufe bestätigten im Windows-/NVDA-Referenzpfad
 Fenster und Zeilennavigation, Sprachexploration, Braillemarker sowie die drei
 isolierten Verwaltungsabläufe praktisch.
 
-Der Windows-Lauf prüft den geführten Test-Runner mit Neovim 0.12.3, führt
-aber keine praktische NVDA-Abnahme aus.
+Der gehostete GitHub-Windows-Job validiert den geführten Runner mit Neovim
+0.12.3. Der vollständige NVDA-Gastlauf folgt der [Teststrategie](testing.md).
 
 Die Checkouts, Sprachlaufzeiten und Werkzeuge sind Testabhängigkeiten und
 werden nicht ausgeliefert. Sprachen sind nicht im Add-on fest verdrahtet. Ein
@@ -112,7 +129,7 @@ Bildschirmspalte verändern; die UTF-8-Routingposition bleibt korrekt.
 
 ## Build- und Dokumentationsabhängigkeiten
 
-MessagePack Python 1.1.1 wird in Add-on und Linux-Komponentenpaket gebündelt.
+MessagePack Python 1.1.2 wird in Add-on und Linux-Komponentenpaket gebündelt.
 Das Linux-Ziel benötigt deshalb kein separates MessagePack- oder pynvim-Paket.
 
 Python 3, ConfigObj und Pandoc werden nur für Tests oder Builds verwendet.

@@ -17,8 +17,9 @@ OpenSSH-Prozess und die entfernte Bridge hinzu. `protocol/python/` und
 | `nvda-addon/core/` | NVDA-unabhängige Verbindungsmodelle und -koordination, Dienstregistrierung, Gate, Discovery sowie Sprach- und Brailleplanung | `connection_coordinator.py`, `service_registrar.py`, `gate.py`, `connection_instances.py`, `speech.py`, `braille.py` |
 | `nvda-addon/addon/` | NVDA-Global-Plugin, Windows-Terminal-AppModule, UI- und Präsentationsdienste, Ressourcen und Übersetzungskataloge | `globalPlugins/NeovimAccessLink/__init__.py`, `globalPlugins/NeovimAccessLink/nvda_ui.py`, `globalPlugins/NeovimAccessLink/nvda_presentation.py`, `appModules/windowsterminal.py` |
 | `packaging/` | rootlose Installation der Linux-Benutzerkomponenten | `install_user.py` |
-| `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog- und Testwerkzeuge | `run_tests.py`, `build_nvda_addon.py`, `build_user_package.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
-| `tests/human/` | kleine geführte Praxistests für reale NVDA-, Audio-, Braille- und Fokusgrenzen | `framework/run.ps1`, `framework/validate.py`, `plans/` |
+| `tools/` | reproduzierbare Paket-, Dokumentations-, Katalog-, Synchronisierungs- und Testwerkzeuge | `run_tests.py`, `windows_workspace_sync.py`, `build_release.py`, `distribution_build.py`, `build_documentation.sh`, `test_neovim_plugin.sh` |
+| `tests/human/` | gemeinsame Testkarten und isolierte Neovim-Profile | `framework/run.ps1`, `framework/validate.py`, `plans/` |
+| `tests/guided/windows/` | automatisierte Desktop- und Audioprüfungen im Windows-Gast | `run_guided_suite.py`, `audit_result.py` |
 | `docs/de/manual/` | deutsche Anwenderdokumentation | `README.md`, `quick-guide.md` |
 | `docs/de/development/` | deutsche Entwicklererklärung, Referenz und Nachweise | diese Datei und die Übersicht `README.md` |
 | `docs/en/` | englische Anwender- und Entwicklerdokumentation | `README.md` |
@@ -71,8 +72,10 @@ Diese Verzeichnisse sind keine alternativen Quellen der Wahrheit.
 - `bridge/python/tests/` prüft Discovery, RPC-Bridge und stdio-Transport.
 - `nvda-addon/tests/` prüft Core, Speech/Braille, Paketinhalt und NVDA-nahe
   Adapter mit Testdoubles.
-- `tests/human/` enthält nur praktisch wahrnehmbare Assertions; Pläne,
-  Übersetzungen und JSON-Ergebnisvertrag werden automatisiert validiert.
+- `tests/human/` enthält Karten, Übersetzungen und isolierte Profile für
+  den automatisierten Gastlauf und den geführten PowerShell-Runner.
+- `tests/guided/windows/` prüft die digital beobachtbaren Erwartungen der
+  Karten mit echtem Windows-Fokus und NVDA-Ausgabe.
 
 Die Auswahl und Ausführung der Suiten steht in [testing.md](testing.md).
 

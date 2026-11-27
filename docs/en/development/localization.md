@@ -15,10 +15,11 @@ and messages originating in Neovim or third-party tools are not translated.
 
 ## Files and workflow
 
-- `nvda-addon/locale/NeovimAccessLink.pot` is the extracted template.
-- `nvda-addon/locale/de/LC_MESSAGES/nvda.po` is the German source catalog.
-- `nvda-addon/locale/de/manifest.ini` localizes manifest fields which NVDA may
-  display before Python code is loaded.
+- `nvda-addon/addon/locale/NeovimAccessLink.pot` is the extracted template.
+- `nvda-addon/addon/locale/de/LC_MESSAGES/nvda.po` also contains the add-on name
+  and description. The build uses their translations in the localized manifest.
+- The build takes the German manifest changelog from the German developer
+  changelog.
 - The `.nvda-addon` contains only `locale/de/LC_MESSAGES/nvda.mo` and the
   translated manifest, never PO or POT sources.
 
@@ -27,8 +28,10 @@ After changing visible text, run from the repository root:
 ```bash
 python3 tools/gettext_catalog.py update
 python3 tools/gettext_catalog.py check
-python3 tools/build_nvda_addon.py
+python3 tools/run_tests.py package
 ```
+
+`python -m SCons pot` updates only the extracted template.
 
 `update` extracts literal messages only and preserves existing translations.
 `check` requires exactly one PO entry for each source message, rejects obsolete
@@ -36,7 +39,10 @@ entries, and compares named Python format placeholders. Untranslated entries
 are allowed and intentionally fall back to English. The MO compiler omits them
 from the binary just like GNU `msgfmt`; an empty translation must never remove
 visible text. The build compiles catalogs deterministically with the Python
-standard library, so GNU gettext tools are not a build dependency.
+standard library, so GNU gettext tools are not a build dependency. Development
+artifacts are created with `build.cmd` in the local Windows checkout;
+the distributable release add-on is created with `tools/build_release.py` on
+Linux.
 
 The initial tool handles singular messages with named `str.format` fields.
 True plural forms (`ngettext`) and contextual translations (`pgettext`) will

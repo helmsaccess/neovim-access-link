@@ -4,6 +4,7 @@ line-length = 110
 builtins = ["_", "ngettext", "pgettext", "npgettext"]
 include = [
 	"nvda-addon/addon/**/*.py",
+	"sconstruct",
 ]
 
 [tool.ruff.format]

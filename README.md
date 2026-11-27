@@ -119,19 +119,20 @@ Follow the [English Quick Guide](docs/en/manual/quick-guide.md) or
 [German Quick Guide](docs/de/manual/quick-guide.md) for the exact accessible
 steps.
 
-Windows users who want a current development build can download or clone the
-source, install Python 3.10 or newer, and double-click `build.cmd`. The launcher
-downloads pinned build dependencies into a temporary environment and puts
-the resulting `.nvda-addon` in `dist`; it does not change the system Python
-environment. An internet connection is required while dependencies are
-installed.
+From a clean local Windows branch, run `build.cmd` with current Python 3
+and Git Bash available. The build uses Pandoc 3.1.11.1 and pinned Python
+dependencies, and places the matching add-on and documentation ZIP in `dist`.
+See [development setup](docs/en/development/getting-started.md) for the test
+environment and the [build guide](docs/en/development/release-and-build.md)
+for prerequisites.
 
 ## Compatibility and status
 
-The confirmed reference environment uses Windows 11, NVDA 2026.1.x, Windows
-Terminal, local Windows Neovim 0.12.3, and Neovim 0.10.1 or 0.12.3 on Rocky
-Linux 10 over Windows OpenSSH. Local Neovim 0.10.1 remains covered by
-automated tests.
+Automated local reference runs used Windows 11 24H2, NVDA 2026.3.1, Windows
+Terminal 1.25.3131.0, and Neovim 0.12.6. The add-on requires at least NVDA
+2026.1. Local Neovim 0.10.1 remains covered by automated tests. The remote
+path was confirmed with Neovim 0.10.1 and 0.12.3 on Rocky Linux 10.2 over
+Windows OpenSSH.
 
 Windows Terminal is currently the only supported terminal front end. Portable
 Windows layouts and `NVIM_APPNAME` are not supported. See
@@ -160,8 +161,9 @@ menu. The same sources are available here:
 ## Contributing, security, and license
 
 Bug reports, practical testing, documentation improvements, and focused code
-reviews are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting
-changes and [SECURITY.md](SECURITY.md) for private security reports.
+reviews are welcome. Submit changes to `main` through a GitHub pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the review workflow and
+[SECURITY.md](SECURITY.md) for private security reports.
 
 Neovim Access Link is licensed under `GPL-2.0-only`. See
 [LICENSE](LICENSE). Contributors additionally grant the project maintainer the

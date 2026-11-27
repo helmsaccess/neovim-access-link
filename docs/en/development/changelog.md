@@ -6,6 +6,84 @@ test-build entries through August 5, 2026.
 
 ## Unreleased
 
+- Updates the NVDA and Neovim reference versions and documents the verified
+  Windows guest checks for all 18 guided cases. The final analysis and re-audit
+  remain available as historical reports. GitHub Actions checks the Windows
+  desktop separately from the complete guest suite, which a private lab runs
+  through a reusable workflow.
+- Preserves a C1 recording with a missing QEMU start marker, permits one
+  replay with a fresh lab guest after the guest and WASAPI checks pass, and
+  audits both attempts. The Actions job runs independent cases after a failure
+  and shuts down its own test guest after the suite.
+- Verifies C1 and D1 QEMU calibration markers with bounded matches across disjoint
+  waveform segments and adds controls for noise, partial and misaligned
+  markers, and duplicates.
+- Restarts the managed guest between the independent P2 fixtures and
+  detects a QEMU exit while waiting for desktop readiness.
+- Adds optional guided desktop and audio test groups with an isolated
+  Windows guest and verified controls.
+- Announces the expanded or collapsed state of a lazy.nvim entry without
+  spelling an extra character when the redraw restores the cursor column.
+- Opens the Quickfix list on F3 in guided task L4. A regression test
+  checks that the first result receives focus.
+- Waits for Ruff and Pyright in the guided Python diagnostic tests. The
+  fixture leaves import warnings to Ruff so late Pyright results cannot
+  change the navigation order after the readiness announcement.
+- Exercises guided search, replacement, LSP, completion, diagnostics and the
+  Lazy window through actual Neovim input and authenticated RPC. Verifies
+  signature and diagnostic context without moving the cursor. Adds negative
+  controls for incomplete replacement, stale diagnostic context and Lazy Git
+  verification. Corrects the L2 instructions for moving past a decimal argument.
+- Set the manifest's last-tested NVDA API to 2026.3.1, the version used in the Windows checks.
+- Requires pull requests for changes to `main`, including release preparation.
+  Documents semantic product versions, dated changelogs, GitHub release
+  drafts and the Store upgrade baseline. Packaging accepts the new headings
+  and can build from an empty unreleased section. The PR template asks for
+  a changelog covering the full diff.
+- Uses SCons for the add-on build and gettext template. Base and localized
+  manifests follow the NVDA AddonTemplate layout. The gettext catalog supplies
+  the localized manifest name and description.
+- Normalizes ZIP metadata and bundled Python line endings so Windows and Linux
+  builds use the same package data.
+- Verifies F12 pairing, editing, panes, tabs, window switching, and recovery
+  after an editor exits on an active Windows guest desktop with current and
+  minimum NVDA and Neovim versions. The Windows setup records the optional
+  Visual C++ runtime needed on a fresh system.
+- Bounds connection setup and reads in the shared Neovim RPC client. Invalid
+  RPC messages cause a disconnect. Controls use the verified, registered
+  channel.
+- Exercises the local Python client against real Neovim, including session
+  registration, full state, and cursor routing.
+- Reaps the SSH process after protocol errors and cancellation during process
+  startup before attempting another connection.
+- Scales parallel test runs to the available logical processors. Up to twelve
+  isolated shards speed up package tests on many-core machines. `-j` still
+  sets the limit for each run.
+- Enables local Windows development with Git fetches from `origin`. `build.cmd`
+  uses a clean local branch. Python and Lua tests support native Windows paths
+  and test processes. The Windows socket run checks the local TCP path.
+  Unix socket and PTY tests run on Linux.
+
+- Uses the current NVDA imports for Braille regions and retains the fallback
+  for NVDA 2026.1. The built add-on starts on NVDA 2026.3.1. Lua and Windows
+  TCP tests use Neovim 0.12.6.
+- Builds the add-on and documentation ZIP through a shared isolated core.
+  The Windows build recognizes official Pandoc 3.1.11.1 with Windows line
+  endings. The Linux release build uses an approved clean `main` snapshot.
+  The earlier Git-ref synchronizer was part of the Linux development workflow.
+  MessagePack 1.1.2 provides official wheels for Python 3.14.
+- Replaces the standalone generated-to-installed documentation sync with an
+  internal layout library and removes the unused Windows NVDA log uploader.
+- Fixes Lazy guided-test preparation on shared or mapped repository drives:
+  the isolated Git configuration lists the concrete fixture repositories
+  instead of a wildcard. Preparation stops at the first failed tool or profile
+  check and shows its immediate reason. Existing Pyright installations are
+  recognized from the package, server file, and a real CLI invocation and are
+  started directly through Node. Preparation loads only plugins required by
+  the selection, starts each linter exactly once, and evaluates its own
+  diagnostic namespace. Saved state distinguishes which selected profiles
+  already passed preflight. Specific reuse, update, and provider errors replace
+  ambiguous aggregate messages.
 - Starts the 0.99.0 development line with development build 1 after the 0.98.0
   beta pre-release.
 - Simplifies Neovim-plugin runtime state: the public root facade now composes

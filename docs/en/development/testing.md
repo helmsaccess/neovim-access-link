@@ -32,15 +32,19 @@ separate temporary directories.
 | `lua` | headless-Neovim specifications without listeners |
 | `ssh` | mocked SSH, Askpass, command, and failure paths |
 | `socket` | real disposable TUI, RPC, TCP, and Unix-socket cases |
+| `guided-desktop` | Windows VM with focus, speech, and Braille checks |
+| `guided-audio` | Windows VM with PCM recordings and muted controls |
 | `quick` | fast feedback; `unit` only |
 | `all-safe` | `unit`, `package`, and listener-free `lua` |
 | `all` | `all-safe`, then `ssh` and `socket` in separate phases |
 
-Without a group argument, the runner uses the safe preset. `-j N` limits
-parallelism, and `--list` shows selection without running it. Every isolated
-job runs in its own process group. After 180 seconds, the complete group,
-including Neovim and helper processes it started, is terminated and the job is
-reported as failed. The real-TUI send
+Without a group argument, the runner uses the safe preset. The default number
+of parallel jobs follows the logical processors available to Python. Use `-j N`
+to set the limit for a run. Package tests use up to twelve independent shards.
+Each shard builds its own package. Use `--list` to inspect the selection
+without running it. Every isolated job runs in its own process group. After
+180 seconds, the runner terminates the entire group, including Neovim and
+helper processes it started, and reports the job as failed. The real-TUI send
 helper additionally bounds pseudo-terminal draining to one second and 8 MiB
 per physical-key step.
 The compact output also reports skipped cases and Python warnings per job and
@@ -75,12 +79,81 @@ Unix sockets, and short-lived Neovim processes:
 python3 tools/run_tests.py socket
 ```
 
+On Windows the runner executes the local TCP tests in this group. They verify
+session registration and a real Neovim process with authenticated initial
+state and cursor routing through the Python client. Use a Linux checkout for
+the complete group with Unix sockets and Pexpect PTYs.
+
 In a restricted sandbox, a listener failure is an environment limitation, not
 a passing test. Run the socket phase later in a permitted environment.
 `python3 tools/run_tests.py all` is appropriate only where all three phases are
 allowed.
 
+### Guided workflows over real Neovim RPC
+
+With Neovim 0.12.x on `PATH`, the socket phase also loads the guided test
+profile in fresh editors. It queues the actual mapped keys using `nvim_input`
+and receives semantic events through the authenticated production client.
+Assertions cross-check events with native buffer, cursor, quickfix, diagnostic
+and completion state, external linter output, or unchanged fixture files.
+
+L4 and L6 need only Neovim. The other cases use versions from
+`tests/human/dependencies.json` and skip with a reason if a required tool
+or path is missing. Set these variables before running the socket phase:
+
+| Variable or executable | Expected dependency | Cases |
+| --- | --- | --- |
+| `NAL_GUIDED_PYRIGHT` and `node` on `PATH` | Pyright's `langserver.index.js` and Node.js | L1–L3, L5, C1–C3, D1, D2 |
+| `NAL_GUIDED_COMPLETION_ROOT` | Parent directory of the pinned Git checkouts `nvimCmp`, `cmpNvimLsp` and `blinkCmp` | C2, C3 |
+| `NAL_GUIDED_NVIM_LINT` | Pinned nvim-lint Git checkout | D1–D4 |
+| `ruff` on `PATH` | Pinned Ruff executable | D1, D2 |
+| `NAL_GUIDED_CLANG_TIDY` | Pinned Clang-Tidy executable | D3 |
+| `NAL_GUIDED_MARKDOWNLINT` | Pinned markdownlint-cli2 executable or Windows command wrapper | D4 |
+| `NAL_GUIDED_LAZY` | Pinned lazy.nvim Git checkout | P1 |
+
+L3 and D2 verify the context data supplied to NVDA. They compare the real
+provider results, correlate requests with the editor snapshot, and check
+that the query leaves the cursor unchanged. D2 also submits a stale
+snapshot and requires an explicit rejection.
+
+For P1, a separate client attaches using `nvim_ui_attach` and receives the
+real Neovim redraw stream. The test also reads native buffer state and checks
+the semantic command bar and expanded state through the production client.
+For P2–P4, `bash tools/test_lazy_plugin.sh PATH_TO_PINNED_LAZY_NVIM` runs the
+real Lazy commands with disposable local Git repositories. It checks the
+operation lifecycle and then checks Git revisions and removal independently.
+The fixture verifier must also detect a real rollback and, for Sync, a
+reintroduced stale directory.
+
+These checks cover the Neovim and protocol portions of the tasks. Windows
+focus, NVDA's speech and Braille output, and physical perception require
+separate observations. See the [guided test scope](human-testing.md).
+
+### Guided Windows and audio checks
+
+The optional groups run serially in an isolated Windows guest. `--list`
+shows case IDs. Repeat `--guided-case` to limit a run to selected cases.
+
+```powershell
+python tools/run_tests.py guided-desktop guided-audio --list
+python tools/run_tests.py guided-desktop guided-audio --guided-config $labConfig --guided-addon $addon
+```
+
+`tests/guided/windows/README.md` describes VM configuration, tools, and
+evidence. VM data stays in the local auxiliary workspace. Guest reports
+record the package checksum and cleanup acknowledgement. The checks observe
+digital Braille patterns, sequences sent to the speech synthesizer, and
+rendered audio. Device-specific Braille perception, acoustic intelligibility,
+and subjective latency lie outside these measurements.
+
 ## Mapping changes to tests
+
+Check operating-system focus and key gestures on an interactive, isolated
+Windows desktop. A Windows guest can observe Win32 foreground, UI Automation
+focus, and keys from a virtual keyboard device. The harness under
+`tests/guided/windows/` uses a separate NVDA configuration and
+portable Windows Terminal. Use explicit failure checks in the portable NVDA
+test code. NVDA runs Python with optimization and omits `assert` statements.
 
 | Change | Required emphasis |
 |---|---|
@@ -156,44 +229,82 @@ Jobs are deliberately separated into:
 - real TUI, TCP, and Unix-socket cases;
 - build and link validation for all eight documentation files.
 
-A green matrix job confirms only its named contract. Practical NVDA, Windows
-Terminal, and Braille output remains a separate acceptance activity.
+A green matrix job confirms its named contract. The full desktop and audio
+evidence comes from the isolated Windows guest.
+
+The hosted `.github/workflows/guided-windows-hosted.yml` workflow builds
+the add-on, loads it in portable NVDA, and verifies the focused `TermControl`
+and keyboard delivery to the console process. The S1 test also checks that
+F12 binds the editor and F10 restores native terminal events, caret editing,
+and digital Braille in the original PowerShell tab. Its control omits F10 and
+must fail at that step.
+The observed `windows-2025` runner had no default WASAPI render endpoint.
+Guest captures use the render endpoint inside the Windows guest.
+[Hosted NVDA focus and S1 evidence](https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969)
+
+The reusable `.github/workflows/guided-windows-vm.yml` workflow runs all 18
+cases and the complete audit in a provisioned Windows lab. A private
+repository under the same owner pins the workflow to a reviewed commit SHA
+and its owner starts it manually from the default branch. Runner access is
+restricted to the private repository. The job uses the project's own Windows
+runner, so it consumes zero GitHub-hosted minutes. Raw logs, guest media, and
+recordings stay in the lab. See `tests/guided/windows/README.md` for setup and
+invocation.
+The lab runs the remaining independent cases after a case failure and stops
+its own guest at the end of the suite. A failed case still fails the complete
+audit. If C1 passes in Windows and WASAPI but the QEMU recording lacks its
+start marker, the lab restarts its guest and repeats the affected audio
+setting once. The audit reprocesses the rejected recording and the new full
+recording with the original requirements.
+For a C1 or D1 QEMU calibration marker with a short timing slip, the verifier can
+identify the marker from four of five disjoint waveform segments. Each
+segment must correlate by at least 0.92 and their implied starts must fall
+within 26 ms. It records the segment count and spread. The verifier uses
+full-waveform checks for the application cues and the independent WASAPI
+recording.
+The managed lab restarts the guest between the two independent P2 fixtures.
+If QEMU exits before the guest reports desktop readiness, the lab detects
+the exit and starts the same guest once again.
+The full guest suite has been verified locally. Running it through Actions
+requires a provisioned private lab runner.
 
 ## Build verification
 
-After a change to installable code, rebuild the add-on from the final worktree:
-
-```bash
-python3 tools/build_nvda_addon.py
-```
-
-Package tests open the actual `.nvda-addon` and strictly check base and
+Package tests build the add-on with an explicit temporary output directory,
+open the actual `.nvda-addon`, and strictly check base and
 localization manifests against the applicable official NVDA AddonTemplate
 fields, plus
 resources, all eight localized installed HTML documents, bundled Linux
 components, licenses, translation catalog, and forbidden files. An earlier
-archive is not evidence for later source changes.
+archive is not evidence for later source changes. The Linux development
+checkout receives neither a distributable add-on nor persistent build output.
 
-After documentation changes, rebuild documentation:
+After documentation changes, render and validate the complete documentation in
+temporary storage:
 
 ```bash
-tools/build_documentation.sh
+bash tools/build_documentation.sh --test-only
 ```
 
-The local reference build and the CI job use the official Pandoc 3.1.11.1
-binary build. The build script rejects repackaged builds because they can
-produce different syntax highlighting despite reporting the same Pandoc
-version. CI downloads the official archive with a pinned SHA-256 digest.
+The Linux release build and CI validation job use the respective official
+Pandoc 3.1.11.1 binary from an archive with a pinned SHA-256 digest. The
+Windows development build uses installed Pandoc 3.1.11.1 with the expected
+build features. Otherwise it downloads the verified official binary into its
+temporary build directory.
 
 The build checks the canonical Lua example, German and English source files
 and heading structures, local Markdown links, generated HTML targets,
-language, title, and description metadata, and the eight expected files in the
-ZIP. The same results are synchronized for installed help; CI rejects stale
-copies. Historical archives explicitly excluded from current documentation are
+language, title, and description metadata, and the eight expected documents.
+The script deletes its output after validation; CI publishes no end-user
+artifact. Historical archives explicitly excluded from current documentation are
 validated but not included in HTML.
 
-When work changes both installable code and documentation, build both
-artifacts from the same final worktree.
+After complete validation, `build.cmd` creates development artifacts in the
+local Windows checkout. The approved Linux state creates the later
+published release artifacts with `python3 tools/build_release.py`. Both entry
+points use the same isolated core and build the add-on and documentation ZIP
+from one stable branch and commit. See [release, version, and build
+process](release-and-build.md) for prerequisites and stop conditions.
 
 ## Practical testing
 

@@ -9,7 +9,7 @@ local function run(arguments)
   return vim.trim(result.stdout or "")
 end
 
-vim.fn.delete(sandbox, "rf")
+assert(not vim.uv.fs_stat(sandbox), "Lazy probe requires a fresh scratch directory")
 local source = vim.fs.joinpath(sandbox, "source")
 local remote_root = vim.fs.joinpath(sandbox, "origins")
 local plugins = vim.fs.joinpath(sandbox, "plugins")
@@ -135,4 +135,17 @@ assert(#verified_revisions == #specifications,
   "F5 fixture verification omitted an expected Git revision")
 assert(#verified_absent == (mode == "sync" and 1 or 0),
   "F5 fixture verification omitted an expected removal")
+
+local wrong_revision = fixture.plugins[1]
+run({ "git", "-C", vim.fs.joinpath(plugins, wrong_revision.name), "checkout", "--detach", revision_a })
+local problems, revisions, absent = fixture_support.verify(fixture)
+assert(vim.deep_equal(problems, { wrong_revision.name .. " revision mismatch" }))
+assert(#revisions == #specifications - 1 and #absent == #verified_absent)
+if mode == "sync" then
+  run({ "git", "-C", vim.fs.joinpath(plugins, wrong_revision.name), "checkout", "--detach", revision_b })
+  assert(vim.fn.mkdir(fixture.absent[1], "p") == 1)
+  problems, revisions, absent = fixture_support.verify(fixture)
+  assert(vim.deep_equal(problems, { "access-link-stale-target still present" }))
+  assert(#revisions == #specifications and #absent == 0)
+end
 print(string.format("Lazy %s probe passed", mode))

@@ -17,7 +17,7 @@ practically confirmed; other Linux systems are not practically confirmed.
 You need:
 
 - Windows 11;
-- NVDA 2026.1.x;
+- NVDA 2026.1 or later (last tested with 2026.3.1);
 - Windows Terminal;
 - Neovim 0.10.1 or later.
 

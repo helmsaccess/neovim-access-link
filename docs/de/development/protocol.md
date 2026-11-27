@@ -45,6 +45,13 @@ jedoch vor der Übergabe an NVDA mit demselben v2-Envelope, denselben Typen und
 demselben 1-MiB-Limit validiert. Freie Host- oder Portkonfiguration ist nicht
 vorgesehen.
 
+Der gemeinsame MessagePack-RPC-Client für Loopback und Unix-Sockets beschränkt
+den Empfangspuffer und hält während des Verbindungsaufbaus höchstens 64
+Benachrichtigungen zurück. Er prüft RPC-Nachrichtenstrukturen, begrenzt
+Aufbauanfragen zeitlich und akzeptiert ausgehende Controls erst nach
+Identitätsprüfung und Kanalregistrierung. Normale Leerlaufphasen halten die
+Verbindung offen.
+
 ## Framing und Envelope
 
 Jede Nachricht besteht aus einem vier Byte großen vorzeichenlosen

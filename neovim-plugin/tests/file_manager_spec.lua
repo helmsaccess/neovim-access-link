@@ -11,17 +11,19 @@ local function equal(expected, actual, label)
   ))
 end
 
-local directory = "/tmp/nvim-nvda-file-manager-spec"
-vim.fn.delete(directory, "rf")
+local directory = vim.fs.normalize(vim.fn.tempname())
+local windows = vim.fn.has("win32") == 1
 vim.fn.mkdir(directory .. "/folder", "p")
 vim.fn.writefile({ "content" }, directory .. "/item.txt")
 vim.fn.writefile({ "space" }, directory .. "/name with spaces.txt")
 vim.fn.writefile({ "double" }, directory .. "/two  spaces.txt")
-vim.fn.writefile({ "tab" }, directory .. "/tab\tname.txt")
+if not windows then
+  vim.fn.writefile({ "tab" }, directory .. "/tab\tname.txt")
+  assert(vim.uv.fs_symlink("item.txt", directory .. "/link"))
+  assert(vim.uv.fs_symlink("item.txt", directory .. "/link with spaces"))
+end
 vim.fn.writefile({ "unicode" }, directory .. "/Grüße.txt")
 vim.fn.writefile({ "wide" }, directory .. "/second with spaces.txt")
-vim.fn.system({ "ln", "-s", "item.txt", directory .. "/link" })
-vim.fn.system({ "ln", "-s", "item.txt", directory .. "/link with spaces" })
 vim.cmd("Explore " .. vim.fn.fnameescape(directory))
 
 local oil_prompt = manager_prompt.oil_confirmation({
@@ -66,8 +68,9 @@ local lines
 local function refresh_lines()
   lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 end
-local function move_to(pattern, at_match)
-  for index, line in ipairs(lines) do
+local function move_to(pattern, at_match, first_line)
+  for index = first_line or 1, #lines do
+    local line = lines[index]
     local column = line:find(pattern, 1, true)
     if column then
       vim.api.nvim_win_set_cursor(0, { index, at_match and column - 1 or 0 })
@@ -88,8 +91,8 @@ refresh_lines()
 move_to("folder/")
 local folder = manager.current()
 equal("netrw", folder.name, "netrw detected")
-equal(directory, folder.root, "netrw displayed root")
-equal(directory, folder.currentDirectory, "netrw current directory")
+equal(directory, vim.fs.normalize(folder.root), "netrw displayed root")
+equal(directory, vim.fs.normalize(folder.currentDirectory), "netrw current directory")
 equal("folder", folder.entry.name, "directory name normalized")
 equal("directory", folder.entry.type, "directory metadata")
 
@@ -101,18 +104,19 @@ vim.fn.matchadd("netrwMarkFile", "item\\.txt")
 equal(true, manager.current().entry.marked, "netrw marked metadata")
 equal("marked", manager.current().entry.selectionState, "netrw mark semantics")
 
-move_to("link@")
-equal("symbolicLink", manager.current().entry.type, "link metadata")
-
 move_to("name with spaces.txt")
 equal("name with spaces.txt", manager.current().entry.name, "thin-list spaces preserved")
-move_to("tab\tname.txt")
-equal("tab\tname.txt", manager.current().entry.name, "thin-list tab preserved")
 move_to("Grüße.txt")
 equal("Grüße.txt", manager.current().entry.name, "thin-list Unicode preserved")
-move_to("link with spaces@")
-equal("link with spaces", manager.current().entry.name, "symlink target decoration removed")
-equal("symbolicLink", manager.current().entry.type, "spaced symlink metadata")
+if not windows then
+  move_to("tab\tname.txt")
+  equal("tab\tname.txt", manager.current().entry.name, "thin-list tab preserved")
+  move_to("link@")
+  equal("symbolicLink", manager.current().entry.type, "link metadata")
+  move_to("link with spaces@")
+  equal("link with spaces", manager.current().entry.name, "symlink target decoration removed")
+  equal("symbolicLink", manager.current().entry.type, "spaced symlink metadata")
+end
 
 reopen_netrw(1)
 move_to("two  spaces.txt")
@@ -135,8 +139,8 @@ equal("second with spaces.txt", manager.current().entry.name, "wide-list cursor 
 reopen_netrw(3)
 move_to("| name with spaces.txt")
 equal("name with spaces.txt", manager.current().entry.name, "tree depth removed")
-move_to(vim.fn.fnamemodify(directory, ":t") .. "/")
-equal(directory, manager.current().entry.path, "tree root path is not duplicated")
+move_to(vim.fn.fnamemodify(directory, ":t") .. "/", false, vim.w.netrw_bannercnt)
+equal(directory, vim.fs.normalize(manager.current().entry.path), "tree root path is not duplicated")
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
 equal(nil, manager.current().entry, "netrw banner has no semantic entry")
 

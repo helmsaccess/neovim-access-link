@@ -23,11 +23,11 @@ from tools.build_nvda_addon import (
     LOCALIZED_MANIFEST_FIELDS,
     NVDA_TEMPLATE_MANIFEST_FIELDS,
     build,
-    find_msgpack_license,
     validate_localized_manifest,
     validate_manifest,
     write_manifest,
 )
+from tools.build_user_package import find_msgpack_license
 from tools import build_user_package
 import buildVars
 
@@ -143,11 +143,11 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_msgpack_license_is_found_in_flat_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
-        expected = root / "msgpack-1.1.1.dist-info" / "COPYING"
+        expected = root / "msgpack-1.1.2.dist-info" / "COPYING"
         expected.parent.mkdir()
         expected.write_text("license", encoding="utf-8")
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 
@@ -155,11 +155,11 @@ class BuiltAddonTests(unittest.TestCase):
 
     def test_msgpack_license_is_found_in_wheel_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
-        expected = root / "msgpack-1.1.1.dist-info" / "licenses" / "COPYING"
+        expected = root / "msgpack-1.1.2.dist-info" / "licenses" / "COPYING"
         expected.parent.mkdir(parents=True)
         expected.write_text("license", encoding="utf-8")
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 
@@ -168,7 +168,7 @@ class BuiltAddonTests(unittest.TestCase):
     def test_msgpack_license_requires_one_supported_distribution_layout(self) -> None:
         root = pathlib.Path(self.temporary.name)
         distribution = types.SimpleNamespace(
-            version="1.1.1",
+            version="1.1.2",
             locate_file=lambda relative: root / relative,
         )
 
@@ -1152,6 +1152,44 @@ class BuiltAddonTests(unittest.TestCase):
             self.assertNotIn("HTTPS project URL", buildVars.changelog())
             self.assertIn("HTTPS project URL", buildVars.manifest_changelog())
             self.assertIn("HTTPS-Projektadresse", buildVars.manifest_changelog("de"))
+
+    def test_manifest_accepts_dated_release_headings_and_empty_development_sections(self) -> None:
+        root = pathlib.Path(self.temporary.name) / "versioned-changelogs"
+        for language, heading in (("en", "Unreleased"), ("de", "Unveröffentlicht")):
+            path = root / "docs" / language / "development" / "changelog.md"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                f"# Changelog\n\n## {heading}\n\n"
+                f"## [1.0.0] - 2026-11-26\n\n- Final {language}\n\n"
+                "## 0.100.0 (Beta)\n\n- Preview\n\n"
+                "## 0.98.0\n\n- Store baseline\n\n"
+                "[1.0.0]: https://example.invalid/releases/tag/v1.0.0\n",
+                encoding="utf-8",
+            )
+        with (
+            mock.patch.object(buildVars, "_ROOT", root),
+            mock.patch.object(buildVars, "product_version", "1.0.0"),
+            mock.patch.object(buildVars, "manifest_changelog_base_version", "0.98.0"),
+        ):
+            with mock.patch.object(buildVars, "development_build", 1):
+                self.assertEqual(buildVars.manifest()["changelog"], "No unreleased changes listed.")
+                self.assertEqual(
+                    buildVars.manifest_changelog("de"), "Keine unveröffentlichten Änderungen aufgeführt."
+                )
+            with mock.patch.object(buildVars, "development_build", None):
+                for language in ("en", "de"):
+                    self.assertEqual(buildVars.changelog(language), f"- Final {language}")
+                    self.assertEqual(
+                        buildVars.manifest_changelog(language),
+                        f"1.0.0\n\n- Final {language}\n\n0.100.0\n\n- Preview",
+                    )
+            self.assertEqual(buildVars._changelog_section("en", "0.98.0"), "- Store baseline")
+
+    def test_product_version_requires_canonical_numeric_semver(self) -> None:
+        for version in ("01.0.0", "1.00.0", "1.0.01", "１.０.０", "1.0", "1.0.0-beta.1"):
+            with self.subTest(version=version), mock.patch.object(buildVars, "product_version", version):
+                with self.assertRaisesRegex(ValueError, "invalid product version"):
+                    buildVars.manifest()
 
     def test_localized_manifest_validator_rejects_incomplete_or_extra_fields(self) -> None:
         path = pathlib.Path(self.temporary.name) / "localized-manifest.ini"
@@ -4225,6 +4263,7 @@ class BuiltAddonTests(unittest.TestCase):
             resource = "globalPlugins/NeovimAccessLink/resources/"
             config_bytes = archive.read(resource + "linux-components.json")
             package_bytes = archive.read(resource + "server-user.tar.gz")
+            vendor_license = archive.read("globalPlugins/NeovimAccessLink/vendor/MSGPACK-LICENSE.txt")
             addon_names = archive.namelist()
         self.assertIn(resource + "neovim-plugin/plugin/nvim_nvda.lua", addon_names)
         self.assertIn(resource + "neovim-plugin/lua/nvim_nvda/session.lua", addon_names)
@@ -4256,6 +4295,10 @@ class BuiltAddonTests(unittest.TestCase):
                 member for member in regular_members if member.name.endswith("/install.py")
             )
             self.assertEqual(0o755, bridge_member.mode)
+            with zipfile.ZipFile(io.BytesIO(package.extractfile(bridge_member).read())) as bundle:
+                self.assertEqual(vendor_license, bundle.read("MSGPACK-LICENSE.txt"))
+                self.assertIn(b"Apache License 2.0", bundle.read("THIRD_PARTY_NOTICES.txt"))
+                self.assertNotIn(b"\r\n", bundle.read("msgpack/fallback.py"))
             self.assertEqual(0o755, installer_member.mode)
             self.assertTrue(all(member.uid == member.gid == 0 for member in package.getmembers()))
             self.assertTrue(all(member.mtime == 0 for member in package.getmembers()))
@@ -13301,6 +13344,24 @@ class BuiltAddonTests(unittest.TestCase):
             )
         self.assertEqual(["ä", "x"], self.spelled)
         plugin.terminate()
+
+    def test_braille_regions_use_current_nvda_modules_when_available(self) -> None:
+        import braille
+
+        class Region(braille.Region):
+            pass
+
+        class TextInfoRegion(Region):
+            pass
+
+        with mock.patch.dict(sys.modules, {
+            "braille.regions.base": types.SimpleNamespace(Region=Region),
+            "braille.regions.textInfo": types.SimpleNamespace(TextInfoRegion=TextInfoRegion),
+        }):
+            from globalPlugins.NeovimAccessLink import nvda_braille
+
+            self.assertIs(nvda_braille.DeveloperContextMessageRegion.__base__, Region)
+            self.assertIs(nvda_braille.StructuredLineRegion.__base__, TextInfoRegion)
 
     def test_structured_braille_region_preserves_indent_cursor_and_selection(self) -> None:
         from globalPlugins.NeovimAccessLink import GlobalPlugin

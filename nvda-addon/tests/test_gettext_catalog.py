@@ -5,7 +5,9 @@ import pathlib
 import tempfile
 import unittest
 
+import buildVars
 from tools.gettext_catalog import (
+    LOCALE_ROOT,
     POT_PATH,
     PRODUCT_NAME,
     compile_mo,
@@ -20,7 +22,7 @@ from tools.gettext_catalog import (
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-GERMAN_PO = ROOT / "nvda-addon" / "locale" / "de" / "LC_MESSAGES" / "nvda.po"
+GERMAN_PO = LOCALE_ROOT / "de" / "LC_MESSAGES" / "nvda.po"
 NVDA_TRANSLATION_MODULES = (
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "__init__.py",
     ROOT / "nvda-addon" / "addon" / "globalPlugins" / "NeovimAccessLink" / "nvda_ui.py",
@@ -36,6 +38,15 @@ class GettextCatalogTests(unittest.TestCase):
         german = validate_catalog(GERMAN_PO, require_complete=True)
         self.assertEqual(source, set(template))
         self.assertEqual(source, set(german) - {""})
+
+    def test_manifest_metadata_is_extracted_with_translator_comments(self) -> None:
+        description = buildVars.addon_info["description"]
+        self.assertIn(
+            "Translators: Add-on description shown by NVDA.",
+            extract_messages()[description].comments,
+        )
+        german = validate_catalog(GERMAN_PO, require_complete=True)
+        self.assertTrue(german[description].startswith("Barrierefreie Neovim-Integration"))
 
     def test_german_catalog_translates_ui_and_semantic_speech(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
