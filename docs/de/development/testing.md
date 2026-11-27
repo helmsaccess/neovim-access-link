@@ -248,10 +248,14 @@ Desktop- und Audionachweis verwendet den isolierten Windows-Gast.
 
 Der gehostete Workflow `.github/workflows/guided-windows-hosted.yml`
 baut das Add-on, lädt es in portabler NVDA und prüft das fokussierte
-`TermControl`-Steuerelement sowie die Tastatureingabe bis zum
-Konsolenprozess. Der gemessene `windows-2025`-Runner hatte keinen
-WASAPI-Standardausgang. Die Gastaufnahmen verwenden den Render-Endpunkt
-im Windows-Gast. [Gehosteter NVDA-Fokustest](https://github.com/helmsaccess/neovim-access-link/actions/runs/45998314584)
+`TermControl`-Steuerelement sowie die Tastatureingabe bis zum Konsolenprozess.
+S1 prüft zusätzlich, dass F12 den Editor bindet und F10 im ursprünglichen
+PowerShell-Tab native Terminalereignisse, Eingabe am Cursor und digitale
+Brailleausgabe wiederherstellt. In der Gegenprobe fehlt F10, sodass die
+Prüfung genau an diesem Schritt scheitern muss. Der gemessene `windows-2025`-Runner
+hatte keinen WASAPI-Standardausgang.
+Die Gastaufnahmen verwenden den Render-Endpunkt im Windows-Gast.
+[Gehostete NVDA-Fokus- und S1-Nachweise](https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969)
 
 Der wiederverwendbare Workflow `.github/workflows/guided-windows-vm.yml`
 führt alle 18 Fälle und die vollständige Nachprüfung in einem vorbereiteten

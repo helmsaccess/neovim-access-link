@@ -234,18 +234,22 @@ evidence comes from the isolated Windows guest.
 
 The hosted `.github/workflows/guided-windows-hosted.yml` workflow builds
 the add-on, loads it in portable NVDA, and verifies the focused `TermControl`
-and keyboard delivery to the console process. The observed `windows-2025`
-runner had no default WASAPI render endpoint. Guest captures use the render
-endpoint inside the Windows guest.
-[Hosted NVDA focus check](https://github.com/helmsaccess/neovim-access-link/actions/runs/45998314584)
+and keyboard delivery to the console process. The S1 test also checks that
+F12 binds the editor and F10 restores native terminal events, caret editing,
+and digital Braille in the original PowerShell tab. Its control omits F10 and
+must fail at that step.
+The observed `windows-2025` runner had no default WASAPI render endpoint.
+Guest captures use the render endpoint inside the Windows guest.
+[Hosted NVDA focus and S1 evidence](https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969)
 
 The reusable `.github/workflows/guided-windows-vm.yml` workflow runs all 18
 cases and the complete audit in a provisioned Windows lab. A private
 repository under the same owner pins the workflow to a reviewed commit SHA
 and its owner starts it manually from the default branch. Runner access is
 restricted to the private repository. The job uses the project's own Windows
-runner, so it consumes zero GitHub-hosted minutes. Raw logs, guest media, and recordings stay in
-the lab. See `tests/guided/windows/README.md` for setup and invocation.
+runner, so it consumes zero GitHub-hosted minutes. Raw logs, guest media, and
+recordings stay in the lab. See `tests/guided/windows/README.md` for setup and
+invocation.
 The full guest suite has been verified locally. Running it through Actions
 requires a provisioned private lab runner.
 

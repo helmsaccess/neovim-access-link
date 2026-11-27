@@ -5383,10 +5383,13 @@ audio evidence comes from the isolated Windows guest.</p>
 <p>The hosted <code>.github/workflows/guided-windows-hosted.yml</code>
 workflow builds the add-on, loads it in portable NVDA, and verifies the
 focused <code>TermControl</code> and keyboard delivery to the console
-process. The observed <code>windows-2025</code> runner had no default
+process. The S1 test also checks that F12 binds the editor and F10
+restores native terminal events, caret editing, and digital Braille in
+the original PowerShell tab. Its control omits F10 and must fail at that
+step. The observed <code>windows-2025</code> runner had no default
 WASAPI render endpoint. Guest captures use the render endpoint inside
-the Windows guest. <a href="https://github.com/helmsaccess/neovim-access-link/actions/runs/45998314584">Hosted
-NVDA focus check</a></p>
+the Windows guest. <a href="https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969">Hosted
+NVDA focus and S1 evidence</a></p>
 <p>The reusable <code>.github/workflows/guided-windows-vm.yml</code>
 workflow runs all 18 cases and the complete audit in a provisioned
 Windows lab. A private repository under the same owner pins the workflow

@@ -5770,10 +5770,14 @@ Windows-Gast.</p>
 <code>.github/workflows/guided-windows-hosted.yml</code> baut das
 Add-on, lädt es in portabler NVDA und prüft das fokussierte
 <code>TermControl</code>-Steuerelement sowie die Tastatureingabe bis zum
-Konsolenprozess. Der gemessene <code>windows-2025</code>-Runner hatte
-keinen WASAPI-Standardausgang. Die Gastaufnahmen verwenden den
-Render-Endpunkt im Windows-Gast. <a href="https://github.com/helmsaccess/neovim-access-link/actions/runs/45998314584">Gehosteter
-NVDA-Fokustest</a></p>
+Konsolenprozess. S1 prüft zusätzlich, dass F12 den Editor bindet und F10
+im ursprünglichen PowerShell-Tab native Terminalereignisse, Eingabe am
+Cursor und digitale Brailleausgabe wiederherstellt. In der Gegenprobe
+fehlt F10, sodass die Prüfung genau an diesem Schritt scheitern muss.
+Der gemessene <code>windows-2025</code>-Runner hatte keinen
+WASAPI-Standardausgang. Die Gastaufnahmen verwenden den Render-Endpunkt
+im Windows-Gast. <a href="https://github.com/helmsaccess/neovim-access-link/actions/runs/46000887969">Gehostete
+NVDA-Fokus- und S1-Nachweise</a></p>
 <p>Der wiederverwendbare Workflow
 <code>.github/workflows/guided-windows-vm.yml</code> führt alle 18 Fälle
 und die vollständige Nachprüfung in einem vorbereiteten Windows-Labor
