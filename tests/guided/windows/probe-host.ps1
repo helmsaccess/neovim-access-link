@@ -13,6 +13,8 @@ public static class GuidedHostProbe {
         StringBuilder value, int size, out int needed);
     [DllImport("user32.dll")]
     static extern bool CloseDesktop(IntPtr handle);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
 
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"),
      InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -50,10 +52,52 @@ public static class GuidedHostProbe {
 }
 '@
 
+$desktop = [GuidedHostProbe]::InputDesktop()
+$keyboardProbe = 'not attempted without the default input desktop'
+if ($desktop -eq 'Default') {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $form = [System.Windows.Forms.Form]::new()
+    $form.Text = 'Guided runner keyboard probe'
+    $form.TopMost = $true
+    $inputField = [System.Windows.Forms.TextBox]::new()
+    $form.Controls.Add($inputField)
+    $timer = [System.Windows.Forms.Timer]::new()
+    $timer.Interval = 500
+    $evidence = @{ Result = 'foreground or keyboard input was not confirmed' }
+    $timer.Add_Tick({
+        $timer.Stop()
+        try {
+            if ([GuidedHostProbe]::GetForegroundWindow() -eq $form.Handle -and $inputField.Focused) {
+                [System.Windows.Forms.SendKeys]::SendWait('nalprobe')
+                if ($inputField.Text -ceq 'nalprobe') {
+                    $evidence.Result = 'foreground and keyboard input confirmed'
+                }
+            }
+        } finally {
+            $form.Close()
+        }
+    })
+    $form.Add_Shown({
+        $form.Activate()
+        [void]$inputField.Focus()
+        $timer.Start()
+    })
+    try {
+        [void]$form.ShowDialog()
+        $keyboardProbe = $evidence.Result
+    } finally {
+        $timer.Dispose()
+        $form.Dispose()
+    }
+}
+
 [ordered]@{
     os = [Environment]::OSVersion.Version.ToString()
     session = (Get-Process -Id $PID).SessionId
-    inputDesktop = [GuidedHostProbe]::InputDesktop()
+    inputDesktop = $desktop
+    foregroundKeyboard = $keyboardProbe
+    windowsTerminalCommand = [bool](Get-Command wt.exe -ErrorAction SilentlyContinue)
     renderEndpoint = [GuidedHostProbe]::DefaultRenderEndpoint()
     workspaceFreeGiB = [Math]::Round((Get-Item .).PSDrive.Free / 1GB, 1)
 } | ConvertTo-Json
